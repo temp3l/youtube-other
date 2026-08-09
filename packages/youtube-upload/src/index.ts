@@ -60,6 +60,15 @@ export {
   type YoutubeMediaClient,
 } from "./generic-media-publish.js";
 export {
+  auditYoutubePublicationIntent,
+  planYoutubePublicationIntent,
+  reconcileYoutubePublicationIntent,
+  youtubePublicationIntentSchema,
+  type PlanYoutubePublicationIntentInput,
+  type PublicationAuditSink,
+  type YoutubePublicationIntent,
+} from "./publication-intent.js";
+export {
   PUBLISH_APPROVAL_SCHEMA_VERSION,
   PublishApprovalError,
   approvePublishDryRun,

@@ -108,13 +108,48 @@ describe("DurableJobWorker", () => {
     );
   });
 
+  it("records a correlation-aware, redacted terminal outcome without changing durable authority", async () => {
+    const events: unknown[] = [];
+    const failJob = vi.fn(async () => true);
+    const subject = worker(
+      repository({ failJob }),
+      async () => ({
+        kind: "terminal_failure",
+        error: "provider authorization=Bearer secret https://example.test/a?token=secret",
+      }),
+      {
+        correlationId: () => "correlation-1",
+        instrumentation: { record: (event) => events.push(event) },
+      }
+    );
+
+    await expect(subject.dispatchOne("workspace-1")).resolves.toEqual({
+      kind: "failed",
+      jobId: "job-1",
+    });
+    expect(failJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        error: expect.stringContaining("[REDACTED]"),
+      })
+    );
+    expect(events).toEqual([
+      expect.objectContaining({
+        correlationId: "correlation-1",
+        status: "failed",
+        failureClass: "permanent",
+      }),
+    ]);
+  });
+
   it("dead-letters an exhausted retry and terminally fails non-retryable work", async () => {
+    const events: unknown[] = [];
     const scheduleJobRetry = vi.fn(async () => "dead_letter" as const);
     const failJob = vi.fn(async () => true);
-    const retrying = worker(repository({ scheduleJobRetry }), async () => ({
-      kind: "retryable_failure",
-      error: "still unavailable",
-    }));
+    const retrying = worker(
+      repository({ scheduleJobRetry }),
+      async () => ({ kind: "retryable_failure", error: "still unavailable" }),
+      { instrumentation: { record: (event) => events.push(event) } }
+    );
     const terminal = worker(repository({ failJob }), async () => ({
       kind: "terminal_failure",
       error: "invalid immutable input",
@@ -124,6 +159,12 @@ describe("DurableJobWorker", () => {
       kind: "dead_letter",
       jobId: "job-1",
     });
+    expect(events).toEqual([
+      expect.objectContaining({
+        status: "dead_letter",
+        failureClass: "permanent",
+      }),
+    ]);
     await expect(terminal.dispatchOne("workspace-1")).resolves.toEqual({
       kind: "failed",
       jobId: "job-1",

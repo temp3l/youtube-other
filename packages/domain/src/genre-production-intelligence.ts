@@ -1,6 +1,11 @@
 import crypto from "node:crypto";
 
 import { z } from "zod";
+import {
+  contentLocaleSchema,
+  contentProfileIdSchema,
+  normalizeContentProfileId,
+} from "./workflow-contracts.js";
 
 /**
  * Opt-in, provider-neutral contracts for genre-specific production policies.
@@ -305,4 +310,38 @@ export type ProductionOperatorOverride = z.infer<typeof productionOperatorOverri
 export function cacheIdentityForGenreProduction(profile: GenreProductionProfile, operation: string, inputHash: string): string {
   const parsed = genreProductionProfileSchema.parse(profile);
   return immutablePlanHash({ schemaVersion: GENRE_PRODUCTION_INTELLIGENCE_SCHEMA_VERSION, genreId: parsed.genreId, profileVersion: parsed.profileVersion, operation, inputHash });
+}
+
+/** Immutable observation identity: analytics never rewrites an edition or its history. */
+export const revisionAnalyticsObservationSchema = z.object({
+  schemaVersion: z.literal("revision-analytics-observation.v1"),
+  observationId: id,
+  contentProfileId: contentProfileIdSchema,
+  episodeId: id,
+  editionRevisionId: version,
+  publicationId: id,
+  publicationRevision: z.number().int().nonnegative(),
+  locale: contentLocaleSchema,
+  observedAt: z.string().datetime(),
+  configurationRevision: version,
+  dependencyIdentity: z.record(id, sha256).refine(
+    (value) => Object.keys(value).length >= 1 && Object.keys(value).length <= 100,
+    "Analytics dependency identity requires 1 to 100 entries.",
+  ),
+  provenanceSha256: sha256,
+  metrics: z.record(id, z.number().finite().nonnegative()).refine(
+    (value) => Object.keys(value).length >= 1 && Object.keys(value).length <= 100,
+    "Analytics observations require 1 to 100 metrics.",
+  ),
+  providerDispatchEnabled: z.literal(false),
+  regenerationRationale: z.enum(["new-observation", "idempotent-replay"]),
+}).strict();
+export type RevisionAnalyticsObservation = z.infer<typeof revisionAnalyticsObservationSchema>;
+
+export function normalizeRevisionAnalyticsObservation(input: unknown): RevisionAnalyticsObservation {
+  const raw = input as Record<string, unknown>;
+  return revisionAnalyticsObservationSchema.parse({
+    ...raw,
+    contentProfileId: normalizeContentProfileId(raw["contentProfileId"]),
+  });
 }

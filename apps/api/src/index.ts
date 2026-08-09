@@ -6,6 +6,7 @@ import {
   PostgresPrincipalDirectory,
   PostgresPilotApiKeyRepository,
   PostgresSpeechRepository,
+  PostgresRevisionAnalyticsRepository,
   PostgresWorkflowRepository,
   type PostgresPool,
 } from "@mediaforge/persistence";
@@ -15,6 +16,9 @@ import { Pool } from "pg";
 
 export * from "./contract.js";
 export * from "./speech-contract.js";
+export * from "./revision-analytics-contract.js";
+export * from "./revision-analytics-comparison-contract.js";
+export * from "./revision-analytics-comparison-use-case.js";
 export * from "./http-server.js";
 export * from "./job-process.js";
 export * from "./postgres-durable-workflow-loader.js";
@@ -113,6 +117,7 @@ export async function startApiServer(input: {
     await new PostgresPrincipalDirectory(pool).migrate();
     await new PostgresPilotApiKeyRepository(pool).migrate();
     await new PostgresSpeechRepository(pool).migrate();
+    await new PostgresRevisionAnalyticsRepository(pool).migrate();
     const server = createPostgresApiServer({
       pool,
       authenticate: createDirectoryBackedRequestAuthenticator({

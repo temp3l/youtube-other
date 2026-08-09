@@ -9,6 +9,7 @@ import {
   artifactManifestSchema,
   artifactRefSchema,
   contentLocaleSchema,
+  contentProfileIdSchema,
   contentVariantSchema,
   productionUnitIdSchema,
   taskDefinitionSchema,
@@ -231,7 +232,7 @@ function profileRuntime(
   if (resource === "strategic-episode") {
     return {
       resource,
-      profileId: "strategic-reinvention",
+      profileId: "veronicabenini",
       workflow: strategicFullWorkflowDefinition,
       registrations: createStrategicFullTaskRegistrations(),
     };
@@ -306,7 +307,9 @@ async function createOperator(
 ): Promise<WorkflowOperator> {
   const runtime = profileRuntime(resource, interrupt);
   const unit = unitId(resource, options);
-  const locale = contentLocaleSchema.parse(options.locale ?? "en");
+  const locale = contentLocaleSchema.parse(
+    options.locale ?? (resource === "strategic-episode" ? "it" : "en")
+  );
   const variant = contentVariantSchema.parse(options.variant ?? "full");
   const unitRoot = resolveUnitRoot(program, resource, options);
   if (resource === "lesson") {
@@ -330,11 +333,28 @@ async function createOperator(
     });
   }
   if (resource === "strategic-episode") {
+    const artifactRepository = new ArtifactRepository({
+      workspaceRoot: path.dirname(unitRoot),
+    });
     return createStrategicFullWorkflowOperator({
       unitRoot,
       episodeId: unit,
       locale,
       variant,
+      availableArtifacts: await readAvailableArtifacts(options.artifacts),
+      verifyArtifact: async (manifest) => {
+        try {
+          const verified = await artifactRepository.verify(manifest.ref, {
+            dependencyFingerprints: manifest.dependencyFingerprints,
+          });
+          return (
+            verified.manifest.id === manifest.id &&
+            verified.manifest.checksumSha256 === manifest.checksumSha256
+          );
+        } catch {
+          return false;
+        }
+      },
     });
   }
   let registrations = runtime.registrations;
@@ -598,7 +618,10 @@ async function manifestsInput(
 
 const batchInputSchema = z
   .object({
-    profileId: z.enum(["dark-truth", "mathematics-education", "strategic-reinvention"]),
+    profileId: contentProfileIdSchema.refine(
+      (profileId) => ["dark-truth", "mathematics-education", "veronicabenini"].includes(profileId),
+      "Unsupported batch content profile.",
+    ),
     provider: z.string().min(1),
     model: z.string().min(1).optional(),
     operation: z.string().min(3),
@@ -652,7 +675,7 @@ async function readBatchPlan(filePath: string): Promise<BatchPlanInput> {
   const runtime =
     parsed.profileId === "dark-truth"
       ? profileRuntime("episode")
-      : parsed.profileId === "strategic-reinvention"
+      : parsed.profileId === "veronicabenini"
         ? profileRuntime("strategic-episode")
         : profileRuntime("lesson");
   const registry = createTaskRegistry(runtime.registrations);

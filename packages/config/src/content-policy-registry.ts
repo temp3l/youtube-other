@@ -2,6 +2,7 @@ import {
   creatorProfileSchema,
   effectiveContentPolicySchema,
   genreDefinitionSchema,
+  normalizeContentProfileId,
   type CreatorProfile,
   type EffectiveContentPolicy,
   type GenreDefinition,
@@ -55,9 +56,15 @@ function registry<T extends { id: string }>(
 
 export class GenreRegistry {
   readonly #entries: ReadonlyMap<string, GenreDefinition>;
-  constructor(values: readonly unknown[]) { this.#entries = registry(values, genreDefinitionSchema, "genre"); }
+  constructor(values: readonly unknown[]) {
+    this.#entries = registry(
+      values.map((value) => normalizeGenreIdentity(value)),
+      genreDefinitionSchema,
+      "genre",
+    );
+  }
   get(id: string): GenreDefinition {
-    const value = this.#entries.get(id);
+    const value = this.#entries.get(String(normalizeContentProfileId(id)));
     if (!value) throw new Error(`Unknown genre id: ${id}`);
     return value;
   }
@@ -66,15 +73,34 @@ export class GenreRegistry {
 
 export class CreatorProfileRegistry {
   readonly #entries: ReadonlyMap<string, CreatorProfile>;
-  constructor(values: readonly unknown[]) { this.#entries = registry(values, creatorProfileSchema, "creator profile"); }
+  constructor(values: readonly unknown[]) {
+    this.#entries = registry(
+      values.map((value) => normalizeCreatorGenreIdentity(value)),
+      creatorProfileSchema,
+      "creator profile",
+    );
+  }
   get(id: string): CreatorProfile {
     const value = this.#entries.get(id);
     if (!value) throw new Error(`Unknown creator profile id: ${id}`);
     return value;
   }
   list(genreId?: string): readonly CreatorProfile[] {
-    return [...this.#entries.values()].filter((profile) => !genreId || profile.genreId === genreId);
+    const canonicalGenreId = genreId
+      ? String(normalizeContentProfileId(genreId))
+      : undefined;
+    return [...this.#entries.values()].filter((profile) => !canonicalGenreId || profile.genreId === canonicalGenreId);
   }
+}
+
+function normalizeGenreIdentity(value: unknown): unknown {
+  if (!value || typeof value !== "object" || !("id" in value)) return value;
+  return { ...value, id: normalizeContentProfileId(value.id) };
+}
+
+function normalizeCreatorGenreIdentity(value: unknown): unknown {
+  if (!value || typeof value !== "object" || !("genreId" in value)) return value;
+  return { ...value, genreId: normalizeContentProfileId(value.genreId) };
 }
 
 export interface ResolveEffectiveContentPolicyInput {
@@ -106,8 +132,8 @@ function requiredUnion<T extends string>(values: readonly (readonly T[])[]): T[]
 }
 
 export function resolveEffectiveContentPolicy(input: ResolveEffectiveContentPolicyInput): EffectiveContentPolicy {
-  const genre = genreDefinitionSchema.parse(input.genre);
-  const creator = creatorProfileSchema.parse(input.creatorProfile);
+  const genre = genreDefinitionSchema.parse(normalizeGenreIdentity(input.genre));
+  const creator = creatorProfileSchema.parse(normalizeCreatorGenreIdentity(input.creatorProfile));
   if (creator.genreId !== genre.id) {
     throw new Error(`Creator profile ${creator.id} does not belong to genre ${genre.id}.`);
   }

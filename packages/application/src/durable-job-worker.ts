@@ -71,6 +71,18 @@ export type DurableJobDispatchResult =
   | { readonly kind: "interrupted"; readonly jobId?: string }
   | { readonly kind: "lost_lease"; readonly jobId: string };
 
+/** Narrow, transport-neutral observability hook for durable worker outcomes. */
+export interface DurableJobInstrumentation {
+  record(event: {
+    readonly correlationId: string;
+    readonly jobType: string;
+    readonly attempt: number;
+    readonly status: Exclude<DurableJobDispatchResult["kind"], "idle">;
+    readonly durationMs: number;
+    readonly failureClass?: "retryable" | "permanent" | "cancelled" | "uncertain";
+  }): void | Promise<void>;
+}
+
 type StopReason =
   | "cancel_requested"
   | "deadline_exceeded"
@@ -94,7 +106,11 @@ function abortableWait(
 }
 
 function boundedError(error: string): string {
-  return error.slice(0, 2_000);
+  const redacted = error
+    .replace(/(authorization|api[-_]?key|token|secret|password|credential)\s*[=:]\s*(?:bearer\s+)?[^\s,;]+/giu, "$1=[REDACTED]")
+    .replace(/bearer\s+[^\s,;]+/giu, "Bearer [REDACTED]")
+    .replace(/https?:\/\/([^\s?]+)\?[^\s]+/giu, "https://$1?[REDACTED]");
+  return redacted.slice(0, 2_000);
 }
 
 /**
@@ -123,6 +139,8 @@ export class DurableJobWorker {
         error: unknown,
         lease: DurableJobLease
       ) => Exclude<DurableJobHandlerResult, { readonly kind: "succeeded" }>;
+      readonly instrumentation?: DurableJobInstrumentation;
+      readonly correlationId?: (lease: DurableJobLease) => string;
     }
   ) {
     this.heartbeatIntervalMs =
@@ -153,7 +171,17 @@ export class DurableJobWorker {
       leaseSeconds: this.options.leaseSeconds,
     });
     if (!lease) return { kind: "idle" };
-    if (lease.cancellationRequested) return this.finishCancellation(lease);
+    const startedAt = this.options.now();
+    const correlationId =
+      this.options.correlationId?.(lease) ??
+      `durable-${lease.workspaceId}-${lease.jobId}`;
+    if (lease.cancellationRequested)
+      return this.recordDispatch(
+        lease,
+        correlationId,
+        startedAt,
+        await this.finishCancellation(lease)
+      );
 
     const execution = new AbortController();
     const monitor = new AbortController();
@@ -200,18 +228,34 @@ export class DurableJobWorker {
     }
 
     if (stopReason === "lost_lease")
-      return { kind: "lost_lease", jobId: lease.jobId };
+      return this.recordDispatch(lease, correlationId, startedAt, {
+        kind: "lost_lease",
+        jobId: lease.jobId,
+      });
     if (stopReason === "cancel_requested")
-      return this.finishCancellation(lease);
+      return this.recordDispatch(
+        lease,
+        correlationId,
+        startedAt,
+        await this.finishCancellation(lease)
+      );
     if (stopReason === "interrupted")
-      return { kind: "interrupted", jobId: lease.jobId };
+      return this.recordDispatch(lease, correlationId, startedAt, {
+        kind: "interrupted",
+        jobId: lease.jobId,
+      });
     if (stopReason === "deadline_exceeded")
       outcome = {
         kind: "terminal_failure",
         error: "The durable job deadline expired.",
       };
 
-    return this.persistOutcome(lease, outcome);
+    return this.recordDispatch(
+      lease,
+      correlationId,
+      startedAt,
+      await this.persistOutcome(lease, outcome)
+    );
   }
 
   private async monitorLease(
@@ -273,7 +317,7 @@ export class DurableJobWorker {
 
   private async finishCancellation(
     lease: DurableJobLease
-  ): Promise<DurableJobDispatchResult> {
+  ): Promise<Exclude<DurableJobDispatchResult, { readonly kind: "idle" }>> {
     const cancelled = await this.repository.markJobCancelled(
       this.fenced(lease)
     );
@@ -285,7 +329,7 @@ export class DurableJobWorker {
   private async persistOutcome(
     lease: DurableJobLease,
     outcome: DurableJobHandlerResult
-  ): Promise<DurableJobDispatchResult> {
+  ): Promise<Exclude<DurableJobDispatchResult, { readonly kind: "idle" }>> {
     if (outcome.kind === "succeeded") {
       const completed = await this.repository.completeJob(this.fenced(lease));
       return completed
@@ -314,5 +358,34 @@ export class DurableJobWorker {
     return retry === "lost_lease"
       ? { kind: "lost_lease", jobId: lease.jobId }
       : { kind: retry, jobId: lease.jobId };
+  }
+
+  private recordDispatch(
+    lease: DurableJobLease,
+    correlationId: string,
+    startedAt: Date,
+    result: Exclude<DurableJobDispatchResult, { readonly kind: "idle" }>
+  ): Exclude<DurableJobDispatchResult, { readonly kind: "idle" }> {
+    const failureClass =
+      result.kind === "retry_scheduled"
+        ? "retryable"
+        : result.kind === "cancelled" || result.kind === "interrupted"
+          ? "cancelled"
+          : result.kind === "lost_lease"
+            ? "uncertain"
+            : result.kind === "failed" || result.kind === "dead_letter"
+              ? "permanent"
+              : undefined;
+    void Promise.resolve(
+      this.options.instrumentation?.record({
+        correlationId,
+        jobType: lease.jobType,
+        attempt: lease.attemptCount,
+        status: result.kind,
+        durationMs: Math.max(0, this.options.now().getTime() - startedAt.getTime()),
+        ...(failureClass ? { failureClass } : {}),
+      })
+    ).catch(() => undefined);
+    return result;
   }
 }

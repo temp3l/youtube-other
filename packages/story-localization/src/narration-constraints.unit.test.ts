@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   estimateNarrationDurationSeconds,
   resolveNarrationTimingEstimate,
+  resolveNarrationTimingInvalidation,
   resolveShortDurationProfile,
   resolveShortTargetDurationSeconds,
 } from "./narration-constraints.js";
@@ -69,5 +70,14 @@ describe("narration constraints", () => {
         narrationText: narration,
       })
     ).toBe(Math.round(timing.totalDurationMs / 1000));
+  });
+
+  it("invalidates only narration timing derivatives when spoken narration changes", () => {
+    expect(resolveNarrationTimingInvalidation({
+      language: "it", previousNarration: "Una scelta cambia tutto.", nextNarration: "Una scelta consapevole cambia tutto.",
+    })).toEqual({
+      invalidatedArtifacts: ["narration-audio", "captions", "timing-alignment"],
+      preservedArtifacts: ["visual-plan", "prepared-visuals"],
+    });
   });
 });

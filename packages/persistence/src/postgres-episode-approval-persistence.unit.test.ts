@@ -28,6 +28,12 @@ describe("episode revision and approval challenge persistence", () => {
     expect(POSTGRES_WORKFLOW_STATE_MIGRATION).toContain(
       "input_artifact_hashes JSONB NULL"
     );
+    expect(POSTGRES_WORKFLOW_STATE_MIGRATION).toContain(
+      "lifecycle_state TEXT NOT NULL DEFAULT 'active'"
+    );
+    expect(POSTGRES_WORKFLOW_STATE_MIGRATION).toContain(
+      "source_episode_revision BIGINT NULL"
+    );
   });
 
   it("replaces episode content with project-scoped CAS and appends its evidence", async () => {
@@ -75,6 +81,10 @@ describe("episode revision and approval challenge persistence", () => {
         revision: 3,
         createdAt: "2026-07-31T12:00:00.000Z",
         updatedAt: now,
+        lifecycleState: "active",
+        archivedAt: null,
+        sourceEpisodeId: null,
+        sourceEpisodeRevision: null,
       },
       revisionEvidence: {
         revisionId: "episode-revision-3",
@@ -98,6 +108,93 @@ describe("episode revision and approval challenge persistence", () => {
       2,
       "episode-revision-3",
     ]);
+  });
+
+  it("archives by CAS and clones an immutable source snapshot with lineage", async () => {
+    const calls: Array<{ sql: string; values?: readonly unknown[] }> = [];
+    const query = vi.fn(async <T>(sql: string, values?: readonly unknown[]): Promise<PostgresQueryResult<T>> => {
+      calls.push({ sql, values });
+      if (sql.includes("INSERT INTO command_admissions"))
+        return { rows: [{ command_id: "command-1" } as T], rowCount: 1 };
+      if (sql.includes("SET lifecycle_state = 'archived'")) return { rows: [{
+        workspace_id: "workspace-1", project_id: "project-1", episode_id: "episode-1",
+        content: { title: "original" }, revision: 3, created_at: now, updated_at: now,
+        lifecycle_state: "archived", archived_at: now, archived_by: "reviewer-1",
+        archive_reason: "Superseded", source_episode_id: null, source_episode_revision: null,
+      } as T] };
+      if (sql.includes("WITH source AS")) return { rows: [{
+        workspace_id: "workspace-1", project_id: "project-1", episode_id: "episode-2",
+        content: { title: "original" }, revision: 0, created_at: now, updated_at: now,
+        lifecycle_state: "active", archived_at: null, archived_by: null,
+        archive_reason: null, source_episode_id: "episode-1", source_episode_revision: 3,
+      } as T] };
+      return { rows: [] };
+    });
+    const repository = new WorkspaceTransactionRepository({ query });
+
+    await expect(repository.archiveEpisode({
+      workspaceId: "workspace-1", projectId: "project-1", episodeId: "episode-1",
+      expectedRevision: 2, actorPrincipalId: "reviewer-1", reason: "Superseded",
+      commandId: "command-1", idempotencyKey: "archive-1", requestFingerprint: "a".repeat(64), now,
+    })).resolves.toMatchObject({ kind: "admitted", episode: { revision: 3, lifecycleState: "archived" } });
+
+    await expect(repository.cloneEpisode({
+      workspaceId: "workspace-1", projectId: "project-1", sourceEpisodeId: "episode-1",
+      expectedSourceRevision: 3, episodeId: "episode-2", revisionId: "episode-revision-2",
+      actorPrincipalId: "reviewer-1", commandId: "command-2", idempotencyKey: "clone-1",
+      requestFingerprint: "b".repeat(64), now,
+    })).resolves.toMatchObject({
+      kind: "admitted",
+      episode: { episodeId: "episode-2", lifecycleState: "active", sourceEpisodeId: "episode-1", sourceEpisodeRevision: 3 },
+    });
+    const archive = calls.find((call) => call.sql.includes("SET lifecycle_state = 'archived'"));
+    expect(archive?.sql).toContain("AND lifecycle_state = 'active'");
+    const clone = calls.find((call) => call.sql.includes("WITH source AS"));
+    expect(clone?.sql).toContain("INSERT INTO episode_revisions");
+    expect(clone?.sql).toContain("source_episode_id, source_episode_revision");
+    expect(clone?.sql).not.toContain("COALESCE(revision_evidence.content");
+    expect(clone?.values?.slice(0, 6)).toEqual(["workspace-1", "project-1", "episode-1", 3, "episode-2", "episode-revision-2"]);
+  });
+
+  it("replays a clone using the originally admitted target identity", async () => {
+    const query = vi.fn(async <T>(sql: string, values?: readonly unknown[]): Promise<PostgresQueryResult<T>> => {
+      if (sql.includes("INSERT INTO command_admissions"))
+        return { rows: [], rowCount: 0 };
+      if (sql.includes("SELECT command_id, request_fingerprint, response"))
+        return { rows: [{
+          command_id: "command-original",
+          request_fingerprint: "b".repeat(64),
+          response: {
+            episodeId: "episode-original-clone",
+            revision: 0,
+            lifecycleState: "active",
+          },
+        } as T] };
+      if (sql.includes("FROM episodes WHERE")) {
+        expect(values?.[2]).toBe("episode-original-clone");
+        return { rows: [{
+          workspace_id: "workspace-1", project_id: "project-1",
+          episode_id: "episode-original-clone", content: { title: "snapshot" },
+          revision: 0, created_at: now, updated_at: now,
+          lifecycle_state: "active", archived_at: null, archived_by: null,
+          archive_reason: null, source_episode_id: "episode-1",
+          source_episode_revision: 3,
+        } as T] };
+      }
+      return { rows: [] };
+    });
+    const repository = new WorkspaceTransactionRepository({ query });
+
+    await expect(repository.cloneEpisode({
+      workspaceId: "workspace-1", projectId: "project-1",
+      sourceEpisodeId: "episode-1", expectedSourceRevision: 3,
+      episodeId: "episode-new-attempt", revisionId: "episode-revision-new",
+      actorPrincipalId: "reviewer-1", commandId: "command-new",
+      idempotencyKey: "clone-1", requestFingerprint: "b".repeat(64), now,
+    })).resolves.toMatchObject({
+      kind: "replayed", commandId: "command-original",
+      episode: { episodeId: "episode-original-clone", sourceEpisodeId: "episode-1" },
+    });
   });
 
   it("rejects a missing or stale episode without synthesizing revision evidence", async () => {

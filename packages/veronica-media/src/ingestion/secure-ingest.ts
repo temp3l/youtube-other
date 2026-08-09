@@ -113,6 +113,9 @@ export type VeronicaIngestErrorCode =
   | "MALFORMED_ARCHIVE"
   | "EMPTY_INPUT";
 
+export type VeronicaSourceKind = "document" | "image" | "screenshot" | "extracted-region";
+export type VeronicaDisplayPolicy = "display-allowed" | "context-only" | "forbidden-display";
+
 export class VeronicaIngestError extends Error {
   public constructor(
     public readonly code: VeronicaIngestErrorCode,
@@ -138,6 +141,10 @@ export interface VeronicaIngestedAsset {
     | "mov";
   readonly checksum: string;
   readonly byteLength: number;
+  /** Stable policy metadata; a forbidden/context-only source must not reach a visual state. */
+  readonly sourceKind?: VeronicaSourceKind;
+  readonly displayPolicy?: VeronicaDisplayPolicy;
+  readonly immutableOriginal?: true;
   readonly bytes: Uint8Array;
   readonly extractedCandidates: readonly VeronicaExtractedCandidate[];
 }
@@ -149,6 +156,11 @@ export interface VeronicaExtractedCandidate {
   readonly slideNumber?: number;
   readonly textPreview?: string;
   readonly checksum: string;
+  readonly sourceKind: "extracted-region";
+  readonly lineage: {
+    readonly originChecksum: string;
+    readonly extractionMethod: string;
+  };
 }
 
 function sha256(bytes: Uint8Array): string {
@@ -254,11 +266,14 @@ function buildCandidates(
   const assetStem = path.basename(filename, path.extname(filename));
   if (mediaKind === "pdf") {
     const pages = Math.min(estimatePdfPages(bytes), VERONICA_INGEST_LIMITS.maxPdfPages);
+    const originChecksum = sha256(bytes);
     return Array.from({ length: pages }, (_, index) => ({
       candidateId: `${assetStem}-page-${index + 1}`,
       label: `Page ${index + 1}`,
       pageNumber: index + 1,
       checksum: sha256(bytes.subarray(0, Math.min(bytes.length, 4096 + index))),
+      sourceKind: "extracted-region" as const,
+      lineage: { originChecksum, extractionMethod: "pdf-page-extraction" },
     })).slice(0, VERONICA_INGEST_LIMITS.maxRetainedCandidates);
   }
   if (mediaKind === "pptx") {
@@ -266,11 +281,14 @@ function buildCandidates(
       estimatePptxSlides(bytes),
       VERONICA_INGEST_LIMITS.maxPresentationSlides,
     );
+    const originChecksum = sha256(bytes);
     return Array.from({ length: slides }, (_, index) => ({
       candidateId: `${assetStem}-slide-${index + 1}`,
       label: `Slide ${index + 1}`,
       slideNumber: index + 1,
       checksum: sha256(bytes.subarray(0, Math.min(bytes.length, 4096 + index * 8))),
+      sourceKind: "extracted-region" as const,
+      lineage: { originChecksum, extractionMethod: "pptx-slide-extraction" },
     })).slice(0, VERONICA_INGEST_LIMITS.maxRetainedCandidates);
   }
   if (mediaKind === "svg") {
@@ -281,6 +299,8 @@ function buildCandidates(
         label: assetStem,
         textPreview: sanitized.slice(0, 120),
         checksum: sha256(Buffer.from(sanitized, "utf8")),
+        sourceKind: "extracted-region",
+        lineage: { originChecksum: sha256(bytes), extractionMethod: "svg-sanitization" },
       },
     ];
   }
@@ -289,6 +309,8 @@ function buildCandidates(
       candidateId: `${assetStem}-primary`,
       label: assetStem,
       checksum: sha256(bytes),
+      sourceKind: "extracted-region",
+      lineage: { originChecksum: sha256(bytes), extractionMethod: "identity" },
     },
   ];
 }
@@ -298,6 +320,8 @@ export function ingestSupplementalMediaAsset(input: {
   readonly filename: string;
   readonly bytes: Uint8Array;
   readonly declaredMimeType?: string;
+  readonly sourceKind?: Exclude<VeronicaSourceKind, "extracted-region">;
+  readonly displayPolicy?: VeronicaDisplayPolicy;
 }): VeronicaIngestedAsset {
   if (input.bytes.length === 0) {
     throw new VeronicaIngestError("EMPTY_INPUT", "Input file is empty.");
@@ -335,17 +359,65 @@ export function ingestSupplementalMediaAsset(input: {
   if (signature.mediaKind === "svg") {
     sanitizeSvgContent(Buffer.from(input.bytes).toString("utf8"));
   }
-  const checksum = sha256(input.bytes);
+  const bytes = Uint8Array.from(input.bytes);
+  const checksum = sha256(bytes);
   return {
     assetId: input.assetId,
     originalFilename,
     mimeType: signature.mimeType,
     mediaKind: signature.mediaKind,
     checksum,
-    byteLength: input.bytes.length,
-    bytes: input.bytes,
-    extractedCandidates: buildCandidates(signature.mediaKind, input.bytes, originalFilename),
+    byteLength: bytes.length,
+    sourceKind: input.sourceKind ?? (signature.mediaKind === "pdf" || signature.mediaKind === "pptx" ? "document" : "image"),
+    displayPolicy: input.displayPolicy ?? "display-allowed",
+    immutableOriginal: true,
+    bytes,
+    extractedCandidates: buildCandidates(signature.mediaKind, bytes, originalFilename),
   };
+}
+
+export interface VeronicaIngestFailure {
+  readonly assetId: string;
+  readonly code: VeronicaIngestErrorCode;
+  readonly message: string;
+}
+
+/** Ingests independently: one malformed extraction never discards valid originals. */
+export function ingestSupplementalMediaBatch(input: readonly {
+  readonly assetId: string;
+  readonly filename: string;
+  readonly bytes: Uint8Array;
+  readonly declaredMimeType?: string;
+  readonly sourceKind?: Exclude<VeronicaSourceKind, "extracted-region">;
+  readonly displayPolicy?: VeronicaDisplayPolicy;
+}[]): {
+  readonly assets: readonly VeronicaIngestedAsset[];
+  readonly reusedAssetIds: Readonly<Record<string, string>>;
+  readonly failures: readonly VeronicaIngestFailure[];
+} {
+  const assets: VeronicaIngestedAsset[] = [];
+  const failures: VeronicaIngestFailure[] = [];
+  const checksums = new Map<string, string>();
+  const reusedAssetIds: Record<string, string> = {};
+  for (const asset of input) {
+    try {
+      const ingested = ingestSupplementalMediaAsset(asset);
+      const existingAssetId = checksums.get(ingested.checksum);
+      if (existingAssetId) {
+        reusedAssetIds[asset.assetId] = existingAssetId;
+        continue;
+      }
+      checksums.set(ingested.checksum, ingested.assetId);
+      assets.push(ingested);
+    } catch (error) {
+      if (error instanceof VeronicaIngestError) {
+        failures.push({ assetId: asset.assetId, code: error.code, message: error.message });
+        continue;
+      }
+      throw error;
+    }
+  }
+  return { assets, reusedAssetIds, failures };
 }
 
 export const veronicaIngestBatchSchema = z.strictObject({

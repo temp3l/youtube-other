@@ -61,6 +61,7 @@ export * from "./motion/report.js";
 export * from "./motion/seeded.js";
 export * from "./motion/selection.js";
 export * from "./shared-visual-render.js";
+export * from "./composition-contract.js";
 export type * from "./motion/types.js";
 
 type ProcessEnv = Readonly<Record<string, string | undefined>>;

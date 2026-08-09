@@ -1,5 +1,5 @@
 import path from "node:path";
-import { episodeBlueprintSchema } from "@mediaforge/domain";
+import { contentProfileIdSchema, episodeBlueprintSchema, normalizeContentProfileId, VERONICA_CONTENT_PROFILE_ID } from "@mediaforge/domain";
 import { writeBinaryAtomic, writeJsonAtomic, writeTextAtomic, type EpisodePathResolver } from "@mediaforge/shared";
 import { hasCurrentStrategicApproval, reviewStrategicItalianPackage, stableJson, strategicItalianSha256, strategicItalianQaPolicyHash, type StrategicItalianEvidenceWorkflow, type StrategicItalianQaPolicy } from "./strategic-italian-qa.js";
 
@@ -9,6 +9,13 @@ export interface StrategicItalianMediaPayload {
   readonly captionsVtt: string;
   /** Supplied audio only. This boundary deliberately has no provider/generation input. */
   readonly suppliedAudio: Buffer;
+  /** Immutable creator-recorded or otherwise supplied-human source lineage. */
+  readonly suppliedAudioProvenance: {
+    readonly kind: "creator-recorded" | "supplied-human";
+    readonly sourceRevision: string;
+    readonly sourceArtifactSha256: string;
+    readonly recordedBy: string;
+  };
   readonly audioTrackManifest: Readonly<Record<string, unknown>>;
   readonly metadata: Readonly<Record<string, unknown>>;
   readonly capabilityReport: Readonly<Record<string, unknown>>;
@@ -17,10 +24,22 @@ export interface StrategicItalianMediaPayload {
   /** Explicit strategic release coordinate; omitted only by the Italian/full compatibility entry point. */
   readonly locale?: "it" | "en" | "es";
   readonly variant?: "full" | "short";
-  readonly contentProfileId?: "strategic-reinvention";
+  /** Alias input is normalized immediately; persisted identity is canonical. */
+  readonly contentProfileId?: string;
   readonly creatorProfileId?: string;
   /** Exact artifacts whose fingerprints establish the release lineage. */
   readonly artifact?: { readonly fingerprint: string; readonly locale: "it" | "en" | "es"; readonly variant: "full" | "short"; readonly parents: readonly { readonly fingerprint: string; readonly locale: "it" | "en" | "es"; readonly variant: "full" | "short" }[] };
+}
+
+// These persisted versions mirror the shared speech policy without making the
+// localization package depend on the speech application's runtime entry point.
+const creatorSuppliedVoicePolicyVersion = "creator-supplied-voice-policy.v1";
+const creatorVoiceTimingDerivativeVersion = "creator-voice-timing.v1";
+const creatorVoiceCaptionDerivativeVersion = "creator-voice-captions.v1";
+function cleanSpokenPayload(input: string): string {
+  const cleaned = input.normalize("NFC").replace(/[\u0000-\u001f\u007f]/gu, " ").replace(/<[^>]*>/gu, " ").replace(/\s+/gu, " ").trim();
+  if (!cleaned) throw new Error("Strategic creator voice requires a non-empty spoken payload.");
+  return cleaned;
 }
 
 function assertContained(root: string, paths: readonly string[]): void {
@@ -35,17 +54,26 @@ export async function persistStrategicItalianMedia(args: { readonly resolver: Ep
   const locale = payload.locale ?? "it"; const variant = payload.variant ?? "full";
   const context = { episodeId: args.episodeId as never, locale: locale as never, variant: variant as never };
   const blueprint = episodeBlueprintSchema.safeParse(payload.workflow.episodeBlueprint);
-  if (payload.workflow.route !== "strategic-italian" || !blueprint.success || args.episodeId !== payload.workflow.unitId || args.episodeId !== blueprint.data.episodeId || blueprint.data.canonicalLocale !== "it" || payload.contentProfileId !== "strategic-reinvention" || !payload.creatorProfileId || payload.creatorProfileId !== blueprint.data.creatorProfileId) throw new Error("Strategic Italian media requires the accepted exact Italian route.");
+  const profileId = contentProfileIdSchema.safeParse(normalizeContentProfileId(payload.contentProfileId));
+  if (payload.workflow.route !== "strategic-italian" || !blueprint.success || args.episodeId !== payload.workflow.unitId || args.episodeId !== blueprint.data.episodeId || blueprint.data.canonicalLocale !== "it" || !profileId.success || profileId.data !== VERONICA_CONTENT_PROFILE_ID || !payload.creatorProfileId || payload.creatorProfileId !== blueprint.data.creatorProfileId) throw new Error("Strategic Italian media requires the accepted exact Italian route.");
   if (payload.artifact && (payload.artifact.locale !== locale || payload.artifact.variant !== variant || !/^[a-f0-9]{64}$/u.test(payload.artifact.fingerprint))) throw new Error("Strategic release artifact coordinate is invalid.");
   if (!isWaveAudio(payload.suppliedAudio)) throw new Error("Strategic Italian media requires supplied RIFF/WAVE audio bytes.");
   if (!hasTimedVttCue(payload.captionsVtt)) throw new Error("Strategic Italian media requires a valid WEBVTT timed cue.");
   const timing = payload.now ? { now: payload.now } : {};
   const scriptHash = strategicItalianSha256(payload.script);
+  const spokenPayload = cleanSpokenPayload(payload.script);
   if (!payload.artifact || payload.artifact.fingerprint !== scriptHash) throw new Error("Strategic release script bytes must equal the selected artifact fingerprint.");
   const qa = reviewStrategicItalianPackage({ workflow: { ...payload.workflow, selectedParentFingerprints: payload.artifact.parents.map((parent) => parent.fingerprint) }, script: payload.script, captionsVtt: payload.captionsVtt, metadata: payload.metadata, policy: payload.qaPolicy, locale, variant, ...timing });
   if (qa.status !== "READY") throw new Error(`Strategic Italian media QA is not READY: ${qa.reasonCodes.join(",")}`);
   const audioHash = strategicItalianSha256(payload.suppliedAudio);
+  const provenance = payload.suppliedAudioProvenance;
+  if (!provenance || ![provenance.sourceRevision, provenance.recordedBy].every((value) => typeof value === "string" && value.trim().length > 0) || provenance.sourceArtifactSha256 !== audioHash) {
+    throw new Error("Strategic creator voice requires immutable supplied-human provenance.");
+  }
   const captionHash = strategicItalianSha256(payload.captionsVtt);
+  const voiceFingerprint = strategicItalianSha256(stableJson({ version: creatorSuppliedVoicePolicyVersion, profileId: VERONICA_CONTENT_PROFILE_ID, source: provenance.kind, sourceRevision: provenance.sourceRevision, audioHash, spokenPayload }));
+  const timingFingerprint = strategicItalianSha256(stableJson({ version: creatorVoiceTimingDerivativeVersion, narration: scriptHash, voice: voiceFingerprint }));
+  const captionFingerprint = strategicItalianSha256(stableJson({ version: creatorVoiceCaptionDerivativeVersion, timing: timingFingerprint, captions: captionHash }));
   const metadataBytes = `${JSON.stringify(JSON.parse(stableJson(payload.metadata)), null, 2)}\n`;
   const metadataHash = strategicItalianSha256(metadataBytes);
   const policyHash = strategicItalianQaPolicyHash(payload.qaPolicy);
@@ -59,9 +87,9 @@ export async function persistStrategicItalianMedia(args: { readonly resolver: Ep
   await writeTextAtomic(paths[0]!, payload.script);
   await writeTextAtomic(paths[1]!, payload.captionsVtt);
   await writeBinaryAtomic(paths[2]!, payload.suppliedAudio);
-  await writeJsonAtomic(paths[3]!, { ...payload.audioTrackManifest, sha256: audioHash, source: "supplied", captionSha256: captionHash });
+  await writeJsonAtomic(paths[3]!, { ...payload.audioTrackManifest, schemaVersion: "creator-supplied-audio-track.v1", sha256: audioHash, source: "supplied-human", provenance, effectiveConfiguration: { policyVersion: creatorSuppliedVoicePolicyVersion, provider: "none", voiceFingerprint }, derivatives: { timing: { version: creatorVoiceTimingDerivativeVersion, fingerprint: timingFingerprint }, captions: { version: creatorVoiceCaptionDerivativeVersion, fingerprint: captionFingerprint, sha256: captionHash } }, idempotencyKey: voiceFingerprint });
   await writeTextAtomic(paths[4]!, metadataBytes);
-  await writeJsonAtomic(paths[5]!, { ...payload.capabilityReport, qa, hashes: { script: scriptHash, captions: captionHash, audio: audioHash, metadata: metadataHash, qaPolicy: policyHash }, statuses: { qa: "READY", captions: "READY", metadata: "READY" } });
+  await writeJsonAtomic(paths[5]!, { ...payload.capabilityReport, qa, hashes: { script: scriptHash, captions: captionHash, audio: audioHash, metadata: metadataHash, qaPolicy: policyHash }, voice: { authorization: "approved-supplied-human", provider: "none", fingerprint: voiceFingerprint, provenance: { kind: provenance.kind, sourceRevision: provenance.sourceRevision }, idempotencyKey: voiceFingerprint }, derivatives: { timing: { version: creatorVoiceTimingDerivativeVersion, fingerprint: timingFingerprint, invalidatesOn: ["material-narration-change", "voice-timing-change"] }, captions: { version: creatorVoiceCaptionDerivativeVersion, fingerprint: captionFingerprint, invalidatesOn: ["material-narration-change", "voice-timing-change"] }, languageIndependentVisuals: "preserved" }, statuses: { qa: "READY", captions: "READY", metadata: "READY" } });
 }
 
 /** Evidence-bound release API for the six strategic locale/variant coordinates. */

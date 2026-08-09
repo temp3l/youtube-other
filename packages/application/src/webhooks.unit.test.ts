@@ -29,7 +29,7 @@ function event(overrides: Partial<WebhookEnvelope> = {}): WebhookEnvelope {
 
 describe("webhook event contract", () => {
   it("publishes the stable initial catalog with one compatible subject per event", () => {
-    expect(WEBHOOK_EVENT_TYPES).toHaveLength(21);
+    expect(WEBHOOK_EVENT_TYPES).toHaveLength(22);
     expect(new Set(WEBHOOK_EVENT_TYPES).size).toBe(WEBHOOK_EVENT_TYPES.length);
     expect(new Set(Object.keys(WEBHOOK_EVENT_SUBJECT_TYPES))).toEqual(
       new Set(WEBHOOK_EVENT_TYPES)
@@ -71,6 +71,19 @@ describe("webhook event contract", () => {
         now: new Date(timestamp),
       })
     ).toBe(true);
+  });
+
+  it("accepts attributable approval lifecycle events without reviewer secrets", () => {
+    expect(() =>
+      serializeWebhookEnvelope(
+        event({
+          type: "approval.approved",
+          subjectType: "approval",
+          subjectId: "approval-1",
+          data: { gate: "publish", locale: "it", actor: "reviewer-1" },
+        })
+      )
+    ).not.toThrow();
   });
 
   it.each([

@@ -1,10 +1,15 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  archiveEpisodeInputSchema,
+  approvalInputSchema,
+  cloneEpisodeInputSchema,
+  forkEpisodeFromPatternInputSchema,
   dynamicGenericContentSchema,
   episodeInputSchema,
   openApiDocument,
   parseEpisodeInput,
+  projectInputSchema,
 } from "./contract.js";
 
 const expectedPaths = [
@@ -15,8 +20,13 @@ const expectedPaths = [
   "/v1/workspaces/{workspace}/usage-records",
   "/v1/workspaces/{workspace}/audit-events",
   "/v1/workspaces/{workspace}/projects",
+  "/v1/workspaces/{workspace}/projects/{project}/analytics-observations",
+  "/v1/workspaces/{workspace}/projects/{project}/analytics-comparisons",
   "/v1/workspaces/{workspace}/projects/{project}/episodes",
   "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}",
+  "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}:archive",
+  "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}:clone",
+  "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}:fork-pattern",
   "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}/workflow-runs",
   "/v1/workspaces/{workspace}/projects/{project}/workflow-runs/{run}",
   "/v1/workspaces/{workspace}/projects/{project}/workflow-runs/{run}/steps",
@@ -28,6 +38,18 @@ const expectedPaths = [
   "/v1/workspaces/{workspace}/projects/{project}/publications/{publication}",
   "/v1/workspaces/{workspace}/projects/{project}/approvals",
   "/v1/workspaces/{workspace}/projects/{project}/approvals/{approval}:revoke",
+  "/v1/workspaces/{workspace}/speech/estimates",
+  "/v1/workspaces/{workspace}/speech/generations",
+  "/v1/workspaces/{workspace}/speech/generations/{generation}",
+  "/v1/workspaces/{workspace}/speech/generations/{generation}:retry",
+  "/v1/workspaces/{workspace}/speech/generations/{generation}:cancel",
+  "/v1/workspaces/{workspace}/speech/profiles",
+  "/v1/workspaces/{workspace}/speech/profiles/{profile}/versions",
+  "/v1/workspaces/{workspace}/speech/profile-versions/{version}:validate",
+  "/v1/workspaces/{workspace}/speech/profile-versions/{version}/activate",
+  "/v1/workspaces/{workspace}/speech/profile-versions/{version}:deprecate",
+  "/v1/workspaces/{workspace}/genres/{genre}/speech-policy",
+  "/v1/workspaces/{workspace}/videos/{video}/speech-override",
 ] as const;
 
 type Operation = {
@@ -46,6 +68,16 @@ function operations(): Array<{ readonly path: string; readonly operation: Operat
 }
 
 describe("OpenAPI contract", () => {
+  it("validates bounded lifecycle commands independently from episode content", () => {
+    expect(archiveEpisodeInputSchema.safeParse({ expectedRevision: 2, reason: "Superseded by approved revision." }).success).toBe(true);
+    expect(archiveEpisodeInputSchema.safeParse({ expectedRevision: 2, reason: "" }).success).toBe(false);
+    expect(cloneEpisodeInputSchema.safeParse({ expectedSourceRevision: 2 }).success).toBe(true);
+    expect(cloneEpisodeInputSchema.safeParse({ expectedSourceRevision: -1 }).success).toBe(false);
+    const patternLineage = { patternId: "pattern-1", configurationRevision: "config-1", dependencyFingerprint: "a".repeat(64), provenanceHash: "b".repeat(64) };
+    expect(forkEpisodeFromPatternInputSchema.safeParse({ expectedSourceRevision: 2, patternLineage }).success).toBe(true);
+    expect(forkEpisodeFromPatternInputSchema.safeParse({ expectedSourceRevision: 2, patternLineage: { ...patternLineage, provenanceHash: "not-a-hash" } }).success).toBe(false);
+  });
+
   it("covers every implemented route with unique operation identifiers", () => {
     expect(Object.keys(openApiDocument.paths)).toEqual(expectedPaths);
     const ids = operations().map(({ operation }) => operation.operationId);
@@ -53,9 +85,13 @@ describe("OpenAPI contract", () => {
     expect(ids).toEqual([
       "getLiveness", "getReadiness", "getOpenApiDocument", "getQuota",
       "listUsageRecords", "listAuditEvents", "createProject",
-      "createEpisode", "getEpisode", "replaceEpisodeContent", "admitWorkflow", "getWorkflow",
+      "ingestRevisionAnalytics", "compareRevisionAnalytics", "createEpisode", "getEpisode", "replaceEpisodeContent", "archiveEpisode", "cloneEpisode", "forkEpisodeFromPattern", "admitWorkflow", "getWorkflow",
       "listWorkflowSteps", "cancelWorkflow", "resumeWorkflow", "getJob",
       "getAsset", "listValidations", "getPublication", "recordApproval", "revokeApproval",
+      "estimateSpeech", "createSpeechGeneration", "getSpeechGeneration", "retrySpeechGeneration",
+      "cancelSpeechGeneration", "listSpeechProfiles", "createSpeechProfile", "createSpeechProfileVersion",
+      "validateSpeechProfileVersion", "activateSpeechProfileVersion", "deprecateSpeechProfileVersion",
+      "setGenreSpeechPolicy", "setVideoSpeechOverride",
     ]);
   });
 
@@ -83,6 +119,7 @@ describe("OpenAPI contract", () => {
     expect(Object.keys(openApiDocument.components.schemas)).toEqual(expect.arrayContaining([
       "Problem", "ProjectInput", "Project", "EpisodeInput", "Episode",
       "WorkflowAdmission", "WorkflowRun", "WorkflowStep", "Job", "Asset",
+      "ArchiveEpisodeInput", "CloneEpisodeInput", "EpisodeLifecycleResult",
       "JobFailureProblem", "ValidationResult", "ValidationPage", "ApprovalInput", "ApprovalAccepted",
       "WorkspaceQuotaStatus", "UsageRecord", "UsageRecordPage", "AuditEvent", "AuditEventPage",
       "Publication", "PublicationArtifactBinding",
@@ -189,6 +226,38 @@ describe("OpenAPI contract", () => {
     });
   });
 
+  it("accepts only revision-bound, attributable review scope at the API boundary", () => {
+    const scoped = {
+      challengeId: "challenge-1",
+      subjectId: "run-1",
+      expectedRevision: 4,
+      decision: "approved",
+      reason: "Reviewed the approved Italian delivery bundle.",
+      review: {
+        gate: "publish",
+        locale: "it",
+        variant: "full",
+        inputArtifactHashes: ["a".repeat(64)],
+        outputArtifactHashes: ["b".repeat(64)],
+        highRisk: true,
+        requiredDistinctActors: 2,
+      },
+    } as const;
+    expect(approvalInputSchema.parse(scoped)).toEqual(scoped);
+    expect(approvalInputSchema.safeParse({
+      ...scoped,
+      review: { ...scoped.review, requiredDistinctActors: 1 },
+    }).success).toBe(false);
+    expect(approvalInputSchema.safeParse({
+      ...scoped,
+      review: { ...scoped.review, inputArtifactHashes: ["not-a-hash"] },
+    }).success).toBe(false);
+    expect(openApiDocument.components.schemas.ApprovalReviewScope).toMatchObject({
+      additionalProperties: false,
+      required: expect.arrayContaining(["gate", "inputArtifactHashes", "outputArtifactHashes"]),
+    });
+  });
+
   it("accepts only bounded semantic input for dynamic generic episodes", () => {
     const canonical = {
       type: "dynamic_generic", version: "1",
@@ -201,6 +270,39 @@ describe("OpenAPI contract", () => {
     expect(dynamicGenericContentSchema.safeParse({ ...canonical, overrides: { voiceId: "personal-clone" } }).success).toBe(false);
     expect(() => parseEpisodeInput({ content: { ...canonical, overrides: { voiceId: "personal-clone" } } })).toThrow(expect.objectContaining({ code: "profile_input_invalid" }));
     expect(openApiDocument.components.schemas.EpisodeContent.oneOf).toContainEqual({ $ref: "#/components/schemas/DynamicGenericContent" });
+  });
+
+  it("normalizes Veronica aliases at ingress and exposes the canonical source-led blueprint contract", () => {
+    expect(projectInputSchema.parse({
+      name: "Veronica",
+      profile: "strategic-reinvention",
+    }).profile).toBe("veronicabenini");
+    const parsed = parseEpisodeInput({
+      content: {
+        type: "strategic-reinvention",
+        version: "1",
+        blueprint: {
+          creatorProfileId: "veronica-benini",
+          canonicalLocale: "it",
+          mode: "tactical-lesson",
+          sources: ["source-001"],
+          contentTier: "public",
+          thesis: "A sufficiently specific source-led strategic thesis.",
+          beats: ["hook", "situation", "story", "reframe", "framework", "cta"].map((type, index) => ({
+            beatId: `beat-${index}`,
+            type,
+            purpose: "Reviewed source-led beat.",
+            sourceIds: ["source-001"],
+          })),
+          cta: { kind: "free-resource", destination: "https://example.invalid/guide", campaignId: "campaign-001" },
+          requiredApprovalGates: ["source", "canonical-script", "voice", "final-render", "publish"],
+        },
+      },
+    });
+    expect(parsed.content.type).toBe("veronicabenini");
+    expect(openApiDocument.components.schemas.EpisodeContent.oneOf).toContainEqual({
+      $ref: "#/components/schemas/VeronicaContent",
+    });
   });
 
   it("models job progress and redacted terminal failures", () => {
@@ -230,11 +332,19 @@ describe("OpenAPI contract", () => {
 
   it("documents request bodies, command preconditions, and response wire formats", () => {
     const byId = new Map(operations().map(({ operation }) => [operation.operationId, operation]));
-    for (const id of ["createProject", "createEpisode", "replaceEpisodeContent", "admitWorkflow", "recordApproval"]) {
+    for (const id of ["createProject", "ingestRevisionAnalytics", "compareRevisionAnalytics", "createEpisode", "replaceEpisodeContent", "archiveEpisode", "cloneEpisode", "forkEpisodeFromPattern", "admitWorkflow", "recordApproval"]) {
       expect(byId.get(id)?.requestBody?.content).toHaveProperty("application/json");
     }
     expect(byId.get("admitWorkflow")?.parameters).toContainEqual({ $ref: "#/components/parameters/IdempotencyKey" });
     expect(byId.get("replaceEpisodeContent")?.parameters).toContainEqual({ $ref: "#/components/parameters/IfMatch" });
+    expect(byId.get("archiveEpisode")?.parameters).toEqual(expect.arrayContaining([
+      { $ref: "#/components/parameters/IfMatch" },
+      { $ref: "#/components/parameters/IdempotencyKey" },
+    ]));
+    expect(byId.get("cloneEpisode")?.parameters).toContainEqual({ $ref: "#/components/parameters/IdempotencyKey" });
+    expect(byId.get("forkEpisodeFromPattern")?.parameters).toContainEqual({ $ref: "#/components/parameters/IdempotencyKey" });
+    expect(byId.get("ingestRevisionAnalytics")?.parameters).toContainEqual({ $ref: "#/components/parameters/IdempotencyKey" });
+    expect(byId.get("compareRevisionAnalytics")?.parameters).toContainEqual({ $ref: "#/components/parameters/IdempotencyKey" });
     expect(byId.get("cancelWorkflow")?.parameters).toContainEqual({ $ref: "#/components/parameters/IfMatch" });
     expect(byId.get("resumeWorkflow")?.parameters).toEqual(expect.arrayContaining([
       { $ref: "#/components/parameters/IfMatch" },
@@ -264,9 +374,14 @@ describe("OpenAPI contract", () => {
       ["listUsageRecords", "usage.read"],
       ["listAuditEvents", "audit.read"],
       ["createProject", "content.write"],
+      ["ingestRevisionAnalytics", "content.write"],
+      ["compareRevisionAnalytics", "content.write"],
       ["createEpisode", "content.write"],
       ["getEpisode", "content.read"],
       ["replaceEpisodeContent", "content.write"],
+      ["archiveEpisode", "content.write"],
+      ["cloneEpisode", "content.write"],
+      ["forkEpisodeFromPattern", "content.write"],
       ["admitWorkflow", "workflow.start"],
       ["getWorkflow", "content.read"],
       ["listWorkflowSteps", "content.read"],
@@ -278,6 +393,19 @@ describe("OpenAPI contract", () => {
       ["getPublication", "publication.read"],
       ["recordApproval", "approval.decide"],
       ["revokeApproval", "approval.decide"],
+      ["estimateSpeech", "content.read"],
+      ["createSpeechGeneration", "content.write"],
+      ["getSpeechGeneration", "content.read"],
+      ["retrySpeechGeneration", "content.write"],
+      ["cancelSpeechGeneration", "content.write"],
+      ["listSpeechProfiles", "content.read"],
+      ["createSpeechProfile", "content.write"],
+      ["createSpeechProfileVersion", "content.write"],
+      ["validateSpeechProfileVersion", "content.write"],
+      ["activateSpeechProfileVersion", "content.write"],
+      ["deprecateSpeechProfileVersion", "content.write"],
+      ["setGenreSpeechPolicy", "content.write"],
+      ["setVideoSpeechOverride", "content.write"],
     ]);
     for (const { path, operation } of operations()) {
       if (!path.startsWith("/v1/workspaces/")) continue;

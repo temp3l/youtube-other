@@ -17,12 +17,15 @@
   },
   "dependencies": {
     "@mediaforge/domain": "workspace:*",
+    "@mediaforge/metadata": "workspace:*",
     "@mediaforge/observability": "workspace:*",
     "@mediaforge/process-runner": "workspace:*",
     "@mediaforge/rendering": "workspace:*",
     "@mediaforge/shared": "workspace:*",
     "@mediaforge/source-ingestion": "workspace:*",
+    "@mediaforge/story-localization": "workspace:*",
     "@mediaforge/visual-planning": "workspace:*",
+    "@mediaforge/youtube-upload": "workspace:*",
     "zod": "^4.0.14"
   }
 }

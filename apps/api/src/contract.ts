@@ -1,7 +1,11 @@
 import { z } from "zod";
 
-import { ApplicationError } from "@mediaforge/application";
+import { ApplicationError } from "@mediaforge/application/errors.js";
 import { budgetTierSchema, dynamicGenreOverrideSchema } from "@mediaforge/dynamic-genre";
+import {
+  episodeBlueprintSchema,
+  normalizeContentProfileId,
+} from "@mediaforge/domain";
 
 const opaqueId = z
   .string()
@@ -74,12 +78,23 @@ const historyContentSchema = z
   })
   .strict();
 
-export const projectInputSchema = z
-  .object({
+function normalizeApiProfileInput(value: unknown): unknown {
+  if (!value || typeof value !== "object") return value;
+  const profile = Reflect.get(value, "profile");
+  return {
+    ...value as Record<string, unknown>,
+    profile: normalizeContentProfileId(profile),
+  };
+}
+
+export const projectInputSchema = z.preprocess(
+  normalizeApiProfileInput,
+  z.object({
     name: z.string().trim().min(1).max(160),
-    profile: z.enum(["dark_truth", "mathematics_education", "dynamic_generic", "history"]),
+    profile: z.enum(["dark_truth", "mathematics_education", "dynamic_generic", "history", "veronicabenini"]),
   })
-  .strict();
+  .strict(),
+);
 const dynamicGenericInputSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("completed_story"), locale: z.string().regex(/^[a-z]{2}(?:-[A-Z]{2})?$/u), canonicalLanguage: z.string().regex(/^[a-z]{2}(?:-[A-Z]{2})?$/u).optional(), title: z.string().trim().min(1).max(300), body: z.string().trim().min(1).max(120_000) }).strict(),
   z.object({ kind: z.literal("structured_outline"), locale: z.string().regex(/^[a-z]{2}(?:-[A-Z]{2})?$/u), canonicalLanguage: z.string().regex(/^[a-z]{2}(?:-[A-Z]{2})?$/u).optional(), title: z.string().trim().min(1).max(300), sections: z.array(z.object({ id: opaqueId, heading: z.string().trim().max(200).optional(), body: z.string().trim().min(1).max(30_000) }).strict()).min(1).max(200) }).strict().superRefine((value, context) => {
@@ -87,7 +102,33 @@ const dynamicGenericInputSchema = z.discriminatedUnion("kind", [
   }),
 ]);
 export const dynamicGenericContentSchema = z.object({ type: z.literal("dynamic_generic"), version: z.literal("1"), input: dynamicGenericInputSchema, budgetTier: budgetTierSchema, overrides: dynamicGenreOverrideSchema.optional() }).strict();
-export const episodeInputSchema = z
+export const veronicaBlueprintInputSchema = episodeBlueprintSchema.omit({
+  schemaVersion: true,
+  episodeId: true,
+  genreId: true,
+});
+export const veronicaContentSchema = z.strictObject({
+  type: z.literal("veronicabenini"),
+  version: z.literal("1"),
+  blueprint: veronicaBlueprintInputSchema,
+});
+
+function normalizeEpisodeProfileInput(value: unknown): unknown {
+  if (!value || typeof value !== "object") return value;
+  const content = Reflect.get(value, "content");
+  if (!content || typeof content !== "object") return value;
+  return {
+    ...value as Record<string, unknown>,
+    content: {
+      ...content as Record<string, unknown>,
+      type: normalizeContentProfileId(Reflect.get(content, "type")),
+    },
+  };
+}
+
+export const episodeInputSchema = z.preprocess(
+  normalizeEpisodeProfileInput,
+  z
   .object({
     content: z.discriminatedUnion("type", [
       z
@@ -102,7 +143,33 @@ export const episodeInputSchema = z
       mathematicsEducationContentSchema,
       historyContentSchema,
       dynamicGenericContentSchema,
+      veronicaContentSchema,
     ]),
+  })
+  .strict(),
+);
+
+/** Stable lifecycle commands are deliberately separate from mutable episode content. */
+export const archiveEpisodeInputSchema = z
+  .object({
+    expectedRevision: z.number().int().nonnegative(),
+    reason: z.string().trim().min(1).max(2_000),
+  })
+  .strict();
+
+export const cloneEpisodeInputSchema = z
+  .object({ expectedSourceRevision: z.number().int().nonnegative() })
+  .strict();
+
+export const forkEpisodeFromPatternInputSchema = z
+  .object({
+    expectedSourceRevision: z.number().int().nonnegative(),
+    patternLineage: z.object({
+      patternId: opaqueId,
+      configurationRevision: opaqueId,
+      dependencyFingerprint: z.string().regex(/^[a-f0-9]{64}$/u),
+      provenanceHash: z.string().regex(/^[a-f0-9]{64}$/u),
+    }).strict(),
   })
   .strict();
 
@@ -137,6 +204,18 @@ export function parseEpisodeInput(value: unknown): EpisodeInput {
   if (content && typeof content === "object" && Reflect.get(content, "type") === "dynamic_generic") {
     throw new ApplicationError("profile_input_invalid", "Dynamic generic episode input must contain only bounded semantic content and overrides.", false, [...new Set(parsed.error.issues.map((issue) => issue.path.join(".")))]);
   }
+  if (
+    content &&
+    typeof content === "object" &&
+    normalizeContentProfileId(Reflect.get(content, "type")) === "veronicabenini"
+  ) {
+    throw new ApplicationError(
+      "profile_input_invalid",
+      "Veronica episode input must contain a valid source-led blueprint.",
+      false,
+      [...new Set(parsed.error.issues.map((issue) => issue.path.join(".")))],
+    );
+  }
   throw parsed.error;
 }
 export const workflowAdmissionSchema = z
@@ -155,6 +234,37 @@ export const workflowAdmissionSchema = z
     publicationMode: z.literal("none"),
   })
   .strict();
+const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/u);
+const approvalReviewScopeSchema = z
+  .object({
+    gate: z.enum([
+      "source",
+      "canonical-script",
+      "localization",
+      "voice",
+      "final-render",
+      "publish",
+    ]),
+    locale: z.enum(["en", "de", "es", "fr", "pt", "it"]),
+    variant: z.enum(["full", "short"]),
+    inputArtifactHashes: z.array(sha256Schema).min(1).max(100),
+    outputArtifactHashes: z.array(sha256Schema).min(1).max(100),
+    reviewerRole: z.string().trim().min(1).max(120).optional(),
+    expiresAt: z.iso.datetime({ offset: true }).optional(),
+    supersedesApprovalId: opaqueId.optional(),
+    highRisk: z.boolean().default(false),
+    requiredDistinctActors: z.number().int().min(1).max(10).optional(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.highRisk && (value.requiredDistinctActors ?? 1) < 2) {
+      context.addIssue({
+        code: "custom",
+        path: ["requiredDistinctActors"],
+        message: "High-risk review requires at least two distinct reviewers.",
+      });
+    }
+  });
 export const approvalInputSchema = z
   .object({
     challengeId: opaqueId,
@@ -162,6 +272,7 @@ export const approvalInputSchema = z
     expectedRevision: z.number().int().nonnegative(),
     decision: z.enum(["approved", "rejected"]),
     reason: z.string().trim().min(1).max(2_000),
+    review: approvalReviewScopeSchema.optional(),
   })
   .strict();
 export const approvalRevocationInputSchema = z
@@ -210,6 +321,53 @@ const approvalParameters = [
 const authenticatedErrors = {
   "401": response("Unauthorized"),
   "403": response("Forbidden"),
+} as const;
+const revisionAnalyticsObservationRequired = [
+  "schemaVersion",
+  "observationId",
+  "contentProfileId",
+  "episodeId",
+  "editionRevisionId",
+  "publicationId",
+  "publicationRevision",
+  "locale",
+  "observedAt",
+  "configurationRevision",
+  "dependencyIdentity",
+  "provenanceSha256",
+  "metrics",
+  "providerDispatchEnabled",
+] as const;
+const revisionAnalyticsObservationProperties = {
+  schemaVersion: { const: "revision-analytics-observation.v1" },
+  observationId: schema("OpaqueId"),
+  contentProfileId: {
+    type: "string",
+    enum: ["dark-truth", "mathematics-education", "veronicabenini", "history"],
+  },
+  episodeId: schema("OpaqueId"),
+  editionRevisionId: { type: "string", minLength: 1, maxLength: 160 },
+  publicationId: schema("OpaqueId"),
+  publicationRevision: schema("Revision"),
+  locale: { type: "string", enum: ["en", "de", "es", "fr", "pt", "it"] },
+  observedAt: { type: "string", format: "date-time" },
+  configurationRevision: { type: "string", minLength: 1, maxLength: 160 },
+  dependencyIdentity: {
+    type: "object",
+    minProperties: 1,
+    maxProperties: 100,
+    propertyNames: { pattern: "^[a-z0-9][a-z0-9._-]*$" },
+    additionalProperties: { type: "string", pattern: "^[a-f0-9]{64}$" },
+  },
+  provenanceSha256: { type: "string", pattern: "^[a-f0-9]{64}$" },
+  metrics: {
+    type: "object",
+    minProperties: 1,
+    maxProperties: 100,
+    propertyNames: { pattern: "^[a-z0-9][a-z0-9._-]*$" },
+    additionalProperties: { type: "number", minimum: 0 },
+  },
+  providerDispatchEnabled: { const: false },
 } as const;
 
 export const openApiDocument = {
@@ -352,6 +510,61 @@ export const openApiDocument = {
         },
       },
     },
+    "/v1/workspaces/{workspace}/projects/{project}/analytics-observations": {
+      post: {
+        operationId: "ingestRevisionAnalytics",
+        description:
+          "Appends provider-supplied metrics to an immutable edition and publication revision. Requires the `content.write` workspace permission and an idempotency key; this operation never dispatches a provider.",
+        parameters: [...projectParameters, parameter("IdempotencyKey")],
+        requestBody: {
+          required: true,
+          content: json("RevisionAnalyticsIngestRequest"),
+        },
+        responses: {
+          "201": {
+            description: "Analytics observation appended or replayed",
+            headers: {
+              "Idempotency-Replayed": responseHeader("IdempotencyReplayed"),
+              "x-request-id": responseHeader("RequestId"),
+            },
+            content: json("RevisionAnalyticsIngestResult"),
+          },
+          "400": response("BadRequest"),
+          ...authenticatedErrors,
+          "404": response("NotFound"),
+          "409": response("Conflict"),
+          "428": response("PreconditionRequired"),
+        },
+      },
+    },
+    "/v1/workspaces/{workspace}/projects/{project}/analytics-comparisons": {
+      post: {
+        operationId: "compareRevisionAnalytics",
+        description:
+          "Creates or reuses an immutable, observational-only locale/format comparison from persisted revision analytics. Requires the `content.write` workspace permission and an idempotency key; this operation never mutates a profile or dispatches a provider.",
+        parameters: [...projectParameters, parameter("IdempotencyKey")],
+        requestBody: {
+          required: true,
+          content: json("RevisionAnalyticsComparisonRequest"),
+        },
+        responses: {
+          "201": {
+            description: "Analytics comparison created, reused, or replayed",
+            headers: {
+              "Idempotency-Replayed": responseHeader("IdempotencyReplayed"),
+              "x-request-id": responseHeader("RequestId"),
+            },
+            content: json("RevisionAnalyticsComparisonResult"),
+          },
+          "400": response("BadRequest"),
+          ...authenticatedErrors,
+          "404": response("NotFound"),
+          "409": response("Conflict"),
+          "412": response("PreconditionFailed"),
+          "428": response("PreconditionRequired"),
+        },
+      },
+    },
     "/v1/workspaces/{workspace}/projects/{project}/episodes": {
       post: {
         operationId: "createEpisode",
@@ -413,6 +626,90 @@ export const openApiDocument = {
           "404": response("NotFound"),
           "412": response("PreconditionFailed"),
           "422": response("UnprocessableEntity"),
+          "428": response("PreconditionRequired"),
+        },
+      },
+    },
+    "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}:archive": {
+      post: {
+        operationId: "archiveEpisode",
+        description:
+          "Archives an active episode while preserving immutable revision history. Requires the `content.write` workspace permission, a current strong ETag, and an idempotency key.",
+        parameters: [
+          ...episodeParameters,
+          parameter("IfMatch"),
+          parameter("IdempotencyKey"),
+        ],
+        requestBody: { required: true, content: json("ArchiveEpisodeInput") },
+        responses: {
+          "200": {
+            description: "Episode archived",
+            headers: {
+              ETag: responseHeader("ETag"),
+              "Idempotency-Replayed": responseHeader("IdempotencyReplayed"),
+              "x-request-id": responseHeader("RequestId"),
+            },
+            content: json("EpisodeLifecycleResult"),
+          },
+          "400": response("BadRequest"),
+          ...authenticatedErrors,
+          "404": response("NotFound"),
+          "409": response("Conflict"),
+          "412": response("PreconditionFailed"),
+          "428": response("PreconditionRequired"),
+        },
+      },
+    },
+    "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}:clone": {
+      post: {
+        operationId: "cloneEpisode",
+        description:
+          "Clones an immutable source episode revision into a new active episode. Requires the `content.write` workspace permission and an idempotency key.",
+        parameters: [...episodeParameters, parameter("IdempotencyKey")],
+        requestBody: { required: true, content: json("CloneEpisodeInput") },
+        responses: {
+          "201": {
+            description: "Episode clone created",
+            headers: {
+              Location: responseHeader("Location"),
+              ETag: responseHeader("ETag"),
+              "Idempotency-Replayed": responseHeader("IdempotencyReplayed"),
+              "x-request-id": responseHeader("RequestId"),
+            },
+            content: json("EpisodeLifecycleResult"),
+          },
+          "400": response("BadRequest"),
+          ...authenticatedErrors,
+          "404": response("NotFound"),
+          "409": response("Conflict"),
+          "412": response("PreconditionFailed"),
+          "428": response("PreconditionRequired"),
+        },
+      },
+    },
+    "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}:fork-pattern": {
+      post: {
+        operationId: "forkEpisodeFromPattern",
+        description:
+          "Creates a new inactive-work draft from one immutable canonical Veronica source revision and records explicit pattern lineage. Requires the `content.write` workspace permission and an idempotency key; it never copies approvals or starts production work.",
+        parameters: [...episodeParameters, parameter("IdempotencyKey")],
+        requestBody: { required: true, content: json("ForkEpisodeFromPatternInput") },
+        responses: {
+          "201": {
+            description: "Pattern fork created",
+            headers: {
+              Location: responseHeader("Location"),
+              ETag: responseHeader("ETag"),
+              "Idempotency-Replayed": responseHeader("IdempotencyReplayed"),
+              "x-request-id": responseHeader("RequestId"),
+            },
+            content: json("PatternForkResult"),
+          },
+          "400": response("BadRequest"),
+          ...authenticatedErrors,
+          "404": response("NotFound"),
+          "409": response("Conflict"),
+          "412": response("PreconditionFailed"),
           "428": response("PreconditionRequired"),
         },
       },
@@ -688,7 +985,7 @@ export const openApiDocument = {
         responses: {
           "200": {
             description:
-              "Safe estimate; provider credentials and narration are excluded.",
+              "Safe estimate; provider authentication material and narration are excluded.",
             headers: { "x-request-id": responseHeader("RequestId") },
             content: json("SpeechEstimate"),
           },
@@ -799,7 +1096,7 @@ export const openApiDocument = {
       post: {
         operationId: "createSpeechProfile",
         description:
-          "Creates a logical voice profile; provider credentials are never accepted. Requires the `content.write` workspace permission.",
+          "Creates a logical voice profile; provider authentication material is never accepted. Requires the `content.write` workspace permission.",
         parameters: workspaceParameters,
         requestBody: { required: true, content: json("SpeechProfileInput") },
         responses: {
@@ -1445,8 +1742,133 @@ export const openApiDocument = {
           name: { type: "string", minLength: 1, maxLength: 160 },
           profile: {
             type: "string",
-            enum: ["dark_truth", "mathematics_education", "dynamic_generic", "history"],
+            enum: ["dark_truth", "mathematics_education", "dynamic_generic", "history", "veronicabenini"],
           },
+        },
+      },
+      RevisionAnalyticsObservationInput: {
+        type: "object",
+        additionalProperties: false,
+        required: revisionAnalyticsObservationRequired,
+        properties: revisionAnalyticsObservationProperties,
+      },
+      RevisionAnalyticsObservation: {
+        type: "object",
+        additionalProperties: false,
+        required: [
+          ...revisionAnalyticsObservationRequired,
+          "regenerationRationale",
+        ],
+        properties: {
+          ...revisionAnalyticsObservationProperties,
+          regenerationRationale: {
+            type: "string",
+            enum: ["new-observation", "idempotent-replay"],
+          },
+        },
+      },
+      RevisionAnalyticsIngestRequest: {
+        type: "object",
+        additionalProperties: false,
+        required: ["observation"],
+        properties: {
+          observation: schema("RevisionAnalyticsObservationInput"),
+        },
+      },
+      RevisionAnalyticsIngestResult: {
+        type: "object",
+        additionalProperties: false,
+        required: ["observation", "replayed"],
+        properties: {
+          observation: schema("RevisionAnalyticsObservation"),
+          replayed: { type: "boolean" },
+        },
+      },
+      RevisionAnalyticsComparisonRequest: {
+        type: "object",
+        additionalProperties: false,
+        required: [
+          "schemaVersion",
+          "contentProfileId",
+          "episodeId",
+          "metric",
+          "comparisonDimensions",
+          "cohorts",
+          "effectiveConfigurationHash",
+          "dependencyIdentity",
+        ],
+        properties: {
+          schemaVersion: { const: "revision-analytics-comparison-request.v1" },
+          contentProfileId: { const: "veronicabenini" },
+          episodeId: schema("OpaqueId"),
+          metric: schema("OpaqueId"),
+          comparisonDimensions: {
+            type: "array",
+            minItems: 1,
+            maxItems: 2,
+            uniqueItems: true,
+            items: { type: "string", enum: ["locale", "format"] },
+          },
+          cohorts: {
+            type: "array",
+            minItems: 2,
+            maxItems: 100,
+            items: {
+              type: "object",
+              additionalProperties: false,
+              required: ["observationId", "format"],
+              properties: {
+                observationId: schema("OpaqueId"),
+                format: { type: "string", enum: ["full", "short"] },
+              },
+            },
+          },
+          effectiveConfigurationHash: { type: "string", pattern: "^[a-f0-9]{64}$" },
+          dependencyIdentity: {
+            type: "object",
+            minProperties: 1,
+            maxProperties: 100,
+            additionalProperties: { type: "string", pattern: "^[a-f0-9]{64}$" },
+          },
+        },
+      },
+      RevisionAnalyticsComparison: {
+        type: "object",
+        additionalProperties: false,
+        required: [
+          "schemaVersion", "comparisonId", "contentProfileId", "episodeId", "metric",
+          "comparisonDimensions", "interpretation", "immutableObservationBindings", "cohorts",
+          "effectiveConfigurationHash", "dependencyIdentity", "provenance", "reuseRationale",
+          "regenerationRationale", "profileMutationEnabled", "providerDispatchEnabled", "fingerprint",
+        ],
+        properties: {
+          schemaVersion: { const: "revision-analytics-comparison.v1" },
+          comparisonId: schema("OpaqueId"),
+          contentProfileId: { const: "veronicabenini" },
+          episodeId: schema("OpaqueId"),
+          metric: schema("OpaqueId"),
+          comparisonDimensions: { type: "array", items: { type: "string", enum: ["locale", "format"] } },
+          interpretation: { const: "observational-non-causal" },
+          immutableObservationBindings: { type: "array", minItems: 2, items: { type: "object" } },
+          cohorts: { type: "array", minItems: 2, items: { type: "object" } },
+          effectiveConfigurationHash: { type: "string", pattern: "^[a-f0-9]{64}$" },
+          dependencyIdentity: { type: "object", additionalProperties: { type: "string", pattern: "^[a-f0-9]{64}$" } },
+          provenance: { type: "object" },
+          reuseRationale: { type: "string", enum: ["new-comparison", "content-hash-match"] },
+          regenerationRationale: { type: "string", enum: ["new-comparison", "observations-changed", "configuration-changed", "dependency-changed"] },
+          profileMutationEnabled: { const: false },
+          providerDispatchEnabled: { const: false },
+          fingerprint: { type: "string", pattern: "^[a-f0-9]{64}$" },
+        },
+      },
+      RevisionAnalyticsComparisonResult: {
+        type: "object",
+        additionalProperties: false,
+        required: ["comparison", "replayed", "reused"],
+        properties: {
+          comparison: schema("RevisionAnalyticsComparison"),
+          replayed: { type: "boolean" },
+          reused: { type: "boolean" },
         },
       },
       Project: {
@@ -1568,12 +1990,66 @@ export const openApiDocument = {
           },
         },
       },
+      VeronicaBlueprintBeat: {
+        type: "object",
+        additionalProperties: false,
+        required: ["beatId", "type", "purpose", "sourceIds"],
+        properties: {
+          beatId: { type: "string", pattern: "^[a-z0-9][a-z0-9-]{2,127}$" },
+          type: { type: "string", enum: ["hook", "situation", "story", "conventional-view", "reframe", "framework", "example", "action", "cta"] },
+          purpose: { type: "string", minLength: 1 },
+          sourceIds: { type: "array", minItems: 1, uniqueItems: true, items: { type: "string", pattern: "^[a-z0-9][a-z0-9-]{2,127}$" } },
+          claimIds: { type: "array", uniqueItems: true, items: { type: "string", pattern: "^[a-z0-9][a-z0-9-]{2,127}$" } },
+          visualIntent: { type: "string" },
+          sensitivity: { type: "string", enum: ["normal", "sensitive", "high-risk"] },
+        },
+      },
+      VeronicaBlueprintInput: {
+        type: "object",
+        additionalProperties: false,
+        required: ["creatorProfileId", "canonicalLocale", "mode", "sources", "contentTier", "thesis", "beats", "cta", "requiredApprovalGates"],
+        properties: {
+          creatorProfileId: { type: "string", minLength: 1 },
+          canonicalLocale: { type: "string", enum: ["en", "de", "es", "fr", "pt", "it"] },
+          mode: { type: "string", enum: ["story-to-strategy", "tactical-lesson", "position-essay", "myth-reality", "decision-framework", "case-diagnosis", "q-and-a", "guided-exercise"] },
+          sources: { type: "array", minItems: 1, uniqueItems: true, items: { type: "string", pattern: "^[a-z0-9][a-z0-9-]{2,127}$" } },
+          contentTier: { type: "string", enum: ["public", "lead-generation", "premium", "private"] },
+          thesis: { type: "string", minLength: 10 },
+          viewerProblem: { type: "string" },
+          forbiddenInferences: { type: "array", uniqueItems: true, items: { type: "string" } },
+          beats: { type: "array", minItems: 6, maxItems: 12, items: schema("VeronicaBlueprintBeat") },
+          cta: {
+            type: "object",
+            additionalProperties: false,
+            required: ["kind", "destination", "campaignId"],
+            properties: {
+              kind: { type: "string", enum: ["newsletter", "free-resource", "course", "membership", "consultation", "book", "none"] },
+              destination: { type: "string" },
+              campaignId: { type: "string" },
+              localizedDestinations: { type: "object", additionalProperties: { type: "string" } },
+            },
+          },
+          targetLocales: { type: "array", uniqueItems: true, items: { type: "string", enum: ["en", "de", "es", "fr", "pt", "it"] } },
+          requiredApprovalGates: { type: "array", minItems: 1, uniqueItems: true, items: { type: "string", enum: ["source", "canonical-script", "localization", "voice", "final-render", "publish"] } },
+        },
+      },
+      VeronicaContent: {
+        type: "object",
+        additionalProperties: false,
+        required: ["type", "version", "blueprint"],
+        properties: {
+          type: { const: "veronicabenini" },
+          version: { const: "1" },
+          blueprint: schema("VeronicaBlueprintInput"),
+        },
+      },
       EpisodeContent: {
         oneOf: [
           schema("DarkTruthContent"),
           schema("MathematicsEducationContent"),
           schema("HistoryContent"),
           schema("DynamicGenericContent"),
+          schema("VeronicaContent"),
         ],
         discriminator: { propertyName: "type" },
       },
@@ -1592,11 +2068,67 @@ export const openApiDocument = {
       Episode: {
         type: "object",
         additionalProperties: false,
-        required: ["id", "revision", "content"],
+        required: ["id", "revision", "content", "lifecycleState"],
         properties: {
           id: schema("OpaqueId"),
           revision: schema("Revision"),
           content: schema("EpisodeContent"),
+          lifecycleState: { type: "string", enum: ["active", "archived"] },
+          sourceEpisodeId: { anyOf: [schema("OpaqueId"), { type: "null" }] },
+          sourceEpisodeRevision: { anyOf: [schema("Revision"), { type: "null" }] },
+        },
+      },
+      ArchiveEpisodeInput: {
+        type: "object", additionalProperties: false,
+        required: ["expectedRevision", "reason"],
+        properties: {
+          expectedRevision: schema("Revision"),
+          reason: { type: "string", minLength: 1, maxLength: 2000 },
+        },
+      },
+      CloneEpisodeInput: {
+        type: "object", additionalProperties: false,
+        required: ["expectedSourceRevision"],
+        properties: { expectedSourceRevision: schema("Revision") },
+      },
+      ForkEpisodeFromPatternInput: {
+        type: "object", additionalProperties: false,
+        required: ["expectedSourceRevision", "patternLineage"],
+        properties: {
+          expectedSourceRevision: schema("Revision"),
+          patternLineage: schema("PatternLineage"),
+        },
+      },
+      PatternLineage: {
+        type: "object", additionalProperties: false,
+        required: ["patternId", "configurationRevision", "dependencyFingerprint", "provenanceHash"],
+        properties: {
+          patternId: schema("OpaqueId"),
+          configurationRevision: schema("OpaqueId"),
+          dependencyFingerprint: { type: "string", pattern: "^[a-f0-9]{64}$" },
+          provenanceHash: { type: "string", pattern: "^[a-f0-9]{64}$" },
+        },
+      },
+      EpisodeLifecycleResult: {
+        type: "object", additionalProperties: false,
+        required: ["id", "revision", "lifecycleState", "sourceEpisodeId", "sourceEpisodeRevision"],
+        properties: {
+          id: schema("OpaqueId"),
+          revision: schema("Revision"),
+          lifecycleState: { type: "string", enum: ["active", "archived"] },
+          sourceEpisodeId: { anyOf: [schema("OpaqueId"), { type: "null" }] },
+          sourceEpisodeRevision: { anyOf: [schema("Revision"), { type: "null" }] },
+        },
+      },
+      PatternForkResult: {
+        type: "object", additionalProperties: false,
+        required: ["id", "revision", "lifecycleState", "sourceEpisodeId", "sourceEpisodeRevision", "patternLineage"],
+        properties: {
+          id: schema("OpaqueId"), revision: schema("Revision"),
+          lifecycleState: { const: "active" },
+          sourceEpisodeId: schema("OpaqueId"),
+          sourceEpisodeRevision: schema("Revision"),
+          patternLineage: schema("PatternLineage"),
         },
       },
       WorkflowAdmission: {
@@ -1877,6 +2409,24 @@ export const openApiDocument = {
           expectedRevision: schema("Revision"),
           decision: { type: "string", enum: ["approved", "rejected"] },
           reason: { type: "string", minLength: 1, maxLength: 2_000 },
+          review: { $ref: "#/components/schemas/ApprovalReviewScope" },
+        },
+      },
+      ApprovalReviewScope: {
+        type: "object",
+        additionalProperties: false,
+        required: ["gate", "locale", "variant", "inputArtifactHashes", "outputArtifactHashes", "highRisk"],
+        properties: {
+          gate: { type: "string", enum: ["source", "canonical-script", "localization", "voice", "final-render", "publish"] },
+          locale: { type: "string", enum: ["en", "de", "es", "fr", "pt", "it"] },
+          variant: { type: "string", enum: ["full", "short"] },
+          inputArtifactHashes: { type: "array", minItems: 1, maxItems: 100, items: { type: "string", pattern: "^[a-f0-9]{64}$" } },
+          outputArtifactHashes: { type: "array", minItems: 1, maxItems: 100, items: { type: "string", pattern: "^[a-f0-9]{64}$" } },
+          reviewerRole: { type: "string", minLength: 1, maxLength: 120 },
+          expiresAt: { type: "string", format: "date-time" },
+          supersedesApprovalId: schema("OpaqueId"),
+          highRisk: { type: "boolean", default: false },
+          requiredDistinctActors: { type: "integer", minimum: 1, maximum: 10 },
         },
       },
       ApprovalAccepted: {
@@ -2005,6 +2555,9 @@ export const openApiDocument = {
 
 export type ProjectInput = z.infer<typeof projectInputSchema>;
 export type EpisodeInput = z.infer<typeof episodeInputSchema>;
+export type ArchiveEpisodeInput = z.infer<typeof archiveEpisodeInputSchema>;
+export type CloneEpisodeInput = z.infer<typeof cloneEpisodeInputSchema>;
+export type ForkEpisodeFromPatternInput = z.infer<typeof forkEpisodeFromPatternInputSchema>;
 export type WorkflowAdmission = z.infer<typeof workflowAdmissionSchema>;
 export type ApprovalInput = z.infer<typeof approvalInputSchema>;
 export type ApprovalRevocationInput = z.infer<

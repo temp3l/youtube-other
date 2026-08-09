@@ -48,6 +48,7 @@ describe("strategic content policy contracts", () => {
     });
 
     expect(normalized.schemaVersion).toBe("1.1");
+    expect(normalized.genreId).toBe("veronicabenini");
     expect(normalized.contentTier).toBe("lead-generation");
     expect(normalized.cta.localizedDestinations?.it).toBe(
       "https://example.test/it"

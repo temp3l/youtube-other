@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { episodeBlueprintSchema } from "@mediaforge/domain";
 import { loadStrategicReinventionProfile } from "./profile.js";
 import { runStrategicSourceAdaptation } from "./source-adaptation-bridge.js";
-import { hashCanonicalSourceBytes } from "./provenance-validation.js";
+import { hashCanonicalSourceBytes, hashEvidenceSpan } from "./provenance-validation.js";
 
 const temporaryRoots: string[] = [];
 afterEach(async () => {
@@ -15,7 +15,7 @@ afterEach(async () => {
 });
 
 describe("runStrategicSourceAdaptation", () => {
-  it("derives a provenance-bound canonical script from episode text sources", async () => {
+  it("fails closed when source text has no approved manifest or evidence ledger", async () => {
     const profile = await loadStrategicReinventionProfile();
     const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "source-adapt-"));
     temporaryRoots.push(workspace);
@@ -28,7 +28,7 @@ describe("runStrategicSourceAdaptation", () => {
     const blueprint = episodeBlueprintSchema.parse({
       schemaVersion: "1.1",
       episodeId,
-      genreId: "strategic-reinvention",
+      genreId: "veronicabenini",
       creatorProfileId: profile.creatorProfile.id,
       canonicalLocale: "it",
       mode: "story-to-strategy",
@@ -46,15 +46,8 @@ describe("runStrategicSourceAdaptation", () => {
       cta: { kind: "consultation", destination: "https://example.com", campaignId: "campaign-001" },
       requiredApprovalGates: ["source", "canonical-script", "localization", "voice", "final-render", "publish"],
     });
-    const result = await runStrategicSourceAdaptation({
-      workspaceRoot: workspace,
-      episodeId,
-      blueprint,
-      profile,
-    });
-    expect(result.canonicalScript).toContain("Benvenuti.");
-    expect(result.adaptation.candidateCanonicalScript.status).toBe("CANDIDATE_UNPUBLISHABLE");
-    expect(result.adaptation.provenance.issues).toHaveLength(0);
+    await expect(runStrategicSourceAdaptation({ workspaceRoot: workspace, episodeId, blueprint, profile }))
+      .rejects.toThrow(/approved source manifest/i);
   });
 
   it("loads a checked-in source manifest when hash matches source bytes", async () => {
@@ -67,6 +60,7 @@ describe("runStrategicSourceAdaptation", () => {
     const sourceBytes = new TextEncoder().encode(sourceText);
     await fs.mkdir(path.join(episodeRoot, "sources", "content"), { recursive: true });
     await fs.mkdir(path.join(episodeRoot, "sources", "manifests"), { recursive: true });
+    await fs.mkdir(path.join(episodeRoot, "sources", "approvals"), { recursive: true });
     await fs.writeFile(path.join(episodeRoot, "sources", "content", "source-primary.md"), sourceText);
     await fs.writeFile(
       path.join(episodeRoot, "sources", "manifests", "source-primary.json"),
@@ -111,10 +105,34 @@ describe("runStrategicSourceAdaptation", () => {
         2,
       )}\n`,
     );
+    await fs.writeFile(
+      path.join(episodeRoot, "sources", "approvals", "source-evidence.json"),
+      `${JSON.stringify([{
+        schemaVersion: "mediaforge.approval.v1",
+        id: "approval-source-evidence-001",
+        workflowInstanceId: `episode-${episodeId}`,
+        taskId: "strategic.source-evidence",
+        profileId: "veronicabenini",
+        unitId: episodeId,
+        locale: "it",
+        variant: "full",
+        decision: "approved",
+        actor: "reviewer-a",
+        reason: "Reviewed exact source evidence.",
+        boundRevision: "veronicabenini.source-adaptation.v1",
+        artifactHashes: [hashEvidenceSpan(sourceBytes)],
+        createdAt: "2026-08-09T10:00:00.000Z",
+        scope: {
+          gate: "source", locale: "it", variant: "full",
+          inputArtifactHashes: [hashCanonicalSourceBytes(sourceBytes)],
+          outputArtifactHashes: [hashEvidenceSpan(sourceBytes)], highRisk: false,
+        },
+      }], null, 2)}\n`,
+    );
     const blueprint = episodeBlueprintSchema.parse({
       schemaVersion: "1.1",
       episodeId,
-      genreId: "strategic-reinvention",
+      genreId: "veronicabenini",
       creatorProfileId: profile.creatorProfile.id,
       canonicalLocale: "it",
       mode: "story-to-strategy",
@@ -140,6 +158,8 @@ describe("runStrategicSourceAdaptation", () => {
     });
     expect(result.canonicalScript).toContain("Manifest-bound source text");
     expect(result.adaptation.provenance.issues).toHaveLength(0);
+    expect(result.narrationRevision.contentProfileId).toBe("veronicabenini");
+    expect(result.editorialOutline[0]?.evidenceSpanIds).toEqual(["span-001"]);
   });
 
   it("rejects a manifest whose sourceHash does not match source bytes", async () => {
@@ -200,7 +220,7 @@ describe("runStrategicSourceAdaptation", () => {
     const blueprint = episodeBlueprintSchema.parse({
       schemaVersion: "1.1",
       episodeId,
-      genreId: "strategic-reinvention",
+      genreId: "veronicabenini",
       creatorProfileId: profile.creatorProfile.id,
       canonicalLocale: "it",
       mode: "story-to-strategy",

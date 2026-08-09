@@ -106,3 +106,16 @@ Every story has one primary task. The source pack supplies the detailed acceptan
 | VJ-14 | Source-pack journey represented by its mapped `VER-*` stories above. |
 
 All 16 epics are represented in the table.
+
+## Final acceptance reconciliation
+
+All 81 rows are accounted for. The baseline `COMPLETE` stories VER-082,
+VER-125, VER-131, and VER-151 are `ALREADY_COMPLETE_AND_VERIFIED`. Every other
+story row is `IMPLEMENTED_AND_VALIDATED` through its primary task and the
+checkpointed focused evidence. No story is `DEFERRED_BY_APPROVED_PLAN` or
+`BLOCKED_EXTERNAL`.
+
+External activation is an operational gate, not an unaccounted story: live
+provider dispatch/publication, creator discovery activation, likeness/voice
+consent, and YouTube alternate-audio capability remain disabled until reviewed
+evidence exists. Their contracts and fail-closed preflights are implemented.

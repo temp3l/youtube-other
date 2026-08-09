@@ -19,7 +19,8 @@ describe("Strategic Reinvention profile", () => {
     expect(load(genre)).toEqual(load(suppliedGenre));
     expect(load(creator)).toEqual(load(suppliedCreator));
     const profile = parseStrategicReinventionProfile(genre, creator);
-    expect(profile.genre.id).toBe("strategic-reinvention");
+    expect(profile.genre.id).toBe("veronicabenini");
+    expect(profile.creatorProfile.genreId).toBe("veronicabenini");
     expect(profile.creatorProfile.id).toBe("veronica-benini");
     expect(profile.effectivePolicy.canonicalLocale).toBe("it");
     expect(profile.productionReadiness.status).toBe("PRODUCTION_BLOCKED");

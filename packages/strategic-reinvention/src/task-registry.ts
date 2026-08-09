@@ -45,10 +45,12 @@ function registration(
     definition: taskDefinitionSchema.parse({
       schemaVersion: TASK_SCHEMA_VERSION,
       id: definition.id,
-      implementationVersion: "1.0.0",
+      implementationVersion: STRATEGIC_FULL_TASK_REGISTRY_VERSION,
       displayName: definition.name,
       description: definition.description,
-      applicableProfiles: ["strategic-reinvention"],
+      // The strategic-reinvention name is an ingress-only compatibility alias.
+      // Workflow state and fingerprints must retain Veronica's canonical id.
+      applicableProfiles: ["veronicabenini"],
       dependencies: definition.dependencies.map((taskId) => ({
         taskId,
         optional: false,
@@ -124,7 +126,7 @@ export const strategicFullWorkflowDefinition: WorkflowDefinition =
     schemaVersion: WORKFLOW_SCHEMA_VERSION,
     id: "strategic-reinvention.episode",
     revision: STRATEGIC_TASK_REGISTRY_VERSION,
-    profileId: "strategic-reinvention",
+    profileId: "veronicabenini",
     taskIds: STRATEGIC_FULL_TASK_IDS,
   });
 
@@ -133,7 +135,7 @@ export const strategicSupplementalWorkflowDefinition: WorkflowDefinition =
     schemaVersion: WORKFLOW_SCHEMA_VERSION,
     id: "strategic-reinvention.supplemental-media",
     revision: STRATEGIC_TASK_REGISTRY_VERSION,
-    profileId: "strategic-reinvention",
+    profileId: "veronicabenini",
     taskIds: STRATEGIC_SUPPLEMENTAL_TASK_IDS,
   });
 

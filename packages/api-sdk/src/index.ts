@@ -164,6 +164,27 @@ export interface EpisodeCreated {
   readonly revision: number;
 }
 
+export interface PatternLineage {
+  readonly patternId: string;
+  readonly configurationRevision: string;
+  readonly dependencyFingerprint: string;
+  readonly provenanceHash: string;
+}
+
+export interface ForkEpisodeFromPatternInput {
+  readonly expectedSourceRevision: number;
+  readonly patternLineage: PatternLineage;
+}
+
+export interface PatternForkResult {
+  readonly id: string;
+  readonly revision: number;
+  readonly lifecycleState: "active";
+  readonly sourceEpisodeId: string;
+  readonly sourceEpisodeRevision: number;
+  readonly patternLineage: PatternLineage;
+}
+
 export interface WorkflowAdmission {
   readonly template: "episode-production";
   readonly episodeRevision: number;
@@ -630,6 +651,10 @@ export class MediaforgeApiClient {
 
   public replaceEpisodeContent(workspaceId: string, projectId: string, episodeId: string, input: EpisodeInput, options: ConditionalRequestOptions): Promise<ApiResponse<Episode>> {
     return this.execute(`${this.projectPath(workspaceId, projectId)}/episodes/${encodePath(episodeId)}`, { method: "PATCH", body: input, options, ifMatch: options.ifMatch });
+  }
+
+  public forkEpisodeFromPattern(workspaceId: string, projectId: string, sourceEpisodeId: string, input: ForkEpisodeFromPatternInput, options: IdempotentRequestOptions): Promise<ApiResponse<PatternForkResult>> {
+    return this.execute(`${this.projectPath(workspaceId, projectId)}/episodes/${encodePath(sourceEpisodeId)}:fork-pattern`, { method: "POST", body: input, options, idempotencyKey: options.idempotencyKey });
   }
 
   public admitWorkflow(workspaceId: string, projectId: string, episodeId: string, input: WorkflowAdmission, options: IdempotentRequestOptions): Promise<ApiResponse<WorkflowCommandAccepted>> {

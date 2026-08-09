@@ -1,4 +1,14 @@
 import type { VeronicaMediaPlan } from "../contracts/media-plan.v1.js";
+import {
+  planLocaleEdition,
+  type LocaleEditionArtifact,
+  type PlanLocaleEditionInput,
+} from "@mediaforge/story-localization/locale-edition";
+
+export type {
+  LocaleEditionArtifact,
+  PlanLocaleEditionInput,
+} from "@mediaforge/story-localization/locale-edition";
 
 export interface VeronicaTranslationRequest {
   readonly sourceText: string;
@@ -33,6 +43,13 @@ export function translateEmbeddedText(input: VeronicaTranslationRequest) {
     confidence: longText ? 0.7 : 0.95,
     requiresApproval: longText,
   };
+}
+
+/** Canonical Veronica adapter for the shared revision-bound locale-edition contract. */
+export function planVeronicaLocaleEdition(
+  input: Omit<PlanLocaleEditionInput, "contentProfileId">,
+): { readonly edition: LocaleEditionArtifact; readonly reused: boolean } {
+  return planLocaleEdition({ ...input, contentProfileId: "veronicabenini" });
 }
 
 export function validatePortraitReadiness(plan: VeronicaMediaPlan): number {

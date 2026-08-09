@@ -4,6 +4,7 @@ export * from "./pricing.js";
 export * from "./telemetry.js";
 export * from "./math-telemetry.js";
 export * from "./visual-retention.js";
+export * from "./workflow-recovery.js";
 
 export interface LoggerContext {
   episodeId?: string;

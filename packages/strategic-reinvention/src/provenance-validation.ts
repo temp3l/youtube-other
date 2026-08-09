@@ -23,7 +23,7 @@ export interface ScopedApprovalRequirement {
   readonly workflowInstanceId: string;
   readonly taskId: string;
   readonly unitId: string;
-  readonly profileId: "strategic-reinvention";
+  readonly profileId: "veronicabenini";
   readonly locale: EpisodeBlueprint["canonicalLocale"];
   readonly variant: "full" | "short";
   readonly workflowRevision: string;
