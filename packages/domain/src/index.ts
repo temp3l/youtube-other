@@ -13,6 +13,7 @@ export * from "./command-security-contracts.js";
 export * from "./command-security.js";
 export * from "./workflow-portfolio-contracts.js";
 export * from "./workflow-portfolio-projector.js";
+export * from "./bulk-production-preflight.js";
 export * from "./artifact-lineage-contracts.js";
 export * from "./production-unit-graph.js";
 export * from "./artifact-invalidation.js";
