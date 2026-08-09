@@ -74,8 +74,8 @@ Notes: Server-rendered tenant readiness checklist, v1 episode title/ID search, a
 
 ### YSAAS-023
 Status: blocked
-Validation: provider-free executor unit pass (5); disposable-Postgres workflow integration pass (8)
-Notes: Unit-test resolver now supports the domain visual-retention subpath. Existing focused integration proves tenant RLS, stale transitions, durable fencing, and retry lifecycle. No isolated tenant-to-BFF acceptance fixture exercises the remaining fault matrix; do not certify provider-free acceptance yet.
+Validation: provider-free executor unit pass (5); disposable-Postgres workflow integration pass (8). A candidate web-owned API/BFF fixture was intentionally not retained after two collection failures caused by its package dependency boundary.
+Notes: Unit-test resolver now supports the domain visual-retention subpath. Existing focused integration proves tenant RLS, stale transitions, durable fencing, and retry lifecycle. No isolated tenant-to-BFF acceptance fixture exercises the remaining fault matrix; do not certify provider-free acceptance yet. Place that fixture in the API integration context or add a deliberate test resolver boundary.
 
 ### YSAAS-024
 Status: blocked

@@ -15,6 +15,6 @@ Checks: `pnpm test:focused -- apps/web/src/saas-runtime.unit.test.ts` passed (4)
 
 Test results: bulk cancellation renders and posts through the BFF with idempotency.
 
-Known risks/follow-up: Do not certify YSAAS-023 or enable external publication. Next: add a seeded tenant-to-BFF acceptance fixture.
+Known risks/follow-up: Do not certify YSAAS-023 or enable external publication. A web-owned BFF candidate was removed after package-resolution collection failures. Next: add the seeded tenant-to-BFF fixture in the API integration context or configure that boundary deliberately.
 
 Commit: `67a64ed`.
