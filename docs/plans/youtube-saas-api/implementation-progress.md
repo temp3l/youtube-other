@@ -115,10 +115,10 @@ Validation: API SDK build and web typecheck pass; focused web runtime test block
 Notes: Canonical tenant/project/episode production-state API, SDK, BFF, episode workspace, review queue, immutable approval history, and `69de15d` worker-bound production-unit lineage persistence are implemented. `fcd3b88` completes comparison and a server-held, tenant/project/episode-bound invalidation confirmation; the browser never supplies snapshots or computes targets. Pending confirmations are process-local and must move to shared durable session state for horizontal scaling.
 
 ### YSAAS-018
-Status: partial / blocked
-Commit: d3c845e
+Status: completed
+Commit: ab7d835
 Validation: configuration persistence focused test, API typecheck, API SDK build, and web typecheck pass
-Notes: Tenant, profile/genre, and episode configuration layers persist under workspace RLS with schema-validated reads. `d3c845e` exposes a fail-closed tenant capability API and migrates settings BFF rendering to it. Episode resolution SDK/BFF and the remaining workflow pilot locale mapping still need replacement; no UI fallback may be added.
+Notes: Tenant, profile/genre, and episode configuration layers persist under workspace RLS with schema-validated reads. Workspace capabilities and episode resolved-configuration APIs fail closed when unprovisioned. The settings page and workflow locale selector now use server responses; the pilot locale mapping is removed.
 
 ### YSAAS-020
 Status: in progress

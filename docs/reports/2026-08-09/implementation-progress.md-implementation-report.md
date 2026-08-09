@@ -9,7 +9,7 @@ Files changed: persistence production-state and workflow repository files; artif
 
 Tasks completed: YSAAS-017 lineage persistence, comparison reads, invalidation confirmation, and YSAAS-018 configuration persistence foundation.
 
-Tasks partially completed: YSAAS-018 workspace capabilities API/settings BFF; episode resolution and workflow-form migration remain.
+Tasks partially completed: none for YSAAS-018.
 
 Tasks not completed: YSAAS-020 prerequisite.
 
@@ -21,4 +21,4 @@ Test results: persistence test and SDK/web checks pass. HTTP integration test co
 
 Known risks or follow-up work: pending confirmations use process-local state and need shared session persistence for horizontal scaling.
 
-Recommended next steps: add episode resolution to the BFF and remove the remaining workflow pilot locale mapping.
+Recommended next steps: implement persisted action-bound recent-auth confirmation for YSAAS-020.
