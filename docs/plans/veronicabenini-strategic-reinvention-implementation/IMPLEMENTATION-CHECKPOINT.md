@@ -33,7 +33,7 @@
 | VRI-23 | VALIDATED | worker + coordinator review | SDK build and CLI 8/8; API use-case collection dependency-blocked | `8f7fa02` |
 | VRI-24 | VALIDATED | worker + coordinator review | domain/API/persistence 6/6; domain typecheck/build pass | `8f7fa02` |
 | VRI-25 | VALIDATED | worker + coordinator review | resolver 6/6 | `3b1315d` |
-| VRI-26 | VALIDATED | coordinator | pilot 1/1, acceptance evidence 2/2, aspect-ratio 4/4, and package typecheck pass | pending |
+| VRI-26 | VALIDATED | coordinator | pilot 1/1, acceptance evidence 2/2, aspect-ratio 4/4, and package typecheck pass | `b724c8f` |
 
 ## VRI-01 evidence
 

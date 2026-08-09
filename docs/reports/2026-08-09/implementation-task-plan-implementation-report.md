@@ -2,7 +2,7 @@
 
 - Source plan: `docs/plans/veronicabenini-strategic-reinvention-implementation/implementation-task-plan.md`
 - Date: 2026-08-09
-- Commits: `dcd7d4d` through `9b010ce` on `codex/veronicabenini-all-waves`.
+- Commits: `dcd7d4d` through `b724c8f` on `codex/veronicabenini-all-waves`.
 - Summary: Implemented Waves 0–8 as shared, canonical `veronicabenini` contracts and adapters. Added lifecycle, ingestion, editorial/visual planning, locale/voice/render/delivery, approvals, orchestration, publishing preflight, bulk/recovery/API/webhook/analytics, compatibility, and acceptance evidence.
 - Files changed: `apps/api`, `apps/cli`, affected `packages/*`, plan/checkpoint/operator docs, and per-task reports.
 - Tasks completed: VRI-01–VRI-26.
