@@ -222,7 +222,7 @@ export function extractCandidateGapInventoryV36(input: {
       .filter((envelope) => envelope.source.kind === "existing-structured-claim")
       .map((envelope) => String(envelope.claimId)));
     const atomicCandidateClaimIds = new Set(run.native.candidates
-      .filter((candidate) => ["atomic-claim-grounding", "atomic-process-projection", "atomic-temporal-projection", "atomic-transforms-causal-projection"].includes(candidate.source))
+      .filter((candidate) => ["atomic-claim-grounding", "atomic-process-projection", "atomic-temporal-projection", "atomic-transforms-causal-projection", "atomic-evidence-set-projection"].includes(candidate.source))
       .map((candidate) => candidate.claimId));
     for (const claimId of nativeClaimIds) {
       const grounding = run.native.grounding.claims.find((claim) => claim.claimId === claimId);
@@ -376,6 +376,8 @@ export function summarizeCandidateGapInventoryV36(records: readonly CandidateGap
     safeForPhase210ProjectorCount: activeProjectorRules.filter((rule) => rule.recommendation === "SAFE_FOR_PHASE_2_10").length,
     notReadyProjectorCount: 0,
     projectorRules: activeProjectorRules,
-    decision: "Two evidence gaps are direct-projection-ready for Phase 2.12; Phase 2.11 adds no projector.",
+    decision: eligible.length
+      ? "Direct projection gaps remain and require an explicitly approved projector."
+      : "No direct-projection-eligible candidate gaps remain after Phase 2.12.",
   };
 }

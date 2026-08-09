@@ -31,7 +31,9 @@ function invariantCounts(runs: readonly RepresentativeNativeExperimentRunV36[]) 
   const relations = runs.flatMap((run) => run.native.extraction.relations);
   const atomicPropositions = runs.flatMap((run) => run.native.grounding.propositions);
   const projectedCandidates = runs.flatMap((run) => run.native.candidates)
-    .filter((candidate) => candidate.source === "atomic-process-projection" || candidate.source === "atomic-temporal-projection" || candidate.source === "atomic-transforms-causal-projection");
+    .filter((candidate) => candidate.source === "atomic-process-projection" || candidate.source === "atomic-temporal-projection" || candidate.source === "atomic-transforms-causal-projection" || candidate.source === "atomic-evidence-set-projection");
+  const evidenceSetCandidates = projectedCandidates.filter((candidate) =>
+    candidate.source === "atomic-evidence-set-projection");
   const propositions = runs.flatMap((run) => run.native.structuredClaims.envelopes.flatMap((envelope) => envelope.propositions));
   const nativePropositions = propositions.filter((proposition) => proposition.provenance.generationMethod === "native-structured-claim-generation");
   const nativeClaimPropositions = runs.flatMap((run) => run.native.structuredClaims.envelopes
@@ -47,6 +49,13 @@ function invariantCounts(runs: readonly RepresentativeNativeExperimentRunV36[]) 
   const entityLabels = new Map<string, string>(runs.flatMap((run) => run.native.entities.map((entity) => [entity.id, entity.canonicalLabel] as const)));
   const entityParticipants = nativePropositions.flatMap((proposition) => [proposition.subject, proposition.object, ...proposition.roles.map((role) => role.participant)])
     .filter((participant): participant is NonNullable<typeof participant> => Boolean(participant) && participant!.binding.kind === "canonical-entity");
+  const evidenceAtoms = (candidate: (typeof evidenceSetCandidates)[number]) => atomicPropositions
+    .filter((atom) => candidate.atomicGroundingIds?.includes(atom.groundingId));
+  const evidenceRelation = (candidate: (typeof evidenceSetCandidates)[number]) => relations
+    .find((relation) => relation.id === candidate.semanticRelationId);
+  const evidenceMemberIds = (candidate: (typeof evidenceSetCandidates)[number]) =>
+    [...new Set(evidenceAtoms(candidate).flatMap((atom) => atom.object ? [atom.object.id] : []))]
+      .sort((left, right) => left.localeCompare(right));
   return {
     unsupportedValidatedRelations: runs.flatMap((run) => run.native.candidates).filter((candidate) => candidate.status === "valid" && candidate.diagnostics.length > 0).length,
     duplicateSemanticIds: relations.length - new Set(relations.map((relation) => relation.id)).size,
@@ -121,6 +130,58 @@ function invariantCounts(runs: readonly RepresentativeNativeExperimentRunV36[]) 
     unresolvedTransformsParticipantAdmission: projectedCandidates.filter((candidate) =>
       candidate.source === "atomic-transforms-causal-projection" && candidate.semanticParticipantIds?.some((id) => !candidate.resolvedParticipantIds.includes(id))
     ).length,
+    crossClaimEvidenceSetAggregation: evidenceSetCandidates.filter((candidate) => {
+      const atoms = evidenceAtoms(candidate);
+      return candidate.supportClaimIds.length !== 1 ||
+        new Set(atoms.map((atom) => atom.claimId)).size !== 1 ||
+        atoms.some((atom) => atom.claimId !== candidate.supportClaimIds[0]);
+    }).length,
+    crossEpisodeEvidenceSetAggregation: evidenceSetCandidates.filter((candidate) => {
+      const atoms = evidenceAtoms(candidate);
+      return new Set(atoms.map((atom) => atom.episodeId)).size !== 1 ||
+        atoms.some((atom) => atom.episodeId !== candidate.episodeId);
+    }).length,
+    singletonEvidenceSetAdmission: evidenceSetCandidates.filter((candidate) =>
+      evidenceMemberIds(candidate).length < 2).length,
+    duplicateOnlyEvidenceSetAdmission: evidenceSetCandidates.filter((candidate) => {
+      const atoms = evidenceAtoms(candidate);
+      return atoms.length > 1 && evidenceMemberIds(candidate).length < 2;
+    }).length,
+    mixedTargetEvidenceSetAdmission: evidenceSetCandidates.filter((candidate) =>
+      new Set(evidenceAtoms(candidate).map((atom) => atom.subject.id)).size !== 1).length,
+    mixedSpanEvidenceSetAdmission: evidenceSetCandidates.filter((candidate) =>
+      new Set(evidenceAtoms(candidate).map((atom) => JSON.stringify(atom.sourceSpan))).size !== 1).length,
+    mixedSourceHashEvidenceSetAdmission: evidenceSetCandidates.filter((candidate) =>
+      new Set(evidenceAtoms(candidate).map((atom) => atom.sourceSpan.textHash)).size !== 1).length,
+    nonAssertedEvidenceSetAdmission: evidenceSetCandidates.filter((candidate) =>
+      evidenceAtoms(candidate).some((atom) => atom.assertionStatus !== "asserted")).length,
+    compatibilityLineageEvidenceSetAdmission: evidenceSetCandidates.filter((candidate) =>
+      evidenceAtoms(candidate).some((atom) => atom.provenance.sourceKind !== "native-structured-proposition")).length,
+    syntheticGroupingMetadataTreatedAsEvidence: evidenceSetCandidates.filter((candidate) => {
+      const directMembers = evidenceMemberIds(candidate);
+      const projectedMembers = [...(candidate.semanticParticipantIds?.slice(1) ?? [])]
+        .sort((left, right) => left.localeCompare(right));
+      return JSON.stringify(directMembers) !== JSON.stringify(projectedMembers);
+    }).length,
+    franklinGroupedGravesExplosion: evidenceSetCandidates.filter((candidate) => {
+      if (!candidate.episodeId.includes("franklin-expedition")) return false;
+      const relation = evidenceRelation(candidate);
+      return relation?.kind !== "evidence-set" ||
+        relation.evidence.some((member) => ["John Torrington", "John Hartnell", "William Braine"].includes(member.canonicalLabel)) ||
+        !relation.evidence.some((member) => member.canonicalLabel === "graves of John Torrington, John Hartnell, and William Braine");
+    }).length,
+    unresolvedEvidenceSetParticipantAdmission: evidenceSetCandidates.filter((candidate) => {
+      const resolvedIds = new Set<string>(evidenceAtoms(candidate).flatMap((atom) => atom.provenance.resolvedParticipantIds));
+      return candidate.semanticParticipantIds?.some((id) => !resolvedIds.has(id));
+    }).length,
+    evidenceSetTargetDuplicatedAsMember: evidenceSetCandidates.filter((candidate) => {
+      const participants = candidate.semanticParticipantIds ?? [];
+      return participants.slice(1).includes(participants[0]!);
+    }).length,
+    evidenceSetCandidateRelationCardinalityViolation: evidenceSetCandidates.filter((candidate) => {
+      const relation = evidenceRelation(candidate);
+      return relation?.kind !== "evidence-set" || new Set(relation.evidence.map((member) => member.canonicalLabel)).size < 2;
+    }).length,
   };
 }
 
@@ -142,10 +203,10 @@ function relationLineage(
         sourceSpan: proposition.sourceSpan,
         provenance: proposition.provenance,
       }));
-    const atomicPropositions = run.native.grounding.propositions
-      .filter((proposition) => relation.supportClaimIds.includes(proposition.claimId))
-      .filter((proposition) => proposition.predicate === "process-sequence" || proposition.predicate === "precedes");
     const candidates = run.native.candidates.filter((candidate) => candidate.semanticRelationId === relation.id);
+    const lineageAtomicIds = new Set(candidates.flatMap((candidate) => candidate.atomicGroundingIds ?? []));
+    const atomicPropositions = run.native.grounding.propositions
+      .filter((proposition) => lineageAtomicIds.has(proposition.groundingId));
     return {
       relationId: relation.id,
       episodeId: relation.episodeId,
@@ -191,7 +252,7 @@ export function runRepresentativeNativeStructuredClaimExperimentV36(
   const insufficientBefore = baselineClaims.filter((claim) => claim.coverage === "insufficient-structure").length;
   const insufficientAfter = nativeClaims.filter((claim) => claim.coverage === "insufficient-structure").length;
   const nativeClaimIds = new Set(nativeEnvelopes.map((envelope) => envelope.claimId));
-  const atomicCandidateSources = new Set(["atomic-claim-grounding", "atomic-process-projection", "atomic-temporal-projection", "atomic-transforms-causal-projection"]);
+  const atomicCandidateSources = new Set(["atomic-claim-grounding", "atomic-process-projection", "atomic-temporal-projection", "atomic-transforms-causal-projection", "atomic-evidence-set-projection"]);
   const nativeCandidateClaimIds = new Set(nativeCandidates.filter((candidate) => atomicCandidateSources.has(candidate.source)).map((candidate) => candidate.claimId));
   const nativeRejectedClaimIds = new Set(nativeCandidates.filter((candidate) => atomicCandidateSources.has(candidate.source) && candidate.status === "rejected").map((candidate) => candidate.claimId));
   const remainingInsufficient = nativeClaims.filter((claim) => claim.coverage === "insufficient-structure");
@@ -210,6 +271,7 @@ export function runRepresentativeNativeStructuredClaimExperimentV36(
   const processCandidates = nativeCandidates.filter((candidate) => candidate.source === "atomic-process-projection");
   const temporalCandidates = nativeCandidates.filter((candidate) => candidate.source === "atomic-temporal-projection");
   const transformsCandidates = nativeCandidates.filter((candidate) => candidate.source === "atomic-transforms-causal-projection");
+  const evidenceSetCandidates = nativeCandidates.filter((candidate) => candidate.source === "atomic-evidence-set-projection");
   const phase26Baseline = {
     nativeClaims: 17,
     nativePropositions: 18,
@@ -251,6 +313,7 @@ export function runRepresentativeNativeStructuredClaimExperimentV36(
     validatedRelations: nativeRelations.length,
     processRelations: processRelationsAfter,
     temporalSequenceRelations: temporalRelationsAfter,
+    evidenceSetRelations: nativeRelations.filter((relation) => relation.kind === "evidence-set").length,
   };
   return {
     verdict: hardSafetyPass ? "PASS" as const : "FAIL" as const,
@@ -280,6 +343,11 @@ export function runRepresentativeNativeStructuredClaimExperimentV36(
         validatorAccepts: transformsCandidates.filter((candidate) => candidate.status === "valid").length,
         validatorRejects: transformsCandidates.filter((candidate) => candidate.status === "rejected").length,
       },
+      evidenceSet: {
+        proposed: evidenceSetCandidates.length,
+        validatorAccepts: evidenceSetCandidates.filter((candidate) => candidate.status === "valid").length,
+        validatorRejects: evidenceSetCandidates.filter((candidate) => candidate.status === "rejected").length,
+      },
     },
     phase26Comparison: {
       before: phase26Baseline,
@@ -306,6 +374,7 @@ export function runRepresentativeNativeStructuredClaimExperimentV36(
         validatedRelations: baselineRelations.length,
         processRelations: baselineRelations.filter((relation) => relation.kind === "process").length,
         temporalSequenceRelations: baselineRelations.filter((relation) => relation.kind === "temporal-sequence").length,
+        evidenceSetRelations: baselineRelations.filter((relation) => relation.kind === "evidence-set").length,
         rejectedCandidates: baselineCandidates.filter((candidate) => candidate.status === "rejected").length,
       },
       after: {
@@ -313,6 +382,7 @@ export function runRepresentativeNativeStructuredClaimExperimentV36(
         validatedRelations: nativeRelations.length,
         processRelations: nativeRelations.filter((relation) => relation.kind === "process").length,
         temporalSequenceRelations: nativeRelations.filter((relation) => relation.kind === "temporal-sequence").length,
+        evidenceSetRelations: nativeRelations.filter((relation) => relation.kind === "evidence-set").length,
         rejectedCandidates: nativeCandidates.filter((candidate) => candidate.status === "rejected").length,
       },
       newlyValidated: relationLineage(runs, newRelations),

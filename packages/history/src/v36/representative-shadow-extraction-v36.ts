@@ -5,6 +5,7 @@ import {
   type AtomicGroundingResultV36,
 } from "./atomic-claim-grounder-v36.js";
 import {
+  projectAtomicEvidenceSetCandidateV36,
   projectAtomicRelationCandidateV36,
   type AtomicRelationCandidateProjectionRuleV36,
   type AtomicRelationCandidateSourceV36,
@@ -13,6 +14,7 @@ import {
 } from "./atomic-relation-candidate-projector-v36.js";
 import type {
   AtomicAssertionStatusV36,
+  AtomicPropositionV36,
   AtomicSourceSpanV36,
 } from "./atomic-claim-grounding-v36.js";
 import {
@@ -28,6 +30,7 @@ import {
   claimIdV36,
   entityIdV36,
   episodeIdV36,
+  explanatoryRelationIdV36,
   type ConceptRefV36,
   type GroundedRelationPropositionV36,
   type RelationSupportClaimV36,
@@ -247,6 +250,25 @@ type Draft = {
   readonly atomicProjection?: ProjectedAtomicRelationCandidateV36;
 };
 
+function evidenceAssertionGroups(
+  propositions: readonly AtomicPropositionV36[]
+) {
+  const groups = new Map<string, AtomicPropositionV36[]>();
+  for (const proposition of propositions) {
+    if (proposition.predicate !== "contains-evidence-of") continue;
+    const key = JSON.stringify({
+      episodeId: proposition.episodeId,
+      claimId: proposition.claimId,
+      sourceSpan: proposition.sourceSpan,
+      target: proposition.subject,
+    });
+    const group = groups.get(key) ?? [];
+    group.push(proposition);
+    groups.set(key, group);
+  }
+  return [...groups.values()];
+}
+
 /**
  * A deliberately small projection vocabulary.  Each rule is an explicit proposition
  * form and is constrained to the claim's already-resolved entity bindings.
@@ -348,7 +370,8 @@ export function runRepresentativeShadowExtractionV36(
     const existingDrafts = result.filter((item): item is Draft => "proposition" in item);
     const rejections = result.filter((item): item is ShadowCandidateRecordV36 => "status" in item);
     const atomicRecord = grounding.claims.find((item) => item.claimId === claimIdV36(claim.id));
-    const atomicDrafts: Draft[] = (atomicRecord?.propositions ?? []).flatMap((proposition) => {
+    const atomicPropositions = atomicRecord?.propositions ?? [];
+    const atomicDrafts: Draft[] = atomicPropositions.flatMap((proposition) => {
       const directProjection = projectAtomicRelationCandidateV36(proposition);
       return [
         ...lowerAtomicGroundingEvidenceV36([proposition]).map((lowered) => ({
@@ -366,7 +389,17 @@ export function runRepresentativeShadowExtractionV36(
         }] : []),
       ];
     });
-    const drafts = [...existingDrafts, ...atomicDrafts];
+    const evidenceSetDrafts: Draft[] = evidenceAssertionGroups(atomicPropositions).flatMap((group) => {
+      const projection = projectAtomicEvidenceSetCandidateV36(group);
+      return projection?.status === "projected" ? [{
+        proposition: projection.proposition,
+        rule: projection.projectionRuleId,
+        participantIds: projection.semanticParticipantIds,
+        source: projection.candidateSource,
+        atomicProjection: projection,
+      }] : [];
+    });
+    const drafts = [...existingDrafts, ...atomicDrafts, ...evidenceSetDrafts];
     candidates.push(...rejections);
     projected.push(...drafts.map((draft, index) => ({ claim, draft, index })));
     projectedClaims.push({
@@ -379,7 +412,17 @@ export function runRepresentativeShadowExtractionV36(
   const entities = resolvedEntities(source);
   const extraction = extractShadowRelationCandidatesV36({ episodeId: episodeIdV36(source.episodeId), claims: projectedClaims, entities });
   for (const item of projected) {
-    const relation = extraction.relations.find((candidate) => candidate.supportClaimIds.includes(claimIdV36(item.claim.id)) && candidate.kind === item.draft.proposition.kind);
+    const exactProjectedRelationId = item.draft.atomicProjection?.candidateSource === "atomic-evidence-set-projection"
+      ? explanatoryRelationIdV36({
+          episodeId: episodeIdV36(source.episodeId),
+          supportClaimIds: [claimIdV36(item.claim.id)],
+          ...item.draft.proposition,
+        })
+      : undefined;
+    const relation = extraction.relations.find((candidate) =>
+      candidate.supportClaimIds.includes(claimIdV36(item.claim.id)) &&
+      candidate.kind === item.draft.proposition.kind &&
+      (!exactProjectedRelationId || candidate.id === exactProjectedRelationId));
     const rejectedCandidate = extraction.rejectedCandidates.find((candidate) =>
       candidate.claimId === claimIdV36(item.claim.id) &&
       (candidate.propositionIndex === item.index || candidate.propositionIndex === -1)
@@ -396,7 +439,8 @@ export function runRepresentativeShadowExtractionV36(
         structuredPropositionIds: item.draft.atomicProjection.structuredPropositionIds,
         projectionRuleId: item.draft.atomicProjection.projectionRuleId,
         assertionStatus: item.draft.atomicProjection.assertionStatus,
-        atomicSourceSpans: [item.draft.atomicProjection.sourceSpan],
+        atomicSourceSpans: item.draft.atomicProjection.atomicGroundingIds.map(() =>
+          item.draft.atomicProjection!.sourceSpan),
         semanticParticipantIds: item.draft.atomicProjection.semanticParticipantIds,
         ...(item.draft.atomicProjection.processGrouping
           ? { processGrouping: item.draft.atomicProjection.processGrouping }

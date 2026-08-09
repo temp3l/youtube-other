@@ -125,16 +125,65 @@ describe("History V3.6 Phase 2.11 native structure gap enrichment", () => {
     }
   });
 
-  it("records complete future mapping without registering or executing a candidate projector", () => {
+  it("retains the exact two Phase 2.11 readiness records as Phase 2.12 projection authority", () => {
     expect(review.readiness).toHaveLength(2);
     expect(review.readiness.every((item) =>
       item.proposedFutureProjectorRuleName === "atomic-contains-evidence-of-evidence-set-candidate.v1"
     )).toBe(true);
-    expect(experiment.runs.flatMap((run) => run.native.candidates).some((candidate) =>
+    expect(experiment.runs.flatMap((run) => run.native.candidates).filter((candidate) =>
       candidate.projectionRuleId === "atomic-contains-evidence-of-evidence-set-candidate.v1"
-    )).toBe(false);
-    expect(experiment.relationComparison.after).toMatchObject({ candidates: 50, validatedRelations: 28 });
-    expect(experiment.missClassification.atomicGroundingPresentCandidateProjectionGap).toBe(11);
+    )).toHaveLength(2);
+    expect(experiment.relationComparison.after).toMatchObject({
+      candidates: 52,
+      validatedRelations: 30,
+      evidenceSetRelations: experiment.relationComparison.before.evidenceSetRelations + 2,
+    });
+    expect(experiment.missClassification.atomicGroundingPresentCandidateProjectionGap).toBe(9);
+  });
+
+  it("validates exactly the Bronze Age and Franklin same-claim evidence sets with complete lineage", () => {
+    const expected = new Map([
+      ["claim-256740d7c97e87c2fd1ff4cd", {
+        gapId: "candidate-gap-claim-256740d7c97e87c2fd1ff4cd",
+        target: "Reliefs at Medinet Habu",
+        members: ["battle scenes", "families", "ships", "warriors"],
+      }],
+      ["claim-318504248e85a04faa5519d6", {
+        gapId: "candidate-gap-claim-318504248e85a04faa5519d6",
+        target: "search findings",
+        members: [
+          "graves of John Torrington, John Hartnell, and William Braine",
+          "remains of the expedition’s winter camp from 1845 to 1846",
+        ],
+      }],
+    ]);
+    const candidates = experiment.runs.flatMap((run) => run.native.candidates.map((candidate) => ({ run, candidate })))
+      .filter(({ candidate }) => candidate.source === "atomic-evidence-set-projection");
+    expect(candidates).toHaveLength(2);
+    for (const { run, candidate } of candidates) {
+      const control = expected.get(candidate.claimId)!;
+      const readiness = review.cases.find((item) => item.gapId === control.gapId)!;
+      const atoms = run.native.grounding.propositions.filter((atom) =>
+        candidate.atomicGroundingIds?.includes(atom.groundingId));
+      const relation = run.native.extraction.relations.find((item) => item.id === candidate.semanticRelationId);
+      expect(candidate).toMatchObject({
+        status: "valid",
+        supportClaimIds: [candidate.claimId],
+        projectionRuleId: "atomic-contains-evidence-of-evidence-set-candidate.v1",
+        assertionStatus: "asserted",
+        atomicSourceSpans: atoms.map((atom) => atom.sourceSpan),
+      });
+      expect(candidate.atomicGroundingIds).toEqual(atoms.map((atom) => atom.groundingId).sort());
+      expect(candidate.structuredPropositionIds).toEqual(atoms.map((atom) => atom.provenance.structuredPropositionId).sort());
+      expect(atoms.every((atom) => atom.claimId === candidate.claimId && atom.sourceSpan.textHash === readiness.sourceSpan.textHash)).toBe(true);
+      expect(relation).toMatchObject({
+        kind: "evidence-set",
+        subject: { canonicalLabel: control.target },
+        evidence: expect.arrayContaining(control.members.map((canonicalLabel) => ({ canonicalLabel }))),
+      });
+      if (!relation || relation.kind !== "evidence-set") throw new Error("expected accepted evidence-set relation");
+      expect(relation.evidence.map((member) => member.canonicalLabel).sort()).toEqual(control.members);
+    }
   });
 
   it("freezes the other seven gaps and preserves all same-eight hard controls", () => {

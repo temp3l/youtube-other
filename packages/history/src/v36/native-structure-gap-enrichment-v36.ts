@@ -187,14 +187,17 @@ export function buildNativeStructureGapEnrichmentReviewV36(input: {
   const inventory = extractCandidateGapInventoryV36(input);
   const inScopeIds = new Set(phase211BaselineGapsV36.map((gap) => gap.gapId));
   const inScope = inventory.filter((record) => inScopeIds.has(record.gapId));
-  if (inScope.length !== 4) throw new Error(`Phase 2.11 inventory mismatch: expected 4, received ${inScope.length}.`);
+  const unresolvedInScopeIds = new Set(inScope.map((record) => record.gapId));
+  if (phase211BaselineGapsV36.some((gap) =>
+    gap.outcome === "STILL_NEEDS_NATIVE_STRUCTURE" && !unresolvedInScopeIds.has(gap.gapId)
+  )) throw new Error("A Phase 2.11 movement/location gap changed unexpectedly.");
   const frozenSeven = inventory.filter((record) => !inScopeIds.has(record.gapId));
   if (frozenSeven.length !== 7 || frozenSeven.some((record) =>
     phase211FrozenSevenV36[record.gapId as keyof typeof phase211FrozenSevenV36] !== record.classification
   )) throw new Error("The seven out-of-scope candidate gaps changed classification or identity.");
 
   const cases = phase211BaselineGapsV36.map((baseline) => {
-    const current = inScope.find((record) => record.gapId === baseline.gapId)!;
+    const current = inScope.find((record) => record.gapId === baseline.gapId);
     const run = input.runs.find((item) => item.episodeId === baseline.episodeId)!;
     const envelope = run.native.structuredClaims.envelopes.find((item) => item.claimId === baseline.claimId)!;
     const atoms = run.native.grounding.propositions.filter((item) => item.claimId === baseline.claimId);
@@ -206,7 +209,7 @@ export function buildNativeStructureGapEnrichmentReviewV36(input: {
     }));
     return {
       ...baseline,
-      episodeTitle: current.episodeTitle,
+      episodeTitle: current?.episodeTitle ?? input.episodeTitles.get(baseline.episodeId) ?? baseline.episodeId,
       before: { structured: baseline.structured, atomic: baseline.atomic, missingSemantics: baseline.missingSemanticInformation },
       after: {
         structuredPropositions: envelope.propositions.map((proposition) => ({

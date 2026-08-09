@@ -17,23 +17,29 @@ export const HISTORY_V36_ATOMIC_TEMPORAL_CANDIDATE_RULE =
   "atomic-precedes-temporal-candidate.v1" as const;
 export const HISTORY_V36_ATOMIC_TRANSFORMS_CAUSAL_CANDIDATE_RULE =
   "atomic-transforms-causal-candidate.v1" as const;
+export const HISTORY_V36_ATOMIC_EVIDENCE_SET_CANDIDATE_RULE =
+  "atomic-contains-evidence-of-evidence-set-candidate.v1" as const;
 
 export type AtomicRelationCandidateSourceV36 =
   | "atomic-process-projection"
   | "atomic-temporal-projection"
-  | "atomic-transforms-causal-projection";
+  | "atomic-transforms-causal-projection"
+  | "atomic-evidence-set-projection";
 
 export type AtomicRelationCandidateProjectionRuleV36 =
   | typeof HISTORY_V36_ATOMIC_PROCESS_CANDIDATE_RULE
   | typeof HISTORY_V36_ATOMIC_TEMPORAL_CANDIDATE_RULE
-  | typeof HISTORY_V36_ATOMIC_TRANSFORMS_CAUSAL_CANDIDATE_RULE;
+  | typeof HISTORY_V36_ATOMIC_TRANSFORMS_CAUSAL_CANDIDATE_RULE
+  | typeof HISTORY_V36_ATOMIC_EVIDENCE_SET_CANDIDATE_RULE;
 
 export type AtomicRelationCandidateProjectionDiagnosticCodeV36 =
   | "ATOMIC_CANDIDATE_STRUCTURE_INVALID"
   | "ATOMIC_CANDIDATE_ASSERTION_UNREPRESENTABLE"
   | "ATOMIC_CANDIDATE_STRUCTURED_LINEAGE_MISSING"
   | "ATOMIC_CANDIDATE_SOURCE_LINEAGE_UNSUPPORTED"
-  | "ATOMIC_CANDIDATE_PARTICIPANT_UNRESOLVED";
+  | "ATOMIC_CANDIDATE_PARTICIPANT_UNRESOLVED"
+  | "ATOMIC_CANDIDATE_GROUP_BOUNDARY_MISMATCH"
+  | "ATOMIC_CANDIDATE_INSUFFICIENT_CARDINALITY";
 
 export interface AtomicRelationCandidateProjectionDiagnosticV36 {
   readonly code: AtomicRelationCandidateProjectionDiagnosticCodeV36;
@@ -52,8 +58,8 @@ export interface ProcessGroupingMetadataV36 {
 interface AtomicRelationCandidateProjectionCommonV36 {
   readonly episodeId: string;
   readonly supportClaimIds: readonly [string];
-  readonly atomicGroundingIds: readonly [string];
-  readonly structuredPropositionIds: readonly [string];
+  readonly atomicGroundingIds: readonly [string, ...string[]];
+  readonly structuredPropositionIds: readonly [string, ...string[]];
   readonly projectionRuleId: AtomicRelationCandidateProjectionRuleV36;
   readonly candidateSource: AtomicRelationCandidateSourceV36;
   readonly assertionStatus: AtomicAssertionStatusV36;
@@ -85,6 +91,163 @@ function relationConcept(ref: AtomicConceptRefV36): ConceptRefV36 {
   return ref.kind === "entity"
     ? { canonicalLabel: ref.label, entityId: entityIdV36(ref.id) }
     : { canonicalLabel: ref.label };
+}
+
+const evidenceSetIdentity = {
+  candidateSource: "atomic-evidence-set-projection" as const,
+  projectionRuleId: HISTORY_V36_ATOMIC_EVIDENCE_SET_CANDIDATE_RULE,
+};
+
+function rejectedEvidenceSet(
+  code: AtomicRelationCandidateProjectionDiagnosticCodeV36,
+  message: string,
+  affectedIds: readonly string[] = []
+): RejectedAtomicRelationCandidateProjectionV36 {
+  return {
+    status: "rejected",
+    ...evidenceSetIdentity,
+    diagnostics: [{ code, message, affectedIds: [...affectedIds].sort((left, right) => left.localeCompare(right)) }],
+  };
+}
+
+function exactSpanKey(span: AtomicSourceSpanV36): string {
+  return JSON.stringify({
+    startUtf16: span.startUtf16,
+    endUtf16Exclusive: span.endUtf16Exclusive,
+    text: span.text,
+    textHash: span.textHash,
+  });
+}
+
+function exactParticipantKey(participant: AtomicConceptRefV36): string {
+  return JSON.stringify({ id: participant.id, label: participant.label, kind: participant.kind });
+}
+
+/**
+ * Phase 2.12 same-assertion aggregation. The caller supplies one prospective
+ * group; this function never searches prose, adjacent claims, or other spans.
+ */
+export function projectAtomicEvidenceSetCandidateV36(
+  input: unknown
+): AtomicRelationCandidateProjectionResultV36 | undefined {
+  if (!Array.isArray(input) || input.length === 0) return undefined;
+  if (!input.some((item) => item && typeof item === "object" &&
+    (item as { readonly predicate?: unknown }).predicate === "contains-evidence-of")) return undefined;
+
+  const parsed = input.map((item) => atomicPropositionSchemaV36.safeParse(item));
+  if (parsed.some((result) => !result.success)) {
+    return rejectedEvidenceSet(
+      "ATOMIC_CANDIDATE_STRUCTURE_INVALID",
+      "Every evidence-set input must satisfy the accepted atomic grounding contract."
+    );
+  }
+  const atoms = parsed.map((result) => result.data as unknown as AtomicPropositionV36);
+  const affectedIds = atoms.map((atom) => atom.groundingId);
+  if (atoms.some((atom) => atom.predicate !== "contains-evidence-of" || !atom.object)) {
+    return rejectedEvidenceSet(
+      "ATOMIC_CANDIDATE_STRUCTURE_INVALID",
+      "Evidence-set aggregation accepts only contains-evidence-of(target, item) atoms.",
+      affectedIds
+    );
+  }
+  if (atoms.some((atom) => atom.assertionStatus !== "asserted")) {
+    return rejectedEvidenceSet(
+      "ATOMIC_CANDIDATE_ASSERTION_UNREPRESENTABLE",
+      "Every evidence-set member must be asserted; modality is never promoted.",
+      affectedIds
+    );
+  }
+  if (atoms.some((atom) => atom.provenance.sourceKind !== "native-structured-proposition")) {
+    return rejectedEvidenceSet(
+      "ATOMIC_CANDIDATE_SOURCE_LINEAGE_UNSUPPORTED",
+      "Phase 2.12 evidence-set aggregation is restricted to native structured-proposition lineage.",
+      affectedIds
+    );
+  }
+  if (atoms.some((atom) => !atom.provenance.structuredPropositionId)) {
+    return rejectedEvidenceSet(
+      "ATOMIC_CANDIDATE_STRUCTURED_LINEAGE_MISSING",
+      "Every evidence-set member must retain its structured-proposition lineage.",
+      affectedIds
+    );
+  }
+
+  const first = atoms[0]!;
+  const groupKey = JSON.stringify({
+    episodeId: first.episodeId,
+    claimId: first.claimId,
+    sourceSpan: exactSpanKey(first.sourceSpan),
+    target: exactParticipantKey(first.subject),
+  });
+  if (atoms.some((atom) => JSON.stringify({
+    episodeId: atom.episodeId,
+    claimId: atom.claimId,
+    sourceSpan: exactSpanKey(atom.sourceSpan),
+    target: exactParticipantKey(atom.subject),
+  }) !== groupKey)) {
+    return rejectedEvidenceSet(
+      "ATOMIC_CANDIDATE_GROUP_BOUNDARY_MISMATCH",
+      "Evidence-set members must share one episode, claim, exact source span/hash, and resolved target.",
+      affectedIds
+    );
+  }
+  if (atoms.some((atom) => {
+    const resolved = new Set(atom.provenance.resolvedParticipantIds);
+    return !atom.object || atom.subject.id === atom.object.id ||
+      !resolved.has(atom.subject.id) || !resolved.has(atom.object.id);
+  })) {
+    return rejectedEvidenceSet(
+      "ATOMIC_CANDIDATE_PARTICIPANT_UNRESOLVED",
+      "Evidence-set aggregation requires a resolved target and distinct resolved evidence member on every atom.",
+      affectedIds
+    );
+  }
+
+  const canonicalAtoms = [...atoms].sort((left, right) =>
+    left.groundingId.localeCompare(right.groundingId));
+  const memberById = new Map<string, AtomicConceptRefV36>();
+  for (const atom of canonicalAtoms) {
+    const existing = memberById.get(atom.object!.id);
+    if (existing && exactParticipantKey(existing) !== exactParticipantKey(atom.object!)) {
+      return rejectedEvidenceSet(
+        "ATOMIC_CANDIDATE_PARTICIPANT_UNRESOLVED",
+        "One canonical evidence-member ID cannot carry conflicting participant bindings.",
+        affectedIds
+      );
+    }
+    memberById.set(atom.object!.id, atom.object!);
+  }
+  const members = [...memberById.values()].sort((left, right) =>
+    left.id.localeCompare(right.id));
+  if (members.length < 2) {
+    return rejectedEvidenceSet(
+      "ATOMIC_CANDIDATE_INSUFFICIENT_CARDINALITY",
+      "Evidence-set aggregation requires at least two distinct resolved evidence members after duplicate collapse.",
+      affectedIds
+    );
+  }
+  const atomicGroundingIds = canonicalAtoms.map((atom) => atom.groundingId) as unknown as [string, ...string[]];
+  const structuredPropositionIds = [...new Set(canonicalAtoms.map((atom) =>
+    atom.provenance.structuredPropositionId!))]
+    .sort((left, right) => left.localeCompare(right)) as [string, ...string[]];
+  const memberIds = members.map((member) => member.id);
+  return {
+    status: "projected",
+    ...evidenceSetIdentity,
+    episodeId: first.episodeId,
+    supportClaimIds: [first.claimId],
+    atomicGroundingIds,
+    structuredPropositionIds,
+    assertionStatus: "asserted",
+    sourceSpan: first.sourceSpan,
+    semanticParticipantIds: [first.subject.id, ...memberIds] as unknown as [string, string, ...string[]],
+    proposition: {
+      kind: "evidence-set",
+      subject: relationConcept(first.subject),
+      evidence: members.map(relationConcept) as [ConceptRefV36, ConceptRefV36, ...ConceptRefV36[]],
+    },
+    diagnostics: [],
+  };
 }
 
 function projectionIdentity(predicate: "process-sequence" | "precedes" | "transforms") {
