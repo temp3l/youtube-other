@@ -27,9 +27,12 @@
 | VRI-17 | VALIDATED | worker + coordinator review | 3 focused tests and workflow-engine typecheck pass | `f6b98e9` |
 | VRI-18 | VALIDATED | worker + coordinator review | 5 focused tests and config build pass | `f6b98e9` |
 | VRI-19 | VALIDATED | worker + coordinator review | API contract 13/13; HTTP/typecheck dependency-chain blocked | `2ef097b` |
-| VRI-20 | VALIDATED | worker + coordinator review | API contract 13/13; webhook 13/13 | pending |
-| VRI-21 | VALIDATED | worker + coordinator review | 12 focused tests pass; application typecheck dependency-chain blocked | pending |
-| VRI-22..VRI-26 | NOT_STARTED | unassigned | not run | none |
+| VRI-20 | VALIDATED | worker + coordinator review | API contract 13/13; webhook 13/13 | `7caab1c` |
+| VRI-21 | VALIDATED | worker + coordinator review | 12 focused tests pass; application typecheck dependency-chain blocked | `7caab1c` |
+| VRI-22 | VALIDATED | worker + coordinator review | domain/persistence focused pass; API tests added but budget-unrun | pending |
+| VRI-23..VRI-24 | NOT_STARTED | unassigned | not run | none |
+| VRI-25 | VALIDATED | worker + coordinator review | resolver 6/6 | `3b1315d` |
+| VRI-26 | NOT_STARTED | unassigned | not run | none |
 
 ## VRI-01 evidence
 

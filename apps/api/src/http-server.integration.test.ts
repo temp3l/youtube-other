@@ -10,6 +10,10 @@ import {
 } from "./index.js";
 
 const useCases: ApiUseCases = {
+  ingestRevisionAnalytics: async (observation) => ({
+    observation: { ...observation, regenerationRationale: "new-observation" },
+    replayed: false,
+  }),
   getQuota: async () => ({
     workspaceId: "ws-1",
     budgetLimitMinor: "100",
@@ -795,6 +799,69 @@ describe("HTTP API contract", () => {
     expect(calls).toEqual([
       expect.objectContaining({ operation: "archive", id: "episode-1", context: expect.objectContaining({ ifMatch: '"2"', idempotencyKey: "archive-key" }) }),
       expect.objectContaining({ operation: "clone", id: "episode-1", context: expect.objectContaining({ idempotencyKey: "clone-key" }) }),
+    ]);
+  });
+
+  it("ingests revision-bound analytics with authorization and idempotency", async () => {
+    const calls: unknown[] = [];
+    const running = await serve(
+      createApiServer({
+        useCases: {
+          ...useCases,
+          ingestRevisionAnalytics: async (observation, context) => {
+            calls.push({ observation, context });
+            return {
+              observation: {
+                ...observation,
+                regenerationRationale: "new-observation",
+              },
+              replayed: true,
+            };
+          },
+        },
+        authenticate,
+        requestId: () => "request-analytics",
+      }),
+    );
+    closers.push(running.close);
+    const url = `${running.baseUrl}/v1/workspaces/ws-1/projects/project-1/analytics-observations`;
+    const payload = JSON.stringify({
+      observation: {
+        schemaVersion: "revision-analytics-observation.v1",
+        observationId: "observation-1",
+        contentProfileId: "strategic-reinvention",
+        episodeId: "episode-1",
+        editionRevisionId: "edition-1",
+        publicationId: "publication-1",
+        publicationRevision: 2,
+        locale: "it",
+        observedAt: "2026-08-09T00:00:00.000Z",
+        configurationRevision: "config-1",
+        dependencyIdentity: { delivery: "a".repeat(64) },
+        provenanceSha256: "b".repeat(64),
+        metrics: { views: 12 },
+        providerDispatchEnabled: false,
+      },
+    });
+    expect((await request({ url, method: "POST", body: payload })).status).toBe(428);
+    const response = await request({
+      url,
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "idempotency-key": "analytics-key",
+      },
+      body: payload,
+    });
+    expect(response.status).toBe(201);
+    expect(response.headers["idempotency-replayed"]).toBe("true");
+    expect(calls).toEqual([
+      expect.objectContaining({
+        observation: expect.objectContaining({
+          contentProfileId: "veronicabenini",
+        }),
+        context: expect.objectContaining({ idempotencyKey: "analytics-key" }),
+      }),
     ]);
   });
 

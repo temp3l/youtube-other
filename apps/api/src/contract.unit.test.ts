@@ -19,6 +19,7 @@ const expectedPaths = [
   "/v1/workspaces/{workspace}/usage-records",
   "/v1/workspaces/{workspace}/audit-events",
   "/v1/workspaces/{workspace}/projects",
+  "/v1/workspaces/{workspace}/projects/{project}/analytics-observations",
   "/v1/workspaces/{workspace}/projects/{project}/episodes",
   "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}",
   "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}:archive",
@@ -78,7 +79,7 @@ describe("OpenAPI contract", () => {
     expect(ids).toEqual([
       "getLiveness", "getReadiness", "getOpenApiDocument", "getQuota",
       "listUsageRecords", "listAuditEvents", "createProject",
-      "createEpisode", "getEpisode", "replaceEpisodeContent", "archiveEpisode", "cloneEpisode", "admitWorkflow", "getWorkflow",
+      "ingestRevisionAnalytics", "createEpisode", "getEpisode", "replaceEpisodeContent", "archiveEpisode", "cloneEpisode", "admitWorkflow", "getWorkflow",
       "listWorkflowSteps", "cancelWorkflow", "resumeWorkflow", "getJob",
       "getAsset", "listValidations", "getPublication", "recordApproval", "revokeApproval",
       "estimateSpeech", "createSpeechGeneration", "getSpeechGeneration", "retrySpeechGeneration",
@@ -325,7 +326,7 @@ describe("OpenAPI contract", () => {
 
   it("documents request bodies, command preconditions, and response wire formats", () => {
     const byId = new Map(operations().map(({ operation }) => [operation.operationId, operation]));
-    for (const id of ["createProject", "createEpisode", "replaceEpisodeContent", "archiveEpisode", "cloneEpisode", "admitWorkflow", "recordApproval"]) {
+    for (const id of ["createProject", "ingestRevisionAnalytics", "createEpisode", "replaceEpisodeContent", "archiveEpisode", "cloneEpisode", "admitWorkflow", "recordApproval"]) {
       expect(byId.get(id)?.requestBody?.content).toHaveProperty("application/json");
     }
     expect(byId.get("admitWorkflow")?.parameters).toContainEqual({ $ref: "#/components/parameters/IdempotencyKey" });
@@ -335,6 +336,7 @@ describe("OpenAPI contract", () => {
       { $ref: "#/components/parameters/IdempotencyKey" },
     ]));
     expect(byId.get("cloneEpisode")?.parameters).toContainEqual({ $ref: "#/components/parameters/IdempotencyKey" });
+    expect(byId.get("ingestRevisionAnalytics")?.parameters).toContainEqual({ $ref: "#/components/parameters/IdempotencyKey" });
     expect(byId.get("cancelWorkflow")?.parameters).toContainEqual({ $ref: "#/components/parameters/IfMatch" });
     expect(byId.get("resumeWorkflow")?.parameters).toEqual(expect.arrayContaining([
       { $ref: "#/components/parameters/IfMatch" },
@@ -364,6 +366,7 @@ describe("OpenAPI contract", () => {
       ["listUsageRecords", "usage.read"],
       ["listAuditEvents", "audit.read"],
       ["createProject", "content.write"],
+      ["ingestRevisionAnalytics", "content.write"],
       ["createEpisode", "content.write"],
       ["getEpisode", "content.read"],
       ["replaceEpisodeContent", "content.write"],

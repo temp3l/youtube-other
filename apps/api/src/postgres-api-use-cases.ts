@@ -5,10 +5,13 @@ import {
   type AuthenticatedPrincipal,
   type WorkflowAdmissionHandler,
 } from "@mediaforge/application";
+import { normalizeRevisionAnalyticsObservation } from "@mediaforge/domain";
 import {
   PostgresUsageAuditRepository,
   PostgresPublicationIntentRepository,
   PostgresWorkflowRepository,
+  PostgresRevisionAnalyticsRepository,
+  RevisionAnalyticsConflictError,
   WorkflowStateTransitionError,
   type PostgresPool,
 } from "@mediaforge/persistence";
@@ -249,11 +252,89 @@ export function createPostgresApiUseCases(input: {
   const repository = new PostgresWorkflowRepository(input.pool);
   const usageAudit = new PostgresUsageAuditRepository(input.pool);
   const publications = new PostgresPublicationIntentRepository(repository);
+  const analytics = new PostgresRevisionAnalyticsRepository(input.pool);
   const now = input.now ?? (() => new Date());
   const createId = input.createId ?? id;
   const admit = createApiWorkflowAdmissionUseCase(input.workflowAdmissionHandler);
 
   return {
+    ingestRevisionAnalytics: async (observation, context) => {
+      if (
+        context.principal.workspaceId !== context.workspaceId ||
+        !context.principal.permissions.includes("content.write")
+      )
+        throw new ApplicationError(
+          "authorization_denied",
+          "Analytics ingestion requires content.write authorization.",
+          false,
+        );
+      const parsed = normalizeRevisionAnalyticsObservation({
+        ...observation,
+        regenerationRationale: "new-observation",
+      });
+      const episode = await repository.withWorkspaceTransaction(
+        context.workspaceId,
+        (transaction) =>
+          transaction.getEpisode(
+            context.workspaceId,
+            context.projectId,
+            parsed.episodeId,
+          ),
+      );
+      if (!episode)
+        throw new ApplicationError("not_found", "Episode not found.", false);
+      if (
+        !episode.content ||
+        typeof episode.content !== "object" ||
+        Reflect.get(episode.content, "type") !== parsed.contentProfileId
+      )
+        throw new ApplicationError(
+          "profile_input_invalid",
+          "Analytics content profile does not match the episode.",
+          false,
+        );
+      const publication = await publications.getForEpisode({
+        workspaceId: context.workspaceId,
+        projectId: context.projectId,
+        episodeId: parsed.episodeId,
+        publicationId: parsed.publicationId,
+      });
+      if (!publication)
+        throw new ApplicationError(
+          "not_found",
+          "Published revision was not found for the episode.",
+          false,
+        );
+      if (
+        publication.revision !== parsed.publicationRevision ||
+        publication.status !== "published"
+      )
+        throw new ApplicationError(
+          "precondition_failed",
+          "Analytics must reference the current immutable published revision.",
+          false,
+        );
+      try {
+        return await analytics.append({
+          workspaceId: context.workspaceId,
+          idempotencyKey: `v1:${digest({
+            principalId: context.principal.principalId,
+            method: "POST",
+            route: `/v1/workspaces/${context.workspaceId}/projects/${context.projectId}/analytics-observations`,
+            key: context.idempotencyKey,
+          })}`,
+          observation: parsed,
+        });
+      } catch (error) {
+        if (error instanceof RevisionAnalyticsConflictError)
+          throw new ApplicationError(
+            "idempotency_key_conflict",
+            error.message,
+            false,
+          );
+        throw error;
+      }
+    },
     getQuota: async (context) => {
       const record = await usageAudit.getQuotaStatus(context.workspaceId);
       return record ? {

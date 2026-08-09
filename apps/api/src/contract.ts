@@ -310,6 +310,53 @@ const authenticatedErrors = {
   "401": response("Unauthorized"),
   "403": response("Forbidden"),
 } as const;
+const revisionAnalyticsObservationRequired = [
+  "schemaVersion",
+  "observationId",
+  "contentProfileId",
+  "episodeId",
+  "editionRevisionId",
+  "publicationId",
+  "publicationRevision",
+  "locale",
+  "observedAt",
+  "configurationRevision",
+  "dependencyIdentity",
+  "provenanceSha256",
+  "metrics",
+  "providerDispatchEnabled",
+] as const;
+const revisionAnalyticsObservationProperties = {
+  schemaVersion: { const: "revision-analytics-observation.v1" },
+  observationId: schema("OpaqueId"),
+  contentProfileId: {
+    type: "string",
+    enum: ["dark-truth", "mathematics-education", "veronicabenini", "history"],
+  },
+  episodeId: schema("OpaqueId"),
+  editionRevisionId: { type: "string", minLength: 1, maxLength: 160 },
+  publicationId: schema("OpaqueId"),
+  publicationRevision: schema("Revision"),
+  locale: { type: "string", enum: ["en", "de", "es", "fr", "pt", "it"] },
+  observedAt: { type: "string", format: "date-time" },
+  configurationRevision: { type: "string", minLength: 1, maxLength: 160 },
+  dependencyIdentity: {
+    type: "object",
+    minProperties: 1,
+    maxProperties: 100,
+    propertyNames: { pattern: "^[a-z0-9][a-z0-9._-]*$" },
+    additionalProperties: { type: "string", pattern: "^[a-f0-9]{64}$" },
+  },
+  provenanceSha256: { type: "string", pattern: "^[a-f0-9]{64}$" },
+  metrics: {
+    type: "object",
+    minProperties: 1,
+    maxProperties: 100,
+    propertyNames: { pattern: "^[a-z0-9][a-z0-9._-]*$" },
+    additionalProperties: { type: "number", minimum: 0 },
+  },
+  providerDispatchEnabled: { const: false },
+} as const;
 
 export const openApiDocument = {
   openapi: "3.1.0",
@@ -448,6 +495,33 @@ export const openApiDocument = {
           "400": response("BadRequest"),
           ...authenticatedErrors,
           "409": response("Conflict"),
+        },
+      },
+    },
+    "/v1/workspaces/{workspace}/projects/{project}/analytics-observations": {
+      post: {
+        operationId: "ingestRevisionAnalytics",
+        description:
+          "Appends provider-supplied metrics to an immutable edition and publication revision. Requires the `content.write` workspace permission and an idempotency key; this operation never dispatches a provider.",
+        parameters: [...projectParameters, parameter("IdempotencyKey")],
+        requestBody: {
+          required: true,
+          content: json("RevisionAnalyticsIngestRequest"),
+        },
+        responses: {
+          "201": {
+            description: "Analytics observation appended or replayed",
+            headers: {
+              "Idempotency-Replayed": responseHeader("IdempotencyReplayed"),
+              "x-request-id": responseHeader("RequestId"),
+            },
+            content: json("RevisionAnalyticsIngestResult"),
+          },
+          "400": response("BadRequest"),
+          ...authenticatedErrors,
+          "404": response("NotFound"),
+          "409": response("Conflict"),
+          "428": response("PreconditionRequired"),
         },
       },
     },
@@ -1603,6 +1677,44 @@ export const openApiDocument = {
             type: "string",
             enum: ["dark_truth", "mathematics_education", "dynamic_generic", "history", "veronicabenini"],
           },
+        },
+      },
+      RevisionAnalyticsObservationInput: {
+        type: "object",
+        additionalProperties: false,
+        required: revisionAnalyticsObservationRequired,
+        properties: revisionAnalyticsObservationProperties,
+      },
+      RevisionAnalyticsObservation: {
+        type: "object",
+        additionalProperties: false,
+        required: [
+          ...revisionAnalyticsObservationRequired,
+          "regenerationRationale",
+        ],
+        properties: {
+          ...revisionAnalyticsObservationProperties,
+          regenerationRationale: {
+            type: "string",
+            enum: ["new-observation", "idempotent-replay"],
+          },
+        },
+      },
+      RevisionAnalyticsIngestRequest: {
+        type: "object",
+        additionalProperties: false,
+        required: ["observation"],
+        properties: {
+          observation: schema("RevisionAnalyticsObservationInput"),
+        },
+      },
+      RevisionAnalyticsIngestResult: {
+        type: "object",
+        additionalProperties: false,
+        required: ["observation", "replayed"],
+        properties: {
+          observation: schema("RevisionAnalyticsObservation"),
+          replayed: { type: "boolean" },
         },
       },
       Project: {

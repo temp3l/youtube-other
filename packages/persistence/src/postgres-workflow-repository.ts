@@ -1864,6 +1864,40 @@ export class WorkspaceTransactionRepository {
     return result.rows[0] ? mapPublicationIntent(result.rows[0]) : null;
   }
 
+  /** Loads publication state only when its canonical run is bound to the episode. */
+  public async getPublicationIntentForEpisode(
+    workspaceId: string,
+    projectId: string,
+    episodeId: string,
+    publicationId: string,
+  ): Promise<PublicationIntentRecord | null> {
+    const result = await this.connection.query<PublicationIntentRow>(
+      `SELECT publication.*
+       FROM publications AS publication
+       INNER JOIN workflow_run_bindings AS binding
+         ON binding.workspace_id = publication.workspace_id
+        AND binding.project_id = publication.project_id
+        AND binding.run_id = publication.run_id
+       WHERE publication.workspace_id = $1 AND publication.project_id = $2
+         AND binding.episode_id = $3 AND publication.publication_id = $4
+         AND publication.approval_revision IS NOT NULL
+         AND publication.approval_id IS NOT NULL
+         AND publication.approval_artifact_hash IS NOT NULL
+         AND publication.approval_policy IS NOT NULL
+         AND publication.actor_principal_id IS NOT NULL
+         AND publication.actor_principal_revision IS NOT NULL
+         AND publication.credential_version IS NOT NULL
+         AND publication.asset_hash IS NOT NULL
+         AND publication.artifact_bindings IS NOT NULL
+         AND publication.channel_id IS NOT NULL
+         AND publication.visibility IS NOT NULL
+         AND publication.playlist_ids IS NOT NULL
+         AND publication.recovery_identity IS NOT NULL`,
+      [workspaceId, projectId, episodeId, publicationId],
+    );
+    return result.rows[0] ? mapPublicationIntent(result.rows[0]) : null;
+  }
+
   /**
    * Records upload intent without dispatching provider mutation. The command,
    * immutable binding, prepared effect, audit event, and notification outbox
@@ -3471,6 +3505,24 @@ export class PostgresPublicationIntentRepository {
           input.projectId,
           input.publicationId
         )
+    );
+  }
+
+  public getForEpisode(input: {
+    readonly workspaceId: string;
+    readonly projectId: string;
+    readonly episodeId: string;
+    readonly publicationId: string;
+  }): Promise<PublicationIntentRecord | null> {
+    return this.repository.withWorkspaceTransaction(
+      input.workspaceId,
+      (transaction) =>
+        transaction.getPublicationIntentForEpisode(
+          input.workspaceId,
+          input.projectId,
+          input.episodeId,
+          input.publicationId,
+        ),
     );
   }
 

@@ -10,6 +10,7 @@ import {
   type WorkflowAdmissionHandler,
   isApplicationError,
 } from "@mediaforge/application";
+import type { RevisionAnalyticsObservation } from "@mediaforge/domain";
 import { ZodError } from "zod";
 
 import {
@@ -55,6 +56,10 @@ import {
   type VoiceProfileInput,
   type VoiceProfileVersionInput,
 } from "./speech-contract.js";
+import {
+  revisionAnalyticsIngestRequestSchema,
+  type RevisionAnalyticsIngestRequest,
+} from "./revision-analytics-contract.js";
 
 export interface ApiRequestContext {
   readonly workspaceId: string;
@@ -166,6 +171,22 @@ export interface ApiPublication {
 }
 
 export interface ApiUseCases {
+  ingestRevisionAnalytics?(
+    input: RevisionAnalyticsIngestRequest["observation"],
+    context: Required<
+      Pick<
+        ApiRequestContext,
+        | "workspaceId"
+        | "projectId"
+        | "principal"
+        | "requestId"
+        | "idempotencyKey"
+      >
+    >,
+  ): Promise<{
+    readonly observation: RevisionAnalyticsObservation;
+    readonly replayed: boolean;
+  }>;
   getQuota(
     context: Required<Pick<ApiRequestContext, "workspaceId" | "requestId">>
   ): Promise<ApiWorkspaceQuotaStatus | null>;
@@ -959,6 +980,7 @@ function requiredPermission(
   )
     return "content.write";
   if (!matched.project) return null;
+  if (method === "POST" && matched.tail === "analytics-observations") return "content.write";
   if (method === "POST" && matched.tail === "episodes") return "content.write";
   if (
     method === "GET" &&
@@ -1395,6 +1417,32 @@ export function createApiServer(
         principal,
         requestId: requestIdValue,
       };
+      if (request.method === "POST" && matched.tail === "analytics-observations") {
+        const key = idempotencyKey(request);
+        if (!key)
+          throw new ApplicationError(
+            "precondition_required",
+            "Idempotency-Key is required.",
+            false,
+          );
+        if (!useCases.ingestRevisionAnalytics)
+          throw new ApplicationError(
+            "upstream_unavailable",
+            "Analytics ingestion is unavailable.",
+            false,
+          );
+        const analyticsInput = revisionAnalyticsIngestRequestSchema.parse(
+          await body(request),
+        );
+        const result = await useCases.ingestRevisionAnalytics(
+          analyticsInput.observation,
+          { ...projectContext, idempotencyKey: key },
+        );
+        return json(response, 201, result, {
+          ...(result.replayed ? { "idempotency-replayed": "true" } : {}),
+          "x-request-id": requestIdValue,
+        });
+      }
       if (request.method === "POST" && matched.tail === "episodes") {
         const result = await useCases.createEpisode(
           parseEpisodeInput(await body(request)),
