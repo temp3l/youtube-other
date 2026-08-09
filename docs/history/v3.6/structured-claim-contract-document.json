@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "History V3.6 structured claim contract",
-  "schemaVersion": "history-structured-claim.v1",
+  "schemaVersion": "history-structured-claim.v2",
   "generatedFrom": "packages/history/src/v36/structured-claim-v36.ts#structuredClaimContractDocumentV36",
   "sources": [
     "existing-structured-claim",
@@ -23,7 +23,9 @@
     "located-in",
     "transforms",
     "demands",
-    "restricts"
+    "restricts",
+    "process-sequence",
+    "precedes"
   ],
   "semanticRoles": [
     "subject",
@@ -42,7 +44,11 @@
     "evidence-target",
     "evidence-item",
     "action",
-    "target"
+    "target",
+    "process",
+    "step",
+    "before",
+    "after"
   ],
   "assertionStatuses": [
     "asserted",
@@ -60,7 +66,10 @@
     "STRUCTURED_CLAIM_SOURCE_SPAN_INVALID",
     "STRUCTURED_CLAIM_PURPOSE_NOT_DESTINATION",
     "STRUCTURED_CLAIM_GROUPING_AMBIGUOUS",
-    "STRUCTURED_CLAIM_BACKFILL_INSUFFICIENT"
+    "STRUCTURED_CLAIM_BACKFILL_INSUFFICIENT",
+    "STRUCTURED_PROCESS_ORDER_AMBIGUOUS",
+    "STRUCTURED_PROCESS_INSUFFICIENT_STEPS",
+    "STRUCTURED_TEMPORAL_ORDER_AMBIGUOUS"
   ],
   "identity": {
     "algorithm": "structured-proposition-{first 24 hex chars of sha256(canonical semantics, roles, qualifiers, assertion, exact source authority, generator, schema)}",
@@ -74,5 +83,8 @@
   },
   "nativeBoundary": "Native envelopes are supplied adjacent to canonical claim generation and are schema-validated before atomic grounding.",
   "compatibilityBoundary": "Historical V3.5 claims use an explicitly labeled deterministic shadow backfill; it is not equivalent to native generation.",
-  "relationBoundary": "Structured propositions state claim-local semantics only and never create or approve ExplanatoryRelationV36."
+  "relationBoundary": "Structured propositions state claim-local semantics only and never create or approve ExplanatoryRelationV36.",
+  "processSemantics": "process-sequence requires at least two source-explicit steps with unique contiguous one-based order; array or prose position never supplies order.",
+  "temporalSemantics": "precedes records claim-local chronology only; it neither asserts causality nor composes order across claims.",
+  "sourceAuthority": "Every proposition identity includes episodeId, claimId, exact span coordinates/hash, schema version, and generator authority."
 }

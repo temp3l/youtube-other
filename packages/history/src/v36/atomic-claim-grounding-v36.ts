@@ -9,7 +9,7 @@ import type {
 } from "./explanatory-relation-v36.js";
 
 export const HISTORY_ATOMIC_GROUNDING_SCHEMA_V36 =
-  "history-atomic-claim-grounding.v1" as const;
+  "history-atomic-claim-grounding.v2" as const;
 
 declare const atomicGroundingIdBrand: unique symbol;
 declare const atomicConceptIdBrand: unique symbol;
@@ -34,6 +34,8 @@ export const atomicPredicateValuesV36 = [
   "transforms",
   "demands",
   "restricts",
+  "process-sequence",
+  "precedes",
 ] as const;
 export type AtomicPredicateV36 = (typeof atomicPredicateValuesV36)[number];
 
@@ -85,7 +87,7 @@ export interface AtomicConceptRefV36 {
 }
 
 export interface AtomicQualifierV36 {
-  readonly kind: "grouped-concept" | "nested-entity" | "location-context";
+  readonly kind: "grouped-concept" | "nested-entity" | "location-context" | "time-anchor";
   readonly value: string;
   readonly participantIds?: readonly (AtomicConceptIdV36 | EntityIdV36)[];
 }
@@ -95,6 +97,11 @@ export interface AtomicSourceSpanV36 {
   readonly endUtf16Exclusive: number;
   readonly text: string;
   readonly textHash: string;
+}
+
+export interface AtomicProcessStepV36 {
+  readonly participant: AtomicConceptRefV36;
+  readonly stepOrder: number;
 }
 
 export interface AtomicGroundingProvenanceV36 {
@@ -107,6 +114,7 @@ export interface AtomicGroundingProvenanceV36 {
   readonly groundingRuleId: AtomicGroundingRuleIdV36;
   readonly groundingSchemaVersion: typeof HISTORY_ATOMIC_GROUNDING_SCHEMA_V36;
   readonly resolvedParticipantIds: readonly (AtomicConceptIdV36 | EntityIdV36)[];
+  readonly structuredPropositionId?: string;
 }
 
 export interface AtomicPropositionV36 {
@@ -117,6 +125,7 @@ export interface AtomicPropositionV36 {
   readonly predicate: AtomicPredicateV36;
   readonly object?: AtomicConceptRefV36;
   readonly qualifiers?: readonly AtomicQualifierV36[];
+  readonly processSteps?: readonly AtomicProcessStepV36[];
   readonly assertionStatus: AtomicAssertionStatusV36;
   readonly sourceSpan: AtomicSourceSpanV36;
   readonly provenance: AtomicGroundingProvenanceV36;
@@ -148,7 +157,7 @@ export const atomicConceptRefSchemaV36 = z.object({
 }).strict();
 
 export const atomicQualifierSchemaV36 = z.object({
-  kind: z.enum(["grouped-concept", "nested-entity", "location-context"]),
+  kind: z.enum(["grouped-concept", "nested-entity", "location-context", "time-anchor"]),
   value: labelSchema,
   participantIds: z.array(identifierSchema).min(1).optional(),
 }).strict();
@@ -170,6 +179,11 @@ export const atomicSourceSpanSchemaV36 = z.object({
   }
 });
 
+export const atomicProcessStepSchemaV36 = z.object({
+  participant: atomicConceptRefSchemaV36,
+  stepOrder: z.number().int().positive(),
+}).strict();
+
 export const atomicGroundingProvenanceSchemaV36 = z.object({
   sourceKind: z.enum([
     "native-structured-proposition",
@@ -181,7 +195,12 @@ export const atomicGroundingProvenanceSchemaV36 = z.object({
   groundingRuleId: z.enum(atomicGroundingRuleIdValuesV36),
   groundingSchemaVersion: z.literal(HISTORY_ATOMIC_GROUNDING_SCHEMA_V36),
   resolvedParticipantIds: z.array(identifierSchema).min(1),
-}).strict();
+  structuredPropositionId: z.string().regex(/^structured-proposition-[a-f0-9]{24}$/u).optional(),
+}).strict().superRefine((provenance, context) => {
+  if (["native-structured-proposition", "compatibility-structured-proposition"].includes(provenance.sourceKind) && !provenance.structuredPropositionId) {
+    context.addIssue({ code: "custom", message: "Structured atomic projection must retain its proposition ID." });
+  }
+});
 
 export const atomicPropositionSchemaV36 = z.object({
   groundingId: atomicGroundingIdSchema,
@@ -191,10 +210,27 @@ export const atomicPropositionSchemaV36 = z.object({
   predicate: z.enum(atomicPredicateValuesV36),
   object: atomicConceptRefSchemaV36.optional(),
   qualifiers: z.array(atomicQualifierSchemaV36).min(1).optional(),
+  processSteps: z.array(atomicProcessStepSchemaV36).min(2).optional(),
   assertionStatus: z.enum(atomicAssertionStatusValuesV36),
   sourceSpan: atomicSourceSpanSchemaV36,
   provenance: atomicGroundingProvenanceSchemaV36,
-}).strict();
+}).strict().superRefine((proposition, context) => {
+  if (proposition.predicate === "process-sequence") {
+    if (proposition.object || !proposition.processSteps) {
+      context.addIssue({ code: "custom", message: "Atomic process-sequence requires no object and at least two ordered steps." });
+    } else {
+      const orders = proposition.processSteps.map((step) => step.stepOrder).sort((left, right) => left - right);
+      if (orders.some((order, index) => order !== index + 1)) {
+        context.addIssue({ code: "custom", message: "Atomic process order must be unique and contiguous from one." });
+      }
+    }
+  } else if (proposition.processSteps) {
+    context.addIssue({ code: "custom", message: "Only process-sequence may carry ordered steps." });
+  }
+  if (proposition.predicate === "precedes" && (!proposition.object || proposition.subject.id === proposition.object?.id)) {
+    context.addIssue({ code: "custom", message: "Atomic precedes requires distinct ordered events." });
+  }
+});
 
 export const atomicGroundingArtifactSchemaV36 = z.object({
   schemaVersion: z.literal(HISTORY_ATOMIC_GROUNDING_SCHEMA_V36),
@@ -256,6 +292,13 @@ function canonicalQualifier(qualifier: AtomicQualifierV36): Readonly<Record<stri
   };
 }
 
+function canonicalProcessStep(step: AtomicProcessStepV36): Readonly<Record<string, unknown>> {
+  return {
+    participant: { id: step.participant.id, label: normalized(step.participant.label), kind: step.participant.kind },
+    stepOrder: step.stepOrder,
+  };
+}
+
 export function atomicGroundingIdentityPayloadV36(
   proposition: Omit<AtomicPropositionV36, "groundingId">
 ): string {
@@ -270,6 +313,9 @@ export function atomicGroundingIdentityPayloadV36(
     qualifiers: [...(proposition.qualifiers ?? [])]
       .map(canonicalQualifier)
       .sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right))),
+    processSteps: [...(proposition.processSteps ?? [])]
+      .sort((left, right) => left.stepOrder - right.stepOrder)
+      .map(canonicalProcessStep),
     assertionStatus: proposition.assertionStatus,
     sourceSpan: {
       startUtf16: proposition.sourceSpan.startUtf16,
@@ -278,6 +324,7 @@ export function atomicGroundingIdentityPayloadV36(
     },
     groundingRuleId: proposition.provenance.groundingRuleId,
     groundingSchemaVersion: proposition.provenance.groundingSchemaVersion,
+    structuredPropositionId: proposition.provenance.structuredPropositionId,
   });
 }
 
@@ -316,8 +363,11 @@ export const atomicGroundingContractDocumentV36 = {
     "exact source span coordinates",
     "exact source text and SHA-256",
     "resolved participant IDs",
+    "native structured proposition ID when projected",
     "grounding rule ID",
     "grounding schema version",
   ],
   boundary: "Atomic grounding supplies evidence. It does not create or approve ExplanatoryRelationV36.",
+  processProjection: "process-sequence preserves the native ordered-step participants and one-based order without parsing prose.",
+  temporalProjection: "precedes preserves native direction and never upgrades chronology to causality.",
 } as const;

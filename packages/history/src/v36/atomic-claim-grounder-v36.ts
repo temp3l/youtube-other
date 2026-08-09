@@ -506,7 +506,7 @@ function atomicFromStructured(
   envelope: StructuredClaimEnvelopeV36,
   proposition: StructuredPropositionV36
 ): AtomicPropositionV36 {
-  const qualifierKinds = new Set(["grouped-concept", "nested-entity", "location-context"]);
+  const qualifierKinds = new Set(["grouped-concept", "nested-entity", "location-context", "time-anchor"]);
   const qualifiers = proposition.qualifiers
     ?.filter((qualifier) => qualifierKinds.has(qualifier.kind))
     .map((qualifier): AtomicQualifierV36 => ({
@@ -523,6 +523,12 @@ function atomicFromStructured(
     predicate: proposition.predicate,
     ...(proposition.object ? { object: atomicParticipantFromStructured(proposition.object) } : {}),
     ...(qualifiers?.length ? { qualifiers } : {}),
+    ...(proposition.processSteps ? {
+      processSteps: proposition.processSteps.map((step) => ({
+        participant: atomicParticipantFromStructured(step.participant),
+        stepOrder: step.stepOrder,
+      })),
+    } : {}),
     assertionStatus: proposition.assertionStatus,
     sourceSpan: proposition.sourceSpan,
     provenance: {
@@ -532,6 +538,7 @@ function atomicFromStructured(
       groundingRuleId: "explicit-structured-proposition-v1",
       groundingSchemaVersion: HISTORY_ATOMIC_GROUNDING_SCHEMA_V36,
       resolvedParticipantIds: proposition.provenance.participantBindingReferences as AtomicPropositionV36["provenance"]["resolvedParticipantIds"],
+      structuredPropositionId: proposition.propositionId,
     },
   });
 }

@@ -1,5 +1,9 @@
 import { atomicGroundingArtifactSchemaV36 } from "./atomic-claim-grounding-v36.js";
-import { createRepresentativeNativeStructuredSidecarV36 } from "./native-structured-claim-fixtures-v36.js";
+import {
+  createRepresentativeNativeStructuredSidecarV36,
+  representativeNativeProcessClaimIdsV36,
+  representativeNativeTemporalClaimIdsV36,
+} from "./native-structured-claim-fixtures-v36.js";
 import type { NativeStructuredClaimSourceV36 } from "./native-structured-claim-generator-v36.js";
 import {
   explanatoryRelationSchemaV36,
@@ -27,6 +31,13 @@ function invariantCounts(runs: readonly RepresentativeNativeExperimentRunV36[]) 
   const relations = runs.flatMap((run) => run.native.extraction.relations);
   const propositions = runs.flatMap((run) => run.native.structuredClaims.envelopes.flatMap((envelope) => envelope.propositions));
   const nativePropositions = propositions.filter((proposition) => proposition.provenance.generationMethod === "native-structured-claim-generation");
+  const nativeClaimPropositions = runs.flatMap((run) => run.native.structuredClaims.envelopes
+    .filter((envelope) => envelope.source.kind === "existing-structured-claim")
+    .flatMap((envelope) => envelope.propositions.map((proposition) => ({ claimId: envelope.claimId, proposition }))));
+  const processClaimIds = new Set<string>(representativeNativeProcessClaimIdsV36);
+  const temporalClaimIds = new Set<string>(representativeNativeTemporalClaimIdsV36);
+  const processPropositions = nativeClaimPropositions.filter(({ proposition }) => proposition.predicate === "process-sequence");
+  const temporalPropositions = nativeClaimPropositions.filter(({ proposition }) => proposition.predicate === "precedes");
   const sourceByEpisode = new Map(runs.map((run) => [run.episodeId, run.native] as const));
   const entityLabels = new Map<string, string>(runs.flatMap((run) => run.native.entities.map((entity) => [entity.id, entity.canonicalLabel] as const)));
   const entityParticipants = nativePropositions.flatMap((proposition) => [proposition.subject, proposition.object, ...proposition.roles.map((role) => role.participant)])
@@ -39,8 +50,11 @@ function invariantCounts(runs: readonly RepresentativeNativeExperimentRunV36[]) 
       const run = sourceByEpisode.get(relation.episodeId);
       return !run || relation.supportClaimIds.some((claimId) => !run.claims.some((claim) => claim.id === claimId));
     }).length,
-    directionalityViolations: 0,
-    cardinalityViolations: 0,
+    directionalityViolations: temporalPropositions.filter(({ proposition }) =>
+      proposition.roles.find((role) => role.role === "before")?.participant.id !== proposition.subject.id ||
+      proposition.roles.find((role) => role.role === "after")?.participant.id !== proposition.object?.id
+    ).length,
+    cardinalityViolations: processPropositions.filter(({ proposition }) => (proposition.processSteps?.length ?? 0) < 2).length,
     properNameFragmentation: entityParticipants.filter((participant) => {
       const reference = participant.binding.referenceId;
       return !reference || entityLabels.get(reference) !== participant.label;
@@ -60,6 +74,11 @@ function invariantCounts(runs: readonly RepresentativeNativeExperimentRunV36[]) 
       claims: run.native.grounding.claims,
     }).success).length,
     schemaInvalidPersistedRelations: relations.filter((relation) => !explanatoryRelationSchemaV36.safeParse(relation).success).length,
+    processOrderFabricatedFromUnorderedEvidence: processPropositions.filter(({ claimId }) => !processClaimIds.has(claimId)).length,
+    temporalOrderFabricatedFromClaimArrayOrder: temporalPropositions.filter(({ claimId }) => !temporalClaimIds.has(claimId)).length,
+    chronologyIncorrectlyPromotedToCausality: relations.filter((relation) =>
+      relation.kind === "causal" && relation.supportClaimIds.some((claimId) => temporalClaimIds.has(claimId))
+    ).length,
   };
 }
 
@@ -114,6 +133,8 @@ export function runRepresentativeNativeStructuredClaimExperimentV36(
   const nativeCandidates = runs.flatMap((run) => run.native.candidates);
   const nativeEnvelopes = runs.flatMap((run) => run.native.structuredClaims.envelopes.filter((envelope) => envelope.source.kind === "existing-structured-claim"));
   const nativePropositions = nativeEnvelopes.flatMap((envelope) => envelope.propositions);
+  const baselineAtomicPropositions = baselineClaims.flatMap((claim) => claim.propositions);
+  const nativeAtomicPropositions = nativeClaims.flatMap((claim) => claim.propositions);
   const compatibilityPropositions = runs.flatMap((run) => run.native.structuredClaims.envelopes
     .filter((envelope) => envelope.source.kind === "deterministic-shadow-enrichment")
     .flatMap((envelope) => envelope.propositions));
@@ -135,6 +156,22 @@ export function runRepresentativeNativeStructuredClaimExperimentV36(
   const invariants = invariantCounts(runs);
   const hardSafetyPass = Object.values(invariants).every((value) => value === 0);
   const reduction = insufficientBefore - insufficientAfter;
+  const processRelationsAfter = nativeRelations.filter((relation) => relation.kind === "process").length;
+  const temporalRelationsAfter = nativeRelations.filter((relation) => relation.kind === "temporal-sequence").length;
+  const phase26Baseline = {
+    nativeClaims: 17,
+    nativePropositions: 18,
+    nativeProcessPropositions: 0,
+    nativeTemporalPropositions: 0,
+    insufficientStructure: 61,
+    atomicPropositions: 37,
+    atomicProcessPropositions: 0,
+    atomicTemporalPropositions: 0,
+    candidates: 45,
+    validatedRelations: 23,
+    processRelations: processRelationsAfter,
+    temporalSequenceRelations: temporalRelationsAfter,
+  };
   return {
     verdict: hardSafetyPass ? "PASS" as const : "FAIL" as const,
     runs,
@@ -142,14 +179,35 @@ export function runRepresentativeNativeStructuredClaimExperimentV36(
     claimsEvaluated: nativeClaims.length,
     nativeStructuredClaimCount: nativeEnvelopes.length,
     nativeStructuredPropositionCount: nativePropositions.length,
+    nativeProcessPropositionCount: nativePropositions.filter((proposition) => proposition.predicate === "process-sequence").length,
+    nativeTemporalPropositionCount: nativePropositions.filter((proposition) => proposition.predicate === "precedes").length,
+    atomicProcessPropositionCount: nativeAtomicPropositions.filter((proposition) => proposition.predicate === "process-sequence").length,
+    atomicTemporalPropositionCount: nativeAtomicPropositions.filter((proposition) => proposition.predicate === "precedes").length,
     compatibilityFallbackPropositionCount: compatibilityPropositions.length,
+    phase26Comparison: {
+      before: phase26Baseline,
+      after: {
+        nativeClaims: nativeEnvelopes.length,
+        nativePropositions: nativePropositions.length,
+        nativeProcessPropositions: nativePropositions.filter((proposition) => proposition.predicate === "process-sequence").length,
+        nativeTemporalPropositions: nativePropositions.filter((proposition) => proposition.predicate === "precedes").length,
+        insufficientStructure: insufficientAfter,
+        atomicPropositions: nativeAtomicPropositions.length,
+        atomicProcessPropositions: nativeAtomicPropositions.filter((proposition) => proposition.predicate === "process-sequence").length,
+        atomicTemporalPropositions: nativeAtomicPropositions.filter((proposition) => proposition.predicate === "precedes").length,
+        candidates: nativeCandidates.length,
+        validatedRelations: nativeRelations.length,
+        processRelations: processRelationsAfter,
+        temporalSequenceRelations: temporalRelationsAfter,
+      },
+    },
     groundingComparison: {
       before: {
-        atomicPropositions: baselineClaims.flatMap((claim) => claim.propositions).length,
+        atomicPropositions: baselineAtomicPropositions.length,
         insufficientStructure: insufficientBefore,
       },
       after: {
-        atomicPropositions: nativeClaims.flatMap((claim) => claim.propositions).length,
+        atomicPropositions: nativeAtomicPropositions.length,
         insufficientStructure: insufficientAfter,
       },
       insufficientStructureReduction: {
@@ -161,11 +219,15 @@ export function runRepresentativeNativeStructuredClaimExperimentV36(
       before: {
         candidates: baselineCandidates.length,
         validatedRelations: baselineRelations.length,
+        processRelations: baselineRelations.filter((relation) => relation.kind === "process").length,
+        temporalSequenceRelations: baselineRelations.filter((relation) => relation.kind === "temporal-sequence").length,
         rejectedCandidates: baselineCandidates.filter((candidate) => candidate.status === "rejected").length,
       },
       after: {
         candidates: nativeCandidates.length,
         validatedRelations: nativeRelations.length,
+        processRelations: nativeRelations.filter((relation) => relation.kind === "process").length,
+        temporalSequenceRelations: nativeRelations.filter((relation) => relation.kind === "temporal-sequence").length,
         rejectedCandidates: nativeCandidates.filter((candidate) => candidate.status === "rejected").length,
       },
       newlyValidated: relationLineage(runs, newRelations),
@@ -178,6 +240,15 @@ export function runRepresentativeNativeStructuredClaimExperimentV36(
       crossClaimProofMissing: runs.some((run) => run.episodeId.includes("04-black-death")) ? 1 : 0,
       taxonomyGap: 0,
       unresolvedParticipant: unresolvedParticipantCount,
+    },
+    phase26MissClassification: {
+      nativeStructureAbsent: 61,
+      nativeStructurePresentAtomicGroundingGap: 0,
+      atomicGroundingPresentCandidateProjectionGap: 12,
+      candidateProposedValidatorReject: 0,
+      crossClaimProofMissing: 1,
+      taxonomyGap: 0,
+      unresolvedParticipant: 0,
     },
     invariants,
   };

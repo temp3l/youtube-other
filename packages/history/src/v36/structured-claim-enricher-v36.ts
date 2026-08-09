@@ -84,6 +84,13 @@ function rolesFor(proposition: AtomicPropositionV36): readonly StructuredSemanti
       return object ? [{ role: "actor", participant: subject }, { role: "target", participant: object }] : [{ role: "actor", participant: subject }];
     case "transforms":
       return object ? [{ role: "subject", participant: subject }, { role: "object", participant: object }] : [{ role: "subject", participant: subject }];
+    case "process-sequence":
+      return [
+        { role: "process", participant: subject },
+        ...(proposition.processSteps ?? []).map((step) => ({ role: "step" as const, participant: participant(step.participant) })),
+      ];
+    case "precedes":
+      return object ? [{ role: "before", participant: subject }, { role: "after", participant: object }] : [{ role: "before", participant: subject }];
   }
 }
 
@@ -97,9 +104,14 @@ function backfillProposition(proposition: AtomicPropositionV36): StructuredPropo
     roles: rolesFor(proposition),
     assertionStatus: proposition.assertionStatus,
     ...(proposition.qualifiers ? { qualifiers: proposition.qualifiers } : {}),
+    ...(proposition.processSteps ? {
+      processSteps: proposition.processSteps.map((step) => ({ participant: participant(step.participant), stepOrder: step.stepOrder })),
+    } : {}),
     sourceSpan: proposition.sourceSpan,
     provenance: {
       structuredSchemaVersion: HISTORY_STRUCTURED_CLAIM_SCHEMA_V36,
+      episodeId: proposition.episodeId,
+      claimId: proposition.claimId,
       generationMethod: "deterministic-shadow-enrichment",
       generatorVersion: `${HISTORY_STRUCTURED_CLAIM_GENERATOR_V36}:${proposition.provenance.groundingRuleId}`,
       participantBindingReferences: proposition.provenance.resolvedParticipantIds,

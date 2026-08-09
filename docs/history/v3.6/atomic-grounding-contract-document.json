@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "History V3.6 atomic claim grounding IR",
-  "schemaVersion": "history-atomic-claim-grounding.v1",
+  "schemaVersion": "history-atomic-claim-grounding.v2",
   "generatedFrom": "packages/history/src/v36/atomic-claim-grounding-v36.ts#atomicGroundingContractDocumentV36",
   "predicates": [
     "causes",
@@ -15,7 +15,9 @@
     "located-in",
     "transforms",
     "demands",
-    "restricts"
+    "restricts",
+    "process-sequence",
+    "precedes"
   ],
   "assertionStatuses": [
     "asserted",
@@ -50,8 +52,11 @@
     "exact source span coordinates",
     "exact source text and SHA-256",
     "resolved participant IDs",
+    "native structured proposition ID when projected",
     "grounding rule ID",
     "grounding schema version"
   ],
-  "boundary": "Atomic grounding supplies evidence. It does not create or approve ExplanatoryRelationV36."
+  "boundary": "Atomic grounding supplies evidence. It does not create or approve ExplanatoryRelationV36.",
+  "processProjection": "process-sequence preserves the native ordered-step participants and one-based order without parsing prose.",
+  "temporalProjection": "precedes preserves native direction and never upgrades chronology to causality."
 }

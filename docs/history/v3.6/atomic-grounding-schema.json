@@ -4,7 +4,7 @@
   "properties": {
     "schemaVersion": {
       "type": "string",
-      "const": "history-atomic-claim-grounding.v1"
+      "const": "history-atomic-claim-grounding.v2"
     },
     "episodeId": {
       "type": "string",
@@ -94,7 +94,9 @@
                     "located-in",
                     "transforms",
                     "demands",
-                    "restricts"
+                    "restricts",
+                    "process-sequence",
+                    "precedes"
                   ]
                 },
                 "object": {
@@ -137,7 +139,8 @@
                         "enum": [
                           "grouped-concept",
                           "nested-entity",
-                          "location-context"
+                          "location-context",
+                          "time-anchor"
                         ]
                       },
                       "value": {
@@ -158,6 +161,54 @@
                     "required": [
                       "kind",
                       "value"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "processSteps": {
+                  "minItems": 2,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "participant": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 256
+                          },
+                          "label": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 1024
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "concept",
+                              "entity",
+                              "place"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "label",
+                          "kind"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "stepOrder": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "participant",
+                      "stepOrder"
                     ],
                     "additionalProperties": false
                   }
@@ -209,6 +260,8 @@
                     "sourceKind": {
                       "type": "string",
                       "enum": [
+                        "native-structured-proposition",
+                        "compatibility-structured-proposition",
                         "existing-structured-proposition",
                         "resolved-participants",
                         "bounded-deterministic-normalization"
@@ -229,7 +282,7 @@
                     },
                     "groundingSchemaVersion": {
                       "type": "string",
-                      "const": "history-atomic-claim-grounding.v1"
+                      "const": "history-atomic-claim-grounding.v2"
                     },
                     "resolvedParticipantIds": {
                       "minItems": 1,
@@ -239,6 +292,10 @@
                         "minLength": 1,
                         "maxLength": 256
                       }
+                    },
+                    "structuredPropositionId": {
+                      "type": "string",
+                      "pattern": "^structured-proposition-[a-f0-9]{24}$"
                     }
                   },
                   "required": [

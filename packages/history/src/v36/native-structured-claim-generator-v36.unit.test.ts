@@ -145,11 +145,20 @@ describe("History V3.6 native structured claim boundary", () => {
       ...input,
       source: { ...input.source, entities: input.source.entities.map((entity) => ({ ...entity, normalizedLabel: `${entity.normalizedLabel} changed` })) },
     })).not.toBe(fingerprint);
+    expect(nativeStructuredClaimCacheFingerprintV36({
+      ...input,
+      proposals: input.proposals.map((proposal) => ({
+        ...proposal,
+        propositions: proposal.propositions.map((proposition) => ({ ...proposition, assertionStatus: "attempted" as const })),
+      })),
+    })).not.toBe(fingerprint);
+    expect(nativeStructuredClaimCacheFingerprintV36({ ...input, renderVersion: "unrelated-media-change" } as typeof input)).toBe(fingerprint);
 
     const temporary = await fs.mkdtemp(path.join(tmpdir(), "history-native-structured-"));
     const file = path.join(temporary, "structured-claims.v36.native.json");
     try {
       const sidecar = createNativeStructuredClaimSidecarV36(input);
+      expect(nativeStructuredClaimSidecarSchemaV36.safeParse({ ...sidecar, sidecarVersion: "history-native-structured-claim-sidecar.v1" }).success).toBe(false);
       expect((await persistNativeStructuredClaimSidecarV36({ file, sidecar })).cacheHit).toBe(false);
       expect((await persistNativeStructuredClaimSidecarV36({ file, sidecar })).cacheHit).toBe(true);
       expect(nativeStructuredClaimSidecarSchemaV36.safeParse(JSON.parse(await fs.readFile(file, "utf8"))).success).toBe(true);
@@ -166,8 +175,12 @@ describe("History V3.6 representative native structured fixture experiment", () 
   it("reduces insufficient structure across the same eight episodes with every hard invariant at zero", () => {
     expect(experiment.episodeIds).toHaveLength(8);
     expect(experiment.claimsEvaluated).toBe(749);
-    expect(experiment.nativeStructuredClaimCount).toBeGreaterThan(8);
-    expect(experiment.nativeStructuredPropositionCount).toBeGreaterThan(experiment.nativeStructuredClaimCount);
+    expect(experiment.nativeStructuredClaimCount).toBe(21);
+    expect(experiment.nativeStructuredPropositionCount).toBe(22);
+    expect(experiment.nativeProcessPropositionCount).toBe(2);
+    expect(experiment.nativeTemporalPropositionCount).toBe(2);
+    expect(experiment.atomicProcessPropositionCount).toBe(2);
+    expect(experiment.atomicTemporalPropositionCount).toBe(2);
     expect(experiment.groundingComparison.before.insufficientStructure).toBe(70);
     expect(experiment.groundingComparison.after.insufficientStructure).toBeLessThan(70);
     expect(experiment.groundingComparison.insufficientStructureReduction.absolute).toBeGreaterThan(0);
@@ -175,6 +188,13 @@ describe("History V3.6 representative native structured fixture experiment", () 
     expect(Object.values(experiment.invariants)).toEqual(expect.arrayContaining([0]));
     expect(Object.values(experiment.invariants).every((value) => value === 0)).toBe(true);
     expect(experiment.missClassification.unresolvedParticipant).toBe(0);
+    expect(experiment.missClassification.nativeStructurePresentAtomicGroundingGap).toBe(0);
+    expect(experiment.phase26Comparison).toMatchObject({
+      before: { nativeClaims: 17, nativePropositions: 18, insufficientStructure: 61, atomicPropositions: 37, candidates: 45, validatedRelations: 23 },
+      after: { nativeClaims: 21, nativePropositions: 22, insufficientStructure: 60, atomicPropositions: 41, candidates: 45, validatedRelations: 23 },
+    });
+    expect(experiment.missClassification.atomicGroundingPresentCandidateProjectionGap).toBe(16);
+    expect(experiment.relationComparison.after).toMatchObject({ processRelations: 0, temporalSequenceRelations: 0 });
   });
 
   it("preserves movement, evidence nesting, assertion scope, and V3.5 false-positive controls", () => {
@@ -200,9 +220,16 @@ describe("History V3.6 representative native structured fixture experiment", () 
     const battleRun = experiment.runs.find((run) => run.episodeId.includes("20-1066"))!;
     expect(battleRun.native.extraction.relations.some((relation) => relation.kind === "movement" && relation.to.canonicalLabel === "Pevensey")).toBe(false);
     expect(battleRun.native.extraction.relations.some((relation) => JSON.stringify(relation).includes("King Edward") && JSON.stringify(relation).includes("Europe"))).toBe(false);
+    const battleProcess = battleRun.native.grounding.propositions.find((proposition) => proposition.claimId === "claim-6bbe9288262216a338a95084")!;
+    expect(battleProcess).toMatchObject({ predicate: "process-sequence", processSteps: [{ stepOrder: 1 }, { stepOrder: 2 }] });
 
     const titanic = sources.find((source) => source.shadow.episodeId.includes("titanic"))!;
-    expect(createRepresentativeNativeStructuredSidecarV36(titanic.native).structuredClaims.envelopes[0]!.propositions[0]!.assertionStatus).toBe("reported");
+    const titanicPropositions = createRepresentativeNativeStructuredSidecarV36(titanic.native).structuredClaims.envelopes.flatMap((envelope) => envelope.propositions);
+    expect(titanicPropositions.find((proposition) => proposition.predicate === "causes")?.assertionStatus).toBe("reported");
+    expect(titanicPropositions.find((proposition) => proposition.predicate === "precedes")).toMatchObject({
+      subject: { label: "the collision" },
+      object: { label: "Thomas Andrews inspected the damage" },
+    });
   });
 
   it("keeps every persisted shadow layer schema-valid", () => {

@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import type { ClaimIdV36, EntityIdV36, EpisodeIdV36 } from "./explanatory-relation-v36.js";
 
-export const HISTORY_STRUCTURED_CLAIM_SCHEMA_V36 = "history-structured-claim.v1" as const;
+export const HISTORY_STRUCTURED_CLAIM_SCHEMA_V36 = "history-structured-claim.v2" as const;
 export const HISTORY_STRUCTURED_CLAIM_GENERATOR_V36 = "history-structured-claim-enricher.v1" as const;
 
 declare const structuredPropositionIdBrand: unique symbol;
@@ -37,6 +37,8 @@ export const structuredPredicateValuesV36 = [
   "transforms",
   "demands",
   "restricts",
+  "process-sequence",
+  "precedes",
 ] as const;
 export type StructuredPredicateV36 = (typeof structuredPredicateValuesV36)[number];
 
@@ -58,6 +60,10 @@ export const structuredSemanticRoleValuesV36 = [
   "evidence-item",
   "action",
   "target",
+  "process",
+  "step",
+  "before",
+  "after",
 ] as const;
 export type StructuredSemanticRoleNameV36 = (typeof structuredSemanticRoleValuesV36)[number];
 
@@ -80,6 +86,9 @@ export const structuredDiagnosticCodeValuesV36 = [
   "STRUCTURED_CLAIM_PURPOSE_NOT_DESTINATION",
   "STRUCTURED_CLAIM_GROUPING_AMBIGUOUS",
   "STRUCTURED_CLAIM_BACKFILL_INSUFFICIENT",
+  "STRUCTURED_PROCESS_ORDER_AMBIGUOUS",
+  "STRUCTURED_PROCESS_INSUFFICIENT_STEPS",
+  "STRUCTURED_TEMPORAL_ORDER_AMBIGUOUS",
 ] as const;
 export type StructuredClaimDiagnosticCodeV36 = (typeof structuredDiagnosticCodeValuesV36)[number];
 
@@ -107,6 +116,12 @@ export interface StructuredQualifierV36 {
   readonly stepIndex?: number;
 }
 
+export interface StructuredProcessStepV36 {
+  readonly participant: StructuredParticipantV36;
+  /** One-based semantic order. Array position is never evidence. */
+  readonly stepOrder: number;
+}
+
 export interface StructuredSourceSpanV36 {
   readonly startUtf16: number;
   readonly endUtf16Exclusive: number;
@@ -116,6 +131,8 @@ export interface StructuredSourceSpanV36 {
 
 export interface StructuredPropositionProvenanceV36 {
   readonly structuredSchemaVersion: typeof HISTORY_STRUCTURED_CLAIM_SCHEMA_V36;
+  readonly episodeId: EpisodeIdV36;
+  readonly claimId: ClaimIdV36;
   readonly generationMethod: StructuredGenerationMethodV36;
   readonly generatorVersion: string;
   readonly participantBindingReferences: readonly string[];
@@ -129,6 +146,7 @@ export interface StructuredPropositionV36 {
   readonly roles: readonly StructuredSemanticRoleV36[];
   readonly assertionStatus: StructuredAssertionStatusV36;
   readonly qualifiers?: readonly StructuredQualifierV36[];
+  readonly processSteps?: readonly StructuredProcessStepV36[];
   readonly sourceSpan: StructuredSourceSpanV36;
   readonly provenance: StructuredPropositionProvenanceV36;
 }
@@ -194,6 +212,11 @@ export const structuredQualifierSchemaV36 = z.object({
   }
 });
 
+export const structuredProcessStepSchemaV36 = z.object({
+  participant: structuredParticipantSchemaV36,
+  stepOrder: z.number().int().positive(),
+}).strict();
+
 export function structuredSourceTextHashV36(text: string): string {
   return createHash("sha256").update(text).digest("hex");
 }
@@ -217,6 +240,8 @@ export const structuredSourceSpanSchemaV36 = z.object({
 
 export const structuredPropositionProvenanceSchemaV36 = z.object({
   structuredSchemaVersion: z.literal(HISTORY_STRUCTURED_CLAIM_SCHEMA_V36),
+  episodeId: identifierSchema,
+  claimId: identifierSchema,
   generationMethod: z.enum(structuredGenerationMethodValuesV36),
   generatorVersion: identifierSchema,
   participantBindingReferences: z.array(identifierSchema),
@@ -234,6 +259,7 @@ export const structuredPropositionSchemaV36 = z.object({
   roles: z.array(structuredSemanticRoleSchemaV36).min(1),
   assertionStatus: z.enum(structuredAssertionStatusValuesV36),
   qualifiers: z.array(structuredQualifierSchemaV36).min(1).optional(),
+  processSteps: z.array(structuredProcessStepSchemaV36).min(2).optional(),
   sourceSpan: structuredSourceSpanSchemaV36,
   provenance: structuredPropositionProvenanceSchemaV36,
 }).strict().superRefine((proposition, context) => {
@@ -254,6 +280,39 @@ export const structuredPropositionSchemaV36 = z.object({
   if (proposition.predicate === "contains-evidence-of" && roleCount(proposition.roles, "evidence-item") !== 1) {
     context.addIssue({ code: "custom", message: "contains-evidence-of requires exactly one evidence-item role." });
   }
+  const processRoleCount = roleCount(proposition.roles, "process");
+  const stepRoles = proposition.roles.filter((role) => role.role === "step");
+  const beforeRoles = proposition.roles.filter((role) => role.role === "before");
+  const afterRoles = proposition.roles.filter((role) => role.role === "after");
+  if (proposition.predicate === "process-sequence") {
+    if (proposition.object || processRoleCount !== 1 || stepRoles.length < 2 || !proposition.processSteps) {
+      context.addIssue({ code: "custom", message: "process-sequence requires one process role, no object, and at least two explicit ordered steps." });
+    } else {
+      const orders = proposition.processSteps.map((step) => step.stepOrder).sort((left, right) => left - right);
+      if (orders.some((order, index) => order !== index + 1)) {
+        context.addIssue({ code: "custom", message: "Process step order must be unique and contiguous from one." });
+      }
+      if (proposition.roles.find((role) => role.role === "process")?.participant.id !== proposition.subject.id) {
+        context.addIssue({ code: "custom", message: "The process role must identify the proposition subject." });
+      }
+      const roleStepIds = stepRoles.map((role) => role.participant.id).sort();
+      const orderedStepIds = proposition.processSteps.map((step) => step.participant.id).sort();
+      if (roleStepIds.length !== orderedStepIds.length || roleStepIds.some((id, index) => id !== orderedStepIds[index])) {
+        context.addIssue({ code: "custom", message: "Process step roles must exactly match the ordered step participants." });
+      }
+    }
+  } else if (proposition.processSteps || processRoleCount || stepRoles.length) {
+    context.addIssue({ code: "custom", message: "Only process-sequence may carry process roles or ordered steps." });
+  }
+  if (proposition.predicate === "precedes") {
+    if (!proposition.object || proposition.subject.id === proposition.object?.id || beforeRoles.length !== 1 || afterRoles.length !== 1) {
+      context.addIssue({ code: "custom", message: "precedes requires distinct before and after participants." });
+    } else if (beforeRoles[0]!.participant.id !== proposition.subject.id || afterRoles[0]!.participant.id !== proposition.object.id) {
+      context.addIssue({ code: "custom", message: "Temporal direction must align subject/before and object/after." });
+    }
+  } else if (beforeRoles.length || afterRoles.length) {
+    context.addIssue({ code: "custom", message: "Only precedes may carry before or after roles." });
+  }
 });
 
 export const structuredClaimEnvelopeSchemaV36 = z.object({
@@ -265,7 +324,13 @@ export const structuredClaimEnvelopeSchemaV36 = z.object({
     canonicalClaimSchemaVersion: identifierSchema,
   }).strict(),
   propositions: z.array(structuredPropositionSchemaV36),
-}).strict();
+}).strict().superRefine((envelope, context) => {
+  for (const proposition of envelope.propositions) {
+    if (proposition.provenance.episodeId !== envelope.episodeId || proposition.provenance.claimId !== envelope.claimId) {
+      context.addIssue({ code: "custom", message: "Proposition provenance must match its episode and claim envelope authority." });
+    }
+  }
+});
 
 export const structuredClaimDiagnosticSchemaV36 = z.object({
   code: z.enum(structuredDiagnosticCodeValuesV36),
@@ -317,6 +382,9 @@ export function structuredPropositionIdentityPayloadV36(
         ...(qualifier.stepIndex !== undefined ? { stepIndex: qualifier.stepIndex } : {}),
       }))
       .sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right))),
+    processSteps: [...(proposition.processSteps ?? [])]
+      .sort((left, right) => left.stepOrder - right.stepOrder)
+      .map((step) => ({ participant: canonicalParticipant(step.participant), stepOrder: step.stepOrder })),
     assertionStatus: proposition.assertionStatus,
     sourceSpan: {
       startUtf16: proposition.sourceSpan.startUtf16,
@@ -325,6 +393,8 @@ export function structuredPropositionIdentityPayloadV36(
     },
     generationMethod: proposition.provenance.generationMethod,
     generatorVersion: proposition.provenance.generatorVersion,
+    episodeId: proposition.provenance.episodeId,
+    claimId: proposition.provenance.claimId,
   });
 }
 
@@ -371,4 +441,7 @@ export const structuredClaimContractDocumentV36 = {
   nativeBoundary: "Native envelopes are supplied adjacent to canonical claim generation and are schema-validated before atomic grounding.",
   compatibilityBoundary: "Historical V3.5 claims use an explicitly labeled deterministic shadow backfill; it is not equivalent to native generation.",
   relationBoundary: "Structured propositions state claim-local semantics only and never create or approve ExplanatoryRelationV36.",
+  processSemantics: "process-sequence requires at least two source-explicit steps with unique contiguous one-based order; array or prose position never supplies order.",
+  temporalSemantics: "precedes records claim-local chronology only; it neither asserts causality nor composes order across claims.",
+  sourceAuthority: "Every proposition identity includes episodeId, claimId, exact span coordinates/hash, schema version, and generator authority.",
 } as const;

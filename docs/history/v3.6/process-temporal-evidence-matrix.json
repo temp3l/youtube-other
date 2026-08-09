@@ -1,0 +1,114 @@
+{
+  "episodeSet": [
+    "history-youtube-history-10-video-story-pack-01-bronze-age-collapse",
+    "history-youtube-history-10-video-story-pack-04-black-death",
+    "history-youtube-history-10-video-story-pack-05-franklin-expedition",
+    "history-youtube-history-30-video-story-pack-36-spanish-armada-why-it-failed",
+    "history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion",
+    "history-youtube-history-30-video-story-pack-20-1066-battle-that-changed-england",
+    "history-youtube-history-10-video-story-pack-10-titanic-decisions-disaster",
+    "history-youtube-history-30-video-story-pack-35-chernobyl-night-reactor-exploded"
+  ],
+  "evidence": [
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-05-franklin-expedition",
+      "claimId": "claim-6c18dacd4ee9e8039e194b0d",
+      "claimText": "The ships had wintered there before sailing south through Peel Sound.",
+      "sourceSpan": { "startUtf16": 1895, "endUtf16Exclusive": 1964, "textHash": "9997c3de334b25549d555543295e2c9e35dadfe93f33e4366a928b338a6e3118" },
+      "semanticFamily": "process",
+      "requiredRoles": ["process", "step"],
+      "assertionStatus": "asserted",
+      "acceptedForNativeFixture": true,
+      "currentSchemaCanExpress": false,
+      "reason": "The claim itself orders wintering before sailing and supplies two explicit expedition steps."
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-20-1066-battle-that-changed-england",
+      "claimId": "claim-6bbe9288262216a338a95084",
+      "claimText": "Infantry advanced, followed by cavalry.",
+      "sourceSpan": { "startUtf16": 3232, "endUtf16Exclusive": 3271, "textHash": "7001b216f428e9f1fbb4ca7b8c59fcaf9f7f1a01e6aea079b588b08672565c6b" },
+      "semanticFamily": "process",
+      "requiredRoles": ["process", "step"],
+      "assertionStatus": "asserted",
+      "acceptedForNativeFixture": true,
+      "currentSchemaCanExpress": false,
+      "reason": "Followed by explicitly orders the infantry and cavalry phases of the attack."
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-10-titanic-decisions-disaster",
+      "claimId": "claim-d62f5be40772900d03e6dd9e",
+      "claimText": "After the collision, shipbuilder Thomas Andrews inspected the damage and concluded that Titanic would sink.",
+      "sourceSpan": { "startUtf16": 4397, "endUtf16Exclusive": 4504, "textHash": "79e77f6f3d40e45a197d805aaf1a2cfc48eac6b3f6e00f2353186a9fecad0833" },
+      "semanticFamily": "temporal-order",
+      "requiredRoles": ["before", "after"],
+      "assertionStatus": "asserted",
+      "acceptedForNativeFixture": true,
+      "currentSchemaCanExpress": false,
+      "reason": "After explicitly places the collision before the damage inspection; no causal claim is added."
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-35-chernobyl-night-reactor-exploded",
+      "claimId": "claim-368d72f941d735fc6da03526",
+      "claimText": "Evacuation began on the afternoon of April 27, more than a day after the explosion.",
+      "sourceSpan": { "startUtf16": 4034, "endUtf16Exclusive": 4117, "textHash": "a7175711cea63c6663b09d9d49bf7c09e591a0c07d3cadbc21d07f13925fdd76" },
+      "semanticFamily": "temporal-order",
+      "requiredRoles": ["before", "after"],
+      "assertionStatus": "asserted",
+      "acceptedForNativeFixture": true,
+      "currentSchemaCanExpress": false,
+      "reason": "More than a day after explicitly orders the explosion before evacuation."
+    }
+  ],
+  "rejectedControls": [
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-01-bronze-age-collapse",
+      "claimId": "claim-c25ab3739b6d86f73866ac23",
+      "claimText": "Letters from the final years of some kingdoms speak of shortages, enemies, missing ships, and urgent requests for help.",
+      "semanticFamily": "unordered-list-control",
+      "requiredRoles": [],
+      "assertionStatus": "asserted",
+      "currentSchemaCanExpress": false,
+      "reason": "Comma-separated evidence is not process order."
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-04-black-death",
+      "claimId": "claim-07d1a55203d2291555a2d3c3",
+      "claimText": "Then a household falls ill.",
+      "semanticFamily": "cross-claim-temporal-control",
+      "requiredRoles": ["before", "after"],
+      "assertionStatus": "asserted",
+      "currentSchemaCanExpress": false,
+      "reason": "Then refers to an event in another claim; claim-array order is not authority."
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-36-spanish-armada-why-it-failed",
+      "claimId": "claim-be7255357533271755d5dc0e",
+      "claimText": "The Armada then sailed north around Scotland and Ireland, where storms, navigation, hunger, disease, and shipwreck caused further losses.",
+      "semanticFamily": "cross-claim-temporal-control",
+      "requiredRoles": ["before", "after"],
+      "assertionStatus": "asserted",
+      "currentSchemaCanExpress": false,
+      "reason": "Then has no claim-local prior event participant."
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion",
+      "claimId": "claim-cd5492f81b2ae9a286f328ec",
+      "claimText": "Airborne forces landed first on both flanks.",
+      "semanticFamily": "incomplete-order-control",
+      "requiredRoles": ["process", "step"],
+      "assertionStatus": "asserted",
+      "currentSchemaCanExpress": false,
+      "reason": "Only one claim-local step is present, below process cardinality."
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-35-chernobyl-night-reactor-exploded",
+      "claimId": "claim-a6c549bd81742803b647df78",
+      "claimText": "A second explosion followed.",
+      "semanticFamily": "cross-claim-temporal-control",
+      "requiredRoles": ["before", "after"],
+      "assertionStatus": "asserted",
+      "currentSchemaCanExpress": false,
+      "reason": "The earlier explosion is only supplied by a different claim."
+    }
+  ]
+}

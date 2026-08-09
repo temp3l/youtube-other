@@ -17,6 +17,16 @@ export const representativeNativeEpisodeFragmentsV36 = [
   "35-chernobyl-night-reactor-exploded",
 ] as const;
 
+export const representativeNativeProcessClaimIdsV36 = [
+  "claim-6c18dacd4ee9e8039e194b0d",
+  "claim-6bbe9288262216a338a95084",
+] as const;
+
+export const representativeNativeTemporalClaimIdsV36 = [
+  "claim-d62f5be40772900d03e6dd9e",
+  "claim-368d72f941d735fc6da03526",
+] as const;
+
 interface FixtureClaimV36 {
   readonly claimText: string;
   readonly propositions: readonly NativeStructuredPropositionDraftV36[];
@@ -148,6 +158,29 @@ export const representativeNativeFixturesV36: readonly EpisodeFixtureV36[] = [
         }],
       },
       {
+        claimText: "The ships had wintered there before sailing south through Peel Sound.",
+        propositions: [{
+          sourceText: "The ships had wintered there before sailing south through Peel Sound.",
+          participants: {
+            process: concept("Franklin expedition southward progression"),
+            wintering: concept("the ships wintered there"),
+            sailing: concept("the ships sailed south through Peel Sound"),
+          },
+          subject: "process",
+          predicate: "process-sequence",
+          roles: [
+            { role: "process", participant: "process" },
+            { role: "step", participant: "wintering" },
+            { role: "step", participant: "sailing" },
+          ],
+          processSteps: [
+            { participant: "wintering", stepOrder: 1 },
+            { participant: "sailing", stepOrder: 2 },
+          ],
+          assertionStatus: "asserted",
+        }],
+      },
+      {
         claimText: "The mystery endured partly because the people searching for answers did not always know which evidence to believe.",
         propositions: [{
           sourceText: "The mystery endured partly because the people searching for answers did not always know which evidence to believe.",
@@ -261,22 +294,65 @@ export const representativeNativeFixturesV36: readonly EpisodeFixtureV36[] = [
           qualifiers: [{ kind: "time-anchor", value: "Days later" }],
         }],
       },
+      {
+        claimText: "Infantry advanced, followed by cavalry.",
+        propositions: [{
+          sourceText: "Infantry advanced, followed by cavalry.",
+          participants: {
+            process: concept("Norman combined attack"),
+            infantry: concept("infantry advanced"),
+            cavalry: concept("cavalry advanced"),
+          },
+          subject: "process",
+          predicate: "process-sequence",
+          roles: [
+            { role: "process", participant: "process" },
+            { role: "step", participant: "infantry" },
+            { role: "step", participant: "cavalry" },
+          ],
+          processSteps: [
+            { participant: "infantry", stepOrder: 1 },
+            { participant: "cavalry", stepOrder: 2 },
+          ],
+          assertionStatus: "asserted",
+        }],
+      },
     ],
   },
   {
     episodeFragment: "10-titanic-decisions-disaster",
-    claims: [{
-      claimText: "One warning from the nearby Californian stated that it had stopped because of ice.",
-      propositions: [{
-        sourceText: "One warning from the nearby Californian stated that it had stopped because of ice.",
-        participants: { ice: concept("ice"), stopped: concept("the Californian had stopped") },
-        subject: "ice",
-        predicate: "causes",
-        object: "stopped",
-        roles: [{ role: "cause", participant: "ice" }, { role: "effect", participant: "stopped" }],
-        assertionStatus: "reported",
-      }],
-    }],
+    claims: [
+      {
+        claimText: "One warning from the nearby Californian stated that it had stopped because of ice.",
+        propositions: [{
+          sourceText: "One warning from the nearby Californian stated that it had stopped because of ice.",
+          participants: { ice: concept("ice"), stopped: concept("the Californian had stopped") },
+          subject: "ice",
+          predicate: "causes",
+          object: "stopped",
+          roles: [{ role: "cause", participant: "ice" }, { role: "effect", participant: "stopped" }],
+          assertionStatus: "reported",
+        }],
+      },
+      {
+        claimText: "After the collision, shipbuilder Thomas Andrews inspected the damage and concluded that Titanic would sink.",
+        propositions: [{
+          sourceText: "After the collision, shipbuilder Thomas Andrews inspected the damage and concluded that Titanic would sink.",
+          participants: {
+            collision: concept("the collision"),
+            inspection: concept("Thomas Andrews inspected the damage"),
+          },
+          subject: "collision",
+          predicate: "precedes",
+          object: "inspection",
+          roles: [
+            { role: "before", participant: "collision" },
+            { role: "after", participant: "inspection" },
+          ],
+          assertionStatus: "asserted",
+        }],
+      },
+    ],
   },
   {
     episodeFragment: "35-chernobyl-night-reactor-exploded",
@@ -303,6 +379,25 @@ export const representativeNativeFixturesV36: readonly EpisodeFixtureV36[] = [
           object: "surge",
           roles: [{ role: "cause", participant: "shutdown" }, { role: "effect", participant: "surge" }],
           assertionStatus: "asserted",
+        }],
+      },
+      {
+        claimText: "Evacuation began on the afternoon of April 27, more than a day after the explosion.",
+        propositions: [{
+          sourceText: "Evacuation began on the afternoon of April 27, more than a day after the explosion.",
+          participants: {
+            explosion: concept("the explosion"),
+            evacuation: concept("evacuation began"),
+          },
+          subject: "explosion",
+          predicate: "precedes",
+          object: "evacuation",
+          roles: [
+            { role: "before", participant: "explosion" },
+            { role: "after", participant: "evacuation" },
+          ],
+          assertionStatus: "asserted",
+          qualifiers: [{ kind: "time-anchor", value: "more than a day after" }],
         }],
       },
     ],
@@ -343,7 +438,7 @@ export const representativeSemanticFamilyEvaluationV36 = {
   movementLocation: "native fixture coverage with actual/intended and origin/objective controls",
   comparison: "native fixture coverage",
   policyAction: "native fixture coverage with attempted assertion",
-  processSteps: "step-order qualifier is representable; atomic process projection remains intentionally absent",
-  temporalOrdering: "time-anchor qualifier is representable; pure sequence projection remains intentionally absent",
+  processSteps: "native process-sequence coverage with explicit source-ordered steps and direct atomic projection",
+  temporalOrdering: "native precedes coverage with claim-local direction and direct atomic projection",
   evidenceMembership: "native fixture coverage with grouped/nested evidence",
 } as const;

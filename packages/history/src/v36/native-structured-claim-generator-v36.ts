@@ -28,12 +28,12 @@ import {
   type StructuredQualifierV36,
   type StructuredSemanticRoleNameV36,
 } from "./structured-claim-v36.js";
-import { claimIdV36, entityIdV36 } from "./explanatory-relation-v36.js";
+import { claimIdV36, entityIdV36, episodeIdV36 } from "./explanatory-relation-v36.js";
 
 export const HISTORY_NATIVE_STRUCTURED_CLAIM_GENERATOR_V36 =
-  "history-native-structured-claim-generator.v1" as const;
+  "history-native-structured-claim-generator.v2" as const;
 export const HISTORY_NATIVE_STRUCTURED_CLAIM_SIDECAR_V36 =
-  "history-native-structured-claim-sidecar.v1" as const;
+  "history-native-structured-claim-sidecar.v2" as const;
 
 const geographicEntityTypes = new Set(["state", "place", "region", "water-body", "island"]);
 
@@ -60,6 +60,10 @@ export interface NativeStructuredPropositionDraftV36 {
   }[];
   readonly assertionStatus: StructuredAssertionStatusV36;
   readonly qualifiers?: readonly StructuredQualifierV36[];
+  readonly processSteps?: readonly {
+    readonly participant: string;
+    readonly stepOrder: number;
+  }[];
 }
 
 export interface NativeStructuredClaimProposalV36 {
@@ -261,6 +265,25 @@ function materializeProposition(input: {
   readonly draft: NativeStructuredPropositionDraftV36;
   readonly diagnostics: StructuredClaimDiagnosticV36[];
 }) {
+  if (input.draft.predicate === "process-sequence") {
+    if (!input.draft.processSteps || input.draft.processSteps.length < 2) {
+      input.diagnostics.push(diagnostic(
+        input.claim.id,
+        "STRUCTURED_PROCESS_INSUFFICIENT_STEPS",
+        "Native process semantics require at least two explicit ordered steps."
+      ));
+      return null;
+    }
+    const orders = input.draft.processSteps.map((step) => step.stepOrder).sort((left, right) => left - right);
+    if (orders.some((order, index) => order !== index + 1)) {
+      input.diagnostics.push(diagnostic(
+        input.claim.id,
+        "STRUCTURED_PROCESS_ORDER_AMBIGUOUS",
+        "Native process step order must be unique and contiguous from one."
+      ));
+      return null;
+    }
+  }
   const resolved = new Map<string, StructuredParticipantV36>();
   for (const [key, draft] of Object.entries(input.draft.participants)) {
     const value = participant(input.claim.id, draft, input.entities);
@@ -281,12 +304,16 @@ function materializeProposition(input: {
     role: role.role,
     participant: resolved.get(role.participant),
   }));
-  if (!subject || (input.draft.object && !object) || roles.some((role) => !role.participant)) {
+  const processSteps = input.draft.processSteps?.map((step) => ({
+    participant: resolved.get(step.participant),
+    stepOrder: step.stepOrder,
+  }));
+  if (!subject || (input.draft.object && !object) || roles.some((role) => !role.participant) || processSteps?.some((step) => !step.participant)) {
     input.diagnostics.push(diagnostic(
       input.claim.id,
       "STRUCTURED_CLAIM_PARTICIPANT_UNRESOLVED",
       "Native proposition roles referenced an undeclared participant key.",
-      [...new Set([input.draft.subject, input.draft.object, ...input.draft.roles.map((role) => role.participant)].filter((value): value is string => Boolean(value)))]
+      [...new Set([input.draft.subject, input.draft.object, ...input.draft.roles.map((role) => role.participant), ...(input.draft.processSteps?.map((step) => step.participant) ?? [])].filter((value): value is string => Boolean(value)))]
     ));
     return null;
   }
@@ -307,9 +334,14 @@ function materializeProposition(input: {
       roles: roles.map((role) => ({ role: role.role, participant: role.participant! })),
       assertionStatus: input.draft.assertionStatus,
       ...(input.draft.qualifiers?.length ? { qualifiers: input.draft.qualifiers } : {}),
+      ...(processSteps?.length ? {
+        processSteps: processSteps.map((step) => ({ participant: step.participant!, stepOrder: step.stepOrder })),
+      } : {}),
       sourceSpan: span,
       provenance: {
         structuredSchemaVersion: HISTORY_STRUCTURED_CLAIM_SCHEMA_V36,
+        episodeId: episodeIdV36(input.claim.episodeId),
+        claimId: claimIdV36(input.claim.id),
         generationMethod: "native-structured-claim-generation",
         generatorVersion: HISTORY_NATIVE_STRUCTURED_CLAIM_GENERATOR_V36,
         participantBindingReferences: [...new Set([...resolved.values()].flatMap((value) =>
@@ -318,9 +350,14 @@ function materializeProposition(input: {
       },
     });
   } catch (error) {
+    const code = input.draft.predicate === "process-sequence"
+      ? "STRUCTURED_PROCESS_ORDER_AMBIGUOUS"
+      : input.draft.predicate === "precedes"
+        ? "STRUCTURED_TEMPORAL_ORDER_AMBIGUOUS"
+        : "STRUCTURED_CLAIM_UNSUPPORTED_SEMANTICS";
     input.diagnostics.push(diagnostic(
       input.claim.id,
-      "STRUCTURED_CLAIM_UNSUPPORTED_SEMANTICS",
+      code,
       `Native proposition failed the accepted V3.6 runtime contract: ${(error as Error).message}`
     ));
     return null;

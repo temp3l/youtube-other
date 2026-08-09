@@ -10,10 +10,16 @@ No provider is required: current canonical claim generation is deterministic wit
 
 ## Phase 2.6 native integration
 
-`structureTrustedScriptClaimsNativeV36` is the additive canonical-boundary entrypoint. It calls the unchanged V3.4/V3.5 canonical structurer once, resolves typed semantic proposals against the claim and entity bindings created in that same boundary, and returns the original `HistoryStructuredClaimsV34` plus a separate `history-native-structured-claim-sidecar.v1`. The proposal is keyed by canonical narration-unit ID, so the generator does not reconstruct semantics from persisted prose. The accepted `StructuredClaimEnvelopeV36` remains the sole V3.6 structured proposition contract.
+`structureTrustedScriptClaimsNativeV36` is the additive canonical-boundary entrypoint. It calls the unchanged V3.4/V3.5 canonical structurer once, resolves typed semantic proposals against the claim and entity bindings created in that same boundary, and returns the original `HistoryStructuredClaimsV34` plus a separate `history-native-structured-claim-sidecar.v2`. The proposal is keyed by canonical narration-unit ID, so the generator does not reconstruct semantics from persisted prose. The accepted `StructuredClaimEnvelopeV36` remains the sole V3.6 structured proposition contract.
 
 Current claim production is deterministic/local. Native fixtures therefore make no provider call, and no second provider request exists. If the boundary later becomes provider-backed, typed propositions belong in that existing response and the sidecar fingerprint must include provider/model identity.
 
 The sidecar cache fingerprint contains claim IDs/text/spans, participant bindings, schema version, native generator version, typed proposals, and provider/model identity when present. It excludes timestamps and media/render/approval metadata. `persistNativeStructuredClaimSidecarV36` reuses a schema-valid sidecar on a fingerprint hit and atomically replaces it when a semantic input changes. The intended persisted filename beside the canonical claim artifact is `structured-claims.v36.native.json`.
 
 Historical V3.5 artifacts have no native-generation sidecar. Their native coverage remains unavailable; Phase 2.6 measures capability only with the eight frozen representative inputs plus native boundary fixtures, while the historical all-40 compatibility census stays unchanged.
+
+## Phase 2.7 process and temporal semantics
+
+`history-structured-claim.v2` adds only `process-sequence` and `precedes`. A process sequence requires one process participant and at least two claim-explicit steps with unique, contiguous one-based `stepOrder`; neither array position nor an unordered conjunction establishes order. `precedes` requires distinct claim-local before/after participants. It records chronology only and cannot be lowered as causal evidence.
+
+The native generator is `history-native-structured-claim-generator.v2`. Its sidecar fingerprint includes the structured schema, generator, canonical claim content/spans, bindings, and typed proposal, so V1 sidecars invalidate while unrelated media changes do not. Direct atomic projection uses `history-atomic-claim-grounding.v2`, preserves ordered steps or temporal direction, assertion status, exact source span/hash, participant bindings, and the native structured proposition ID. The existing candidate lowering seam has no process/temporal branch; those atomic propositions therefore remain measured candidate-projection gaps rather than inferred relations.

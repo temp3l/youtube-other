@@ -113,6 +113,7 @@ describe("History V3.6 atomic grounding runtime and generated schemas", () => {
     expect(atomicPredicateValuesV36).toEqual([
       "causes", "contributes-to", "depends-on", "compares-with", "contains-evidence-of",
       "moves-from", "moves-through", "search-object", "located-in", "transforms", "demands", "restricts",
+      "process-sequence", "precedes",
     ]);
   });
 

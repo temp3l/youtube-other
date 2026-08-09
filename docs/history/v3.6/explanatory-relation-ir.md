@@ -62,7 +62,7 @@ The lowering adapter maps only exact asserted, claim-local atoms that mechanical
 
 The hardened persisted relation contract is `history-explanatory-relations.v2`. V1 review artifacts must not be treated as V2 records because V1 overloaded semantic identity with evidence provenance. `explanatoryRelationSchemaV36` is the authoritative Zod runtime validator; `relation-schema.json` is machine-enforcing Draft 2020-12 JSON Schema generated directly from it with Zod's native JSON-Schema exporter. `relation-contract-document.json` is supplemental field-level review documentation generated alongside it.
 
-The atomic grounding contract is independently versioned as `history-atomic-claim-grounding.v1`. `atomicGroundingArtifactSchemaV36` is authoritative; `atomic-grounding-schema.json` and `atomic-grounding-contract-document.json` are generated mechanically from the same module.
+The atomic grounding contract is independently versioned as `history-atomic-claim-grounding.v2`. `atomicGroundingArtifactSchemaV36` is authoritative; `atomic-grounding-schema.json` and `atomic-grounding-contract-document.json` are generated mechanically from the same module. V2 adds direct `process-sequence` and `precedes` projection plus native structured-proposition lineage; it does not add relation inference.
 
 Review artifact provenance is independently versioned as `history-v3.6-relation-ir-review-provenance.v3`. V3 separates the dedicated `history-v3.6-shadow-relations-review` artifact kind from the earlier relation-IR contract review kind. `reviewArtifactProvenanceSchemaV36` remains the authoritative strict Zod runtime validator and generates `provenance-schema.json`.
 
