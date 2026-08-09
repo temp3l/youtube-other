@@ -116,9 +116,9 @@ Notes: Canonical tenant/project/episode production-state API, SDK, BFF, episode 
 
 ### YSAAS-018
 Status: partial / blocked
-Commit: f184c61
-Validation: `postgres-capability-configuration-repository.unit.test.ts` pass
-Notes: Tenant, profile/genre, and episode configuration layers now persist under workspace RLS with schema-validated reads. The tenant-scoped capability/configuration resolution API and the frontend migration away from pilot mappings remain; they must fail closed when no tenant configuration is provisioned.
+Commit: d3c845e
+Validation: configuration persistence focused test, API typecheck, API SDK build, and web typecheck pass
+Notes: Tenant, profile/genre, and episode configuration layers persist under workspace RLS with schema-validated reads. `d3c845e` exposes a fail-closed tenant capability API and migrates settings BFF rendering to it. Episode resolution SDK/BFF and the remaining workflow pilot locale mapping still need replacement; no UI fallback may be added.
 
 ### YSAAS-020
 Status: in progress
