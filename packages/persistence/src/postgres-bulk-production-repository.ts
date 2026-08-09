@@ -67,6 +67,20 @@ export interface BulkProductionBatchRecord {
 export class PostgresBulkProductionRepository {
   public constructor(private readonly pool: PostgresPool) {}
 
+  private async withWorkspace<T>(workspaceId: string, work: (client: { query<TValue>(sql: string, values?: readonly unknown[]): Promise<PostgresQueryResult<TValue>> }) => Promise<T>): Promise<T> {
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT set_config('app.workspace_id', $1, true)", [workspaceId]);
+      const result = await work(client);
+      await client.query("COMMIT");
+      return result;
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally { client.release(); }
+  }
+
   public async ensureSchema(): Promise<void> {
     const client = await this.pool.connect();
     try { await client.query(POSTGRES_BULK_PRODUCTION_MIGRATION); } finally { client.release(); }
@@ -111,7 +125,9 @@ export class PostgresBulkProductionRepository {
   }
 
   public async listItems(input: { readonly workspaceId: string; readonly batchId: string }): Promise<readonly { readonly itemId: string; readonly eligible: boolean; readonly status: string; readonly reasons: readonly string[] }[]> {
-    const result = await this.pool.query<{ readonly item_id: string; readonly eligible: boolean; readonly status: string; readonly eligibility_reasons: unknown }>(`SELECT item_id, eligible, status, eligibility_reasons FROM bulk_production_batch_items WHERE workspace_id=$1 AND batch_id=$2 ORDER BY selection_order`, [input.workspaceId, input.batchId]);
-    return result.rows.map((row) => ({ itemId: row.item_id, eligible: row.eligible, status: row.status, reasons: Array.isArray(row.eligibility_reasons) ? row.eligibility_reasons.filter((value): value is string => typeof value === "string") : [] }));
+    return this.withWorkspace(input.workspaceId, async (client) => {
+      const result = await client.query<{ readonly item_id: string; readonly eligible: boolean; readonly status: string; readonly eligibility_reasons: unknown }>(`SELECT item_id, eligible, status, eligibility_reasons FROM bulk_production_batch_items WHERE workspace_id=$1 AND batch_id=$2 ORDER BY selection_order`, [input.workspaceId, input.batchId]);
+      return result.rows.map((row) => ({ itemId: row.item_id, eligible: row.eligible, status: row.status, reasons: Array.isArray(row.eligibility_reasons) ? row.eligibility_reasons.filter((value): value is string => typeof value === "string") : [] }));
+    });
   }
 }
