@@ -191,19 +191,29 @@ describe("History V3.6 representative native structured fixture experiment", () 
     expect(experiment.missClassification.nativeStructurePresentAtomicGroundingGap).toBe(0);
     expect(experiment.phase26Comparison).toMatchObject({
       before: { nativeClaims: 17, nativePropositions: 18, insufficientStructure: 61, atomicPropositions: 37, candidates: 45, validatedRelations: 23 },
-      after: { nativeClaims: 21, nativePropositions: 22, insufficientStructure: 60, atomicPropositions: 41, candidates: 49, validatedRelations: 27 },
+      after: { nativeClaims: 21, nativePropositions: 22, insufficientStructure: 60, atomicPropositions: 41, candidates: 50, validatedRelations: 28 },
     });
     expect(experiment.phase27Comparison).toMatchObject({
       before: { candidates: 45, validatedRelations: 23, processRelations: 0, temporalSequenceRelations: 0 },
-      after: { candidates: 49, validatedRelations: 27, processRelations: 2, temporalSequenceRelations: 2 },
+      after: { candidates: 50, validatedRelations: 28, processRelations: 2, temporalSequenceRelations: 2 },
     });
-    expect(experiment.missClassification.atomicGroundingPresentCandidateProjectionGap).toBe(12);
+    expect(experiment.missClassification.atomicGroundingPresentCandidateProjectionGap).toBe(11);
     expect(experiment.missClassification.candidateProposedValidatorReject).toBe(0);
     expect(experiment.candidateProjection).toEqual({
       process: { proposed: 2, validatorAccepts: 2, validatorRejects: 0 },
       temporal: { proposed: 2, validatorAccepts: 2, validatorRejects: 0 },
+      transforms: { proposed: 1, validatorAccepts: 1, validatorRejects: 0 },
     });
     expect(experiment.relationComparison.after).toMatchObject({ processRelations: 2, temporalSequenceRelations: 2 });
+    const blackDeath = experiment.runs.find((run) => run.episodeId.includes("04-black-death"))!;
+    expect(blackDeath.native.candidates.find((candidate) => candidate.atomicGroundingIds?.includes("grounding-9b108be90c3ba4812c0c5a57"))).toMatchObject({
+      source: "atomic-transforms-causal-projection",
+      projectionRuleId: "atomic-transforms-causal-candidate.v1",
+      assertionStatus: "asserted",
+      semanticParticipantIds: ["concept-b9bb9f54060989981769716c", "concept-e072f8bb28e0ef40dfdbc271"],
+      structuredPropositionIds: ["structured-proposition-c94a284dea3fd38027179971"],
+      status: "valid",
+    });
   });
 
   it("preserves movement, evidence nesting, assertion scope, and V3.5 false-positive controls", () => {

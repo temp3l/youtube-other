@@ -30,21 +30,20 @@ async function loadRepresentative(fragment: string) {
 }
 
 describe("History V3.6 Phase 2.9 candidate gap inventory", () => {
-  it("reconciles the frozen same-eight claim-scoped gaps to exactly twelve", async () => {
+  it("reconciles the remaining same-eight claim-scoped gaps after the approved projection", async () => {
     const loaded = await Promise.all(representativeNativeEpisodeFragmentsV36.map(loadRepresentative));
     const experiment = runRepresentativeNativeStructuredClaimExperimentV36(loaded.map((item) => item.source));
     const records = extractCandidateGapInventoryV36({
       runs: experiment.runs,
       episodeTitles: new Map(loaded.map((item) => [item.source.shadow.episodeId, item.title])),
     });
-    expect(experiment.missClassification.atomicGroundingPresentCandidateProjectionGap).toBe(12);
-    expect(records).toHaveLength(12);
+    expect(experiment.missClassification.atomicGroundingPresentCandidateProjectionGap).toBe(11);
+    expect(records).toHaveLength(11);
     expect(records.map((record) => record.gapId)).toEqual([
       "candidate-gap-claim-095a61f563fa2980b636c6cc",
       "candidate-gap-claim-256740d7c97e87c2fd1ff4cd",
       "candidate-gap-claim-27a228830af8714543142658",
       "candidate-gap-claim-318504248e85a04faa5519d6",
-      "candidate-gap-claim-445b50b1c542e5143f87efe0",
       "candidate-gap-claim-6102997fabdd9aa3492eccb4",
       "candidate-gap-claim-7552fcb5134857307769fa18",
       "candidate-gap-claim-a6f0630762f216aee3e63456",
@@ -66,7 +65,7 @@ describe("History V3.6 Phase 2.9 candidate gap inventory", () => {
     const summary = summarizeCandidateGapInventoryV36(records);
     expect(Object.keys(summary.classificationCounts)).toEqual(candidateGapClassificationValuesV36);
     expect(summary.classificationCounts).toEqual({
-      DIRECT_PROJECTION_ELIGIBLE: 1,
+      DIRECT_PROJECTION_ELIGIBLE: 0,
       NEEDS_ADDITIONAL_NATIVE_STRUCTURE: 4,
       NEEDS_CROSS_CLAIM_PROOF: 1,
       PARTICIPANT_RESOLUTION_GAP: 0,
@@ -75,11 +74,6 @@ describe("History V3.6 Phase 2.9 candidate gap inventory", () => {
       INTENTIONALLY_NON_RELATIONAL: 2,
       VALIDATOR_CONTRACT_MISMATCH: 0,
     });
-    expect(summary.projectorRules).toMatchObject([{
-      ruleId: "atomic-transforms-causal-candidate.v1",
-      targetRelationKind: "causal",
-      eligibleGapIds: ["candidate-gap-claim-445b50b1c542e5143f87efe0"],
-      recommendation: "SAFE_FOR_PHASE_2_10",
-    }]);
+    expect(summary.projectorRules).toEqual([]);
   });
 });

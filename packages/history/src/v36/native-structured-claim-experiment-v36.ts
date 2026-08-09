@@ -31,7 +31,7 @@ function invariantCounts(runs: readonly RepresentativeNativeExperimentRunV36[]) 
   const relations = runs.flatMap((run) => run.native.extraction.relations);
   const atomicPropositions = runs.flatMap((run) => run.native.grounding.propositions);
   const projectedCandidates = runs.flatMap((run) => run.native.candidates)
-    .filter((candidate) => candidate.source === "atomic-process-projection" || candidate.source === "atomic-temporal-projection");
+    .filter((candidate) => candidate.source === "atomic-process-projection" || candidate.source === "atomic-temporal-projection" || candidate.source === "atomic-transforms-causal-projection");
   const propositions = runs.flatMap((run) => run.native.structuredClaims.envelopes.flatMap((envelope) => envelope.propositions));
   const nativePropositions = propositions.filter((proposition) => proposition.provenance.generationMethod === "native-structured-claim-generation");
   const nativeClaimPropositions = runs.flatMap((run) => run.native.structuredClaims.envelopes
@@ -109,6 +109,18 @@ function invariantCounts(runs: readonly RepresentativeNativeExperimentRunV36[]) 
       return candidate.resolvedParticipantIds.includes(candidate.processGrouping.participantId) ||
         Boolean(relation?.kind === "process" && relation.steps.some((step) => step.canonicalLabel === candidate.processGrouping?.label));
     }).length,
+    nonAssertedTransformsPromotedToAssertedCausality: projectedCandidates.filter((candidate) =>
+      candidate.source === "atomic-transforms-causal-projection" && candidate.assertionStatus !== "asserted"
+    ).length,
+    reversedTransformsCausality: projectedCandidates.filter((candidate) => {
+      if (candidate.source !== "atomic-transforms-causal-projection") return false;
+      const atom = atomicPropositions.find((proposition) => proposition.groundingId === candidate.atomicGroundingIds?.[0]);
+      const relation = relations.find((item) => item.id === candidate.semanticRelationId);
+      return !atom || relation?.kind !== "causal" || relation.cause.canonicalLabel !== atom.subject.label || relation.effect.canonicalLabel !== atom.object?.label;
+    }).length,
+    unresolvedTransformsParticipantAdmission: projectedCandidates.filter((candidate) =>
+      candidate.source === "atomic-transforms-causal-projection" && candidate.semanticParticipantIds?.some((id) => !candidate.resolvedParticipantIds.includes(id))
+    ).length,
   };
 }
 
@@ -179,7 +191,7 @@ export function runRepresentativeNativeStructuredClaimExperimentV36(
   const insufficientBefore = baselineClaims.filter((claim) => claim.coverage === "insufficient-structure").length;
   const insufficientAfter = nativeClaims.filter((claim) => claim.coverage === "insufficient-structure").length;
   const nativeClaimIds = new Set(nativeEnvelopes.map((envelope) => envelope.claimId));
-  const atomicCandidateSources = new Set(["atomic-claim-grounding", "atomic-process-projection", "atomic-temporal-projection"]);
+  const atomicCandidateSources = new Set(["atomic-claim-grounding", "atomic-process-projection", "atomic-temporal-projection", "atomic-transforms-causal-projection"]);
   const nativeCandidateClaimIds = new Set(nativeCandidates.filter((candidate) => atomicCandidateSources.has(candidate.source)).map((candidate) => candidate.claimId));
   const nativeRejectedClaimIds = new Set(nativeCandidates.filter((candidate) => atomicCandidateSources.has(candidate.source) && candidate.status === "rejected").map((candidate) => candidate.claimId));
   const remainingInsufficient = nativeClaims.filter((claim) => claim.coverage === "insufficient-structure");
@@ -197,6 +209,7 @@ export function runRepresentativeNativeStructuredClaimExperimentV36(
   const temporalRelationsAfter = nativeRelations.filter((relation) => relation.kind === "temporal-sequence").length;
   const processCandidates = nativeCandidates.filter((candidate) => candidate.source === "atomic-process-projection");
   const temporalCandidates = nativeCandidates.filter((candidate) => candidate.source === "atomic-temporal-projection");
+  const transformsCandidates = nativeCandidates.filter((candidate) => candidate.source === "atomic-transforms-causal-projection");
   const phase26Baseline = {
     nativeClaims: 17,
     nativePropositions: 18,
@@ -261,6 +274,11 @@ export function runRepresentativeNativeStructuredClaimExperimentV36(
         proposed: temporalCandidates.length,
         validatorAccepts: temporalCandidates.filter((candidate) => candidate.status === "valid").length,
         validatorRejects: temporalCandidates.filter((candidate) => candidate.status === "rejected").length,
+      },
+      transforms: {
+        proposed: transformsCandidates.length,
+        validatorAccepts: transformsCandidates.filter((candidate) => candidate.status === "valid").length,
+        validatorRejects: transformsCandidates.filter((candidate) => candidate.status === "rejected").length,
       },
     },
     phase26Comparison: {

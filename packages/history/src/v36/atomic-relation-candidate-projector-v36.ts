@@ -15,19 +15,25 @@ export const HISTORY_V36_ATOMIC_PROCESS_CANDIDATE_RULE =
   "atomic-process-sequence-candidate.v1" as const;
 export const HISTORY_V36_ATOMIC_TEMPORAL_CANDIDATE_RULE =
   "atomic-precedes-temporal-candidate.v1" as const;
+export const HISTORY_V36_ATOMIC_TRANSFORMS_CAUSAL_CANDIDATE_RULE =
+  "atomic-transforms-causal-candidate.v1" as const;
 
 export type AtomicRelationCandidateSourceV36 =
   | "atomic-process-projection"
-  | "atomic-temporal-projection";
+  | "atomic-temporal-projection"
+  | "atomic-transforms-causal-projection";
 
 export type AtomicRelationCandidateProjectionRuleV36 =
   | typeof HISTORY_V36_ATOMIC_PROCESS_CANDIDATE_RULE
-  | typeof HISTORY_V36_ATOMIC_TEMPORAL_CANDIDATE_RULE;
+  | typeof HISTORY_V36_ATOMIC_TEMPORAL_CANDIDATE_RULE
+  | typeof HISTORY_V36_ATOMIC_TRANSFORMS_CAUSAL_CANDIDATE_RULE;
 
 export type AtomicRelationCandidateProjectionDiagnosticCodeV36 =
   | "ATOMIC_CANDIDATE_STRUCTURE_INVALID"
   | "ATOMIC_CANDIDATE_ASSERTION_UNREPRESENTABLE"
-  | "ATOMIC_CANDIDATE_STRUCTURED_LINEAGE_MISSING";
+  | "ATOMIC_CANDIDATE_STRUCTURED_LINEAGE_MISSING"
+  | "ATOMIC_CANDIDATE_SOURCE_LINEAGE_UNSUPPORTED"
+  | "ATOMIC_CANDIDATE_PARTICIPANT_UNRESOLVED";
 
 export interface AtomicRelationCandidateProjectionDiagnosticV36 {
   readonly code: AtomicRelationCandidateProjectionDiagnosticCodeV36;
@@ -81,20 +87,25 @@ function relationConcept(ref: AtomicConceptRefV36): ConceptRefV36 {
     : { canonicalLabel: ref.label };
 }
 
-function projectionIdentity(predicate: "process-sequence" | "precedes") {
+function projectionIdentity(predicate: "process-sequence" | "precedes" | "transforms") {
   return predicate === "process-sequence"
     ? {
         candidateSource: "atomic-process-projection" as const,
         projectionRuleId: HISTORY_V36_ATOMIC_PROCESS_CANDIDATE_RULE,
       }
-    : {
+    : predicate === "precedes"
+      ? {
         candidateSource: "atomic-temporal-projection" as const,
         projectionRuleId: HISTORY_V36_ATOMIC_TEMPORAL_CANDIDATE_RULE,
-      };
+      }
+      : {
+          candidateSource: "atomic-transforms-causal-projection" as const,
+          projectionRuleId: HISTORY_V36_ATOMIC_TRANSFORMS_CAUSAL_CANDIDATE_RULE,
+        };
 }
 
 function rejected(
-  predicate: "process-sequence" | "precedes",
+  predicate: "process-sequence" | "precedes" | "transforms",
   code: AtomicRelationCandidateProjectionDiagnosticCodeV36,
   message: string,
   affectedIds: readonly string[] = []
@@ -128,7 +139,7 @@ export function projectAtomicRelationCandidateV36(
 ): AtomicRelationCandidateProjectionResultV36 | undefined {
   if (!input || typeof input !== "object") return undefined;
   const predicate = (input as { readonly predicate?: unknown }).predicate;
-  if (predicate !== "process-sequence" && predicate !== "precedes") return undefined;
+  if (predicate !== "process-sequence" && predicate !== "precedes" && predicate !== "transforms") return undefined;
   const identity = projectionIdentity(predicate);
   const parsed = atomicPropositionSchemaV36.safeParse(input);
   if (!parsed.success) {
@@ -139,6 +150,14 @@ export function projectAtomicRelationCandidateV36(
     );
   }
   const proposition = parsed.data as unknown as AtomicPropositionV36;
+  if (predicate === "transforms" && proposition.provenance.sourceKind !== "native-structured-proposition") {
+    return rejected(
+      predicate,
+      "ATOMIC_CANDIDATE_SOURCE_LINEAGE_UNSUPPORTED",
+      "Phase 2.10 transforms causal projection is restricted to the approved native structured-proposition lineage.",
+      [proposition.groundingId]
+    );
+  }
   if (proposition.assertionStatus !== "asserted") {
     return rejected(
       predicate,
@@ -153,6 +172,17 @@ export function projectAtomicRelationCandidateV36(
       predicate,
       "ATOMIC_CANDIDATE_STRUCTURED_LINEAGE_MISSING",
       "Direct process/temporal projection requires exact structured-proposition lineage.",
+      [proposition.groundingId]
+    );
+  }
+  if (predicate === "transforms" && (!proposition.object ||
+    proposition.subject.id === proposition.object.id ||
+    !proposition.provenance.resolvedParticipantIds.includes(proposition.subject.id) ||
+    !proposition.provenance.resolvedParticipantIds.includes(proposition.object.id))) {
+    return rejected(
+      predicate,
+      "ATOMIC_CANDIDATE_PARTICIPANT_UNRESOLVED",
+      "Direct transforms causal projection requires distinct resolved subject and object participants.",
       [proposition.groundingId]
     );
   }
@@ -180,6 +210,18 @@ export function projectAtomicRelationCandidateV36(
         steps: steps.map((step) => relationConcept(step.participant)) as [ConceptRefV36, ConceptRefV36, ...ConceptRefV36[]],
       },
       processGrouping: groupingTreatment(proposition),
+    };
+  }
+
+  if (predicate === "transforms") {
+    return {
+      ...common,
+      semanticParticipantIds: [proposition.subject.id, proposition.object!.id],
+      proposition: {
+        kind: "causal",
+        cause: relationConcept(proposition.subject),
+        effect: relationConcept(proposition.object!),
+      },
     };
   }
 

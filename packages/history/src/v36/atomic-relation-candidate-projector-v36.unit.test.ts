@@ -10,6 +10,7 @@ import {
 import {
   HISTORY_V36_ATOMIC_PROCESS_CANDIDATE_RULE,
   HISTORY_V36_ATOMIC_TEMPORAL_CANDIDATE_RULE,
+  HISTORY_V36_ATOMIC_TRANSFORMS_CAUSAL_CANDIDATE_RULE,
   projectAtomicRelationCandidateV36,
 } from "./atomic-relation-candidate-projector-v36.js";
 import {
@@ -24,6 +25,7 @@ const episodeId = episodeIdV36("phase-28-projection-control");
 const structuredPropositionId = "structured-proposition-1234567890abcdef12345678";
 const processText = "Wintering was followed by sailing south.";
 const temporalText = "The collision happened before the inspection.";
+const transformsText = "The shock transformed labor value.";
 
 const concept = (label: string) => ({
   id: atomicConceptIdV36(label),
@@ -93,6 +95,36 @@ function temporalAtom(
   });
 }
 
+function transformsAtom(
+  claimId = claimIdV36("claim-transforms-control"),
+  assertionStatus: AtomicAssertionStatusV36 = "asserted",
+  resolvedParticipantIds?: readonly string[]
+): AtomicPropositionV36 {
+  const cause = concept("the silence left by the dead");
+  const effect = concept("labor value");
+  return createAtomicPropositionV36({
+    episodeId,
+    claimId,
+    subject: cause,
+    predicate: "transforms",
+    object: effect,
+    assertionStatus,
+    sourceSpan: {
+      startUtf16: 0,
+      endUtf16Exclusive: transformsText.length,
+      text: transformsText,
+      textHash: sourceTextHashV36(transformsText),
+    },
+    provenance: {
+      sourceKind: "native-structured-proposition",
+      groundingRuleId: "explicit-structured-proposition-v1",
+      groundingSchemaVersion: "history-atomic-claim-grounding.v2",
+      resolvedParticipantIds: resolvedParticipantIds ?? [cause.id, effect.id],
+      structuredPropositionId,
+    },
+  });
+}
+
 const serialized = (value: unknown): any => JSON.parse(JSON.stringify(value));
 
 describe("History V3.6 Phase 2.8 atomic relation candidate projection", () => {
@@ -135,6 +167,55 @@ describe("History V3.6 Phase 2.8 atomic relation candidate projection", () => {
       },
     });
     expect(JSON.stringify(projection)).not.toContain('"kind":"causal"');
+  });
+
+  it("projects the approved asserted transforms atom directly and preserves causal direction and lineage", () => {
+    const atom = transformsAtom();
+    const projection = projectAtomicRelationCandidateV36(atom);
+    expect(projection).toMatchObject({
+      status: "projected",
+      candidateSource: "atomic-transforms-causal-projection",
+      projectionRuleId: HISTORY_V36_ATOMIC_TRANSFORMS_CAUSAL_CANDIDATE_RULE,
+      supportClaimIds: [atom.claimId],
+      atomicGroundingIds: [atom.groundingId],
+      structuredPropositionIds: [structuredPropositionId],
+      assertionStatus: "asserted",
+      sourceSpan: atom.sourceSpan,
+      semanticParticipantIds: [atom.subject.id, atom.object!.id],
+      proposition: {
+        kind: "causal",
+        cause: { canonicalLabel: atom.subject.label },
+        effect: { canonicalLabel: atom.object!.label },
+      },
+    });
+    expect((projection as any).proposition.cause.canonicalLabel).toBe(atom.subject.label);
+    expect((projection as any).proposition.effect.canonicalLabel).toBe(atom.object!.label);
+  });
+
+  it("fails closed for non-asserted, same-participant, unresolved, and non-transforms atoms", () => {
+    for (const status of ["uncertain", "intended", "attempted", "counterfactual", "reported"] as const) {
+      expect(projectAtomicRelationCandidateV36(transformsAtom(undefined, status))).toMatchObject({
+        status: "rejected",
+        diagnostics: [{ code: "ATOMIC_CANDIDATE_ASSERTION_UNREPRESENTABLE" }],
+      });
+    }
+    const valid = serialized(transformsAtom());
+    expect(projectAtomicRelationCandidateV36({ ...valid, object: valid.subject })).toMatchObject({
+      status: "rejected",
+      diagnostics: [{ code: "ATOMIC_CANDIDATE_PARTICIPANT_UNRESOLVED" }],
+    });
+    expect(projectAtomicRelationCandidateV36(transformsAtom(undefined, "asserted", [transformsAtom().subject.id]))).toMatchObject({
+      status: "rejected",
+      diagnostics: [{ code: "ATOMIC_CANDIDATE_PARTICIPANT_UNRESOLVED" }],
+    });
+    expect(projectAtomicRelationCandidateV36({ ...valid, predicate: "causes" })).toBeUndefined();
+    expect(projectAtomicRelationCandidateV36({
+      ...valid,
+      provenance: { ...valid.provenance, sourceKind: "compatibility-structured-proposition" },
+    })).toMatchObject({
+      status: "rejected",
+      diagnostics: [{ code: "ATOMIC_CANDIDATE_SOURCE_LINEAGE_UNSUPPORTED" }],
+    });
   });
 
   it("fails closed for invalid, unordered, grouping-only, or non-asserted process atoms", () => {
@@ -227,5 +308,28 @@ describe("History V3.6 Phase 2.8 atomic relation candidate projection", () => {
     });
     expect(reverse.relations).toEqual(forward.relations);
     expect(forward.rejectedCandidates).toEqual([]);
+  });
+
+  it("deduplicates equivalent transforms causal candidates while retaining deterministic evidence", () => {
+    const firstAtom = transformsAtom(claimIdV36("claim-transforms-first"));
+    const secondAtom = transformsAtom(claimIdV36("claim-transforms-second"));
+    const first = projectAtomicRelationCandidateV36(firstAtom);
+    const second = projectAtomicRelationCandidateV36(secondAtom);
+    expect(first?.status).toBe("projected");
+    expect(second?.status).toBe("projected");
+    const claims = [firstAtom, secondAtom].map((atom, index) => ({
+      id: atom.claimId,
+      episodeId,
+      normalizedProposition: index ? "Second transformation." : "First transformation.",
+      claimKind: "event",
+      groundedPropositions: [(index ? second : first)!.status === "projected" ? (index ? second : first)!.proposition : null].filter(Boolean) as any,
+    }));
+    const forward = extractShadowRelationCandidatesV36({ episodeId, claims, entities: [] });
+    const reverse = extractShadowRelationCandidatesV36({ episodeId, claims: [...claims].reverse(), entities: [] });
+    expect(forward.relations).toMatchObject([{
+      kind: "causal",
+      supportClaimIds: ["claim-transforms-first", "claim-transforms-second"],
+    }]);
+    expect(reverse.relations).toEqual(forward.relations);
   });
 });

@@ -35,8 +35,9 @@ interface GapDispositionV36 {
 }
 
 /**
- * The Phase 2.8 metric is deliberately claim-scoped.  These frozen claim IDs are
- * checked against the recreated same-eight run; no prose classification occurs.
+ * The Phase 2.8 metric is deliberately claim-scoped. These frozen dispositions
+ * are matched only to remaining gaps in the recreated same-eight run; no prose
+ * classification occurs.
  */
 const frozenDispositionsV36: readonly GapDispositionV36[] = [
   {
@@ -210,13 +211,18 @@ export function extractCandidateGapInventoryV36(input: {
 }): readonly CandidateGapInventoryRecordV36[] {
   const records: CandidateGapInventoryRecordV36[] = [];
   const found = new Set<string>();
+  const currentGapClaimIds = new Set<string>();
   for (const run of input.runs) {
     const nativeClaimIds = new Set(run.native.structuredClaims.envelopes
       .filter((envelope) => envelope.source.kind === "existing-structured-claim")
       .map((envelope) => String(envelope.claimId)));
     const atomicCandidateClaimIds = new Set(run.native.candidates
-      .filter((candidate) => ["atomic-claim-grounding", "atomic-process-projection", "atomic-temporal-projection"].includes(candidate.source))
+      .filter((candidate) => ["atomic-claim-grounding", "atomic-process-projection", "atomic-temporal-projection", "atomic-transforms-causal-projection"].includes(candidate.source))
       .map((candidate) => candidate.claimId));
+    for (const claimId of nativeClaimIds) {
+      const grounding = run.native.grounding.claims.find((claim) => claim.claimId === claimId);
+      if (grounding?.propositions.length && !atomicCandidateClaimIds.has(claimId)) currentGapClaimIds.add(claimId);
+    }
     for (const disposition of frozenDispositionsV36) {
       if (!nativeClaimIds.has(disposition.claimId) || atomicCandidateClaimIds.has(disposition.claimId)) continue;
       const claim = run.native.claims.find((item) => item.id === disposition.claimId);
@@ -277,8 +283,8 @@ export function extractCandidateGapInventoryV36(input: {
       found.add(disposition.claimId);
     }
   }
-  if (records.length !== frozenDispositionsV36.length || found.size !== frozenDispositionsV36.length) {
-    throw new Error(`Expected ${frozenDispositionsV36.length} Phase 2.8 candidate gaps, found ${records.length}.`);
+  if (records.length !== currentGapClaimIds.size || [...currentGapClaimIds].some((claimId) => !found.has(claimId))) {
+    throw new Error(`Current candidate gap inventory does not reconcile: metric=${currentGapClaimIds.size}, records=${records.length}.`);
   }
   return records.sort((left, right) => left.gapId.localeCompare(right.gapId));
 }
@@ -331,14 +337,15 @@ export function summarizeCandidateGapInventoryV36(records: readonly CandidateGap
       .filter((record) => record["proposedFutureProjectorRule"] === rule.ruleId)
       .map((record) => record.gapId),
   }));
+  const activeProjectorRules = projectorRules.filter((rule) => rule.eligibleGapIds.length > 0);
   return {
     remainingGaps: records.length,
     classificationCounts,
     directProjectionEligibleGapCount: eligible.length,
-    uniqueProposedProjectorRuleCount: projectorRules.length,
-    safeForPhase210ProjectorCount: projectorRules.filter((rule) => rule.recommendation === "SAFE_FOR_PHASE_2_10").length,
+    uniqueProposedProjectorRuleCount: activeProjectorRules.length,
+    safeForPhase210ProjectorCount: activeProjectorRules.filter((rule) => rule.recommendation === "SAFE_FOR_PHASE_2_10").length,
     notReadyProjectorCount: 0,
-    projectorRules,
-    decision: "A. Implement 1 direct projector rule for 1 eligible gap in Phase 2.10",
+    projectorRules: activeProjectorRules,
+    decision: "No further direct projector is approved by the Phase 2.9 inventory.",
   };
 }
