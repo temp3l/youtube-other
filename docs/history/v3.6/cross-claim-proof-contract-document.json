@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "History V3.6 CrossClaimProofV36 contract",
+  "schemaVersion": "history-cross-claim-proof.v1",
+  "validatorVersion": "history-cross-claim-proof-validator.v1",
+  "generatedFrom": "packages/history/src/v36/cross-claim-proof-v36.ts#crossClaimProofContractDocumentV36",
+  "cardinality": "exactly two ordered premises from distinct claims in one episode",
+  "supportedPattern": "uncertain demand condition -> attempted restriction response -> policy-response (projection deferred)",
+  "identity": "proofId hashes directed semantic proof content; exact source lineage is excluded",
+  "evidenceFingerprint": "crossClaimProofEvidenceFingerprintV36 hashes claim/proposition/grounding IDs and source spans/hashes",
+  "admission": "No proof is an ExplanatoryRelation or a relation candidate. Candidate admission is deferred.",
+  "prohibition": "No proximity, claim order, scene, paragraph, or pair enumeration is proof evidence."
+}

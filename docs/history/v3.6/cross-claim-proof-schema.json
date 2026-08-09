@@ -1,0 +1,448 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "proofId": {
+      "type": "string",
+      "pattern": "^cross-claim-proof-[a-f0-9]{24}$"
+    },
+    "schemaVersion": {
+      "type": "string",
+      "const": "history-cross-claim-proof.v1"
+    },
+    "proofPattern": {
+      "type": "string",
+      "enum": [
+        "uncertain-demand-attempted-restriction-policy-response"
+      ]
+    },
+    "episodeId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "premises": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "object",
+          "properties": {
+            "premiseId": {
+              "type": "string",
+              "enum": [
+                "condition",
+                "response"
+              ]
+            },
+            "episodeId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "claimId": {
+              "type": "string",
+              "pattern": "^claim-[a-f0-9]{24}$"
+            },
+            "structuredPropositionId": {
+              "type": "string",
+              "pattern": "^structured-proposition-[a-f0-9]{24}$"
+            },
+            "atomicGroundingId": {
+              "type": "string",
+              "pattern": "^grounding-[a-f0-9]{24}$"
+            },
+            "semanticRoleInProof": {
+              "type": "string",
+              "enum": [
+                "condition",
+                "response"
+              ]
+            },
+            "atomicPredicate": {
+              "type": "string",
+              "enum": [
+                "demands",
+                "restricts"
+              ]
+            },
+            "assertionStatus": {
+              "type": "string",
+              "enum": [
+                "asserted",
+                "intended",
+                "attempted",
+                "uncertain",
+                "counterfactual",
+                "reported"
+              ]
+            },
+            "participantBindings": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "participantId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "semanticRole": {
+                    "type": "string",
+                    "enum": [
+                      "target",
+                      "action"
+                    ]
+                  },
+                  "bindingKind": {
+                    "type": "string",
+                    "enum": [
+                      "canonical-entity",
+                      "claim-concept"
+                    ]
+                  },
+                  "resolved": {
+                    "type": "boolean",
+                    "const": true
+                  }
+                },
+                "required": [
+                  "participantId",
+                  "semanticRole",
+                  "bindingKind",
+                  "resolved"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "sourceSpan": {
+              "type": "object",
+              "properties": {
+                "startUtf16": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "endUtf16Exclusive": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "textHash": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "startUtf16",
+                "endUtf16Exclusive",
+                "text",
+                "textHash"
+              ],
+              "additionalProperties": false
+            },
+            "sourceHash": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "premiseId",
+            "episodeId",
+            "claimId",
+            "structuredPropositionId",
+            "atomicGroundingId",
+            "semanticRoleInProof",
+            "atomicPredicate",
+            "assertionStatus",
+            "participantBindings",
+            "sourceSpan",
+            "sourceHash"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "premiseId": {
+              "type": "string",
+              "enum": [
+                "condition",
+                "response"
+              ]
+            },
+            "episodeId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "claimId": {
+              "type": "string",
+              "pattern": "^claim-[a-f0-9]{24}$"
+            },
+            "structuredPropositionId": {
+              "type": "string",
+              "pattern": "^structured-proposition-[a-f0-9]{24}$"
+            },
+            "atomicGroundingId": {
+              "type": "string",
+              "pattern": "^grounding-[a-f0-9]{24}$"
+            },
+            "semanticRoleInProof": {
+              "type": "string",
+              "enum": [
+                "condition",
+                "response"
+              ]
+            },
+            "atomicPredicate": {
+              "type": "string",
+              "enum": [
+                "demands",
+                "restricts"
+              ]
+            },
+            "assertionStatus": {
+              "type": "string",
+              "enum": [
+                "asserted",
+                "intended",
+                "attempted",
+                "uncertain",
+                "counterfactual",
+                "reported"
+              ]
+            },
+            "participantBindings": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "participantId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "semanticRole": {
+                    "type": "string",
+                    "enum": [
+                      "target",
+                      "action"
+                    ]
+                  },
+                  "bindingKind": {
+                    "type": "string",
+                    "enum": [
+                      "canonical-entity",
+                      "claim-concept"
+                    ]
+                  },
+                  "resolved": {
+                    "type": "boolean",
+                    "const": true
+                  }
+                },
+                "required": [
+                  "participantId",
+                  "semanticRole",
+                  "bindingKind",
+                  "resolved"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "sourceSpan": {
+              "type": "object",
+              "properties": {
+                "startUtf16": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "endUtf16Exclusive": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "textHash": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "startUtf16",
+                "endUtf16Exclusive",
+                "text",
+                "textHash"
+              ],
+              "additionalProperties": false
+            },
+            "sourceHash": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "premiseId",
+            "episodeId",
+            "claimId",
+            "structuredPropositionId",
+            "atomicGroundingId",
+            "semanticRoleInProof",
+            "atomicPredicate",
+            "assertionStatus",
+            "participantBindings",
+            "sourceSpan",
+            "sourceHash"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "participantJoins": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "leftPremise": {
+            "type": "string",
+            "enum": [
+              "condition",
+              "response"
+            ]
+          },
+          "leftParticipant": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "rightPremise": {
+            "type": "string",
+            "enum": [
+              "condition",
+              "response"
+            ]
+          },
+          "rightParticipant": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "joinType": {
+            "type": "string",
+            "const": "EXPLICIT_TYPED_DEPENDENCY"
+          },
+          "dependencyId": {
+            "type": "string",
+            "const": "inventory-approved-wage-pressure-to-restriction.v1"
+          }
+        },
+        "required": [
+          "leftPremise",
+          "leftParticipant",
+          "rightPremise",
+          "rightParticipant",
+          "joinType",
+          "dependencyId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "targetRelationKind": {
+      "type": "string",
+      "const": "policy-response"
+    },
+    "direction": {
+      "type": "string",
+      "const": "condition-to-response"
+    },
+    "proofScope": {
+      "type": "string",
+      "const": "inventory-approved-explicit-premise-set"
+    },
+    "constructionMethod": {
+      "type": "string",
+      "const": "approved-cross-claim-fixture"
+    },
+    "provenance": {
+      "type": "object",
+      "properties": {
+        "gapId": {
+          "type": "string",
+          "const": "candidate-gap-claim-095a61f563fa2980b636c6cc"
+        },
+        "inventoryClassification": {
+          "type": "string",
+          "const": "NEEDS_CROSS_CLAIM_PROOF"
+        },
+        "inventoryRationaleHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "participantBindingIds": {
+          "minItems": 2,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        }
+      },
+      "required": [
+        "gapId",
+        "inventoryClassification",
+        "inventoryRationaleHash",
+        "participantBindingIds"
+      ],
+      "additionalProperties": false
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "CROSS_CLAIM_PROOF_SCHEMA_INVALID",
+          "CROSS_CLAIM_PROOF_CROSS_EPISODE",
+          "CROSS_CLAIM_PROOF_SAME_CLAIM",
+          "CROSS_CLAIM_PROOF_CARDINALITY_INVALID",
+          "CROSS_CLAIM_PROOF_PATTERN_UNSUPPORTED",
+          "CROSS_CLAIM_PROOF_PREMISE_SHAPE_INVALID",
+          "CROSS_CLAIM_PROOF_ASSERTION_INCOMPATIBLE",
+          "CROSS_CLAIM_PROOF_JOIN_MISSING",
+          "CROSS_CLAIM_PROOF_JOIN_INVALID",
+          "CROSS_CLAIM_PROOF_DIRECTION_INVALID",
+          "CROSS_CLAIM_PROOF_PARTICIPANT_UNRESOLVED",
+          "CROSS_CLAIM_PROOF_SOURCE_INVALID"
+        ]
+      }
+    }
+  },
+  "required": [
+    "proofId",
+    "schemaVersion",
+    "proofPattern",
+    "episodeId",
+    "premises",
+    "participantJoins",
+    "targetRelationKind",
+    "direction",
+    "proofScope",
+    "constructionMethod",
+    "provenance",
+    "diagnostics"
+  ],
+  "additionalProperties": false,
+  "$id": "https://mediaforge.local/schemas/history/v3.6/cross-claim-proof-schema.json",
+  "title": "History V3.6 cross-claim proof"
+}
