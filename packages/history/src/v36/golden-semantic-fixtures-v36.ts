@@ -59,7 +59,13 @@ function grounded(draft: ExplanatoryRelationDraftV36): GroundedRelationPropositi
     case "dependency": return { kind: draft.kind, dependency: draft.dependency, dependent: draft.dependent };
     case "process":
     case "temporal-sequence": return { kind: draft.kind, steps: draft.steps };
-    case "policy-response": return { kind: draft.kind, condition: draft.condition, response: draft.response };
+    case "policy-response": return {
+      kind: draft.kind,
+      condition: draft.condition,
+      ...(draft.conditionAssertionStatus ? { conditionAssertionStatus: draft.conditionAssertionStatus } : {}),
+      response: draft.response,
+      ...(draft.responseAssertionStatus ? { responseAssertionStatus: draft.responseAssertionStatus } : {}),
+    };
     case "evidence-set": return { kind: draft.kind, ...(draft.subject ? { subject: draft.subject } : {}), evidence: draft.evidence };
   }
 }

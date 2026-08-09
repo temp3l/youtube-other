@@ -625,6 +625,17 @@
           ],
           "additionalProperties": false
         },
+        "conditionAssertionStatus": {
+          "type": "string",
+          "enum": [
+            "asserted",
+            "intended",
+            "attempted",
+            "uncertain",
+            "counterfactual",
+            "reported"
+          ]
+        },
         "response": {
           "type": "object",
           "properties": {
@@ -652,6 +663,17 @@
             "canonicalLabel"
           ],
           "additionalProperties": false
+        },
+        "responseAssertionStatus": {
+          "type": "string",
+          "enum": [
+            "asserted",
+            "intended",
+            "attempted",
+            "uncertain",
+            "counterfactual",
+            "reported"
+          ]
         }
       },
       "required": [

@@ -1,4 +1,5 @@
 import {
+  HISTORY_EXPLANATORY_RELATIONS_SCHEMA_V36,
   claimIdV36,
   createExplanatoryRelationV36,
   entityIdV36,
@@ -150,7 +151,7 @@ function createWindow(
     })),
     participantBindings: participantBindings(source, ordered),
     allowedRelationKinds: allowedRelationKindsV36,
-    relationSchemaVersion: "history-explanatory-relations.v2",
+    relationSchemaVersion: HISTORY_EXPLANATORY_RELATIONS_SCHEMA_V36,
     promptVersion: HISTORY_V36_RELATION_PROPOSER_PROMPT_VERSION,
   };
   return { id: `llm-window-${ordered.map((claim) => claim.id).join("--")}`, eligibility, supportClaimIds: ordered.map((claim) => claim.id), packet };

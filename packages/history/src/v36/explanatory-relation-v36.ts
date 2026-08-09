@@ -2,9 +2,17 @@ import { createHash } from "node:crypto";
 
 import { z } from "zod";
 
-/** V2 separates stable relation semantics from its supporting evidence. */
-export const HISTORY_EXPLANATORY_RELATIONS_SCHEMA_V36 =
+import {
+  atomicAssertionStatusValuesV36,
+  type AtomicAssertionStatusV36,
+} from "./atomic-claim-grounding-v36.js";
+
+/** V2 separated stable relation semantics from its supporting evidence. */
+export const HISTORY_EXPLANATORY_RELATIONS_LEGACY_SCHEMA_V36 =
   "history-explanatory-relations.v2" as const;
+/** V3 adds optional, semantic policy-response premise modality. */
+export const HISTORY_EXPLANATORY_RELATIONS_SCHEMA_V36 =
+  "history-explanatory-relations.v3" as const;
 export const HISTORY_EXPLANATORY_RELATIONS_PLANNER_V36 =
   "history-explanatory-relations.v3.6.0" as const;
 
@@ -139,7 +147,11 @@ export interface PolicyResponseRelationV36 extends CommonRelationV36 {
   readonly kind: "policy-response";
   /** Direction is condition -> response. */
   readonly condition: ConceptRefV36;
+  /** Missing is the legacy asserted condition semantics. */
+  readonly conditionAssertionStatus?: AtomicAssertionStatusV36;
   readonly response: ConceptRefV36;
+  /** Missing is the legacy asserted response semantics. */
+  readonly responseAssertionStatus?: AtomicAssertionStatusV36;
 }
 
 export interface EvidenceSetRelationV36 extends CommonRelationV36 {
@@ -189,7 +201,9 @@ export interface RelationSupportClaimV36 {
 }
 
 export interface ExplanatoryRelationArtifactV36 {
-  readonly schemaVersion: typeof HISTORY_EXPLANATORY_RELATIONS_SCHEMA_V36;
+  readonly schemaVersion:
+    | typeof HISTORY_EXPLANATORY_RELATIONS_LEGACY_SCHEMA_V36
+    | typeof HISTORY_EXPLANATORY_RELATIONS_SCHEMA_V36;
   readonly plannerVersion: string;
   readonly episodeId: EpisodeIdV36;
   readonly relations: readonly ExplanatoryRelationV36[];
@@ -208,6 +222,33 @@ export function conceptRefKeyV36(ref: ConceptRefV36): string {
   return ref.entityId
     ? `concept:${ref.entityId}`
     : `concept:label:${normalizedLabel(ref.canonicalLabel)}`;
+}
+
+export interface PolicyResponseAssertionSemanticsV36 {
+  readonly conditionAssertionStatus: AtomicAssertionStatusV36;
+  readonly responseAssertionStatus: AtomicAssertionStatusV36;
+  readonly representation: "legacy-implicit-asserted" | "explicit";
+}
+
+/**
+ * V2 policy-response relations could only be emitted from asserted evidence.
+ * Missing V3 fields therefore have one deterministic legacy meaning.
+ */
+export function policyResponseAssertionSemanticsV36(
+  relation: Pick<
+    PolicyResponseRelationV36,
+    "conditionAssertionStatus" | "responseAssertionStatus"
+  >
+): PolicyResponseAssertionSemanticsV36 {
+  return {
+    conditionAssertionStatus: relation.conditionAssertionStatus ?? "asserted",
+    responseAssertionStatus: relation.responseAssertionStatus ?? "asserted",
+    representation:
+      relation.conditionAssertionStatus === undefined &&
+      relation.responseAssertionStatus === undefined
+        ? "legacy-implicit-asserted"
+        : "explicit",
+  };
 }
 
 function stableSet(values: readonly string[]): readonly string[] {
@@ -268,7 +309,20 @@ export function semanticIdentityInputsV36(
       const condition = conceptRefKeyV36(relation.condition);
       const response = conceptRefKeyV36(relation.response);
       if (condition === response) throw new TypeError("Policy response requires distinct condition and response.");
-      return { ...common, condition, response };
+      const assertion = policyResponseAssertionSemanticsV36(relation);
+      return {
+        ...common,
+        condition,
+        response,
+        // Preserve exact V2 IDs for the semantically unchanged asserted/asserted case.
+        ...(assertion.conditionAssertionStatus === "asserted" &&
+        assertion.responseAssertionStatus === "asserted"
+          ? {}
+          : {
+              conditionAssertionStatus: assertion.conditionAssertionStatus,
+              responseAssertionStatus: assertion.responseAssertionStatus,
+            }),
+      };
     }
     case "evidence-set": {
       const evidence = stableSet(relation.evidence.map(conceptRefKeyV36));
@@ -366,16 +420,46 @@ export const explanatoryRelationSchemaV36 = z.discriminatedUnion("kind", [
   z.object({ ...commonRelationSchema, kind: z.literal("dependency"), dependency: conceptRefSchema, dependent: conceptRefSchema }).strict(),
   z.object({ ...commonRelationSchema, kind: z.literal("process"), steps: z.array(conceptRefSchema).min(2) }).strict(),
   z.object({ ...commonRelationSchema, kind: z.literal("temporal-sequence"), steps: z.array(conceptRefSchema).min(2) }).strict(),
-  z.object({ ...commonRelationSchema, kind: z.literal("policy-response"), condition: conceptRefSchema, response: conceptRefSchema }).strict(),
+  z.object({
+    ...commonRelationSchema,
+    kind: z.literal("policy-response"),
+    condition: conceptRefSchema,
+    conditionAssertionStatus: z.enum(atomicAssertionStatusValuesV36).optional(),
+    response: conceptRefSchema,
+    responseAssertionStatus: z.enum(atomicAssertionStatusValuesV36).optional(),
+  }).strict(),
   z.object({ ...commonRelationSchema, kind: z.literal("evidence-set"), subject: conceptRefSchema.optional(), evidence: z.array(conceptRefSchema).min(2) }).strict(),
 ]);
 
-export const explanatoryRelationArtifactSchemaV36 = z.object({
+const legacyExplanatoryRelationArtifactSchemaV36 = z.object({
+  schemaVersion: z.literal(HISTORY_EXPLANATORY_RELATIONS_LEGACY_SCHEMA_V36),
+  plannerVersion: labelSchema,
+  episodeId: identifierSchema,
+  relations: z.array(explanatoryRelationSchemaV36),
+}).strict().superRefine((artifact, context) => {
+  artifact.relations.forEach((relation, index) => {
+    if (relation.kind === "policy-response" &&
+      (relation.conditionAssertionStatus !== undefined || relation.responseAssertionStatus !== undefined)) {
+      context.addIssue({
+        code: "custom",
+        message: "V2 relation artifacts cannot contain policy-response modality fields.",
+        path: ["relations", index],
+      });
+    }
+  });
+});
+
+const currentExplanatoryRelationArtifactSchemaV36 = z.object({
   schemaVersion: z.literal(HISTORY_EXPLANATORY_RELATIONS_SCHEMA_V36),
   plannerVersion: labelSchema,
   episodeId: identifierSchema,
   relations: z.array(explanatoryRelationSchemaV36),
 }).strict();
+
+export const explanatoryRelationArtifactSchemaV36 = z.union([
+  legacyExplanatoryRelationArtifactSchemaV36,
+  currentExplanatoryRelationArtifactSchemaV36,
+]);
 
 /**
  * Machine-enforcing Draft 2020-12 JSON Schema generated by Zod from the
@@ -420,10 +504,25 @@ export const relationContractDocumentV36 = {
     dependency: { required: ["dependency", "dependent"], participantTypes: { dependency: "ConceptRefV36", dependent: "ConceptRefV36" }, cardinality: "two distinct concepts", direction: "dependency -> dependent; dependent depends on dependency", semanticIdentityInputs: ["episodeId", "kind", "dependency", "dependent"] },
     process: { required: ["steps"], participantTypes: { steps: "ConceptRefV36[]" }, cardinality: "at least two steps; adjacent steps must differ", ordering: "ordered", direction: "first step -> later steps", semanticIdentityInputs: ["episodeId", "kind", "ordered steps[]"] },
     "temporal-sequence": { required: ["steps"], participantTypes: { steps: "ConceptRefV36[]" }, cardinality: "at least two steps; adjacent steps must differ", ordering: "ordered", direction: "earlier step -> later step", semanticIdentityInputs: ["episodeId", "kind", "ordered steps[]"] },
-    "policy-response": { required: ["condition", "response"], participantTypes: { condition: "ConceptRefV36", response: "ConceptRefV36" }, cardinality: "two distinct concepts", direction: "condition -> response", semanticIdentityInputs: ["episodeId", "kind", "condition", "response"] },
+    "policy-response": {
+      required: ["condition", "response"],
+      optional: ["conditionAssertionStatus", "responseAssertionStatus"],
+      participantTypes: { condition: "ConceptRefV36", response: "ConceptRefV36" },
+      modalityTypes: { conditionAssertionStatus: "AtomicAssertionStatusV36", responseAssertionStatus: "AtomicAssertionStatusV36" },
+      legacyMissingModality: "asserted condition and asserted response; proven by V2 asserted-only projection guards",
+      cardinality: "two distinct concepts",
+      direction: "condition -> response; each assertion status is attached to its named side",
+      semanticIdentityInputs: ["episodeId", "kind", "condition", "response", "non-default conditionAssertionStatus", "non-default responseAssertionStatus"],
+    },
     "evidence-set": { required: ["evidence"], optional: ["subject"], participantTypes: { subject: "ConceptRefV36", evidence: "ConceptRefV36[]" }, cardinality: "at least two distinct evidence members", ordering: "evidence is an unordered semantic set, not a presentation list", direction: "subject <- evidence set when subject is present", semanticIdentityInputs: ["episodeId", "kind", "optional subject", "canonical unordered evidence set"] },
   },
   runtimeValidationInvariants: ["episode-local support", "canonical entity resolution", "proper-name atomicity", "exact grounded proposition", "direction support", "kind-specific cardinality", "semantic ID match", "evidence fingerprint match", "semantic duplicate detection"],
+  backwardCompatibility: {
+    acceptedArtifactVersions: [HISTORY_EXPLANATORY_RELATIONS_LEGACY_SCHEMA_V36, HISTORY_EXPLANATORY_RELATIONS_SCHEMA_V36],
+    legacyPolicyResponseInterpretation: "Missing modality always means asserted/asserted in every code path.",
+    legacySemanticIds: "Unchanged; explicit asserted/asserted canonicalizes to the V2 identity payload.",
+    evidenceFingerprints: "Unchanged; premise modality never enters provenance fingerprint inputs.",
+  },
 } as const;
 
 export function parseExplanatoryRelationArtifactV36(input: unknown): ExplanatoryRelationArtifactV36 {

@@ -133,7 +133,7 @@ describe("History V3.6 invariant and determinism contracts", () => {
   });
 
   it("exports field-level relation contracts from the runtime contract source", () => {
-    expect(relationContractDocumentV36.schemaVersion).toBe("history-explanatory-relations.v2");
+    expect(relationContractDocumentV36.schemaVersion).toBe("history-explanatory-relations.v3");
     expect(Object.keys(relationContractDocumentV36.relationKinds)).toHaveLength(9);
     expect(relationContractDocumentV36.identity.semanticRelationId.excludes).toContain("supportClaimIds");
     expect(relationContractDocumentV36.relationKinds.dependency.direction).toBe(

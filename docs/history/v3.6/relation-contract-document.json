@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "History V3.6 explanatory relation IR",
-  "schemaVersion": "history-explanatory-relations.v2",
+  "schemaVersion": "history-explanatory-relations.v3",
   "generatedFrom": "packages/history/src/v36/explanatory-relation-v36.ts#relationContractDocumentV36",
   "identity": {
     "semanticRelationId": {
@@ -163,17 +163,28 @@
         "condition",
         "response"
       ],
+      "optional": [
+        "conditionAssertionStatus",
+        "responseAssertionStatus"
+      ],
       "participantTypes": {
         "condition": "ConceptRefV36",
         "response": "ConceptRefV36"
       },
+      "modalityTypes": {
+        "conditionAssertionStatus": "AtomicAssertionStatusV36",
+        "responseAssertionStatus": "AtomicAssertionStatusV36"
+      },
+      "legacyMissingModality": "asserted condition and asserted response; proven by V2 asserted-only projection guards",
       "cardinality": "two distinct concepts",
-      "direction": "condition -> response",
+      "direction": "condition -> response; each assertion status is attached to its named side",
       "semanticIdentityInputs": [
         "episodeId",
         "kind",
         "condition",
-        "response"
+        "response",
+        "non-default conditionAssertionStatus",
+        "non-default responseAssertionStatus"
       ]
     },
     "evidence-set": {
@@ -208,5 +219,14 @@
     "semantic ID match",
     "evidence fingerprint match",
     "semantic duplicate detection"
-  ]
+  ],
+  "backwardCompatibility": {
+    "acceptedArtifactVersions": [
+      "history-explanatory-relations.v2",
+      "history-explanatory-relations.v3"
+    ],
+    "legacyPolicyResponseInterpretation": "Missing modality always means asserted/asserted in every code path.",
+    "legacySemanticIds": "Unchanged; explicit asserted/asserted canonicalizes to the V2 identity payload.",
+    "evidenceFingerprints": "Unchanged; premise modality never enters provenance fingerprint inputs."
+  }
 }

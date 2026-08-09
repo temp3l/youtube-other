@@ -2,6 +2,7 @@ import {
   conceptRefKeyV36,
   explanatoryRelationIdV36,
   placeRefKeyV36,
+  policyResponseAssertionSemanticsV36,
   relationEvidenceFingerprintV36,
   type ConceptRefV36,
   type ExplanatoryRelationV36,
@@ -18,6 +19,7 @@ export type RelationDiagnosticCodeV36 =
   | "RELATION_CARDINALITY_INVALID"
   | "RELATION_PROPOSITION_UNSUPPORTED"
   | "RELATION_TYPE_MISMATCH"
+  | "RELATION_MODALITY_UNSUPPORTED"
   | "RELATION_DIRECTION_UNSUPPORTED"
   | "RELATION_PROPER_NAME_FRAGMENTATION"
   | "RELATION_DUPLICATE_SEMANTIC_IDENTITY"
@@ -97,7 +99,19 @@ function semanticParticipantPayload(relation: RelationSemanticsV36): Readonly<Re
     case "dependency": return { dependency: conceptRefKeyV36(relation.dependency), dependent: conceptRefKeyV36(relation.dependent) };
     case "process":
     case "temporal-sequence": return { steps: relation.steps.map(conceptRefKeyV36) };
-    case "policy-response": return { condition: conceptRefKeyV36(relation.condition), response: conceptRefKeyV36(relation.response) };
+    case "policy-response": {
+      const assertion = policyResponseAssertionSemanticsV36(relation);
+      return {
+        condition: conceptRefKeyV36(relation.condition),
+        response: conceptRefKeyV36(relation.response),
+        ...(assertion.conditionAssertionStatus === "asserted" && assertion.responseAssertionStatus === "asserted"
+          ? {}
+          : {
+              conditionAssertionStatus: assertion.conditionAssertionStatus,
+              responseAssertionStatus: assertion.responseAssertionStatus,
+            }),
+      };
+    }
     case "evidence-set": return {
       ...(relation.subject ? { subject: conceptRefKeyV36(relation.subject) } : {}),
       evidence: [...new Set(relation.evidence.map(conceptRefKeyV36))].sort(),
@@ -241,6 +255,13 @@ export const explanatoryRelationValidatorV36: ExplanatoryRelationValidatorV36 = 
         continue;
       }
       if (claim.groundedPropositions.some((proposition) => JSON.stringify(propositionParticipantKeys(proposition)) === JSON.stringify(relationParticipantKeys(relation)))) {
+        if (relation.kind === "policy-response" && claim.groundedPropositions.some((proposition) =>
+          proposition.kind === "policy-response" &&
+          conceptRefKeyV36(proposition.condition) === conceptRefKeyV36(relation.condition) &&
+          conceptRefKeyV36(proposition.response) === conceptRefKeyV36(relation.response))) {
+          diagnostics.push(diagnostic(relation, "RELATION_MODALITY_UNSUPPORTED", "Support claim does not establish the exact condition/response premise modalities.", [claim.id]));
+          continue;
+        }
         diagnostics.push(diagnostic(relation, "RELATION_TYPE_MISMATCH", "Support claim grounds these participants under a different relation type.", [claim.id]));
         continue;
       }

@@ -27,7 +27,7 @@ The per-kind identity rules are deliberately not a generic participant serialize
 - Causal: ordered `cause -> effect`.
 - Dependency: ordered `dependency -> dependent`; the dependent depends on the dependency.
 - Process and temporal sequence: ordered `steps[]`.
-- Policy response: ordered `condition -> response`.
+- Policy response: ordered `condition -> response`; V3 may attach canonical assertion status independently to each named premise.
 - Evidence set: optional subject plus a canonical unordered set of evidence members. `evidence[]` is not a presentation order.
 
 Invalid cardinality is rejected before a final semantic ID is computed. Direction and order are retained wherever they change meaning.
@@ -66,7 +66,7 @@ Process identity uses only the supported ordered steps. A synthetic process-cont
 
 ## Contract and provenance versioning
 
-The hardened persisted relation contract is `history-explanatory-relations.v2`. V1 review artifacts must not be treated as V2 records because V1 overloaded semantic identity with evidence provenance. `explanatoryRelationSchemaV36` is the authoritative Zod runtime validator; `relation-schema.json` is machine-enforcing Draft 2020-12 JSON Schema generated directly from it with Zod's native JSON-Schema exporter. `relation-contract-document.json` is supplemental field-level review documentation generated alongside it.
+The hardened persisted relation contract is `history-explanatory-relations.v3`. V3 adds optional policy-response `conditionAssertionStatus` and `responseAssertionStatus` fields. Missing fields retain the V2 asserted/asserted meaning, V2 artifacts remain parseable, and explicit non-default modality enters semantic identity without entering evidence fingerprints. V1 review artifacts must not be treated as V2/V3 records because V1 overloaded semantic identity with evidence provenance. `explanatoryRelationSchemaV36` is the authoritative Zod runtime validator; `relation-schema.json` is machine-enforcing Draft 2020-12 JSON Schema generated directly from it with Zod's native JSON-Schema exporter. `relation-contract-document.json` is supplemental field-level review documentation generated alongside it.
 
 The atomic grounding contract is independently versioned as `history-atomic-claim-grounding.v2`. `atomicGroundingArtifactSchemaV36` is authoritative; `atomic-grounding-schema.json` and `atomic-grounding-contract-document.json` are generated mechanically from the same module. V2 adds direct `process-sequence` and `precedes` projection plus native structured-proposition lineage; it does not add relation inference.
 
