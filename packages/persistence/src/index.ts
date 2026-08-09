@@ -18,6 +18,7 @@ export * from "./postgres-webhook-signing-secret-repository.js";
 export * from "./postgres-content-reuse-repository.js";
 export * from "./postgres-content-lifecycle-repository.js";
 export * from "./postgres-review-repository.js";
+export * from "./postgres-localization-derivative-repository.js";
 export * from "./postgres-usage-audit-repository.js";
 export * from "./postgres-principal-directory.js";
 export * from "./postgres-pilot-api-key-repository.js";

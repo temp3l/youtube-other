@@ -4,6 +4,7 @@ export type OpenApiPathOwner =
   | "workflow"
   | "artifact"
   | "review"
+  | "localization"
   | "publication"
   | "speech"
   | "developer"

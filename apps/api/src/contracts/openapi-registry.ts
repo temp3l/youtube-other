@@ -4,6 +4,7 @@ import { artifactReviewPublicationOpenApiPaths } from "./modules/artifact-review
 import { contentOpenApiPaths } from "./modules/content-paths.js";
 import { developerCredentialOpenApiPaths } from "./modules/developer-credential-paths.js";
 import { lifecycleOpenApiPaths } from "./modules/lifecycle-paths.js";
+import { localizationOpenApiPaths } from "./modules/localization-paths.js";
 import { reviewOpenApiPaths } from "./modules/review-paths.js";
 import { webhookOpenApiPaths } from "./modules/webhook-paths.js";
 import { platformOpenApiPaths } from "./modules/platform-paths.js";
@@ -32,6 +33,7 @@ export const OPENAPI_PATH_MODULES: readonly OpenApiPathModule[] = [
     paths: artifactReviewPublicationOpenApiPaths,
   },
   { id: "review", owner: "review", paths: reviewOpenApiPaths },
+  { id: "localization", owner: "localization", paths: localizationOpenApiPaths },
   { id: "speech", owner: "speech", paths: speechOpenApiPaths },
 ];
 
@@ -43,6 +45,7 @@ export const OPENAPI_MODULE_OWNERSHIP: Readonly<
   workflow: ["YSAAS-005", "YSAAS-007"],
   artifact: ["YSAAS-006", "YSAAS-013"],
   review: ["YSAAS-007"],
+  localization: ["YSAAS-008"],
   publication: ["YSAAS-013", "YSAAS-014"],
   speech: ["YSAAS-010"],
   developer: ["YSAAS-011", "YSAAS-012"],

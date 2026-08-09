@@ -673,6 +673,43 @@ export interface ApiUseCases {
       Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal" | "requestId">
     >
   ): Promise<unknown>;
+  listLocalizationDerivatives(
+    rootEpisodeId: string,
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal" | "requestId">
+    >
+  ): Promise<{ readonly items: readonly unknown[] }>;
+  evaluateLocalizationPreflight(
+    rootEpisodeId: string,
+    body: unknown,
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal" | "requestId">
+    >
+  ): Promise<unknown>;
+  createLocalizationDerivative(
+    rootEpisodeId: string,
+    body: unknown,
+    context: Required<
+      Pick<
+        ApiRequestContext,
+        "workspaceId" | "projectId" | "principal" | "requestId" | "idempotencyKey"
+      >
+    >
+  ): Promise<unknown>;
+  compareLocalizationDerivative(
+    rootEpisodeId: string,
+    derivativeId: string,
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal" | "requestId">
+    >
+  ): Promise<unknown>;
+  retryLocalizationDerivative(
+    rootEpisodeId: string,
+    derivativeId: string,
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal" | "requestId">
+    >
+  ): Promise<unknown>;
 }
 
 /** Application boundary for all speech entry points. Provider adapters are never HTTP dependencies. */
@@ -1121,6 +1158,9 @@ function route(pathname: string): {
   readonly approvalChallengeAction?: "claim";
   readonly approvalAction?: "revoke";
   readonly episodeAction?: "clone" | "archive" | "restore" | "delete";
+  readonly localizationDerivative?: string;
+  readonly localizationDerivativeAction?: "compare" | "retry";
+  readonly episodeLocalizationPreflight?: boolean;
   readonly tail?: string;
 } | null {
   const parts = pathname.split("/").filter(Boolean).map(decodeURIComponent);
@@ -1139,6 +1179,9 @@ function route(pathname: string): {
     approvalChallengeAction?: "claim";
     approvalAction?: "revoke";
     episodeAction?: "clone" | "archive" | "restore" | "delete";
+    localizationDerivative?: string;
+    localizationDerivativeAction?: "compare" | "retry";
+    episodeLocalizationPreflight?: boolean;
     tail?: string;
   } = { workspace: parts[2] };
   if (parts[3] !== "projects") {
@@ -1186,6 +1229,28 @@ function route(pathname: string): {
         result.approvalAction = "revoke";
       }
     }
+  }
+  if (parts[5] === "episodes" && parts[6] && parts[7] === "localization-derivatives") {
+    result.episode = parts[6];
+    if (parts[8]) {
+      const compare = parts[8].match(/^(.+):compare$/u);
+      const retry = parts[8].match(/^(.+):retry$/u);
+      if (compare?.[1]) {
+        result.localizationDerivative = compare[1];
+        result.localizationDerivativeAction = "compare";
+      } else if (retry?.[1]) {
+        result.localizationDerivative = retry[1];
+        result.localizationDerivativeAction = "retry";
+      }
+    }
+  }
+  if (
+    parts[5] === "episodes" &&
+    parts[6] &&
+    parts[7] === "localization-derivatives:preflight"
+  ) {
+    result.episode = parts[6];
+    result.episodeLocalizationPreflight = true;
   }
   if (parts[5] === "approval-challenges" && parts[6]) {
     const claim = parts[6].match(/^(.+):claim$/u);
@@ -1489,6 +1554,44 @@ function requiredPermission(
     matched.tail === `approvals/${matched.approval}:revoke`
   )
     return "approval.decide";
+  if (
+    method === "GET" &&
+    matched.episode &&
+    matched.localizationDerivative &&
+    matched.localizationDerivativeAction === "compare" &&
+    matched.tail ===
+      `episodes/${matched.episode}/localization-derivatives/${matched.localizationDerivative}:compare`
+  )
+    return "content.read";
+  if (
+    method === "POST" &&
+    matched.episode &&
+    matched.localizationDerivative &&
+    matched.localizationDerivativeAction === "retry" &&
+    matched.tail ===
+      `episodes/${matched.episode}/localization-derivatives/${matched.localizationDerivative}:retry`
+  )
+    return "content.write";
+  if (
+    method === "GET" &&
+    matched.episode &&
+    matched.tail === `episodes/${matched.episode}/localization-derivatives`
+  )
+    return "content.read";
+  if (
+    method === "POST" &&
+    matched.episode &&
+    matched.episodeLocalizationPreflight &&
+    matched.tail ===
+      `episodes/${matched.episode}/localization-derivatives:preflight`
+  )
+    return "content.read";
+  if (
+    method === "POST" &&
+    matched.episode &&
+    matched.tail === `episodes/${matched.episode}/localization-derivatives`
+  )
+    return "content.write";
   return null;
 }
 
@@ -2685,6 +2788,80 @@ export function createApiServer(
           ...(replayed ? { "idempotency-replayed": "true" } : {}),
           "x-request-id": requestIdValue,
         });
+      }
+      if (
+        request.method === "GET" &&
+        matched.episode &&
+        matched.tail === `episodes/${matched.episode}/localization-derivatives`
+      ) {
+        const result = await useCases.listLocalizationDerivatives(
+          matched.episode,
+          projectContext
+        );
+        return json(response, 200, result, { "x-request-id": requestIdValue });
+      }
+      if (
+        request.method === "POST" &&
+        matched.episode &&
+        matched.episodeLocalizationPreflight &&
+        matched.tail ===
+          `episodes/${matched.episode}/localization-derivatives:preflight`
+      ) {
+        const result = await useCases.evaluateLocalizationPreflight(
+          matched.episode,
+          await body(request),
+          projectContext
+        );
+        return json(response, 200, result, { "x-request-id": requestIdValue });
+      }
+      if (
+        request.method === "POST" &&
+        matched.episode &&
+        matched.tail === `episodes/${matched.episode}/localization-derivatives`
+      ) {
+        const key = idempotencyKey(request);
+        if (!key)
+          throw new ApplicationError(
+            "precondition_required",
+            "Idempotency-Key is required.",
+            false
+          );
+        const result = await useCases.createLocalizationDerivative(
+          matched.episode,
+          await body(request),
+          { ...projectContext, idempotencyKey: key }
+        );
+        return json(response, 201, result, { "x-request-id": requestIdValue });
+      }
+      if (
+        request.method === "GET" &&
+        matched.episode &&
+        matched.localizationDerivative &&
+        matched.localizationDerivativeAction === "compare" &&
+        matched.tail ===
+          `episodes/${matched.episode}/localization-derivatives/${matched.localizationDerivative}:compare`
+      ) {
+        const result = await useCases.compareLocalizationDerivative(
+          matched.episode,
+          matched.localizationDerivative,
+          projectContext
+        );
+        return json(response, 200, result, { "x-request-id": requestIdValue });
+      }
+      if (
+        request.method === "POST" &&
+        matched.episode &&
+        matched.localizationDerivative &&
+        matched.localizationDerivativeAction === "retry" &&
+        matched.tail ===
+          `episodes/${matched.episode}/localization-derivatives/${matched.localizationDerivative}:retry`
+      ) {
+        const result = await useCases.retryLocalizationDerivative(
+          matched.episode,
+          matched.localizationDerivative,
+          projectContext
+        );
+        return json(response, 200, result, { "x-request-id": requestIdValue });
       }
       throw new ApplicationError("not_found", "Resource not found.", false);
     } catch (error) {

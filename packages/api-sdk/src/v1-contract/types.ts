@@ -19,6 +19,7 @@ export type SdkV1OperationOwner =
   | "workflow"
   | "artifact"
   | "review"
+  | "localization"
   | "publication"
   | "speech"
   | "developer"

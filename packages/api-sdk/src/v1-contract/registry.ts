@@ -4,6 +4,7 @@ import { contentSdkV1Operations } from "./modules/content-operations.js";
 import { developerCredentialSdkV1Operations } from "./modules/developer-credential-operations.js";
 import { lifecycleSdkV1Operations } from "./modules/lifecycle-operations.js";
 import { webhookSdkV1Operations } from "./modules/webhook-operations.js";
+import { localizationSdkV1Operations } from "./modules/localization-operations.js";
 import { platformSdkV1Operations } from "./modules/platform-operations.js";
 import { workflowSdkV1Operations } from "./modules/workflow-operations.js";
 import type { SdkV1OperationContract, SdkV1OperationModule } from "./types.js";
@@ -36,6 +37,11 @@ export const SDK_V1_OPERATION_MODULES: readonly SdkV1OperationModule[] = [
   },
   { id: "review", owner: "review", operations: reviewSdkV1Operations },
   {
+    id: "localization",
+    owner: "localization",
+    operations: localizationSdkV1Operations,
+  },
+  {
     id: "publication",
     owner: "publication",
     operations: publicationSdkV1Operations,
@@ -50,6 +56,7 @@ export const SDK_V1_OPERATION_OWNERSHIP: Readonly<
   workflow: ["YSAAS-005", "YSAAS-007"],
   artifact: ["YSAAS-006"],
   review: ["YSAAS-007"],
+  localization: ["YSAAS-008"],
   publication: ["YSAAS-013", "YSAAS-014"],
   speech: ["YSAAS-010"],
   developer: ["YSAAS-011", "YSAAS-012"],
