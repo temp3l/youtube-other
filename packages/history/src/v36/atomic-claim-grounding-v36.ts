@@ -99,6 +99,8 @@ export interface AtomicSourceSpanV36 {
 
 export interface AtomicGroundingProvenanceV36 {
   readonly sourceKind:
+    | "native-structured-proposition"
+    | "compatibility-structured-proposition"
     | "existing-structured-proposition"
     | "resolved-participants"
     | "bounded-deterministic-normalization";
@@ -170,6 +172,8 @@ export const atomicSourceSpanSchemaV36 = z.object({
 
 export const atomicGroundingProvenanceSchemaV36 = z.object({
   sourceKind: z.enum([
+    "native-structured-proposition",
+    "compatibility-structured-proposition",
     "existing-structured-proposition",
     "resolved-participants",
     "bounded-deterministic-normalization",

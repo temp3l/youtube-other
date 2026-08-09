@@ -22,6 +22,12 @@ import {
   type GroundedRelationPropositionV36,
   type PlaceRefV36,
 } from "./explanatory-relation-v36.js";
+import {
+  structuredClaimEnvelopeSchemaV36,
+  type StructuredClaimEnvelopeV36,
+  type StructuredParticipantV36,
+  type StructuredPropositionV36,
+} from "./structured-claim-v36.js";
 
 export interface AtomicGroundingClaimSourceV36 {
   readonly id: string;
@@ -47,6 +53,7 @@ export interface AtomicGroundingSourceV36 {
   readonly episodeId: string;
   readonly claims: readonly AtomicGroundingClaimSourceV36[];
   readonly entities: readonly AtomicGroundingEntitySourceV36[];
+  readonly structuredClaimEnvelopes?: readonly StructuredClaimEnvelopeV36[];
 }
 
 export interface AtomicGroundingMetricsV36 {
@@ -59,6 +66,7 @@ export interface AtomicGroundingMetricsV36 {
   readonly ambiguousPredicateCases: number;
   readonly assertionStatusCounts: Readonly<Record<string, number>>;
   readonly groundingRulesUsed: Readonly<Record<string, number>>;
+  readonly groundingPathsUsed: Readonly<Record<string, number>>;
   readonly coverageCounts: Readonly<Record<AtomicGroundingCoverageCategoryV36, number>>;
 }
 
@@ -436,7 +444,7 @@ function coverageFor(
 }
 
 /** Claim-local, deterministic grounding only. It never constructs a relation. */
-export function groundAtomicClaimsV36(source: AtomicGroundingSourceV36): AtomicGroundingResultV36 {
+export function groundAtomicClaimsFallbackV36(source: AtomicGroundingSourceV36): AtomicGroundingResultV36 {
   const records: AtomicClaimGroundingRecordV36[] = [];
   for (const claim of source.claims) {
     const diagnostics: AtomicGroundingDiagnosticV36[] = [];
@@ -484,6 +492,128 @@ export function groundAtomicClaimsV36(source: AtomicGroundingSourceV36): AtomicG
       ambiguousPredicateCases: diagnostics.filter((item) => item.code === "GROUNDING_PREDICATE_AMBIGUOUS").length,
       assertionStatusCounts: countValues(propositions.map((item) => item.assertionStatus)),
       groundingRulesUsed: countValues(propositions.map((item) => item.provenance.groundingRuleId)),
+      groundingPathsUsed: countValues(propositions.map((item) => item.provenance.sourceKind)),
+      coverageCounts,
+    },
+  };
+}
+
+function atomicParticipantFromStructured(participant: StructuredParticipantV36): AtomicConceptRefV36 {
+  return { id: participant.id, label: participant.label, kind: participant.kind } as AtomicConceptRefV36;
+}
+
+function atomicFromStructured(
+  envelope: StructuredClaimEnvelopeV36,
+  proposition: StructuredPropositionV36
+): AtomicPropositionV36 {
+  const qualifierKinds = new Set(["grouped-concept", "nested-entity", "location-context"]);
+  const qualifiers = proposition.qualifiers
+    ?.filter((qualifier) => qualifierKinds.has(qualifier.kind))
+    .map((qualifier): AtomicQualifierV36 => ({
+      kind: qualifier.kind as AtomicQualifierV36["kind"],
+      value: qualifier.value,
+      ...(qualifier.participantIds ? {
+        participantIds: qualifier.participantIds as NonNullable<AtomicQualifierV36["participantIds"]>,
+      } : {}),
+    }));
+  return createAtomicPropositionV36({
+    episodeId: envelope.episodeId,
+    claimId: envelope.claimId,
+    subject: atomicParticipantFromStructured(proposition.subject),
+    predicate: proposition.predicate,
+    ...(proposition.object ? { object: atomicParticipantFromStructured(proposition.object) } : {}),
+    ...(qualifiers?.length ? { qualifiers } : {}),
+    assertionStatus: proposition.assertionStatus,
+    sourceSpan: proposition.sourceSpan,
+    provenance: {
+      sourceKind: envelope.source.kind === "existing-structured-claim"
+        ? "native-structured-proposition"
+        : "compatibility-structured-proposition",
+      groundingRuleId: "explicit-structured-proposition-v1",
+      groundingSchemaVersion: HISTORY_ATOMIC_GROUNDING_SCHEMA_V36,
+      resolvedParticipantIds: proposition.provenance.participantBindingReferences as AtomicPropositionV36["provenance"]["resolvedParticipantIds"],
+    },
+  });
+}
+
+function structuredEnvelopeForClaim(
+  source: AtomicGroundingSourceV36,
+  claim: AtomicGroundingClaimSourceV36
+): StructuredClaimEnvelopeV36 | undefined {
+  const candidates = (source.structuredClaimEnvelopes ?? [])
+    .filter((envelope) => envelope.episodeId === source.episodeId && envelope.claimId === claim.id && envelope.propositions.length > 0)
+    .sort((left, right) => Number(right.source.kind === "existing-structured-claim") - Number(left.source.kind === "existing-structured-claim"));
+  return candidates[0];
+}
+
+/**
+ * V3.6 shadow priority: native envelope, compatibility envelope, frozen fallback.
+ * Every structured proposition is schema-validated and still normalized into the
+ * atomic IR before the unchanged relation validator can observe it.
+ */
+export function groundAtomicClaimsV36(source: AtomicGroundingSourceV36): AtomicGroundingResultV36 {
+  if (!source.structuredClaimEnvelopes?.length) return groundAtomicClaimsFallbackV36(source);
+  const fallback = groundAtomicClaimsFallbackV36(source);
+  const fallbackByClaim = new Map(fallback.claims.map((record) => [record.claimId, record]));
+  const records: AtomicClaimGroundingRecordV36[] = [];
+  for (const claim of source.claims) {
+    const envelope = structuredEnvelopeForClaim(source, claim);
+    if (!envelope) {
+      const record = fallbackByClaim.get(claimIdV36(claim.id));
+      if (!record) throw new Error(`Missing fallback grounding for claim ${claim.id}.`);
+      records.push(record);
+      continue;
+    }
+    const parsedEnvelope = structuredClaimEnvelopeSchemaV36.parse(envelope) as unknown as StructuredClaimEnvelopeV36;
+    const claimSpan = claim.narrationSpans[0];
+    const propositions = parsedEnvelope.propositions.map((proposition) => {
+      if (
+        parsedEnvelope.episodeId !== source.episodeId ||
+        parsedEnvelope.claimId !== claim.id ||
+        !claimSpan ||
+        proposition.sourceSpan.startUtf16 < claimSpan.startUtf16 ||
+        proposition.sourceSpan.endUtf16Exclusive > claimSpan.endUtf16Exclusive ||
+        !claim.normalizedProposition.includes(proposition.sourceSpan.text)
+      ) {
+        throw new Error(`Structured proposition ${proposition.propositionId} is outside canonical claim authority.`);
+      }
+      return atomicFromStructured(parsedEnvelope, proposition);
+    }).sort((left, right) => left.groundingId.localeCompare(right.groundingId));
+    records.push({
+      claimId: claimIdV36(claim.id),
+      coverage: parsedEnvelope.source.kind === "existing-structured-claim" ? "existing-grounding" : "new-deterministic-grounding",
+      propositions,
+      diagnostics: [],
+    });
+  }
+  const propositions = records.flatMap((record) => record.propositions);
+  const diagnostics = records.flatMap((record) => record.diagnostics);
+  const coverageValues = records.map((record) => record.coverage);
+  const coverageCounts = Object.fromEntries([
+    "existing-grounding",
+    "new-deterministic-grounding",
+    "insufficient-structure",
+    "unresolved-participant",
+    "not-explanatory",
+    "ambiguous",
+  ].map((category) => [category, coverageValues.filter((value) => value === category).length])) as Record<AtomicGroundingCoverageCategoryV36, number>;
+  return {
+    schemaVersion: HISTORY_ATOMIC_GROUNDING_SCHEMA_V36,
+    episodeId: source.episodeId,
+    claims: records,
+    propositions,
+    diagnostics,
+    metrics: {
+      claimsInspected: source.claims.length,
+      claimsWithExistingStructuredPropositions: records.filter((record) => record.coverage === "existing-grounding").length,
+      claimsNewlyGroundedDeterministically: records.filter((record) => record.coverage === "new-deterministic-grounding").length,
+      atomicPropositionsEmitted: propositions.length,
+      groundingRejects: diagnostics.length,
+      unresolvedParticipantCases: diagnostics.filter((item) => item.code === "GROUNDING_PARTICIPANT_UNRESOLVED").length,
+      ambiguousPredicateCases: diagnostics.filter((item) => item.code === "GROUNDING_PREDICATE_AMBIGUOUS").length,
+      assertionStatusCounts: countValues(propositions.map((item) => item.assertionStatus)),
+      groundingRulesUsed: countValues(propositions.map((item) => item.provenance.groundingRuleId)),
+      groundingPathsUsed: countValues(propositions.map((item) => item.provenance.sourceKind)),
       coverageCounts,
     },
   };

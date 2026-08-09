@@ -1,8 +1,13 @@
 import {
   groundAtomicClaimsV36,
+  groundAtomicClaimsFallbackV36,
   lowerAtomicGroundingEvidenceV36,
   type AtomicGroundingResultV36,
 } from "./atomic-claim-grounder-v36.js";
+import {
+  backfillStructuredClaimsV36,
+  type StructuredClaimEnrichmentResultV36,
+} from "./structured-claim-enricher-v36.js";
 import {
   claimIdV36,
   entityIdV36,
@@ -96,6 +101,7 @@ export interface RepresentativeShadowExtractionResultV36 {
   readonly episodeId: string;
   readonly claims: readonly RelationSupportClaimV36[];
   readonly entities: readonly ResolvedEntityV36[];
+  readonly structuredClaims: StructuredClaimEnrichmentResultV36;
   readonly grounding: AtomicGroundingResultV36;
   readonly extraction: ShadowRelationExtractionResultV36;
   readonly candidates: readonly ShadowCandidateRecordV36[];
@@ -287,8 +293,15 @@ function projectClaim(
 }
 
 /** Projects a persisted V3.5 structured-claim envelope without changing V3.5 semantics. */
-export function runRepresentativeShadowExtractionV36(source: RepresentativeShadowSourceV36): RepresentativeShadowExtractionResultV36 {
-  const grounding = groundAtomicClaimsV36(source);
+export function runRepresentativeShadowExtractionV36(
+  source: RepresentativeShadowSourceV36,
+  options: { readonly consumeStructuredClaims?: boolean } = {}
+): RepresentativeShadowExtractionResultV36 {
+  const frozenGrounding = groundAtomicClaimsFallbackV36(source);
+  const structuredClaims = backfillStructuredClaimsV36(source, frozenGrounding);
+  const grounding = options.consumeStructuredClaims === false
+    ? frozenGrounding
+    : groundAtomicClaimsV36({ ...source, structuredClaimEnvelopes: structuredClaims.envelopes });
   const projectedClaims: RelationSupportClaimV36[] = [];
   const projected: Array<{ claim: StructuredClaimSourceV36; draft: Draft; index: number }> = [];
   const candidates: ShadowCandidateRecordV36[] = [];
@@ -333,5 +346,5 @@ export function runRepresentativeShadowExtractionV36(source: RepresentativeShado
       diagnostics: rejectedCandidate?.diagnostics ?? (rejectedCandidate ? [{ code: "SHADOW_RELATION_PROPOSITION_AMBIGUOUS", message: rejectedCandidate.reason, affectedIds: [] }] : []),
     });
   }
-  return { mode: "v36-shadow", episodeId: source.episodeId, claims: projectedClaims, entities, grounding, extraction, candidates: candidates.sort((left, right) => left.id.localeCompare(right.id)) };
+  return { mode: "v36-shadow", episodeId: source.episodeId, claims: projectedClaims, entities, structuredClaims, grounding, extraction, candidates: candidates.sort((left, right) => left.id.localeCompare(right.id)) };
 }
