@@ -68,6 +68,6 @@ Notes: Webhook endpoint CRUD, show-once secret create/rotate with overlap, test 
 
 ### YSAAS-015
 Status: completed
-Commit: pending
+Commit: e43ebf7
 Validation: `content-reuse-lifecycle.unit.test.ts` pass (6); `postgres-content-reuse-repository.unit.test.ts` pass (1); domain/persistence/api-sdk emit pass; `apps/api` typecheck pass excluding pre-existing `job-process` / `provider-free-worker-entry` migrate errors
 Notes: Clone episode with idempotency and asset policy filtering; production template CRUD/versioning with pinned apply bindings; reusable asset search and immutable asset reference attach; lifecycle OpenAPI/SDK module; persistence tables for templates, bindings, references, clone idempotency
