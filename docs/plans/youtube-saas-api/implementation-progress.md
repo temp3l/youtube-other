@@ -74,6 +74,6 @@ Notes: Clone episode with idempotency and asset policy filtering; production tem
 
 ### YSAAS-016
 Status: completed
-Commit: pending
+Commit: 0eef7b9
 Validation: `content-lifecycle.unit.test.ts` pass (7); `postgres-content-lifecycle-repository.unit.test.ts` pass (1); domain/persistence/api-sdk emit pass; `apps/api` typecheck pass excluding pre-existing `job-process` / `provider-free-worker-entry` migrate errors
 Notes: Episode archive/restore/tombstone deletion with retention fail-closed evaluation; workspace retention policy read (unresolved when unconfigured); episode list visibility filter; lifecycle OpenAPI/SDK routes; persistence for lifecycle state, retention policy, deletion idempotency
