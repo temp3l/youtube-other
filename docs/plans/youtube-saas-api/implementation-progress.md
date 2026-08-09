@@ -62,6 +62,6 @@ Notes: Named credential lifecycle, show-once issue with idempotency replay, revo
 
 ### YSAAS-012
 Status: completed
-Commit: pending
+Commit: 2c96364
 Validation: `webhook-lifecycle.unit.test.ts` pass (4); domain/persistence/application/api-sdk emit pass; `apps/api` typecheck pass excluding pre-existing `job-process` / `provider-free-worker-entry` migrate errors
 Notes: Webhook endpoint CRUD, show-once secret create/rotate with overlap, test delivery, delivery history with redacted summaries, attempt listing, resend replay; encrypted signing-secret store; OpenAPI/SDK webhook module; `webhook.manage` permission
