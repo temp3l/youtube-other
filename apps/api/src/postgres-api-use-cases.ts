@@ -36,6 +36,7 @@ import {
 } from "./contract.js";
 import { createApiWorkflowAdmissionUseCase } from "./http-server.js";
 import { createApiCredentialUseCases } from "./postgres-api-credential-use-cases.js";
+import { createApiContentLifecycleUseCases } from "./postgres-api-content-lifecycle-use-cases.js";
 import { createApiContentReuseUseCases } from "./postgres-api-content-reuse-use-cases.js";
 import { createApiWebhookUseCases } from "./postgres-api-webhook-use-cases.js";
 
@@ -275,6 +276,11 @@ export function createPostgresApiUseCases(input: {
     now,
     createId,
   });
+  const contentLifecycleUseCases = createApiContentLifecycleUseCases({
+    pool: input.pool,
+    evaluationSecret: input.cursorSecret,
+    now,
+  });
 
   return {
     listProjects: async (after, size, context) => {
@@ -461,16 +467,29 @@ export function createPostgresApiUseCases(input: {
         return translatePersistence(error);
       }
     },
-    listEpisodes: async (after, size, context) => {
+    listEpisodes: async (after, size, filters, context) => {
       const cursor = decodeReadCursor(after, { workspaceId: context.workspaceId, projectId: context.projectId, collection: "episodes" }, input.cursorSecret);
+      const visibilityFilter = filters.visibility ?? "active";
+      const visibilityMap = await contentLifecycleUseCases.listEpisodeVisibilityMap(
+        context.workspaceId,
+        context.projectId,
+        visibilityFilter === "all" ? "all" : visibilityFilter
+      );
       const records = await repository.withWorkspaceTransaction(context.workspaceId, (transaction) => transaction.listEpisodes({
         workspaceId: context.workspaceId, projectId: context.projectId,
         ...(cursor ? { after: { createdAt: cursor.createdAt!, episodeId: cursor.id } } : {}), size: size + 1,
       }));
-      const page = records.slice(0, size); const last = page.at(-1);
+      const filtered = records.filter((record) => {
+        const visibility = visibilityMap[record.episodeId] ?? "active";
+        if (visibility === "tombstoned") return false;
+        if (visibilityFilter === "archived") return visibility === "archived";
+        if (visibilityFilter === "all") return true;
+        return visibility === "active";
+      });
+      const page = filtered.slice(0, size); const last = page.at(-1);
       return {
         items: page.map((record) => ({ id: record.episodeId, revision: record.revision, content: record.content, createdAt: record.createdAt, updatedAt: record.updatedAt })),
-        ...(records.length > size && last ? { nextAfter: encodeReadCursor({ workspaceId: context.workspaceId, projectId: context.projectId, collection: "episodes", createdAt: last.createdAt, id: last.episodeId }, input.cursorSecret) } : {}),
+        ...(filtered.length > size && last ? { nextAfter: encodeReadCursor({ workspaceId: context.workspaceId, projectId: context.projectId, collection: "episodes", createdAt: last.createdAt, id: last.episodeId }, input.cursorSecret) } : {}),
       };
     },
     createEpisode: async (episode, context) => {
@@ -995,5 +1014,6 @@ export function createPostgresApiUseCases(input: {
     getDeveloperJourneyExamples,
     ...webhookUseCases,
     ...contentReuseUseCases,
+    ...contentLifecycleUseCases,
   };
 }

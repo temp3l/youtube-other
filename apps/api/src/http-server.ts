@@ -18,6 +18,14 @@ import {
   developerJourneyExamplesSchema,
   episodeAssetReferenceAttachInputSchema,
   episodeAssetReferenceAttachResultSchema,
+  episodeArchiveInputSchema,
+  episodeContentLifecycleRecordSchema,
+  episodeDeletionEvaluationSchema,
+  episodeDeletionInputSchema,
+  episodeDeletionResultSchema,
+  episodeRestoreInputSchema,
+  lifecycleTransitionResultSchema,
+  retentionPolicyRecordSchema,
   episodeCloneInputSchema,
   episodeCloneResultSchema,
   productionTemplateApplyInputSchema,
@@ -359,9 +367,45 @@ export interface ApiUseCases {
     input: ProjectInput,
     context: ApiRequestContext
   ): Promise<{ readonly id: string; readonly revision: number }>;
+  getEpisodeContentLifecycle(
+    episodeId: string,
+    context: Required<Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal">>
+  ): Promise<Record<string, unknown>>;
+  getRetentionPolicy(
+    context: Required<Pick<ApiRequestContext, "workspaceId" | "principal">>
+  ): Promise<Record<string, unknown>>;
+  archiveEpisode(
+    episodeId: string,
+    body: unknown,
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal" | "ifMatch">
+    >
+  ): Promise<Record<string, unknown>>;
+  restoreEpisode(
+    episodeId: string,
+    body: unknown,
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal" | "ifMatch">
+    >
+  ): Promise<Record<string, unknown>>;
+  evaluateEpisodeDeletion(
+    episodeId: string,
+    context: Required<Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal">>
+  ): Promise<Record<string, unknown>>;
+  deleteEpisode(
+    episodeId: string,
+    body: unknown,
+    context: Required<
+      Pick<
+        ApiRequestContext,
+        "workspaceId" | "projectId" | "principal" | "idempotencyKey"
+      >
+    >
+  ): Promise<Record<string, unknown>>;
   listEpisodes(
     after: string | undefined,
     size: number,
+    filters: { readonly visibility?: "active" | "archived" | "all" },
     context: Required<Pick<ApiRequestContext, "workspaceId" | "projectId" | "requestId">>
   ): Promise<{ readonly items: readonly { readonly id: string; readonly revision: number; readonly content: unknown; readonly createdAt: string; readonly updatedAt: string }[]; readonly nextAfter?: string }>;
   createEpisode(
@@ -1036,7 +1080,7 @@ function route(pathname: string): {
   readonly approval?: string;
   readonly approvalChallenge?: string;
   readonly approvalAction?: "revoke";
-  readonly episodeAction?: "clone";
+  readonly episodeAction?: "clone" | "archive" | "restore" | "delete";
   readonly tail?: string;
 } | null {
   const parts = pathname.split("/").filter(Boolean).map(decodeURIComponent);
@@ -1053,7 +1097,7 @@ function route(pathname: string): {
     approval?: string;
     approvalChallenge?: string;
     approvalAction?: "revoke";
-    episodeAction?: "clone";
+    episodeAction?: "clone" | "archive" | "restore" | "delete";
     tail?: string;
   } = { workspace: parts[2] };
   if (parts[3] !== "projects") {
@@ -1067,10 +1111,14 @@ function route(pathname: string): {
   result.project = parts[4];
   result.tail = parts.slice(5).join("/");
   if (parts[5] === "episodes" && parts[6]) {
-    const cloneAction = parts[6].match(/^(.+):clone$/u);
-    if (cloneAction?.[1]) {
-      result.episode = cloneAction[1];
-      result.episodeAction = "clone";
+    const episodeAction = parts[6].match(/^(.+):(clone|archive|restore|delete)$/u);
+    if (episodeAction?.[1] && episodeAction[2]) {
+      result.episode = episodeAction[1];
+      result.episodeAction = episodeAction[2] as
+        | "clone"
+        | "archive"
+        | "restore"
+        | "delete";
     } else {
       result.episode = parts[6];
     }
@@ -1230,6 +1278,36 @@ function requiredPermission(
     /^production-templates\/[^/]+$/u.test(matched.tail ?? "")
   )
     return "content.write";
+  if (
+    method === "GET" &&
+    !matched.project &&
+    matched.tail === "retention-policy"
+  )
+    return "workspace.admin";
+  if (
+    method === "POST" &&
+    matched.episode &&
+    matched.episodeAction === "delete"
+  )
+    return "workspace.admin";
+  if (
+    method === "POST" &&
+    matched.episode &&
+    matched.tail === `episodes/${matched.episode}/deletion:evaluate`
+  )
+    return "workspace.admin";
+  if (
+    method === "POST" &&
+    matched.episode &&
+    (matched.episodeAction === "archive" || matched.episodeAction === "restore")
+  )
+    return "content.write";
+  if (
+    method === "GET" &&
+    matched.episode &&
+    matched.tail === `episodes/${matched.episode}/content-lifecycle`
+  )
+    return "content.read";
   if (method === "GET" && matched.tail === "reusable-assets")
     return "content.read";
   if (
@@ -1967,9 +2045,15 @@ export function createApiServer(
         requestId: requestIdValue,
       };
       if (request.method === "GET" && matched.tail === "episodes") {
+        const visibility = url.searchParams.get("filter[visibility]");
         const result = await useCases.listEpisodes(
           url.searchParams.get("page[after]") ?? undefined,
           pageSize(url),
+          {
+            ...(visibility === "active" || visibility === "archived" || visibility === "all"
+              ? { visibility }
+              : {}),
+          },
           projectContext
         );
         return json(response, 200, result, { "x-request-id": requestIdValue });
@@ -1985,6 +2069,105 @@ export function createApiServer(
           { id: result.id, revision: result.revision },
           { etag: etag(result.revision), "x-request-id": requestIdValue }
         );
+      }
+      if (
+        request.method === "GET" &&
+        !matched.project &&
+        matched.tail === "retention-policy"
+      ) {
+        const result = retentionPolicyRecordSchema.parse(
+          await useCases.getRetentionPolicy(context)
+        );
+        return json(response, 200, result, { "x-request-id": requestIdValue });
+      }
+      if (
+        request.method === "GET" &&
+        matched.episode &&
+        matched.tail === `episodes/${matched.episode}/content-lifecycle`
+      ) {
+        const result = episodeContentLifecycleRecordSchema.parse(
+          await useCases.getEpisodeContentLifecycle(
+            matched.episode,
+            projectContext
+          )
+        );
+        return json(response, 200, result, {
+          etag: etag(result.revision),
+          "x-request-id": requestIdValue,
+        });
+      }
+      if (
+        request.method === "POST" &&
+        matched.episode &&
+        matched.episodeAction === "archive"
+      ) {
+        const match = strongIfMatch(request);
+        const result = lifecycleTransitionResultSchema.parse(
+          await useCases.archiveEpisode(
+            matched.episode,
+            episodeArchiveInputSchema.parse(await body(request)),
+            { ...projectContext, ifMatch: match }
+          )
+        );
+        return json(response, 200, result, {
+          etag: etag(result.lifecycle.revision),
+          "x-request-id": requestIdValue,
+        });
+      }
+      if (
+        request.method === "POST" &&
+        matched.episode &&
+        matched.episodeAction === "restore"
+      ) {
+        const match = strongIfMatch(request);
+        const result = lifecycleTransitionResultSchema.parse(
+          await useCases.restoreEpisode(
+            matched.episode,
+            episodeRestoreInputSchema.parse(await body(request)),
+            { ...projectContext, ifMatch: match }
+          )
+        );
+        return json(response, 200, result, {
+          etag: etag(result.lifecycle.revision),
+          "x-request-id": requestIdValue,
+        });
+      }
+      if (
+        request.method === "POST" &&
+        matched.episode &&
+        matched.tail === `episodes/${matched.episode}/deletion:evaluate`
+      ) {
+        const result = episodeDeletionEvaluationSchema.parse(
+          await useCases.evaluateEpisodeDeletion(
+            matched.episode,
+            projectContext
+          )
+        );
+        return json(response, 200, result, { "x-request-id": requestIdValue });
+      }
+      if (
+        request.method === "POST" &&
+        matched.episode &&
+        matched.episodeAction === "delete"
+      ) {
+        const key = idempotencyKey(request);
+        if (!key)
+          throw new ApplicationError(
+            "precondition_required",
+            "Idempotency-Key is required.",
+            false
+          );
+        const result = episodeDeletionResultSchema.parse(
+          await useCases.deleteEpisode(
+            matched.episode,
+            episodeDeletionInputSchema.parse(await body(request)),
+            { ...projectContext, idempotencyKey: key }
+          )
+        );
+        return json(response, 200, result, {
+          etag: etag(result.lifecycle.revision),
+          "x-request-id": requestIdValue,
+        });
       }
       if (
         request.method === "POST" &&

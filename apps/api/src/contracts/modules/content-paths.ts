@@ -29,7 +29,7 @@ export const contentOpenApiPaths = {
     "/v1/workspaces/{workspace}/projects/{project}/episodes": {
       get: {
         operationId: "listEpisodes", description: "Lists project episodes with a signed cursor. Requires `content.read`.",
-        parameters: [...projectParameters, parameter("PageSize"), parameter("PageAfter")],
+        parameters: [...projectParameters, parameter("PageSize"), parameter("PageAfter"), parameter("EpisodeVisibilityFilter")],
         responses: { "200": { description: "Episode page", headers: { "x-request-id": responseHeader("RequestId") }, content: json("EpisodePage") }, "400": response("BadRequest"), ...authenticatedErrors },
       },
       post: {

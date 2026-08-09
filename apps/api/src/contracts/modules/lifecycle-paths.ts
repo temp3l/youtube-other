@@ -218,4 +218,127 @@ export const lifecycleOpenApiPaths = {
       },
     },
   },
+
+  "/v1/workspaces/{workspace}/retention-policy": {
+    get: {
+      operationId: "getRetentionPolicy",
+      description:
+        "Returns the effective workspace retention policy or an unresolved status. Requires `workspace.admin`.",
+      parameters: workspaceParameters,
+      responses: {
+        "200": {
+          description: "Retention policy",
+          headers: { "x-request-id": responseHeader("RequestId") },
+          content: json("RetentionPolicyRecord"),
+        },
+        ...authenticatedErrors,
+      },
+    },
+  },
+  "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}/content-lifecycle": {
+    get: {
+      operationId: "getEpisodeContentLifecycle",
+      description: "Requires `content.read`.",
+      parameters: episodeParameters,
+      responses: {
+        "200": {
+          description: "Episode content lifecycle",
+          headers: {
+            ETag: responseHeader("ETag"),
+            "x-request-id": responseHeader("RequestId"),
+          },
+          content: json("EpisodeContentLifecycleRecord"),
+        },
+        ...authenticatedErrors,
+        "404": response("NotFound"),
+      },
+    },
+  },
+  "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}:archive": {
+    post: {
+      operationId: "archiveEpisode",
+      description: "Archives an episode without deleting lineage. Requires `content.write` and If-Match on lifecycle revision.",
+      parameters: [...episodeParameters, parameter("IfMatch")],
+      requestBody: { required: true, content: json("EpisodeArchiveInput") },
+      responses: {
+        "200": {
+          description: "Episode archived",
+          headers: {
+            ETag: responseHeader("ETag"),
+            "x-request-id": responseHeader("RequestId"),
+          },
+          content: json("LifecycleTransitionResult"),
+        },
+        "400": response("BadRequest"),
+        ...authenticatedErrors,
+        "404": response("NotFound"),
+        "412": response("PreconditionFailed"),
+        "428": response("PreconditionRequired"),
+      },
+    },
+  },
+  "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}:restore": {
+    post: {
+      operationId: "restoreEpisode",
+      description: "Restores an archived episode without starting workflow. Requires `content.write` and If-Match.",
+      parameters: [...episodeParameters, parameter("IfMatch")],
+      requestBody: { required: true, content: json("EpisodeRestoreInput") },
+      responses: {
+        "200": {
+          description: "Episode restored",
+          headers: {
+            ETag: responseHeader("ETag"),
+            "x-request-id": responseHeader("RequestId"),
+          },
+          content: json("LifecycleTransitionResult"),
+        },
+        "400": response("BadRequest"),
+        ...authenticatedErrors,
+        "404": response("NotFound"),
+        "412": response("PreconditionFailed"),
+        "428": response("PreconditionRequired"),
+      },
+    },
+  },
+  "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}/deletion:evaluate": {
+    post: {
+      operationId: "evaluateEpisodeDeletion",
+      description: "Evaluates tombstone deletion blockers and impacts. Requires `workspace.admin`.",
+      parameters: episodeParameters,
+      responses: {
+        "200": {
+          description: "Deletion evaluation",
+          headers: { "x-request-id": responseHeader("RequestId") },
+          content: json("EpisodeDeletionEvaluation"),
+        },
+        ...authenticatedErrors,
+        "404": response("NotFound"),
+      },
+    },
+  },
+  "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}:delete": {
+    post: {
+      operationId: "deleteEpisode",
+      description:
+        "Tombstones an episode after evaluation. Requires `workspace.admin`, idempotency key, and evaluation token.",
+      parameters: [...episodeParameters, parameter("IdempotencyKey")],
+      requestBody: { required: true, content: json("EpisodeDeletionInput") },
+      responses: {
+        "200": {
+          description: "Episode tombstoned",
+          headers: {
+            ETag: responseHeader("ETag"),
+            "x-request-id": responseHeader("RequestId"),
+          },
+          content: json("EpisodeDeletionResult"),
+        },
+        "400": response("BadRequest"),
+        ...authenticatedErrors,
+        "404": response("NotFound"),
+        "409": response("Conflict"),
+        "412": response("PreconditionFailed"),
+        "428": response("PreconditionRequired"),
+      },
+    },
+  },
 } as const;

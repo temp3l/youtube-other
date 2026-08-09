@@ -1,6 +1,6 @@
 # YSAAS implementation progress
 
-Current wave: Wave 2 in progress (YSAAS-015 complete; YSAAS-016 next)
+Current wave: Wave 2 in progress (YSAAS-016 complete; next wave task pending)
 
 ## Anti-stuck execution rules (session)
 
@@ -71,3 +71,9 @@ Status: completed
 Commit: e43ebf7
 Validation: `content-reuse-lifecycle.unit.test.ts` pass (6); `postgres-content-reuse-repository.unit.test.ts` pass (1); domain/persistence/api-sdk emit pass; `apps/api` typecheck pass excluding pre-existing `job-process` / `provider-free-worker-entry` migrate errors
 Notes: Clone episode with idempotency and asset policy filtering; production template CRUD/versioning with pinned apply bindings; reusable asset search and immutable asset reference attach; lifecycle OpenAPI/SDK module; persistence tables for templates, bindings, references, clone idempotency
+
+### YSAAS-016
+Status: completed
+Commit: pending
+Validation: `content-lifecycle.unit.test.ts` pass (7); `postgres-content-lifecycle-repository.unit.test.ts` pass (1); domain/persistence/api-sdk emit pass; `apps/api` typecheck pass excluding pre-existing `job-process` / `provider-free-worker-entry` migrate errors
+Notes: Episode archive/restore/tombstone deletion with retention fail-closed evaluation; workspace retention policy read (unresolved when unconfigured); episode list visibility filter; lifecycle OpenAPI/SDK routes; persistence for lifecycle state, retention policy, deletion idempotency

@@ -144,6 +144,15 @@ export const openApiComponents = {
         required: false,
         schema: { type: "string", minLength: 1, maxLength: 160 },
       },
+      EpisodeVisibilityFilter: {
+        name: "filter[visibility]",
+        in: "query",
+        required: false,
+        schema: {
+          type: "string",
+          enum: ["active", "archived", "all"],
+        },
+      },
       ApprovalId: {
         name: "approval",
         in: "path",
@@ -1312,6 +1321,152 @@ export const openApiComponents = {
         properties: {
           reference: schema("EpisodeAssetReferenceRecord"),
           replayed: { type: "boolean" },
+        },
+      },
+      EpisodeContentLifecycleRecord: {
+        type: "object",
+        additionalProperties: false,
+        required: [
+          "schemaVersion",
+          "workspaceId",
+          "projectId",
+          "episodeId",
+          "visibility",
+          "revision",
+          "updatedAt",
+        ],
+        properties: {
+          schemaVersion: {
+            type: "string",
+            enum: ["mediaforge.content-lifecycle.v1"],
+          },
+          workspaceId: schema("OpaqueId"),
+          projectId: schema("OpaqueId"),
+          episodeId: schema("OpaqueId"),
+          visibility: {
+            type: "string",
+            enum: ["active", "archived", "tombstoned"],
+          },
+          revision: schema("Revision"),
+          archiveReason: { type: "string", minLength: 1, maxLength: 500 },
+          archivedAt: schema("DateTime"),
+          tombstonedAt: schema("DateTime"),
+          updatedAt: schema("DateTime"),
+        },
+      },
+      EpisodeArchiveInput: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          reason: { type: "string", minLength: 1, maxLength: 500 },
+        },
+      },
+      EpisodeRestoreInput: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          reason: { type: "string", minLength: 1, maxLength: 500 },
+        },
+      },
+      LifecycleTransitionResult: {
+        type: "object",
+        additionalProperties: false,
+        required: ["lifecycle", "replayed", "startedWorkflow"],
+        properties: {
+          lifecycle: schema("EpisodeContentLifecycleRecord"),
+          replayed: { type: "boolean" },
+          startedWorkflow: { type: "boolean", enum: [false] },
+        },
+      },
+      DeletionBlocker: {
+        type: "object",
+        additionalProperties: false,
+        required: ["code", "message"],
+        properties: {
+          code: { type: "string", minLength: 1, maxLength: 80 },
+          message: { type: "string", minLength: 1, maxLength: 500 },
+        },
+      },
+      DeletionImpact: {
+        type: "object",
+        additionalProperties: false,
+        required: ["code", "message"],
+        properties: {
+          code: { type: "string", minLength: 1, maxLength: 80 },
+          message: { type: "string", minLength: 1, maxLength: 500 },
+        },
+      },
+      EpisodeDeletionEvaluation: {
+        type: "object",
+        additionalProperties: false,
+        required: ["allowed", "blockers", "impacts", "evaluationToken"],
+        properties: {
+          allowed: { type: "boolean" },
+          blockers: { type: "array", items: schema("DeletionBlocker") },
+          impacts: { type: "array", items: schema("DeletionImpact") },
+          evaluationToken: { type: "string", minLength: 1, maxLength: 512 },
+        },
+      },
+      EpisodeDeletionInput: {
+        type: "object",
+        additionalProperties: false,
+        required: ["evaluationToken", "confirmation"],
+        properties: {
+          evaluationToken: { type: "string", minLength: 1, maxLength: 512 },
+          confirmation: { type: "string", minLength: 1, maxLength: 160 },
+        },
+      },
+      EpisodeDeletionResult: {
+        type: "object",
+        additionalProperties: false,
+        required: ["lifecycle", "tombstoned", "replayed"],
+        properties: {
+          lifecycle: schema("EpisodeContentLifecycleRecord"),
+          tombstoned: { type: "boolean", enum: [true] },
+          replayed: { type: "boolean" },
+        },
+      },
+      RetentionCategoryPolicy: {
+        type: "object",
+        additionalProperties: false,
+        required: ["category", "hold"],
+        properties: {
+          category: {
+            type: "string",
+            enum: ["artifact", "workflow", "log", "approval", "source_media"],
+          },
+          retentionDays: { type: "integer", minimum: 1 },
+          hold: { type: "string", enum: ["none", "legal_hold"] },
+        },
+      },
+      RetentionPolicyRecord: {
+        type: "object",
+        additionalProperties: false,
+        required: [
+          "schemaVersion",
+          "workspaceId",
+          "status",
+          "revision",
+          "categories",
+          "inheritedFromPlatform",
+        ],
+        properties: {
+          schemaVersion: {
+            type: "string",
+            enum: ["mediaforge.retention-policy.v1"],
+          },
+          workspaceId: schema("OpaqueId"),
+          status: {
+            type: "string",
+            enum: ["configured", "unresolved", "inherited_read_only"],
+          },
+          revision: schema("Revision"),
+          categories: {
+            type: "array",
+            items: schema("RetentionCategoryPolicy"),
+          },
+          inheritedFromPlatform: { type: "boolean" },
+          updatedAt: schema("DateTime"),
         },
       },
       ProjectInput: {
