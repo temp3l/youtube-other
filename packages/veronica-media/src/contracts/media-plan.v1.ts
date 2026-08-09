@@ -60,6 +60,13 @@ export const veronicaSourceAssetSchema = z.strictObject({
     "mov",
     "narration",
   ]),
+  sourceKind: z.enum(["document", "image", "screenshot", "extracted-region"]).optional(),
+  displayPolicy: z.enum(["display-allowed", "context-only", "forbidden-display"]).optional(),
+  immutableOriginal: z.literal(true).optional(),
+  sourceManifestId: veronicaIdSchema.optional(),
+  sourceRevisionId: z.string().min(1).optional(),
+  effectiveConfigurationHash: sha256Schema.optional(),
+  dependencyIdentity: z.record(z.string().min(1), sha256Schema).optional(),
 });
 
 export const veronicaSourceReferenceSchema = z.strictObject({
@@ -132,6 +139,13 @@ export const veronicaProvenanceRecordSchema = z.strictObject({
   attributionMode: z.enum(["on-screen", "voice-over", "metadata-only", "none"]),
   confidence: z.number().min(0).max(1),
   warningCodes: z.array(z.string().min(1)),
+  reuseRationale: z.enum(["new-content", "content-hash-match", "language-independent-visual"]).optional(),
+  regenerationRationale: z.string().min(1).optional(),
+  lineage: z.strictObject({
+    originChecksum: sha256Schema,
+    parentProvenanceId: veronicaIdSchema.optional(),
+    extractionMethod: z.string().min(1),
+  }).optional(),
 });
 
 export const veronicaFallbackPolicySchema = z.strictObject({
@@ -366,6 +380,17 @@ export const veronicaMediaPlanSchema = z
           code: "custom",
           path: ["placements", index, "anchorId"],
           message: `Placement ${placement.placementId} references unknown anchor ${placement.anchorId}.`,
+        });
+      }
+    }
+    const sourceAssets = new Map(plan.sourceAssets.map((asset) => [asset.assetId, asset]));
+    for (const [index, state] of plan.visualStates.entries()) {
+      const source = sourceAssets.get(state.sourceAssetId);
+      if (source?.displayPolicy && source.displayPolicy !== "display-allowed") {
+        context.addIssue({
+          code: "custom",
+          path: ["visualStates", index, "sourceAssetId"],
+          message: `Source asset ${source.assetId} is not allowed for visual display.`,
         });
       }
     }

@@ -2,11 +2,11 @@
 
 - Source plan: `docs/plans/veronicabenini-strategic-reinvention-implementation/`
 - Date: 2026-08-09
-- Status: in progress; Wave 0 validated
+- Status: in progress; Waves 0–1 validated
 
 ## Summary
 
-Canonicalized Veronica content-profile identity as `veronicabenini` while accepting the legacy `strategic-reinvention` alias at ingress. Shared domain contracts, configuration registries, and the existing strategic adapter now emit canonical identities.
+Canonicalized Veronica identity, added shared episode archive/clone lifecycle, mixed-source manifests and lineage, and semantic artifact cache/invalidation contracts. Legacy `strategic-reinvention` input remains accepted only at compatibility ingress.
 
 ## Files changed
 
@@ -14,15 +14,15 @@ See `IMPLEMENTATION-CHECKPOINT.md` and per-task Codex run reports.
 
 ## Tasks
 
-- Completed: VRI-01
+- Completed: VRI-01 through VRI-04
 - Partially completed: none
-- Not completed: VRI-02 through VRI-26
+- Not completed: VRI-05 through VRI-26
 - Deviations: branch fast-forwarded to `origin/master` because the requested plan was added after the starting checkout.
 
 ## Tests and results
 
-18 focused tests and the domain package typecheck passed. No live providers, publication, migrations, or generated-asset changes were run.
+Focused suites passed for domain/config/profile (18), lifecycle persistence (9), source ingestion/media (13), cache/prompt (36), and workflow store (14). Domain, shared, and Veronica-media typechecks passed. API use-case collection remains blocked by unbuilt workspace dependencies. No live providers, publication, destructive migration, or generated-asset changes were run.
 
 ## Risks and next steps
 
-Legacy persisted path migration remains owned by VRI-25. Execute Wave 1 next.
+Legacy persisted path migration remains owned by VRI-25. Execute VRI-05 and Wave 2 next.

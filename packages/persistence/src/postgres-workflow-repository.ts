@@ -114,6 +114,12 @@ interface EpisodeRow {
   readonly revision: string | number;
   readonly created_at: Date | string;
   readonly updated_at: Date | string;
+  readonly lifecycle_state?: "active" | "archived";
+  readonly archived_at?: Date | string | null;
+  readonly archived_by?: string | null;
+  readonly archive_reason?: string | null;
+  readonly source_episode_id?: string | null;
+  readonly source_episode_revision?: string | number | null;
 }
 
 interface EpisodeReplacementRow extends EpisodeRow {
@@ -156,6 +162,43 @@ export interface ApiEpisodeRecord {
   readonly revision: number;
   readonly createdAt: string;
   readonly updatedAt: string;
+  readonly lifecycleState: "active" | "archived";
+  readonly archivedAt: string | null;
+  readonly sourceEpisodeId: string | null;
+  readonly sourceEpisodeRevision: number | null;
+}
+
+export interface ArchiveEpisodeInput {
+  readonly workspaceId: string;
+  readonly projectId: string;
+  readonly episodeId: string;
+  readonly expectedRevision: number;
+  readonly actorPrincipalId: string;
+  readonly reason: string;
+  readonly commandId: string;
+  readonly idempotencyKey: string;
+  readonly requestFingerprint: string;
+  readonly now: string;
+}
+
+export interface CloneEpisodeInput {
+  readonly workspaceId: string;
+  readonly projectId: string;
+  readonly sourceEpisodeId: string;
+  readonly expectedSourceRevision: number;
+  readonly episodeId: string;
+  readonly revisionId: string;
+  readonly actorPrincipalId: string;
+  readonly commandId: string;
+  readonly idempotencyKey: string;
+  readonly requestFingerprint: string;
+  readonly now: string;
+}
+
+export interface EpisodeLifecycleMutationResult {
+  readonly kind: "admitted" | "replayed";
+  readonly commandId: string;
+  readonly episode: ApiEpisodeRecord;
 }
 
 export interface EpisodeRevisionEvidenceRecord {
@@ -425,7 +468,28 @@ function mapEpisode(row: EpisodeRow): ApiEpisodeRecord {
     revision: Number(row.revision),
     createdAt: new Date(row.created_at).toISOString(),
     updatedAt: new Date(row.updated_at).toISOString(),
+    lifecycleState: row.lifecycle_state ?? "active",
+    archivedAt: row.archived_at ? new Date(row.archived_at).toISOString() : null,
+    sourceEpisodeId: row.source_episode_id ?? null,
+    sourceEpisodeRevision:
+      row.source_episode_revision === null || row.source_episode_revision === undefined
+        ? null
+        : Number(row.source_episode_revision),
   };
+}
+
+function lifecycleReplayEpisodeId(response: unknown): string {
+  if (
+    !response ||
+    typeof response !== "object" ||
+    !("episodeId" in response) ||
+    typeof response.episodeId !== "string" ||
+    response.episodeId.trim().length === 0
+  )
+    throw new WorkflowStateTransitionError(
+      "Episode lifecycle replay contains invalid redacted response evidence."
+    );
+  return response.episodeId;
 }
 
 function mapApprovalChallenge(
@@ -811,7 +875,9 @@ export class WorkspaceTransactionRepository {
     episodeId: string
   ): Promise<ApiEpisodeRecord | null> {
     const result = await this.connection.query<EpisodeRow>(
-      `SELECT workspace_id, project_id, episode_id, content, revision, created_at, updated_at
+      `SELECT workspace_id, project_id, episode_id, content, revision, created_at, updated_at,
+              lifecycle_state, archived_at, archived_by, archive_reason,
+              source_episode_id, source_episode_revision
        FROM episodes WHERE workspace_id = $1 AND project_id = $2 AND episode_id = $3`,
       [workspaceId, projectId, episodeId]
     );
@@ -855,7 +921,7 @@ export class WorkspaceTransactionRepository {
            SET content = $6::jsonb, revision = revision + 1,
                updated_at = $9::timestamptz
            WHERE workspace_id = $1 AND project_id = $2 AND episode_id = $3
-             AND revision = $4
+             AND revision = $4 AND lifecycle_state = 'active'
            RETURNING workspace_id, project_id, episode_id, content, revision,
                      created_at, updated_at
          ), revision_evidence AS (
@@ -901,6 +967,197 @@ export class WorkspaceTransactionRepository {
     } catch (error) {
       return translate(error);
     }
+  }
+
+  /** Archives an episode by CAS; approved revisions remain append-only evidence. */
+  public async archiveEpisode(
+    input: ArchiveEpisodeInput
+  ): Promise<EpisodeLifecycleMutationResult> {
+    if (
+      !Number.isSafeInteger(input.expectedRevision) ||
+      input.expectedRevision < 0 ||
+      input.actorPrincipalId.trim().length === 0 ||
+      input.reason.trim().length === 0 ||
+      input.reason.length > 2_000
+    )
+      throw new WorkflowStateTransitionError(
+        "Episode archive requires a current revision, actor, and bounded reason."
+      );
+    const response = {
+      episodeId: input.episodeId,
+      revision: input.expectedRevision + 1,
+      lifecycleState: "archived" as const,
+    };
+    const admission = await this.connection.query<{
+      readonly command_id: string;
+      readonly response: unknown;
+    }>(
+      `INSERT INTO command_admissions (
+         workspace_id, idempotency_key, request_fingerprint, command_id, response, created_at
+       ) VALUES ($1, $2, $3, $4, $5::jsonb, $6::timestamptz)
+       ON CONFLICT (workspace_id, idempotency_key) DO NOTHING
+       RETURNING command_id, response`,
+      [input.workspaceId, input.idempotencyKey, input.requestFingerprint, input.commandId, JSON.stringify(response), input.now]
+    );
+    if (!admission.rows[0]) {
+      const replay = await this.lifecycleReplay(input.workspaceId, input.idempotencyKey, input.requestFingerprint);
+      const replayEpisodeId = lifecycleReplayEpisodeId(replay.response);
+      if (replayEpisodeId !== input.episodeId)
+        throw new WorkflowStateTransitionError(
+          "Episode archive replay does not match the requested episode."
+        );
+      const record = await this.getEpisode(input.workspaceId, input.projectId, replayEpisodeId);
+      if (!record || record.lifecycleState !== "archived")
+        throw new WorkflowStateTransitionError("Episode archive replay no longer matches persisted lifecycle state.");
+      return { kind: "replayed", commandId: replay.commandId, episode: record };
+    }
+    const result = await this.connection.query<EpisodeRow>(
+      `UPDATE episodes
+       SET lifecycle_state = 'archived', archived_at = $6::timestamptz,
+           archived_by = $5, archive_reason = $7, revision = revision + 1,
+           updated_at = $6::timestamptz
+       WHERE workspace_id = $1 AND project_id = $2 AND episode_id = $3
+         AND revision = $4 AND lifecycle_state = 'active'
+       RETURNING workspace_id, project_id, episode_id, content, revision, created_at, updated_at,
+                 lifecycle_state, archived_at, archived_by, archive_reason,
+                 source_episode_id, source_episode_revision`,
+      [input.workspaceId, input.projectId, input.episodeId, input.expectedRevision, input.actorPrincipalId, input.now, input.reason]
+    );
+    const row = result.rows[0];
+    if (!row)
+      throw new WorkflowStateTransitionError(
+        "Episode was missing, already archived, or its revision was stale."
+      );
+    return { kind: "admitted", commandId: admission.rows[0].command_id, episode: mapEpisode(row) };
+  }
+
+  /** Clones an immutable source snapshot into a new active episode and revision. */
+  public async cloneEpisode(
+    input: CloneEpisodeInput
+  ): Promise<EpisodeLifecycleMutationResult> {
+    if (
+      !Number.isSafeInteger(input.expectedSourceRevision) ||
+      input.expectedSourceRevision < 0 ||
+      input.episodeId.trim().length === 0 ||
+      input.revisionId.trim().length === 0 ||
+      input.actorPrincipalId.trim().length === 0
+    )
+      throw new WorkflowStateTransitionError(
+        "Episode clone requires a current source revision, target ID, revision ID, and actor."
+      );
+    const response = {
+      episodeId: input.episodeId,
+      revision: 0,
+      lifecycleState: "active" as const,
+      sourceEpisodeId: input.sourceEpisodeId,
+      sourceEpisodeRevision: input.expectedSourceRevision,
+    };
+    const admission = await this.connection.query<{
+      readonly command_id: string;
+      readonly response: unknown;
+    }>(
+      `INSERT INTO command_admissions (
+         workspace_id, idempotency_key, request_fingerprint, command_id, response, created_at
+       ) VALUES ($1, $2, $3, $4, $5::jsonb, $6::timestamptz)
+       ON CONFLICT (workspace_id, idempotency_key) DO NOTHING
+       RETURNING command_id, response`,
+      [input.workspaceId, input.idempotencyKey, input.requestFingerprint, input.commandId, JSON.stringify(response), input.now]
+    );
+    if (!admission.rows[0]) {
+      const replay = await this.lifecycleReplay(input.workspaceId, input.idempotencyKey, input.requestFingerprint);
+      const replayEpisodeId = lifecycleReplayEpisodeId(replay.response);
+      const record = await this.getEpisode(input.workspaceId, input.projectId, replayEpisodeId);
+      if (
+        !record || record.lifecycleState !== "active" ||
+        record.sourceEpisodeId !== input.sourceEpisodeId ||
+        record.sourceEpisodeRevision !== input.expectedSourceRevision
+      ) throw new WorkflowStateTransitionError("Episode clone replay no longer matches immutable lineage.");
+      return { kind: "replayed", commandId: replay.commandId, episode: record };
+    }
+    const specification = requiredJson({
+      schemaVersion: "episode-revision.v1",
+      operation: "clone",
+      episodeRevision: 0,
+      previousRevision: null,
+      sourceEpisodeId: input.sourceEpisodeId,
+      sourceEpisodeRevision: input.expectedSourceRevision,
+      provenance: { kind: "episode_clone", actorPrincipalId: input.actorPrincipalId },
+    }, "Episode clone specification");
+    const result = await this.connection.query<EpisodeRow>(
+      `WITH source AS (
+         SELECT CASE
+                  WHEN episode.revision = $4 THEN episode.content
+                  ELSE revision_evidence.content
+                END AS content
+         FROM episodes AS episode
+         LEFT JOIN episode_revisions AS revision_evidence
+           ON revision_evidence.workspace_id = episode.workspace_id
+          AND revision_evidence.project_id = episode.project_id
+          AND revision_evidence.episode_id = episode.episode_id
+          AND revision_evidence.episode_revision = $4
+         WHERE episode.workspace_id = $1 AND episode.project_id = $2
+           AND episode.episode_id = $3
+           AND (
+             (episode.revision = $4 AND episode.content IS NOT NULL)
+             OR (revision_evidence.episode_revision = $4 AND revision_evidence.content IS NOT NULL)
+           )
+       ), created AS (
+         INSERT INTO episodes (
+           workspace_id, project_id, episode_id, content, authority, lifecycle_state,
+           source_episode_id, source_episode_revision, created_at, updated_at
+         ) SELECT $1, $2, $5, source.content, 'database-v1', 'active', $3, $4,
+                  $8::timestamptz, $8::timestamptz
+           FROM source
+         RETURNING workspace_id, project_id, episode_id, content, revision, created_at, updated_at,
+                   lifecycle_state, archived_at, archived_by, archive_reason,
+                   source_episode_id, source_episode_revision
+       ), revision_evidence AS (
+         INSERT INTO episode_revisions (
+           workspace_id, project_id, episode_id, revision_id, episode_revision,
+           previous_revision, specification, content, evidence, source_episode_id,
+           source_episode_revision, created_at
+         ) SELECT workspace_id, project_id, episode_id, $6, revision, NULL, $7::jsonb,
+                  content, $9::jsonb, source_episode_id, source_episode_revision,
+                  $8::timestamptz
+           FROM created
+       ) SELECT * FROM created`,
+      [
+        input.workspaceId, input.projectId, input.sourceEpisodeId,
+        input.expectedSourceRevision, input.episodeId, input.revisionId,
+        specification, input.now,
+        JSON.stringify({ kind: "episode_clone", actorPrincipalId: input.actorPrincipalId }),
+      ]
+    );
+    const row = result.rows[0];
+    if (!row)
+      throw new WorkflowStateTransitionError(
+        "Episode clone source was missing or its revision was stale."
+      );
+    return { kind: "admitted", commandId: admission.rows[0].command_id, episode: mapEpisode(row) };
+  }
+
+  private async lifecycleReplay(
+    workspaceId: string,
+    idempotencyKey: string,
+    requestFingerprint: string
+  ): Promise<{ readonly commandId: string; readonly response: unknown }> {
+    const existing = await this.connection.query<{
+      readonly command_id: string;
+      readonly request_fingerprint: string;
+      readonly response: unknown;
+    }>(
+      `SELECT command_id, request_fingerprint, response FROM command_admissions
+       WHERE workspace_id = $1 AND idempotency_key = $2 FOR UPDATE`,
+      [workspaceId, idempotencyKey]
+    );
+    const replay = existing.rows[0];
+    if (!replay)
+      throw new Error("Episode lifecycle idempotency record disappeared during replay.");
+    if (replay.request_fingerprint !== requestFingerprint)
+      throw new WorkflowStateTransitionError(
+        "Idempotency key is already associated with a different request."
+      );
+    return { commandId: replay.command_id, response: replay.response };
   }
 
   public async getBoundWorkflow(input: {

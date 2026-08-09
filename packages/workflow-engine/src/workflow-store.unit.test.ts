@@ -363,6 +363,61 @@ describe("workflow state, events, locks, and reconciliation", () => {
     >({ code: "OVERRIDE_FORBIDDEN" });
   });
 
+  it("invalidates each affected task once while preserving unrelated artifacts", async () => {
+    await store.initialize();
+    await store.applyManualSuccess(
+      operatorOverrideSchema.parse({
+        schemaVersion: OVERRIDE_SCHEMA_VERSION,
+        id: "override-invalidation",
+        workflowInstanceId: "instance-001",
+        taskId: "test.prepare",
+        actor: "operator@example.invalid",
+        reason: "Validated fixture artifacts satisfy preparation.",
+        scope: "task-success",
+        outputManifestIds: ["manifest-001"],
+        createdAt: currentTime.toISOString(),
+        boundRevision: "revision-1",
+      })
+    );
+
+    const result = await store.invalidateByTypedDependencies({
+      artifacts: [
+        {
+          taskId: "test.prepare",
+          identity: {
+            artifactId: "visual-scene-001",
+            dependencies: [
+              { kind: "scene", id: "scene-001", fingerprint: hashA },
+            ],
+          },
+        },
+        {
+          taskId: "test.prepare",
+          identity: {
+            artifactId: "visual-scene-001-preview",
+            dependencies: [
+              { kind: "scene", id: "scene-001", fingerprint: hashA },
+            ],
+          },
+        },
+        {
+          taskId: "test.publish",
+          identity: {
+            artifactId: "visual-scene-002",
+            dependencies: [
+              { kind: "scene", id: "scene-002", fingerprint: hashB },
+            ],
+          },
+        },
+      ],
+      changes: [{ kind: "scene", id: "scene-001", fingerprint: hashB }],
+    });
+
+    expect(result.invalidatedTaskIds).toEqual(["test.prepare"]);
+    expect(result.preservedArtifactIds).toEqual(["visual-scene-002"]);
+    expect((await store.readState()).tasks[0]?.status).toBe("invalidated");
+  });
+
   it("requires an exact scoped fingerprint, distinct high-risk reviewers, and an unrecalled decision", async () => {
     await store.initialize();
     const scoped = approvalRecordSchema.parse({

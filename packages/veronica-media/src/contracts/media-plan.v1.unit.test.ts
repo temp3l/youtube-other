@@ -66,4 +66,15 @@ describe("veronica media plan contracts", () => {
     });
     expect(parsed.success).toBe(false);
   });
+
+  it("rejects context-only sources from visual states", () => {
+    const fixtures = createVeronicaPilotFixtures();
+    const assets = fixtures.files.map((file) => ingestSupplementalMediaAsset(file));
+    const plan = buildSemanticMediaPlan({ episodeId: "episode-pilot", originalNarration: fixtures.narration.original, assets, targetLanguage: "it" });
+    const parsed = veronicaMediaPlanSchema.safeParse({
+      ...plan,
+      sourceAssets: plan.sourceAssets.map((asset, index) => index === 0 ? { ...asset, displayPolicy: "context-only" } : asset),
+    });
+    expect(parsed.success).toBe(false);
+  });
 });

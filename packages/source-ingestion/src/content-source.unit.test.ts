@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { contentSourceManifestSchema } from "@mediaforge/domain";
 import { createEpisodePathResolver, normalizeEpisodeId } from "@mediaforge/shared";
 import { hashCanonicalSourceBytes, persistContentSourceManifest } from "./index.js";
+import { assertDisplayAllowed, createCanonicalMixedSourceManifest } from "./content-source.js";
 
 const temporaryRoots: string[] = [];
 afterEach(async () => { await Promise.all(temporaryRoots.splice(0).map((root) => fs.rm(root, { recursive: true, force: true }))); });
@@ -23,6 +24,15 @@ function manifestFor(bytes: Uint8Array) {
 }
 
 describe("content source provenance", () => {
+  it("normalizes the compatibility profile before constructing revision-bound mixed manifests", () => {
+    const manifest = createCanonicalMixedSourceManifest({
+      profileId: "strategic-reinvention", episodeId: "episode-001", revisionId: "revision-001",
+      effectiveConfigurationHash: "a".repeat(64), dependencyIdentity: { sourcePolicy: "b".repeat(64) },
+      artifacts: [{ artifactId: "source-001", kind: "screenshot", checksum: "c".repeat(64), byteLength: 12, mimeType: "image/png", displayPolicy: "context-only", immutableOriginal: true, lineage: { originSourceId: "source-001", originChecksum: "c".repeat(64), extractionMethod: "capture" } }],
+    });
+    expect(manifest.profileId).toBe("veronicabenini");
+    expect(() => assertDisplayAllowed("context-only")).toThrow(/does not permit/i);
+  });
   it("hashes canonical bytes and atomically persists only to a resolver-selected episode path", async () => {
     const first = Buffer.from("same title, first bytes", "utf8");
     const second = Buffer.from("same title, second bytes", "utf8");

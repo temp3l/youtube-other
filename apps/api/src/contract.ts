@@ -106,6 +106,18 @@ export const episodeInputSchema = z
   })
   .strict();
 
+/** Stable lifecycle commands are deliberately separate from mutable episode content. */
+export const archiveEpisodeInputSchema = z
+  .object({
+    expectedRevision: z.number().int().nonnegative(),
+    reason: z.string().trim().min(1).max(2_000),
+  })
+  .strict();
+
+export const cloneEpisodeInputSchema = z
+  .object({ expectedSourceRevision: z.number().int().nonnegative() })
+  .strict();
+
 /** Keeps parsed-but-unsupported profile capability input distinct from malformed JSON. */
 export function parseEpisodeInput(value: unknown): EpisodeInput {
   const parsed = episodeInputSchema.safeParse(value);
@@ -2005,6 +2017,8 @@ export const openApiDocument = {
 
 export type ProjectInput = z.infer<typeof projectInputSchema>;
 export type EpisodeInput = z.infer<typeof episodeInputSchema>;
+export type ArchiveEpisodeInput = z.infer<typeof archiveEpisodeInputSchema>;
+export type CloneEpisodeInput = z.infer<typeof cloneEpisodeInputSchema>;
 export type WorkflowAdmission = z.infer<typeof workflowAdmissionSchema>;
 export type ApprovalInput = z.infer<typeof approvalInputSchema>;
 export type ApprovalRevocationInput = z.infer<

@@ -6,6 +6,8 @@
 - `packages/domain/src/content-policy-contracts.ts`
 - `packages/config/src/content-policy-registry.ts`
 - `packages/strategic-reinvention/src/profile.ts`
+- `packages/shared/src/artifact-path-resolver.ts`
+- `packages/shared/src/episode-filesystem.ts`
 - Corresponding focused unit tests
 - Implementation checkpoint and this report
 
@@ -14,6 +16,7 @@
 - Four-file focused Vitest run: 16 tests passed; profile suite initially could not resolve unbuilt workspace packages.
 - `pnpm --filter @mediaforge/domain typecheck`: passed.
 - `pnpm test:focused -- packages/strategic-reinvention/src/profile.unit.test.ts`: 2 tests passed after local package builds.
+- `pnpm --filter @mediaforge/shared typecheck`: passed after canonicalizing shared adapter comparisons.
 - `git diff --check` on owned paths: passed.
 
 ## Result and risks

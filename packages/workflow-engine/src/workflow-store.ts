@@ -44,7 +44,13 @@ import {
   type TaskReadinessResult,
   type TaskRegistry,
 } from "./task-registry.js";
-import { cacheDecisionSchema, type CacheDecision } from "./cache.js";
+import {
+  cacheDecisionSchema,
+  planTypedDependencyInvalidation,
+  type ArtifactDependencyChange,
+  type ArtifactSemanticIdentity,
+  type CacheDecision,
+} from "./cache.js";
 
 export const WORKFLOW_STORE_VERSION = "mediaforge.workflow-store.v1" as const;
 
@@ -250,6 +256,22 @@ export interface ReconcileResult {
   readonly importedSuccessTaskIds: readonly TaskId[];
   readonly invalidatedTaskIds: readonly TaskId[];
   readonly evidenceOnlyTaskIds: readonly TaskId[];
+}
+
+export interface TypedDependencyInvalidationInput {
+  readonly artifacts: readonly {
+    readonly taskId: string;
+    readonly identity: Pick<
+      ArtifactSemanticIdentity,
+      "artifactId" | "dependencies"
+    >;
+  }[];
+  readonly changes: readonly ArtifactDependencyChange[];
+}
+
+export interface TypedDependencyInvalidationResult {
+  readonly invalidatedTaskIds: readonly TaskId[];
+  readonly preservedArtifactIds: readonly string[];
 }
 
 export interface StaleWorkflowRecords {
@@ -810,6 +832,50 @@ export class WorkflowStore {
       workflowInstanceId: state.id,
       checkedAt: this.now().toISOString(),
     });
+  }
+
+  /**
+   * Invalidation changes workflow state only. Artifact files and approval
+   * history remain immutable evidence; a later run decides whether to reuse or
+   * regenerate each invalidated task.
+   */
+  public async invalidateByTypedDependencies(
+    input: TypedDependencyInvalidationInput
+  ): Promise<TypedDependencyInvalidationResult> {
+    const targets = planTypedDependencyInvalidation({
+      artifacts: input.artifacts.map((artifact) => artifact.identity),
+      changes: input.changes,
+    });
+    const targetIds = new Set(targets.map((target) => target.artifactId));
+    const state = await this.readState();
+    const reasonsByTaskId = new Map<TaskId, Set<string>>();
+    for (const artifact of input.artifacts) {
+      if (!targetIds.has(artifact.identity.artifactId)) continue;
+      const taskId = taskIdSchema.parse(artifact.taskId);
+      const task = state.tasks.find((candidate) => candidate.taskId === taskId);
+      if (!task || task.status !== "succeeded") continue;
+      const reasons = targets.find(
+        (target) => target.artifactId === artifact.identity.artifactId
+      )?.reasons ?? ["dependency changed"];
+      const taskReasons = reasonsByTaskId.get(taskId) ?? new Set<string>();
+      for (const reason of reasons) taskReasons.add(reason);
+      reasonsByTaskId.set(taskId, taskReasons);
+    }
+    const invalidatedTaskIds = [...reasonsByTaskId.keys()].sort();
+    for (const taskId of invalidatedTaskIds) {
+      await this.transition({
+        taskId,
+        to: "invalidated",
+        reason: `Typed artifact invalidation: ${[...(reasonsByTaskId.get(taskId) ?? [])].sort().join(", ")}.`,
+      });
+    }
+    return {
+      invalidatedTaskIds,
+      preservedArtifactIds: input.artifacts
+        .map((artifact) => artifact.identity.artifactId)
+        .filter((artifactId) => !targetIds.has(artifactId))
+        .sort(),
+    };
   }
 
   public async readCacheDecisions(): Promise<

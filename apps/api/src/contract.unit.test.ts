@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  archiveEpisodeInputSchema,
+  cloneEpisodeInputSchema,
   dynamicGenericContentSchema,
   episodeInputSchema,
   openApiDocument,
@@ -46,6 +48,13 @@ function operations(): Array<{ readonly path: string; readonly operation: Operat
 }
 
 describe("OpenAPI contract", () => {
+  it("validates bounded lifecycle commands independently from episode content", () => {
+    expect(archiveEpisodeInputSchema.safeParse({ expectedRevision: 2, reason: "Superseded by approved revision." }).success).toBe(true);
+    expect(archiveEpisodeInputSchema.safeParse({ expectedRevision: 2, reason: "" }).success).toBe(false);
+    expect(cloneEpisodeInputSchema.safeParse({ expectedSourceRevision: 2 }).success).toBe(true);
+    expect(cloneEpisodeInputSchema.safeParse({ expectedSourceRevision: -1 }).success).toBe(false);
+  });
+
   it("covers every implemented route with unique operation identifiers", () => {
     expect(Object.keys(openApiDocument.paths)).toEqual(expectedPaths);
     const ids = operations().map(({ operation }) => operation.operationId);

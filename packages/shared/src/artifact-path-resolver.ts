@@ -353,7 +353,7 @@ export function createMathLessonArtifactLayoutAdapter(): ArtifactLayoutAdapter {
 
 export function createStrategicReinventionArtifactLayoutAdapter(): ArtifactLayoutAdapter {
   return {
-    profileId: "strategic-reinvention",
+    profileId: "veronicabenini",
     canonicalRelativePath: (ref) => {
       if (ref.kind === "source") {
         return portablePath(

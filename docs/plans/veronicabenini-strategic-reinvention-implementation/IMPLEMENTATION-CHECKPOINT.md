@@ -4,20 +4,30 @@
 - Starting HEAD: `f04262c16bfd1a89d1b404b1ac291a89dc699a0d`
 - Plan baseline after fast-forward: `46d624c`
 - Pre-existing changes preserved: `.codex/config.toml`; `prompts/codex-veronicabenini-implement-all-waves.md`
-- Current wave: 0 — identity
+- Current wave: 1 — lifecycle/source/fingerprints merge gate
 
 | Task | Status | Owner | Validation | Checkpoint |
 | --- | --- | --- | --- | --- |
-| VRI-01 | VALIDATED | coordinator | 18 focused tests pass; domain typecheck pass | pending commit |
-| VRI-02..VRI-26 | NOT_STARTED | unassigned | not run | none |
+| VRI-01 | VALIDATED | coordinator | 18 focused tests; domain/shared typechecks pass | `dcd7d4d` |
+| VRI-02 | VALIDATED | worker + coordinator review | 9 persistence tests pass; API suite dependency-blocked | pending wave commit |
+| VRI-03 | VALIDATED | worker + coordinator review | 13 focused tests; Veronica media typecheck pass | pending wave commit |
+| VRI-04 | VALIDATED | worker + coordinator review | 50 focused tests; shared typecheck pass | pending wave commit |
+| VRI-05..VRI-26 | NOT_STARTED | unassigned | not run | none |
 
 ## VRI-01 evidence
 
-- Files: shared workflow/content-policy contracts, config registry, Veronica profile adapter, focused tests.
+- Files: shared workflow/content-policy contracts, config registry, Veronica profile adapter, shared artifact/path adapters, and focused tests.
 - Alias inputs normalize to `veronicabenini` before workflow, artifact, blueprint, registry, and effective-policy identity is materialized.
 - External activation remains disabled: creator discovery status, rights evidence, approvals, paid providers, and publication continue to fail closed.
 - Initial test resolution required local workspace dependency links plus package-local domain/config builds; no source or lockfile changes resulted.
 
+## Wave 1 merge-gate evidence
+
+- VRI-02: archive uses compare-and-swap; clone replays the originally admitted target ID and fails closed when historical snapshot content is unavailable.
+- VRI-03: originals are immutable, mixed extraction lineage is typed, display policy is enforced, and duplicate content reuses extraction without batch-wide failure.
+- VRI-04: identity is revision/configuration/dependency-bound; shared visuals ignore locale; typed changes invalidate each affected task once while preserving unrelated artifacts and approval history.
+- API lifecycle tests remain collection-blocked by unbuilt application dependency artifacts. Persistence behavior and API input contracts are focused-tested; VRI-19 owns HTTP/OpenAPI parity.
+
 ## Next executable tasks
 
-VRI-02, VRI-03, and VRI-04 are unblocked and safe to execute in parallel with disjoint ownership.
+VRI-05 is unblocked. VRI-06 and VRI-08 follow it; VRI-07 follows VRI-06 plus the validated VRI-04 contract.

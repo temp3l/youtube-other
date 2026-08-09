@@ -1323,7 +1323,7 @@ export function createEpisodePathResolver(workspaceRoot: string): EpisodePathRes
   return {
     workspaceRoot: resolvedWorkspace,
     artifact: (ref) => {
-      if (ref.profileId !== "dark-truth" && ref.profileId !== "strategic-reinvention") {
+      if (ref.profileId !== "dark-truth" && ref.profileId !== "veronicabenini") {
         throw new Error("Episode artifact resolver requires an episode content profile.");
       }
       return resolveArtifactPathSet({ workspaceRoot: resolvedWorkspace, ref });

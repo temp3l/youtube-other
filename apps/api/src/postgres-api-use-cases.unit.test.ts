@@ -300,6 +300,54 @@ describe("PostgreSQL API use cases", () => {
       .rejects.toMatchObject({ code: "precondition_failed" });
   });
 
+  it("requires authorization and idempotency for archive and clone lifecycle mutations", async () => {
+    const statements: Array<{ sql: string; values?: readonly unknown[] }> = [];
+    const query = async <T>(sql: string, values?: readonly unknown[]): Promise<PostgresQueryResult<T>> => {
+      statements.push({ sql, values });
+      if (sql.includes("INSERT INTO command_admissions"))
+        return { rows: [{ command_id: "command-1" } as unknown as T] };
+      if (sql.includes("SET lifecycle_state = 'archived'")) return { rows: [{
+        workspace_id: "ws-1", project_id: "project-1", episode_id: "episode-1",
+        content: {}, revision: 3, created_at: "2026-08-01T11:00:00.000Z", updated_at: "2026-08-01T12:00:00.000Z",
+        lifecycle_state: "archived", archived_at: "2026-08-01T12:00:00.000Z", archived_by: "user-1",
+        archive_reason: "Superseded", source_episode_id: null, source_episode_revision: null,
+      } as unknown as T] };
+      if (sql.includes("WITH source AS")) return { rows: [{
+        workspace_id: "ws-1", project_id: "project-1", episode_id: "episode-generated",
+        content: {}, revision: 0, created_at: "2026-08-01T12:00:00.000Z", updated_at: "2026-08-01T12:00:00.000Z",
+        lifecycle_state: "active", archived_at: null, archived_by: null, archive_reason: null,
+        source_episode_id: "episode-1", source_episode_revision: 3,
+      } as unknown as T] };
+      return { rows: [] };
+    };
+    const client: PostgresClient = { query, release: () => undefined };
+    const pool: PostgresPool = { query, connect: async () => client, end: async () => undefined };
+    const useCases = createPostgresApiUseCases({
+      pool,
+      workflowAdmissionHandler: { execute: async () => ({ workflowRunId: "unused", jobId: "unused", revision: 0 }) },
+      cursorSecret: "cursor-secret-that-is-longer-than-32-bytes",
+      now: () => new Date("2026-08-01T12:00:00.000Z"),
+      createId: (prefix) => `${prefix}-generated`,
+    });
+    const context = {
+      workspaceId: "ws-1", projectId: "project-1", requestId: "request-lifecycle", idempotencyKey: "lifecycle-key",
+      principal: { principalId: "user-1", workspaceId: "ws-1", permissions: ["content.write"], kind: "user" as const },
+    };
+
+    await expect(useCases.archiveEpisode("episode-1", { expectedRevision: 2, reason: "Superseded" }, {
+      ...context, principal: { ...context.principal, permissions: [] },
+    })).rejects.toMatchObject({ code: "authorization_denied" });
+    expect(statements).toEqual([]);
+    await expect(useCases.archiveEpisode("episode-1", { expectedRevision: 2, reason: "Superseded" }, context))
+      .resolves.toEqual({ id: "episode-1", revision: 3, lifecycleState: "archived", replayed: false });
+    await expect(useCases.cloneEpisode("episode-1", { expectedSourceRevision: 3 }, context))
+      .resolves.toEqual({
+        id: "episode-generated", revision: 0, lifecycleState: "active",
+        sourceEpisodeId: "episode-1", sourceEpisodeRevision: 3, replayed: false,
+      });
+    expect(statements.some(({ sql }) => sql.includes("INSERT INTO episode_revisions"))).toBe(true);
+  });
+
   it("projects publication intent state without execution credentials or reconciliation evidence", async () => {
     const readValues: Array<readonly unknown[] | undefined> = [];
     const query = async <T>(sql: string, values?: readonly unknown[]): Promise<PostgresQueryResult<T>> => {

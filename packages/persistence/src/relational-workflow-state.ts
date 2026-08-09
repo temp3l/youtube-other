@@ -183,8 +183,34 @@ CREATE TABLE IF NOT EXISTS episodes (
 );
 ALTER TABLE episodes ADD COLUMN IF NOT EXISTS project_id TEXT NULL;
 ALTER TABLE episodes ADD COLUMN IF NOT EXISTS content JSONB NULL;
+-- Lifecycle changes retain the episode and every approved revision; archives are
+-- state transitions, never deletes, and clones retain immutable source lineage.
+ALTER TABLE episodes ADD COLUMN IF NOT EXISTS lifecycle_state TEXT NOT NULL DEFAULT 'active'
+  CHECK (lifecycle_state IN ('active', 'archived'));
+ALTER TABLE episodes ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ NULL;
+ALTER TABLE episodes ADD COLUMN IF NOT EXISTS archived_by TEXT NULL;
+ALTER TABLE episodes ADD COLUMN IF NOT EXISTS archive_reason TEXT NULL;
+ALTER TABLE episodes ADD COLUMN IF NOT EXISTS source_episode_id TEXT NULL;
+ALTER TABLE episodes ADD COLUMN IF NOT EXISTS source_episode_revision BIGINT NULL;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'episodes_archive_state_check'
+      AND conrelid = 'episodes'::regclass
+  ) THEN
+    ALTER TABLE episodes ADD CONSTRAINT episodes_archive_state_check CHECK (
+      (lifecycle_state = 'active' AND archived_at IS NULL AND archived_by IS NULL AND archive_reason IS NULL)
+      OR (lifecycle_state = 'archived' AND archived_at IS NOT NULL AND archived_by IS NOT NULL AND archive_reason IS NOT NULL)
+    );
+  END IF;
+END;
+$$;
 CREATE UNIQUE INDEX IF NOT EXISTS episodes_project_identity
   ON episodes (workspace_id, project_id, episode_id) WHERE project_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS episodes_lifecycle_lookup
+  ON episodes (workspace_id, project_id, lifecycle_state, episode_id)
+  WHERE project_id IS NOT NULL;
 CREATE TABLE IF NOT EXISTS episode_revisions (
   workspace_id TEXT NOT NULL,
   episode_id TEXT NOT NULL,
@@ -199,6 +225,8 @@ ALTER TABLE episode_revisions ADD COLUMN IF NOT EXISTS episode_revision BIGINT N
 ALTER TABLE episode_revisions ADD COLUMN IF NOT EXISTS previous_revision BIGINT NULL;
 ALTER TABLE episode_revisions ADD COLUMN IF NOT EXISTS content JSONB NULL;
 ALTER TABLE episode_revisions ADD COLUMN IF NOT EXISTS evidence JSONB NULL;
+ALTER TABLE episode_revisions ADD COLUMN IF NOT EXISTS source_episode_id TEXT NULL;
+ALTER TABLE episode_revisions ADD COLUMN IF NOT EXISTS source_episode_revision BIGINT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS episode_revisions_number_unique
   ON episode_revisions (workspace_id, project_id, episode_id, episode_revision)
   WHERE project_id IS NOT NULL AND episode_revision IS NOT NULL;
