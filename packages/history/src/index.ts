@@ -87,6 +87,7 @@ export * from "./v36/atomic-relation-candidate-projector-v36.js";
 export * from "./v36/candidate-gap-inventory-v36.js";
 export * from "./v36/cross-claim-proof-v36.js";
 export * from "./v36/cross-claim-proof-fixtures-v36.js";
+export * from "./v36/policy-response-admission-v36.js";
 export * from "./v36/native-structure-gap-enrichment-v36.js";
 export * from "./v36/structured-claim-v36.js";
 export * from "./v36/structured-claim-enricher-v36.js";
