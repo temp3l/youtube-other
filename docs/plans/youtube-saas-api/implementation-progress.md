@@ -1,6 +1,6 @@
 # YSAAS implementation progress
 
-Current wave: Wave 4 in progress (YSAAS-013 complete; YSAAS-014 next)
+Current wave: Wave 5 ready (YSAAS-021 is the next publication task)
 
 ## Anti-stuck execution rules (session)
 
@@ -95,3 +95,9 @@ Status: completed
 Commit: 9011a68
 Validation: `publication-preparation-lifecycle.unit.test.ts` pass (6); `postgres-publication-preparation-repository.unit.test.ts` pass (1); domain/persistence/api-sdk emit pass; `apps/api` typecheck pass for YSAAS-013 files excluding pre-existing `job-process` / `provider-free-worker-entry` migrate errors
 Notes: Publishing channel safe state + OAuth session binding; metadata revisions; publish-ready preflight gate (ADR-YSAAS-015); schedule policy fail-closed; intent prepare/cancel/schedule supersede; publication-preparation OpenAPI/SDK module; `cancelPublicationIntent` on workflow repository
+
+### YSAAS-014
+Status: completed
+Commit: 33c7a4b
+Validation: `publication-execution.unit.test.ts` pass (7); `pnpm exec tsc -p packages/persistence --noEmit` pass
+Notes: Default-off platform capability; no provider mutation while disabled; private-first fenced executor with immediate authority/metadata recheck, bounded metadata retry, tenant-bound provider/OAuth seam, and existing reconciliation for upload ambiguity. Public API/SDK mutation routes remain absent.
