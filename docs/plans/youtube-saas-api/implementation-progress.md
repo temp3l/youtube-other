@@ -1,6 +1,6 @@
 # YSAAS implementation progress
 
-Current wave: Wave 5 in progress (YSAAS-017 complete; YSAAS-018 and YSAAS-020 remain blocked)
+Current wave: Wave 5 complete (YSAAS-017, YSAAS-018, and YSAAS-020 complete)
 
 ## Anti-stuck execution rules (session)
 
@@ -121,7 +121,7 @@ Validation: configuration persistence focused test, API typecheck, API SDK build
 Notes: Tenant, profile/genre, and episode configuration layers persist under workspace RLS with schema-validated reads. Workspace capabilities and episode resolved-configuration APIs fail closed when unprovisioned. The settings page and workflow locale selector now use server responses; the pilot locale mapping is removed.
 
 ### YSAAS-020
-Status: in progress
-Commit: 32b746a
-Validation: recent-auth confirmation persistence focused test, step-up consumer unit test, and web typecheck pass
-Notes: Credential rotation with bounded overlap, ETag and idempotency preconditions, show-once secret, replay redaction, OpenAPI, and SDK support are complete. `587483a` persists atomic one-time recent-auth confirmations bound to workspace/principal/action/CSRF session. `873e045` adds a fail-closed OIDC hook requiring an IdP principal match, MFA AMR, and auth_time no older than five minutes. `32b746a` adds the BFF consumer and OIDC session binding. Deployment composition, mutation enforcement, integrations UI, webhook management, and API explorer remain.
+Status: completed
+Commit: 07b052b
+Validation: recent-auth adapter and API SDK focused tests pass; API SDK build and web typecheck pass
+Notes: `587483a` persists atomic one-time recent-auth confirmations bound to workspace/principal/action/CSRF session; `873e045` requires matching IdP principal, MFA AMR, and auth_time no older than five minutes; `32b746a` provides BFF consumption. The final integration BFF adds the shared Postgres composition adapter, fail-closed single-use gates for credential/webhook mutations, show-once direct secret responses, credential and webhook status/history, redacted resend/test controls, and generated journey steps. A real deployment must pass the adapter into OIDC and runtime; this repository has no server composition entrypoint.

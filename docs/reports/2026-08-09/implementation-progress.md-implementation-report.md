@@ -1,24 +1,18 @@
 # Implementation progress report
 
-Source plan file path: `docs/plans/youtube-saas-api/implementation-progress.md`  
-Date of execution: 2026-08-09
+Source plan: `docs/plans/youtube-saas-api/implementation-progress.md`
+Date: 2026-08-09
 
-Summary of implemented changes: production-unit lineage/snapshot persistence, worker-bound append writer, tenant/project/episode reads, metadata comparison API, and a server-held invalidation confirmation journey.
+Implementation commit: `07b052b`
 
-Files changed: persistence production-state and workflow repository files; artifact OpenAPI/API/SDK files; web BFF/runtime files.
+Summary: Completed YSAAS-020’s typed integration BFF. Credential and webhook mutations consume a single-use recent-auth confirmation bound to workspace, principal, action, and server session; show-once secrets return only in the immediate no-store response. The screen lists redacted status/history and generated API journey steps.
 
-Tasks completed: YSAAS-017 lineage persistence, comparison reads, invalidation confirmation, and YSAAS-018 configuration persistence foundation.
+Files changed: web runtime/gateway/OIDC files; API SDK client and focused test; persistence composition adapter and focused test; ledger.
 
-Tasks partially completed: none for YSAAS-018.
+Completed: YSAAS-020. Partial/not completed: none.
 
-Tasks not completed: YSAAS-020 BFF verifier and integrations UI.
+Deviation: no deployment server composition exists here, so the adapter is exported rather than instantiated.
 
-Deviations from the original plan: diff availability is explicitly false; no diff service was fabricated.
+Checks: focused adapter and SDK tests; SDK build; web typecheck—all passed.
 
-Tests/checks run: focused persistence test; API SDK build; web typecheck; focused API HTTP integration test.
-
-Test results: persistence test and SDK/web checks pass. HTTP integration test could not bind a sandbox socket (`EPERM`) before product assertions.
-
-Known risks or follow-up work: pending confirmations use process-local state and need shared session persistence for horizontal scaling.
-
-Recommended next steps: wire the step-up consumer/recorder into composition and gate integrations mutations.
+Risks/next: deployment must inject `recordRecentAuth` into OIDC and `recentAuthConsumer` into runtime. Browser-flow HTTP tests remain blocked by sandbox loopback `EPERM`.
