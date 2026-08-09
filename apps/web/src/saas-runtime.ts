@@ -115,7 +115,7 @@ export function renderSignedOutShell(): string {
 
 const navigation = [
   ["/", "Overview"], ["/projects", "Projects"], ["/episodes", "Episodes"],
-  ["/workflows", "Workflows"], ["/bulk", "Bulk"], ["/reviews", "Review"], ["/assets", "Assets"],
+  ["/workflows", "Workflows"], ["/bulk", "Bulk"], ["/reviews", "Review"], ["/assets", "Assets"], ["/onboarding", "Onboarding"], ["/search", "Search"],
   ["/publishing", "Publishing"], ["/usage", "Usage"], ["/integrations", "Integrations"], ["/settings", "Settings"],
 ] as const;
 
@@ -273,6 +273,25 @@ interface PendingInvalidation { readonly workspaceId: string; readonly projectId
 
 async function renderJourneyPage(identity: SaasIdentity, path: string, gateway: SaasJourneyGateway, search = "", publicationExecutionEnabled = false, pendingInvalidations?: ReadonlyMap<string, PendingInvalidation>): Promise<string | null> {
   try {
+    if (path === "/onboarding") {
+      const projects = (await gateway.listProjects(identity)).items;
+      const episodes = await Promise.all(projects.map((project) => gateway.listEpisodes(identity, project.id)));
+      const hasBrief = episodes.some((page) => page.items.length > 0);
+      const steps = [
+        { label: "Workspace identity", done: true, detail: "Your tenant and principal are resolved server-side." },
+        { label: "First project", done: projects.length > 0, detail: projects.length ? `${projects.length} project${projects.length === 1 ? "" : "s"} available.` : "Create a project to begin." },
+        { label: "First episode brief", done: hasBrief, detail: hasBrief ? "A versioned brief is ready for provider-free production." : "Add a profile-specific brief before starting a workflow." },
+      ];
+      return shell(identity.session, path, "Onboarding", "Complete the provider-free first-success path. Provider and channel setup remain server-owned.", `<section class="card"><h2>Readiness checklist</h2><p>These are current tenant-scoped facts, not browser-held setup state.</p><div class="stack" style="margin-top:14px">${steps.map((step) => `<div class="row"><div><strong>${escapeHtml(step.label)}</strong><span>${escapeHtml(step.detail)}</span></div><span class="tag ${step.done ? "" : "neutral"}">${step.done ? "Complete" : "Next"}</span></div>`).join("")}</div></section><section class="notice" style="margin-top:18px"><strong>Safe first success</strong><p>Create a project, add a brief, then start the provider-free workflow. Channel/OAuth and external provider controls remain unavailable until explicitly provisioned.</p><p><a class="button" href="${projects.length ? "/projects" : "/projects/new"}">${projects.length ? "Open projects" : "Create project"}</a></p></section>`);
+    }
+    if (path === "/search") {
+      const query = new URLSearchParams(search).get("q")?.trim().toLocaleLowerCase() ?? "";
+      if (!query) return shell(identity.session, path, "Search", "Search v1 only covers tenant-scoped episode title and ID.", `<form class="card form" method="get" action="/search"><label class="field">Episode title or ID<input required name="q" maxlength="160" autofocus><span class="hint">Artifact text, provider payloads, and cross-workspace data are never searched.</span></label><button class="button" type="submit">Search</button></form>`);
+      const projects = (await gateway.listProjects(identity)).items;
+      const results = (await Promise.all(projects.map(async (project) => ({ project, episodes: (await gateway.listEpisodes(identity, project.id)).items })))).flatMap(({ project, episodes }) => episodes.filter((episode) => episode.id.toLocaleLowerCase().includes(query) || episodeTitle(episode.content).toLocaleLowerCase().includes(query)).map((episode) => ({ project, episode })));
+      const rows = results.map(({ project, episode }) => `<a class="row link-row" href="/projects/${encodeURIComponent(project.id)}/episodes/${encodeURIComponent(episode.id)}"><div><strong>${escapeHtml(episodeTitle(episode.content))}</strong><span>${escapeHtml(project.name)} · ID ${escapeHtml(episode.id)}</span></div><span class="tag">Open</span></a>`).join("");
+      return shell(identity.session, path, "Search", "Results are limited to title and ID of episodes visible in this workspace.", `<form class="card form" method="get" action="/search"><label class="field">Episode title or ID<input required name="q" value="${escapeHtml(query)}" maxlength="160"></label><button class="button" type="submit">Search</button></form><section class="card" style="margin-top:18px"><h2>Results</h2><p>${results.length} matching episode${results.length === 1 ? "" : "s"}.</p></section><div class="stack" style="margin-top:12px">${rows || empty("No matching episodes", "Try an exact episode ID or a different title term.")}</div>`);
+    }
     if (path === "/bulk") {
       const bulk = gateway.bulk;
       if (!bulk) return shell(identity.session, path, "Bulk operations", "Bulk operations require a server-side workspace gateway.", `<section class="notice">Bulk production is unavailable for this workspace.</section>`);
