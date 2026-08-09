@@ -110,3 +110,4 @@ export * from "./v36/compiler-shadow-contract-v36.js";
 export * from "./v36/compiler-shadow-map-v36.js";
 export * from "./v36/compiler-shadow-diagram-v36.js";
 export * from "./v36/compiler-shadow-v36.js";
+export * from "./v36/renderer-shadow-contract-v36.js";

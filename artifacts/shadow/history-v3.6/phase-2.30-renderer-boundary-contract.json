@@ -1,0 +1,8 @@
+{
+  "phase": "2.30",
+  "result": "PASS",
+  "contract": "history-renderer-shadow-spec.v1",
+  "rendererVersion": "history-renderer-shadow.v3.6.0",
+  "shadowOnly": true,
+  "productionRoutingChanged": false
+}
