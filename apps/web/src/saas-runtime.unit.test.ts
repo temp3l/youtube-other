@@ -126,6 +126,8 @@ describe("SaaS runtime", () => {
         projectionInputFingerprint: "a".repeat(64),
       }),
       compareProductionUnitSnapshots: async () => ({ items: [] }),
+      previewArtifactInvalidation: async () => ({ changedAddresses: [], invalidatedUnits: [], preservedUnits: [], regenerationTargets: [], staleReviewReadiness: false, stalePublishReadiness: false, gateEvidenceUpdates: [], projectedAt: "2026-08-09T00:00:00.000Z" }),
+      regenerateProductionUnits: async () => ({ acceptedTargets: [], workflowRunId: "run-1", jobId: "job-1", revision: 1 }),
       createEpisode: async () => ({ id: "e1", revision: 1 }),
       replaceEpisode: async () => { throw new (await import("@mediaforge/api-sdk")).ApiProblemError({ type: "about:blank", title: "Precondition failed", status: 412, detail: "This brief has a newer revision.", code: "precondition_failed", requestId: "req-1", retryable: false, errors: [] }, new Response()); },
       startWorkflow: async () => ({ workflowRunId: "run-1", jobId: "job-1", revision: 1, links: { workflowRun: "", job: "" } }),

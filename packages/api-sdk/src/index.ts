@@ -51,6 +51,9 @@ export interface ProductionUnitSnapshotRecord { readonly snapshotId: string; rea
 export interface ArtifactComparisonMetadata { readonly baselineKind: "previous" | "approved" | "source"; readonly baselineContentHash: string; readonly currentContentHash?: string; readonly textDiffAvailable: boolean; readonly visualDiffAvailable: boolean; readonly timestampAwareMediaDiffAvailable: boolean; }
 export interface ProductionUnitSnapshotPage { readonly items: readonly ProductionUnitSnapshotRecord[]; }
 export interface ProductionUnitComparisonPage { readonly items: readonly { readonly current: ProductionUnitSnapshotRecord; readonly previous?: ProductionUnitSnapshotRecord; readonly comparison?: ArtifactComparisonMetadata }[]; }
+export interface ProductionUnitChange { readonly address: ProductionUnitAddress; readonly nextInputFingerprint: string; readonly nextContentHash?: string; readonly reason?: string; }
+export interface ArtifactInvalidationPreview { readonly changedAddresses: readonly ProductionUnitAddress[]; readonly invalidatedUnits: readonly { readonly address: ProductionUnitAddress; readonly previousStatus: string; readonly reason: string; readonly preservedUpstream: boolean }[]; readonly preservedUnits: readonly ProductionUnitAddress[]; readonly regenerationTargets: readonly ProductionUnitAddress[]; readonly staleReviewReadiness: boolean; readonly stalePublishReadiness: boolean; readonly gateEvidenceUpdates: readonly { readonly code: string; readonly message: string }[]; readonly projectedAt: string; }
+export interface ProductionUnitRegenerationAccepted { readonly acceptedTargets: readonly ProductionUnitAddress[]; readonly workflowRunId: string; readonly jobId: string; readonly revision: number; }
 
 export class ApiProblemError extends Error {
   public override readonly name = "ApiProblemError";
@@ -1022,6 +1025,14 @@ export class MediaforgeApiClient {
 
   public compareProductionUnitSnapshots(workspaceId: string, projectId: string, episodeId: string, options?: RequestOptions): Promise<ApiResponse<ProductionUnitComparisonPage>> {
     return this.execute(`${this.projectPath(workspaceId, projectId)}/episodes/${encodePath(episodeId)}/production-units:compare`, { ...(options ? { options } : {}) });
+  }
+
+  public previewArtifactInvalidation(workspaceId: string, projectId: string, episodeId: string, input: { readonly changes: readonly ProductionUnitChange[] }): Promise<ApiResponse<ArtifactInvalidationPreview>> {
+    return this.execute(`${this.projectPath(workspaceId, projectId)}/episodes/${encodePath(episodeId)}/artifact-invalidation-preview`, { method: "POST", body: input });
+  }
+
+  public regenerateProductionUnits(workspaceId: string, projectId: string, episodeId: string, input: { readonly targets: readonly ProductionUnitAddress[]; readonly reason?: string }, options: IdempotentRequestOptions): Promise<ApiResponse<ProductionUnitRegenerationAccepted>> {
+    return this.execute(`${this.projectPath(workspaceId, projectId)}/episodes/${encodePath(episodeId)}/production-units:regenerate`, { method: "POST", body: input, options, idempotencyKey: options.idempotencyKey });
   }
 
   public replaceEpisodeContent(

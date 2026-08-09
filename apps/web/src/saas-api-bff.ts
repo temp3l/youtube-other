@@ -10,6 +10,9 @@ import type {
   EpisodeInput,
   EpisodePage,
   ProductionUnitComparisonPage,
+  ArtifactInvalidationPreview,
+  ProductionUnitChange,
+  ProductionUnitRegenerationAccepted,
   Job,
   Project,
   ProjectInput,
@@ -59,6 +62,8 @@ export interface SaasJourneyGateway {
   getEpisode(identity: SaasIdentity, projectId: string, episodeId: string): Promise<Episode>;
   getEpisodeProductionState(identity: SaasIdentity, projectId: string, episodeId: string): Promise<EpisodeProductionState>;
   compareProductionUnitSnapshots(identity: SaasIdentity, projectId: string, episodeId: string): Promise<ProductionUnitComparisonPage>;
+  previewArtifactInvalidation(identity: SaasIdentity, projectId: string, episodeId: string, input: { readonly changes: readonly ProductionUnitChange[] }): Promise<ArtifactInvalidationPreview>;
+  regenerateProductionUnits(identity: SaasIdentity, projectId: string, episodeId: string, input: { readonly targets: readonly ProductionUnitChange["address"][]; readonly reason?: string }, idempotencyKey: string): Promise<ProductionUnitRegenerationAccepted>;
   createEpisode(identity: SaasIdentity, projectId: string, input: EpisodeInput, idempotencyKey: string): Promise<{ readonly id: string; readonly revision: number }>;
   replaceEpisode(identity: SaasIdentity, projectId: string, episodeId: string, input: EpisodeInput, ifMatch: string): Promise<Episode>;
   startWorkflow(identity: SaasIdentity, projectId: string, episodeId: string, input: WorkflowAdmission, idempotencyKey: string): Promise<WorkflowCommandAccepted>;

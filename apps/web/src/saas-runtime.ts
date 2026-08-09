@@ -255,7 +255,9 @@ async function renderPublishingPage(input: {
   return shell(input.identity.session, "/publishing", "Publishing", "Channel credentials stay server-side. Every intent is immutable, preflighted, and private-first.", `${execution}<section class="card" style="margin-top:18px"><h2>Channels</h2><p>Connection and reauthorization state come from the server; credentials are never shown.</p><div class="actions" style="margin-top:12px"><form method="post" action="/publishing/channels:connect">${idempotencyField()}<button class="button" type="submit">Connect channel</button></form></div></section><div style="margin-top:12px">${channelRows}</div><section class="card" style="margin-top:18px"><h2>Choose an episode</h2><p>Preparation binds the exact source revision and metadata. Server preflight decides whether it is eligible.</p></section><div style="margin-top:12px">${episodeLinks}</div>${chosen ? `<div style="margin-top:18px">${publicationPrepareForm({ projectId: chosen.project.id, episodeId: chosen.episode.id, episodeRevision: chosen.episode.revision, channels: channels.items })}</div>` : ""}`);
 }
 
-async function renderJourneyPage(identity: SaasIdentity, path: string, gateway: SaasJourneyGateway, search = "", publicationExecutionEnabled = false): Promise<string | null> {
+interface PendingInvalidation { readonly workspaceId: string; readonly projectId: string; readonly episodeId: string; readonly preview: Awaited<ReturnType<SaasJourneyGateway["previewArtifactInvalidation"]>>; readonly reason?: string; readonly expiresAt: number; }
+
+async function renderJourneyPage(identity: SaasIdentity, path: string, gateway: SaasJourneyGateway, search = "", publicationExecutionEnabled = false, pendingInvalidations?: ReadonlyMap<string, PendingInvalidation>): Promise<string | null> {
   try {
     if (path === "/publishing") return renderPublishingPage({
       identity, gateway, search, executionEnabled: publicationExecutionEnabled,
@@ -369,10 +371,15 @@ async function renderJourneyPage(identity: SaasIdentity, path: string, gateway: 
       const runLink = productionState.workflow.activeRunId
         ? `<p><a class="button secondary" href="/workflows/${encodeURIComponent(projectId)}/${encodeURIComponent(productionState.workflow.activeRunId)}${productionState.workflow.jobId ? `?job=${encodeURIComponent(productionState.workflow.jobId)}` : ""}">Open production timeline</a></p>`
         : "";
+      const pendingToken = new URLSearchParams(search).get("invalidation");
+      const pending = pendingToken ? pendingInvalidations?.get(pendingToken) : undefined;
+      const invalidationForm = `<form class="card form" method="post" action="/projects/${encodeURIComponent(projectId)}/episodes/${encodeURIComponent(episodeId)}/invalidation-preview"><h2>Preview scoped regeneration</h2><p>Enter the server-issued next input fingerprint for one changed upstream unit. The preview uses persisted lineage; it does not accept browser snapshots.</p>${idempotencyField()}<label class="field">Unit kind<select name="kind"><option value="brief_script">Brief / script</option><option value="narration">Narration</option><option value="visual_plan">Visual plan</option><option value="scene_visual">Scene visual</option><option value="map">Map</option><option value="diagram">Diagram</option><option value="tts">TTS</option><option value="subtitles">Subtitles</option><option value="render">Render</option></select></label><label class="field">Next input fingerprint<input required name="nextInputFingerprint" pattern="[a-f0-9]{64}" maxlength="64"></label><label class="field">Reason<input name="reason" maxlength="1000"></label><button class="button secondary" type="submit">Preview invalidation</button></form>`;
+      const confirmation = pending && pending.workspaceId === identity.session.workspaceId && pending.projectId === projectId && pending.episodeId === episodeId && pending.expiresAt > Date.now()
+        ? `<section class="card" style="margin-top:18px"><h2>Confirm scoped regeneration</h2><p>${pending.preview.invalidatedUnits.length} units would become stale; ${pending.preview.regenerationTargets.length} targets will be queued. Review/readiness targets are excluded.</p><div class="stack">${pending.preview.invalidatedUnits.map((unit) => `<div class="row"><div><strong>${escapeHtml(unit.address.kind.replaceAll("_", " "))}</strong><span>${escapeHtml(unit.reason)}</span></div><span class="tag neutral">${escapeHtml(unit.previousStatus)}</span></div>`).join("")}</div><form method="post" action="/projects/${encodeURIComponent(projectId)}/episodes/${encodeURIComponent(episodeId)}/invalidation-confirm" style="margin-top:14px">${idempotencyField()}<input type="hidden" name="token" value="${escapeHtml(pendingToken!)}"><label class="field"><input required type="checkbox" name="confirmed" value="yes"> I confirm these exact server-calculated targets.</label><button class="button" type="submit">Queue regeneration</button></form></section>` : "";
       const comparisonRows = comparisons.items.length
         ? `<div class="stack">${comparisons.items.map(({ current, previous, comparison }) => `<div class="row"><div><strong>${escapeHtml(current.snapshot.address.kind.replaceAll("_", " "))}${current.snapshot.address.unitKey ? ` · ${escapeHtml(current.snapshot.address.unitKey)}` : ""}</strong><span>${escapeHtml(current.snapshot.status)} snapshot from ${escapeHtml(current.createdAt)}${previous ? ` · previous snapshot ${escapeHtml(previous.createdAt)}` : " · no prior immutable baseline"}</span></div><span class="tag neutral">${comparison ? "Metadata comparison" : "Current only"}</span></div>`).join("")}</div>`
         : empty("No production-unit snapshots yet", "Comparison becomes available after a worker persists immutable production output.");
-      return shell(identity.session, path, "Episode workspace", "This view is driven by durable server projections; gate, comparison, and action availability are never inferred in the browser.", `<div class="grid"><section class="card"><h2>Production state</h2><div class="metric">${escapeHtml(productionState.lifecycleStage.replaceAll("_", " "))}</div><p>Projected ${escapeHtml(productionState.projectedAt)}.</p></section><section class="card"><h2>Current revision</h2><div class="metric">${episode.revision}</div><p>Use a refresh if someone else saves a newer version.</p></section><section class="card"><h2>Profile</h2><p>${escapeHtml(profileLabels[profile] ?? project.profile)}</p></section></div><section class="card" style="margin-top:18px"><h2>Required before the next action</h2>${gateRows}${runLink}</section><section class="card" style="margin-top:18px"><h2>Artifact lineage and comparison</h2><p>Baselines are immutable worker snapshots. No browser-side artifact graph is constructed.</p>${comparisonRows}</section>${actionRows ? `<section class="card" style="margin-top:18px"><h2>Permitted actions</h2>${actionRows}</section>` : ""}<div style="margin-top:18px">${episodeForm(identity.session, project, `/projects/${encodeURIComponent(projectId)}/episodes/${encodeURIComponent(episodeId)}`, episode)}</div><div style="margin-top:18px">${workflowForm(projectId, episodeId, episode.revision, profile)}</div>`);
+      return shell(identity.session, path, "Episode workspace", "This view is driven by durable server projections; gate, comparison, and action availability are never inferred in the browser.", `<div class="grid"><section class="card"><h2>Production state</h2><div class="metric">${escapeHtml(productionState.lifecycleStage.replaceAll("_", " "))}</div><p>Projected ${escapeHtml(productionState.projectedAt)}.</p></section><section class="card"><h2>Current revision</h2><div class="metric">${episode.revision}</div><p>Use a refresh if someone else saves a newer version.</p></section><section class="card"><h2>Profile</h2><p>${escapeHtml(profileLabels[profile] ?? project.profile)}</p></section></div><section class="card" style="margin-top:18px"><h2>Required before the next action</h2>${gateRows}${runLink}</section><section class="card" style="margin-top:18px"><h2>Artifact lineage and comparison</h2><p>Baselines are immutable worker snapshots. No browser-side artifact graph is constructed.</p>${comparisonRows}</section><div style="margin-top:18px">${invalidationForm}</div>${confirmation}${actionRows ? `<section class="card" style="margin-top:18px"><h2>Permitted actions</h2>${actionRows}</section>` : ""}<div style="margin-top:18px">${episodeForm(identity.session, project, `/projects/${encodeURIComponent(projectId)}/episodes/${encodeURIComponent(episodeId)}`, episode)}</div><div style="margin-top:18px">${workflowForm(projectId, episodeId, episode.revision, profile)}</div>`);
     }
     const workflowMatch = path.match(/^\/workflows\/([^/]+)\/([^/]+)$/u);
     if (workflowMatch) {
@@ -503,9 +510,10 @@ async function handleJourneyAction(input: {
   readonly gateway: SaasJourneyGateway;
   readonly maxRequestBytes: number;
   readonly completedActions: Map<string, string>;
+  readonly pendingInvalidations: Map<string, PendingInvalidation>;
   readonly allowUnverifiedDemoFormPosts: boolean;
 }): Promise<boolean> {
-  const { request, response, identity, path, gateway, maxRequestBytes, completedActions, allowUnverifiedDemoFormPosts } = input;
+  const { request, response, identity, path, gateway, maxRequestBytes, completedActions, pendingInvalidations, allowUnverifiedDemoFormPosts } = input;
   if (request.method !== "POST") return false;
   if (!isSameOrigin(request) && !allowUnverifiedDemoFormPosts) { response.writeHead(403).end(); return true; }
   let values: URLSearchParams;
@@ -592,6 +600,24 @@ async function handleJourneyAction(input: {
       const accepted = await gateway.startWorkflow(identity, projectId, episodeId, { template: "episode-production", episodeRevision: Number(requiredField(values, "episodeRevision", 12)), locales: [requiredField(values, "locale", 8)], variants: ["full"], approvalMode: "required", publicationMode: "none" }, idempotencyKey);
       redirect(`/workflows/${encodeURIComponent(projectId)}/${encodeURIComponent(accepted.workflowRunId)}?job=${encodeURIComponent(accepted.jobId)}`); return true;
     }
+    const previewInvalidation = path.match(/^\/projects\/([^/]+)\/episodes\/([^/]+)\/invalidation-preview$/u);
+    if (previewInvalidation) {
+      const projectId = decodeURIComponent(previewInvalidation[1]!); const episodeId = decodeURIComponent(previewInvalidation[2]!);
+      const kind = requiredField(values, "kind", 80); const nextInputFingerprint = requiredField(values, "nextInputFingerprint", 64); const reason = optionalField(values, "reason", 1000);
+      if (!/^[a-f0-9]{64}$/u.test(nextInputFingerprint)) throw new Error("Enter a 64-character lowercase SHA-256 input fingerprint.");
+      const preview = await gateway.previewArtifactInvalidation(identity, projectId, episodeId, { changes: [{ address: { kind }, nextInputFingerprint, ...(reason === undefined ? {} : { reason }) }] });
+      const token = crypto.randomUUID(); pendingInvalidations.set(token, { workspaceId: identity.session.workspaceId, projectId, episodeId, preview, ...(reason === undefined ? {} : { reason }), expiresAt: Date.now() + 10 * 60_000 });
+      redirect(`/projects/${encodeURIComponent(projectId)}/episodes/${encodeURIComponent(episodeId)}?invalidation=${encodeURIComponent(token)}`); return true;
+    }
+    const confirmInvalidation = path.match(/^\/projects\/([^/]+)\/episodes\/([^/]+)\/invalidation-confirm$/u);
+    if (confirmInvalidation) {
+      if (values.get("confirmed") !== "yes") throw new Error("Confirm the exact server-calculated regeneration targets.");
+      const projectId = decodeURIComponent(confirmInvalidation[1]!); const episodeId = decodeURIComponent(confirmInvalidation[2]!); const token = requiredField(values, "token", 100);
+      const pending = pendingInvalidations.get(token);
+      if (!pending || pending.expiresAt <= Date.now() || pending.workspaceId !== identity.session.workspaceId || pending.projectId !== projectId || pending.episodeId !== episodeId) { actionError(response, identity.session, path, 412, "This invalidation preview expired or belongs to another workspace. Preview again."); return true; }
+      const accepted = await gateway.regenerateProductionUnits(identity, projectId, episodeId, { targets: pending.preview.regenerationTargets, ...(pending.reason ? { reason: pending.reason } : {}) }, idempotencyKey);
+      pendingInvalidations.delete(token); redirect(`/workflows/${encodeURIComponent(projectId)}/${encodeURIComponent(accepted.workflowRunId)}?job=${encodeURIComponent(accepted.jobId)}`); return true;
+    }
     const decision = path.match(/^\/projects\/([^/]+)\/approval-challenges\/([^/]+)\/decision$/u);
     if (decision) {
       const projectId = decodeURIComponent(decision[1]!); const challengeId = decodeURIComponent(decision[2]!);
@@ -643,6 +669,7 @@ export function createSaasRuntime(options: SaasRuntimeOptions): http.Server {
   const maxRequestBytes = options.maxRequestBytes ?? 16_384;
   const oidc = options.oidc ? new OidcBff(options.oidc) : null;
   const completedActions = new Map<string, string>();
+  const pendingInvalidations = new Map<string, PendingInvalidation>();
   return http.createServer(async (request, response) => {
     setSecurityHeaders(response);
     const contentLength = Number(request.headers["content-length"] ?? 0);
@@ -660,14 +687,14 @@ export function createSaasRuntime(options: SaasRuntimeOptions): http.Server {
     const session = identity?.session ?? await options.resolveSession(request);
     const resolvedIdentity = identity ?? (session ? { session } : null);
     if (request.method === "POST" && options.journey && resolvedIdentity) {
-      if (await handleJourneyAction({ request, response, identity: resolvedIdentity, path, gateway: options.journey, maxRequestBytes, completedActions, allowUnverifiedDemoFormPosts: options.allowUnverifiedDemoFormPosts ?? false })) return;
+      if (await handleJourneyAction({ request, response, identity: resolvedIdentity, path, gateway: options.journey, maxRequestBytes, completedActions, pendingInvalidations, allowUnverifiedDemoFormPosts: options.allowUnverifiedDemoFormPosts ?? false })) return;
     }
     if (request.method !== "GET" && request.method !== "HEAD") {
       response.setHeader("allow", options.journey ? "GET, HEAD, POST" : "GET, HEAD");
       response.writeHead(405).end();
       return;
     }
-    const journey = resolvedIdentity && options.journey ? await renderJourneyPage(resolvedIdentity, path, options.journey, url.searchParams.toString(), options.publicationExecutionEnabled ?? false) : null;
+    const journey = resolvedIdentity && options.journey ? await renderJourneyPage(resolvedIdentity, path, options.journey, url.searchParams.toString(), options.publicationExecutionEnabled ?? false, pendingInvalidations) : null;
     const page = journey ?? (session ? renderPage(session, path) : renderSignedOutShell());
     const knownJourney = path === "/publishing" || /^\/publishing\/projects\/[^/]+\/publications\/[^/]+$/u.test(path) || /^\/projects\/[^/]+(?:\/episodes\/[^/]+)?$/u.test(path) || /^\/projects\/[^/]+\/(?:assets|approval-challenges\/[^/]+)$/u.test(path) || /^\/workflows\/[^/]+\/[^/]+$/u.test(path);
     response.writeHead(session && !navigation.some(([href]) => href === path) && path !== "/projects/new" && !knownJourney ? 404 : 200);

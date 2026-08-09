@@ -48,6 +48,12 @@ export function createApiSdkSaasJourneyGateway(input: {
     async compareProductionUnitSnapshots(identity, projectId, episodeId) {
       return (await client(identity).compareProductionUnitSnapshots(workspace(identity), projectId, episodeId)).data;
     },
+    async previewArtifactInvalidation(identity, projectId, episodeId, value) {
+      return (await client(identity).previewArtifactInvalidation(workspace(identity), projectId, episodeId, value)).data;
+    },
+    async regenerateProductionUnits(identity, projectId, episodeId, value, idempotencyKey) {
+      return (await client(identity).regenerateProductionUnits(workspace(identity), projectId, episodeId, value, { idempotencyKey })).data;
+    },
     async createEpisode(identity, projectId, value, _idempotencyKey) {
       return (
         await client(identity).createEpisode(
