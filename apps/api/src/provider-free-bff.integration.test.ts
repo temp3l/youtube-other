@@ -63,7 +63,7 @@ describePostgres("provider-free tenant brief BFF acceptance", () => {
     await admin.close();
   });
 
-  it("persists a tenant-scoped provider-free brief through API SDK and BFF without exposing it to another tenant", async () => {
+  it("persists a tenant-scoped provider-free brief, rejects a stale BFF edit, and does not expose it to another tenant", async () => {
     const api = await serve(createApiServer({
       useCases: createPostgresApiUseCases({
         pool: applicationPool,
@@ -101,13 +101,27 @@ describePostgres("provider-free tenant brief BFF acceptance", () => {
     expect(episode.status).toBe(303);
     expect(episode.headers.get("location")).toBe(`/projects/${projectId}/episodes/episode-fixture`);
 
+    const currentEdit = await fetch(`${bff.baseUrl}/projects/${projectId}/episodes/episode-fixture`, {
+      method: "POST", redirect: "manual", headers: { origin: bff.baseUrl, "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ topic: "Current provider-free evidence", presetId: "historical-biography", format: "standard", audienceLevel: "general", revision: "0", idempotencyKey: "episode-current-fixture" }),
+    });
+    expect(currentEdit.status).toBe(303);
+
+    const staleEdit = await fetch(`${bff.baseUrl}/projects/${projectId}/episodes/episode-fixture`, {
+      method: "POST", redirect: "manual", headers: { origin: bff.baseUrl, "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ topic: "Stale provider-free evidence", presetId: "historical-biography", format: "standard", audienceLevel: "general", revision: "0", idempotencyKey: "episode-stale-fixture" }),
+    });
+    expect(staleEdit.status).toBe(412);
+    expect(await staleEdit.text()).toContain("This brief changed elsewhere");
+
     const persisted = await application.withWorkspaceTransaction(workspaceA, (transaction) => transaction.getEpisode(workspaceA, projectId!, "episode-fixture"));
-    expect(persisted?.content).toMatchObject({ type: "history", topic: "Provider-free evidence" });
+    expect(persisted).toMatchObject({ revision: 1, content: { type: "history", topic: "Current provider-free evidence" } });
     const tenantProjects = await fetch(`${bff.baseUrl}/projects`);
     expect(await tenantProjects.text()).toContain("Provider-free history");
     const otherTenantProjects = await fetch(`${otherTenantBff.baseUrl}/projects`);
     const otherTenantHtml = await otherTenantProjects.text();
     expect(otherTenantHtml).not.toContain("Provider-free history");
-    expect(otherTenantHtml).not.toContain("Provider-free evidence");
+    expect(otherTenantHtml).not.toContain("Current provider-free evidence");
+    expect(otherTenantHtml).not.toContain("Stale provider-free evidence");
   });
 });
