@@ -16,13 +16,19 @@ import type { RelationDiagnosticV36 } from "./explanatory-relation-validator-v36
 /** The only allowed origins for a representative shadow proposal. */
 export type ShadowCandidateSourceV36 =
   | "structured-claim-projection"
-  | "bounded-adjacent-claim-projection";
+  | "bounded-adjacent-claim-projection"
+  | "bounded-llm-claim-projection";
 
 export type ShadowExtractionDiagnosticCodeV36 =
   | "SHADOW_RELATION_PARTICIPANT_UNRESOLVED"
   | "SHADOW_RELATION_PROPOSITION_AMBIGUOUS"
   | "SHADOW_RELATION_TAXONOMY_UNSUPPORTED"
-  | "SHADOW_RELATION_INSUFFICIENT_CARDINALITY";
+  | "SHADOW_RELATION_INSUFFICIENT_CARDINALITY"
+  | "SHADOW_LLM_OUTPUT_SCHEMA_INVALID"
+  | "SHADOW_LLM_UNKNOWN_PARTICIPANT"
+  | "SHADOW_LLM_SUPPORT_CLAIM_OUT_OF_WINDOW"
+  | "SHADOW_LLM_CALL_BUDGET_EXHAUSTED"
+  | "SHADOW_LLM_PROVIDER_FAILURE";
 
 export interface ShadowExtractionDiagnosticV36 {
   readonly code: ShadowExtractionDiagnosticCodeV36;
@@ -220,7 +226,7 @@ function projectClaim(
       if (origin.id === destination.id) continue;
       const originName = escaped(origin.normalizedLabel);
       const destinationName = escaped(destination.normalizedLabel);
-      const hasFromTo = new RegExp(`\\bfrom\\s+(?:the\\s+)?${originName}\\b[\\s\\S]{0,80}\\b(?:to|toward|into)\\s+(?:(?:search|travel)\\s+for\\s+)?(?:the\\s+)?${destinationName}\\b`, "iu").test(text);
+      const hasFromTo = new RegExp(`\\bfrom\\s+(?:the\\s+)?${originName}\\b[\\s\\S]{0,80}\\b(?:to|toward|into)\\s+(?:the\\s+)?${destinationName}\\b`, "iu").test(text);
       const hasArrival = new RegExp(`\\b(?:arrived|returned)\\s+(?:at|in|into)\\b[^.]{0,48}?\\b${destinationName}\\b[\\s\\S]{0,80}\\bfrom\\s+(?:the\\s+)?${originName}\\b`, "iu").test(text);
       if (hasFromTo || hasArrival) pairs.push({ proposition: { kind: "movement", from: placeRef(origin), to: placeRef(destination), via: [] }, rule: hasArrival ? "movement-arrival-from" : "movement-from-to", participantIds: [origin.id, destination.id] });
     }

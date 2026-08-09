@@ -17,5 +17,10 @@
 | `SHADOW_RELATION_PROPOSITION_AMBIGUOUS` | Structured claim data does not establish a safe V3.6 proposition. |
 | `SHADOW_RELATION_TAXONOMY_UNSUPPORTED` | The explicit proposition needs a relation kind outside the frozen taxonomy. |
 | `SHADOW_RELATION_INSUFFICIENT_CARDINALITY` | A bounded proposal has too few required participants. |
+| `SHADOW_LLM_OUTPUT_SCHEMA_INVALID` | The optional bounded proposer returned output outside its strict schema. |
+| `SHADOW_LLM_UNKNOWN_PARTICIPANT` | An LLM proposal referenced a participant not supplied in its bounded packet or used the wrong participant type. |
+| `SHADOW_LLM_SUPPORT_CLAIM_OUT_OF_WINDOW` | An LLM proposal referenced support outside its bounded claim window. |
+| `SHADOW_LLM_CALL_BUDGET_EXHAUSTED` | The configured bounded-proposer call budget was exhausted; deterministic shadow extraction continued. |
+| `SHADOW_LLM_PROVIDER_FAILURE` | The optional provider failed; deterministic shadow extraction continued. |
 
 Representative projection keeps coordinated concepts grouped unless a proposition independently predicates the same relation over every member. Adjacent projection is limited to two claims and records rejected purpose-only or missing-predicate windows rather than inventing relations.

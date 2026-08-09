@@ -44,6 +44,12 @@ Consequently, Lisbon → English Channel supported by `[C1]` and by `[C1, C2]` r
 
 Its result is marked `v36-shadow`, contains validated relations plus rejected/skipped candidate diagnostics, and has no production planner, configuration, map, or diagram consumer. It is a golden-corpus/proof-bound integration seam—not production extraction.
 
+### Phase 2.2 bounded LLM proposer
+
+The optional `bounded-llm-claim-projection` source is a shadow-only proposer behind the same unchanged deterministic validator. It is disabled unless `HISTORY_V36_LLM_SHADOW_PROPOSER=1`; its model is supplied by `HISTORY_V36_RELATION_PROPOSER_MODEL`. Calls are limited to two-claim semantic windows selected from rejected deterministic opportunities or named representative recall controls, with hard ceilings of 40 calls per run and 8 per episode.
+
+Strict structured output may reference only participant and support IDs supplied in the packet. Unknown participants, out-of-window evidence, purpose-as-destination movement, schema failures, provider failures, and exhausted budgets fail open to deterministic-only shadow output. Successful responses use a timestamp-free SHA-256 cache identity over the episode, ordered claim IDs, normalized claim content, participant bindings, relation schema, prompt version, model, and provider.
+
 ## Contract and provenance versioning
 
 The hardened persisted relation contract is `history-explanatory-relations.v2`. V1 review artifacts must not be treated as V2 records because V1 overloaded semantic identity with evidence provenance. `explanatoryRelationSchemaV36` is the authoritative Zod runtime validator; `relation-schema.json` is machine-enforcing Draft 2020-12 JSON Schema generated directly from it with Zod's native JSON-Schema exporter. `relation-contract-document.json` is supplemental field-level review documentation generated alongside it.
@@ -57,7 +63,7 @@ Insufficient deterministic evidence yields an invalid relation and typed diagnos
 ## Migration
 
 1. Contracts and golden fixtures — complete here.
-2. Deterministic/LLM candidate extraction — future, shadow-only, and blocked until green tests prove semantic-identity independence from evidence windows.
+2. Deterministic extraction plus bounded LLM candidate experiment — complete in representative shadow mode; no production integration.
 3. Validators plus representative shadow corpus.
 4. V3.6 map/diagram consumers.
 5. Forty-episode shadow differential.

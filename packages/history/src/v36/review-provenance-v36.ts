@@ -37,3 +37,35 @@ export const reviewArtifactProvenanceJsonSchemaV36 = {
 export type ReviewArtifactProvenanceV36 = z.infer<
   typeof reviewArtifactProvenanceSchemaV36
 >;
+
+export const HISTORY_V36_BOUNDED_LLM_REVIEW_PROVENANCE_SCHEMA =
+  "history-v3.6-bounded-llm-shadow-review-provenance.v1" as const;
+export const HISTORY_V36_BOUNDED_LLM_REVIEW_ARTIFACT_KIND =
+  "history-v3.6-bounded-llm-shadow-review" as const;
+
+/** Dedicated provenance keeps the earlier V3.6 relation-review contract immutable. */
+export const boundedLlmReviewArtifactProvenanceSchemaV36 = z.object({
+  generatedAt: utcTimestampSchema,
+  gitCommitSha: gitShaSchema,
+  gitBranch: z.string(),
+  v36ImplementationCommitSha: gitShaSchema,
+  representativeV2BaselineCommitSha: gitShaSchema,
+  representativeV2BaselineTag: z.literal("history-v3.6-representative-shadow-v2-baseline"),
+  contractBaselineCommitSha: gitShaSchema,
+  contractBaselineTag: z.literal("history-v3.6-contract-preflight-baseline"),
+  frozenV35ProductionCommitSha: gitShaSchema,
+  frozenV35ProductionTag: z.literal("history-v3.5-frozen-before-v36"),
+  acceptedV35SemanticBaselineCommitSha: gitShaSchema,
+  acceptedV35SemanticBaselineTag: z.literal("history-v3.5-semantic-baseline"),
+  promptVersion: z.literal("history-v36-relation-proposer-v1"),
+  providerIdentity: z.string().nullable(),
+  model: z.string().nullable(),
+  liveExperimentStatus: z.enum(["run", "not-run"]),
+  schemaVersion: z.literal(HISTORY_V36_BOUNDED_LLM_REVIEW_PROVENANCE_SCHEMA),
+  artifactKind: z.literal(HISTORY_V36_BOUNDED_LLM_REVIEW_ARTIFACT_KIND),
+  episodeSet: z.array(z.string().trim().min(1)).length(8),
+}).strict();
+
+export type BoundedLlmReviewArtifactProvenanceV36 = z.infer<
+  typeof boundedLlmReviewArtifactProvenanceSchemaV36
+>;
