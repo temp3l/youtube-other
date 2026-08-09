@@ -226,6 +226,19 @@ export function createApiSdkSaasJourneyGateway(input: {
         })
       ).data;
     },
+    integrations: {
+      async listApiCredentials(identity) { return (await client(identity).listApiCredentials(workspace(identity))).data; },
+      async issueApiCredential(identity, value, idempotencyKey) { return (await client(identity).issueApiCredential(workspace(identity), value, { idempotencyKey })).data; },
+      async rotateApiCredential(identity, keyId, value, ifMatch, idempotencyKey) { return (await client(identity).rotateApiCredential(workspace(identity), keyId, value, { ifMatch, idempotencyKey })).data; },
+      async revokeApiCredential(identity, keyId, reason, ifMatch) { return (await client(identity).revokeApiCredential(workspace(identity), keyId, { reason }, { ifMatch })).data; },
+      async listWebhookEndpoints(identity) { return (await client(identity).listWebhookEndpoints(workspace(identity))).data; },
+      async createWebhookEndpoint(identity, value) { return (await client(identity).createWebhookEndpoint(workspace(identity), value)).data; },
+      async rotateWebhookEndpointSecret(identity, endpointId, overlapMs, ifMatch) { return (await client(identity).rotateWebhookEndpointSecret(workspace(identity), endpointId, overlapMs === undefined ? {} : { overlapMs }, { ifMatch })).data; },
+      async testWebhookEndpoint(identity, endpointId) { return (await client(identity).testWebhookEndpoint(workspace(identity), endpointId)).data; },
+      async listWebhookDeliveries(identity) { return (await client(identity).listWebhookDeliveries(workspace(identity))).data; },
+      async resendWebhookDelivery(identity, deliveryId, ifMatch) { return (await client(identity).resendWebhookDelivery(workspace(identity), deliveryId, { ifMatch })).data; },
+      async getDeveloperJourneyExamples(identity) { return (await client(identity).getDeveloperJourneyExamples(workspace(identity))).data; },
+    },
     publishing: {
       async listChannels(identity) {
         return (await client(identity).listPublishingChannels(workspace(identity))).data;

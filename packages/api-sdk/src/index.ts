@@ -24,6 +24,14 @@ export interface ApiCredentialRotateInput {
   readonly expiresAt: string;
   readonly overlapMs?: number;
 }
+export interface ApiCredentialIssueInput {
+  readonly name: string;
+  readonly principalId: string;
+  readonly permissions: readonly string[];
+  readonly expiresAt: string;
+  readonly overlapMs?: number;
+}
+export interface ApiCredentialRevokeInput { readonly reason: string; }
 export interface ApiCredentialRecord {
   readonly schemaVersion: "mediaforge.api-credential.v1";
   readonly workspaceId: string;
@@ -38,12 +46,54 @@ export interface ApiCredentialRecord {
   readonly createdAt: string;
   readonly updatedAt: string;
 }
+export interface ApiCredentialPage { readonly items: readonly ApiCredentialRecord[]; }
 export interface ApiCredentialIssueResult {
   readonly credential: ApiCredentialRecord;
   readonly token?: string;
   readonly replayed: boolean;
   readonly showOnce: boolean;
 }
+export interface DeveloperJourneyExamples {
+  readonly schemaVersion: "mediaforge.api-credential.v1";
+  readonly title: string;
+  readonly steps: readonly { readonly operationId: string; readonly method: string; readonly path: string; readonly requestSchema: string | null; readonly responseSchema: string; readonly requiredHeaders: readonly string[]; readonly note?: string }[];
+  readonly projectedAt: string;
+}
+
+export interface WebhookEndpointRecord {
+  readonly schemaVersion: "mediaforge.webhook-endpoint.v1";
+  readonly workspaceId: string;
+  readonly endpointId: string;
+  readonly url: string;
+  readonly secretVersion: number;
+  readonly enabled: boolean;
+  readonly eventFilters: readonly string[];
+  readonly overlapUntil?: string;
+  readonly revision: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+export interface WebhookEndpointPage { readonly items: readonly WebhookEndpointRecord[]; }
+export interface WebhookEndpointCreateInput { readonly url: string; readonly eventFilters: readonly string[]; }
+export interface WebhookEndpointCreateResult { readonly endpoint: WebhookEndpointRecord; readonly secret: string; readonly showOnce: true; }
+export interface WebhookSecretRotateInput { readonly overlapMs?: number; }
+export interface WebhookSecretRotateResult { readonly endpoint: WebhookEndpointRecord; readonly secret: string; readonly showOnce: true; }
+export interface WebhookTestResult { readonly delivered: boolean; readonly responseStatus?: number; readonly error?: string; }
+export interface WebhookDeliveryRecord {
+  readonly schemaVersion: "mediaforge.webhook-delivery.v1";
+  readonly workspaceId: string;
+  readonly deliveryId: string;
+  readonly endpointId: string;
+  readonly event: { readonly type: string; readonly subjectId: string; readonly occurredAt: string };
+  readonly state: "pending" | "delivered" | "dead_letter";
+  readonly attemptCount: number;
+  readonly lastStatus?: number;
+  readonly lastError?: string;
+  readonly revision: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+export interface WebhookDeliveryPage { readonly items: readonly WebhookDeliveryRecord[]; readonly nextAfter?: string; }
 
 export interface ProductionUnitAddress { readonly kind: string; readonly unitKey?: string; }
 export interface ProductionUnitSnapshot { readonly address: ProductionUnitAddress; readonly inputFingerprint: string; readonly contentHash?: string; readonly status: "missing" | "valid" | "stale" | "invalidated"; readonly artifactRecordId?: string; }
@@ -1007,6 +1057,46 @@ export class MediaforgeApiClient {
         idempotencyKey: options.idempotencyKey,
       }
     );
+  }
+
+  public issueApiCredential(workspaceId: string, input: ApiCredentialIssueInput, options: IdempotentRequestOptions): Promise<ApiResponse<ApiCredentialIssueResult>> {
+    return this.execute(`${this.workspacePath(workspaceId)}/api-credentials`, { method: "POST", body: input, options, idempotencyKey: options.idempotencyKey });
+  }
+
+  public listApiCredentials(workspaceId: string, options?: RequestOptions): Promise<ApiResponse<ApiCredentialPage>> {
+    return this.execute(`${this.workspacePath(workspaceId)}/api-credentials`, { ...(options ? { options } : {}) });
+  }
+
+  public revokeApiCredential(workspaceId: string, keyId: string, input: ApiCredentialRevokeInput, options: ConditionalRequestOptions): Promise<ApiResponse<ApiCredentialRecord>> {
+    return this.execute(`${this.workspacePath(workspaceId)}/api-credentials/${encodePath(keyId)}:revoke`, { method: "POST", body: input, options, ifMatch: options.ifMatch });
+  }
+
+  public getDeveloperJourneyExamples(workspaceId: string, options?: RequestOptions): Promise<ApiResponse<DeveloperJourneyExamples>> {
+    return this.execute(`${this.workspacePath(workspaceId)}/developer-journey-examples`, { ...(options ? { options } : {}) });
+  }
+
+  public createWebhookEndpoint(workspaceId: string, input: WebhookEndpointCreateInput, options?: RequestOptions): Promise<ApiResponse<WebhookEndpointCreateResult>> {
+    return this.execute(`${this.workspacePath(workspaceId)}/webhook-endpoints`, { method: "POST", body: input, ...(options ? { options } : {}) });
+  }
+
+  public listWebhookEndpoints(workspaceId: string, options?: RequestOptions): Promise<ApiResponse<WebhookEndpointPage>> {
+    return this.execute(`${this.workspacePath(workspaceId)}/webhook-endpoints`, { ...(options ? { options } : {}) });
+  }
+
+  public rotateWebhookEndpointSecret(workspaceId: string, endpointId: string, input: WebhookSecretRotateInput, options: ConditionalRequestOptions): Promise<ApiResponse<WebhookSecretRotateResult>> {
+    return this.execute(`${this.workspacePath(workspaceId)}/webhook-endpoints/${encodePath(endpointId)}:rotate-secret`, { method: "POST", body: input, options, ifMatch: options.ifMatch });
+  }
+
+  public testWebhookEndpoint(workspaceId: string, endpointId: string, options?: RequestOptions): Promise<ApiResponse<WebhookTestResult>> {
+    return this.execute(`${this.workspacePath(workspaceId)}/webhook-endpoints/${encodePath(endpointId)}:test`, { method: "POST", ...(options ? { options } : {}) });
+  }
+
+  public listWebhookDeliveries(workspaceId: string, options?: RequestOptions): Promise<ApiResponse<WebhookDeliveryPage>> {
+    return this.execute(`${this.workspacePath(workspaceId)}/webhook-deliveries`, { ...(options ? { options } : {}) });
+  }
+
+  public resendWebhookDelivery(workspaceId: string, deliveryId: string, options: ConditionalRequestOptions): Promise<ApiResponse<WebhookDeliveryRecord>> {
+    return this.execute(`${this.workspacePath(workspaceId)}/webhook-deliveries/${encodePath(deliveryId)}:resend`, { method: "POST", options, ifMatch: options.ifMatch });
   }
 
   public getEpisodeProductionState(

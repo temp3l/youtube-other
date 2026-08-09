@@ -28,6 +28,19 @@ import type {
   PublishingChannel,
   PublishingChannelPage,
   UsageRecordPage,
+  ApiCredentialPage,
+  ApiCredentialIssueInput,
+  ApiCredentialIssueResult,
+  ApiCredentialRecord,
+  ApiCredentialRotateInput,
+  DeveloperJourneyExamples,
+  WebhookDeliveryPage,
+  WebhookDeliveryRecord,
+  WebhookEndpointCreateInput,
+  WebhookEndpointCreateResult,
+  WebhookEndpointPage,
+  WebhookSecretRotateResult,
+  WebhookTestResult,
   ValidationPage,
   WorkspaceQuotaStatus,
   CapabilityRegistry,
@@ -52,12 +65,28 @@ export interface PublishingJourneyGateway {
   updateSchedule(identity: SaasIdentity, projectId: string, publicationId: string, input: PublicationScheduleUpdateInput, ifMatch: string): Promise<PublicationScheduleUpdateResult>;
 }
 
+/** Integration secrets are returned only by the action response, never by a read model. */
+export interface IntegrationsJourneyGateway {
+  listApiCredentials(identity: SaasIdentity): Promise<ApiCredentialPage>;
+  issueApiCredential(identity: SaasIdentity, input: ApiCredentialIssueInput, idempotencyKey: string): Promise<ApiCredentialIssueResult>;
+  rotateApiCredential(identity: SaasIdentity, keyId: string, input: ApiCredentialRotateInput, ifMatch: string, idempotencyKey: string): Promise<ApiCredentialIssueResult>;
+  revokeApiCredential(identity: SaasIdentity, keyId: string, reason: string, ifMatch: string): Promise<ApiCredentialRecord>;
+  listWebhookEndpoints(identity: SaasIdentity): Promise<WebhookEndpointPage>;
+  createWebhookEndpoint(identity: SaasIdentity, input: WebhookEndpointCreateInput): Promise<WebhookEndpointCreateResult>;
+  rotateWebhookEndpointSecret(identity: SaasIdentity, endpointId: string, overlapMs: number | undefined, ifMatch: string): Promise<WebhookSecretRotateResult>;
+  testWebhookEndpoint(identity: SaasIdentity, endpointId: string): Promise<WebhookTestResult>;
+  listWebhookDeliveries(identity: SaasIdentity): Promise<WebhookDeliveryPage>;
+  resendWebhookDelivery(identity: SaasIdentity, deliveryId: string, ifMatch: string): Promise<WebhookDeliveryRecord>;
+  getDeveloperJourneyExamples(identity: SaasIdentity): Promise<DeveloperJourneyExamples>;
+}
+
 /**
  * Server-side gateway used by the web BFF. It deliberately receives a server
  * identity, never a browser-supplied bearer token.
  */
 export interface SaasJourneyGateway {
   readonly publishing?: PublishingJourneyGateway;
+  readonly integrations?: IntegrationsJourneyGateway;
   listProjects(identity: SaasIdentity): Promise<ProjectPage>;
   createProject(identity: SaasIdentity, input: ProjectInput, idempotencyKey: string): Promise<Project>;
   listEpisodes(identity: SaasIdentity, projectId: string): Promise<EpisodePage>;

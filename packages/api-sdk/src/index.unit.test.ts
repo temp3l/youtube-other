@@ -29,6 +29,42 @@ function jsonResponse(value: unknown, init: ResponseInit = {}): Response {
 }
 
 describe("Mediaforge API SDK", () => {
+  it("maps integration credential and webhook operations without retaining show-once values", async () => {
+    const requests: Array<{ readonly url: string; readonly init?: RequestInit }> = [];
+    const client = new MediaforgeApiClient({
+      baseUrl: "https://api.example.test",
+      request: (async (url: string | URL | Request, init?: RequestInit) => {
+        requests.push({ url: String(url), ...(init ? { init } : {}) });
+        return jsonResponse({ items: [] }, { status: init?.method === "POST" ? 201 : 200 });
+      }) as typeof fetch,
+    });
+    await client.issueApiCredential("ws-1", { name: "deploy", principalId: "principal-1", permissions: ["workflow.read"], expiresAt: "2030-01-01T00:00:00.000Z" }, { idempotencyKey: "issue-1" });
+    await client.listApiCredentials("ws-1");
+    await client.revokeApiCredential("ws-1", "key-1", { reason: "replaced" }, { ifMatch: '"2"' });
+    await client.createWebhookEndpoint("ws-1", { url: "https://hooks.example.test/mediaforge", eventFilters: ["workflow.completed"] });
+    await client.listWebhookEndpoints("ws-1");
+    await client.rotateWebhookEndpointSecret("ws-1", "endpoint-1", {}, { ifMatch: '"3"' });
+    await client.testWebhookEndpoint("ws-1", "endpoint-1");
+    await client.listWebhookDeliveries("ws-1");
+    await client.resendWebhookDelivery("ws-1", "delivery-1", { ifMatch: '"4"' });
+    await client.getDeveloperJourneyExamples("ws-1");
+    expect(requests.map((request) => new URL(request.url).pathname)).toEqual([
+      "/v1/workspaces/ws-1/api-credentials",
+      "/v1/workspaces/ws-1/api-credentials",
+      "/v1/workspaces/ws-1/api-credentials/key-1:revoke",
+      "/v1/workspaces/ws-1/webhook-endpoints",
+      "/v1/workspaces/ws-1/webhook-endpoints",
+      "/v1/workspaces/ws-1/webhook-endpoints/endpoint-1:rotate-secret",
+      "/v1/workspaces/ws-1/webhook-endpoints/endpoint-1:test",
+      "/v1/workspaces/ws-1/webhook-deliveries",
+      "/v1/workspaces/ws-1/webhook-deliveries/delivery-1:resend",
+      "/v1/workspaces/ws-1/developer-journey-examples",
+    ]);
+    expect(new Headers(requests[0]!.init?.headers).get("idempotency-key")).toBe("issue-1");
+    expect(new Headers(requests[2]!.init?.headers).get("if-match")).toBe('"2"');
+    expect(new Headers(requests[8]!.init?.headers).get("if-match")).toBe('"4"');
+  });
+
   it("types the canonical mathematics capability contract", () => {
     expectTypeOf<MathematicsEducationContent["grade"]>().toEqualTypeOf<
       5 | 6 | 7 | 8 | 9 | 10

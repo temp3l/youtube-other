@@ -9,7 +9,7 @@ import {
 } from "@mediaforge/api-sdk";
 import { renderGenreSpeechSettings } from "./speech-administration.js";
 import type { SaasJourneyGateway } from "./saas-api-bff.js";
-import type { RecentAuthConfirmationConsumer } from "./recent-auth-step-up.js";
+import { consumeRecentAuthConfirmation, type RecentAuthConfirmationConsumer } from "./recent-auth-step-up.js";
 
 export type SaasProfile =
   | "mathematics_education"
@@ -126,6 +126,26 @@ function shell(session: SaasSession, path: string, title: string, subtitle: stri
 
 function empty(title: string, text: string, action?: string): string {
   return `<section class="empty"><h2>${escapeHtml(title)}</h2><p>${escapeHtml(text)}</p>${action ? `<p><a class="button" href="${action}">Get started</a></p>` : ""}</section>`;
+}
+
+function integrationPage(identity: SaasIdentity, path: string, gateway: SaasJourneyGateway, search: string, values: {
+  readonly credentials: Awaited<ReturnType<NonNullable<SaasJourneyGateway["integrations"]>["listApiCredentials"]>>;
+  readonly endpoints: Awaited<ReturnType<NonNullable<SaasJourneyGateway["integrations"]>["listWebhookEndpoints"]>>;
+  readonly deliveries: Awaited<ReturnType<NonNullable<SaasJourneyGateway["integrations"]>["listWebhookDeliveries"]>>;
+  readonly examples: Awaited<ReturnType<NonNullable<SaasJourneyGateway["integrations"]>["getDeveloperJourneyExamples"]>>;
+}): string {
+  const stepUp = (action: string) => `/auth/step-up?action=${encodeURIComponent(action)}`;
+  const stepUpNotice = new URLSearchParams(search).get("stepUp") === "complete"
+    ? `<section class="notice"><strong>Recent authentication confirmed.</strong><p>Your confirmation is single-use and applies only to the action you choose next.</p></section>` : "";
+  const credentials = values.credentials.items.map((credential) => `<div class="row"><div><strong>${escapeHtml(credential.name)}</strong><span>${escapeHtml(credential.status)} · ${escapeHtml(credential.permissions.join(", "))} · expires ${escapeHtml(credential.expiresAt)}</span></div><div class="actions"><form method="post" action="/integrations/api-credentials/${encodeURIComponent(credential.keyId)}:rotate"><input type="hidden" name="revision" value="${credential.revision}">${idempotencyField()}<button class="button secondary" type="submit">Rotate</button></form><form method="post" action="/integrations/api-credentials/${encodeURIComponent(credential.keyId)}:revoke"><input type="hidden" name="revision" value="${credential.revision}">${idempotencyField()}<button class="button secondary" type="submit">Revoke</button></form></div></div>`).join("");
+  const endpoints = values.endpoints.items.map((endpoint) => `<div class="row"><div><strong>${escapeHtml(endpoint.url)}</strong><span>${endpoint.enabled ? "Enabled" : "Disabled"} · ${escapeHtml(endpoint.eventFilters.join(", ") || "all approved events")} · secret version ${endpoint.secretVersion}</span></div><div class="actions"><form method="post" action="/integrations/webhooks/${encodeURIComponent(endpoint.endpointId)}:test">${idempotencyField()}<button class="button secondary" type="submit">Send test</button></form><form method="post" action="/integrations/webhooks/${encodeURIComponent(endpoint.endpointId)}:rotate-secret"><input type="hidden" name="revision" value="${endpoint.revision}">${idempotencyField()}<button class="button secondary" type="submit">Rotate secret</button></form></div></div>`).join("");
+  const deliveries = values.deliveries.items.map((delivery) => `<div class="row"><div><strong>${escapeHtml(delivery.event.type)}</strong><span>${escapeHtml(delivery.state)} · ${delivery.attemptCount} attempts${delivery.lastStatus ? ` · HTTP ${delivery.lastStatus}` : ""}${delivery.lastError ? ` · ${escapeHtml(delivery.lastError)}` : ""}</span></div><form method="post" action="/integrations/webhook-deliveries/${encodeURIComponent(delivery.deliveryId)}:resend"><input type="hidden" name="revision" value="${delivery.revision}">${idempotencyField()}<button class="button secondary" type="submit">Resend</button></form></div>`).join("");
+  const examples = values.examples.steps.map((step) => `<div class="step"><strong>${escapeHtml(step.method)} ${escapeHtml(step.path)}</strong><p>${escapeHtml(step.operationId)} · ${escapeHtml(step.responseSchema)}${step.requiredHeaders.length ? ` · required: ${escapeHtml(step.requiredHeaders.join(", "))}` : ""}</p></div>`).join("");
+  return shell(identity.session, path, "Integrations", "Credentials and webhook secrets are server-managed, displayed only once, and never appear in status or history.", `${stepUpNotice}<section class="card"><h2>API credentials</h2><p>Creating, rotating, or revoking a credential requires a fresh, single-use confirmation.</p><form class="form" style="margin-top:14px" method="post" action="/integrations/api-credentials"><label class="field">Credential name<input required name="name" maxlength="160"></label><label class="field">Permissions <span class="hint">Comma-separated approved permission identifiers.</span><input required name="permissions" maxlength="2000"></label><label class="field">Expiry (ISO 8601)<input required name="expiresAt" placeholder="2030-01-01T00:00:00Z"></label>${idempotencyField()}<button class="button" type="submit">Create credential</button></form></section><div class="stack" style="margin-top:12px">${credentials || empty("No credentials", "Create a least-privilege service credential when an integration is ready.")}</div><section class="card" style="margin-top:18px"><h2>Webhook endpoints</h2><p>Endpoints receive signed events only. A signing secret is returned once after creation or rotation.</p><form class="form" style="margin-top:14px" method="post" action="/integrations/webhooks"><label class="field">HTTPS endpoint URL<input required type="url" name="url" maxlength="2048"></label><label class="field">Event filters <span class="hint">Comma-separated; leave blank for the server-approved default.</span><input name="eventFilters" maxlength="4000"></label>${idempotencyField()}<button class="button" type="submit">Create endpoint</button></form></section><div class="stack" style="margin-top:12px">${endpoints || empty("No webhook endpoints", "Add a signed HTTPS endpoint to start receiving approved events.")}</div><section class="card" style="margin-top:18px"><h2>Delivery history</h2><p>Only redacted delivery summaries are shown. Resend preserves the original event identity.</p></section><div class="stack" style="margin-top:12px">${deliveries || empty("No deliveries", "Endpoint deliveries will appear here after an approved event is dispatched.")}</div><section class="card" style="margin-top:18px"><h2>Generated API journey</h2><p>${escapeHtml(values.examples.title)}. Use the typed SDK or this canonical operation sequence; secrets are never included in examples.</p><div class="steps" style="margin-top:14px">${examples}</div></section><section class="notice" style="margin-top:18px"><strong>Step-up is action-bound.</strong><p><a href="${stepUp("credential.issue")}">Confirm for credential creation</a>. The confirmation cannot be replayed for another action, workspace, principal, or browser session.</p></section>`);
+}
+
+function showOnceSecretPage(identity: SaasIdentity, title: string, secret: string, detail: string): string {
+  return shell(identity.session, "/integrations", title, "Copy this value now. It is not stored in browser state and cannot be displayed again.", `<section class="alert" role="alert"><strong>Shown once</strong><p>${escapeHtml(detail)}</p></section><section class="card" style="margin-top:18px"><label class="field">Secret value<textarea readonly aria-label="One-time secret">${escapeHtml(secret)}</textarea><span class="hint">This response is no-store. Reloading or returning to integrations will not display the value.</span></label></section><p style="margin-top:18px"><a class="button" href="/integrations">Return to integrations</a></p>`);
 }
 
 function renderPage(session: SaasSession, path: string): string {
@@ -266,6 +286,14 @@ async function renderJourneyPage(identity: SaasIdentity, path: string, gateway: 
       const execution = publicationExecutionEnabled ? `<section class="notice"><strong>Execution is server-owned.</strong><p>The browser never receives an OAuth token or direct provider control. The internal worker must still pass its confirmation and fence checks.</p></section>` : `<section class="notice"><strong>Execution is disabled.</strong><p>The platform flag is off; no executable publish control is rendered.</p></section>`;
       return shell(identity.session, path, "Publication intent", "This page displays only safe, immutable bindings and state.", `${execution}<section class="card" style="margin-top:18px"><h2>${escapeHtml(publication.status.replaceAll("_", " "))}</h2><p>${escapeHtml(publicationStatusMessage(publication.status))}</p><div class="stack" style="margin-top:14px"><div class="row"><div><strong>Destination</strong><span>Channel ${escapeHtml(publication.channelId)} · intended ${escapeHtml(publication.visibility)} visibility</span></div><span class="tag neutral">revision ${publication.revision}</span></div><div class="row"><div><strong>Source evidence</strong><span>Approval ${escapeHtml(publication.approvalId)} revision ${publication.approvalRevision} · asset ${escapeHtml(publication.assetHash)}</span></div><span class="tag neutral">Immutable</span></div><div class="row"><div><strong>Schedule</strong><span>${escapeHtml(publication.scheduledAt ?? "Not scheduled")}</span></div><span class="tag neutral">Server validated</span></div></div>${controls}</section><section class="card" style="margin-top:18px"><h2>Safe recovery</h2><p>Metadata changes require a new immutable intent. Reconciliation never guesses an external outcome or regenerates media.</p></section>`);
     }
+    if (path === "/integrations") {
+      const integrations = gateway.integrations;
+      if (!integrations) return shell(identity.session, path, "Integrations", "This workspace has no server-configured integration gateway.", `<section class="notice"><strong>Integration management is unavailable.</strong><p>Credentials and webhooks stay disabled until a server-side API client and recent-auth consumer are configured.</p></section>`);
+      const [credentials, endpoints, deliveries, examples] = await Promise.all([
+        integrations.listApiCredentials(identity), integrations.listWebhookEndpoints(identity), integrations.listWebhookDeliveries(identity), integrations.getDeveloperJourneyExamples(identity),
+      ]);
+      return integrationPage(identity, path, gateway, search, { credentials, endpoints, deliveries, examples });
+    }
     if (path === "/settings") {
       const capabilities = await gateway.getWorkspaceCapabilities(identity);
       return shell(identity.session, path, "Languages and voice readiness", "Selectable options are resolved from persisted workspace configuration. Voice credentials and consent records remain server-side.", languageAndVoiceReadiness(capabilities));
@@ -319,7 +347,6 @@ async function renderJourneyPage(identity: SaasIdentity, path: string, gateway: 
       const auditRows = audit.items.length ? `<div class="stack">${audit.items.map((entry) => `<div class="row"><div><strong>${escapeHtml(entry.action)}</strong><span>${escapeHtml(entry.occurredAt)} · correlation ${escapeHtml(entry.correlationId)}</span></div><span class="tag neutral">Recorded</span></div>`).join("")}</div>` : empty("No audit events", "Security-relevant actions will appear as immutable facts.");
       return shell(identity.session, path, "Usage and audit", "Costs and audit facts are append-only. Billing and publication are unavailable for this pilot.", `<div class="grid"><section class="card"><h2>Available budget</h2><div class="metric">${escapeHtml(quota.availableMinor)}</div><p>Minor units remaining of ${escapeHtml(quota.budgetLimitMinor)}.</p></section><section class="card"><h2>Reserved</h2><div class="metric">${escapeHtml(quota.reservedMinor)}</div><p>Committed before external work starts.</p></section><section class="card"><h2>Settled</h2><div class="metric">${escapeHtml(quota.settledMinor)}</div><p>Finalized usage, including corrections.</p></section></div><section class="card" style="margin-top:18px"><h2>Usage records</h2><p>Records are never edited in place.</p></section><div style="margin-top:12px">${usageRows}</div><section class="card" style="margin-top:18px"><h2>Audit trail</h2><p>Filtered by your workspace; raw credentials and provider details are never shown.</p></section><div style="margin-top:12px">${auditRows}</div>`);
     }
-    if (path === "/integrations") return shell(identity.session, path, "Integrations", "This restricted pilot has no browser-managed secrets or external recovery controls.", `<div class="stack"><div class="row"><div><strong>API access</strong><span>Issuance and rotation are not enabled in this pilot contract.</span></div><span class="tag neutral">Unavailable</span></div><div class="row"><div><strong>Webhooks</strong><span>Endpoint provisioning and replay remain operator-disabled.</span></div><span class="tag neutral">Unavailable</span></div><div class="row"><div><strong>Publication recovery</strong><span>Recovery never guesses an external outcome and no publication action is exposed.</span></div><span class="tag neutral">Disabled</span></div></div>`);
     if (path === "/projects") return shell(identity.session, path, "Projects", "Projects keep related episode briefs, artifacts, and workflow history together.", projectList(identity.session, (await gateway.listProjects(identity)).items), `<a class="button" href="/projects/new">Create project</a>`);
     if (path === "/projects/new") return shell(identity.session, path, "Create a project", "Choose an entitled profile. You can revise the episode brief before any workflow starts.", createProjectForm(identity.session));
     const projectMatch = path.match(/^\/projects\/([^/]+)$/u);
@@ -510,8 +537,9 @@ async function handleJourneyAction(input: {
   readonly completedActions: Map<string, string>;
   readonly pendingInvalidations: Map<string, PendingInvalidation>;
   readonly allowUnverifiedDemoFormPosts: boolean;
+  readonly recentAuthConsumer?: RecentAuthConfirmationConsumer;
 }): Promise<boolean> {
-  const { request, response, identity, path, gateway, maxRequestBytes, completedActions, pendingInvalidations, allowUnverifiedDemoFormPosts } = input;
+  const { request, response, identity, path, gateway, maxRequestBytes, completedActions, pendingInvalidations, allowUnverifiedDemoFormPosts, recentAuthConsumer } = input;
   if (request.method !== "POST") return false;
   if (!isSameOrigin(request) && !allowUnverifiedDemoFormPosts) { response.writeHead(403).end(); return true; }
   let values: URLSearchParams;
@@ -524,7 +552,72 @@ async function handleJourneyAction(input: {
     completedActions.set(replayKey, location);
     response.writeHead(303, { location }).end();
   };
+  const requireRecentAuth = async (action: string): Promise<boolean> => {
+    if (await consumeRecentAuthConfirmation({ identity, action, ...(recentAuthConsumer ? { consumer: recentAuthConsumer } : {}) })) return true;
+    response.writeHead(303, { location: `/auth/step-up?action=${encodeURIComponent(action)}` }).end();
+    return false;
+  };
   try {
+    if (path === "/integrations/api-credentials") {
+      const integrations = gateway.integrations;
+      if (!integrations) { actionError(response, identity.session, path, 409, "Credential management is unavailable for this workspace."); return true; }
+      if (!await requireRecentAuth("credential.issue")) return true;
+      const permissions = listField(values, "permissions");
+      if (!permissions.length) throw new Error("Enter at least one permission.");
+      const issued = await integrations.issueApiCredential(identity, { name: requiredField(values, "name", 160), principalId: identity.session.principalId, permissions, expiresAt: requiredField(values, "expiresAt", 80) }, idempotencyKey);
+      if (!issued.token || !issued.showOnce || issued.replayed) { actionError(response, identity.session, path, 409, "This credential request was already processed. Its secret is not available again."); return true; }
+      response.writeHead(201).end(applyStyleNonce(response, showOnceSecretPage(identity, "Credential created", issued.token, "Store the credential in your approved secret manager before leaving this page."))); return true;
+    }
+    const rotateCredential = path.match(/^\/integrations\/api-credentials\/([^/]+):rotate$/u);
+    if (rotateCredential) {
+      const integrations = gateway.integrations;
+      if (!integrations) { actionError(response, identity.session, path, 409, "Credential management is unavailable for this workspace."); return true; }
+      if (!await requireRecentAuth("credential.rotate")) return true;
+      const existing = (await integrations.listApiCredentials(identity)).items.find((item) => item.keyId === decodeURIComponent(rotateCredential[1]!));
+      if (!existing) { actionError(response, identity.session, path, 404, "The credential is unavailable."); return true; }
+      const issued = await integrations.rotateApiCredential(identity, existing.keyId, { name: existing.name, permissions: existing.permissions, expiresAt: existing.expiresAt, overlapMs: 0 }, `"${nonNegativeInteger(values, "revision")}"`, idempotencyKey);
+      if (!issued.token || !issued.showOnce || issued.replayed) { actionError(response, identity.session, path, 409, "This rotation was already processed. Its replacement secret is not available again."); return true; }
+      response.writeHead(201).end(applyStyleNonce(response, showOnceSecretPage(identity, "Credential rotated", issued.token, "The prior credential has been replaced with the configured no-overlap policy."))); return true;
+    }
+    const revokeCredential = path.match(/^\/integrations\/api-credentials\/([^/]+):revoke$/u);
+    if (revokeCredential) {
+      const integrations = gateway.integrations;
+      if (!integrations) { actionError(response, identity.session, path, 409, "Credential management is unavailable for this workspace."); return true; }
+      if (!await requireRecentAuth("credential.revoke")) return true;
+      await integrations.revokeApiCredential(identity, decodeURIComponent(revokeCredential[1]!), "Revoked through the authenticated integrations console.", `"${nonNegativeInteger(values, "revision")}"`);
+      redirect("/integrations"); return true;
+    }
+    if (path === "/integrations/webhooks") {
+      const integrations = gateway.integrations;
+      if (!integrations) { actionError(response, identity.session, path, 409, "Webhook management is unavailable for this workspace."); return true; }
+      if (!await requireRecentAuth("webhook.create")) return true;
+      const created = await integrations.createWebhookEndpoint(identity, { url: requiredField(values, "url", 2_048), eventFilters: listField(values, "eventFilters") });
+      response.writeHead(201).end(applyStyleNonce(response, showOnceSecretPage(identity, "Webhook endpoint created", created.secret, "Store this signing secret in your receiver before sending or accepting events."))); return true;
+    }
+    const rotateWebhookSecret = path.match(/^\/integrations\/webhooks\/([^/]+):rotate-secret$/u);
+    if (rotateWebhookSecret) {
+      const integrations = gateway.integrations;
+      if (!integrations) { actionError(response, identity.session, path, 409, "Webhook management is unavailable for this workspace."); return true; }
+      if (!await requireRecentAuth("webhook.rotate_secret")) return true;
+      const result = await integrations.rotateWebhookEndpointSecret(identity, decodeURIComponent(rotateWebhookSecret[1]!), undefined, `"${nonNegativeInteger(values, "revision")}"`);
+      response.writeHead(200).end(applyStyleNonce(response, showOnceSecretPage(identity, "Webhook secret rotated", result.secret, "Update your receiver immediately; no overlap window was requested."))); return true;
+    }
+    const testWebhook = path.match(/^\/integrations\/webhooks\/([^/]+):test$/u);
+    if (testWebhook) {
+      const integrations = gateway.integrations;
+      if (!integrations) { actionError(response, identity.session, path, 409, "Webhook management is unavailable for this workspace."); return true; }
+      if (!await requireRecentAuth("webhook.test")) return true;
+      const result = await integrations.testWebhookEndpoint(identity, decodeURIComponent(testWebhook[1]!));
+      redirect(`/integrations?test=${result.delivered ? "delivered" : "failed"}`); return true;
+    }
+    const resendWebhook = path.match(/^\/integrations\/webhook-deliveries\/([^/]+):resend$/u);
+    if (resendWebhook) {
+      const integrations = gateway.integrations;
+      if (!integrations) { actionError(response, identity.session, path, 409, "Webhook management is unavailable for this workspace."); return true; }
+      if (!await requireRecentAuth("webhook.resend")) return true;
+      await integrations.resendWebhookDelivery(identity, decodeURIComponent(resendWebhook[1]!), `"${nonNegativeInteger(values, "revision")}"`);
+      redirect("/integrations"); return true;
+    }
     if (path === "/publishing/channels:connect") {
       const publishing = gateway.publishing;
       if (!publishing) { actionError(response, identity.session, path, 409, "Channel connection is unavailable for this workspace."); return true; }
@@ -685,7 +778,7 @@ export function createSaasRuntime(options: SaasRuntimeOptions): http.Server {
     const session = identity?.session ?? await options.resolveSession(request);
     const resolvedIdentity = identity ?? (session ? { session } : null);
     if (request.method === "POST" && options.journey && resolvedIdentity) {
-      if (await handleJourneyAction({ request, response, identity: resolvedIdentity, path, gateway: options.journey, maxRequestBytes, completedActions, pendingInvalidations, allowUnverifiedDemoFormPosts: options.allowUnverifiedDemoFormPosts ?? false })) return;
+      if (await handleJourneyAction({ request, response, identity: resolvedIdentity, path, gateway: options.journey, maxRequestBytes, completedActions, pendingInvalidations, allowUnverifiedDemoFormPosts: options.allowUnverifiedDemoFormPosts ?? false, ...(options.recentAuthConsumer ? { recentAuthConsumer: options.recentAuthConsumer } : {}) })) return;
     }
     if (request.method !== "GET" && request.method !== "HEAD") {
       response.setHeader("allow", options.journey ? "GET, HEAD, POST" : "GET, HEAD");
