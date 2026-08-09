@@ -14,7 +14,6 @@ import {
   createExplanatoryRelationV36,
   explanatoryRelationJsonSchemaV36,
   explanatoryRelationSchemaV36,
-  goldenSemanticFixturesV36,
   policyResponseAssertionSemanticsV36,
   policyResponseModalityDecisionMatrixSchemaV36,
   relationContractDocumentV36,
@@ -25,6 +24,7 @@ import {
   approvedCrossClaimConditionClaimIdV36,
   approvedCrossClaimResponseClaimIdV36,
 } from "../packages/history/src/index.js";
+import { goldenSemanticFixturesV36 } from "../packages/history/src/v36/golden-semantic-fixtures-v36.js";
 
 const exec = promisify(execFile);
 const repository = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
