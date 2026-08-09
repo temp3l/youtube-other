@@ -2,7 +2,7 @@
 
 - Source plan: `docs/plans/veronicabenini-strategic-reinvention-implementation/`
 - Date: 2026-08-09
-- Status: in progress; Waves 0–1 validated
+- Status: in progress; Waves 0–2 validated
 
 ## Summary
 
@@ -14,9 +14,9 @@ See `IMPLEMENTATION-CHECKPOINT.md` and per-task Codex run reports.
 
 ## Tasks
 
-- Completed: VRI-01 through VRI-06
+- Completed: VRI-01 through VRI-08
 - Partially completed: none
-- Not completed: VRI-07 through VRI-26
+- Not completed: VRI-09 through VRI-26
 - Deviations: branch fast-forwarded to `origin/master` because the requested plan was added after the starting checkout.
 
 ## Tests and results
@@ -25,4 +25,4 @@ Focused suites passed for domain/config/profile (18), lifecycle persistence (9),
 
 ## Risks and next steps
 
-Legacy persisted path migration remains owned by VRI-25. Execute VRI-07 and VRI-08 next.
+Legacy persisted path migration remains owned by VRI-25. Execute VRI-09 and VRI-11 next.

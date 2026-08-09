@@ -13,8 +13,10 @@
 | VRI-03 | VALIDATED | worker + coordinator review | 13 focused tests; Veronica media typecheck pass | `f17838f` |
 | VRI-04 | VALIDATED | worker + coordinator review | 50 focused tests; shared typecheck pass | `f17838f` |
 | VRI-05 | VALIDATED | worker + coordinator review | 8 focused tests pass | `3dbeae1` |
-| VRI-06 | VALIDATED | worker + coordinator review | 6 focused tests; visual-planning build pass | pending commit |
-| VRI-07..VRI-26 | NOT_STARTED | unassigned | not run | none |
+| VRI-06 | VALIDATED | worker + coordinator review | 6 focused tests; visual-planning build pass | `94710be` |
+| VRI-07 | VALIDATED | worker + coordinator review | 4 focused tests; visual-planning build pass | pending wave commit |
+| VRI-08 | VALIDATED | worker + coordinator review | 5 focused tests pass | pending wave commit |
+| VRI-09..VRI-26 | NOT_STARTED | unassigned | not run | none |
 
 ## VRI-01 evidence
 
@@ -30,6 +32,13 @@
 - VRI-04: identity is revision/configuration/dependency-bound; shared visuals ignore locale; typed changes invalidate each affected task once while preserving unrelated artifacts and approval history.
 - API lifecycle tests remain collection-blocked by unbuilt application dependency artifacts. Persistence behavior and API input contracts are focused-tested; VRI-19 owns HTTP/OpenAPI parity.
 
+## Wave 2 merge-gate evidence
+
+- Source-led narration is the frozen input authority; no fixture narration/media is synthesized on production paths.
+- Scene visual plans select only explicitly displayable source candidates and persist policy-review evidence.
+- Camera direction fingerprints include semantic direction inputs but exclude locale and invocation operation; references are attached only by audited relevance.
+- Text-bearing source slides require localized reflow/composition; ratio-specific readability rejects blind crops, unsafe areas, undersized text, and shared composition identities.
+
 ## Next executable tasks
 
-VRI-06 and VRI-08 are unblocked and safe in parallel. VRI-07 follows VRI-06 plus the validated VRI-04 contract.
+VRI-09 and VRI-11 are unblocked; VRI-10 and VRI-12 follow their stated dependencies.

@@ -108,3 +108,21 @@ export {
   type SceneVisualSelection,
   type SourceDisplayPolicy,
 } from "./scene-visual-policy.js";
+
+export {
+  PERSISTED_VISUAL_DIRECTION_RESOLVER_V1,
+  PERSISTED_VISUAL_DIRECTION_SCHEMA_V1,
+  buildPersistedVisualDirectionFingerprint,
+  canonicalVisualDirectionProfileId,
+  createInMemoryPersistedVisualDirectionStore,
+  derivePersistedVisualDirection,
+  resolvePersistedVisualDirection,
+  selectRelevantVisualDirectionReferences,
+  type PersistedVisualDirectionArtifact,
+  type PersistedVisualDirectionInput,
+  type PersistedVisualDirectionResolution,
+  type PersistedVisualDirectionStore,
+  type VisualDirectionOperation,
+  type VisualDirectionReferenceCandidate,
+  type VisualDirectionScene,
+} from "./persisted-direction.js";
