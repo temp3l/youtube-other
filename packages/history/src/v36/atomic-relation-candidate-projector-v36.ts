@@ -19,18 +19,22 @@ export const HISTORY_V36_ATOMIC_TRANSFORMS_CAUSAL_CANDIDATE_RULE =
   "atomic-transforms-causal-candidate.v1" as const;
 export const HISTORY_V36_ATOMIC_EVIDENCE_SET_CANDIDATE_RULE =
   "atomic-contains-evidence-of-evidence-set-candidate.v1" as const;
+export const HISTORY_V36_APPROVED_MODAL_CAUSAL_CANDIDATE_RULE =
+  "atomic-approved-modal-causal-candidate.v1" as const;
 
 export type AtomicRelationCandidateSourceV36 =
   | "atomic-process-projection"
   | "atomic-temporal-projection"
   | "atomic-transforms-causal-projection"
-  | "atomic-evidence-set-projection";
+  | "atomic-evidence-set-projection"
+  | "atomic-approved-modal-causal-projection";
 
 export type AtomicRelationCandidateProjectionRuleV36 =
   | typeof HISTORY_V36_ATOMIC_PROCESS_CANDIDATE_RULE
   | typeof HISTORY_V36_ATOMIC_TEMPORAL_CANDIDATE_RULE
   | typeof HISTORY_V36_ATOMIC_TRANSFORMS_CAUSAL_CANDIDATE_RULE
-  | typeof HISTORY_V36_ATOMIC_EVIDENCE_SET_CANDIDATE_RULE;
+  | typeof HISTORY_V36_ATOMIC_EVIDENCE_SET_CANDIDATE_RULE
+  | typeof HISTORY_V36_APPROVED_MODAL_CAUSAL_CANDIDATE_RULE;
 
 export type AtomicRelationCandidateProjectionDiagnosticCodeV36 =
   | "ATOMIC_CANDIDATE_STRUCTURE_INVALID"
@@ -302,6 +306,9 @@ export function projectAtomicRelationCandidateV36(
 ): AtomicRelationCandidateProjectionResultV36 | undefined {
   if (!input || typeof input !== "object") return undefined;
   const predicate = (input as { readonly predicate?: unknown }).predicate;
+  if (predicate === "causes" || predicate === "contributes-to") {
+    return projectApprovedModalCausalCandidateV36(input);
+  }
   if (predicate !== "process-sequence" && predicate !== "precedes" && predicate !== "transforms") return undefined;
   const identity = projectionIdentity(predicate);
   const parsed = atomicPropositionSchemaV36.safeParse(input);
@@ -395,5 +402,52 @@ export function projectAtomicRelationCandidateV36(
       kind: "temporal-sequence",
       steps: [relationConcept(proposition.subject), relationConcept(proposition.object!)],
     },
+  };
+}
+
+const approvedModalCausalAtoms: ReadonlyMap<string, {
+  readonly predicate: "causes" | "contributes-to";
+  readonly assertionStatus: "uncertain" | "reported";
+}> = new Map([
+  ["claim-d97c2dd1d2ef4a18aeb04406", { predicate: "contributes-to", assertionStatus: "uncertain" }],
+  ["claim-db26077e95258cfa59dfab83", { predicate: "causes", assertionStatus: "reported" }],
+] as const);
+
+/**
+ * Phase 2.19 is an exact inventory-backed admission, not a generic lowering
+ * rule: only the two reviewed native atoms may become modal causal relations.
+ */
+function projectApprovedModalCausalCandidateV36(
+  input: unknown
+): AtomicRelationCandidateProjectionResultV36 | undefined {
+  const parsed = atomicPropositionSchemaV36.safeParse(input);
+  if (!parsed.success) return undefined;
+  const proposition = parsed.data as unknown as AtomicPropositionV36;
+  const approved = approvedModalCausalAtoms.get(proposition.claimId);
+  if (!approved || proposition.predicate !== approved.predicate ||
+    proposition.assertionStatus !== approved.assertionStatus) return undefined;
+  if (proposition.provenance.sourceKind !== "native-structured-proposition" ||
+    !proposition.provenance.structuredPropositionId || !proposition.object ||
+    proposition.subject.id === proposition.object.id ||
+    !proposition.provenance.resolvedParticipantIds.includes(proposition.subject.id) ||
+    !proposition.provenance.resolvedParticipantIds.includes(proposition.object.id)) return undefined;
+  return {
+    status: "projected",
+    candidateSource: "atomic-approved-modal-causal-projection",
+    projectionRuleId: HISTORY_V36_APPROVED_MODAL_CAUSAL_CANDIDATE_RULE,
+    episodeId: proposition.episodeId,
+    supportClaimIds: [proposition.claimId],
+    atomicGroundingIds: [proposition.groundingId],
+    structuredPropositionIds: [proposition.provenance.structuredPropositionId],
+    assertionStatus: proposition.assertionStatus,
+    sourceSpan: proposition.sourceSpan,
+    semanticParticipantIds: [proposition.subject.id, proposition.object.id],
+    proposition: {
+      kind: "causal",
+      cause: relationConcept(proposition.subject),
+      effect: relationConcept(proposition.object),
+      causalAssertionStatus: proposition.assertionStatus,
+    },
+    diagnostics: [],
   };
 }

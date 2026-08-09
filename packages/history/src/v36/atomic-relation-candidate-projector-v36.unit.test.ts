@@ -9,6 +9,7 @@ import {
 } from "./atomic-claim-grounding-v36.js";
 import {
   HISTORY_V36_ATOMIC_EVIDENCE_SET_CANDIDATE_RULE,
+  HISTORY_V36_APPROVED_MODAL_CAUSAL_CANDIDATE_RULE,
   HISTORY_V36_ATOMIC_PROCESS_CANDIDATE_RULE,
   HISTORY_V36_ATOMIC_TEMPORAL_CANDIDATE_RULE,
   HISTORY_V36_ATOMIC_TRANSFORMS_CAUSAL_CANDIDATE_RULE,
@@ -28,6 +29,7 @@ const structuredPropositionId = "structured-proposition-1234567890abcdef12345678
 const processText = "Wintering was followed by sailing south.";
 const temporalText = "The collision happened before the inspection.";
 const transformsText = "The shock transformed labor value.";
+const modalCausalText = "The cause could have an effect.";
 
 const concept = (label: string) => ({
   id: atomicConceptIdV36(label),
@@ -124,6 +126,25 @@ function transformsAtom(
       resolvedParticipantIds: resolvedParticipantIds ?? [cause.id, effect.id],
       structuredPropositionId,
     },
+  });
+}
+
+function approvedModalCausalAtom(
+  claimId: ReturnType<typeof claimIdV36>,
+  predicate: "causes" | "contributes-to",
+  assertionStatus: "uncertain" | "reported"
+): AtomicPropositionV36 {
+  const cause = concept("modal cause");
+  const effect = concept("modal effect");
+  return createAtomicPropositionV36({
+    episodeId,
+    claimId,
+    subject: cause,
+    predicate,
+    object: effect,
+    assertionStatus,
+    sourceSpan: { startUtf16: 0, endUtf16Exclusive: modalCausalText.length, text: modalCausalText, textHash: sourceTextHashV36(modalCausalText) },
+    provenance: { sourceKind: "native-structured-proposition", groundingRuleId: "explicit-structured-proposition-v1", groundingSchemaVersion: "history-atomic-claim-grounding.v2", resolvedParticipantIds: [cause.id, effect.id], structuredPropositionId },
   });
 }
 
@@ -263,6 +284,22 @@ describe("History V3.6 Phase 2.8 atomic relation candidate projection", () => {
       status: "rejected",
       diagnostics: [{ code: "ATOMIC_CANDIDATE_SOURCE_LINEAGE_UNSUPPORTED" }],
     });
+  });
+
+  it("admits only the two reviewed modal causal atom contracts without status promotion", () => {
+    const uncertain = approvedModalCausalAtom(claimIdV36("claim-d97c2dd1d2ef4a18aeb04406"), "contributes-to", "uncertain");
+    const reported = approvedModalCausalAtom(claimIdV36("claim-db26077e95258cfa59dfab83"), "causes", "reported");
+    for (const atom of [uncertain, reported]) {
+      expect(projectAtomicRelationCandidateV36(atom)).toMatchObject({
+        status: "projected",
+        candidateSource: "atomic-approved-modal-causal-projection",
+        projectionRuleId: HISTORY_V36_APPROVED_MODAL_CAUSAL_CANDIDATE_RULE,
+        assertionStatus: atom.assertionStatus,
+        proposition: { kind: "causal", causalAssertionStatus: atom.assertionStatus },
+      });
+    }
+    expect(projectAtomicRelationCandidateV36({ ...serialized(uncertain), claimId: "claim-not-reviewed" })).toBeUndefined();
+    expect(projectAtomicRelationCandidateV36({ ...serialized(reported), assertionStatus: "asserted" })).toBeUndefined();
   });
 
   it("fails closed for invalid, unordered, grouping-only, or non-asserted process atoms", () => {

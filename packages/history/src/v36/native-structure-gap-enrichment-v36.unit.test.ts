@@ -10,7 +10,7 @@ import { runRepresentativeNativeStructuredClaimExperimentV36 } from "./native-st
 import {
   buildNativeStructureGapEnrichmentReviewV36,
   phase211BaselineGapsV36,
-  phase211FrozenSevenV36,
+  phase211FrozenOutOfScopeV36,
 } from "./native-structure-gap-enrichment-v36.js";
 import { HISTORY_STRUCTURED_CLAIM_SCHEMA_V36 } from "./structured-claim-v36.js";
 
@@ -134,11 +134,11 @@ describe("History V3.6 Phase 2.11 native structure gap enrichment", () => {
       candidate.projectionRuleId === "atomic-contains-evidence-of-evidence-set-candidate.v1"
     )).toHaveLength(2);
     expect(experiment.relationComparison.after).toMatchObject({
-      candidates: 53,
-      validatedRelations: 31,
+      candidates: 55,
+      validatedRelations: 33,
       evidenceSetRelations: experiment.relationComparison.before.evidenceSetRelations + 2,
     });
-    expect(experiment.missClassification.atomicGroundingPresentCandidateProjectionGap).toBe(8);
+    expect(experiment.missClassification.atomicGroundingPresentCandidateProjectionGap).toBe(6);
   });
 
   it("validates exactly the Bronze Age and Franklin same-claim evidence sets with complete lineage", () => {
@@ -186,8 +186,8 @@ describe("History V3.6 Phase 2.11 native structure gap enrichment", () => {
     }
   });
 
-  it("freezes the other seven gaps and preserves all same-eight hard controls", () => {
-    expect(review.frozenSeven).toEqual(Object.entries(phase211FrozenSevenV36).map(([gapId, classification]) => ({ gapId, classification })).sort((left, right) => left.gapId.localeCompare(right.gapId)));
+  it("freezes the remaining out-of-scope gaps and preserves all same-eight hard controls", () => {
+    expect(review.frozenSeven).toEqual(Object.entries(phase211FrozenOutOfScopeV36).map(([gapId, classification]) => ({ gapId, classification })).sort((left, right) => left.gapId.localeCompare(right.gapId)));
     expect(experiment.nativeStructuredClaimCount).toBe(21);
     expect(experiment.nativeStructuredPropositionCount).toBe(26);
     expect(experiment.groundingComparison.after.atomicPropositions).toBe(45);

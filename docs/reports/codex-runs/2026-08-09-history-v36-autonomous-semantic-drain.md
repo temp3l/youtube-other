@@ -32,3 +32,14 @@
 - commit/tag: causal modality contract baseline
 - artifact: generated after commit
 - next: mechanically admit only the two exact causal atoms through typed native lineage
+
+## Phase 2.19
+
+- starting SHA: `f0551b785a18d60d65bd8281c16cbb8ecd66650f`
+- target: Chernobyl uncertain and Titanic reported causal atoms
+- decision/change: exact native-lineage modal-causal admission; no generic predicate mapping
+- before/after: candidates `53 -> 55`; validated relations `31 -> 33`; gaps `8 -> 6`
+- invariants: all applicable controls zero; V3.5 unchanged; provider/LLM calls `0`
+- commit/tag: modal causal admission baseline
+- artifact: generated after commit
+- next: taxonomy mismatch is the required human decision gate

@@ -36,7 +36,7 @@ function invariantCounts(runs: readonly RepresentativeNativeExperimentRunV36[]) 
   const relations = runs.flatMap((run) => run.native.extraction.relations);
   const atomicPropositions = runs.flatMap((run) => run.native.grounding.propositions);
   const projectedCandidates = runs.flatMap((run) => run.native.candidates)
-    .filter((candidate) => candidate.source === "atomic-process-projection" || candidate.source === "atomic-temporal-projection" || candidate.source === "atomic-transforms-causal-projection" || candidate.source === "atomic-evidence-set-projection");
+    .filter((candidate) => candidate.source === "atomic-process-projection" || candidate.source === "atomic-temporal-projection" || candidate.source === "atomic-transforms-causal-projection" || candidate.source === "atomic-evidence-set-projection" || candidate.source === "atomic-approved-modal-causal-projection");
   const evidenceSetCandidates = projectedCandidates.filter((candidate) =>
     candidate.source === "atomic-evidence-set-projection");
   const propositions = runs.flatMap((run) => run.native.structuredClaims.envelopes.flatMap((envelope) => envelope.propositions));
@@ -134,6 +134,15 @@ function invariantCounts(runs: readonly RepresentativeNativeExperimentRunV36[]) 
     }).length,
     unresolvedTransformsParticipantAdmission: projectedCandidates.filter((candidate) =>
       candidate.source === "atomic-transforms-causal-projection" && candidate.semanticParticipantIds?.some((id) => !candidate.resolvedParticipantIds.includes(id))
+    ).length,
+    modalCausalModalityLoss: projectedCandidates.filter((candidate) => {
+      if (candidate.source !== "atomic-approved-modal-causal-projection") return false;
+      const relation = relations.find((item) => item.id === candidate.semanticRelationId);
+      return relation?.kind !== "causal" || relation.causalAssertionStatus !== candidate.assertionStatus;
+    }).length,
+    unexpectedModalCausalAdmission: projectedCandidates.filter((candidate) =>
+      candidate.source === "atomic-approved-modal-causal-projection" &&
+      !["claim-d97c2dd1d2ef4a18aeb04406", "claim-db26077e95258cfa59dfab83"].includes(candidate.claimId)
     ).length,
     crossClaimEvidenceSetAggregation: evidenceSetCandidates.filter((candidate) => {
       const atoms = evidenceAtoms(candidate);
@@ -284,7 +293,7 @@ export function runRepresentativeNativeStructuredClaimExperimentV36(
   const insufficientBefore = baselineClaims.filter((claim) => claim.coverage === "insufficient-structure").length;
   const insufficientAfter = nativeClaims.filter((claim) => claim.coverage === "insufficient-structure").length;
   const nativeClaimIds = new Set(nativeEnvelopes.map((envelope) => envelope.claimId));
-  const atomicCandidateSources = new Set(["atomic-claim-grounding", "atomic-process-projection", "atomic-temporal-projection", "atomic-transforms-causal-projection", "atomic-evidence-set-projection", "proof-aware-relation-evidence"]);
+  const atomicCandidateSources = new Set(["atomic-claim-grounding", "atomic-process-projection", "atomic-temporal-projection", "atomic-transforms-causal-projection", "atomic-evidence-set-projection", "atomic-approved-modal-causal-projection", "proof-aware-relation-evidence"]);
   const nativeCandidateClaimIds = new Set(nativeCandidates.filter((candidate) => atomicCandidateSources.has(candidate.source)).map((candidate) => candidate.claimId));
   const nativeRejectedClaimIds = new Set(nativeCandidates.filter((candidate) => atomicCandidateSources.has(candidate.source) && candidate.status === "rejected").map((candidate) => candidate.claimId));
   const remainingInsufficient = nativeClaims.filter((claim) => claim.coverage === "insufficient-structure");
@@ -304,6 +313,7 @@ export function runRepresentativeNativeStructuredClaimExperimentV36(
   const temporalCandidates = nativeCandidates.filter((candidate) => candidate.source === "atomic-temporal-projection");
   const transformsCandidates = nativeCandidates.filter((candidate) => candidate.source === "atomic-transforms-causal-projection");
   const evidenceSetCandidates = nativeCandidates.filter((candidate) => candidate.source === "atomic-evidence-set-projection");
+  const modalCausalCandidates = nativeCandidates.filter((candidate) => candidate.source === "atomic-approved-modal-causal-projection");
   const phase26Baseline = {
     nativeClaims: 17,
     nativePropositions: 18,
@@ -379,6 +389,11 @@ export function runRepresentativeNativeStructuredClaimExperimentV36(
         proposed: evidenceSetCandidates.length,
         validatorAccepts: evidenceSetCandidates.filter((candidate) => candidate.status === "valid").length,
         validatorRejects: evidenceSetCandidates.filter((candidate) => candidate.status === "rejected").length,
+      },
+      modalCausal: {
+        proposed: modalCausalCandidates.length,
+        validatorAccepts: modalCausalCandidates.filter((candidate) => candidate.status === "valid").length,
+        validatorRejects: modalCausalCandidates.filter((candidate) => candidate.status === "rejected").length,
       },
     },
     phase26Comparison: {

@@ -6,6 +6,8 @@ Select `OPTION_A_RELATION_KIND_SPECIFIC_MODALITY` for the two causal gaps only. 
 
 The Chernobyl `uncertain` contribution and Titanic `reported` cause now have a lossless causal relation representation. This phase does not admit either relation.
 
+Phase 2.19 admits exactly those two inventory-approved native atoms through `atomic-approved-modal-causal-candidate.v1`. The rule validates the exact claim ID, predicate, assertion status, native structured lineage, resolved distinct participants, deterministic relation identity, and exact validator modality. It is not a generic `causes` or `contributes-to` mapping.
+
 ## Rejected alternatives
 
 `OPTION_B_SHARED_TYPED_RELATION_MODALITY` is premature: policy-response needs asymmetric named premises, whereas both causal gaps express one status on the causal link. A generic wrapper would add mapping and identity rules without another matching relation shape.

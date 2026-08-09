@@ -162,12 +162,9 @@ export const phase211BaselineGapsV36: readonly Phase211BaselineGapV36[] = [
   },
 ] as const;
 
-export const phase211FrozenSevenV36 = {
-  "candidate-gap-claim-095a61f563fa2980b636c6cc": "NEEDS_CROSS_CLAIM_PROOF",
+export const phase211FrozenOutOfScopeV36 = {
   "candidate-gap-claim-27a228830af8714543142658": "INTENTIONALLY_NON_RELATIONAL",
   "candidate-gap-claim-7552fcb5134857307769fa18": "TAXONOMY_MISMATCH",
-  "candidate-gap-claim-d97c2dd1d2ef4a18aeb04406": "ASSERTION_OR_MODALITY_BLOCK",
-  "candidate-gap-claim-db26077e95258cfa59dfab83": "ASSERTION_OR_MODALITY_BLOCK",
   "candidate-gap-claim-dc974d4bfc009c22c481bf02": "ASSERTION_OR_MODALITY_BLOCK",
   "candidate-gap-claim-ee76bea77004b9d801b6630b": "INTENTIONALLY_NON_RELATIONAL",
 } as const;
@@ -192,9 +189,9 @@ export function buildNativeStructureGapEnrichmentReviewV36(input: {
     gap.outcome === "STILL_NEEDS_NATIVE_STRUCTURE" && !unresolvedInScopeIds.has(gap.gapId)
   )) throw new Error("A Phase 2.11 movement/location gap changed unexpectedly.");
   const frozenSeven = inventory.filter((record) => !inScopeIds.has(record.gapId));
-  if (frozenSeven.length !== 7 || frozenSeven.some((record) =>
-    phase211FrozenSevenV36[record.gapId as keyof typeof phase211FrozenSevenV36] !== record.classification
-  )) throw new Error("The seven out-of-scope candidate gaps changed classification or identity.");
+  if (frozenSeven.length !== Object.keys(phase211FrozenOutOfScopeV36).length || frozenSeven.some((record) =>
+    phase211FrozenOutOfScopeV36[record.gapId as keyof typeof phase211FrozenOutOfScopeV36] !== record.classification
+  )) throw new Error("An out-of-scope candidate gap changed classification or identity.");
 
   const cases = phase211BaselineGapsV36.map((baseline) => {
     const current = inScope.find((record) => record.gapId === baseline.gapId);
