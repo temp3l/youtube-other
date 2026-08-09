@@ -68,9 +68,9 @@ Notes: Server-rendered bounded bulk preflight/result page and typed BFF operatio
 
 ### YSAAS-022
 Status: in progress
-Commit: af66cab, 3cb83e9
-Validation: web typecheck pass
-Notes: Server-rendered tenant readiness checklist, v1 episode title/ID search, and current action center from canonical production-state actions. Member/role management, 30-day action retention, lifecycle confirmations, and provider/channel handoffs remain absent because no corresponding BFF contracts exist.
+Commit: af66cab, 3cb83e9, cdafcfe
+Validation: web typecheck pass; focused `saas-runtime.unit.test.ts` pass (4)
+Notes: Server-rendered tenant readiness checklist, v1 episode title/ID search, current action center from canonical production-state actions, and last-30-day tenant audit facts from the current server read page. Membership/role management, a paginated canonical action-event read model, lifecycle confirmations, and provider/channel handoffs remain absent because no corresponding BFF contracts exist.
 
 ### YSAAS-023
 Status: blocked
