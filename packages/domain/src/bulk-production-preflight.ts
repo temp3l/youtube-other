@@ -64,7 +64,7 @@ export function preflightBulkProduction(input: {
     else if (probe.currentRevision !== item.expectedRevision) reasons.push("stale_revision");
     if (!probe.configurationAvailable) reasons.push("configuration_unavailable");
     if (!probe.quotaAvailable) reasons.push("quota_unavailable");
-    return { item, eligible: reasons.length === 0, reasons: reasons.length ? reasons : ["authorized"], fingerprint: fingerprint({ workspaceId: input.workspaceId, item }) };
+    return { item, eligible: reasons.length === 0, reasons: reasons.length ? reasons : (["authorized"] as const), fingerprint: fingerprint({ workspaceId: input.workspaceId, item }) };
   });
   return {
     schemaVersion: BULK_PRODUCTION_SCHEMA_VERSION,

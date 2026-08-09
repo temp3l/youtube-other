@@ -12,6 +12,7 @@ export * from "./postgres-migration-registry.js";
 export * from "./postgres-production-state.js";
 export * from "./postgres-capability-configuration-repository.js";
 export * from "./postgres-recent-auth-confirmation-repository.js";
+export * from "./postgres-bulk-production-repository.js";
 export * from "./recent-auth-confirmation-adapter.js";
 export * from "./production-state-repository.js";
 export * from "./postgres-workflow-repository.js";
