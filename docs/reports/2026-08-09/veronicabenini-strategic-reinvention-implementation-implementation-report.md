@@ -14,9 +14,9 @@ See `IMPLEMENTATION-CHECKPOINT.md` and per-task Codex run reports.
 
 ## Tasks
 
-- Completed: VRI-01 through VRI-15
+- Completed: VRI-01 through VRI-16
 - Partially completed: none
-- Not completed: VRI-16 through VRI-26
+- Not completed: VRI-17 through VRI-26
 - Deviations: branch fast-forwarded to `origin/master` because the requested plan was added after the starting checkout.
 
 ## Tests and results
@@ -25,4 +25,4 @@ Focused suites passed for domain/config/profile (18), lifecycle persistence (9),
 
 ## Risks and next steps
 
-Legacy persisted path migration remains owned by VRI-25. Execute the VRI-16 publish gate next.
+Legacy persisted path migration remains owned by VRI-25. Execute VRI-17 and VRI-18 next.

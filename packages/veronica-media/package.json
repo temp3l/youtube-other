@@ -25,6 +25,7 @@
     "@mediaforge/source-ingestion": "workspace:*",
     "@mediaforge/story-localization": "workspace:*",
     "@mediaforge/visual-planning": "workspace:*",
+    "@mediaforge/youtube-upload": "workspace:*",
     "zod": "^4.0.14"
   }
 }

@@ -22,6 +22,10 @@
       "types": "./dist/generic-media-publish.d.ts",
       "default": "./dist/generic-media-publish.js"
     },
+    "./publication-intent": {
+      "types": "./src/publication-intent.ts",
+      "default": "./src/publication-intent.ts"
+    },
     "./strategic-publish-routing": {
       "types": "./dist/strategic-publish-routing.d.ts",
       "default": "./dist/strategic-publish-routing.js"

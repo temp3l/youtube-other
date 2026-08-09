@@ -22,8 +22,9 @@
 | VRI-12 | VALIDATED | worker + coordinator review | 15 focused tests and workflow-engine typecheck pass | `ac08bc8` |
 | VRI-13 | VALIDATED | worker + coordinator review | 2 focused tests and workflow-engine build pass; package typecheck has unrelated blockers | `238d368` |
 | VRI-14 | VALIDATED | worker + coordinator review | 2 focused tests pass; isolated rendering build dependency-blocked | `3d99eaf` |
-| VRI-15 | VALIDATED | worker + coordinator review | 4 focused delivery tests and 2 render regression tests pass | pending commit |
-| VRI-16..VRI-26 | NOT_STARTED | unassigned | not run | none |
+| VRI-15 | VALIDATED | worker + coordinator review | 4 focused delivery tests and 2 render regression tests pass | `05e1cba` |
+| VRI-16 | VALIDATED | worker + coordinator review | 5 focused tests pass; youtube-upload typecheck dependency-blocked | pending commit |
+| VRI-17..VRI-26 | NOT_STARTED | unassigned | not run | none |
 
 ## VRI-01 evidence
 
@@ -48,4 +49,4 @@
 
 ## Next executable tasks
 
-VRI-16 is the serial publish gate; VRI-17 and VRI-18 are then executable by dependency.
+VRI-17 bulk production and VRI-18 policy/cost controls are executable as the Wave 5 parallel set.
