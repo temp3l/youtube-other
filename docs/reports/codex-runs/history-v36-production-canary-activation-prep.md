@@ -27,5 +27,5 @@
 - result: `BLOCKED_BY_MEASURED_TIMING`; the configured OpenAI-compatible TTS route needs explicit authorization to transmit the two narration scripts externally
 - tests: timing attempt reached no provider (`curl` DNS exit 6); checksum verification and ZIP integrity passed for the blocked-gate evidence bundle
 - invariants: zero completed provider calls; no estimated timing, V3.6 plan, render, V3.5 output change, or production activation
-- commit/tag: pending final timing-gate checkpoint
+- commit/tag: `321fd6f6bce6eac462d3d0a5ac6a39636a22e7de` / `history-v3.6-production-canary-timing-gate`
 - next: human authorizes that exact payload/destination, or supplies authoritative measured timing for both episode IDs
