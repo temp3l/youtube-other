@@ -164,7 +164,6 @@ export const phase211BaselineGapsV36: readonly Phase211BaselineGapV36[] = [
 
 export const phase211FrozenOutOfScopeV36 = {
   "candidate-gap-claim-27a228830af8714543142658": "INTENTIONALLY_NON_RELATIONAL",
-  "candidate-gap-claim-7552fcb5134857307769fa18": "TAXONOMY_MISMATCH",
   "candidate-gap-claim-dc974d4bfc009c22c481bf02": "ASSERTION_OR_MODALITY_BLOCK",
   "candidate-gap-claim-ee76bea77004b9d801b6630b": "INTENTIONALLY_NON_RELATIONAL",
 } as const;

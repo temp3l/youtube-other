@@ -1,4 +1,5 @@
 import { atomicGroundingArtifactSchemaV36 } from "./atomic-claim-grounding-v36.js";
+import { atomicRelationCandidateEvidenceFingerprintV36 } from "./atomic-relation-candidate-projector-v36.js";
 import {
   createRepresentativeNativeStructuredSidecarV36,
   representativeNativeProcessClaimIdsV36,
@@ -36,9 +37,11 @@ function invariantCounts(runs: readonly RepresentativeNativeExperimentRunV36[]) 
   const relations = runs.flatMap((run) => run.native.extraction.relations);
   const atomicPropositions = runs.flatMap((run) => run.native.grounding.propositions);
   const projectedCandidates = runs.flatMap((run) => run.native.candidates)
-    .filter((candidate) => candidate.source === "atomic-process-projection" || candidate.source === "atomic-temporal-projection" || candidate.source === "atomic-transforms-causal-projection" || candidate.source === "atomic-evidence-set-projection" || candidate.source === "atomic-approved-modal-causal-projection");
+    .filter((candidate) => candidate.source === "atomic-process-projection" || candidate.source === "atomic-temporal-projection" || candidate.source === "atomic-transforms-causal-projection" || candidate.source === "atomic-evidence-set-projection" || candidate.source === "atomic-approved-modal-causal-projection" || candidate.source === "atomic-event-location-projection");
   const evidenceSetCandidates = projectedCandidates.filter((candidate) =>
     candidate.source === "atomic-evidence-set-projection");
+  const eventLocationCandidates = projectedCandidates.filter((candidate) =>
+    candidate.source === "atomic-event-location-projection");
   const propositions = runs.flatMap((run) => run.native.structuredClaims.envelopes.flatMap((envelope) => envelope.propositions));
   const nativePropositions = propositions.filter((proposition) => proposition.provenance.generationMethod === "native-structured-claim-generation");
   const nativeClaimPropositions = runs.flatMap((run) => run.native.structuredClaims.envelopes
@@ -144,6 +147,36 @@ function invariantCounts(runs: readonly RepresentativeNativeExperimentRunV36[]) 
       candidate.source === "atomic-approved-modal-causal-projection" &&
       !["claim-d97c2dd1d2ef4a18aeb04406", "claim-db26077e95258cfa59dfab83"].includes(candidate.claimId)
     ).length,
+    genericLocatorOvergeneration: eventLocationCandidates.filter((candidate) =>
+      candidate.claimId !== "claim-7552fcb5134857307769fa18").length,
+    entityLocatorMisclassifiedEventLocation: eventLocationCandidates.filter((candidate) => {
+      const atom = atomicPropositions.find((proposition) => proposition.groundingId === candidate.atomicGroundingIds?.[0]);
+      return !atom || atom.subject.id !== "concept-6a394ff8907a44c12d416143" || atom.object?.id !== "entity-4361e741ab5cf8f9151d8ca9";
+    }).length,
+    eventLocationMisclassifiedMovement: relations.filter((relation) =>
+      relation.kind === "movement" && relation.supportClaimIds.some((claimId) => claimId === "claim-7552fcb5134857307769fa18")).length,
+    eventLocationMisclassifiedComparison: relations.filter((relation) =>
+      relation.kind === "spatial-comparison" && relation.supportClaimIds.some((claimId) => claimId === "claim-7552fcb5134857307769fa18")).length,
+    eventLocationMisclassifiedCausality: relations.filter((relation) =>
+      relation.kind === "causal" && relation.supportClaimIds.some((claimId) => claimId === "claim-7552fcb5134857307769fa18")).length,
+    eventLocationModalityLoss: eventLocationCandidates.filter((candidate) => {
+      const relation = relations.find((item) => item.id === candidate.semanticRelationId);
+      return relation?.kind !== "event-location" || relation.assertionStatus !== candidate.assertionStatus;
+    }).length,
+    unresolvedEventLocationParticipantAdmission: eventLocationCandidates.filter((candidate) => {
+      const atom = atomicPropositions.find((proposition) => proposition.groundingId === candidate.atomicGroundingIds?.[0]);
+      const resolved = new Set<string>(atom?.provenance.resolvedParticipantIds ?? []);
+      return !atom || candidate.semanticParticipantIds?.some((id) => !resolved.has(id));
+    }).length,
+    eventLocationEvidenceFingerprintMismatch: eventLocationCandidates.filter((candidate) => {
+      const atoms = atomicPropositions.filter((atom) => candidate.atomicGroundingIds?.includes(atom.groundingId));
+      return candidate.atomicEvidenceFingerprint !== atomicRelationCandidateEvidenceFingerprintV36({
+        claimIds: candidate.supportClaimIds,
+        structuredPropositionIds: candidate.structuredPropositionIds ?? [],
+        atomicGroundingIds: candidate.atomicGroundingIds ?? [],
+        sourceSpans: atoms.map((atom) => atom.sourceSpan),
+      });
+    }).length,
     crossClaimEvidenceSetAggregation: evidenceSetCandidates.filter((candidate) => {
       const atoms = evidenceAtoms(candidate);
       return candidate.supportClaimIds.length !== 1 ||
@@ -293,7 +326,7 @@ export function runRepresentativeNativeStructuredClaimExperimentV36(
   const insufficientBefore = baselineClaims.filter((claim) => claim.coverage === "insufficient-structure").length;
   const insufficientAfter = nativeClaims.filter((claim) => claim.coverage === "insufficient-structure").length;
   const nativeClaimIds = new Set(nativeEnvelopes.map((envelope) => envelope.claimId));
-  const atomicCandidateSources = new Set(["atomic-claim-grounding", "atomic-process-projection", "atomic-temporal-projection", "atomic-transforms-causal-projection", "atomic-evidence-set-projection", "atomic-approved-modal-causal-projection", "proof-aware-relation-evidence"]);
+  const atomicCandidateSources = new Set(["atomic-claim-grounding", "atomic-process-projection", "atomic-temporal-projection", "atomic-transforms-causal-projection", "atomic-evidence-set-projection", "atomic-approved-modal-causal-projection", "atomic-event-location-projection", "proof-aware-relation-evidence"]);
   const nativeCandidateClaimIds = new Set(nativeCandidates.filter((candidate) => atomicCandidateSources.has(candidate.source)).map((candidate) => candidate.claimId));
   const nativeRejectedClaimIds = new Set(nativeCandidates.filter((candidate) => atomicCandidateSources.has(candidate.source) && candidate.status === "rejected").map((candidate) => candidate.claimId));
   const remainingInsufficient = nativeClaims.filter((claim) => claim.coverage === "insufficient-structure");
@@ -314,6 +347,7 @@ export function runRepresentativeNativeStructuredClaimExperimentV36(
   const transformsCandidates = nativeCandidates.filter((candidate) => candidate.source === "atomic-transforms-causal-projection");
   const evidenceSetCandidates = nativeCandidates.filter((candidate) => candidate.source === "atomic-evidence-set-projection");
   const modalCausalCandidates = nativeCandidates.filter((candidate) => candidate.source === "atomic-approved-modal-causal-projection");
+  const eventLocationCandidates = nativeCandidates.filter((candidate) => candidate.source === "atomic-event-location-projection");
   const phase26Baseline = {
     nativeClaims: 17,
     nativePropositions: 18,
@@ -356,6 +390,7 @@ export function runRepresentativeNativeStructuredClaimExperimentV36(
     processRelations: processRelationsAfter,
     temporalSequenceRelations: temporalRelationsAfter,
     evidenceSetRelations: nativeRelations.filter((relation) => relation.kind === "evidence-set").length,
+    eventLocationRelations: nativeRelations.filter((relation) => relation.kind === "event-location").length,
   };
   return {
     verdict: hardSafetyPass ? "PASS" as const : "FAIL" as const,
@@ -395,6 +430,11 @@ export function runRepresentativeNativeStructuredClaimExperimentV36(
         validatorAccepts: modalCausalCandidates.filter((candidate) => candidate.status === "valid").length,
         validatorRejects: modalCausalCandidates.filter((candidate) => candidate.status === "rejected").length,
       },
+      eventLocation: {
+        proposed: eventLocationCandidates.length,
+        validatorAccepts: eventLocationCandidates.filter((candidate) => candidate.status === "valid").length,
+        validatorRejects: eventLocationCandidates.filter((candidate) => candidate.status === "rejected").length,
+      },
     },
     phase26Comparison: {
       before: phase26Baseline,
@@ -430,6 +470,7 @@ export function runRepresentativeNativeStructuredClaimExperimentV36(
         processRelations: nativeRelations.filter((relation) => relation.kind === "process").length,
         temporalSequenceRelations: nativeRelations.filter((relation) => relation.kind === "temporal-sequence").length,
         evidenceSetRelations: nativeRelations.filter((relation) => relation.kind === "evidence-set").length,
+        eventLocationRelations: nativeRelations.filter((relation) => relation.kind === "event-location").length,
         rejectedCandidates: nativeCandidates.filter((candidate) => candidate.status === "rejected").length,
       },
       newlyValidated: relationLineage(runs, newRelations),

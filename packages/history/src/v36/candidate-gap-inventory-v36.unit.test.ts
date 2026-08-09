@@ -37,12 +37,11 @@ describe("History V3.6 candidate gap inventory after Phase 2.12 evidence-set pro
       runs: experiment.runs,
       episodeTitles: new Map(loaded.map((item) => [item.source.shadow.episodeId, item.title])),
     });
-    expect(experiment.missClassification.atomicGroundingPresentCandidateProjectionGap).toBe(6);
-    expect(records).toHaveLength(6);
+    expect(experiment.missClassification.atomicGroundingPresentCandidateProjectionGap).toBe(5);
+    expect(records).toHaveLength(5);
     expect(records.map((record) => record.gapId)).toEqual([
       "candidate-gap-claim-27a228830af8714543142658",
       "candidate-gap-claim-6102997fabdd9aa3492eccb4",
-      "candidate-gap-claim-7552fcb5134857307769fa18",
       "candidate-gap-claim-a6f0630762f216aee3e63456",
       "candidate-gap-claim-dc974d4bfc009c22c481bf02",
       "candidate-gap-claim-ee76bea77004b9d801b6630b",
@@ -65,7 +64,7 @@ describe("History V3.6 candidate gap inventory after Phase 2.12 evidence-set pro
       NEEDS_CROSS_CLAIM_PROOF: 0,
       PARTICIPANT_RESOLUTION_GAP: 0,
       ASSERTION_OR_MODALITY_BLOCK: 1,
-      TAXONOMY_MISMATCH: 1,
+      TAXONOMY_MISMATCH: 0,
       INTENTIONALLY_NON_RELATIONAL: 2,
       VALIDATOR_CONTRACT_MISMATCH: 0,
     });

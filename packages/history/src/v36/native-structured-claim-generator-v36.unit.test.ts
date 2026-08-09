@@ -191,19 +191,21 @@ describe("History V3.6 representative native structured fixture experiment", () 
     expect(experiment.missClassification.nativeStructurePresentAtomicGroundingGap).toBe(0);
     expect(experiment.phase26Comparison).toMatchObject({
       before: { nativeClaims: 17, nativePropositions: 18, insufficientStructure: 61, atomicPropositions: 37, candidates: 45, validatedRelations: 23 },
-      after: { nativeClaims: 21, nativePropositions: 26, insufficientStructure: 60, atomicPropositions: 45, candidates: 53, validatedRelations: 31 },
+      after: { nativeClaims: 21, nativePropositions: 26, insufficientStructure: 60, atomicPropositions: 45, candidates: 56, validatedRelations: 34 },
     });
     expect(experiment.phase27Comparison).toMatchObject({
       before: { candidates: 45, validatedRelations: 23, processRelations: 0, temporalSequenceRelations: 0 },
-      after: { candidates: 53, validatedRelations: 31, processRelations: 2, temporalSequenceRelations: 2 },
+      after: { candidates: 56, validatedRelations: 34, processRelations: 2, temporalSequenceRelations: 2 },
     });
-    expect(experiment.missClassification.atomicGroundingPresentCandidateProjectionGap).toBe(8);
+    expect(experiment.missClassification.atomicGroundingPresentCandidateProjectionGap).toBe(5);
     expect(experiment.missClassification.candidateProposedValidatorReject).toBe(0);
     expect(experiment.candidateProjection).toEqual({
       process: { proposed: 2, validatorAccepts: 2, validatorRejects: 0 },
       temporal: { proposed: 2, validatorAccepts: 2, validatorRejects: 0 },
       transforms: { proposed: 1, validatorAccepts: 1, validatorRejects: 0 },
       evidenceSet: { proposed: 2, validatorAccepts: 2, validatorRejects: 0 },
+      modalCausal: { proposed: 2, validatorAccepts: 2, validatorRejects: 0 },
+      eventLocation: { proposed: 1, validatorAccepts: 1, validatorRejects: 0 },
     });
     expect(experiment.relationComparison.after).toMatchObject({ processRelations: 2, temporalSequenceRelations: 2 });
     const blackDeath = experiment.runs.find((run) => run.episodeId.includes("04-black-death"))!;
@@ -250,10 +252,28 @@ describe("History V3.6 representative native structured fixture experiment", () 
     const ddayRun = experiment.runs.find((run) => run.episodeId.includes("d-day"))!;
     expect(ddayRun.native.extraction.relations.some((relation) => relation.kind === "movement" && JSON.stringify(relation).includes("Pas-de-Calais"))).toBe(false);
     expect(ddayRun.native.extraction.relations.some((relation) => relation.kind === "spatial-comparison" && JSON.stringify(relation).includes("Pas-de-Calais"))).toBe(true);
+    const eventLocationCandidate = ddayRun.native.candidates.find((candidate) => candidate.source === "atomic-event-location-projection")!;
+    expect(eventLocationCandidate).toMatchObject({
+      claimId: "claim-7552fcb5134857307769fa18",
+      projectionRuleId: "atomic-located-in-event-location-candidate.v1",
+      assertionStatus: "intended",
+      atomicGroundingIds: ["grounding-e0af3cdde991db62127f6ab2"],
+      structuredPropositionIds: ["structured-proposition-b6188c3dd446cee65d2f7407"],
+      semanticParticipantIds: ["concept-6a394ff8907a44c12d416143", "entity-4361e741ab5cf8f9151d8ca9"],
+      atomicEvidenceFingerprint: expect.stringMatching(/^atomic-candidate-evidence-[a-f0-9]{24}$/u),
+      status: "valid",
+    });
+    expect(ddayRun.native.extraction.relations.find((relation) => relation.id === eventLocationCandidate.semanticRelationId)).toMatchObject({
+      kind: "event-location",
+      event: { canonicalLabel: "main invasion", eventType: "event" },
+      location: { canonicalLabel: "Calais", entityId: "entity-4361e741ab5cf8f9151d8ca9" },
+      assertionStatus: "intended",
+    });
 
     const battleRun = experiment.runs.find((run) => run.episodeId.includes("20-1066"))!;
     expect(battleRun.native.extraction.relations.some((relation) => relation.kind === "movement" && relation.to.canonicalLabel === "Pevensey")).toBe(false);
     expect(battleRun.native.extraction.relations.some((relation) => JSON.stringify(relation).includes("King Edward") && JSON.stringify(relation).includes("Europe"))).toBe(false);
+    expect(battleRun.native.extraction.relations.some((relation) => relation.kind === "event-location")).toBe(false);
     const battleProcess = battleRun.native.grounding.propositions.find((proposition) => proposition.claimId === "claim-6bbe9288262216a338a95084")!;
     expect(battleProcess).toMatchObject({ predicate: "process-sequence", processSteps: [{ stepOrder: 1 }, { stepOrder: 2 }] });
     expect(battleRun.native.candidates.find((candidate) => candidate.claimId === battleProcess.claimId)).toMatchObject({

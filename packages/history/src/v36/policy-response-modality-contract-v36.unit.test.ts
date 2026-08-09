@@ -172,8 +172,8 @@ describe("Phase 2.15 modality regression", () => {
     }));
     const first = runRepresentativeNativeStructuredClaimExperimentV36(inputs);
     const second = runRepresentativeNativeStructuredClaimExperimentV36(inputs);
-    expect(first.relationComparison.after).toMatchObject({ candidates: 55, validatedRelations: 33 });
-    expect(first.missClassification.atomicGroundingPresentCandidateProjectionGap).toBe(6);
+    expect(first.relationComparison.after).toMatchObject({ candidates: 56, validatedRelations: 34 });
+    expect(first.missClassification.atomicGroundingPresentCandidateProjectionGap).toBe(5);
     expect(first.runs.flatMap((run) => run.native.extraction.relations).filter((relation) => relation.kind === "policy-response" && relation.episodeId.includes("black-death"))).toEqual([expect.objectContaining({ conditionAssertionStatus: "uncertain", responseAssertionStatus: "attempted" })]);
     expect(second.relationComparison).toEqual(first.relationComparison);
     expect(second.missClassification).toEqual(first.missClassification);

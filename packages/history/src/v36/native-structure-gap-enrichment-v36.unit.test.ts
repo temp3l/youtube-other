@@ -134,11 +134,11 @@ describe("History V3.6 Phase 2.11 native structure gap enrichment", () => {
       candidate.projectionRuleId === "atomic-contains-evidence-of-evidence-set-candidate.v1"
     )).toHaveLength(2);
     expect(experiment.relationComparison.after).toMatchObject({
-      candidates: 55,
-      validatedRelations: 33,
+      candidates: 56,
+      validatedRelations: 34,
       evidenceSetRelations: experiment.relationComparison.before.evidenceSetRelations + 2,
     });
-    expect(experiment.missClassification.atomicGroundingPresentCandidateProjectionGap).toBe(6);
+    expect(experiment.missClassification.atomicGroundingPresentCandidateProjectionGap).toBe(5);
   });
 
   it("validates exactly the Bronze Age and Franklin same-claim evidence sets with complete lineage", () => {

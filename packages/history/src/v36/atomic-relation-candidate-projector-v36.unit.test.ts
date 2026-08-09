@@ -9,6 +9,7 @@ import {
 } from "./atomic-claim-grounding-v36.js";
 import {
   HISTORY_V36_ATOMIC_EVIDENCE_SET_CANDIDATE_RULE,
+  HISTORY_V36_ATOMIC_EVENT_LOCATION_CANDIDATE_RULE,
   HISTORY_V36_APPROVED_MODAL_CAUSAL_CANDIDATE_RULE,
   HISTORY_V36_ATOMIC_PROCESS_CANDIDATE_RULE,
   HISTORY_V36_ATOMIC_TEMPORAL_CANDIDATE_RULE,
@@ -16,9 +17,11 @@ import {
   projectAtomicEvidenceSetCandidateV36,
   projectAtomicRelationCandidateV36,
 } from "./atomic-relation-candidate-projector-v36.js";
+import { eventLocationSubjectEligibilityV36 } from "./event-location-eligibility-v36.js";
 import {
   claimIdV36,
   createExplanatoryRelationV36,
+  entityIdV36,
   episodeIdV36,
   type ExplanatoryRelationDraftV36,
 } from "./explanatory-relation-v36.js";
@@ -30,6 +33,7 @@ const processText = "Wintering was followed by sailing south.";
 const temporalText = "The collision happened before the inspection.";
 const transformsText = "The shock transformed labor value.";
 const modalCausalText = "The cause could have an effect.";
+const ddayText = "A vast deception operation attempted to convince Germany that the main invasion would strike near Calais.";
 
 const concept = (label: string) => ({
   id: atomicConceptIdV36(label),
@@ -145,6 +149,50 @@ function approvedModalCausalAtom(
     assertionStatus,
     sourceSpan: { startUtf16: 0, endUtf16Exclusive: modalCausalText.length, text: modalCausalText, textHash: sourceTextHashV36(modalCausalText) },
     provenance: { sourceKind: "native-structured-proposition", groundingRuleId: "explicit-structured-proposition-v1", groundingSchemaVersion: "history-atomic-claim-grounding.v2", resolvedParticipantIds: [cause.id, effect.id], structuredPropositionId },
+  });
+}
+
+function ddayEventLocationAtom(): AtomicPropositionV36 {
+  const eligibility = eventLocationSubjectEligibilityV36;
+  const subject = concept("main invasion");
+  const location = { id: entityIdV36("entity-4361e741ab5cf8f9151d8ca9"), label: "Calais", kind: "place" as const };
+  return createAtomicPropositionV36({
+    episodeId: episodeIdV36("history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion"),
+    claimId: claimIdV36(eligibility.claimId),
+    subject,
+    predicate: "located-in",
+    object: location,
+    assertionStatus: "intended",
+    sourceSpan: { startUtf16: 1920, endUtf16Exclusive: 2025, text: ddayText, textHash: eligibility.sourceTextHash },
+    provenance: {
+      sourceKind: "native-structured-proposition",
+      groundingRuleId: "explicit-structured-proposition-v1",
+      groundingSchemaVersion: "history-atomic-claim-grounding.v2",
+      resolvedParticipantIds: [subject.id, location.id],
+      structuredPropositionId: eligibility.structuredPropositionId,
+    },
+  });
+}
+
+function genericLocatorAtom(subjectLabel: string, locationLabel: string): AtomicPropositionV36 {
+  const subject = concept(subjectLabel);
+  const location = { id: entityIdV36(`entity-${locationLabel.toLocaleLowerCase().replaceAll(/[^a-z0-9]+/gu, "-")}`), label: locationLabel, kind: "place" as const };
+  const text = `${subjectLabel} was located in ${locationLabel}.`;
+  return createAtomicPropositionV36({
+    episodeId,
+    claimId: claimIdV36(`claim-locator-${subjectLabel.toLocaleLowerCase().replaceAll(/[^a-z0-9]+/gu, "-")}`),
+    subject,
+    predicate: "located-in",
+    object: location,
+    assertionStatus: "asserted",
+    sourceSpan: { startUtf16: 0, endUtf16Exclusive: text.length, text, textHash: sourceTextHashV36(text) },
+    provenance: {
+      sourceKind: "native-structured-proposition",
+      groundingRuleId: "explicit-structured-proposition-v1",
+      groundingSchemaVersion: "history-atomic-claim-grounding.v2",
+      resolvedParticipantIds: [subject.id, location.id],
+      structuredPropositionId,
+    },
   });
 }
 
@@ -302,6 +350,64 @@ describe("History V3.6 Phase 2.8 atomic relation candidate projection", () => {
     expect(projectAtomicRelationCandidateV36({ ...serialized(reported), assertionStatus: "asserted" })).toBeUndefined();
   });
 
+  it("projects only the approved D-Day located-in atom as intended event-location with complete evidence lineage", () => {
+    const atom = ddayEventLocationAtom();
+    const projection = projectAtomicRelationCandidateV36(atom);
+    expect(atom.groundingId).toBe(eventLocationSubjectEligibilityV36.atomicGroundingId);
+    expect(projection).toMatchObject({
+      status: "projected",
+      candidateSource: "atomic-event-location-projection",
+      projectionRuleId: HISTORY_V36_ATOMIC_EVENT_LOCATION_CANDIDATE_RULE,
+      supportClaimIds: [atom.claimId],
+      atomicGroundingIds: [atom.groundingId],
+      structuredPropositionIds: [atom.provenance.structuredPropositionId],
+      assertionStatus: "intended",
+      semanticParticipantIds: [atom.subject.id, atom.object!.id],
+      atomicEvidenceFingerprint: expect.stringMatching(/^atomic-candidate-evidence-[a-f0-9]{24}$/u),
+      proposition: {
+        kind: "event-location",
+        event: { canonicalLabel: "main invasion", eventType: "event" },
+        location: { entityId: atom.object!.id, canonicalLabel: "Calais" },
+        assertionStatus: "intended",
+      },
+    });
+    expect(JSON.stringify(projection)).not.toContain('"kind":"movement"');
+    expect(JSON.stringify(projection)).not.toContain('"kind":"spatial-comparison"');
+    expect(JSON.stringify(projection)).not.toContain('"kind":"causal"');
+  });
+
+  it("keeps the exact 1066 army locator and all generic entity locators non-relational", () => {
+    const army = concept("an army");
+    const england = { id: entityIdV36("entity-77e3aca61d643d3c99724a80"), label: "England", kind: "entity" as const };
+    const text = "The traditional story emphasizes exhaustion: an army racing from one end of England to the other after a major battle.";
+    const control1066 = {
+      ...createAtomicPropositionV36({
+      episodeId: episodeIdV36("history-youtube-history-30-video-story-pack-20-1066-battle-that-changed-england"),
+      claimId: claimIdV36("claim-27a228830af8714543142658"),
+      subject: army,
+      predicate: "located-in",
+      object: england,
+      assertionStatus: "reported",
+      sourceSpan: { startUtf16: 2547, endUtf16Exclusive: 2665, text, textHash: sourceTextHashV36(text) },
+      provenance: { sourceKind: "native-structured-proposition", groundingRuleId: "explicit-structured-proposition-v1", groundingSchemaVersion: "history-atomic-claim-grounding.v2", resolvedParticipantIds: [army.id, england.id], structuredPropositionId: "structured-proposition-fc18dce4a64d228f5a96ae53" },
+      }),
+      groundingId: "grounding-76a97bbd768e806696a57986",
+    } as AtomicPropositionV36;
+    expect(control1066.groundingId).toBe("grounding-76a97bbd768e806696a57986");
+    for (const atom of [
+      control1066,
+      genericLocatorAtom("a person", "Paris"),
+      genericLocatorAtom("an artifact", "London"),
+      genericLocatorAtom("an organization", "Rome"),
+      genericLocatorAtom("a generic descriptive subject", "Madrid"),
+    ]) {
+      expect(projectAtomicRelationCandidateV36(atom)).toMatchObject({
+        status: "rejected",
+        diagnostics: [{ code: "ATOMIC_CANDIDATE_EVENT_SUBJECT_INELIGIBLE" }],
+      });
+    }
+  });
+
   it("fails closed for invalid, unordered, grouping-only, or non-asserted process atoms", () => {
     const valid = serialized(processAtom());
     const single = { ...valid, processSteps: valid.processSteps.slice(0, 1) };
@@ -340,10 +446,8 @@ describe("History V3.6 Phase 2.8 atomic relation candidate projection", () => {
       diagnostics: [{ code: "ATOMIC_CANDIDATE_ASSERTION_UNREPRESENTABLE" }],
     });
     expect(projectAtomicRelationCandidateV36({ ...valid, predicate: "causes" })).toBeUndefined();
-    expect([
-      projectAtomicRelationCandidateV36({ ...valid, predicate: "located-in" }),
-      projectAtomicRelationCandidateV36({ ...valid, predicate: "depends-on" }),
-    ]).toEqual([undefined, undefined]);
+    expect(projectAtomicRelationCandidateV36({ ...valid, predicate: "located-in" })).toMatchObject({ status: "rejected" });
+    expect(projectAtomicRelationCandidateV36({ ...valid, predicate: "depends-on" })).toBeUndefined();
   });
 
   it("keeps process and temporal order identity-bearing", () => {

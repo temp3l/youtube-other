@@ -90,6 +90,7 @@ export interface ShadowCandidateRecordV36 {
   readonly projectionRuleId?: AtomicRelationCandidateProjectionRuleV36;
   readonly assertionStatus?: AtomicAssertionStatusV36;
   readonly atomicSourceSpans?: readonly AtomicSourceSpanV36[];
+  readonly atomicEvidenceFingerprint?: string;
   /** Identity-bearing order copied directly from the atomic proposition. */
   readonly semanticParticipantIds?: readonly string[];
   /** Never part of relation semantics or validator evidence. */
@@ -443,6 +444,9 @@ export function runRepresentativeShadowExtractionV36(
         atomicSourceSpans: item.draft.atomicProjection.atomicGroundingIds.map(() =>
           item.draft.atomicProjection!.sourceSpan),
         semanticParticipantIds: item.draft.atomicProjection.semanticParticipantIds,
+        ...(item.draft.atomicProjection.atomicEvidenceFingerprint
+          ? { atomicEvidenceFingerprint: item.draft.atomicProjection.atomicEvidenceFingerprint }
+          : {}),
         ...(item.draft.atomicProjection.processGrouping
           ? { processGrouping: item.draft.atomicProjection.processGrouping }
           : {}),

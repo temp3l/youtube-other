@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import {
   atomicPropositionSchemaV36,
   type AtomicAssertionStatusV36,
@@ -5,6 +7,7 @@ import {
   type AtomicPropositionV36,
   type AtomicSourceSpanV36,
 } from "./atomic-claim-grounding-v36.js";
+import { eventLocationSubjectTypeV36 } from "./event-location-eligibility-v36.js";
 import {
   entityIdV36,
   type ConceptRefV36,
@@ -21,20 +24,24 @@ export const HISTORY_V36_ATOMIC_EVIDENCE_SET_CANDIDATE_RULE =
   "atomic-contains-evidence-of-evidence-set-candidate.v1" as const;
 export const HISTORY_V36_APPROVED_MODAL_CAUSAL_CANDIDATE_RULE =
   "atomic-approved-modal-causal-candidate.v1" as const;
+export const HISTORY_V36_ATOMIC_EVENT_LOCATION_CANDIDATE_RULE =
+  "atomic-located-in-event-location-candidate.v1" as const;
 
 export type AtomicRelationCandidateSourceV36 =
   | "atomic-process-projection"
   | "atomic-temporal-projection"
   | "atomic-transforms-causal-projection"
   | "atomic-evidence-set-projection"
-  | "atomic-approved-modal-causal-projection";
+  | "atomic-approved-modal-causal-projection"
+  | "atomic-event-location-projection";
 
 export type AtomicRelationCandidateProjectionRuleV36 =
   | typeof HISTORY_V36_ATOMIC_PROCESS_CANDIDATE_RULE
   | typeof HISTORY_V36_ATOMIC_TEMPORAL_CANDIDATE_RULE
   | typeof HISTORY_V36_ATOMIC_TRANSFORMS_CAUSAL_CANDIDATE_RULE
   | typeof HISTORY_V36_ATOMIC_EVIDENCE_SET_CANDIDATE_RULE
-  | typeof HISTORY_V36_APPROVED_MODAL_CAUSAL_CANDIDATE_RULE;
+  | typeof HISTORY_V36_APPROVED_MODAL_CAUSAL_CANDIDATE_RULE
+  | typeof HISTORY_V36_ATOMIC_EVENT_LOCATION_CANDIDATE_RULE;
 
 export type AtomicRelationCandidateProjectionDiagnosticCodeV36 =
   | "ATOMIC_CANDIDATE_STRUCTURE_INVALID"
@@ -43,7 +50,8 @@ export type AtomicRelationCandidateProjectionDiagnosticCodeV36 =
   | "ATOMIC_CANDIDATE_SOURCE_LINEAGE_UNSUPPORTED"
   | "ATOMIC_CANDIDATE_PARTICIPANT_UNRESOLVED"
   | "ATOMIC_CANDIDATE_GROUP_BOUNDARY_MISMATCH"
-  | "ATOMIC_CANDIDATE_INSUFFICIENT_CARDINALITY";
+  | "ATOMIC_CANDIDATE_INSUFFICIENT_CARDINALITY"
+  | "ATOMIC_CANDIDATE_EVENT_SUBJECT_INELIGIBLE";
 
 export interface AtomicRelationCandidateProjectionDiagnosticV36 {
   readonly code: AtomicRelationCandidateProjectionDiagnosticCodeV36;
@@ -68,6 +76,8 @@ interface AtomicRelationCandidateProjectionCommonV36 {
   readonly candidateSource: AtomicRelationCandidateSourceV36;
   readonly assertionStatus: AtomicAssertionStatusV36;
   readonly sourceSpan: AtomicSourceSpanV36;
+  /** Exact evidence lineage; never a semantic relation identity input. */
+  readonly atomicEvidenceFingerprint?: string;
   /** Ordered IDs are retained even when the frozen relation contract identifies claim concepts by label. */
   readonly semanticParticipantIds: readonly [string, string, ...string[]];
 }
@@ -95,6 +105,86 @@ function relationConcept(ref: AtomicConceptRefV36): ConceptRefV36 {
   return ref.kind === "entity"
     ? { canonicalLabel: ref.label, entityId: entityIdV36(ref.id) }
     : { canonicalLabel: ref.label };
+}
+
+export function atomicRelationCandidateEvidenceFingerprintV36(input: {
+  readonly claimIds: readonly string[];
+  readonly structuredPropositionIds: readonly string[];
+  readonly atomicGroundingIds: readonly string[];
+  readonly sourceSpans: readonly AtomicSourceSpanV36[];
+}): string {
+  const digest = createHash("sha256").update(JSON.stringify({
+    claimIds: [...input.claimIds].sort((left, right) => left.localeCompare(right)),
+    structuredPropositionIds: [...input.structuredPropositionIds].sort((left, right) => left.localeCompare(right)),
+    atomicGroundingIds: [...input.atomicGroundingIds].sort((left, right) => left.localeCompare(right)),
+    sourceSpans: input.sourceSpans.map((span) => ({
+      startUtf16: span.startUtf16,
+      endUtf16Exclusive: span.endUtf16Exclusive,
+      text: span.text,
+      textHash: span.textHash,
+    })),
+  })).digest("hex").slice(0, 24);
+  return `atomic-candidate-evidence-${digest}`;
+}
+
+function projectEventLocationCandidateV36(
+  input: unknown
+): AtomicRelationCandidateProjectionResultV36 {
+  const parsed = atomicPropositionSchemaV36.safeParse(input);
+  if (!parsed.success) {
+    return {
+      status: "rejected",
+      candidateSource: "atomic-event-location-projection",
+      projectionRuleId: HISTORY_V36_ATOMIC_EVENT_LOCATION_CANDIDATE_RULE,
+      diagnostics: [{ code: "ATOMIC_CANDIDATE_STRUCTURE_INVALID", message: "Event-location projection requires a valid atomic located-in proposition.", affectedIds: [] }],
+    };
+  }
+  const proposition = parsed.data as unknown as AtomicPropositionV36;
+  const eventType = eventLocationSubjectTypeV36(proposition);
+  if (!eventType) {
+    return {
+      status: "rejected",
+      candidateSource: "atomic-event-location-projection",
+      projectionRuleId: HISTORY_V36_ATOMIC_EVENT_LOCATION_CANDIDATE_RULE,
+      diagnostics: [{ code: "ATOMIC_CANDIDATE_EVENT_SUBJECT_INELIGIBLE", message: "Located-in subject lacks exact, typed event/action/operation eligibility.", affectedIds: [proposition.groundingId] }],
+    };
+  }
+  const structuredPropositionId = proposition.provenance.structuredPropositionId;
+  const resolved = new Set(proposition.provenance.resolvedParticipantIds);
+  if (!structuredPropositionId || !proposition.object || proposition.subject.kind !== "concept" || proposition.object.kind !== "place" || proposition.subject.id === proposition.object.id || !resolved.has(proposition.subject.id) || !resolved.has(proposition.object.id)) {
+    return {
+      status: "rejected",
+      candidateSource: "atomic-event-location-projection",
+      projectionRuleId: HISTORY_V36_ATOMIC_EVENT_LOCATION_CANDIDATE_RULE,
+      diagnostics: [{ code: "ATOMIC_CANDIDATE_PARTICIPANT_UNRESOLVED", message: "Event-location requires distinct resolved event-like and canonical-place participants.", affectedIds: [proposition.groundingId] }],
+    };
+  }
+  const atomicEvidenceFingerprint = atomicRelationCandidateEvidenceFingerprintV36({
+    claimIds: [proposition.claimId],
+    structuredPropositionIds: [structuredPropositionId],
+    atomicGroundingIds: [proposition.groundingId],
+    sourceSpans: [proposition.sourceSpan],
+  });
+  return {
+    status: "projected",
+    candidateSource: "atomic-event-location-projection",
+    projectionRuleId: HISTORY_V36_ATOMIC_EVENT_LOCATION_CANDIDATE_RULE,
+    episodeId: proposition.episodeId,
+    supportClaimIds: [proposition.claimId],
+    atomicGroundingIds: [proposition.groundingId],
+    structuredPropositionIds: [structuredPropositionId],
+    assertionStatus: proposition.assertionStatus,
+    sourceSpan: proposition.sourceSpan,
+    atomicEvidenceFingerprint,
+    semanticParticipantIds: [proposition.subject.id, proposition.object.id],
+    proposition: {
+      kind: "event-location",
+      event: { canonicalLabel: proposition.subject.label, eventType },
+      location: { entityId: entityIdV36(proposition.object.id), canonicalLabel: proposition.object.label },
+      assertionStatus: proposition.assertionStatus,
+    },
+    diagnostics: [],
+  };
 }
 
 const evidenceSetIdentity = {
@@ -306,6 +396,7 @@ export function projectAtomicRelationCandidateV36(
 ): AtomicRelationCandidateProjectionResultV36 | undefined {
   if (!input || typeof input !== "object") return undefined;
   const predicate = (input as { readonly predicate?: unknown }).predicate;
+  if (predicate === "located-in") return projectEventLocationCandidateV36(input);
   if (predicate === "causes" || predicate === "contributes-to") {
     return projectApprovedModalCausalCandidateV36(input);
   }

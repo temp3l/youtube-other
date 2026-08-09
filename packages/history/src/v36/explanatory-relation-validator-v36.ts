@@ -272,6 +272,11 @@ export const explanatoryRelationValidatorV36: ExplanatoryRelationValidatorV36 = 
       }
       for (const entity of context.entities) {
         if (isProperNameFragment(ref.canonicalLabel, entity) && entity.id !== ("entityId" in ref ? ref.entityId : undefined)) {
+          const independentlyResolvedEventLocationPlace = relation.kind === "event-location" &&
+            participant.type === "place" && hasEntityId(ref) && context.entities.some((candidate) =>
+              candidate.id === ref.entityId && candidate.kind === "place" &&
+              candidate.canonicalLabel.trim().toLocaleLowerCase() === ref.canonicalLabel.trim().toLocaleLowerCase());
+          if (independentlyResolvedEventLocationPlace) continue;
           diagnostics.push(diagnostic(relation, "RELATION_PROPER_NAME_FRAGMENTATION", "A resolved multi-token proper name was decomposed without independent resolution.", [entity.id, ref.canonicalLabel]));
         }
       }
