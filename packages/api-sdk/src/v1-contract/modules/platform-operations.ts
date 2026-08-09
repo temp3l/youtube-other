@@ -37,6 +37,7 @@ export const platformSdkV1Operations = {
     requiredHeaders: [],
     problemResponses: true,
   },
+  getWorkspaceCapabilities: { method: "GET", path: "/v1/workspaces/{workspace}/capabilities", successStatus: "200", responseSchema: "CapabilityRegistry", requestSchema: null, requiredHeaders: [], problemResponses: true },
   listUsageRecords: {
     method: "GET",
     path: "/v1/workspaces/{workspace}/usage-records",

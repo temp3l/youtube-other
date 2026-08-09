@@ -2012,6 +2012,11 @@ export const openApiComponents = {
           unitKey: schema("OpaqueId"),
         },
       },
+      CapabilityRegistry: {
+        type: "object", additionalProperties: false,
+        required: ["schemaVersion", "capabilityVersion", "entitledProfiles", "cells", "tenantConfigurableFields", "generatedAt"],
+        properties: { schemaVersion: { type: "string", enum: ["mediaforge.capability.v1"] }, capabilityVersion: { type: "string", pattern: "^[a-f0-9]{64}$" }, entitledProfiles: { type: "array", minItems: 1, items: { type: "string" } }, cells: { type: "array", minItems: 1, items: { type: "object", additionalProperties: false, required: ["profileId", "locales", "variants", "renderProfiles", "publicationModes", "approvalModes"], properties: { profileId: { type: "string" }, locales: { type: "array", items: { type: "string" } }, variants: { type: "array", items: { type: "string" } }, renderProfiles: { type: "array", items: { type: "string" } }, publicationModes: { type: "array", items: { type: "string" } }, approvalModes: { type: "array", items: { type: "string" } } } } }, tenantConfigurableFields: { type: "array", items: { type: "string" } }, generatedAt: schema("DateTime") },
+      },
       ProductionUnitSnapshot: {
         type: "object",
         additionalProperties: false,

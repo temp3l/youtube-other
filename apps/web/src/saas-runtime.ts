@@ -3,6 +3,7 @@ import http from "node:http";
 import { OidcBff, type OidcBffOptions } from "./oidc-bff.js";
 import {
   ApiProblemError,
+  type CapabilityRegistry,
   type EpisodeInput,
   type ProjectSummary,
 } from "@mediaforge/api-sdk";
@@ -189,16 +190,9 @@ function workflowForm(projectId: string, episodeId: string, episodeRevision: num
   return `<form class="card form" method="post" action="/projects/${encodeURIComponent(projectId)}/episodes/${encodeURIComponent(episodeId)}/workflow-runs"><h2>Start provider-free production</h2><p>The episode revision is pinned before durable work begins. Publication remains unavailable.</p>${idempotencyField()}<input type="hidden" name="episodeRevision" value="${episodeRevision}"><label class="field">Production language<select name="locale"><option value="${locale}">${localeLabels[locale]} (${locale})</option></select><span class="hint">This profile is currently entitled for ${localeLabels[locale]} only.</span></label><div class="actions"><button class="button" type="submit">Start workflow</button></div></form>`;
 }
 
-function languageAndVoiceReadiness(session: SaasSession): string {
-  const profiles = [...new Set(session.profiles)];
-  const coverage = (Object.keys(localeLabels) as (keyof typeof localeLabels)[]).map((locale) => {
-    const entitledFor = profiles.filter((profile) => pilotLocaleByProfile[profile] === locale);
-    const detail = entitledFor.length
-      ? `Entitled for ${entitledFor.map((profile) => profileLabels[profile]).join(" and ")}.`
-      : "Recognized by the platform, but not entitled for this pilot.";
-    return `<div class="row"><div><strong>${localeLabels[locale]} (${locale})</strong><span>${escapeHtml(detail)}</span></div><span class="tag ${entitledFor.length ? "" : "neutral"}">${entitledFor.length ? "Pilot ready" : "Not entitled"}</span></div>`;
-  }).join("");
-  const voiceReadiness = profiles.map((profile) => `<section class="card">${renderGenreSpeechSettings({ status: "disabled", genreName: profileLabels[profile], availableProfiles: [], profileHistory: [], message: "Voice profile selection and generation are disabled for the provider-free pilot. The server-side speech API remains the source of truth for consent, supported languages, quota, and overrides." })}</section>`).join("");
+function languageAndVoiceReadiness(capabilities: CapabilityRegistry): string {
+  const coverage = capabilities.cells.map((cell) => `<div class="row"><div><strong>${escapeHtml(cell.profileId)}</strong><span>${escapeHtml(cell.locales.map((locale) => localeLabels[locale as keyof typeof localeLabels] ?? locale).join(", "))}</span></div><span class="tag">Configured</span></div>`).join("");
+  const voiceReadiness = capabilities.cells.map((cell) => `<section class="card">${renderGenreSpeechSettings({ status: "disabled", genreName: cell.profileId, availableProfiles: [], profileHistory: [], message: "Voice assignment and consent are resolved server-side; credentials are never rendered." })}</section>`).join("");
   return `<section class="card"><h2>Language coverage</h2><p>Every language is visible here, but workflow admission only offers locales entitled for the selected profile.</p></section><div class="stack" style="margin-top:12px">${coverage}</div><section class="card" style="margin-top:18px"><h2>Voice readiness</h2><p>Voice selection is never stored in the browser. It becomes available only when a consent-valid server-side profile version is configured.</p></section><div class="stack" style="margin-top:12px">${voiceReadiness || empty("No profile entitlements", "An operator must entitle a production profile before voice readiness can be assessed.")}</div>`;
 }
 
@@ -272,7 +266,10 @@ async function renderJourneyPage(identity: SaasIdentity, path: string, gateway: 
       const execution = publicationExecutionEnabled ? `<section class="notice"><strong>Execution is server-owned.</strong><p>The browser never receives an OAuth token or direct provider control. The internal worker must still pass its confirmation and fence checks.</p></section>` : `<section class="notice"><strong>Execution is disabled.</strong><p>The platform flag is off; no executable publish control is rendered.</p></section>`;
       return shell(identity.session, path, "Publication intent", "This page displays only safe, immutable bindings and state.", `${execution}<section class="card" style="margin-top:18px"><h2>${escapeHtml(publication.status.replaceAll("_", " "))}</h2><p>${escapeHtml(publicationStatusMessage(publication.status))}</p><div class="stack" style="margin-top:14px"><div class="row"><div><strong>Destination</strong><span>Channel ${escapeHtml(publication.channelId)} · intended ${escapeHtml(publication.visibility)} visibility</span></div><span class="tag neutral">revision ${publication.revision}</span></div><div class="row"><div><strong>Source evidence</strong><span>Approval ${escapeHtml(publication.approvalId)} revision ${publication.approvalRevision} · asset ${escapeHtml(publication.assetHash)}</span></div><span class="tag neutral">Immutable</span></div><div class="row"><div><strong>Schedule</strong><span>${escapeHtml(publication.scheduledAt ?? "Not scheduled")}</span></div><span class="tag neutral">Server validated</span></div></div>${controls}</section><section class="card" style="margin-top:18px"><h2>Safe recovery</h2><p>Metadata changes require a new immutable intent. Reconciliation never guesses an external outcome or regenerates media.</p></section>`);
     }
-    if (path === "/settings") return shell(identity.session, path, "Languages and voice readiness", "Choose only the locale your profile is entitled for. Voice credentials, consent records, and provider settings remain server-side.", languageAndVoiceReadiness(identity.session));
+    if (path === "/settings") {
+      const capabilities = await gateway.getWorkspaceCapabilities(identity);
+      return shell(identity.session, path, "Languages and voice readiness", "Selectable options are resolved from persisted workspace configuration. Voice credentials and consent records remain server-side.", languageAndVoiceReadiness(capabilities));
+    }
     if (path === "/reviews" || path === "/assets") {
       const projects = (await gateway.listProjects(identity)).items;
       if (path === "/reviews") {

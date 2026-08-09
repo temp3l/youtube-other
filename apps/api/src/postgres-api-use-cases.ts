@@ -9,6 +9,7 @@ import {
 } from "@mediaforge/application";
 import {
   WORKFLOW_PORTFOLIO_SCHEMA_VERSION,
+  buildCapabilityRegistry,
   deriveGateEvidenceUpdates,
   previewProductionUnitInvalidation,
   productionUnitAddressSchema,
@@ -16,6 +17,7 @@ import {
   projectQuotaDimensionStatus,
   projectWorkflowPortfolioPage,
   resolveProviderHealthStatus,
+  resolveProductionConfiguration,
   type UsageDimension,
   workflowPortfolioFilterSchema,
 } from "@mediaforge/domain";
@@ -66,6 +68,13 @@ interface ReadCursorValue {
 
 function id(prefix: string): string {
   return `${prefix}-${crypto.randomUUID()}`;
+}
+
+function capabilityProfile(profile: string): "dark-truth" | "mathematics-education" | "strategic-reinvention" | "history" {
+  const profiles = { dark_truth: "dark-truth", mathematics_education: "mathematics-education", strategic_reinvention: "strategic-reinvention", history: "history" } as const;
+  const resolved = profiles[profile as keyof typeof profiles];
+  if (!resolved) throw new ApplicationError("state_transition_rejected", "Project profile configuration is invalid.", false);
+  return resolved;
 }
 
 function digest(value: unknown): string {
@@ -627,6 +636,26 @@ export function createPostgresApiUseCases(input: {
           })
       );
       return record?.state ?? null;
+    },
+    getWorkspaceCapabilities: async (context) => {
+      const tenant = await repository.withWorkspaceTransaction(context.workspaceId, (transaction) => transaction.getTenantSettings(context.workspaceId));
+      return tenant ? buildCapabilityRegistry(tenant, now().toISOString()) : null;
+    },
+    getEpisodeResolvedConfiguration: async (episodeId, context) => {
+      const resolved = await repository.withWorkspaceTransaction(context.workspaceId, async (transaction) => {
+        const episode = await transaction.getEpisode(context.workspaceId, context.projectId, episodeId);
+        if (!episode) return null;
+        const project = await transaction.getProject(context.workspaceId, context.projectId);
+        const tenant = await transaction.getTenantSettings(context.workspaceId);
+        if (!project || !tenant) return null;
+        const profileId = capabilityProfile(project.profile);
+        const [genre, episodeOverride] = await Promise.all([
+          transaction.getGenreConfiguration(context.workspaceId, profileId),
+          transaction.getEpisodeConfigurationOverride({ workspaceId: context.workspaceId, projectId: context.projectId, episodeId }),
+        ]);
+        return resolveProductionConfiguration({ profileId, tenant, ...(genre ? { genre } : {}), ...(episodeOverride ? { episode: episodeOverride } : {}), resolvedAt: now().toISOString() });
+      });
+      return resolved;
     },
     listProductionUnitSnapshots: async (episodeId, context) => {
       const episode = await repository.withWorkspaceTransaction(context.workspaceId, (transaction) => transaction.getEpisode(context.workspaceId, context.projectId, episodeId));

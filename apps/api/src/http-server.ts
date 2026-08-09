@@ -498,6 +498,8 @@ export interface ApiUseCases {
     readonly items: readonly Record<string, unknown>[];
     readonly nextCursor?: string;
   }>;
+  getWorkspaceCapabilities(context: Required<Pick<ApiRequestContext, "workspaceId" | "requestId">>): Promise<Record<string, unknown> | null>;
+  getEpisodeResolvedConfiguration(episodeId: string, context: Required<Pick<ApiRequestContext, "workspaceId" | "projectId" | "requestId">>): Promise<Record<string, unknown> | null>;
   previewArtifactInvalidation(
     episodeId: string,
     input: {
@@ -1443,6 +1445,7 @@ function requiredPermission(
     return "audit.read";
   if (method === "GET" && !matched.project && matched.tail === "workflow-portfolio")
     return "content.read";
+  if (method === "GET" && !matched.project && matched.tail === "capabilities") return "content.read";
   if (method === "GET" && !matched.project && matched.tail === "provider-health")
     return "usage.read";
   if (
@@ -1656,6 +1659,7 @@ function requiredPermission(
     (matched.tail === `episodes/${matched.episode}/production-units` ||
       matched.tail === `episodes/${matched.episode}/production-units:compare`)
   ) return "content.read";
+  if (method === "GET" && matched.episode && matched.tail === `episodes/${matched.episode}/resolved-configuration`) return "content.read";
   if (
     method === "POST" &&
     matched.episode &&
@@ -1903,6 +1907,11 @@ export function createApiServer(
           etag: etag(result.revision),
           "x-request-id": requestIdValue,
         });
+      }
+      if (request.method === "GET" && !matched.project && matched.tail === "capabilities") {
+        const result = await useCases.getWorkspaceCapabilities({ workspaceId: matched.workspace, requestId: requestIdValue });
+        if (!result) throw new ApplicationError("not_found", "Resource not found.", false);
+        return json(response, 200, result, { "x-request-id": requestIdValue });
       }
       if (
         request.method === "GET" &&
@@ -2729,6 +2738,11 @@ export function createApiServer(
           episodeProductionStateSchema.parse(result),
           { "x-request-id": requestIdValue }
         );
+      }
+      if (request.method === "GET" && matched.episode && matched.tail === `episodes/${matched.episode}/resolved-configuration`) {
+        const result = await useCases.getEpisodeResolvedConfiguration(matched.episode, projectContext);
+        if (!result) throw new ApplicationError("not_found", "Resource not found.", false);
+        return json(response, 200, result, { "x-request-id": requestIdValue });
       }
       if (
         request.method === "GET" &&

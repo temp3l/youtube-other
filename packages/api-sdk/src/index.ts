@@ -95,6 +95,7 @@ export interface WorkspaceQuotaStatus {
   readonly availableMinor: string;
   readonly revision: number;
 }
+export interface CapabilityRegistry { readonly schemaVersion: "mediaforge.capability.v1"; readonly capabilityVersion: string; readonly entitledProfiles: readonly string[]; readonly cells: readonly { readonly profileId: string; readonly locales: readonly string[]; readonly variants: readonly string[]; readonly renderProfiles: readonly string[]; readonly publicationModes: readonly string[]; readonly approvalModes: readonly string[] }[]; readonly tenantConfigurableFields: readonly string[]; readonly generatedAt: string; }
 
 export interface UsageRecord {
   readonly id: string;
@@ -1018,6 +1019,8 @@ export class MediaforgeApiClient {
       { ...(options ? { options } : {}) }
     );
   }
+
+  public getWorkspaceCapabilities(workspaceId: string, options?: RequestOptions): Promise<ApiResponse<CapabilityRegistry>> { return this.execute(`${this.workspacePath(workspaceId)}/capabilities`, { ...(options ? { options } : {}) }); }
 
   public listProductionUnitSnapshots(workspaceId: string, projectId: string, episodeId: string, options?: RequestOptions): Promise<ApiResponse<ProductionUnitSnapshotPage>> {
     return this.execute(`${this.projectPath(workspaceId, projectId)}/episodes/${encodePath(episodeId)}/production-units`, { ...(options ? { options } : {}) });

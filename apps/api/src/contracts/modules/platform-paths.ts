@@ -67,6 +67,9 @@ export const platformOpenApiPaths = {
         },
       },
     },
+    "/v1/workspaces/{workspace}/capabilities": {
+      get: { operationId: "getWorkspaceCapabilities", description: "Returns persisted tenant capabilities. Returns 404 until the tenant is provisioned; no pilot defaults are synthesized.", parameters: workspaceParameters, responses: { "200": { description: "Workspace capabilities", headers: { "x-request-id": responseHeader("RequestId") }, content: json("CapabilityRegistry") }, "404": response("NotFound"), ...authenticatedErrors } },
+    },
     "/v1/workspaces/{workspace}/usage-records": {
       get: {
         operationId: "listUsageRecords",
