@@ -18,7 +18,14 @@
 
 - Start: `3abe44f4a0b5c3bd6f082eab89731f91d5b4cb63`; target: five-gap audit.
 - Change: none semantic; two non-relational, two source-incomplete, one movement-architecture block; counts unchanged; invariants zero.
-- Commit/tag: assigned at close; artifact: `history-v3.6-terminal-gap-audit-review-20260809T205504Z.zip`.
+- Commit/tag: `505b0fa9f396aa6a0334e4c591b0882a66981823`; `history-v3.6-event-location-drain-terminal-audit-baseline`.
+- Artifact: `history-v3.6-terminal-gap-audit-review-20260809T205504Z.zip`; next: consolidated close.
+
+## Phase 2.23
+
+- Start: `505b0fa9f396aa6a0334e4c591b0882a66981823`; target: consolidated artifact/report close.
+- Change: none semantic; counts and invariants unchanged.
+- Commit/tag: resolve `history-v3.6-autonomous-event-location-drain-baseline^{}` after close.
 - Next: Gate A; recommended leave unsupported movement cases unchanged.
 
 Final artifact: `history-v3.6-autonomous-event-location-drain-review-20260809T205504Z.zip`.
