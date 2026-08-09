@@ -1,0 +1,14 @@
+{
+  "featureLane": 0,
+  "all40CompatibilityLane": 0,
+  "supportedDiagnostics": [
+    "RELATION_SCHEMA_INVALID",
+    "RELATION_KIND_NOT_MAP_COMPILABLE",
+    "RELATION_KIND_NOT_DIAGRAM_COMPILABLE",
+    "COMPILER_PROOF_PREMISES_INCOMPLETE",
+    "COMPILER_PROOF_MODALITY_MISMATCH",
+    "COMPILER_PROOF_SUPPORT_MISMATCH",
+    "CROSS_EPISODE_COMPILER_SUPPORT"
+  ],
+  "policy": "Abstain instead of inferring or flattening semantics."
+}

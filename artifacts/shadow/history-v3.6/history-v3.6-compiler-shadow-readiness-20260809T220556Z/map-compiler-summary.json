@@ -1,0 +1,31 @@
+{
+  "rules": [
+    {
+      "relationKind": "movement",
+      "disposition": "MAP",
+      "compilerRule": "map-movement.v1",
+      "semanticGuard": "explicit from/via/to only"
+    },
+    {
+      "relationKind": "spatial-comparison",
+      "disposition": "MAP",
+      "compilerRule": "map-spatial-comparison.v1",
+      "semanticGuard": "unordered comparison; never route"
+    },
+    {
+      "relationKind": "spatial-area",
+      "disposition": "MAP",
+      "compilerRule": "map-spatial-area.v1",
+      "semanticGuard": "accepted area place only"
+    },
+    {
+      "relationKind": "event-location",
+      "disposition": "MAP",
+      "compilerRule": "map-event-location.v1",
+      "semanticGuard": "event→location with modality; never movement"
+    }
+  ],
+  "sameEightMap": 3,
+  "all40Map": 2,
+  "inferenceInputs": []
+}

@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "history-compiler-shadow-intent.v1",
+  "compilerVersion": "history-compiler-shadow.v3.6.0",
+  "mode": "SHADOW_ONLY",
+  "productionActivation": false,
+  "requiredDispositions": [
+    "MAP",
+    "DIAGRAM",
+    "NO_SAFE_COMPILATION"
+  ],
+  "commonFields": [
+    "relationId",
+    "relationKind",
+    "episodeId",
+    "compilerIntentId",
+    "compilerRule",
+    "provenance",
+    "shadowOnly"
+  ],
+  "provenanceFields": [
+    "relationId",
+    "evidenceFingerprint",
+    "supportClaimIds",
+    "structuredPropositionIds",
+    "atomicGroundingIds",
+    "proof"
+  ],
+  "identity": {
+    "prefix": "history-compiler-intent-",
+    "hashInputs": [
+      "compiler contract version",
+      "target disposition",
+      "semantic relation ID",
+      "visual-semantic payload"
+    ],
+    "excludes": [
+      "layout",
+      "narration",
+      "claim text",
+      "evidence ordering"
+    ]
+  }
+}
