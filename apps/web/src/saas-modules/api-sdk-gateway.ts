@@ -12,6 +12,13 @@ export function createApiSdkSaasJourneyGateway(input: {
   const client = (identity: SaasIdentity) => input.clientFor(identity);
   const workspace = (identity: SaasIdentity) => identity.session.workspaceId;
   return {
+    bulk: {
+      async preflight(identity, value, idempotencyKey) { return (await client(identity).preflightBulkProduction(workspace(identity), value, { idempotencyKey })).data; },
+      async get(identity, batchId) { return (await client(identity).getBulkProductionBatch(workspace(identity), batchId)).data; },
+      async launch(identity, batchId, idempotencyKey) { return (await client(identity).launchBulkProduction(workspace(identity), batchId, { idempotencyKey })).data; },
+      async retry(identity, batchId, idempotencyKey) { return (await client(identity).retryBulkProduction(workspace(identity), batchId, { idempotencyKey })).data; },
+      async cancel(identity, batchId) { return (await client(identity).cancelBulkProduction(workspace(identity), batchId)).data; },
+    },
     async listProjects(identity) {
       return (await client(identity).listProjects(workspace(identity), { size: 50 }))
         .data;

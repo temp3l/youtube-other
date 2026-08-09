@@ -49,6 +49,12 @@ import type {
   WorkflowCommandAccepted,
   WorkflowRun,
   WorkflowStepPage,
+  BulkProductionBatch,
+  BulkProductionPreflightInput,
+  BulkProductionPreflightResult,
+  BulkProductionLaunchResult,
+  BulkProductionRetryResult,
+  BulkProductionCancellationResult,
 } from "@mediaforge/api-sdk";
 
 import type { SaasIdentity } from "./saas-runtime.js";
@@ -80,11 +86,20 @@ export interface IntegrationsJourneyGateway {
   getDeveloperJourneyExamples(identity: SaasIdentity): Promise<DeveloperJourneyExamples>;
 }
 
+export interface BulkJourneyGateway {
+  preflight(identity: SaasIdentity, input: BulkProductionPreflightInput, idempotencyKey: string): Promise<BulkProductionPreflightResult>;
+  get(identity: SaasIdentity, batchId: string): Promise<BulkProductionBatch>;
+  launch(identity: SaasIdentity, batchId: string, idempotencyKey: string): Promise<BulkProductionLaunchResult>;
+  retry(identity: SaasIdentity, batchId: string, idempotencyKey: string): Promise<BulkProductionRetryResult>;
+  cancel(identity: SaasIdentity, batchId: string): Promise<BulkProductionCancellationResult>;
+}
+
 /**
  * Server-side gateway used by the web BFF. It deliberately receives a server
  * identity, never a browser-supplied bearer token.
  */
 export interface SaasJourneyGateway {
+  readonly bulk?: BulkJourneyGateway;
   readonly publishing?: PublishingJourneyGateway;
   readonly integrations?: IntegrationsJourneyGateway;
   listProjects(identity: SaasIdentity): Promise<ProjectPage>;

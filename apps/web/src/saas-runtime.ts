@@ -115,7 +115,7 @@ export function renderSignedOutShell(): string {
 
 const navigation = [
   ["/", "Overview"], ["/projects", "Projects"], ["/episodes", "Episodes"],
-  ["/workflows", "Workflows"], ["/reviews", "Review"], ["/assets", "Assets"],
+  ["/workflows", "Workflows"], ["/bulk", "Bulk"], ["/reviews", "Review"], ["/assets", "Assets"],
   ["/publishing", "Publishing"], ["/usage", "Usage"], ["/integrations", "Integrations"], ["/settings", "Settings"],
 ] as const;
 
@@ -273,6 +273,15 @@ interface PendingInvalidation { readonly workspaceId: string; readonly projectId
 
 async function renderJourneyPage(identity: SaasIdentity, path: string, gateway: SaasJourneyGateway, search = "", publicationExecutionEnabled = false, pendingInvalidations?: ReadonlyMap<string, PendingInvalidation>): Promise<string | null> {
   try {
+    if (path === "/bulk") {
+      const bulk = gateway.bulk;
+      if (!bulk) return shell(identity.session, path, "Bulk operations", "Bulk operations require a server-side workspace gateway.", `<section class="notice">Bulk production is unavailable for this workspace.</section>`);
+      const batchId = new URLSearchParams(search).get("batch");
+      if (!batchId) return shell(identity.session, path, "Bulk operations", "Paste a bounded server-approved selection. The server decides eligibility, quota, and current revision.", `<form class="card form" method="post" action="/bulk/preflight"><h2>Preflight selection</h2><p>One item per line: project ID, episode ID, revision, locale, variant. Maximum 100 items.</p>${idempotencyField()}<label class="field">Selection<textarea required name="items" aria-describedby="bulk-selection-help" placeholder="project-1,episode-1,2,en,full"></textarea><span id="bulk-selection-help" class="hint">Successful items are never included by retry; the server rechecks every item before launch.</span></label><button class="button" type="submit">Preflight selection</button></form>`);
+      const batch = await bulk.get(identity, batchId);
+      const rows = batch.items.map((item) => `<div class="row"><div><strong>${escapeHtml(item.id)}</strong><span>${escapeHtml(item.status)} · ${escapeHtml(item.reasons.join(", "))}</span></div><span class="tag ${item.eligible ? "" : "neutral"}">${item.eligible ? "Eligible" : "Not eligible"}</span></div>`).join("");
+      return shell(identity.session, path, "Bulk batch", "Item eligibility and outcome come from the tenant-scoped server record.", `<section class="card"><h2>${escapeHtml(batch.status)}</h2><p>Selection fingerprint ${escapeHtml(batch.selectionFingerprint)}</p><div class="actions"><form method="post" action="/bulk/${encodeURIComponent(batch.id)}:launch">${idempotencyField()}<button class="button" type="submit">Launch eligible items</button></form><form method="post" action="/bulk/${encodeURIComponent(batch.id)}:retry">${idempotencyField()}<button class="button secondary" type="submit">Retry eligible failures</button></form><form method="post" action="/bulk/${encodeURIComponent(batch.id)}:cancel"><button class="button secondary" type="submit">Cancel batch</button></form></div></section><section class="card" style="margin-top:18px"><h2>Item results</h2><p>Every submitted item retains its server-calculated reason and terminal outcome.</p></section><div class="stack" style="margin-top:12px">${rows}</div>`);
+    }
     if (path === "/publishing") return renderPublishingPage({
       identity, gateway, search, executionEnabled: publicationExecutionEnabled,
     });
@@ -558,6 +567,29 @@ async function handleJourneyAction(input: {
     return false;
   };
   try {
+    if (path === "/bulk/preflight") {
+      const bulk = gateway.bulk;
+      if (!bulk) { actionError(response, identity.session, path, 409, "Bulk operations are unavailable for this workspace."); return true; }
+      const lines = requiredField(values, "items", 20_000).split(/\r?\n/u).filter(Boolean);
+      if (lines.length > 100) throw new Error("A bulk selection may contain at most 100 items.");
+      const items = lines.map((line) => {
+        const [projectId, episodeId, revision, locale, variant, extra] = line.split(",").map((part) => part.trim());
+        if (!projectId || !episodeId || !revision || !locale || !variant || extra !== undefined || !Number.isSafeInteger(Number(revision)) || Number(revision) < 0 || !["en", "de", "es", "fr", "pt", "it"].includes(locale) || !["full", "short"].includes(variant)) throw new Error("Each bulk line must be project ID, episode ID, non-negative revision, locale, and variant.");
+        return { projectId, episodeId, expectedRevision: Number(revision), locale: locale as "en" | "de" | "es" | "fr" | "pt" | "it", variant: variant as "full" | "short" };
+      });
+      const batch = await bulk.preflight(identity, { items }, idempotencyKey);
+      redirect(`/bulk?batch=${encodeURIComponent(batch.id)}`); return true;
+    }
+    const bulkAction = path.match(/^\/bulk\/([^/]+):(launch|retry|cancel)$/u);
+    if (bulkAction) {
+      const bulk = gateway.bulk;
+      if (!bulk) { actionError(response, identity.session, path, 409, "Bulk operations are unavailable for this workspace."); return true; }
+      const batchId = decodeURIComponent(bulkAction[1]!);
+      if (bulkAction[2] === "launch") await bulk.launch(identity, batchId, idempotencyKey);
+      else if (bulkAction[2] === "retry") await bulk.retry(identity, batchId, idempotencyKey);
+      else await bulk.cancel(identity, batchId);
+      redirect(`/bulk?batch=${encodeURIComponent(batchId)}`); return true;
+    }
     if (path === "/integrations/api-credentials") {
       const integrations = gateway.integrations;
       if (!integrations) { actionError(response, identity.session, path, 409, "Credential management is unavailable for this workspace."); return true; }
