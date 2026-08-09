@@ -85,6 +85,47 @@ describe("V3.6 map renderer shadow adapter", () => {
     expect(renderMapSpecSvgV36(event)).toContain("status: intended");
   });
 
+  it("preserves an area anchor as presentation-only comparison metadata", () => {
+    const result = adaptMapIntentToRenderSpecV36({
+      geography: [
+        geography[0]!,
+        {
+          entityId: "area",
+          canonicalLabel: "Pas-de-Calais",
+          latitude: 50.493,
+          longitude: 2.366,
+          geometrySource: "accepted-static-shadow-metadata",
+          placeKind: "area",
+          renderAnchorPresentationOnly: true,
+        },
+      ],
+      intent: {
+        ...common,
+        compilerIntentId: "area-comparison-intent",
+        disposition: "MAP",
+        compilerRule: "map-spatial-comparison.v1",
+        relationKind: "spatial-comparison",
+        mapSemanticType: "comparison",
+        places: [
+          { entityId: "a" as never, canonicalLabel: "A" },
+          { entityId: "area" as never, canonicalLabel: "Pas-de-Calais" },
+        ],
+        unorderedSemanticSet: true,
+      },
+    });
+    expect(result.disposition).toBe("RENDER_SPEC");
+    if (result.disposition !== "RENDER_SPEC") return;
+    expect(result.points[1]).toMatchObject({
+      role: "comparison-area-member",
+      placeKind: "area",
+      renderAnchorPresentationOnly: true,
+    });
+    expect(result.edges[0]).toMatchObject({
+      directed: false,
+      semanticType: "comparison-connector-not-route",
+    });
+  });
+
   it("abstains instead of resolving missing geography", () => {
     const intent: MapIntentV36 = {
       ...common,

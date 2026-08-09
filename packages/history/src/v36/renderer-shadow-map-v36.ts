@@ -100,7 +100,9 @@ export function adaptMapIntentToRenderSpecV36(input: {
     return input.intent.relationKind === "event-location"
       ? "event-location"
       : input.intent.relationKind === "spatial-comparison"
-        ? "comparison-member"
+        ? places[index]!.placeKind === "area"
+          ? "comparison-area-member"
+          : "comparison-member"
         : "area";
   };
   const points: RenderPointV36[] = places.map((place, index) => {
@@ -113,6 +115,10 @@ export function adaptMapIntentToRenderSpecV36(input: {
           : refs[index]!.canonicalLabel,
       ...position,
       role: roleAt(index),
+      ...(place.placeKind ? { placeKind: place.placeKind } : {}),
+      ...(place.renderAnchorPresentationOnly
+        ? { renderAnchorPresentationOnly: true }
+        : {}),
       ...(input.intent.relationKind === "event-location"
         ? { status: input.intent.assertionStatus }
         : {}),
@@ -180,7 +186,11 @@ export function renderMapSpecSvgV36(spec: MapRenderSpecV36): string {
   const points = spec.points
     .map((point) => {
       const intended = point.status === "intended";
-      return `<g><circle cx="${point.x.toFixed(2)}" cy="${point.y.toFixed(2)}" r="${intended ? 15 : 12}" fill="${intended ? "#fff4ce" : "#244f5a"}" stroke="${intended ? "#b47812" : "#fff"}" stroke-width="4" ${intended ? 'stroke-dasharray="5 4"' : ""}/><text x="${(point.x + 18).toFixed(2)}" y="${(point.y - 10).toFixed(2)}" font-size="24" font-family="system-ui,sans-serif" fill="#17130f">${escape(point.label)}</text>${point.status ? `<text x="${(point.x + 18).toFixed(2)}" y="${(point.y + 17).toFixed(2)}" font-size="18" font-family="system-ui,sans-serif" fill="#81550c">status: ${escape(point.status)}</text>` : ""}</g>`;
+      const areaAnchor = point.placeKind === "area" && point.renderAnchorPresentationOnly;
+      const labelOnLeft = point.x > spec.width - 320;
+      const labelX = (point.x + (labelOnLeft ? -18 : 18)).toFixed(2);
+      const anchor = labelOnLeft ? "end" : "start";
+      return `<g><circle cx="${point.x.toFixed(2)}" cy="${point.y.toFixed(2)}" r="${intended ? 15 : 12}" fill="${intended ? "#fff4ce" : "#244f5a"}" stroke="${intended ? "#b47812" : "#fff"}" stroke-width="4" ${intended ? 'stroke-dasharray="5 4"' : ""}/><text x="${labelX}" y="${(point.y - 10).toFixed(2)}" text-anchor="${anchor}" font-size="24" font-family="system-ui,sans-serif" fill="#17130f">${escape(point.label)}</text>${point.status ? `<text x="${labelX}" y="${(point.y + 17).toFixed(2)}" text-anchor="${anchor}" font-size="18" font-family="system-ui,sans-serif" fill="#81550c">status: ${escape(point.status)}</text>` : ""}${areaAnchor ? `<text x="${labelX}" y="${(point.y + 17).toFixed(2)}" text-anchor="${anchor}" font-size="18" font-family="system-ui,sans-serif" fill="#4c443b">area · presentation anchor</text>` : ""}</g>`;
     })
     .join("");
   const legend =

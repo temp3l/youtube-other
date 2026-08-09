@@ -113,3 +113,5 @@ export * from "./v36/compiler-shadow-v36.js";
 export * from "./v36/renderer-shadow-contract-v36.js";
 export * from "./v36/renderer-shadow-map-v36.js";
 export * from "./v36/renderer-shadow-diagram-v36.js";
+export * from "./v36/renderer-shadow-v36.js";
+export * from "./v36/canonical-geography-sidecar-v36.js";

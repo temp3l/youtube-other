@@ -38,6 +38,8 @@ export interface ResolvedGeographyV36 {
   readonly latitude: number;
   readonly longitude: number;
   readonly geometrySource: string;
+  readonly placeKind?: "point" | "area";
+  readonly renderAnchorPresentationOnly?: boolean;
 }
 
 export interface RenderPointV36 {
@@ -47,6 +49,8 @@ export interface RenderPointV36 {
   readonly y: number;
   readonly role: string;
   readonly status?: string;
+  readonly placeKind?: "point" | "area";
+  readonly renderAnchorPresentationOnly?: boolean;
 }
 
 export interface RenderEdgeV36 {
