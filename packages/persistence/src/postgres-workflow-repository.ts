@@ -3106,6 +3106,21 @@ export class WorkspaceTransactionRepository {
         : "cancellation_requested";
   }
 
+  /** Keeps a queued bulk child and its durable job in one cancellation outcome. */
+  public async requestDurableJobCancellation(input: {
+    readonly workspaceId: string;
+    readonly jobId: string;
+    readonly now: string;
+  }): Promise<"cancelled" | "cancellation_requested" | "not_cancellable"> {
+    const outcome = await this.requestJobCancellation(input);
+    if (outcome === "cancelled")
+      await this.settleBulkProductionItemForTerminalJob({
+        ...input,
+        status: "cancelled",
+      });
+    return outcome;
+  }
+
   /** Claims one due event using a fenced lease; consumers deduplicate by outbox ID. */
   public async claimNextOutbox(input: {
     readonly workspaceId: string;

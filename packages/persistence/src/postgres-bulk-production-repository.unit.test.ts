@@ -33,6 +33,9 @@ describe("Postgres bulk production repository", () => {
     expect(source).toContain("retryTerminalItems");
     expect(source).toContain("launch_attempt=launch_attempt + 1");
     expect(source).toContain("status IN ('failed-retryable','cancelled')");
+    const workflowSource = await import("node:fs/promises").then((fs) => fs.readFile(new URL("./postgres-workflow-repository.ts", import.meta.url), "utf8"));
+    expect(workflowSource).toContain("requestDurableJobCancellation");
+    expect(workflowSource).toContain('status: "cancelled"');
   });
 
   it("settles a linked terminal child through the caller transaction", async () => {
