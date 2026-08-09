@@ -1,5 +1,18 @@
 import { authenticatedErrors, episodeParameters, jobParameters, json, parameter, projectParameters, requestIdParameter, response, responseHeader, workflowParameters, workspaceParameters } from "../openapi-helpers.js";
 export const workflowOpenApiPaths = {
+    "/v1/workspaces/{workspace}/bulk-production-batches:preflight": {
+      post: {
+        operationId: "preflightBulkProduction",
+        description: "Rechecks a bounded selection against current tenant state and stores every eligibility outcome. It does not start child workflows. Requires `workflow.start` and Idempotency-Key.",
+        parameters: [...workspaceParameters, parameter("IdempotencyKey")],
+        requestBody: { required: true, content: json("BulkProductionPreflightInput") },
+        responses: {
+          "201": { description: "Stored bulk preflight", headers: { "x-request-id": responseHeader("RequestId") }, content: json("BulkProductionPreflightResult") },
+          "200": { description: "Idempotent preflight replay", headers: { "x-request-id": responseHeader("RequestId"), "Idempotency-Replayed": responseHeader("IdempotencyReplayed") }, content: json("BulkProductionPreflightResult") },
+          "400": response("BadRequest"), "428": response("PreconditionRequired"), ...authenticatedErrors,
+        },
+      },
+    },
     "/v1/workspaces/{workspace}/bulk-production-batches/{batch}": {
       get: {
         operationId: "getBulkProductionBatch",

@@ -5,7 +5,7 @@ import {
   budgetTierSchema,
   dynamicGenreOverrideSchema,
 } from "@mediaforge/dynamic-genre";
-import { evaluateDecisionRationale } from "@mediaforge/domain";
+import { bulkSelectionItemSchema, evaluateDecisionRationale } from "@mediaforge/domain";
 
 const opaqueId = z
   .string()
@@ -263,6 +263,10 @@ export const workflowAdmissionSchema = z
     approvalMode: z.enum(["required", "automatic"]),
     publicationMode: z.literal("none"),
   })
+  .strict();
+
+export const bulkProductionPreflightInputSchema = z
+  .object({ items: z.array(bulkSelectionItemSchema).min(1).max(100) })
   .strict();
 export const approvalInputSchema = z
   .object({

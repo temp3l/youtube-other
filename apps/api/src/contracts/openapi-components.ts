@@ -2323,6 +2323,14 @@ export const openApiComponents = {
           reasons: { type: "array", items: { type: "string", minLength: 1, maxLength: 160 } },
         },
       },
+      BulkProductionPreflightInput: {
+        type: "object", additionalProperties: false, required: ["items"],
+        properties: { items: { type: "array", minItems: 1, maxItems: 100, items: { type: "object", additionalProperties: false, required: ["projectId", "episodeId", "expectedRevision", "locale", "variant"], properties: { projectId: schema("OpaqueId"), episodeId: schema("OpaqueId"), expectedRevision: schema("Revision"), locale: { type: "string", enum: ["en", "de", "es", "fr", "pt", "it"] }, variant: { type: "string", enum: ["full", "short"] } } } } },
+      },
+      BulkProductionPreflightResult: {
+        type: "object", additionalProperties: false, required: ["id", "replayed", "status", "selectionFingerprint", "items"],
+        properties: { id: schema("OpaqueId"), replayed: { type: "boolean" }, status: { type: "string", enum: ["planned"] }, selectionFingerprint: { type: "string", pattern: "^[a-f0-9]{64}$" }, items: { type: "array", items: schema("BulkProductionBatchItem") } },
+      },
       Job: {
         type: "object",
         additionalProperties: false,

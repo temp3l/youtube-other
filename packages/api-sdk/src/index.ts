@@ -104,6 +104,8 @@ export interface BulkProductionBatch {
   readonly updatedAt: string;
   readonly items: readonly { readonly id: string; readonly eligible: boolean; readonly status: "pending" | "running" | "succeeded" | "failed-retryable" | "failed-permanent" | "cancelled" | "ineligible"; readonly reasons: readonly string[] }[];
 }
+export interface BulkProductionPreflightInput { readonly items: readonly { readonly projectId: string; readonly episodeId: string; readonly expectedRevision: number; readonly locale: "en" | "de" | "es" | "fr" | "pt" | "it"; readonly variant: "full" | "short" }[]; }
+export interface BulkProductionPreflightResult { readonly id: string; readonly replayed: boolean; readonly status: "planned"; readonly selectionFingerprint: string; readonly items: BulkProductionBatch["items"]; }
 export interface ProductionUnitSnapshot { readonly address: ProductionUnitAddress; readonly inputFingerprint: string; readonly contentHash?: string; readonly status: "missing" | "valid" | "stale" | "invalidated"; readonly artifactRecordId?: string; }
 export interface ProductionUnitSnapshotRecord { readonly snapshotId: string; readonly snapshot: ProductionUnitSnapshot; readonly createdAt: string; }
 export interface ArtifactComparisonMetadata { readonly baselineKind: "previous" | "approved" | "source"; readonly baselineContentHash: string; readonly currentContentHash?: string; readonly textDiffAvailable: boolean; readonly visualDiffAvailable: boolean; readonly timestampAwareMediaDiffAvailable: boolean; }
@@ -1121,6 +1123,10 @@ export class MediaforgeApiClient {
 
   public getBulkProductionBatch(workspaceId: string, batchId: string, options?: RequestOptions): Promise<ApiResponse<BulkProductionBatch>> {
     return this.execute(`${this.workspacePath(workspaceId)}/bulk-production-batches/${encodePath(batchId)}`, { ...(options ? { options } : {}) });
+  }
+
+  public preflightBulkProduction(workspaceId: string, input: BulkProductionPreflightInput, options: IdempotentRequestOptions): Promise<ApiResponse<BulkProductionPreflightResult>> {
+    return this.execute(`${this.workspacePath(workspaceId)}/bulk-production-batches:preflight`, { method: "POST", body: input, options, idempotencyKey: options.idempotencyKey });
   }
 
   public getWorkspaceCapabilities(workspaceId: string, options?: RequestOptions): Promise<ApiResponse<CapabilityRegistry>> { return this.execute(`${this.workspacePath(workspaceId)}/capabilities`, { ...(options ? { options } : {}) }); }

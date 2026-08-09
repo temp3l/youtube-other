@@ -1,6 +1,15 @@
 import type { SdkV1OperationContract } from "../types.js";
 
 export const workflowSdkV1Operations = {
+  preflightBulkProduction: {
+    method: "POST",
+    path: "/v1/workspaces/{workspace}/bulk-production-batches:preflight",
+    successStatus: "201",
+    responseSchema: "BulkProductionPreflightResult",
+    requestSchema: "BulkProductionPreflightInput",
+    requiredHeaders: ["IdempotencyKey"],
+    problemResponses: true,
+  },
   getBulkProductionBatch: {
     method: "GET",
     path: "/v1/workspaces/{workspace}/bulk-production-batches/{batch}",

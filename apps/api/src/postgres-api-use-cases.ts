@@ -10,12 +10,14 @@ import {
 import {
   WORKFLOW_PORTFOLIO_SCHEMA_VERSION,
   buildCapabilityRegistry,
+  computeRequestFingerprint,
   deriveGateEvidenceUpdates,
   previewProductionUnitInvalidation,
   productionUnitAddressSchema,
   productionUnitChangeSchema,
   projectQuotaDimensionStatus,
   projectWorkflowPortfolioPage,
+  preflightBulkProduction,
   resolveProviderHealthStatus,
   resolveProductionConfiguration,
   type UsageDimension,
@@ -34,6 +36,7 @@ import {
 import type { ApiJobFailure, ApiJobStatus, ApiUseCases } from "./http-server.js";
 import {
   parseEpisodeInput,
+  bulkProductionPreflightInputSchema,
   workflowAdmissionSchema,
 } from "./contract.js";
 import { createApiWorkflowAdmissionUseCase } from "./http-server.js";
@@ -734,6 +737,44 @@ export function createPostgresApiUseCases(input: {
         selectionFingerprint: batch.selectionFingerprint,
         createdAt: batch.createdAt,
         updatedAt: batch.updatedAt,
+        items: items.map((item) => ({ id: item.itemId, eligible: item.eligible, status: item.status, reasons: item.reasons })),
+      };
+    },
+    preflightBulkProduction: async (body, context) => {
+      const input = bulkProductionPreflightInputSchema.parse(body);
+      const quota = await usageAudit.getQuotaStatus(context.workspaceId);
+      const probes = await Promise.all(input.items.map(async (item) => {
+        const state = await repository.withWorkspaceTransaction(context.workspaceId, async (transaction) => {
+          const [project, episode, tenant] = await Promise.all([
+            transaction.getProject(context.workspaceId, item.projectId),
+            transaction.getEpisode(context.workspaceId, item.projectId, item.episodeId),
+            transaction.getTenantSettings(context.workspaceId),
+          ]);
+          return { project, episode, tenant };
+        });
+        return {
+          item,
+          authorized: true,
+          ...(state.episode ? { currentRevision: state.episode.revision } : {}),
+          configurationAvailable: state.project !== null && state.tenant !== null,
+          quotaAvailable: quota !== null,
+        };
+      }));
+      const preflight = preflightBulkProduction({ workspaceId: context.workspaceId, probes });
+      const stored = await bulkProduction.createFromPreflight({
+        batchId: createId("bulk-batch"),
+        idempotencyKey: context.idempotencyKey,
+        requestFingerprint: computeRequestFingerprint({ body: input, workspaceId: context.workspaceId, principalId: context.principal.principalId }),
+        principalId: context.principal.principalId,
+        preflight,
+        now: now().toISOString(),
+      });
+      const items = await bulkProduction.listItems({ workspaceId: context.workspaceId, batchId: stored.batch.batchId });
+      return {
+        id: stored.batch.batchId,
+        replayed: stored.kind === "replayed",
+        status: stored.batch.status,
+        selectionFingerprint: stored.batch.selectionFingerprint,
         items: items.map((item) => ({ id: item.itemId, eligible: item.eligible, status: item.status, reasons: item.reasons })),
       };
     },
