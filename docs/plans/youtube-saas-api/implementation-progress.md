@@ -1,6 +1,6 @@
 # YSAAS implementation progress
 
-Current wave: Wave 5 in progress (YSAAS-017 lineage prerequisite complete; YSAAS-018 and YSAAS-020 remain blocked)
+Current wave: Wave 5 in progress (YSAAS-017 complete; YSAAS-018 and YSAAS-020 remain blocked)
 
 ## Anti-stuck execution rules (session)
 
@@ -109,10 +109,10 @@ Validation: `saas-runtime.unit.test.ts` pass (4); targeted API SDK build and web
 Notes: Server-side publishing BFF/SDK methods; channel status/connect/disconnect; immutable preflight/prepare confirmation; safe publication status/schedule/cancel pages; flag-off hides executable control and reconciliation remains read-only. Metadata-only changes create a new immutable intent without media regeneration.
 
 ### YSAAS-017
-Status: partial / blocked
-Commit: 07c3653
-Validation: focused web runtime and API integration tests pass; API SDK build and web/API typechecks pass
-Notes: Canonical tenant/project/episode production-state API, SDK, BFF, episode workspace, review queue, and immutable approval history are implemented. `69de15d` adds append-only worker-bound production-unit snapshot persistence plus tenant/project/episode reads and metadata comparisons; invalidation previews now load persisted snapshots instead of accepting client copies. Invalidation confirmation remains to be wired in the BFF.
+Status: completed
+Commit: fcd3b88
+Validation: API SDK build and web typecheck pass; focused web runtime test blocked by sandbox loopback socket `EPERM` before journey assertions
+Notes: Canonical tenant/project/episode production-state API, SDK, BFF, episode workspace, review queue, immutable approval history, and `69de15d` worker-bound production-unit lineage persistence are implemented. `fcd3b88` completes comparison and a server-held, tenant/project/episode-bound invalidation confirmation; the browser never supplies snapshots or computes targets. Pending confirmations are process-local and must move to shared durable session state for horizontal scaling.
 
 ### YSAAS-018
 Status: blocked

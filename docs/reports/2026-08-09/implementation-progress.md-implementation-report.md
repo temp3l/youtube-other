@@ -3,13 +3,13 @@
 Source plan file path: `docs/plans/youtube-saas-api/implementation-progress.md`  
 Date of execution: 2026-08-09
 
-Summary of implemented changes: production-unit lineage/snapshot persistence, worker-bound append writer, tenant/project/episode reads, metadata comparison API, and server-owned invalidation preview inputs.
+Summary of implemented changes: production-unit lineage/snapshot persistence, worker-bound append writer, tenant/project/episode reads, metadata comparison API, and a server-held invalidation confirmation journey.
 
 Files changed: persistence production-state and workflow repository files; artifact OpenAPI/API/SDK files; web BFF/runtime files.
 
-Tasks completed: foundation for YSAAS-017 lineage persistence and comparison reads.
+Tasks completed: YSAAS-017 lineage persistence, comparison reads, and invalidation confirmation.
 
-Tasks partially completed: YSAAS-017 UI confirmation journey.
+Tasks partially completed: none for YSAAS-017.
 
 Tasks not completed: YSAAS-018 and YSAAS-020 prerequisites.
 
@@ -19,6 +19,6 @@ Tests/checks run: focused persistence test; API SDK build; web typecheck; focuse
 
 Test results: persistence test and SDK/web checks pass. HTTP integration test could not bind a sandbox socket (`EPERM`) before product assertions.
 
-Known risks or follow-up work: durable worker call-site wiring and invalidation confirmation UI remain.
+Known risks or follow-up work: pending confirmations use process-local state and need shared session persistence for horizontal scaling.
 
-Recommended next steps: complete the YSAAS-017 BFF confirmation then implement authoritative configuration persistence.
+Recommended next steps: implement authoritative configuration persistence.
