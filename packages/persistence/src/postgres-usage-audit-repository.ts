@@ -537,6 +537,33 @@ export async function reserveQuotaDimensionInTransaction(
   };
 }
 
+/**
+ * Releases only still-reserved capacity for one durable subject. This is safe
+ * to repeat after a terminal transition and is intended for callers already
+ * holding the subject's transactional state lock.
+ */
+export async function releaseQuotaDimensionsForSubjectInTransaction(
+  client: Pick<PostgresClient, "query">,
+  input: {
+    readonly workspaceId: string;
+    readonly subjectId: string;
+    readonly dimensions: readonly QuotaDimension[];
+    readonly now: string;
+  }
+): Promise<number> {
+  if (input.dimensions.length === 0) return 0;
+  const released = await client.query<{ readonly reservation_id: string }>(
+    `UPDATE quota_dimension_reservations
+     SET state = 'released', revision = revision + 1,
+         updated_at = $4::timestamptz
+     WHERE workspace_id = $1 AND subject_id = $2
+       AND dimension = ANY($3::text[]) AND state = 'reserved'
+     RETURNING reservation_id`,
+    [input.workspaceId, input.subjectId, input.dimensions, input.now]
+  );
+  return released.rows.length;
+}
+
 export class PostgresUsageAuditRepository {
   public constructor(private readonly pool: PostgresPool) {}
 

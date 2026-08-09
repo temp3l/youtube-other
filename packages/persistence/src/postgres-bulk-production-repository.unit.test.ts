@@ -27,6 +27,8 @@ describe("Postgres bulk production repository", () => {
     expect(source).toContain("status='pending'");
     expect(source).toContain("settleBulkProductionItemForTerminalJob");
     expect(source).toContain("WHERE workspace_id=$1 AND job_id=$2 AND status='running'");
+    expect(source).toContain("releaseQuotaDimensionsForSubjectInTransaction");
+    expect(source).toContain('dimensions: ["active_batches", "batch_items"]');
   });
 
   it("settles a linked terminal child through the caller transaction", async () => {
@@ -36,6 +38,8 @@ describe("Postgres bulk production repository", () => {
         statements.push(sql);
         return statements.length === 1
           ? { rows: [{ batch_id: "batch-1" }] as readonly T[] }
+          : statements.length === 2
+            ? { rows: [{ status: "succeeded" }] as readonly T[] }
           : { rows: [] };
       },
     };
@@ -49,8 +53,9 @@ describe("Postgres bulk production repository", () => {
         now: "2026-08-09T12:00:00.000Z",
       })
     ).resolves.toBe(true);
-    expect(statements).toHaveLength(2);
+    expect(statements).toHaveLength(3);
     expect(statements[0]).toContain("job_id=$2 AND status='running'");
     expect(statements[1]).toContain("batch.status='cancelling'");
+    expect(statements[2]).toContain("state = 'released'");
   });
 });
