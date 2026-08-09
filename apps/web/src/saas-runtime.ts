@@ -19,6 +19,8 @@ export type SaasProfile =
 export interface SaasSession {
   /** Stable tenant boundary used only by the BFF's server-side API client. */
   readonly workspaceId: string;
+  /** Stable directory principal ID; never infer this from the display name. */
+  readonly principalId: string;
   readonly principalName: string;
   readonly workspaceName: string;
   readonly profiles: readonly SaasProfile[];

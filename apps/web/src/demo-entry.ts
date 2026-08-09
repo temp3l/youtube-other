@@ -6,7 +6,7 @@ const identity: SaasIdentity = {
   session: {
     workspaceId: "workspace-demo",
     workspaceName: "MediaForge demo workspace",
-    principalName: "Ada Lovelace",
+    principalId: "principal-demo", principalName: "Ada Lovelace",
     profiles: ["mathematics_education", "history", "dark_truth", "strategic_reinvention"],
   },
 };

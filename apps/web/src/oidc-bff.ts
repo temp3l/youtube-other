@@ -12,6 +12,11 @@ export interface OidcBffOptions {
     readonly code: string;
     readonly codeVerifier: string;
   }) => Promise<SaasSession | SaasIdentity | null>;
+  /** Optional IdP reauthentication bridge. Without it, high-risk actions fail closed. */
+  readonly beginStepUp?: (input: { readonly action: string; readonly state: string; readonly codeChallenge: string }) => string;
+  readonly completeStepUp?: (input: { readonly code: string; readonly codeVerifier: string }) => Promise<{ readonly principalId: string; readonly authTime: string; readonly amr: readonly string[] } | null>;
+  /** Production composition persists the verified confirmation before redirecting. */
+  readonly recordRecentAuth?: (input: { readonly workspaceId: string; readonly principalId: string; readonly action: string; readonly csrfSessionId: string; readonly authenticatedAt: string; readonly expiresAt: string }) => Promise<void>;
   readonly now?: () => Date;
   readonly secureCookies?: boolean;
 }
@@ -21,6 +26,7 @@ interface PendingAuthorization {
   readonly verifier: string;
   readonly createdAt: number;
 }
+interface PendingStepUp extends PendingAuthorization { readonly action: string; readonly csrfSessionId: string; }
 
 interface StoredSession { readonly value: SaasIdentity; readonly expiresAt: number; }
 
@@ -86,6 +92,24 @@ export class OidcBff {
       authorize.searchParams.set("state", pending.state); authorize.searchParams.set("code_challenge", challenge); authorize.searchParams.set("code_challenge_method", "S256");
       response.setHeader("set-cookie", cookie("mf_oidc", encode(pending, this.options.stateSecret), this.secureCookies, 600));
       response.writeHead(302, { location: authorize.toString() }).end(); return true;
+    }
+    if (request.method === "GET" && url.pathname === "/auth/step-up") {
+      const sessionId = cookies(request).get("mf_session"); const stored = sessionId ? this.sessions.get(sessionId) : undefined;
+      const action = url.searchParams.get("action");
+      if (!stored || !sessionId || !action || !/^[a-z0-9._:-]{1,160}$/u.test(action) || !this.options.beginStepUp || !this.options.completeStepUp || !this.options.recordRecentAuth) { response.writeHead(403).end(); return true; }
+      const pending: PendingStepUp = { state: crypto.randomUUID(), verifier: crypto.randomBytes(48).toString("base64url"), createdAt: this.now().getTime(), action, csrfSessionId: sessionId };
+      const challenge = crypto.createHash("sha256").update(pending.verifier).digest("base64url");
+      response.setHeader("set-cookie", cookie("mf_step_up", encode(pending, this.options.stateSecret), this.secureCookies, 600));
+      response.writeHead(302, { location: this.options.beginStepUp({ action, state: pending.state, codeChallenge: challenge }) }).end(); return true;
+    }
+    if (request.method === "GET" && url.pathname === "/auth/step-up/callback") {
+      const pending = decode<PendingStepUp>(cookies(request).get("mf_step_up"), this.options.stateSecret); const code = url.searchParams.get("code"); const sessionId = cookies(request).get("mf_session"); const stored = sessionId ? this.sessions.get(sessionId) : undefined;
+      if (!pending || !code || !stored || sessionId !== pending.csrfSessionId || url.searchParams.get("state") !== pending.state || this.now().getTime() - pending.createdAt > 600_000 || !this.options.completeStepUp || !this.options.recordRecentAuth) { response.writeHead(403).end(); return true; }
+      const assertion = await this.options.completeStepUp({ code, codeVerifier: pending.verifier });
+      const authTime = assertion ? Date.parse(assertion.authTime) : Number.NaN; const isMfa = assertion?.amr.some((method) => /^(mfa|otp|webauthn|fido2)$/iu.test(method)) ?? false;
+      if (!assertion || assertion.principalId !== stored.value.session.principalId || !Number.isFinite(authTime) || this.now().getTime() - authTime > 300_000 || authTime > this.now().getTime() + 30_000 || !isMfa) { response.writeHead(403).end(); return true; }
+      await this.options.recordRecentAuth({ workspaceId: stored.value.session.workspaceId, principalId: assertion.principalId, action: pending.action, csrfSessionId: sessionId, authenticatedAt: assertion.authTime, expiresAt: new Date(this.now().getTime() + 300_000).toISOString() });
+      response.setHeader("set-cookie", cookie("mf_step_up", "", this.secureCookies, 0)); response.writeHead(303, { location: "/integrations?stepUp=complete" }).end(); return true;
     }
     if (request.method === "GET" && url.pathname === "/auth/callback") {
       const pending = decode<PendingAuthorization>(cookies(request).get("mf_oidc"), this.options.stateSecret);

@@ -36,7 +36,7 @@ describe("SaaS runtime", () => {
     expect(renderSignedOutShell()).toContain("No workspace session is active.");
     const html = renderAuthenticatedShell({
       workspaceId: "workspace-pilot",
-      principalName: "Ada <admin>",
+      principalId: "principal-ada", principalName: "Ada <admin>",
       workspaceName: "Pilot & Co",
       profiles: ["history", "dark_truth", "strategic_reinvention"],
     });
@@ -52,7 +52,7 @@ describe("SaaS runtime", () => {
       createSaasRuntime({
         resolveSession: async () => ({
           workspaceId: "workspace-pilot",
-          principalName: "Ada",
+          principalId: "principal-ada", principalName: "Ada",
           workspaceName: "Pilot",
           profiles: ["mathematics_education", "history"],
         }),
@@ -73,7 +73,7 @@ describe("SaaS runtime", () => {
   });
 
   it("uses PKCE state and a server-side session for sign-in and CSRF-protected sign-out", async () => {
-    const exchange = vi.fn(async () => ({ workspaceId: "workspace-pilot", principalName: "Ada", workspaceName: "Pilot", profiles: ["history"] as const }));
+    const exchange = vi.fn(async () => ({ workspaceId: "workspace-pilot", principalId: "principal-ada", principalName: "Ada", workspaceName: "Pilot", profiles: ["history"] as const }));
     const baseUrl = await serve(createSaasRuntime({
       resolveSession: async () => null,
       oidc: {
@@ -165,7 +165,7 @@ describe("SaaS runtime", () => {
       listAudit: async () => ({ items: [] }),
     };
     const baseUrl = await serve(createSaasRuntime({
-      resolveSession: async () => ({ workspaceId: "workspace-pilot", principalName: "Ada", workspaceName: "Pilot", profiles: ["history"] }),
+      resolveSession: async () => ({ workspaceId: "workspace-pilot", principalId: "principal-ada", principalName: "Ada", workspaceName: "Pilot", profiles: ["history"] }),
       journey,
     }));
     const projects = await fetch(`${baseUrl}/projects`);
