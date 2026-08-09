@@ -1,5 +1,5 @@
 {
-  "fixtureCount": 45,
+  "fixtureCount": 46,
   "positiveByKind": {
     "movement": 8,
     "spatial-comparison": 3,
@@ -9,7 +9,8 @@
     "process": 5,
     "temporal-sequence": 3,
     "policy-response": 2,
-    "evidence-set": 5
+    "evidence-set": 5,
+    "event-location": 1
   },
   "negativeByRule": {
     "movement": 4,
@@ -18,6 +19,6 @@
     "direction": 5,
     "proper-name-atomicity": 5,
     "cardinality": 2,
-    "taxonomy-extension-required": 1
+    "taxonomy-extension-required": 0
   }
 }

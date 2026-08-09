@@ -7,6 +7,7 @@ import {
   relationEvidenceFingerprintV36,
   type ConceptRefV36,
   type ExplanatoryRelationV36,
+  type EventSubjectRefV36,
   type GroundedRelationPropositionV36,
   type PlaceRefV36,
   type RelationSupportClaimV36,
@@ -20,6 +21,7 @@ export type RelationDiagnosticCodeV36 =
   | "RELATION_CARDINALITY_INVALID"
   | "RELATION_PROPOSITION_UNSUPPORTED"
   | "RELATION_TYPE_MISMATCH"
+  | "RELATION_EVENT_SUBJECT_INELIGIBLE"
   | "RELATION_MODALITY_UNSUPPORTED"
   | "RELATION_DIRECTION_UNSUPPORTED"
   | "RELATION_PROPER_NAME_FRAGMENTATION"
@@ -76,6 +78,10 @@ function allParticipantRefs(relation: ExplanatoryRelationV36): readonly Particip
     case "temporal-sequence": return relation.steps.map((ref) => ({ ref, type: "concept" }));
     case "policy-response": return [relation.condition, relation.response].map((ref) => ({ ref, type: "concept" }));
     case "evidence-set": return [...(relation.subject ? [relation.subject] : []), ...relation.evidence].map((ref) => ({ ref, type: "concept" }));
+    case "event-location": return [
+      { ref: relation.event, type: "concept" },
+      { ref: relation.location, type: "place" },
+    ];
   }
 }
 
@@ -126,6 +132,11 @@ function semanticParticipantPayload(relation: RelationSemanticsV36): Readonly<Re
       ...(relation.subject ? { subject: conceptRefKeyV36(relation.subject) } : {}),
       evidence: [...new Set(relation.evidence.map(conceptRefKeyV36))].sort(),
     };
+    case "event-location": return {
+      event: conceptRefKeyV36(relation.event),
+      location: placeRefKeyV36(relation.location),
+      assertionStatus: relation.assertionStatus,
+    };
   }
 }
 
@@ -142,6 +153,7 @@ function propositionParticipantKeys(
     case "temporal-sequence": return proposition.steps.map(conceptRefKeyV36);
     case "policy-response": return [conceptRefKeyV36(proposition.condition), conceptRefKeyV36(proposition.response)];
     case "evidence-set": return [...(proposition.subject ? [conceptRefKeyV36(proposition.subject)] : []), ...proposition.evidence.map(conceptRefKeyV36)];
+    case "event-location": return [conceptRefKeyV36(proposition.event), placeRefKeyV36(proposition.location)];
   }
 }
 
@@ -179,6 +191,12 @@ function hasReverseDirection(
       return proposition.kind === "policy-response" &&
         conceptRefKeyV36(relation.condition) === conceptRefKeyV36(proposition.response) &&
         conceptRefKeyV36(relation.response) === conceptRefKeyV36(proposition.condition);
+    case "event-location":
+      return proposition.kind === "event-location" &&
+        relation.event.entityId !== undefined &&
+        proposition.event.entityId !== undefined &&
+        relation.event.entityId === proposition.location.entityId &&
+        relation.location.entityId === proposition.event.entityId;
     case "spatial-comparison":
     case "spatial-area":
     case "process":
@@ -202,6 +220,9 @@ function cardinalityDiagnostics(
     case "process":
     case "temporal-sequence": return relation.steps.length < 2 || adjacentDuplicate ? ["RELATION_CARDINALITY_INVALID"] : [];
     case "evidence-set": return new Set(relation.evidence.map(conceptRefKeyV36)).size < 2 ? ["RELATION_CARDINALITY_INVALID"] : [];
+    case "event-location": return relation.event.entityId !== undefined && relation.event.entityId === relation.location.entityId
+      ? ["RELATION_CARDINALITY_INVALID"]
+      : [];
     case "spatial-area": return [];
   }
 }
@@ -222,6 +243,10 @@ export const explanatoryRelationValidatorV36: ExplanatoryRelationValidatorV36 = 
     if (relation.episodeId !== context.episodeId) {
       diagnostics.push(diagnostic(relation, "RELATION_EPISODE_MISMATCH", "Relation episode differs from validation context.", [relation.episodeId, context.episodeId]));
     }
+    if (relation.kind === "event-location" &&
+      !["event", "action", "operation"].includes((relation.event as EventSubjectRefV36).eventType)) {
+      diagnostics.push(diagnostic(relation, "RELATION_EVENT_SUBJECT_INELIGIBLE", "Event-location requires explicit event, action, or operation subject eligibility."));
+    }
     const cardinalityCodes = cardinalityDiagnostics(relation);
     for (const code of cardinalityCodes) {
       diagnostics.push(diagnostic(relation, code, "Relation participants do not satisfy the kind's cardinality invariant."));
@@ -241,6 +266,8 @@ export const explanatoryRelationValidatorV36: ExplanatoryRelationValidatorV36 = 
         const entity = context.entities.find((candidate) => candidate.id === ref.entityId);
         if (!entity || entity.canonicalLabel.trim().toLocaleLowerCase() !== ref.canonicalLabel.trim().toLocaleLowerCase()) {
           diagnostics.push(diagnostic(relation, "RELATION_PARTICIPANT_UNRESOLVED", "Participant does not resolve to the supplied canonical entity.", [ref.entityId]));
+        } else if (relation.kind === "event-location" && participant.type === "place" && entity.kind !== "place") {
+          diagnostics.push(diagnostic(relation, "RELATION_TYPE_MISMATCH", "Event-location location must resolve to a canonical place.", [ref.entityId]));
         }
       }
       for (const entity of context.entities) {
@@ -277,6 +304,13 @@ export const explanatoryRelationValidatorV36: ExplanatoryRelationValidatorV36 = 
           conceptRefKeyV36(proposition.condition) === conceptRefKeyV36(relation.condition) &&
           conceptRefKeyV36(proposition.response) === conceptRefKeyV36(relation.response))) {
           diagnostics.push(diagnostic(relation, "RELATION_MODALITY_UNSUPPORTED", "Support claim does not establish the exact condition/response premise modalities.", [claim.id]));
+          continue;
+        }
+        if (relation.kind === "event-location" && claim.groundedPropositions.some((proposition) =>
+          proposition.kind === "event-location" &&
+          conceptRefKeyV36(proposition.event) === conceptRefKeyV36(relation.event) &&
+          placeRefKeyV36(proposition.location) === placeRefKeyV36(relation.location))) {
+          diagnostics.push(diagnostic(relation, "RELATION_MODALITY_UNSUPPORTED", "Support claim does not establish the exact event-location assertion modality.", [claim.id]));
           continue;
         }
         diagnostics.push(diagnostic(relation, "RELATION_TYPE_MISMATCH", "Support claim grounds these participants under a different relation type.", [claim.id]));

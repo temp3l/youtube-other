@@ -92,7 +92,7 @@ describe("V3.6 policy-response modality architecture decision", () => {
     const option = matrix.options.find((candidate) => candidate.option === "OPTION_B_GENERIC_DIRECTED_PREMISE_MODALITY")!;
     expect(option.selected).toBe(false);
     expect(option.dimensions.schemaComplexity.assessment).toBe("poor");
-    expect(explanatoryRelationJsonSchemaV36.oneOf).toHaveLength(9);
+    expect(explanatoryRelationJsonSchemaV36.oneOf).toHaveLength(10);
   });
 
   it("Option C compatibility remains safe but production-blocked", async () => {

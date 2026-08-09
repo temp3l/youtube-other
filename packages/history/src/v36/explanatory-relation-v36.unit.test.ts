@@ -167,13 +167,14 @@ describe("History V3.6 invariant and determinism contracts", () => {
   });
 
   it("exports field-level relation contracts from the runtime contract source", () => {
-    expect(relationContractDocumentV36.schemaVersion).toBe("history-explanatory-relations.v3");
-    expect(Object.keys(relationContractDocumentV36.relationKinds)).toHaveLength(9);
+    expect(relationContractDocumentV36.schemaVersion).toBe("history-explanatory-relations.v4");
+    expect(Object.keys(relationContractDocumentV36.relationKinds)).toHaveLength(10);
     expect(relationContractDocumentV36.identity.semanticRelationId.excludes).toContain("supportClaimIds");
     expect(relationContractDocumentV36.relationKinds.dependency.direction).toBe(
       "dependency -> dependent; dependent depends on dependency"
     );
     expect(relationContractDocumentV36.relationKinds["evidence-set"].ordering).toContain("unordered");
+    expect(relationContractDocumentV36.relationKinds["event-location"].direction).toBe("event -> location");
   });
 
   it("rejects cross-episode support and duplicate semantic identities", () => {

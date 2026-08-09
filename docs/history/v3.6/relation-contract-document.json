@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "History V3.6 explanatory relation IR",
-  "schemaVersion": "history-explanatory-relations.v3",
+  "schemaVersion": "history-explanatory-relations.v4",
   "generatedFrom": "packages/history/src/v36/explanatory-relation-v36.ts#relationContractDocumentV36",
   "identity": {
     "semanticRelationId": {
@@ -215,6 +215,30 @@
         "optional subject",
         "canonical unordered evidence set"
       ]
+    },
+    "event-location": {
+      "required": [
+        "event",
+        "location",
+        "assertionStatus"
+      ],
+      "participantTypes": {
+        "event": "EventSubjectRefV36",
+        "location": "PlaceRefV36"
+      },
+      "modalityTypes": {
+        "assertionStatus": "AtomicAssertionStatusV36"
+      },
+      "eventEligibility": "event.eventType must be explicit event, action, or operation metadata; labels never establish eligibility",
+      "cardinality": "one event-like concept and one distinct canonical place",
+      "direction": "event -> location",
+      "semanticIdentityInputs": [
+        "episodeId",
+        "kind",
+        "event",
+        "location",
+        "assertionStatus"
+      ]
     }
   },
   "runtimeValidationInvariants": [
@@ -231,11 +255,13 @@
   "backwardCompatibility": {
     "acceptedArtifactVersions": [
       "history-explanatory-relations.v2",
-      "history-explanatory-relations.v3"
+      "history-explanatory-relations.v3",
+      "history-explanatory-relations.v4"
     ],
     "legacyPolicyResponseInterpretation": "Missing policy-response modality always means asserted/asserted in every code path.",
     "legacyCausalInterpretation": "Missing causal modality always means asserted in every code path.",
     "legacySemanticIds": "Unchanged; explicit asserted/asserted canonicalizes to the V2 identity payload.",
-    "evidenceFingerprints": "Unchanged; premise modality never enters provenance fingerprint inputs."
+    "evidenceFingerprints": "Unchanged; premise modality never enters provenance fingerprint inputs.",
+    "eventLocation": "Absent from V2/V3 artifacts; V4 requires explicit event-location assertion modality and event-like eligibility."
   }
 }

@@ -10,11 +10,14 @@ import {
 /** V2 separated stable relation semantics from its supporting evidence. */
 export const HISTORY_EXPLANATORY_RELATIONS_LEGACY_SCHEMA_V36 =
   "history-explanatory-relations.v2" as const;
-/** V3 adds optional, semantic policy-response premise modality. */
-export const HISTORY_EXPLANATORY_RELATIONS_SCHEMA_V36 =
+/** V3 added kind-specific causal and policy-response modality. */
+export const HISTORY_EXPLANATORY_RELATIONS_MODALITY_SCHEMA_V36 =
   "history-explanatory-relations.v3" as const;
+/** V4 adds the narrowly typed, explicitly modal event-location relation. */
+export const HISTORY_EXPLANATORY_RELATIONS_SCHEMA_V36 =
+  "history-explanatory-relations.v4" as const;
 export const HISTORY_EXPLANATORY_RELATIONS_PLANNER_V36 =
-  "history-explanatory-relations.v3.6.0" as const;
+  "history-explanatory-relations.v3.6.1" as const;
 
 declare const episodeIdBrand: unique symbol;
 declare const claimIdBrand: unique symbol;
@@ -70,6 +73,14 @@ export interface ConceptRefV36 {
   readonly sourceSpanIds?: readonly SourceSpanIdV36[];
 }
 
+export const eventSubjectTypeValuesV36 = ["event", "action", "operation"] as const;
+export type EventSubjectTypeV36 = (typeof eventSubjectTypeValuesV36)[number];
+
+/** A concept with explicit upstream eligibility for event-location semantics. */
+export interface EventSubjectRefV36 extends ConceptRefV36 {
+  readonly eventType: EventSubjectTypeV36;
+}
+
 export interface ResolvedEntityV36 {
   readonly id: EntityIdV36;
   readonly canonicalLabel: string;
@@ -87,7 +98,8 @@ export type RelationKindV36 =
   | "process"
   | "temporal-sequence"
   | "policy-response"
-  | "evidence-set";
+  | "evidence-set"
+  | "event-location";
 
 interface CommonRelationV36 {
   readonly id: SemanticRelationIdV36;
@@ -163,6 +175,15 @@ export interface EvidenceSetRelationV36 extends CommonRelationV36 {
   readonly evidence: readonly [ConceptRefV36, ConceptRefV36, ...ConceptRefV36[]];
 }
 
+export interface EventLocationRelationV36 extends CommonRelationV36 {
+  readonly kind: "event-location";
+  /** Direction is event -> location. */
+  readonly event: EventSubjectRefV36;
+  readonly location: PlaceRefV36;
+  /** Event-location is new in V4, so modality is always explicit. */
+  readonly assertionStatus: AtomicAssertionStatusV36;
+}
+
 export type ExplanatoryRelationV36 =
   | MovementRelationV36
   | SpatialComparisonRelationV36
@@ -172,7 +193,8 @@ export type ExplanatoryRelationV36 =
   | ProcessRelationV36
   | TemporalSequenceRelationV36
   | PolicyResponseRelationV36
-  | EvidenceSetRelationV36;
+  | EvidenceSetRelationV36
+  | EventLocationRelationV36;
 
 type WithoutRelationFields<T, TFields extends PropertyKey> = T extends unknown
   ? Omit<T, TFields>
@@ -205,6 +227,7 @@ export interface RelationSupportClaimV36 {
 export interface ExplanatoryRelationArtifactV36 {
   readonly schemaVersion:
     | typeof HISTORY_EXPLANATORY_RELATIONS_LEGACY_SCHEMA_V36
+    | typeof HISTORY_EXPLANATORY_RELATIONS_MODALITY_SCHEMA_V36
     | typeof HISTORY_EXPLANATORY_RELATIONS_SCHEMA_V36;
   readonly plannerVersion: string;
   readonly episodeId: EpisodeIdV36;
@@ -364,6 +387,14 @@ export function semanticIdentityInputsV36(
         evidence,
       };
     }
+    case "event-location": {
+      const event = conceptRefKeyV36(relation.event);
+      const location = placeRefKeyV36(relation.location);
+      if (relation.event.entityId === relation.location.entityId) {
+        throw new TypeError("Event location requires distinct event and location participants.");
+      }
+      return { ...common, event, location, assertionStatus: relation.assertionStatus };
+    }
   }
 }
 
@@ -423,6 +454,7 @@ export function createExplanatoryRelationV36(
     case "temporal-sequence": return { ...draft, ...evidence, id };
     case "policy-response": return { ...draft, ...evidence, id };
     case "evidence-set": return { ...draft, ...evidence, id };
+    case "event-location": return { ...draft, ...evidence, id };
   }
 }
 
@@ -431,6 +463,9 @@ const conceptRefSchema = z.object({
   canonicalLabel: labelSchema,
   entityId: identifierSchema.optional(),
   sourceSpanIds: z.array(identifierSchema).min(1).optional(),
+}).strict();
+const eventSubjectRefSchema = conceptRefSchema.extend({
+  eventType: z.enum(eventSubjectTypeValuesV36),
 }).strict();
 const supportClaimIdsSchema = z.array(identifierSchema).min(1);
 const semanticRelationIdSchema = z.string().regex(/^relation-[a-z-]+-[a-f0-9]{24}$/u);
@@ -443,7 +478,7 @@ const commonRelationSchema = {
   evidenceFingerprint: evidenceFingerprintSchema,
 };
 
-export const explanatoryRelationSchemaV36 = z.discriminatedUnion("kind", [
+const modalityRelationSchemasV36 = [
   z.object({ ...commonRelationSchema, kind: z.literal("movement"), from: placeRefSchema, to: placeRefSchema, via: z.array(placeRefSchema) }).strict(),
   z.object({ ...commonRelationSchema, kind: z.literal("spatial-comparison"), places: z.array(placeRefSchema).min(2) }).strict(),
   z.object({ ...commonRelationSchema, kind: z.literal("spatial-area"), place: placeRefSchema }).strict(),
@@ -466,13 +501,26 @@ export const explanatoryRelationSchemaV36 = z.discriminatedUnion("kind", [
     responseAssertionStatus: z.enum(atomicAssertionStatusValuesV36).optional(),
   }).strict(),
   z.object({ ...commonRelationSchema, kind: z.literal("evidence-set"), subject: conceptRefSchema.optional(), evidence: z.array(conceptRefSchema).min(2) }).strict(),
+] as const;
+
+const modalityExplanatoryRelationSchemaV36 = z.discriminatedUnion("kind", modalityRelationSchemasV36);
+
+export const explanatoryRelationSchemaV36 = z.discriminatedUnion("kind", [
+  ...modalityRelationSchemasV36,
+  z.object({
+    ...commonRelationSchema,
+    kind: z.literal("event-location"),
+    event: eventSubjectRefSchema,
+    location: placeRefSchema,
+    assertionStatus: z.enum(atomicAssertionStatusValuesV36),
+  }).strict(),
 ]);
 
 const legacyExplanatoryRelationArtifactSchemaV36 = z.object({
   schemaVersion: z.literal(HISTORY_EXPLANATORY_RELATIONS_LEGACY_SCHEMA_V36),
   plannerVersion: labelSchema,
   episodeId: identifierSchema,
-  relations: z.array(explanatoryRelationSchemaV36),
+  relations: z.array(modalityExplanatoryRelationSchemaV36),
 }).strict().superRefine((artifact, context) => {
   artifact.relations.forEach((relation, index) => {
     if ((relation.kind === "policy-response" &&
@@ -487,6 +535,13 @@ const legacyExplanatoryRelationArtifactSchemaV36 = z.object({
   });
 });
 
+const modalityExplanatoryRelationArtifactSchemaV36 = z.object({
+  schemaVersion: z.literal(HISTORY_EXPLANATORY_RELATIONS_MODALITY_SCHEMA_V36),
+  plannerVersion: labelSchema,
+  episodeId: identifierSchema,
+  relations: z.array(modalityExplanatoryRelationSchemaV36),
+}).strict();
+
 const currentExplanatoryRelationArtifactSchemaV36 = z.object({
   schemaVersion: z.literal(HISTORY_EXPLANATORY_RELATIONS_SCHEMA_V36),
   plannerVersion: labelSchema,
@@ -496,6 +551,7 @@ const currentExplanatoryRelationArtifactSchemaV36 = z.object({
 
 export const explanatoryRelationArtifactSchemaV36 = z.union([
   legacyExplanatoryRelationArtifactSchemaV36,
+  modalityExplanatoryRelationArtifactSchemaV36,
   currentExplanatoryRelationArtifactSchemaV36,
 ]);
 
@@ -562,14 +618,24 @@ export const relationContractDocumentV36 = {
       semanticIdentityInputs: ["episodeId", "kind", "condition", "response", "non-default conditionAssertionStatus", "non-default responseAssertionStatus"],
     },
     "evidence-set": { required: ["evidence"], optional: ["subject"], participantTypes: { subject: "ConceptRefV36", evidence: "ConceptRefV36[]" }, cardinality: "at least two distinct evidence members", ordering: "evidence is an unordered semantic set, not a presentation list", direction: "subject <- evidence set when subject is present", semanticIdentityInputs: ["episodeId", "kind", "optional subject", "canonical unordered evidence set"] },
+    "event-location": {
+      required: ["event", "location", "assertionStatus"],
+      participantTypes: { event: "EventSubjectRefV36", location: "PlaceRefV36" },
+      modalityTypes: { assertionStatus: "AtomicAssertionStatusV36" },
+      eventEligibility: "event.eventType must be explicit event, action, or operation metadata; labels never establish eligibility",
+      cardinality: "one event-like concept and one distinct canonical place",
+      direction: "event -> location",
+      semanticIdentityInputs: ["episodeId", "kind", "event", "location", "assertionStatus"],
+    },
   },
   runtimeValidationInvariants: ["episode-local support", "canonical entity resolution", "proper-name atomicity", "exact grounded proposition", "direction support", "kind-specific cardinality", "semantic ID match", "evidence fingerprint match", "semantic duplicate detection"],
   backwardCompatibility: {
-    acceptedArtifactVersions: [HISTORY_EXPLANATORY_RELATIONS_LEGACY_SCHEMA_V36, HISTORY_EXPLANATORY_RELATIONS_SCHEMA_V36],
+    acceptedArtifactVersions: [HISTORY_EXPLANATORY_RELATIONS_LEGACY_SCHEMA_V36, HISTORY_EXPLANATORY_RELATIONS_MODALITY_SCHEMA_V36, HISTORY_EXPLANATORY_RELATIONS_SCHEMA_V36],
     legacyPolicyResponseInterpretation: "Missing policy-response modality always means asserted/asserted in every code path.",
     legacyCausalInterpretation: "Missing causal modality always means asserted in every code path.",
     legacySemanticIds: "Unchanged; explicit asserted/asserted canonicalizes to the V2 identity payload.",
     evidenceFingerprints: "Unchanged; premise modality never enters provenance fingerprint inputs.",
+    eventLocation: "Absent from V2/V3 artifacts; V4 requires explicit event-location assertion modality and event-like eligibility.",
   },
 } as const;
 

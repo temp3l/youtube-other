@@ -5,6 +5,7 @@ import {
   type ConceptRefV36,
   type EntityIdV36,
   type ExplanatoryRelationDraftV36,
+  type EventSubjectTypeV36,
   type GroundedRelationPropositionV36,
   type PlaceRefV36,
   type RelationSupportClaimV36,
@@ -49,6 +50,9 @@ const temporal = (first: string, second: string, ...remaining: readonly string[]
 const response = (condition: string, policy: string): ExplanatoryRelationDraftV36 => ({ ...base, kind: "policy-response", condition: concept(condition), response: concept(policy) });
 const evidence = (first: string, second: string, ...remaining: readonly string[]): ExplanatoryRelationDraftV36 => ({ ...base, kind: "evidence-set", evidence: [concept(first), concept(second), ...remaining.map(concept)] });
 const evidenceFor = (subject: string, first: string, second: string, ...remaining: readonly string[]): ExplanatoryRelationDraftV36 => ({ ...base, kind: "evidence-set", subject: concept(subject), evidence: [concept(first), concept(second), ...remaining.map(concept)] });
+const eventLocation = (event: string, location: string, assertionStatus: "asserted" | "intended" | "attempted" | "uncertain" | "counterfactual" | "reported" = "asserted", eventType: EventSubjectTypeV36 = "event"): ExplanatoryRelationDraftV36 => ({
+  ...base, kind: "event-location", event: { ...concept(event), eventType }, location: place(location), assertionStatus,
+});
 
 function grounded(draft: ExplanatoryRelationDraftV36): GroundedRelationPropositionV36 {
   switch (draft.kind) {
@@ -67,6 +71,7 @@ function grounded(draft: ExplanatoryRelationDraftV36): GroundedRelationPropositi
       ...(draft.responseAssertionStatus ? { responseAssertionStatus: draft.responseAssertionStatus } : {}),
     };
     case "evidence-set": return { kind: draft.kind, ...(draft.subject ? { subject: draft.subject } : {}), evidence: draft.evidence };
+    case "event-location": return { kind: draft.kind, event: draft.event, location: draft.location, assertionStatus: draft.assertionStatus };
   }
 }
 
@@ -79,6 +84,7 @@ function participantEntities(drafts: readonly ExplanatoryRelationDraftV36[]): re
     if (draft.kind === "movement") [draft.from, draft.to, ...draft.via].forEach(addPlace);
     if (draft.kind === "spatial-comparison") draft.places.forEach(addPlace);
     if (draft.kind === "spatial-area") addPlace(draft.place);
+    if (draft.kind === "event-location") addPlace(draft.location);
   }
   return [...entities.values()];
 }
@@ -144,6 +150,10 @@ export const goldenSemanticFixturesV36: readonly RelationFixtureV36[] = [
   fixture("spatial area: Pearl Harbor", "Pearl Harbor lies on Oahu.", [area("Pearl Harbor")], [{ relation: area("Pearl"), diagnostic: "RELATION_PROPER_NAME_FRAGMENTATION" }], [atomicEntity("Pearl Harbor")]),
   fixture("spatial area: North Atlantic", "The convoy assembled in the North Atlantic.", [area("North Atlantic")], [{ relation: movement("North Atlantic", "Atlantic"), diagnostic: "RELATION_PROPOSITION_UNSUPPORTED" }]),
   fixture("spatial area negative: location is not movement", "Pompeii stood near the Bay of Naples.", [area("Bay of Naples")], [{ relation: movement("Pompeii", "Bay of Naples"), diagnostic: "RELATION_PROPOSITION_UNSUPPORTED" }]),
+  fixture("event location: intended invasion near Calais", "The main invasion was intended near Calais.", [eventLocation("main invasion", "Calais", "intended")], [
+    { relation: movement("Calais", "Calais"), diagnostic: "RELATION_CARDINALITY_INVALID" },
+    { relation: causal("main invasion", "Calais"), diagnostic: "RELATION_PROPOSITION_UNSUPPORTED" },
+  ]),
   fixture("causal: labour scarcity to wage pressure", "Labour shortages allowed workers to demand higher wages.", [causal("labour scarcity", "wage pressure")]),
   fixture("causal: drought to harvest failure", "Drought caused the harvest to fail.", [causal("drought", "harvest failure")]),
   fixture("causal: blockade to shortages", "The blockade produced food shortages.", [causal("blockade", "food shortages")]),
@@ -204,6 +214,7 @@ export const goldenFixtureSummaryV36 = {
     "temporal-sequence": 3,
     "policy-response": 2,
     "evidence-set": 5,
+    "event-location": 1,
   },
   negativeByRule: {
     movement: 4,
@@ -212,6 +223,6 @@ export const goldenFixtureSummaryV36 = {
     direction: 5,
     "proper-name-atomicity": 5,
     cardinality: 2,
-    "taxonomy-extension-required": 1,
+    "taxonomy-extension-required": 0,
   },
 } as const;

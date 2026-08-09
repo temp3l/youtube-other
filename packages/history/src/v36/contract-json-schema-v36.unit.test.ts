@@ -66,7 +66,7 @@ describe("History V3.6 generated relation JSON Schema", () => {
   it("is an enforceable Draft 2020-12 schema generated from the runtime validator", () => {
     expect(explanatoryRelationJsonSchemaV36.$schema).toBe("https://json-schema.org/draft/2020-12/schema");
     expect(explanatoryRelationJsonSchemaV36.$id).toContain("relation-schema.json");
-    expect(explanatoryRelationJsonSchemaV36.oneOf).toHaveLength(9);
+    expect(explanatoryRelationJsonSchemaV36.oneOf).toHaveLength(10);
   });
 
   it("rejects primitive, empty, unknown, incomplete, and wrong-discriminator payloads", () => {
@@ -86,6 +86,7 @@ describe("History V3.6 generated relation JSON Schema", () => {
       "temporal-sequence": ["steps"],
       "policy-response": ["condition", "response"],
       "evidence-set": ["evidence"],
+      "event-location": ["event", "location", "assertionStatus"],
     };
     for (const [kind, relation] of validByKind) {
       for (const field of requiredFields[kind]!) {
@@ -112,7 +113,7 @@ describe("History V3.6 generated relation JSON Schema", () => {
     const comparison = serialized(validByKind.get("spatial-comparison"));
     comparison.places = [(comparison.places as unknown[])[0]];
     expectRelationRejected(comparison);
-    expect([...validByKind.values()]).toHaveLength(9);
+    expect([...validByKind.values()]).toHaveLength(10);
     for (const relation of validByKind.values()) {
       expect(explanatoryRelationSchemaV36.safeParse(relation).success).toBe(true);
       expect(relationJsonSchema.safeParse(serialized(relation)).success).toBe(true);
