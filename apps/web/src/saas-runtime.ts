@@ -9,6 +9,7 @@ import {
 } from "@mediaforge/api-sdk";
 import { renderGenreSpeechSettings } from "./speech-administration.js";
 import type { SaasJourneyGateway } from "./saas-api-bff.js";
+import type { RecentAuthConfirmationConsumer } from "./recent-auth-step-up.js";
 
 export type SaasProfile =
   | "mathematics_education"
@@ -30,6 +31,8 @@ export interface SaasIdentity {
   readonly session: SaasSession;
   /** Never rendered, serialized, or placed in a browser cookie. */
   readonly accessToken?: string;
+  /** OIDC BFF session ID; server-only CSRF binding for step-up confirmations. */
+  readonly csrfSessionId?: string;
 }
 
 export interface SaasRuntimeOptions {
@@ -50,6 +53,8 @@ export interface SaasRuntimeOptions {
   readonly publicationExecutionEnabled?: boolean;
   /** Local fixture only: permits demo form posts when a preview proxy strips origin headers. */
   readonly allowUnverifiedDemoFormPosts?: boolean;
+  /** Server-composition adapter for one-time step-up consumption. */
+  readonly recentAuthConsumer?: RecentAuthConfirmationConsumer;
 }
 
 const profileLabels: Readonly<Record<SaasProfile, string>> = {

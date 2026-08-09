@@ -78,7 +78,7 @@ export class OidcBff {
     const id = cookies(request).get("mf_session");
     const stored = id ? this.sessions.get(id) : undefined;
     if (!stored || stored.expiresAt <= this.now().getTime()) { if (id) this.sessions.delete(id); return null; }
-    return stored.value;
+    return { ...stored.value, csrfSessionId: id };
   }
 
   public async handle(request: http.IncomingMessage, response: http.ServerResponse): Promise<boolean> {
