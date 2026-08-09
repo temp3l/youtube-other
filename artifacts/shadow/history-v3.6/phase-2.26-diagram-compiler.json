@@ -1,0 +1,20 @@
+{
+  "phase": "2.26",
+  "startingSha": "83300d2",
+  "target": "strict shadow diagram compiler and unified dispatcher",
+  "rules": [
+    "diagram-causal.v1",
+    "diagram-dependency.v1",
+    "diagram-process.v1",
+    "diagram-temporal-sequence.v1",
+    "diagram-policy-response.v1",
+    "diagram-evidence-set.v1"
+  ],
+  "acceptedRelationKindsDispatched": 10,
+  "processAsCausality": 0,
+  "chronologyAsCausality": 0,
+  "dependencyAsCausality": 0,
+  "evidenceSetFalseOrdering": 0,
+  "shadowOnly": true,
+  "productionV35Touched": false
+}

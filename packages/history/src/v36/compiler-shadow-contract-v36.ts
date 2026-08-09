@@ -33,6 +33,7 @@ export type CompilerRuleV36 =
   | "diagram-evidence-set.v1";
 
 export interface CompilerProofPremiseLineageV36 {
+  readonly premiseId: "condition" | "response";
   readonly claimId: string;
   readonly structuredPropositionId: string;
   readonly atomicGroundingId: string;
