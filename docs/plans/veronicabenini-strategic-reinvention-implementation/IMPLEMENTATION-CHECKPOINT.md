@@ -4,7 +4,7 @@
 - Starting HEAD: `f04262c16bfd1a89d1b404b1ac291a89dc699a0d`
 - Plan baseline after fast-forward: `46d624c`
 - Pre-existing changes preserved: `.codex/config.toml`; `prompts/codex-veronicabenini-implement-all-waves.md`
-- Current wave: 2 — editorial/visual
+- Current wave: 3 — derivatives
 
 | Task | Status | Owner | Validation | Checkpoint |
 | --- | --- | --- | --- | --- |
@@ -14,9 +14,12 @@
 | VRI-04 | VALIDATED | worker + coordinator review | 50 focused tests; shared typecheck pass | `f17838f` |
 | VRI-05 | VALIDATED | worker + coordinator review | 8 focused tests pass | `3dbeae1` |
 | VRI-06 | VALIDATED | worker + coordinator review | 6 focused tests; visual-planning build pass | `94710be` |
-| VRI-07 | VALIDATED | worker + coordinator review | 4 focused tests; visual-planning build pass | pending wave commit |
-| VRI-08 | VALIDATED | worker + coordinator review | 5 focused tests pass | pending wave commit |
-| VRI-09..VRI-26 | NOT_STARTED | unassigned | not run | none |
+| VRI-07 | VALIDATED | worker + coordinator review | 4 focused tests; visual-planning build pass | `a6def0e` |
+| VRI-08 | VALIDATED | worker + coordinator review | 5 focused tests pass | `a6def0e` |
+| VRI-09 | VALIDATED | worker + coordinator review | 6 focused tests pass; rendering build dependency-blocked | pending commit |
+| VRI-10 | NOT_STARTED | unassigned | not run | none |
+| VRI-11 | VALIDATED | worker + coordinator review | 5 focused tests pass; supplementary speech suite dependency-blocked | pending commit |
+| VRI-12..VRI-26 | NOT_STARTED | unassigned | not run | none |
 
 ## VRI-01 evidence
 
@@ -41,4 +44,4 @@
 
 ## Next executable tasks
 
-VRI-09 and VRI-11 are unblocked; VRI-10 and VRI-12 follow their stated dependencies.
+VRI-10 and VRI-12 are unblocked and remain serial at their merge barriers.

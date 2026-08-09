@@ -3,11 +3,49 @@ import {
   VERONICA_DEFAULT_PORTRAIT_PROFILE,
   type VeronicaMediaPlan,
 } from "../contracts/media-plan.v1.js";
+import {
+  formatCompositionArtifactSchema,
+  planIndependentFormatCompositions as planSharedIndependentFormatCompositions,
+  type FormatCompositionArtifact,
+  type PlanIndependentFormatCompositionsInput as PlanSharedIndependentFormatCompositionsInput,
+} from "@mediaforge/rendering/composition-contract.js";
 import { validatePortraitReadiness } from "../localization/translation.js";
+import { z } from "zod";
 
 export const SCENE_COMPOSITION_BLIND_CROP = "SCENE_COMPOSITION_BLIND_CROP";
 export const SCENE_COMPOSITION_SAFE_AREA_VIOLATION = "SCENE_COMPOSITION_SAFE_AREA_VIOLATION";
 export const SCENE_COMPOSITION_TEXT_TOO_SMALL = "SCENE_COMPOSITION_TEXT_TOO_SMALL";
+export const FORMAT_COMPOSITION_SHARED_ID = "FORMAT_COMPOSITION_SHARED_ID";
+export const FORMAT_COMPOSITION_BLIND_CROP = "FORMAT_COMPOSITION_BLIND_CROP";
+export const FORMAT_COMPOSITION_MISSING_REDIRECTION = "FORMAT_COMPOSITION_MISSING_REDIRECTION";
+
+/**
+ * Immutable composition artifact over one language-neutral semantic revision.
+ * The image identity may be shared, but the composition identity never is.
+ */
+export const veronicaFormatCompositionArtifactSchema = formatCompositionArtifactSchema.extend({
+  contentProfileId: z.literal("veronicabenini"),
+});
+export type VeronicaFormatCompositionArtifact = z.infer<
+  typeof veronicaFormatCompositionArtifactSchema
+>;
+
+export type PlanIndependentFormatCompositionsInput = Omit<
+  PlanSharedIndependentFormatCompositionsInput,
+  "contentProfileId"
+>;
+
+/** Plans descriptors only: it never generates images, narration, or a render. */
+export function planIndependentFormatCompositions(
+  input: PlanIndependentFormatCompositionsInput,
+): readonly VeronicaFormatCompositionArtifact[] {
+  return planSharedIndependentFormatCompositions({
+    ...input,
+    contentProfileId: "veronicabenini",
+  }).map((artifact: FormatCompositionArtifact) =>
+    veronicaFormatCompositionArtifactSchema.parse(artifact),
+  );
+}
 
 export interface SceneCompositionReadabilityInput {
   readonly sceneId: string;

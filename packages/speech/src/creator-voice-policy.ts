@@ -1,6 +1,8 @@
 import {
   approvalRecordSchema,
   contentProfileIdSchema,
+  normalizeContentProfileId,
+  VERONICA_CONTENT_PROFILE_ID,
   type ApprovalRecord,
   type ContentProfileId,
 } from "@mediaforge/domain";
@@ -23,6 +25,33 @@ export type SpeechDispatchContext =
 
 const sha256 = /^[a-f0-9]{64}$/iu;
 
+/**
+ * Policy identity for creator-supplied voice artifacts.  This is deliberately
+ * separate from a provider configuration: Veronica has no enabled TTS route.
+ */
+export const CREATOR_SUPPLIED_VOICE_POLICY_VERSION =
+  "creator-supplied-voice-policy.v1" as const;
+export const CREATOR_VOICE_TIMING_DERIVATIVE_VERSION =
+  "creator-voice-timing.v1" as const;
+export const CREATOR_VOICE_CAPTION_DERIVATIVE_VERSION =
+  "creator-voice-captions.v1" as const;
+
+export function canonicalCreatorVoiceProfileId(input: unknown): ContentProfileId {
+  return contentProfileIdSchema.parse(normalizeContentProfileId(input));
+}
+
+/** Provider input must contain only speakable text, never markup or controls. */
+export function cleanCreatorSpokenPayload(input: string): string {
+  const cleaned = input
+    .normalize("NFC")
+    .replace(/[\u0000-\u001f\u007f]/gu, " ")
+    .replace(/<[^>]*>/gu, " ")
+    .replace(/\s+/gu, " ")
+    .trim();
+  if (!cleaned) throw new Error("Creator voice requires a non-empty spoken payload.");
+  return cleaned;
+}
+
 function matchesSingleHashScope(actual: readonly string[], expected: string): boolean {
   return actual.length === 1 && actual[0] === expected;
 }
@@ -42,18 +71,19 @@ export function assertCreatorVoiceDispatchAllowed(
   contentProfileId: ContentProfileId,
   context: SpeechDispatchContext | undefined,
 ): void {
-  const parsedProfile = contentProfileIdSchema.safeParse(contentProfileId);
+  const parsedProfile = contentProfileIdSchema.safeParse(normalizeContentProfileId(contentProfileId));
   if (!parsedProfile.success) throw new Error("Speech provider dispatch requires a valid content profile.");
+  const canonicalProfileId = parsedProfile.data;
   if (!context) throw new Error("Speech provider dispatch requires an explicit dispatch context.");
   if (context.kind === "legacy-noncreator") {
-    if (contentProfileId === "strategic-reinvention") {
-      throw new Error("Strategic Reinvention cannot dispatch speech as legacy noncreator content.");
+    if (canonicalProfileId === VERONICA_CONTENT_PROFILE_ID) {
+      throw new Error("Veronica creator voice cannot dispatch speech as legacy noncreator content.");
     }
     return;
   }
   if (
     context.kind !== "creator" ||
-    context.profileId !== contentProfileId ||
+    canonicalCreatorVoiceProfileId(context.profileId) !== canonicalProfileId ||
     !Array.isArray(context.approvals) ||
     [context.workflowInstanceId, context.taskId, context.unitId, context.revision, context.locale, context.variant]
       .some((value) => typeof value !== "string" || value.trim().length === 0)
@@ -97,7 +127,11 @@ export function assertCreatorVoiceDispatchAllowed(
   if (approved.length === 0 || actors.size < 2) {
     throw new Error("Creator voice dispatch requires current scoped voice approval evidence.");
   }
-  // The strategic policy disables synthetic narration. Human-recorded media is
-  // supplied media and never routed through a TTS provider.
-  throw new Error(`Synthetic narration is disabled for content profile ${contentProfileId}.`);
+  // Human-recorded media is supplied media and never routed through a TTS
+  // provider. This remains fail-closed even when approval evidence is valid:
+  // a future authorization must add an explicit policy, not bypass this guard.
+  if (canonicalProfileId === VERONICA_CONTENT_PROFILE_ID) {
+    throw new Error("Synthetic Veronica narration is disabled without an explicit written authorization policy.");
+  }
+  throw new Error(`Synthetic narration is disabled for content profile ${canonicalProfileId}.`);
 }
