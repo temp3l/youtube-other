@@ -16,6 +16,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@mediaforge/config": "workspace:*",
     "@mediaforge/dark-truth": "workspace:*",
     "@mediaforge/domain": "workspace:*",
     "@mediaforge/history": "workspace:*",

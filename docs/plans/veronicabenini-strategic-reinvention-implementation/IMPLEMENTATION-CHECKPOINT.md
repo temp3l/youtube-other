@@ -4,7 +4,7 @@
 - Starting HEAD: `f04262c16bfd1a89d1b404b1ac291a89dc699a0d`
 - Plan baseline after fast-forward: `46d624c`
 - Pre-existing changes preserved: `.codex/config.toml`; `prompts/codex-veronicabenini-implement-all-waves.md`
-- Current wave: 5 — publish/bulk/policy
+- Current wave: 6 — API/operations
 
 | Task | Status | Owner | Validation | Checkpoint |
 | --- | --- | --- | --- | --- |
@@ -23,8 +23,10 @@
 | VRI-13 | VALIDATED | worker + coordinator review | 2 focused tests and workflow-engine build pass; package typecheck has unrelated blockers | `238d368` |
 | VRI-14 | VALIDATED | worker + coordinator review | 2 focused tests pass; isolated rendering build dependency-blocked | `3d99eaf` |
 | VRI-15 | VALIDATED | worker + coordinator review | 4 focused delivery tests and 2 render regression tests pass | `05e1cba` |
-| VRI-16 | VALIDATED | worker + coordinator review | 5 focused tests pass; youtube-upload typecheck dependency-blocked | pending commit |
-| VRI-17..VRI-26 | NOT_STARTED | unassigned | not run | none |
+| VRI-16 | VALIDATED | worker + coordinator review | 5 focused tests pass; youtube-upload typecheck dependency-blocked | `a65710f` |
+| VRI-17 | VALIDATED | worker + coordinator review | 3 focused tests and workflow-engine typecheck pass | pending commit |
+| VRI-18 | VALIDATED | worker + coordinator review | 5 focused tests and config build pass | pending commit |
+| VRI-19..VRI-26 | NOT_STARTED | unassigned | not run | none |
 
 ## VRI-01 evidence
 
@@ -49,4 +51,4 @@
 
 ## Next executable tasks
 
-VRI-17 bulk production and VRI-18 policy/cost controls are executable as the Wave 5 parallel set.
+VRI-19 and VRI-21 are the Wave 6 parallel set; VRI-20 follows VRI-19's API contract.

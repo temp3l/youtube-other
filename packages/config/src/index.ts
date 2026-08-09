@@ -28,6 +28,15 @@ export {
   type ContentPolicyPermissions,
   type ExplicitContentPermissionGrant,
 } from "./content-policy-registry.js";
+export {
+  executionPolicySchema,
+  executionPolicyFingerprint,
+  runPolicyArtifactSchema,
+  redactPolicyEvidence,
+  resolveExecutionPolicy,
+  type ExecutionPolicy,
+  type RunPolicyArtifact,
+} from "./execution-policy.js";
 
 const visualRetentionPresetSchema = z.strictObject({
   id: z.enum(["short-45-60", "short-60-75", "full-4-6m"]),
