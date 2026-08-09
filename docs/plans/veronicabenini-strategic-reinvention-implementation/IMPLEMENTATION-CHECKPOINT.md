@@ -4,7 +4,7 @@
 - Starting HEAD: `f04262c16bfd1a89d1b404b1ac291a89dc699a0d`
 - Plan baseline after fast-forward: `46d624c`
 - Pre-existing changes preserved: `.codex/config.toml`; `prompts/codex-veronicabenini-implement-all-waves.md`
-- Current wave: 7 — analytics/compatibility
+- Current wave: 8 — hardening
 
 | Task | Status | Owner | Validation | Checkpoint |
 | --- | --- | --- | --- | --- |
@@ -29,10 +29,11 @@
 | VRI-19 | VALIDATED | worker + coordinator review | API contract 13/13; HTTP/typecheck dependency-chain blocked | `2ef097b` |
 | VRI-20 | VALIDATED | worker + coordinator review | API contract 13/13; webhook 13/13 | `7caab1c` |
 | VRI-21 | VALIDATED | worker + coordinator review | 12 focused tests pass; application typecheck dependency-chain blocked | `7caab1c` |
-| VRI-22 | VALIDATED | worker + coordinator review | domain/persistence focused pass; API tests added but budget-unrun | pending |
-| VRI-23..VRI-24 | NOT_STARTED | unassigned | not run | none |
+| VRI-22 | VALIDATED | worker + coordinator review | domain/persistence focused pass; API tests added but budget-unrun | `38bc2e6` |
+| VRI-23 | VALIDATED | worker + coordinator review | SDK build and CLI 8/8; API use-case collection dependency-blocked | `8f7fa02` |
+| VRI-24 | VALIDATED | worker + coordinator review | domain/API/persistence 6/6; domain typecheck/build pass | `8f7fa02` |
 | VRI-25 | VALIDATED | worker + coordinator review | resolver 6/6 | `3b1315d` |
-| VRI-26 | NOT_STARTED | unassigned | not run | none |
+| VRI-26 | IMPLEMENTED_VALIDATION_GAP | coordinator | acceptance evidence 2/2 and aspect-ratio 4/4; package typecheck pass; pilot fixture repaired but retry-budget unverified | pending |
 
 ## VRI-01 evidence
 
@@ -55,6 +56,12 @@
 - Camera direction fingerprints include semantic direction inputs but exclude locale and invocation operation; references are attached only by audited relevance.
 - Text-bearing source slides require localized reflow/composition; ratio-specific readability rejects blind crops, unsafe areas, undersized text, and shared composition identities.
 
+## Wave 8 acceptance evidence
+
+- The canonical acceptance artifact binds episode/workflow revision, effective configuration, dependencies, source provenance, shared visual reuse, cache reuse, source invalidation, and immutable approval history.
+- Release evidence remains redacted and fail-closed with zero provider dispatch or irreversible work.
+- The strategic pilot exposed and was repaired for stale canonical profile, workspace subpath, and source-evidence ledger fixtures; its same-command retry budget was exhausted before a post-repair run.
+
 ## Next executable tasks
 
-VRI-22 and VRI-25 are the Wave 7 parallel set; VRI-23/VRI-24 follow VRI-22.
+Complete final documentation/report reconciliation and commit VRI-26. External activation remains a post-implementation operator gate.

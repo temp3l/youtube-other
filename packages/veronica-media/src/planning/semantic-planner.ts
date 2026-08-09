@@ -284,7 +284,10 @@ export function buildSemanticMediaPlan(input: SemanticPlannerInput): VeronicaMed
       effectiveConfigurationHash: visualPolicy.effectiveConfigurationHash,
       dependencyIdentity: visualPolicy.dependencyIdentity,
       scenes: visualPolicy.selections.map((selection) => ({ ...selection })),
-      policyReview: visualPolicy.review,
+      policyReview: {
+        ...visualPolicy.review,
+        reasonCodes: [...visualPolicy.review.reasonCodes],
+      },
     },
     visualStates,
     preparedAssets,

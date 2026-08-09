@@ -66,20 +66,33 @@ export async function loadStrategicSupplementalFiles(input: {
     input.supplementalDir ??
     path.join(resolver.episodeRoot(episodeId), "sources", "content");
   const entries = await fs.readdir(sourcesDir, { withFileTypes: true });
+  const candidates: Array<{ readonly name: string; readonly absolute: string }> = [];
+  for (const entry of entries) {
+    if (entry.isFile()) {
+      candidates.push({ name: entry.name, absolute: path.join(sourcesDir, entry.name) });
+      continue;
+    }
+    if (!entry.isDirectory()) continue;
+    const nested = await fs.readdir(path.join(sourcesDir, entry.name), { withFileTypes: true });
+    for (const nestedEntry of nested) {
+      if (nestedEntry.isFile()) candidates.push({
+        name: nestedEntry.name,
+        absolute: path.join(sourcesDir, entry.name, nestedEntry.name),
+      });
+    }
+  }
   const files: Array<{
     assetId: string;
     filename: string;
     bytes: Uint8Array;
   }> = [];
-  for (const entry of entries) {
-    if (!entry.isFile()) continue;
-    const extension = path.extname(entry.name).toLowerCase();
+  for (const candidate of candidates) {
+    const extension = path.extname(candidate.name).toLowerCase();
     if (!supportedExtensions.has(extension)) continue;
-    const absolute = path.join(sourcesDir, entry.name);
-    const bytes = await fs.readFile(absolute);
+    const bytes = await fs.readFile(candidate.absolute);
     files.push({
-      assetId: path.basename(entry.name, extension).replace(/[^a-z0-9-]+/giu, "-"),
-      filename: entry.name,
+      assetId: path.basename(candidate.name, extension).replace(/[^a-z0-9-]+/giu, "-"),
+      filename: candidate.name,
       bytes,
     });
   }

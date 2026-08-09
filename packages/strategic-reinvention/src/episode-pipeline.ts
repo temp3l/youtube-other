@@ -49,7 +49,7 @@ export interface StrategicEpisodePipelineResult {
 }
 
 function stateDir(workspaceRoot: string, episodeId: string): string {
-  return path.join(workspaceRoot, episodeId, "state", "strategic-reinvention");
+  return path.join(workspaceRoot, episodeId, "state", "veronicabenini");
 }
 
 function fingerprintPath(stateRoot: string): string {

@@ -37,7 +37,9 @@ export interface NarrationRevisionDiff {
 
 /** Immutable review record; frozen revisions cannot be silently replaced. */
 export interface FrozenNarrationRevision {
-  readonly revision: ReturnType<typeof buildNarrationRevision>;
+  readonly revision: Readonly<Omit<ReturnType<typeof buildNarrationRevision>, "mapping">> & {
+    readonly mapping: readonly Readonly<ReturnType<typeof buildNarrationRevision>["mapping"][number]>[];
+  };
   readonly diffs: readonly NarrationRevisionDiff[];
   readonly frozenAt: string;
   readonly frozenBy: string;

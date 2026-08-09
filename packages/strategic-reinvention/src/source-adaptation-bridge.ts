@@ -51,7 +51,7 @@ function adaptationStatePath(workspaceRoot: string, episodeId: string): string {
     workspaceRoot,
     episodeId,
     "state",
-    "strategic-reinvention",
+    "veronicabenini",
     "source-adaptation.json",
   );
 }
@@ -63,6 +63,7 @@ async function loadSourceBytes(
 ): Promise<Uint8Array | null> {
   const episodeRoot = path.join(workspaceRoot, episodeId);
   const candidates = sourceTextExtensions.flatMap((extension) => [
+    path.join(episodeRoot, "sources", "content", sourceId, `${sourceId}${extension}`),
     path.join(episodeRoot, "sources", "content", `${sourceId}${extension}`),
     path.join(episodeRoot, "sources", `${sourceId}${extension}`),
   ]);

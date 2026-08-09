@@ -16,3 +16,4 @@ export * from "./publishing.js";
 export * from "./pilot-fixture.js";
 export * from "./review-pack-batch.js";
 export * from "./release-policy.js";
+export * from "./acceptance-fixture.js";

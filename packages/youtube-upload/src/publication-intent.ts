@@ -211,8 +211,8 @@ export async function reconcileYoutubePublicationIntent(input: { readonly intent
     ? candidate.evidence as Record<string, unknown>
     : {};
   const receipt = candidate &&
-    evidence.channelId === intent.target.channelId &&
-    evidence.privacyStatus === intent.target.visibility
+    evidence["channelId"] === intent.target.channelId &&
+    evidence["privacyStatus"] === intent.target.visibility
     ? candidate
     : null;
   const state = receipt ? "published" as const : "reconciliation_required" as const;
