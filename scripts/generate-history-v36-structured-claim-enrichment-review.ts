@@ -151,6 +151,7 @@ function summarize(runs: readonly Run[]) {
   const currentRelations = runs.flatMap((run) => run.current.extraction.relations);
   const baselineCandidates = runs.flatMap((run) => run.baseline.candidates);
   const currentCandidates = runs.flatMap((run) => run.current.candidates);
+  const baselineValid = baselineCandidates.filter((candidate) => candidate.status === "valid");
   const rejected = currentCandidates.filter((candidate) => candidate.status === "rejected");
   const valid = currentCandidates.filter((candidate) => candidate.status === "valid");
   const baselineRelationIds = new Set(baselineRelations.map((relation) => relation.id));
@@ -227,8 +228,8 @@ function summarize(runs: readonly Run[]) {
       insufficientStructureReduction: { absolute: reduction, percentage: insufficientBefore ? Math.round((reduction / insufficientBefore) * 10000) / 100 : 0 },
     },
     relationComparison: {
-      before: { candidates: baselineCandidates.length, validated: baselineRelations.length, rejected: baselineCandidates.filter((candidate) => candidate.status === "rejected").length, relationKinds: relationKinds(baselineRelations) },
-      after: { candidates: currentCandidates.length, validated: currentRelations.length, rejected: rejected.length, duplicatesCollapsed: valid.length - currentRelations.length, relationKinds: relationKinds(currentRelations) },
+      before: { candidates: baselineCandidates.length, validatorAcceptedCandidates: baselineValid.length, validatedRelationsAfterSemanticDedup: baselineRelations.length, rejected: baselineCandidates.filter((candidate) => candidate.status === "rejected").length, duplicatesCollapsed: baselineValid.length - baselineRelations.length, relationKinds: relationKinds(baselineRelations) },
+      after: { candidates: currentCandidates.length, validatorAcceptedCandidates: valid.length, validatedRelationsAfterSemanticDedup: currentRelations.length, rejected: rejected.length, duplicatesCollapsed: valid.length - currentRelations.length, relationKinds: relationKinds(currentRelations) },
       newlyAppearingKinds: Object.entries(relationKinds(currentRelations)).filter(([kind, count]) => count > 0 && (relationKinds(baselineRelations)[kind] ?? 0) === 0).map(([kind]) => kind),
     },
     distributions: Object.fromEntries(["claimsWithStructuredPropositions", "structuredPropositions", "atomicPropositions", "insufficientStructure", "validatedRelations"].map((key) => [key, distribution(episodeSummary.map((item) => Number(item[key as keyof typeof item])))])),
@@ -309,7 +310,7 @@ const payloads: Record<string, string> = {
   "relation-comparison.json": stable(summary.relationComparison),
   "episode-summary.json": stable(summary.episodeSummary),
   "diagnostic-summary.json": stable({ byCode: summary.structuredSummary.diagnosticsByCode, diagnostics: summary.diagnostics }),
-  "candidate-rejection-summary.json": stable({ candidateProposed: summary.currentCandidates.length, candidateValidated: summary.valid.length, candidateValidatorRejected: summary.rejected.length, rejectedByReason: summary.candidateRejectionReasons }),
+  "candidate-rejection-summary.json": stable({ candidateProposed: summary.currentCandidates.length, candidateAcceptedByValidatorBeforeDedup: summary.valid.length, validatedRelationsAfterSemanticDedup: summary.currentRelations.length, semanticDuplicatesCollapsed: summary.valid.length - summary.currentRelations.length, candidateValidatorRejected: summary.rejected.length, rejectionReasonsMayOverlap: true, rejectionDiagnosticOccurrencesByReason: summary.candidateRejectionReasons }),
   "differential-granularity-summary.json": stable(summary.differential),
   "manual-review.json": stable({ size: summary.manualReview.length, ordinaryCap: 100, ordinaryItems: summary.manualReview.filter((item) => item.type === "ordinary-unchanged").length, entries: summary.manualReview }),
   "systemic-findings.json": stable(systemicFindings),
