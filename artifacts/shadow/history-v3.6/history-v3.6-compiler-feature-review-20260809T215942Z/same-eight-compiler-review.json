@@ -1,0 +1,873 @@
+{
+  "representativeReview": [
+    {
+      "relationId": "relation-movement-86967bc62f556fb8d35732c1",
+      "kind": "movement",
+      "disposition": "MAP",
+      "compilerIntentId": "history-compiler-intent-5c81d4c131c49666f0754565",
+      "compilerRule": "map-movement.v1",
+      "assertion": "not-applicable",
+      "support": {
+        "relationId": "relation-movement-86967bc62f556fb8d35732c1",
+        "evidenceFingerprint": "evidence-1e156e6b0f9df15320037f08",
+        "supportClaimIds": [
+          "claim-1d813848a4b3f483dec18f06"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      }
+    },
+    {
+      "relationId": "relation-spatial-comparison-63a438adf1bcce39953cbf87",
+      "kind": "spatial-comparison",
+      "disposition": "MAP",
+      "compilerIntentId": "history-compiler-intent-97674ca2593338cfb9575dc4",
+      "compilerRule": "map-spatial-comparison.v1",
+      "assertion": "not-applicable",
+      "support": {
+        "relationId": "relation-spatial-comparison-63a438adf1bcce39953cbf87",
+        "evidenceFingerprint": "evidence-8e2059e0aee718b0e3ef4e34",
+        "supportClaimIds": [
+          "claim-79ee6a5eb840e7a02f99642b"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      }
+    },
+    {
+      "relationId": "relation-causal-d681a2f9da839e104ad275ab",
+      "kind": "causal",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-a3b1840618bd75ba7a6523a5",
+      "compilerRule": "diagram-causal.v1",
+      "assertion": "reported",
+      "support": {
+        "relationId": "relation-causal-d681a2f9da839e104ad275ab",
+        "evidenceFingerprint": "evidence-db6d2774f739e391922dd080",
+        "supportClaimIds": [
+          "claim-db26077e95258cfa59dfab83"
+        ],
+        "structuredPropositionIds": [
+          "structured-proposition-dd1896c9e4cd86c1bec5fb01"
+        ],
+        "atomicGroundingIds": [
+          "grounding-2c03d1203b276ab1345327da"
+        ]
+      }
+    },
+    {
+      "relationId": "relation-dependency-3e92a46348bd78098492edb7",
+      "kind": "dependency",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-3188d1a72096f824edf5eb53",
+      "compilerRule": "diagram-dependency.v1",
+      "assertion": "not-applicable",
+      "support": {
+        "relationId": "relation-dependency-3e92a46348bd78098492edb7",
+        "evidenceFingerprint": "evidence-f31eebf7eecdde8f0bd0fb83",
+        "supportClaimIds": [
+          "claim-9e576b423fa332133d2c2ba1"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      }
+    },
+    {
+      "relationId": "relation-process-357ad4096b0d3699768f6e5a",
+      "kind": "process",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-37a0c9a84bac53209961eb65",
+      "compilerRule": "diagram-process.v1",
+      "assertion": "not-applicable",
+      "support": {
+        "relationId": "relation-process-357ad4096b0d3699768f6e5a",
+        "evidenceFingerprint": "evidence-3c575bf2ae1d432e402f4af7",
+        "supportClaimIds": [
+          "claim-6c18dacd4ee9e8039e194b0d"
+        ],
+        "structuredPropositionIds": [
+          "structured-proposition-2e39e0dfddbc6b6defc310f1"
+        ],
+        "atomicGroundingIds": [
+          "grounding-a04500aba005ce5821e46da2"
+        ]
+      }
+    },
+    {
+      "relationId": "relation-temporal-sequence-4bb246aa649006ac797dfec6",
+      "kind": "temporal-sequence",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-8de9f9a47decb2a8568bfc0c",
+      "compilerRule": "diagram-temporal-sequence.v1",
+      "assertion": "not-applicable",
+      "support": {
+        "relationId": "relation-temporal-sequence-4bb246aa649006ac797dfec6",
+        "evidenceFingerprint": "evidence-6468900f96ad9e64924cad89",
+        "supportClaimIds": [
+          "claim-d62f5be40772900d03e6dd9e"
+        ],
+        "structuredPropositionIds": [
+          "structured-proposition-6f025ed92fbaf7663c242153"
+        ],
+        "atomicGroundingIds": [
+          "grounding-68771be50ddb544563cbf29f"
+        ]
+      }
+    },
+    {
+      "relationId": "relation-policy-response-e1e6ce807fd50368e1bc803b",
+      "kind": "policy-response",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-dd476b7e9d622b8e06f27dc2",
+      "compilerRule": "diagram-policy-response.v1",
+      "assertion": {
+        "condition": "uncertain",
+        "response": "attempted"
+      },
+      "support": {
+        "relationId": "relation-policy-response-e1e6ce807fd50368e1bc803b",
+        "evidenceFingerprint": "evidence-85d61a8d5f6183864916c3cb",
+        "supportClaimIds": [
+          "claim-095a61f563fa2980b636c6cc",
+          "claim-ee76bea77004b9d801b6630b"
+        ],
+        "structuredPropositionIds": [
+          "structured-proposition-1df667e0e11400eb4dfe13fe",
+          "structured-proposition-535f3073a6991e6b2dd28f3c"
+        ],
+        "atomicGroundingIds": [
+          "grounding-708cc4b83201d0b8ca6971d0",
+          "grounding-c4182f8b9ed22ee176e88e92"
+        ],
+        "proof": {
+          "proofEvidenceId": "relation-proof-evidence-b04d4c4142d1898084e109e4",
+          "proofId": "cross-claim-proof-4c239e7f3e32aab61cc44d00",
+          "proofEvidenceFingerprint": "cross-claim-proof-evidence-931dea77b73dee5b07602905",
+          "premises": [
+            {
+              "premiseId": "condition",
+              "claimId": "claim-ee76bea77004b9d801b6630b",
+              "structuredPropositionId": "structured-proposition-1df667e0e11400eb4dfe13fe",
+              "atomicGroundingId": "grounding-c4182f8b9ed22ee176e88e92",
+              "assertionStatus": "uncertain"
+            },
+            {
+              "premiseId": "response",
+              "claimId": "claim-095a61f563fa2980b636c6cc",
+              "structuredPropositionId": "structured-proposition-535f3073a6991e6b2dd28f3c",
+              "atomicGroundingId": "grounding-708cc4b83201d0b8ca6971d0",
+              "assertionStatus": "attempted"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "relationId": "relation-evidence-set-93d52d78d0c9b849fd8db24a",
+      "kind": "evidence-set",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-69fb7ca4eda167702737f412",
+      "compilerRule": "diagram-evidence-set.v1",
+      "assertion": "not-applicable",
+      "support": {
+        "relationId": "relation-evidence-set-93d52d78d0c9b849fd8db24a",
+        "evidenceFingerprint": "evidence-e9297e727c659103fde18f63",
+        "supportClaimIds": [
+          "claim-256740d7c97e87c2fd1ff4cd"
+        ],
+        "structuredPropositionIds": [
+          "structured-proposition-565a9aaac8fbabacc3018504",
+          "structured-proposition-6df72e8894314b26acc154f8",
+          "structured-proposition-962c8f67f82aede2f13baf6e",
+          "structured-proposition-a91e416acc209c9e9af28215"
+        ],
+        "atomicGroundingIds": [
+          "grounding-3c1959439501597e1c4499c9",
+          "grounding-3ddf4768c5c5072fe90fd011",
+          "grounding-dc5bf14670d6ce62aca1395c",
+          "grounding-e2597d6667856993d6c53192"
+        ]
+      }
+    },
+    {
+      "relationId": "relation-event-location-599d22c6090059e3768981f7",
+      "kind": "event-location",
+      "disposition": "MAP",
+      "compilerIntentId": "history-compiler-intent-65a630e5bddfda051d3c16ca",
+      "compilerRule": "map-event-location.v1",
+      "assertion": "intended",
+      "support": {
+        "relationId": "relation-event-location-599d22c6090059e3768981f7",
+        "evidenceFingerprint": "evidence-bd6386a3f5233fa829691cf2",
+        "supportClaimIds": [
+          "claim-7552fcb5134857307769fa18"
+        ],
+        "structuredPropositionIds": [
+          "structured-proposition-b6188c3dd446cee65d2f7407"
+        ],
+        "atomicGroundingIds": [
+          "grounding-e0af3cdde991db62127f6ab2"
+        ]
+      }
+    }
+  ],
+  "compiledRelations": [
+    {
+      "relationId": "relation-causal-265d87bbd6e247f54cfcef53",
+      "kind": "causal",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-be3b5168cc4e53feff2ac31f",
+      "compilerRule": "diagram-causal.v1",
+      "assertion": "asserted",
+      "support": {
+        "relationId": "relation-causal-265d87bbd6e247f54cfcef53",
+        "evidenceFingerprint": "evidence-c526d2d80fb056ec332c6b14",
+        "supportClaimIds": [
+          "claim-480703f7fefa622ce85ebc65"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      }
+    },
+    {
+      "relationId": "relation-dependency-3e92a46348bd78098492edb7",
+      "kind": "dependency",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-3188d1a72096f824edf5eb53",
+      "compilerRule": "diagram-dependency.v1",
+      "assertion": "not-applicable",
+      "support": {
+        "relationId": "relation-dependency-3e92a46348bd78098492edb7",
+        "evidenceFingerprint": "evidence-f31eebf7eecdde8f0bd0fb83",
+        "supportClaimIds": [
+          "claim-9e576b423fa332133d2c2ba1"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      }
+    },
+    {
+      "relationId": "relation-dependency-8d305ddc77b213e310d5b325",
+      "kind": "dependency",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-4f72529774f99cb04bc91861",
+      "compilerRule": "diagram-dependency.v1",
+      "assertion": "not-applicable",
+      "support": {
+        "relationId": "relation-dependency-8d305ddc77b213e310d5b325",
+        "evidenceFingerprint": "evidence-0e5dabf18694e6a441f55ffe",
+        "supportClaimIds": [
+          "claim-1ac10496509ccda56242f88a"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      }
+    },
+    {
+      "relationId": "relation-evidence-set-93d52d78d0c9b849fd8db24a",
+      "kind": "evidence-set",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-69fb7ca4eda167702737f412",
+      "compilerRule": "diagram-evidence-set.v1",
+      "assertion": "not-applicable",
+      "support": {
+        "relationId": "relation-evidence-set-93d52d78d0c9b849fd8db24a",
+        "evidenceFingerprint": "evidence-e9297e727c659103fde18f63",
+        "supportClaimIds": [
+          "claim-256740d7c97e87c2fd1ff4cd"
+        ],
+        "structuredPropositionIds": [
+          "structured-proposition-565a9aaac8fbabacc3018504",
+          "structured-proposition-6df72e8894314b26acc154f8",
+          "structured-proposition-962c8f67f82aede2f13baf6e",
+          "structured-proposition-a91e416acc209c9e9af28215"
+        ],
+        "atomicGroundingIds": [
+          "grounding-3c1959439501597e1c4499c9",
+          "grounding-3ddf4768c5c5072fe90fd011",
+          "grounding-dc5bf14670d6ce62aca1395c",
+          "grounding-e2597d6667856993d6c53192"
+        ]
+      }
+    },
+    {
+      "relationId": "relation-causal-12242fe1bfc3d3da804bf371",
+      "kind": "causal",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-4ce51bfc8189133a59e1df94",
+      "compilerRule": "diagram-causal.v1",
+      "assertion": "asserted",
+      "support": {
+        "relationId": "relation-causal-12242fe1bfc3d3da804bf371",
+        "evidenceFingerprint": "evidence-00a3b26df845ebaffcd3fbf0",
+        "supportClaimIds": [
+          "claim-e7ccf1aa69a13de61594802b"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      }
+    },
+    {
+      "relationId": "relation-causal-15084cb5f069edff2edb4533",
+      "kind": "causal",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-cd7b9d1006c5b2a7870996e4",
+      "compilerRule": "diagram-causal.v1",
+      "assertion": "asserted",
+      "support": {
+        "relationId": "relation-causal-15084cb5f069edff2edb4533",
+        "evidenceFingerprint": "evidence-28c5848600a737f0058070b7",
+        "supportClaimIds": [
+          "claim-8a707b4321b2663a2061939c"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      }
+    },
+    {
+      "relationId": "relation-causal-183c91cf9c32df05490dae01",
+      "kind": "causal",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-0ead043895be8575b9984fa0",
+      "compilerRule": "diagram-causal.v1",
+      "assertion": "asserted",
+      "support": {
+        "relationId": "relation-causal-183c91cf9c32df05490dae01",
+        "evidenceFingerprint": "evidence-09fdcc6e1ab136afad746792",
+        "supportClaimIds": [
+          "claim-445b50b1c542e5143f87efe0"
+        ],
+        "structuredPropositionIds": [
+          "structured-proposition-c94a284dea3fd38027179971"
+        ],
+        "atomicGroundingIds": [
+          "grounding-9b108be90c3ba4812c0c5a57"
+        ]
+      }
+    },
+    {
+      "relationId": "relation-movement-86967bc62f556fb8d35732c1",
+      "kind": "movement",
+      "disposition": "MAP",
+      "compilerIntentId": "history-compiler-intent-5c81d4c131c49666f0754565",
+      "compilerRule": "map-movement.v1",
+      "assertion": "not-applicable",
+      "support": {
+        "relationId": "relation-movement-86967bc62f556fb8d35732c1",
+        "evidenceFingerprint": "evidence-1e156e6b0f9df15320037f08",
+        "supportClaimIds": [
+          "claim-1d813848a4b3f483dec18f06"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      }
+    },
+    {
+      "relationId": "relation-policy-response-e1e6ce807fd50368e1bc803b",
+      "kind": "policy-response",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-dd476b7e9d622b8e06f27dc2",
+      "compilerRule": "diagram-policy-response.v1",
+      "assertion": {
+        "condition": "uncertain",
+        "response": "attempted"
+      },
+      "support": {
+        "relationId": "relation-policy-response-e1e6ce807fd50368e1bc803b",
+        "evidenceFingerprint": "evidence-85d61a8d5f6183864916c3cb",
+        "supportClaimIds": [
+          "claim-095a61f563fa2980b636c6cc",
+          "claim-ee76bea77004b9d801b6630b"
+        ],
+        "structuredPropositionIds": [
+          "structured-proposition-1df667e0e11400eb4dfe13fe",
+          "structured-proposition-535f3073a6991e6b2dd28f3c"
+        ],
+        "atomicGroundingIds": [
+          "grounding-708cc4b83201d0b8ca6971d0",
+          "grounding-c4182f8b9ed22ee176e88e92"
+        ],
+        "proof": {
+          "proofEvidenceId": "relation-proof-evidence-b04d4c4142d1898084e109e4",
+          "proofId": "cross-claim-proof-4c239e7f3e32aab61cc44d00",
+          "proofEvidenceFingerprint": "cross-claim-proof-evidence-931dea77b73dee5b07602905",
+          "premises": [
+            {
+              "premiseId": "condition",
+              "claimId": "claim-ee76bea77004b9d801b6630b",
+              "structuredPropositionId": "structured-proposition-1df667e0e11400eb4dfe13fe",
+              "atomicGroundingId": "grounding-c4182f8b9ed22ee176e88e92",
+              "assertionStatus": "uncertain"
+            },
+            {
+              "premiseId": "response",
+              "claimId": "claim-095a61f563fa2980b636c6cc",
+              "structuredPropositionId": "structured-proposition-535f3073a6991e6b2dd28f3c",
+              "atomicGroundingId": "grounding-708cc4b83201d0b8ca6971d0",
+              "assertionStatus": "attempted"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "relationId": "relation-causal-910a573b8067c848edc1c1ae",
+      "kind": "causal",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-11fcc029ec5a70e97662c697",
+      "compilerRule": "diagram-causal.v1",
+      "assertion": "asserted",
+      "support": {
+        "relationId": "relation-causal-910a573b8067c848edc1c1ae",
+        "evidenceFingerprint": "evidence-6a339dd53af0c752ef7800c3",
+        "supportClaimIds": [
+          "claim-d06297ae8bfc80681632986c"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      }
+    },
+    {
+      "relationId": "relation-causal-955f7f4f29e0c2498eddb9bb",
+      "kind": "causal",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-eb90992a1a4061a0f3df5e8e",
+      "compilerRule": "diagram-causal.v1",
+      "assertion": "asserted",
+      "support": {
+        "relationId": "relation-causal-955f7f4f29e0c2498eddb9bb",
+        "evidenceFingerprint": "evidence-4129e2df8719f54826b54e4a",
+        "supportClaimIds": [
+          "claim-b4ce2f1185e4dceefe240161"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      }
+    },
+    {
+      "relationId": "relation-evidence-set-ce64b4d1b82bec384e66d6b0",
+      "kind": "evidence-set",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-b71cb7aee061154a9b954557",
+      "compilerRule": "diagram-evidence-set.v1",
+      "assertion": "not-applicable",
+      "support": {
+        "relationId": "relation-evidence-set-ce64b4d1b82bec384e66d6b0",
+        "evidenceFingerprint": "evidence-98f3bcf502558b4899bd5758",
+        "supportClaimIds": [
+          "claim-318504248e85a04faa5519d6"
+        ],
+        "structuredPropositionIds": [
+          "structured-proposition-84ca3483d6e730e47a165e29",
+          "structured-proposition-b74bee33e92712e05a262e5c"
+        ],
+        "atomicGroundingIds": [
+          "grounding-0d229a068a866213fc5b3608",
+          "grounding-41f0ad4434af411b35347113"
+        ]
+      }
+    },
+    {
+      "relationId": "relation-evidence-set-d263d0846a780b5512a4e685",
+      "kind": "evidence-set",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-5d237afe67338712fd604ae7",
+      "compilerRule": "diagram-evidence-set.v1",
+      "assertion": "not-applicable",
+      "support": {
+        "relationId": "relation-evidence-set-d263d0846a780b5512a4e685",
+        "evidenceFingerprint": "evidence-98f3bcf502558b4899bd5758",
+        "supportClaimIds": [
+          "claim-318504248e85a04faa5519d6"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      }
+    },
+    {
+      "relationId": "relation-evidence-set-d746808189d93e902e87a8ea",
+      "kind": "evidence-set",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-48d839826102ce44deadb116",
+      "compilerRule": "diagram-evidence-set.v1",
+      "assertion": "not-applicable",
+      "support": {
+        "relationId": "relation-evidence-set-d746808189d93e902e87a8ea",
+        "evidenceFingerprint": "evidence-cf336cb5de7cebd672c0414e",
+        "supportClaimIds": [
+          "claim-32172a8401d82c0f5e12e3d3"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      }
+    },
+    {
+      "relationId": "relation-process-357ad4096b0d3699768f6e5a",
+      "kind": "process",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-37a0c9a84bac53209961eb65",
+      "compilerRule": "diagram-process.v1",
+      "assertion": "not-applicable",
+      "support": {
+        "relationId": "relation-process-357ad4096b0d3699768f6e5a",
+        "evidenceFingerprint": "evidence-3c575bf2ae1d432e402f4af7",
+        "supportClaimIds": [
+          "claim-6c18dacd4ee9e8039e194b0d"
+        ],
+        "structuredPropositionIds": [
+          "structured-proposition-2e39e0dfddbc6b6defc310f1"
+        ],
+        "atomicGroundingIds": [
+          "grounding-a04500aba005ce5821e46da2"
+        ]
+      }
+    },
+    {
+      "relationId": "relation-causal-6f940067404404c131f6cad5",
+      "kind": "causal",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-18479cff6852d7fbe1640eea",
+      "compilerRule": "diagram-causal.v1",
+      "assertion": "asserted",
+      "support": {
+        "relationId": "relation-causal-6f940067404404c131f6cad5",
+        "evidenceFingerprint": "evidence-e6d598deadda2ba1e24838b0",
+        "supportClaimIds": [
+          "claim-a76b4fa0b56f683bf2400b80"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      }
+    },
+    {
+      "relationId": "relation-causal-86d2451fc0270290745654ba",
+      "kind": "causal",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-fc88e77b7ee840ecef1193d3",
+      "compilerRule": "diagram-causal.v1",
+      "assertion": "asserted",
+      "support": {
+        "relationId": "relation-causal-86d2451fc0270290745654ba",
+        "evidenceFingerprint": "evidence-9d729c22bd3539220c500d82",
+        "supportClaimIds": [
+          "claim-be7255357533271755d5dc0e"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      }
+    },
+    {
+      "relationId": "relation-causal-a3461b6f58853b5638446f75",
+      "kind": "causal",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-bfde0766fda990bd833535bf",
+      "compilerRule": "diagram-causal.v1",
+      "assertion": "asserted",
+      "support": {
+        "relationId": "relation-causal-a3461b6f58853b5638446f75",
+        "evidenceFingerprint": "evidence-9bb0e59dd1f75eaf7d37e863",
+        "supportClaimIds": [
+          "claim-b2f82e0298d00711627b6262"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      }
+    },
+    {
+      "relationId": "relation-causal-9212db8b3d0745922bcbab98",
+      "kind": "causal",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-89a546dfc1f7fc15e0504860",
+      "compilerRule": "diagram-causal.v1",
+      "assertion": "asserted",
+      "support": {
+        "relationId": "relation-causal-9212db8b3d0745922bcbab98",
+        "evidenceFingerprint": "evidence-a4631d58ddf6a388f24d04eb",
+        "supportClaimIds": [
+          "claim-740238dabd4df86a4147d566"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      }
+    },
+    {
+      "relationId": "relation-causal-d3ddad29050a3467f1c3fabc",
+      "kind": "causal",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-a2944a6a508ade41c347ee50",
+      "compilerRule": "diagram-causal.v1",
+      "assertion": "asserted",
+      "support": {
+        "relationId": "relation-causal-d3ddad29050a3467f1c3fabc",
+        "evidenceFingerprint": "evidence-287c0d477532a86f5d9ba8bb",
+        "supportClaimIds": [
+          "claim-c78ea865fc76302c115e400f"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      }
+    },
+    {
+      "relationId": "relation-dependency-57731a6a0b69d018f5dc8d82",
+      "kind": "dependency",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-31d4b728f1699da6ff42b6b3",
+      "compilerRule": "diagram-dependency.v1",
+      "assertion": "not-applicable",
+      "support": {
+        "relationId": "relation-dependency-57731a6a0b69d018f5dc8d82",
+        "evidenceFingerprint": "evidence-a5d20b0ea39cd549192d865b",
+        "supportClaimIds": [
+          "claim-d8057107608ffb331ce37c1e"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      }
+    },
+    {
+      "relationId": "relation-event-location-599d22c6090059e3768981f7",
+      "kind": "event-location",
+      "disposition": "MAP",
+      "compilerIntentId": "history-compiler-intent-65a630e5bddfda051d3c16ca",
+      "compilerRule": "map-event-location.v1",
+      "assertion": "intended",
+      "support": {
+        "relationId": "relation-event-location-599d22c6090059e3768981f7",
+        "evidenceFingerprint": "evidence-bd6386a3f5233fa829691cf2",
+        "supportClaimIds": [
+          "claim-7552fcb5134857307769fa18"
+        ],
+        "structuredPropositionIds": [
+          "structured-proposition-b6188c3dd446cee65d2f7407"
+        ],
+        "atomicGroundingIds": [
+          "grounding-e0af3cdde991db62127f6ab2"
+        ]
+      }
+    },
+    {
+      "relationId": "relation-spatial-comparison-63a438adf1bcce39953cbf87",
+      "kind": "spatial-comparison",
+      "disposition": "MAP",
+      "compilerIntentId": "history-compiler-intent-97674ca2593338cfb9575dc4",
+      "compilerRule": "map-spatial-comparison.v1",
+      "assertion": "not-applicable",
+      "support": {
+        "relationId": "relation-spatial-comparison-63a438adf1bcce39953cbf87",
+        "evidenceFingerprint": "evidence-8e2059e0aee718b0e3ef4e34",
+        "supportClaimIds": [
+          "claim-79ee6a5eb840e7a02f99642b"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      }
+    },
+    {
+      "relationId": "relation-causal-415e06211e884d7ea5df2ffe",
+      "kind": "causal",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-0e3bbd13dff41eeb6f559f62",
+      "compilerRule": "diagram-causal.v1",
+      "assertion": "asserted",
+      "support": {
+        "relationId": "relation-causal-415e06211e884d7ea5df2ffe",
+        "evidenceFingerprint": "evidence-cc2678190bbf886be59c4272",
+        "supportClaimIds": [
+          "claim-31638545f031786abb302059"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      }
+    },
+    {
+      "relationId": "relation-process-38802c15ef20b084ef7aa074",
+      "kind": "process",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-9b2838dc2eddfd67a6787a9d",
+      "compilerRule": "diagram-process.v1",
+      "assertion": "not-applicable",
+      "support": {
+        "relationId": "relation-process-38802c15ef20b084ef7aa074",
+        "evidenceFingerprint": "evidence-c2442f6577efe0cd14069f47",
+        "supportClaimIds": [
+          "claim-6bbe9288262216a338a95084"
+        ],
+        "structuredPropositionIds": [
+          "structured-proposition-063b29c2804a18c5950f9bee"
+        ],
+        "atomicGroundingIds": [
+          "grounding-ba8082ba598d5e7bb54017d8"
+        ]
+      }
+    },
+    {
+      "relationId": "relation-causal-5fd8d24fad2483e29693227d",
+      "kind": "causal",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-f791ff8aa0ce05aa7459b650",
+      "compilerRule": "diagram-causal.v1",
+      "assertion": "asserted",
+      "support": {
+        "relationId": "relation-causal-5fd8d24fad2483e29693227d",
+        "evidenceFingerprint": "evidence-b27b71a4ad6601550e551769",
+        "supportClaimIds": [
+          "claim-cf84a3dbbd24f86a28cc6978"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      }
+    },
+    {
+      "relationId": "relation-causal-d681a2f9da839e104ad275ab",
+      "kind": "causal",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-a3b1840618bd75ba7a6523a5",
+      "compilerRule": "diagram-causal.v1",
+      "assertion": "reported",
+      "support": {
+        "relationId": "relation-causal-d681a2f9da839e104ad275ab",
+        "evidenceFingerprint": "evidence-db6d2774f739e391922dd080",
+        "supportClaimIds": [
+          "claim-db26077e95258cfa59dfab83"
+        ],
+        "structuredPropositionIds": [
+          "structured-proposition-dd1896c9e4cd86c1bec5fb01"
+        ],
+        "atomicGroundingIds": [
+          "grounding-2c03d1203b276ab1345327da"
+        ]
+      }
+    },
+    {
+      "relationId": "relation-dependency-c2632d52cfebeecdc51ebc47",
+      "kind": "dependency",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-c96942986e05d782995aa95d",
+      "compilerRule": "diagram-dependency.v1",
+      "assertion": "not-applicable",
+      "support": {
+        "relationId": "relation-dependency-c2632d52cfebeecdc51ebc47",
+        "evidenceFingerprint": "evidence-95a95258a26764d218bd25ee",
+        "supportClaimIds": [
+          "claim-f1d55ba2444505bed2eda216"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      }
+    },
+    {
+      "relationId": "relation-temporal-sequence-4bb246aa649006ac797dfec6",
+      "kind": "temporal-sequence",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-8de9f9a47decb2a8568bfc0c",
+      "compilerRule": "diagram-temporal-sequence.v1",
+      "assertion": "not-applicable",
+      "support": {
+        "relationId": "relation-temporal-sequence-4bb246aa649006ac797dfec6",
+        "evidenceFingerprint": "evidence-6468900f96ad9e64924cad89",
+        "supportClaimIds": [
+          "claim-d62f5be40772900d03e6dd9e"
+        ],
+        "structuredPropositionIds": [
+          "structured-proposition-6f025ed92fbaf7663c242153"
+        ],
+        "atomicGroundingIds": [
+          "grounding-68771be50ddb544563cbf29f"
+        ]
+      }
+    },
+    {
+      "relationId": "relation-causal-44274a823ddadd291542ed69",
+      "kind": "causal",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-59573d06dd5d33200d134d64",
+      "compilerRule": "diagram-causal.v1",
+      "assertion": "uncertain",
+      "support": {
+        "relationId": "relation-causal-44274a823ddadd291542ed69",
+        "evidenceFingerprint": "evidence-6d8d87c0e741973129fc034a",
+        "supportClaimIds": [
+          "claim-d97c2dd1d2ef4a18aeb04406"
+        ],
+        "structuredPropositionIds": [
+          "structured-proposition-bc3dba1a8ee93e7f275c4004"
+        ],
+        "atomicGroundingIds": [
+          "grounding-cfe00499adea25485906eb45"
+        ]
+      }
+    },
+    {
+      "relationId": "relation-causal-4742e19ec73b1274af0c8083",
+      "kind": "causal",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-69418353ad9236e897eb7709",
+      "compilerRule": "diagram-causal.v1",
+      "assertion": "asserted",
+      "support": {
+        "relationId": "relation-causal-4742e19ec73b1274af0c8083",
+        "evidenceFingerprint": "evidence-26c4e8fda9f276ad97cd4096",
+        "supportClaimIds": [
+          "claim-01fe5786966a367272e14e37"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      }
+    },
+    {
+      "relationId": "relation-causal-51c39507f565fad3665c635f",
+      "kind": "causal",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-9901c0c156f79a6c29c38001",
+      "compilerRule": "diagram-causal.v1",
+      "assertion": "asserted",
+      "support": {
+        "relationId": "relation-causal-51c39507f565fad3665c635f",
+        "evidenceFingerprint": "evidence-a1a1d35d9fd8c9028a9483bb",
+        "supportClaimIds": [
+          "claim-f96e0aaf7a5be96f2cb928f0"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      }
+    },
+    {
+      "relationId": "relation-causal-aef6b1de67213a4694015efa",
+      "kind": "causal",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-21ce1e8705f873fb24430e97",
+      "compilerRule": "diagram-causal.v1",
+      "assertion": "asserted",
+      "support": {
+        "relationId": "relation-causal-aef6b1de67213a4694015efa",
+        "evidenceFingerprint": "evidence-26c4e8fda9f276ad97cd4096",
+        "supportClaimIds": [
+          "claim-01fe5786966a367272e14e37"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      }
+    },
+    {
+      "relationId": "relation-temporal-sequence-d6bb84fe73883e01f2993992",
+      "kind": "temporal-sequence",
+      "disposition": "DIAGRAM",
+      "compilerIntentId": "history-compiler-intent-ed5ff13b44e359825b4dc775",
+      "compilerRule": "diagram-temporal-sequence.v1",
+      "assertion": "not-applicable",
+      "support": {
+        "relationId": "relation-temporal-sequence-d6bb84fe73883e01f2993992",
+        "evidenceFingerprint": "evidence-db8fe158efa662d453fdc4dd",
+        "supportClaimIds": [
+          "claim-368d72f941d735fc6da03526"
+        ],
+        "structuredPropositionIds": [
+          "structured-proposition-9600c22ab541d0d82d3175ed"
+        ],
+        "atomicGroundingIds": [
+          "grounding-16eadc9c6cb15524e13f423a"
+        ]
+      }
+    }
+  ]
+}

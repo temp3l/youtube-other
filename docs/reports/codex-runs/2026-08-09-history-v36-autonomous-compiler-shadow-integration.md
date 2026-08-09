@@ -21,5 +21,13 @@
 - Start: `83300d2`; target: strict shadow diagram compiler and unified dispatcher.
 - Change: exact causal, dependency, process, temporal, policy-response, and edge-free evidence-set intents; all ten kinds receive one disposition.
 - Tests: diagram/dispatcher unit, contract/map regression, History typecheck, targeted ESLint, diff check; invariants: direction/order/modality/proof exact, no inference, V3.5 untouched.
-- Commit/tag: assigned at phase close; artifact: `phase-2.26-diagram-compiler.json`.
+- Commit/tag: `3e5311a`; `history-v3.6-shadow-diagram-compiler-baseline`; artifact: `phase-2.26-diagram-compiler.json`.
 - Next: Phase 2.27 same-eight full-feature compiler validation.
+
+## Phase 2.27
+
+- Start: `3e5311a`; target: deterministic same-eight full-feature compiler lane.
+- Change: repository-only dual-run review generator with relation/candidate/proof provenance and per-kind manual review records.
+- Tests: generator x2 internally, compiler focused regression, History typecheck, targeted ESLint, checksums/ZIP; invariants: all zero.
+- Commit/tag: assigned at phase close; artifact: `history-v3.6-compiler-feature-review-20260809T215942Z.zip`.
+- Next: Phase 2.28 exact all-40 compatibility compiler census.
