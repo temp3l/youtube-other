@@ -1,6 +1,6 @@
 # YSAAS implementation progress
 
-Current wave: Wave 5 blocked (YSAAS-017 partial; YSAAS-018 and YSAAS-020 lack required API contracts)
+Current wave: Wave 5 in progress (YSAAS-020 API prerequisite complete; YSAAS-017 and YSAAS-018 remain blocked)
 
 ## Anti-stuck execution rules (session)
 
@@ -119,5 +119,7 @@ Status: blocked
 Notes: The domain resolver exists, but no tenant-scoped capability/configuration read API exposes inherited, overridden, and resolved selectable options. The current hard-coded pilot mapping must not be extended.
 
 ### YSAAS-020
-Status: blocked
-Notes: Credential issuance/list/revoke and webhook APIs exist, but the required credential rotation-with-overlap endpoint is absent. YSAAS-011 explicitly deferred its public rotate route.
+Status: in progress
+Commit: 281a6c7
+Validation: exact credential-rotation integration test pass; domain build pass
+Notes: Credential rotation with bounded overlap, ETag and idempotency preconditions, show-once secret, replay redaction, OpenAPI, and SDK support are complete. The BFF/UI journey, step-up confirmation hook, webhook management, and API explorer remain.

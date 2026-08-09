@@ -2,6 +2,7 @@
 
 - Source plan file: `docs/plans/youtube-saas-api/tasks/YSAAS-020.md`
 - Date of execution: 2026-08-09
+- Implementation commit: `281a6c7`
 
 ## Summary of implemented changes
 
