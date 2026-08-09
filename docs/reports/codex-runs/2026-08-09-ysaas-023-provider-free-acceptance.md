@@ -4,8 +4,8 @@ Summary: The deterministic provider-free executor seam runs after correcting the
 
 Changed paths: acceptance reporting only.
 
-Checks: `pnpm test:focused -- packages/application/src/provider-free-profile-executor.unit.test.ts` passed (5).
+Checks: provider-free executor unit test passed (5). Focused disposable-Postgres workflow integration passed (8): RLS isolation, stale transition rejection, leased/fenced durable jobs, and retry lifecycle.
 
 Commit: `bbacc3a`.
 
-Risks: No accepted evidence for tenancy, quota, cancellation/reclaim, stale review, webhook replay, quarantine, or leakage as one real provider-free journey. Add an isolated Postgres+BFF fixture before certifying YSAAS-023.
+Risks: No accepted evidence for quota, stale review, webhook replay, quarantine, leakage, or one API/BFF journey. Add an isolated seeded Postgres+BFF fixture before certifying YSAAS-023.
