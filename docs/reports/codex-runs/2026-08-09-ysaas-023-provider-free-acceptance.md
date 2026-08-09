@@ -1,11 +1,11 @@
 # YSAAS-023 provider-free acceptance
 
-Summary: Acceptance could not run. The repository has deterministic provider-free executor and persisted-workflow seams, but no existing tenant-to-BFF acceptance fixture covering the required fault matrix.
+Summary: The deterministic provider-free executor seam runs after correcting the unit-test domain-subpath alias. A full tenant-to-BFF acceptance fixture is still absent.
 
 Changed paths: acceptance reporting only.
 
-Checks: `pnpm test:focused -- packages/application/src/provider-free-profile-executor.unit.test.ts` failed before collection. Built `packages/dark-truth/dist/index.js` imports missing `@mediaforge/domain/visual-retention/treatment-catalog.js`.
+Checks: `pnpm test:focused -- packages/application/src/provider-free-profile-executor.unit.test.ts` passed (5).
 
-Commit: pending.
+Commit: `bbacc3a`.
 
-Risks: No accepted evidence for tenancy, quota, cancellation/reclaim, stale review, webhook replay, quarantine, or leakage as one real provider-free journey. Repair the stale built package and add an isolated Postgres+BFF fixture before certifying YSAAS-023.
+Risks: No accepted evidence for tenancy, quota, cancellation/reclaim, stale review, webhook replay, quarantine, or leakage as one real provider-free journey. Add an isolated Postgres+BFF fixture before certifying YSAAS-023.
