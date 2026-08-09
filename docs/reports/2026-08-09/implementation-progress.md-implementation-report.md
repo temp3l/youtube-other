@@ -21,4 +21,4 @@ Test results: persistence test and SDK/web checks pass. HTTP integration test co
 
 Known risks or follow-up work: pending confirmations use process-local state and need shared session persistence for horizontal scaling.
 
-Recommended next steps: wire the step-up recorder into composition and gate integrations mutations.
+Recommended next steps: wire the step-up consumer/recorder into composition and gate integrations mutations.
