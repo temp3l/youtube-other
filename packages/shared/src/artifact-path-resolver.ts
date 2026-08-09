@@ -10,7 +10,7 @@ import {
 } from "@mediaforge/domain";
 
 export const ARTIFACT_PATH_RESOLVER_VERSION =
-  "mediaforge.artifact-path-resolver.v1" as const;
+  "mediaforge.artifact-path-resolver.v2" as const;
 
 export interface ArtifactPathSet {
   readonly resolverVersion: typeof ARTIFACT_PATH_RESOLVER_VERSION;
@@ -365,7 +365,29 @@ export function createStrategicReinventionArtifactLayoutAdapter(): ArtifactLayou
       }
       return episodeCanonicalRelativePath(ref);
     },
-    legacyRelativePaths: () => [],
+    legacyRelativePaths: (ref) => {
+      const inherited = episodeLegacyRelativePaths(ref);
+      if (ref.kind === "source") {
+        const sourceId = ref.artifactKey ?? "source";
+        return [
+          ...inherited,
+          // VRI-03 writes nested, immutable source originals. These flat paths
+          // were emitted by earlier strategic commands and are read-only.
+          portablePath("sources", "content", `${sourceId}.md`),
+          portablePath("sources", "content", `${sourceId}.txt`),
+          portablePath("sources", `${sourceId}.md`),
+          portablePath("sources", `${sourceId}.txt`),
+        ];
+      }
+      if (ref.kind === "source-manifest") {
+        const sourceId = ref.artifactKey ?? "source-manifest";
+        return [
+          ...inherited,
+          portablePath("sources", `${sourceId}.manifest.json`),
+        ];
+      }
+      return inherited;
+    },
   };
 }
 

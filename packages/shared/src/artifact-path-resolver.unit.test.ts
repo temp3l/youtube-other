@@ -70,12 +70,12 @@ describe("artifact path resolver", () => {
     ]);
   });
 
-  it("writes strategic source and package artifacts to isolated canonical paths", () => {
+  it("writes Veronica artifacts canonically while retaining ordered strategic legacy reads", () => {
     const source = resolveArtifactPathSet({
       workspaceRoot: "/workspace",
       ref: artifactRefSchema.parse({
         ...episodeRef,
-        profileId: "strategic-reinvention",
+        profileId: "veronicabenini",
         locale: "it",
         kind: "source",
         artifactKey: "source-001",
@@ -86,7 +86,7 @@ describe("artifact path resolver", () => {
       workspaceRoot: "/workspace",
       ref: artifactRefSchema.parse({
         ...episodeRef,
-        profileId: "strategic-reinvention",
+        profileId: "veronicabenini",
         locale: "it",
         kind: "multilingual-package",
         artifactKey: "multilingual-package",
@@ -101,7 +101,31 @@ describe("artifact path resolver", () => {
       "/workspace/episode-001/locales/it/short/packages/multilingual-package.json"
     );
     expect(source.canonical).not.toBe(packageArtifact.canonical);
-    expect(source.legacyRelativePaths).toEqual([]);
+    expect(source.legacyRelativePaths).toEqual([
+      "sources/content/source-001.md",
+      "sources/content/source-001.txt",
+      "sources/source-001.md",
+      "sources/source-001.txt",
+    ]);
+  });
+
+  it("normalizes the strategic alias before resolving canonical source paths", () => {
+    const paths = resolveArtifactPathSet({
+      workspaceRoot: "/workspace",
+      ref: artifactRefSchema.parse({
+        ...episodeRef,
+        profileId: "strategic-reinvention",
+        locale: "it",
+        kind: "source-manifest",
+        artifactKey: "source-primary",
+        format: "json",
+      }),
+    });
+
+    expect(paths.canonicalRelativePath).toBe("sources/manifests/source-primary.json");
+    expect(paths.legacyRelativePaths).toEqual([
+      "sources/source-primary.manifest.json",
+    ]);
   });
 
   it("rejects incompatible profile artifacts", () => {
