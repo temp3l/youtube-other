@@ -2764,7 +2764,7 @@ async function resolveSceneImagePath(
   }
   const expectedFilename =
     aspectRatio === "9:16"
-      ? scene.expectedImageFilenames.find((name) => name.includes("__9x16")) ??
+      ? scene.expectedImageFilenames.find((name) => name.includes("__9x16") || name.includes("-9x16")) ??
         sceneFilename(
           scene.sequenceNumber,
           scene.timing.startSeconds,

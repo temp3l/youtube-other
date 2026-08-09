@@ -4,6 +4,7 @@ import { Command } from "commander";
 import { loadRuntimeConfig } from "@mediaforge/config";
 import { episodeManifestSchema, scenePlanSchema, type EpisodeManifest, type ScenePlan } from "@mediaforge/domain";
 import {
+  buildEpisodeImageMediaContext,
   generateEpisodeImages,
   loadEpisodeSceneManifest,
   loadEpisodeImageGenerationSettings,
@@ -21,6 +22,7 @@ export interface ImagesResumeCliOptions {
   readonly json?: boolean;
   readonly verbose?: boolean;
   readonly workspace?: string;
+  readonly variant?: "full" | "short";
 }
 
 export interface ResolvedEpisodeManifest {
@@ -280,12 +282,34 @@ export async function commandImagesResume(
   }
   const { episodeDir, manifestPath, manifest, created } =
     await loadOrBootstrapEpisodeManifest(options);
-  await assertScriptScoreGate({
-    outputRoot: path.dirname(episodeDir),
-    episode: manifest.episodeId,
-    locale: "en",
-    format: "full",
-  });
+  const sourceGenre =
+    manifest.sourceMetadata && typeof manifest.sourceMetadata === "object"
+      ? Reflect.get(manifest.sourceMetadata, "genre")
+      : undefined;
+  const isVeronica =
+    sourceGenre === "veronicabenini" || sourceGenre === "strategic-reinvention";
+  if (isVeronica) {
+    const positioningPlanHash = Reflect.get(
+      manifest.sourceMetadata as object,
+      "positioningPlanHash",
+    );
+    if (
+      typeof positioningPlanHash !== "string" ||
+      !/^[a-f0-9]{64}$/u.test(positioningPlanHash) ||
+      manifest.scenePlan.scenes.some((scene) => scene.qualityStatus !== "approved")
+    ) {
+      throw new Error(
+        "Veronica image generation requires an approved, hash-bound positioning production plan.",
+      );
+    }
+  } else {
+    await assertScriptScoreGate({
+      outputRoot: path.dirname(episodeDir),
+      episode: manifest.episodeId,
+      locale: "en",
+      format: "full",
+    });
+  }
   const settings = loadEpisodeImageGenerationSettings({
     ...process.env,
     OPENAI_IMAGE_CONCURRENCY:
@@ -300,7 +324,7 @@ export async function commandImagesResume(
       ? "true"
       : process.env["OPENAI_IMAGE_FORCE"],
   }, {
-    profile: "full",
+    profile: options.variant ?? "full",
   });
   const logger = createLogger(
     options.verbose ? "debug" : "info",
@@ -318,6 +342,14 @@ export async function commandImagesResume(
     { ...settings, logger },
     {
       ...(options.force !== undefined ? { force: options.force } : {}),
+      ...(isVeronica
+        ? {
+            context: buildEpisodeImageMediaContext({
+              episodeId: manifest.episodeId,
+              contentGenre: "veronicabenini",
+            }),
+          }
+        : {}),
     }
   );
   const summary = {
@@ -365,6 +397,7 @@ export function registerImagesResumeCommand(imagesCommand: Command): void {
     .option("--concurrency <number>", "parallel scene generation", (value) =>
       Number(value)
     )
+    .option("--variant <full|short>", "media variant", "full")
     .option("--allow-unapproved-character-references")
     .option("--force")
     .option("--json")

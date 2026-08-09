@@ -4,15 +4,15 @@
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
-  "types": "./src/index.ts",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
+      "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
     "./composition-contract.js": {
-      "types": "./src/composition-contract.ts",
-      "default": "./src/composition-contract.ts"
+      "types": "./dist/composition-contract.d.ts",
+      "default": "./dist/composition-contract.js"
     }
   },
   "scripts": {

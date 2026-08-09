@@ -916,18 +916,21 @@ const generationModeSchema = z.enum(["text-only", "reference-assisted"]);
 const SCENE_PLAN_VERSION = "scene-plan-v1";
 const IMAGE_PLAN_STAGE_VERSION = "image-plan-v1";
 
-export type ImagePromptProfile = "horror-short" | "history-documentary";
+export type ImagePromptProfile =
+  | "horror-short"
+  | "history-documentary"
+  | "strategic-reinvention-editorial";
 
 export interface EpisodeImageMediaContext extends MediaStageContext {
   readonly scenePlanningConfigFingerprint?: string;
   readonly imagePlanningConfigFingerprint?: string;
   readonly shortMediaRequirements?: ShortMediaRequirements;
-  readonly contentGenre?: "history";
+  readonly contentGenre?: "history" | "veronicabenini";
 }
 
 export function buildEpisodeImageMediaContext(input: {
   readonly episodeId: string;
-  readonly contentGenre?: "history";
+  readonly contentGenre?: "history" | "veronicabenini";
   readonly base?: EpisodeImageMediaContext;
 }): EpisodeImageMediaContext {
   const base = input.base ?? defaultEpisodeImageMediaContext(input.episodeId);
@@ -976,6 +979,22 @@ async function resolveEpisodeImageMediaContext(
   );
   if (await fileExists(historyPlanPath)) {
     return { ...base, contentGenre: "history" };
+  }
+  const manifestPath = path.join(episodeDir, "manifest.json");
+  if (await fileExists(manifestPath)) {
+    try {
+      const manifest = JSON.parse(await fsPromises.readFile(manifestPath, "utf8")) as {
+        readonly sourceMetadata?: { readonly genre?: unknown };
+      };
+      if (
+        manifest.sourceMetadata?.genre === "veronicabenini" ||
+        manifest.sourceMetadata?.genre === "strategic-reinvention"
+      ) {
+        return { ...base, contentGenre: "veronicabenini" };
+      }
+    } catch {
+      // The owning manifest parser reports malformed input at the CLI boundary.
+    }
   }
   return base;
 }
@@ -3028,6 +3047,42 @@ function renderImageProviderPrompt(request: ImageProviderRequest): string {
     );
   }
 
+  if (request.promptProfile === "strategic-reinvention-editorial") {
+    const authoritative = sanitizeImagePromptField(
+      request.authoritativeImagePrompt ?? "",
+      `${request.scene.focalSubject} ${request.scene.visibleAction} in ${request.scene.environment}`,
+    );
+    return [
+      promptSection(
+        "VERONICA EDITORIAL VISUAL",
+        `${authoritative}. Contemporary European editorial-documentary realism with a direct, practical, anti-cliche visual point of view.`,
+      ),
+      promptSection(
+        "CAMERA AND COMPOSITION",
+        `${request.scene.shotSize} shot, ${request.scene.cameraAngle} angle. ${request.scene.composition}. ${request.scene.lighting}.`,
+      ),
+      promptSection(
+        "CREATOR AND RIGHTS BOUNDARY",
+        "Use only generic, non-identifiable people where a human subject is necessary. Do not depict, imitate, or create a synthetic likeness of Veronica Benini or any other identifiable creator.",
+      ),
+      promptSection(
+        "TEXT AND BRAND BOUNDARY",
+        "Text-free base image. No readable text, letters, numbers, captions, subtitles, labels, logos, UI, or watermarks; localized overlays are rendered separately.",
+      ),
+      promptSection(
+        "EXCLUSIONS",
+        [
+          ...request.scene.prohibitedElements,
+          "generic motivational stock montage",
+          "laptop-at-desk pose",
+          "stock handshake",
+          "visual sexualization",
+          "misleading reenactment",
+        ].join("; "),
+      ),
+    ].join("\n\n");
+  }
+
   const referenceText =
     request.characterContexts.length === 0
       ? "Use unnamed incidental figures only when the frame requires them."
@@ -3185,7 +3240,12 @@ function buildImageProviderRequest(args: {
     operation:
       args.referenceImages.length > 0 ? "image-edit" : "image-generation",
     aspectRatio: args.aspectRatio ?? "16:9",
-    promptVersion: args.promptProfile === "history-documentary" ? 6 : 1,
+    promptVersion:
+      args.promptProfile === "history-documentary"
+        ? 6
+        : args.promptProfile === "strategic-reinvention-editorial"
+          ? 2
+          : 1,
     promptProfile: args.promptProfile ?? "horror-short",
     ...(args.authoritativeImagePrompt
       ? { authoritativeImagePrompt: args.authoritativeImagePrompt }
@@ -3283,7 +3343,11 @@ export function buildPromptFromSpec(
   spec: SceneVisualSpec,
   previous?: SceneVisualSpec,
   registry?: CharacterRegistry,
-  aspectRatio: "16:9" | "9:16" = "16:9"
+  aspectRatio: "16:9" | "9:16" = "16:9",
+  options?: {
+    readonly profile?: ImagePromptProfile;
+    readonly authoritativeImagePrompt?: string;
+  },
 ): string {
   return prepareImageProviderRequest(
     buildImageProviderRequest({
@@ -3308,7 +3372,10 @@ export function buildPromptFromSpec(
       outputPath: "scene-output.png",
       referenceImages: [],
       aspectRatio,
-      promptProfile: "horror-short",
+      promptProfile: options?.profile ?? "horror-short",
+      ...(options?.authoritativeImagePrompt
+        ? { authoritativeImagePrompt: options.authoritativeImagePrompt }
+        : {}),
     })
   ).prompt;
 }
@@ -4629,7 +4696,11 @@ function rebalanceEpisodeScenePlans(
 function resolveImagePromptProfile(
   context: EpisodeImageMediaContext
 ): ImagePromptProfile {
-  return context.contentGenre === "history" ? "history-documentary" : "horror-short";
+  if (context.contentGenre === "history") return "history-documentary";
+  if (context.contentGenre === "veronicabenini") {
+    return "strategic-reinvention-editorial";
+  }
+  return "horror-short";
 }
 
 async function buildEpisodeScenePlans(args: {

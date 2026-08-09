@@ -4,15 +4,15 @@
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
-  "types": "./src/index.ts",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
+      "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
     "./delivery-bundle": {
-      "types": "./src/delivery-bundle.ts",
-      "default": "./src/delivery-bundle.ts"
+      "types": "./dist/delivery-bundle.d.ts",
+      "default": "./dist/delivery-bundle.js"
     }
   },
   "scripts": {

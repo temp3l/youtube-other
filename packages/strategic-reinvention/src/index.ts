@@ -18,3 +18,4 @@ export * from "./review-pack-batch.js";
 export * from "./release-policy.js";
 export * from "./acceptance-fixture.js";
 export * from "./positioning-visual-planner.js";
+export * from "./positioning-production-adapter.js";

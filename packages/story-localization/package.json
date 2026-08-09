@@ -4,15 +4,15 @@
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
-  "types": "./src/index.ts",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
+      "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
     "./locale-edition": {
-      "types": "./src/locale-edition.ts",
-      "default": "./src/locale-edition.ts"
+      "types": "./dist/locale-edition.d.ts",
+      "default": "./dist/locale-edition.js"
     }
   },
   "scripts": {

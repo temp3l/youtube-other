@@ -6,9 +6,56 @@ import {
   type ApprovalRecord,
   type ContentProfileId,
 } from "@mediaforge/domain";
+import { z } from "zod";
+
+export const VERONICA_SYNTHETIC_NARRATION_AUTHORIZATION_VERSION =
+  "veronicabenini.synthetic-narration-authorization.v1" as const;
+
+export const veronicaSyntheticNarrationAuthorizationSchema = z
+  .object({
+    schemaVersion: z.literal(VERONICA_SYNTHETIC_NARRATION_AUTHORIZATION_VERSION),
+    authorizationId: z.string().min(1),
+    contentProfileId: z.literal(VERONICA_CONTENT_PROFILE_ID),
+    creatorProfileId: z.literal("veronica-benini"),
+    unitId: z.string().min(1),
+    locale: z.string().min(1),
+    variant: z.enum(["full", "short"]),
+    provider: z.enum(["mock", "openai-compatible", "elevenlabs"]),
+    voiceId: z.string().min(1),
+    syntheticNarrationAllowed: z.literal(true),
+    commercialUseAllowed: z.literal(true),
+    grantedAt: z.string().min(1),
+    expiresAt: z.string().min(1),
+    approvedBy: z
+      .array(
+        z
+          .object({
+            actor: z.string().min(1),
+            role: z.enum(["creator", "independent-reviewer"]),
+          })
+          .strict(),
+      )
+      .min(2),
+  })
+  .strict();
+
+export type VeronicaSyntheticNarrationAuthorization = z.infer<
+  typeof veronicaSyntheticNarrationAuthorizationSchema
+>;
 
 export type SpeechDispatchContext =
   | { readonly kind: "legacy-noncreator" }
+  | {
+      readonly kind: "creator-authorized-synthetic";
+      readonly profileId: ContentProfileId;
+      readonly unitId: string;
+      readonly locale: string;
+      readonly variant: "full" | "short";
+      readonly provider: "mock" | "openai-compatible" | "elevenlabs";
+      readonly voiceId: string;
+      readonly authorizationSha256: string;
+      readonly authorization: VeronicaSyntheticNarrationAuthorization;
+    }
   | {
       readonly kind: "creator";
       readonly profileId: ContentProfileId;
@@ -103,8 +150,50 @@ export function assertCreatorVoiceDispatchAllowed(
   const canonicalProfileId = parsedProfile.data;
   if (!context) throw new Error("Speech provider dispatch requires an explicit dispatch context.");
   if (context.kind === "legacy-noncreator") {
-    if (canonicalProfileId === VERONICA_CONTENT_PROFILE_ID) {
-      throw new Error("Veronica creator voice cannot dispatch speech as legacy noncreator content.");
+    return;
+  }
+  if (context.kind === "creator-authorized-synthetic") {
+    if (canonicalProfileId !== VERONICA_CONTENT_PROFILE_ID) {
+      throw new Error("Creator synthetic narration authorization is only valid for Veronica.");
+    }
+    const authorization = veronicaSyntheticNarrationAuthorizationSchema.parse(
+      context.authorization,
+    );
+    if (
+      canonicalCreatorVoiceProfileId(context.profileId) !== canonicalProfileId ||
+      authorization.contentProfileId !== canonicalProfileId ||
+      authorization.unitId !== context.unitId ||
+      authorization.locale !== context.locale ||
+      authorization.variant !== context.variant ||
+      authorization.provider !== context.provider ||
+      authorization.voiceId !== context.voiceId ||
+      !sha256.test(context.authorizationSha256)
+    ) {
+      throw new Error(
+        "Synthetic Veronica narration authorization does not match the exact production coordinate.",
+      );
+    }
+    const grantedAt = Date.parse(authorization.grantedAt);
+    const expiresAt = Date.parse(authorization.expiresAt);
+    if (
+      !Number.isFinite(grantedAt) ||
+      !Number.isFinite(expiresAt) ||
+      grantedAt > Date.now() ||
+      expiresAt <= Date.now() ||
+      expiresAt <= grantedAt
+    ) {
+      throw new Error("Synthetic Veronica narration authorization is not currently valid.");
+    }
+    const actors = new Set(authorization.approvedBy.map((approval) => approval.actor));
+    const roles = new Set(authorization.approvedBy.map((approval) => approval.role));
+    if (
+      actors.size < 2 ||
+      !roles.has("creator") ||
+      !roles.has("independent-reviewer")
+    ) {
+      throw new Error(
+        "Synthetic Veronica narration requires creator approval and an independent reviewer.",
+      );
     }
     return;
   }

@@ -1,6 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { Command } from "commander";
+import { runCommand } from "@mediaforge/process-runner";
 import {
   createVeronicaPilotFixtures,
   executeVeronicaRender,
@@ -13,13 +15,208 @@ import {
 import {
   generatePositioningVisualPlans,
   generateVeronicaBeniniReviewPacks,
+  preparePositioningProductionEpisode,
   runStrategicSupplementalMediaBridge,
 } from "@mediaforge/strategic-reinvention";
+
+const mediaforgeBinPath = fileURLToPath(
+  new URL("../bin/mediaforge.js", import.meta.url),
+);
+
+type VeronicaLanguage = "en" | "de" | "es" | "fr" | "pt" | "it";
+type VeronicaVariant = "full" | "short";
+
+function parsePositiveInteger(value: string, label: string): number {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    throw new Error(`${label} must be a positive integer.`);
+  }
+  return parsed;
+}
 
 export function registerVeronicaMediaCommands(program: Command): void {
   const veronica = program
     .command("veronica-media")
     .description("Veronica Benini supplemental media planning and rendering");
+
+  veronica
+    .command("prepare-production")
+    .description("Adapt an approved Veronica positioning plan to canonical image and speech episode artifacts")
+    .requiredOption("--workspace <path>", "Episode workspace root")
+    .requiredOption("--episode-id <id>", "Episode identifier")
+    .requiredOption("--language <code>", "Narration language")
+    .requiredOption("--variant <full|short>", "Production variant")
+    .option("--plan <path>", "Positioning visual plan (defaults to source/visual-plan.json)")
+    .option("--script <path>", "Narration script override")
+    .option("--json", "Emit machine-readable output", false)
+    .action(async (options: {
+      workspace: string;
+      episodeId: string;
+      language: VeronicaLanguage;
+      variant: VeronicaVariant;
+      plan?: string;
+      script?: string;
+      json: boolean;
+    }) => {
+      const result = await preparePositioningProductionEpisode({
+        workspaceRoot: path.resolve(options.workspace),
+        episodeId: options.episodeId,
+        language: options.language,
+        variant: options.variant,
+        ...(options.plan ? { planPath: path.resolve(options.plan) } : {}),
+        ...(options.script ? { scriptPath: path.resolve(options.script) } : {}),
+      });
+      if (options.json) {
+        process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+        return;
+      }
+      process.stdout.write(
+        `Prepared ${result.episodeId} (${result.language}/${result.variant}) with ${result.sceneCount} canonical scenes.\nManifest: ${result.manifestPath}\n`,
+      );
+    });
+
+  const images = veronica
+    .command("images")
+    .description("Generate Veronica positioning images through the canonical image pipeline");
+  images
+    .command("generate")
+    .requiredOption("--workspace <path>", "Episode workspace root")
+    .requiredOption("--episode-id <id>", "Episode identifier")
+    .option("--mode <sync|batch>", "Synchronous or provider-batch execution", "sync")
+    .option("--language <code>", "Batch localization coordinate", "it")
+    .option("--variant <full|short>", "Image production variant", "full")
+    .option("--concurrency <number>", "Bounded synchronous scene concurrency", (value) =>
+      parsePositiveInteger(value, "--concurrency"),
+    )
+    .option("--max-batch-size <number>", "Maximum provider requests per image batch", (value) =>
+      parsePositiveInteger(value, "--max-batch-size"),
+    )
+    .option("--phase <auto|references|scenes>", "Image batch planning phase", "auto")
+    .option("--dry-run", "Plan work without provider submission", false)
+    .option("--json", "Emit machine-readable output", false)
+    .action(async (options: {
+      workspace: string;
+      episodeId: string;
+      mode: "sync" | "batch";
+      language: VeronicaLanguage;
+      variant: VeronicaVariant;
+      concurrency?: number;
+      maxBatchSize?: number;
+      phase: "auto" | "references" | "scenes";
+      dryRun: boolean;
+      json: boolean;
+    }) => {
+      const args = [
+        mediaforgeBinPath,
+        "--workspace",
+        path.resolve(options.workspace),
+        ...(options.json ? ["--json"] : []),
+        "images",
+      ];
+      if (options.mode === "batch") {
+        args.push(
+          "batch",
+          "prepare",
+          "--episode",
+          options.episodeId,
+          "--languages",
+          options.language,
+          "--variants",
+          options.variant,
+          "--phase",
+          options.phase,
+        );
+        if (options.maxBatchSize !== undefined) {
+          args.push("--max-batch-size", String(options.maxBatchSize));
+        }
+        if (options.dryRun) args.push("--dry-run");
+      } else {
+        args.push("resume", "--episode", options.episodeId);
+        if (options.json) args.push("--json");
+        if (options.concurrency !== undefined) {
+          args.push("--concurrency", String(options.concurrency));
+        }
+      }
+      const result = await runCommand(process.execPath, args, {
+        allowNonZeroExit: true,
+      });
+      process.stdout.write(result.stdout);
+      if (result.stderr) process.stderr.write(result.stderr);
+      if (result.exitCode !== 0) process.exitCode = result.exitCode;
+    });
+
+  const speech = veronica
+    .command("speech")
+    .description("Run the canonical staged narration pipeline for Veronica episodes");
+  for (const entry of [
+    { name: "plan", stage: "plan", validationOnly: false },
+    { name: "generate", stage: "validate", validationOnly: false },
+    { name: "validate", stage: "validate", validationOnly: true },
+    { name: "status", stage: "status", validationOnly: false },
+  ] as const) {
+    speech
+      .command(entry.name)
+      .requiredOption("--workspace <path>", "Episode workspace root")
+      .requiredOption("--episode-id <id>", "Episode identifier")
+      .option("--language <code>", "Narration language", "it")
+      .option("--languages <codes>", "Comma-separated narration languages")
+      .option("--variant <full|short>", "Narration variant", "full")
+      .option("--all-languages", "Process all available script languages", false)
+      .option("--all-variants", "Process full and short variants", false)
+      .option("--concurrency <number>", "Bounded narration chunk concurrency", (value) =>
+        parsePositiveInteger(value, "--concurrency"),
+      )
+      .option("--resume", "Reuse valid narration artifacts", false)
+      .option("--dry-run", "Plan speech work without provider dispatch", false)
+      .option("--strict", "Treat warnings as a non-zero result", false)
+      .option("--json", "Emit machine-readable output", false)
+      .action(async (options: {
+        workspace: string;
+        episodeId: string;
+        language: VeronicaLanguage;
+        languages?: string;
+        variant: VeronicaVariant;
+        allLanguages: boolean;
+        allVariants: boolean;
+        concurrency?: number;
+        resume: boolean;
+        dryRun: boolean;
+        strict: boolean;
+        json: boolean;
+      }) => {
+        const args = [
+          mediaforgeBinPath,
+          "--workspace",
+          path.resolve(options.workspace),
+          ...(options.json ? ["--json"] : []),
+          "audio",
+          "narration",
+          entry.stage,
+          "--episode",
+          options.episodeId,
+          "--language",
+          options.language,
+          "--variant",
+          options.variant,
+          ...(options.languages ? ["--languages", options.languages] : []),
+          ...(options.allLanguages ? ["--all-languages"] : []),
+          ...(options.allVariants ? ["--all-variants"] : []),
+          ...(options.concurrency !== undefined
+            ? ["--concurrency", String(options.concurrency)]
+            : []),
+          ...(options.resume ? ["--resume"] : []),
+          ...(options.dryRun ? ["--dry-run"] : []),
+          ...(options.strict ? ["--strict"] : []),
+          ...(entry.validationOnly ? ["--validation-only"] : []),
+        ];
+        const result = await runCommand(process.execPath, args, {
+          allowNonZeroExit: true,
+        });
+        process.stdout.write(result.stdout);
+        if (result.stderr) process.stderr.write(result.stderr);
+        if (result.exitCode !== 0) process.exitCode = result.exitCode;
+      });
+  }
 
   veronica
     .command("pilot")

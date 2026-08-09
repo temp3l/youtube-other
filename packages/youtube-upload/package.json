@@ -11,8 +11,8 @@
       "default": "./dist/index.js"
     },
     "./multilingual-audio-capability": {
-      "types": "./src/multilingual-audio-capability.ts",
-      "default": "./src/multilingual-audio-capability.ts"
+      "types": "./dist/multilingual-audio-capability.d.ts",
+      "default": "./dist/multilingual-audio-capability.js"
     },
     "./publish-approval": {
       "types": "./dist/publish-approval.d.ts",
@@ -23,8 +23,8 @@
       "default": "./dist/generic-media-publish.js"
     },
     "./publication-intent": {
-      "types": "./src/publication-intent.ts",
-      "default": "./src/publication-intent.ts"
+      "types": "./dist/publication-intent.d.ts",
+      "default": "./dist/publication-intent.js"
     },
     "./strategic-publish-routing": {
       "types": "./dist/strategic-publish-routing.d.ts",

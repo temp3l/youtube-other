@@ -8,6 +8,9 @@ describe("veronica media commands", () => {
     registerVeronicaMediaCommands(program);
     const veronica = program.commands.find((command) => command.name() === "veronica-media");
     expect(veronica?.commands.map((command) => command.name())).toEqual([
+      "prepare-production",
+      "images",
+      "speech",
       "pilot",
       "run",
       "plan-positioning-series",
@@ -15,5 +18,28 @@ describe("veronica media commands", () => {
       "validate",
       "render",
     ]);
+    const images = veronica?.commands.find((command) => command.name() === "images");
+    const imageGenerate = images?.commands.find((command) => command.name() === "generate");
+    expect(imageGenerate?.options.map((option) => option.long)).toEqual(
+      expect.arrayContaining(["--mode", "--concurrency", "--max-batch-size"]),
+    );
+    const speech = veronica?.commands.find((command) => command.name() === "speech");
+    expect(speech?.commands.map((command) => command.name())).toEqual([
+      "plan",
+      "generate",
+      "validate",
+      "status",
+    ]);
+    expect(
+      speech?.commands
+        .find((command) => command.name() === "generate")
+        ?.options.map((option) => option.long),
+    ).toEqual(
+      expect.arrayContaining([
+        "--all-languages",
+        "--all-variants",
+        "--concurrency",
+      ]),
+    );
   });
 });
