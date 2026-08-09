@@ -205,13 +205,50 @@ function groupedQualifier(value: string): readonly AtomicQualifierV36[] | undefi
 }
 
 function assertionStatus(text: string): AtomicAssertionStatusV36 {
-  const modalityText = text.replace(/\bMay \d{4}\b/gu, "");
+  // Grounding rules below emit one proposition from the leading clause.  A marker
+  // in a coordinate or comparative subordinate clause must not change that
+  // proposition's assertion status.
+  const modalityText = text
+    .replace(/\bMay \d{4}\b/gu, "")
+    .split(/\s*(?:,?\s+but|;|\band\s+then)\s+/iu)[0]!
+    .replace(/\bthan\s+[^.]*?\bsuggests?\b/iu, "");
   if (/\b(?:mission was to|intended to|planned to|was scheduled to)\b/iu.test(modalityText)) return "intended";
   if (/\b(?:attempted to|tried to)\b/iu.test(modalityText)) return "attempted";
   if (/\b(?:would have|could have)\b/iu.test(modalityText)) return "counterfactual";
   if (/\b(?:could|may|might|suggests?|appears?|uncertain)\b/iu.test(modalityText)) return "uncertain";
   if (/\b(?:stated|reported|believed)\b/iu.test(modalityText)) return "reported";
   return "asserted";
+}
+
+function plausiblyUnresolvedParticipant(
+  source: AtomicGroundingSourceV36,
+  claim: AtomicGroundingClaimSourceV36,
+  value: string
+): boolean {
+  const candidate = compact(value).replace(/^(?:the|a|an)\s+/iu, "");
+  if (!candidate) return false;
+  // Existing claim bindings are the strongest available signal, even where a
+  // rule's exact label normalization did not resolve the participant.
+  if (claimEntities(source, claim).some((entity) => {
+    const label = entity.normalizedLabel.trim().toLocaleLowerCase();
+    const normalized = candidate.toLocaleLowerCase();
+    return label === normalized || label.includes(normalized) || normalized.includes(label);
+  })) return true;
+  // With no binding, retain a bounded proper-name candidate (for example
+  // Pevensey), but reject arbitrary lower-case clause fragments.
+  return /^(?:[A-Z][\p{L}'’-]*)(?:\s+(?:[A-Z][\p{L}'’-]*|of|the|and))*$/u.test(candidate);
+}
+
+function unresolvedParticipantDiagnostic(
+  source: AtomicGroundingSourceV36,
+  claim: AtomicGroundingClaimSourceV36,
+  message: string,
+  values: readonly string[]
+): AtomicGroundingDiagnosticV36 | undefined {
+  const participants = values.filter((value) => plausiblyUnresolvedParticipant(source, claim, value));
+  return participants.length
+    ? diagnostic(claim, "GROUNDING_PARTICIPANT_UNRESOLVED", message, participants)
+    : undefined;
 }
 
 function evidenceDrafts(
@@ -268,7 +305,8 @@ function movementDrafts(
     const origin = exactEntity(source, claim, purpose[2]!);
     const objective = exactEntity(source, claim, purpose[3]!);
     if (!origin || !objective) {
-      diagnostics.push(diagnostic(claim, "GROUNDING_PARTICIPANT_UNRESOLVED", "Movement origin or search object lacks an exact resolved participant.", [purpose[2]!, purpose[3]!]));
+      const unresolved = unresolvedParticipantDiagnostic(source, claim, "Movement origin or search object lacks an exact resolved participant.", [purpose[2]!, purpose[3]!]);
+      if (unresolved) diagnostics.push(unresolved);
       return [];
     }
     diagnostics.push(diagnostic(claim, "GROUNDING_PURPOSE_NOT_DESTINATION", "Search-object grounding is intentionally not movement-destination grounding.", [objective.id]));
@@ -283,7 +321,8 @@ function movementDrafts(
   if (mission) {
     const route = exactEntity(source, claim, mission[2]!);
     if (!route) {
-      diagnostics.push(diagnostic(claim, "GROUNDING_PARTICIPANT_UNRESOLVED", "Intended route lacks an exact resolved place participant.", [mission[2]!]));
+      const unresolved = unresolvedParticipantDiagnostic(source, claim, "Intended route lacks an exact resolved place participant.", [mission[2]!]);
+      if (unresolved) diagnostics.push(unresolved);
       return [];
     }
     return [{ subject: concept("fleet mission"), predicate: "moves-through", object: entityRef(route), assertionStatus: "intended", exactText: text, rule: "bounded-movement-clause-v1", sourceKind: "resolved-participants" }];
@@ -293,7 +332,8 @@ function movementDrafts(
   if (fromOnly) {
     const origin = exactEntity(source, claim, fromOnly[2]!);
     if (!origin) {
-      diagnostics.push(diagnostic(claim, "GROUNDING_PARTICIPANT_UNRESOLVED", "Movement origin lacks an exact resolved place participant.", [fromOnly[2]!]));
+      const unresolved = unresolvedParticipantDiagnostic(source, claim, "Movement origin lacks an exact resolved place participant.", [fromOnly[2]!]);
+      if (unresolved) diagnostics.push(unresolved);
       return [];
     }
     const actorLabel = compact(fromOnly[1]!).replace(/^(?:In [^,]+,\s*)/iu, "") || "moving actor";
@@ -309,7 +349,8 @@ function movementDrafts(
   if (location) {
     const place = exactEntity(source, claim, location[2]!);
     if (!place) {
-      diagnostics.push(diagnostic(claim, "GROUNDING_PARTICIPANT_UNRESOLVED", "Location statement lacks an exact resolved place participant.", [location[2]!]));
+      const unresolved = unresolvedParticipantDiagnostic(source, claim, "Location statement lacks an exact resolved place participant.", [location[2]!]);
+      if (unresolved) diagnostics.push(unresolved);
       return [];
     }
     return [{ subject: concept(location[1]!), predicate: "located-in", object: entityRef(place), assertionStatus: assertionStatus(text), exactText: text, rule: "bounded-movement-clause-v1", sourceKind: "resolved-participants" }];
@@ -339,7 +380,8 @@ function claimDrafts(
     const rightLabel = comparison[3]!.replace(/^shorter crossing to the\s+/iu, "");
     const right = exactEntity(source, claim, rightLabel);
     if (!left || !right || !geographicTypes.has(left.entityType) || !geographicTypes.has(right.entityType)) {
-      diagnostics.push(diagnostic(claim, "GROUNDING_PARTICIPANT_UNRESOLVED", "Comparison lacks two exact resolved place participants.", [comparison[2]!, rightLabel]));
+      const unresolved = unresolvedParticipantDiagnostic(source, claim, "Comparison lacks two exact resolved place participants.", [comparison[2]!, rightLabel]);
+      if (unresolved) diagnostics.push(unresolved);
       return [];
     }
     return [{ subject: entityRef(left), predicate: "compares-with", object: entityRef(right), assertionStatus: assertionStatus(text), exactText: text, rule: "bounded-comparison-clause-v1", sourceKind: "resolved-participants" }];

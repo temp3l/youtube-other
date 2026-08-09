@@ -27,6 +27,14 @@ function source(episodeId: string): AtomicGroundingSourceV36 {
   return { episodeId, claims: structured.claims, entities: structured.entities };
 }
 
+function syntheticSource(proposition: string, entities: AtomicGroundingSourceV36["entities"] = []): AtomicGroundingSourceV36 {
+  return {
+    episodeId: "episode-scope-control",
+    claims: [{ id: "claim-scope-control", episodeId: "episode-scope-control", normalizedProposition: proposition, claimKind: "event", entityMentionIds: entities.map((entity) => entity.id), narrationSpans: [{ startUtf16: 0, endUtf16Exclusive: proposition.length }] }],
+    entities,
+  };
+}
+
 const exactText = "Drought caused harvest failure.";
 const validProposition = createAtomicPropositionV36({
   episodeId: episodeIdV36("episode-control"),
@@ -199,6 +207,7 @@ describe("History V3.6 atomic grounding invariants", () => {
   it("grounds Black Death atoms without synthesizing a cross-claim wage relation", () => {
     const result = groundAtomicClaimsV36(source("history-youtube-history-10-video-story-pack-04-black-death"));
     expect(result.propositions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ claimId: "claim-e7ccf1aa69a13de61594802b", predicate: "causes", assertionStatus: "asserted" }),
       expect.objectContaining({ claimId: "claim-3b3f5f2d628d9410657dcfe8", predicate: "transforms", assertionStatus: "asserted" }),
       expect.objectContaining({ claimId: "claim-ee76bea77004b9d801b6630b", predicate: "demands", assertionStatus: "uncertain", qualifiers: [expect.objectContaining({ kind: "grouped-concept" })] }),
       expect.objectContaining({ claimId: "claim-095a61f563fa2980b636c6cc", predicate: "restricts", assertionStatus: "attempted" }),
@@ -222,5 +231,31 @@ describe("History V3.6 atomic grounding invariants", () => {
     expect(bronze.propositions.some((item) => item.claimId === "claim-1336fb1a574cbaff0723cc10" && item.assertionStatus === "asserted")).toBe(false);
     const chernobyl = groundAtomicClaimsV36(source("history-youtube-history-30-video-story-pack-35-chernobyl-night-reactor-exploded"));
     expect(chernobyl.propositions.some((item) => item.claimId === "claim-c7ad46546ded069ddbc9b491")).toBe(false);
+  });
+
+  it("scopes modality to the emitted clause and preserves might, could, intent, and attempt", () => {
+    const adjacent = groundAtomicClaimsV36(syntheticSource("Drought caused harvest failure, but merchants could have waited."));
+    expect(adjacent.propositions[0]).toMatchObject({ predicate: "causes", assertionStatus: "asserted" });
+
+    const might = groundAtomicClaimsV36(syntheticSource("The fleet might have sailed from Lisbon.", [{ id: "entity-lisbon", claimId: "claim-scope-control", normalizedLabel: "Lisbon", entityType: "place" }]));
+    expect(might.propositions[0]).toMatchObject({ predicate: "moves-from", assertionStatus: "uncertain" });
+
+    const could = groundAtomicClaimsV36(source("history-youtube-history-10-video-story-pack-04-black-death"));
+    expect(could.propositions).toEqual(expect.arrayContaining([expect.objectContaining({ predicate: "demands", assertionStatus: "uncertain" })]));
+
+    const intent = groundAtomicClaimsV36(source("history-youtube-history-30-video-story-pack-36-spanish-armada-why-it-failed"));
+    expect(intent.propositions).toEqual(expect.arrayContaining([expect.objectContaining({ predicate: "moves-through", assertionStatus: "intended" })]));
+    expect(could.propositions).toEqual(expect.arrayContaining([expect.objectContaining({ predicate: "restricts", assertionStatus: "attempted" })]));
+  });
+
+  it("retains proper-name unresolved participants but filters arbitrary clause fragments", () => {
+    const properPlace = groundAtomicClaimsV36(syntheticSource("The army landed at Caerleon."));
+    expect(properPlace.diagnostics).toEqual(expect.arrayContaining([expect.objectContaining({ code: "GROUNDING_PARTICIPANT_UNRESOLVED", affectedIds: ["Caerleon"] })]));
+
+    const ordinaryPhrase = groundAtomicClaimsV36(syntheticSource("The army landed at wrong place or lost commanders."));
+    expect(ordinaryPhrase.diagnostics.some((item) => item.code === "GROUNDING_PARTICIPANT_UNRESOLVED")).toBe(false);
+
+    const clauseFragment = groundAtomicClaimsV36(syntheticSource("The army departed from to begin the war from where they had arrived."));
+    expect(clauseFragment.diagnostics.some((item) => item.code === "GROUNDING_PARTICIPANT_UNRESOLVED")).toBe(false);
   });
 });
