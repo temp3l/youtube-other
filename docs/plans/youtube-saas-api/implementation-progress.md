@@ -54,6 +54,12 @@ Commit: cfaffb0
 Validation: `usage-quota.unit.test.ts` pass (10); domain/persistence emit pass; `apps/api` typecheck pass for new quota/health routes
 Notes: Usage dimensions, reservation lifecycle, estimate projection with cache/reuse, provider health resolver; enriched quota dimensions, usage filters, `GET /v1/workspaces/{workspace}/provider-health`
 
+### YSAAS-009
+Status: in progress
+Commit: 9236fa2
+Validation: focused bulk preflight domain test passes
+Notes: Added a bounded, deterministic bulk selection preflight that preserves an eligibility reason for every candidate and excludes successful/permanent-failure items from retry selection. Durable batch persistence, authoritative item reauthorization, quota reservation, API/SDK, and BFF remain.
+
 ### YSAAS-011
 Status: completed
 Commit: 639a9a4
