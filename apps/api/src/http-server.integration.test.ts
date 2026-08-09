@@ -53,6 +53,15 @@ const useCases: ApiUseCases = {
     sourceEpisodeRevision: 2,
     replayed: false,
   }),
+  forkEpisodeFromPattern: async (sourceEpisodeId, input) => ({
+    id: "episode-fork-1",
+    revision: 0,
+    lifecycleState: "active",
+    sourceEpisodeId,
+    sourceEpisodeRevision: input.expectedSourceRevision,
+    patternLineage: input.patternLineage,
+    replayed: false,
+  }),
   admitWorkflow: async () => ({
     workflowRunId: "run-1",
     jobId: "job-1",
@@ -861,6 +870,119 @@ describe("HTTP API contract", () => {
           contentProfileId: "veronicabenini",
         }),
         context: expect.objectContaining({ idempotencyKey: "analytics-key" }),
+      }),
+    ]);
+  });
+
+  it("creates observational comparisons without profile mutation or provider dispatch", async () => {
+    const calls: unknown[] = [];
+    const hash = "a".repeat(64);
+    const running = await serve(
+      createApiServer({
+        useCases: {
+          ...useCases,
+          compareRevisionAnalytics: async (comparison, context) => {
+            calls.push({ comparison, context });
+            return {
+              comparison: {
+                schemaVersion: "revision-analytics-comparison.v1",
+                comparisonId: "analytics-comparison-0123456789abcdef",
+                contentProfileId: "veronicabenini",
+                episodeId: "episode-1",
+                metric: "views",
+                comparisonDimensions: ["locale", "format"],
+                interpretation: "observational-non-causal",
+                immutableObservationBindings: [
+                  {
+                    observationId: "observation-it",
+                    publicationId: "publication-it",
+                    publicationRevision: 2,
+                    editionRevisionId: "edition-it",
+                    locale: "it",
+                    format: "full",
+                    observedAt: "2026-08-09T00:00:00.000Z",
+                    configurationRevision: "config-1",
+                    dependencyIdentity: { delivery: hash },
+                    provenanceSha256: hash,
+                    observationFingerprint: hash,
+                  },
+                  {
+                    observationId: "observation-en",
+                    publicationId: "publication-en",
+                    publicationRevision: 3,
+                    editionRevisionId: "edition-en",
+                    locale: "en",
+                    format: "short",
+                    observedAt: "2026-08-09T00:00:00.000Z",
+                    configurationRevision: "config-1",
+                    dependencyIdentity: { delivery: hash },
+                    provenanceSha256: hash,
+                    observationFingerprint: hash,
+                  },
+                ],
+                cohorts: [
+                  { locale: "it", format: "full", observationId: "observation-it", value: 12 },
+                  { locale: "en", format: "short", observationId: "observation-en", value: 8 },
+                ],
+                effectiveConfigurationHash: hash,
+                dependencyIdentity: { analytics: hash },
+                provenance: {
+                  source: "immutable-revision-analytics-observations",
+                  observationSetHash: hash,
+                },
+                reuseRationale: "content-hash-match",
+                regenerationRationale: "new-comparison",
+                profileMutationEnabled: false,
+                providerDispatchEnabled: false,
+                fingerprint: hash,
+              },
+              replayed: true,
+              reused: true,
+            };
+          },
+        },
+        authenticate,
+        requestId: () => "request-comparison",
+      }),
+    );
+    closers.push(running.close);
+    const url = `${running.baseUrl}/v1/workspaces/ws-1/projects/project-1/analytics-comparisons`;
+    const payload = JSON.stringify({
+      schemaVersion: "revision-analytics-comparison-request.v1",
+      contentProfileId: "strategic-reinvention",
+      episodeId: "episode-1",
+      metric: "views",
+      comparisonDimensions: ["locale", "format"],
+      cohorts: [
+        { observationId: "observation-it", format: "full" },
+        { observationId: "observation-en", format: "short" },
+      ],
+      effectiveConfigurationHash: hash,
+      dependencyIdentity: { analytics: hash },
+    });
+    expect((await request({ url, method: "POST", body: payload })).status).toBe(428);
+    const response = await request({
+      url,
+      method: "POST",
+      headers: { "content-type": "application/json", "idempotency-key": "comparison-key" },
+      body: payload,
+    });
+    expect(response.status).toBe(201);
+    expect(response.headers["idempotency-replayed"]).toBe("true");
+    expect(JSON.parse(response.body) as unknown).toMatchObject({
+      comparison: {
+        contentProfileId: "veronicabenini",
+        interpretation: "observational-non-causal",
+        profileMutationEnabled: false,
+        providerDispatchEnabled: false,
+      },
+      replayed: true,
+      reused: true,
+    });
+    expect(calls).toEqual([
+      expect.objectContaining({
+        comparison: expect.objectContaining({ contentProfileId: "veronicabenini" }),
+        context: expect.objectContaining({ idempotencyKey: "comparison-key" }),
       }),
     ]);
   });

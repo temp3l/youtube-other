@@ -133,6 +133,27 @@ describe("connected API commands", () => {
     expect(result.stdout.operation).toBe("replaceEpisodeContent");
   });
 
+  it("forks a successful Veronica pattern with immutable lineage and idempotency", async () => {
+    const result = await execute([
+      "api", "episode", "fork-pattern", "--workspace", "w", "--project", "project/one",
+      "--source-episode", "episode source", "--source-revision", "2", "--pattern", "pattern-1",
+      "--configuration-revision", "config-1", "--dependency-fingerprint", "a".repeat(64),
+      "--provenance-hash", "b".repeat(64), "--idempotency-key", "fork-key",
+    ]);
+    const request = result.requests[0];
+    expect(request?.url).toContain("/projects/project%2Fone/episodes/episode%20source:fork-pattern");
+    expect(request?.init?.method).toBe("POST");
+    expect(new Headers(request?.init?.headers).get("idempotency-key")).toBe("fork-key");
+    expect(JSON.parse(String(request?.init?.body))).toEqual({
+      expectedSourceRevision: 2,
+      patternLineage: {
+        patternId: "pattern-1", configurationRevision: "config-1",
+        dependencyFingerprint: "a".repeat(64), provenanceHash: "b".repeat(64),
+      },
+    });
+    expect(result.stdout.operation).toBe("forkEpisodeFromPattern");
+  });
+
   it("covers workflow, job, and approval operations while preserving concurrency headers", async () => {
     const cases: readonly [string[], string, string, Record<string, string>][] = [
       [["api", "workflow", "start", "--workspace", "w", "--project", "p", "--episode", "e", "--episode-revision", "2", "--locales", "en,de", "--variants", "full,short", "--approval-mode", "required", "--idempotency-key", "idem-start"], "/episodes/e/workflow-runs", "POST", { "idempotency-key": "idem-start" }],

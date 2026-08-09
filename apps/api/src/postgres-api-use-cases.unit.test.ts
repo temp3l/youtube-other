@@ -1,4 +1,5 @@
 import type { WorkflowAdmissionHandler } from "@mediaforge/application";
+import { immutablePlanHash } from "@mediaforge/domain";
 import type {
   PostgresClient,
   PostgresPool,
@@ -312,6 +313,24 @@ describe("PostgreSQL API use cases", () => {
         lifecycle_state: "archived", archived_at: "2026-08-01T12:00:00.000Z", archived_by: "user-1",
         archive_reason: "Superseded", source_episode_id: null, source_episode_revision: null,
       } as unknown as T] };
+      if (sql.includes("FROM revision_analytics_observations")) return { rows: [{
+        schema_version: "revision-analytics-observation.v1",
+        observation_id: "pattern-1",
+        content_profile_id: "veronicabenini",
+        episode_id: "episode-1",
+        edition_revision_id: "edition-1",
+        publication_id: "publication-1",
+        publication_revision: 2,
+        locale: "it",
+        observed_at: "2026-08-01T11:00:00.000Z",
+        configuration_revision: "config-1",
+        dependency_identity: { delivery: "c".repeat(64) },
+        provenance_sha256: "b".repeat(64),
+        metrics: { views: 12 },
+        provider_dispatch_enabled: false,
+        regeneration_rationale: "new-observation",
+        request_fingerprint: "d".repeat(64),
+      } as unknown as T] };
       if (sql.includes("WITH source AS")) return { rows: [{
         workspace_id: "ws-1", project_id: "project-1", episode_id: "episode-generated",
         content: {}, revision: 0, created_at: "2026-08-01T12:00:00.000Z", updated_at: "2026-08-01T12:00:00.000Z",
@@ -345,6 +364,22 @@ describe("PostgreSQL API use cases", () => {
         id: "episode-generated", revision: 0, lifecycleState: "active",
         sourceEpisodeId: "episode-1", sourceEpisodeRevision: 3, replayed: false,
       });
+    await expect(useCases.forkEpisodeFromPattern("episode-1", {
+      expectedSourceRevision: 3,
+      patternLineage: {
+        patternId: "pattern-1",
+        configurationRevision: "config-1",
+        dependencyFingerprint: immutablePlanHash({ delivery: "c".repeat(64) }),
+        provenanceHash: "b".repeat(64),
+      },
+    }, context)).resolves.toEqual({
+      id: "episode-generated", revision: 0, lifecycleState: "active",
+      sourceEpisodeId: "episode-1", sourceEpisodeRevision: 3,
+      patternLineage: {
+        patternId: "pattern-1", configurationRevision: "config-1",
+        dependencyFingerprint: immutablePlanHash({ delivery: "c".repeat(64) }), provenanceHash: "b".repeat(64),
+      }, replayed: false,
+    });
     expect(statements.some(({ sql }) => sql.includes("INSERT INTO episode_revisions"))).toBe(true);
   });
 

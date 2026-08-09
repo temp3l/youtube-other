@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { compareRevisionAnalytics } from "@mediaforge/domain";
 
 import {
   POSTGRES_REVISION_ANALYTICS_MIGRATION,
@@ -24,6 +25,18 @@ const observation = {
 } as const;
 
 describe("Postgres revision analytics repository", () => {
+  it("defines an append-only, tenant-isolated comparison artifact store", () => {
+    expect(POSTGRES_REVISION_ANALYTICS_MIGRATION).toContain(
+      "CREATE TABLE IF NOT EXISTS revision_analytics_comparisons",
+    );
+    expect(POSTGRES_REVISION_ANALYTICS_MIGRATION).toContain(
+      "revision_analytics_comparisons_immutable",
+    );
+    expect(POSTGRES_REVISION_ANALYTICS_MIGRATION).toContain(
+      "FORCE ROW LEVEL SECURITY",
+    );
+  });
+
   it("appends once, replays identical concurrent admissions, and rejects key reuse", async () => {
     expect(POSTGRES_REVISION_ANALYTICS_MIGRATION).toContain(
       "revision_analytics_immutable",
@@ -90,5 +103,54 @@ describe("Postgres revision analytics repository", () => {
       "SELECT set_config('app.workspace_id', $1, true)",
       ["workspace-1"],
     );
+  });
+
+  it("replays comparison keys and reuses the immutable comparison identity", async () => {
+    const comparison = compareRevisionAnalytics({
+      contentProfileId: "strategic-reinvention",
+      episodeId: "episode-1",
+      metric: "views",
+      comparisonDimensions: ["locale", "format"],
+      cohorts: [
+        { observation: { ...observation, observationId: "obs-it", contentProfileId: "veronicabenini" }, format: "full" },
+        { observation: { ...observation, observationId: "obs-en", contentProfileId: "veronicabenini", locale: "en", publicationId: "publication-2", editionRevisionId: "edition-2", metrics: { views: 2 } }, format: "short" },
+      ],
+      effectiveConfigurationHash: "c".repeat(64),
+      dependencyIdentity: { analytics: "d".repeat(64) },
+    }).comparison;
+    let stored: { comparison: unknown; request_fingerprint: string; idempotency_key: string } | undefined;
+    const query = vi.fn(async (sql: string, parameters?: readonly unknown[]) => {
+      if (sql.includes("INSERT INTO revision_analytics_comparisons")) {
+        const candidate = {
+          comparison: JSON.parse(String(parameters?.[5])) as unknown,
+          request_fingerprint: String(parameters?.[6]),
+          idempotency_key: String(parameters?.[7]),
+        };
+        if (!stored) {
+          stored = candidate;
+          return { rows: [{ comparison: candidate.comparison }] };
+        }
+        return { rows: [] };
+      }
+      if (sql.includes("idempotency_key = $2"))
+        return { rows: stored?.idempotency_key === parameters?.[1] ? [stored] : [] };
+      if (sql.includes("comparison_id = $2")) return { rows: stored ? [stored] : [] };
+      return { rows: [] };
+    });
+    const repository = new PostgresRevisionAnalyticsRepository({
+      connect: vi.fn().mockResolvedValue({ query, release: vi.fn() }),
+    } as never);
+
+    await expect(repository.appendComparison({ workspaceId: "workspace-1", idempotencyKey: "key-1", comparison }))
+      .resolves.toMatchObject({ replayed: false, reused: false });
+    await expect(repository.appendComparison({ workspaceId: "workspace-1", idempotencyKey: "key-1", comparison }))
+      .resolves.toMatchObject({ replayed: true, reused: true });
+    await expect(repository.appendComparison({ workspaceId: "workspace-1", idempotencyKey: "key-2", comparison }))
+      .resolves.toMatchObject({ replayed: false, reused: true });
+    await expect(repository.appendComparison({
+      workspaceId: "workspace-1",
+      idempotencyKey: "key-1",
+      comparison: { ...comparison, comparisonId: "analytics-comparison-fedcba9876543210", fingerprint: "e".repeat(64) },
+    })).rejects.toThrow("idempotency key conflicts");
   });
 });

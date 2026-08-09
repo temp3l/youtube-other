@@ -3,6 +3,7 @@ import { z } from "zod";
 export * from "./workflow-contracts.js";
 export * from "./content-policy-contracts.js";
 export * from "./genre-production-intelligence.js";
+export * from "./revision-analytics-comparison.js";
 
 const episodeIdPattern = /^[a-z0-9][a-z0-9-]*$/;
 const sceneIdPattern = /^scene-[0-9]{3}$/;

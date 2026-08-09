@@ -4,6 +4,7 @@ import {
   archiveEpisodeInputSchema,
   approvalInputSchema,
   cloneEpisodeInputSchema,
+  forkEpisodeFromPatternInputSchema,
   dynamicGenericContentSchema,
   episodeInputSchema,
   openApiDocument,
@@ -20,10 +21,12 @@ const expectedPaths = [
   "/v1/workspaces/{workspace}/audit-events",
   "/v1/workspaces/{workspace}/projects",
   "/v1/workspaces/{workspace}/projects/{project}/analytics-observations",
+  "/v1/workspaces/{workspace}/projects/{project}/analytics-comparisons",
   "/v1/workspaces/{workspace}/projects/{project}/episodes",
   "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}",
   "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}:archive",
   "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}:clone",
+  "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}:fork-pattern",
   "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}/workflow-runs",
   "/v1/workspaces/{workspace}/projects/{project}/workflow-runs/{run}",
   "/v1/workspaces/{workspace}/projects/{project}/workflow-runs/{run}/steps",
@@ -70,6 +73,9 @@ describe("OpenAPI contract", () => {
     expect(archiveEpisodeInputSchema.safeParse({ expectedRevision: 2, reason: "" }).success).toBe(false);
     expect(cloneEpisodeInputSchema.safeParse({ expectedSourceRevision: 2 }).success).toBe(true);
     expect(cloneEpisodeInputSchema.safeParse({ expectedSourceRevision: -1 }).success).toBe(false);
+    const patternLineage = { patternId: "pattern-1", configurationRevision: "config-1", dependencyFingerprint: "a".repeat(64), provenanceHash: "b".repeat(64) };
+    expect(forkEpisodeFromPatternInputSchema.safeParse({ expectedSourceRevision: 2, patternLineage }).success).toBe(true);
+    expect(forkEpisodeFromPatternInputSchema.safeParse({ expectedSourceRevision: 2, patternLineage: { ...patternLineage, provenanceHash: "not-a-hash" } }).success).toBe(false);
   });
 
   it("covers every implemented route with unique operation identifiers", () => {
@@ -79,7 +85,7 @@ describe("OpenAPI contract", () => {
     expect(ids).toEqual([
       "getLiveness", "getReadiness", "getOpenApiDocument", "getQuota",
       "listUsageRecords", "listAuditEvents", "createProject",
-      "ingestRevisionAnalytics", "createEpisode", "getEpisode", "replaceEpisodeContent", "archiveEpisode", "cloneEpisode", "admitWorkflow", "getWorkflow",
+      "ingestRevisionAnalytics", "compareRevisionAnalytics", "createEpisode", "getEpisode", "replaceEpisodeContent", "archiveEpisode", "cloneEpisode", "forkEpisodeFromPattern", "admitWorkflow", "getWorkflow",
       "listWorkflowSteps", "cancelWorkflow", "resumeWorkflow", "getJob",
       "getAsset", "listValidations", "getPublication", "recordApproval", "revokeApproval",
       "estimateSpeech", "createSpeechGeneration", "getSpeechGeneration", "retrySpeechGeneration",
@@ -326,7 +332,7 @@ describe("OpenAPI contract", () => {
 
   it("documents request bodies, command preconditions, and response wire formats", () => {
     const byId = new Map(operations().map(({ operation }) => [operation.operationId, operation]));
-    for (const id of ["createProject", "ingestRevisionAnalytics", "createEpisode", "replaceEpisodeContent", "archiveEpisode", "cloneEpisode", "admitWorkflow", "recordApproval"]) {
+    for (const id of ["createProject", "ingestRevisionAnalytics", "compareRevisionAnalytics", "createEpisode", "replaceEpisodeContent", "archiveEpisode", "cloneEpisode", "forkEpisodeFromPattern", "admitWorkflow", "recordApproval"]) {
       expect(byId.get(id)?.requestBody?.content).toHaveProperty("application/json");
     }
     expect(byId.get("admitWorkflow")?.parameters).toContainEqual({ $ref: "#/components/parameters/IdempotencyKey" });
@@ -336,7 +342,9 @@ describe("OpenAPI contract", () => {
       { $ref: "#/components/parameters/IdempotencyKey" },
     ]));
     expect(byId.get("cloneEpisode")?.parameters).toContainEqual({ $ref: "#/components/parameters/IdempotencyKey" });
+    expect(byId.get("forkEpisodeFromPattern")?.parameters).toContainEqual({ $ref: "#/components/parameters/IdempotencyKey" });
     expect(byId.get("ingestRevisionAnalytics")?.parameters).toContainEqual({ $ref: "#/components/parameters/IdempotencyKey" });
+    expect(byId.get("compareRevisionAnalytics")?.parameters).toContainEqual({ $ref: "#/components/parameters/IdempotencyKey" });
     expect(byId.get("cancelWorkflow")?.parameters).toContainEqual({ $ref: "#/components/parameters/IfMatch" });
     expect(byId.get("resumeWorkflow")?.parameters).toEqual(expect.arrayContaining([
       { $ref: "#/components/parameters/IfMatch" },
@@ -367,11 +375,13 @@ describe("OpenAPI contract", () => {
       ["listAuditEvents", "audit.read"],
       ["createProject", "content.write"],
       ["ingestRevisionAnalytics", "content.write"],
+      ["compareRevisionAnalytics", "content.write"],
       ["createEpisode", "content.write"],
       ["getEpisode", "content.read"],
       ["replaceEpisodeContent", "content.write"],
       ["archiveEpisode", "content.write"],
       ["cloneEpisode", "content.write"],
+      ["forkEpisodeFromPattern", "content.write"],
       ["admitWorkflow", "workflow.start"],
       ["getWorkflow", "content.read"],
       ["listWorkflowSteps", "content.read"],

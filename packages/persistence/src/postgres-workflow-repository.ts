@@ -197,6 +197,15 @@ export interface CloneEpisodeInput {
   readonly now: string;
 }
 
+export interface ForkEpisodeInput extends CloneEpisodeInput {
+  readonly patternLineage: {
+    readonly patternId: string;
+    readonly configurationRevision: string;
+    readonly dependencyFingerprint: string;
+    readonly provenanceHash: string;
+  };
+}
+
 export interface EpisodeLifecycleMutationResult {
   readonly kind: "admitted" | "replayed";
   readonly commandId: string;
@@ -1135,6 +1144,105 @@ export class WorkspaceTransactionRepository {
     if (!row)
       throw new WorkflowStateTransitionError(
         "Episode clone source was missing or its revision was stale."
+      );
+    return { kind: "admitted", commandId: admission.rows[0].command_id, episode: mapEpisode(row) };
+  }
+
+  /**
+   * Forks one immutable Veronica source revision into a draft. Pattern identity
+   * is append-only revision evidence; approvals, jobs, and provider work are
+   * deliberately not copied or started.
+   */
+  public async forkEpisodeFromPattern(
+    input: ForkEpisodeInput
+  ): Promise<EpisodeLifecycleMutationResult> {
+    if (
+      !Number.isSafeInteger(input.expectedSourceRevision) ||
+      input.expectedSourceRevision < 0 ||
+      input.episodeId.trim().length === 0 ||
+      input.revisionId.trim().length === 0 ||
+      input.actorPrincipalId.trim().length === 0 ||
+      !/^[a-f0-9]{64}$/u.test(input.patternLineage.dependencyFingerprint) ||
+      !/^[a-f0-9]{64}$/u.test(input.patternLineage.provenanceHash) ||
+      input.patternLineage.patternId.trim().length === 0 ||
+      input.patternLineage.configurationRevision.trim().length === 0
+    )
+      throw new WorkflowStateTransitionError(
+        "Pattern fork requires an immutable Veronica revision and complete lineage identity."
+      );
+    const response = {
+      episodeId: input.episodeId,
+      revision: 0,
+      lifecycleState: "active" as const,
+      sourceEpisodeId: input.sourceEpisodeId,
+      sourceEpisodeRevision: input.expectedSourceRevision,
+      patternLineage: input.patternLineage,
+    };
+    const admission = await this.connection.query<{
+      readonly command_id: string;
+      readonly response: unknown;
+    }>(
+      `INSERT INTO command_admissions (
+         workspace_id, idempotency_key, request_fingerprint, command_id, response, created_at
+       ) VALUES ($1, $2, $3, $4, $5::jsonb, $6::timestamptz)
+       ON CONFLICT (workspace_id, idempotency_key) DO NOTHING
+       RETURNING command_id, response`,
+      [input.workspaceId, input.idempotencyKey, input.requestFingerprint, input.commandId, JSON.stringify(response), input.now]
+    );
+    if (!admission.rows[0]) {
+      const replay = await this.lifecycleReplay(input.workspaceId, input.idempotencyKey, input.requestFingerprint);
+      const replayEpisodeId = lifecycleReplayEpisodeId(replay.response);
+      const record = await this.getEpisode(input.workspaceId, input.projectId, replayEpisodeId);
+      if (
+        !record || record.lifecycleState !== "active" ||
+        record.sourceEpisodeId !== input.sourceEpisodeId ||
+        record.sourceEpisodeRevision !== input.expectedSourceRevision
+      ) throw new WorkflowStateTransitionError("Pattern fork replay no longer matches immutable lineage.");
+      return { kind: "replayed", commandId: replay.commandId, episode: record };
+    }
+    const specification = requiredJson({
+      schemaVersion: "episode-revision.v1",
+      operation: "fork_from_pattern",
+      episodeRevision: 0,
+      previousRevision: null,
+      sourceEpisodeId: input.sourceEpisodeId,
+      sourceEpisodeRevision: input.expectedSourceRevision,
+      patternLineage: input.patternLineage,
+      provenance: { kind: "episode_pattern_fork", actorPrincipalId: input.actorPrincipalId },
+    }, "Episode pattern fork specification");
+    const result = await this.connection.query<EpisodeRow>(
+      `WITH source AS (
+         SELECT CASE WHEN episode.revision = $4 THEN episode.content ELSE revision_evidence.content END AS content
+         FROM episodes AS episode
+         LEFT JOIN episode_revisions AS revision_evidence
+           ON revision_evidence.workspace_id = episode.workspace_id
+          AND revision_evidence.project_id = episode.project_id
+          AND revision_evidence.episode_id = episode.episode_id
+          AND revision_evidence.episode_revision = $4
+         WHERE episode.workspace_id = $1 AND episode.project_id = $2 AND episode.episode_id = $3
+           AND ((episode.revision = $4 AND episode.content IS NOT NULL)
+             OR (revision_evidence.episode_revision = $4 AND revision_evidence.content IS NOT NULL))
+       ), created AS (
+         INSERT INTO episodes (workspace_id, project_id, episode_id, content, authority, lifecycle_state,
+           source_episode_id, source_episode_revision, created_at, updated_at)
+         SELECT $1, $2, $5, source.content, 'database-v1', 'active', $3, $4, $8::timestamptz, $8::timestamptz
+         FROM source WHERE source.content @> '{"type":"veronicabenini"}'::jsonb
+         RETURNING workspace_id, project_id, episode_id, content, revision, created_at, updated_at,
+           lifecycle_state, archived_at, archived_by, archive_reason, source_episode_id, source_episode_revision
+       ), revision_evidence AS (
+         INSERT INTO episode_revisions (workspace_id, project_id, episode_id, revision_id, episode_revision,
+           previous_revision, specification, content, evidence, source_episode_id, source_episode_revision, created_at)
+         SELECT workspace_id, project_id, episode_id, $6, revision, NULL, $7::jsonb, content, $9::jsonb,
+           source_episode_id, source_episode_revision, $8::timestamptz FROM created
+       ) SELECT * FROM created`,
+      [input.workspaceId, input.projectId, input.sourceEpisodeId, input.expectedSourceRevision,
+        input.episodeId, input.revisionId, specification, input.now,
+        JSON.stringify({ kind: "episode_pattern_fork", actorPrincipalId: input.actorPrincipalId, patternLineage: input.patternLineage })]
+    );
+    const row = result.rows[0];
+    if (!row)
+      throw new WorkflowStateTransitionError(
+        "Pattern fork source was missing, stale, or not a canonical Veronica edition."
       );
     return { kind: "admitted", commandId: admission.rows[0].command_id, episode: mapEpisode(row) };
   }

@@ -5,7 +5,10 @@ import {
   type AuthenticatedPrincipal,
   type WorkflowAdmissionHandler,
 } from "@mediaforge/application";
-import { normalizeRevisionAnalyticsObservation } from "@mediaforge/domain";
+import {
+  immutablePlanHash,
+  normalizeRevisionAnalyticsObservation,
+} from "@mediaforge/domain";
 import {
   PostgresUsageAuditRepository,
   PostgresPublicationIntentRepository,
@@ -20,11 +23,14 @@ import type { ApiJobFailure, ApiJobStatus, ApiUseCases } from "./http-server.js"
 import {
   archiveEpisodeInputSchema,
   cloneEpisodeInputSchema,
+  forkEpisodeFromPatternInputSchema,
   parseEpisodeInput,
   type ArchiveEpisodeInput,
   type CloneEpisodeInput,
+  type ForkEpisodeFromPatternInput,
 } from "./contract.js";
 import { createApiWorkflowAdmissionUseCase } from "./http-server.js";
+import { createRevisionAnalyticsComparisonUseCase } from "./revision-analytics-comparison-use-case.js";
 
 interface CursorValue {
   readonly workspaceId: string;
@@ -215,6 +221,25 @@ export interface EpisodeLifecycleUseCases {
     readonly sourceEpisodeRevision: number;
     readonly replayed: boolean;
   }>;
+  forkEpisodeFromPattern(
+    sourceEpisodeId: string,
+    input: ForkEpisodeFromPatternInput,
+    context: {
+      readonly workspaceId: string;
+      readonly projectId: string;
+      readonly principal: AuthenticatedPrincipal;
+      readonly requestId: string;
+      readonly idempotencyKey: string;
+    }
+  ): Promise<{
+    readonly id: string;
+    readonly revision: number;
+    readonly lifecycleState: "active";
+    readonly sourceEpisodeId: string;
+    readonly sourceEpisodeRevision: number;
+    readonly patternLineage: ForkEpisodeFromPatternInput["patternLineage"];
+    readonly replayed: boolean;
+  }>;
 }
 
 function requireEpisodeLifecycleMutationAuthority(input: {
@@ -253,11 +278,64 @@ export function createPostgresApiUseCases(input: {
   const usageAudit = new PostgresUsageAuditRepository(input.pool);
   const publications = new PostgresPublicationIntentRepository(repository);
   const analytics = new PostgresRevisionAnalyticsRepository(input.pool);
+  const analyticsComparison = createRevisionAnalyticsComparisonUseCase({ analytics });
   const now = input.now ?? (() => new Date());
   const createId = input.createId ?? id;
   const admit = createApiWorkflowAdmissionUseCase(input.workflowAdmissionHandler);
 
   return {
+    compareRevisionAnalytics: async (request, context) => {
+      if (
+        context.principal.workspaceId !== context.workspaceId ||
+        !context.principal.permissions.includes("content.write")
+      )
+        throw new ApplicationError(
+          "authorization_denied",
+          "Analytics comparison requires content.write authorization.",
+          false,
+        );
+      const episode = await repository.withWorkspaceTransaction(
+        context.workspaceId,
+        (transaction) => transaction.getEpisode(
+          context.workspaceId,
+          context.projectId,
+          request.episodeId,
+        ),
+      );
+      if (!episode)
+        throw new ApplicationError("not_found", "Episode not found.", false);
+      if (
+        !episode.content ||
+        typeof episode.content !== "object" ||
+        Reflect.get(episode.content, "type") !== request.contentProfileId
+      )
+        throw new ApplicationError(
+          "profile_input_invalid",
+          "Analytics comparison content profile does not match the episode.",
+          false,
+        );
+      try {
+        return await analyticsComparison.compare(request, {
+          workspaceId: context.workspaceId,
+          principal: context.principal,
+          idempotencyKey: `v1:${digest({
+            principalId: context.principal.principalId,
+            method: "POST",
+            route: `/v1/workspaces/${context.workspaceId}/projects/${context.projectId}/analytics-comparisons`,
+            key: context.idempotencyKey,
+          })}`,
+        });
+      } catch (error) {
+        if (error instanceof RevisionAnalyticsConflictError) {
+          if (error.message.includes("observations are missing"))
+            throw new ApplicationError("precondition_failed", error.message, false);
+          throw new ApplicationError("idempotency_key_conflict", error.message, false);
+        }
+        if (error instanceof Error && error.message.startsWith("ANALYTICS_COMPARISON_"))
+          throw new ApplicationError("invalid_request", "Analytics comparison input is inconsistent.", false);
+        throw error;
+      }
+    },
     ingestRevisionAnalytics: async (observation, context) => {
       if (
         context.principal.workspaceId !== context.workspaceId ||
@@ -631,6 +709,79 @@ export function createPostgresApiUseCases(input: {
           if (error.message.includes("Idempotency key"))
             throw new ApplicationError("idempotency_key_conflict", "Idempotency key is already associated with a different request.", false);
           throw new ApplicationError("precondition_failed", "Source episode is missing or its revision changed.", false);
+        }
+        return translatePersistence(error);
+      }
+    },
+    forkEpisodeFromPattern: async (sourceEpisodeId, fork, context) => {
+      const parsed = forkEpisodeFromPatternInputSchema.parse(fork);
+      requireEpisodeLifecycleMutationAuthority(context);
+      const pattern = await analytics.getObservation({
+        workspaceId: context.workspaceId,
+        contentProfileId: "veronicabenini",
+        episodeId: sourceEpisodeId,
+        observationId: parsed.patternLineage.patternId,
+      });
+      if (
+        !pattern ||
+        pattern.configurationRevision !==
+          parsed.patternLineage.configurationRevision ||
+        immutablePlanHash(pattern.dependencyIdentity) !==
+          parsed.patternLineage.dependencyFingerprint ||
+        pattern.provenanceSha256 !== parsed.patternLineage.provenanceHash
+      )
+        throw new ApplicationError(
+          "precondition_failed",
+          "Pattern lineage does not match an immutable analytics observation for the source episode.",
+          false,
+        );
+      const episodeId = createId("episode");
+      try {
+        const result = await repository.withWorkspaceTransaction(
+          context.workspaceId,
+          (transaction) => transaction.forkEpisodeFromPattern({
+            workspaceId: context.workspaceId,
+            projectId: context.projectId,
+            sourceEpisodeId,
+            expectedSourceRevision: parsed.expectedSourceRevision,
+            episodeId,
+            revisionId: createId("episode-revision"),
+            actorPrincipalId: context.principal.principalId,
+            commandId: createId("command"),
+            idempotencyKey: `v1:${digest({
+              principalId: context.principal.principalId,
+              method: "POST",
+              route: `/v1/workspaces/${context.workspaceId}/projects/${context.projectId}/episodes/${sourceEpisodeId}:fork-pattern`,
+              key: context.idempotencyKey,
+            })}`,
+            requestFingerprint: digest({
+              contractVersion: "episode-pattern-fork.v1",
+              projectId: context.projectId,
+              sourceEpisodeId,
+              fork: parsed,
+            }),
+            patternLineage: parsed.patternLineage,
+            now: now().toISOString(),
+          })
+        );
+        if (
+          result.episode.sourceEpisodeId === null ||
+          result.episode.sourceEpisodeRevision === null
+        ) throw new ApplicationError("upstream_unavailable", "Stored episode pattern fork lineage is invalid.", false);
+        return {
+          id: result.episode.episodeId,
+          revision: result.episode.revision,
+          lifecycleState: "active" as const,
+          sourceEpisodeId: result.episode.sourceEpisodeId,
+          sourceEpisodeRevision: result.episode.sourceEpisodeRevision,
+          patternLineage: parsed.patternLineage,
+          replayed: result.kind === "replayed",
+        };
+      } catch (error) {
+        if (error instanceof WorkflowStateTransitionError) {
+          if (error.message.includes("Idempotency key"))
+            throw new ApplicationError("idempotency_key_conflict", "Idempotency key is already associated with a different request.", false);
+          throw new ApplicationError("precondition_failed", "Source episode is missing, stale, or not a canonical Veronica edition.", false);
         }
         return translatePersistence(error);
       }

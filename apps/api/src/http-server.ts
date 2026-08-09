@@ -10,7 +10,10 @@ import {
   type WorkflowAdmissionHandler,
   isApplicationError,
 } from "@mediaforge/application";
-import type { RevisionAnalyticsObservation } from "@mediaforge/domain";
+import type {
+  RevisionAnalyticsComparison,
+  RevisionAnalyticsObservation,
+} from "@mediaforge/domain";
 import { ZodError } from "zod";
 
 import {
@@ -18,6 +21,7 @@ import {
   approvalRevocationInputSchema,
   archiveEpisodeInputSchema,
   cloneEpisodeInputSchema,
+  forkEpisodeFromPatternInputSchema,
   openApiDocument,
   parseEpisodeInput,
   projectInputSchema,
@@ -26,6 +30,7 @@ import {
   type ApprovalRevocationInput,
   type ArchiveEpisodeInput,
   type CloneEpisodeInput,
+  type ForkEpisodeFromPatternInput,
   type EpisodeInput,
   type ProjectInput,
   type WorkflowAdmission,
@@ -60,6 +65,10 @@ import {
   revisionAnalyticsIngestRequestSchema,
   type RevisionAnalyticsIngestRequest,
 } from "./revision-analytics-contract.js";
+import {
+  revisionAnalyticsComparisonRequestSchema,
+  type RevisionAnalyticsComparisonRequest,
+} from "./revision-analytics-comparison-contract.js";
 
 export interface ApiRequestContext {
   readonly workspaceId: string;
@@ -171,6 +180,23 @@ export interface ApiPublication {
 }
 
 export interface ApiUseCases {
+  compareRevisionAnalytics?(
+    input: RevisionAnalyticsComparisonRequest,
+    context: Required<
+      Pick<
+        ApiRequestContext,
+        | "workspaceId"
+        | "projectId"
+        | "principal"
+        | "requestId"
+        | "idempotencyKey"
+      >
+    >,
+  ): Promise<{
+    readonly comparison: RevisionAnalyticsComparison;
+    readonly replayed: boolean;
+    readonly reused: boolean;
+  }>;
   ingestRevisionAnalytics?(
     input: RevisionAnalyticsIngestRequest["observation"],
     context: Required<
@@ -282,6 +308,21 @@ export interface ApiUseCases {
     readonly lifecycleState: "active";
     readonly sourceEpisodeId: string;
     readonly sourceEpisodeRevision: number;
+    readonly replayed: boolean;
+  }>;
+  forkEpisodeFromPattern(
+    sourceEpisodeId: string,
+    input: ForkEpisodeFromPatternInput,
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal" | "requestId" | "idempotencyKey">
+    >
+  ): Promise<{
+    readonly id: string;
+    readonly revision: number;
+    readonly lifecycleState: "active";
+    readonly sourceEpisodeId: string;
+    readonly sourceEpisodeRevision: number;
+    readonly patternLineage: ForkEpisodeFromPatternInput["patternLineage"];
     readonly replayed: boolean;
   }>;
   admitWorkflow(
@@ -861,7 +902,7 @@ function route(pathname: string): {
   readonly workspace: string;
   readonly project?: string;
   readonly episode?: string;
-  readonly episodeAction?: "archive" | "clone";
+  readonly episodeAction?: "archive" | "clone" | "fork-pattern";
   readonly run?: string;
   readonly runAction?: "cancel" | "resume";
   readonly job?: string;
@@ -877,7 +918,7 @@ function route(pathname: string): {
     workspace: string;
     project?: string;
     episode?: string;
-    episodeAction?: "archive" | "clone";
+    episodeAction?: "archive" | "clone" | "fork-pattern";
     run?: string;
     runAction?: "cancel" | "resume";
     job?: string;
@@ -898,8 +939,8 @@ function route(pathname: string): {
   result.project = parts[4];
   result.tail = parts.slice(5).join("/");
   if (parts[5] === "episodes" && parts[6]) {
-    const action = parts[6].match(/^(.+):(archive|clone)$/u);
-    if (action?.[1] && (action[2] === "archive" || action[2] === "clone")) {
+    const action = parts[6].match(/^(.+):(archive|clone|fork-pattern)$/u);
+    if (action?.[1] && (action[2] === "archive" || action[2] === "clone" || action[2] === "fork-pattern")) {
       result.episode = action[1];
       result.episodeAction = action[2];
     } else {
@@ -980,7 +1021,11 @@ function requiredPermission(
   )
     return "content.write";
   if (!matched.project) return null;
-  if (method === "POST" && matched.tail === "analytics-observations") return "content.write";
+  if (
+    method === "POST" &&
+    (matched.tail === "analytics-observations" ||
+      matched.tail === "analytics-comparisons")
+  ) return "content.write";
   if (method === "POST" && matched.tail === "episodes") return "content.write";
   if (
     method === "GET" &&
@@ -1443,6 +1488,32 @@ export function createApiServer(
           "x-request-id": requestIdValue,
         });
       }
+      if (request.method === "POST" && matched.tail === "analytics-comparisons") {
+        const key = idempotencyKey(request);
+        if (!key)
+          throw new ApplicationError(
+            "precondition_required",
+            "Idempotency-Key is required.",
+            false,
+          );
+        if (!useCases.compareRevisionAnalytics)
+          throw new ApplicationError(
+            "upstream_unavailable",
+            "Analytics comparison is unavailable.",
+            false,
+          );
+        const comparisonInput = revisionAnalyticsComparisonRequestSchema.parse(
+          await body(request),
+        );
+        const result = await useCases.compareRevisionAnalytics(
+          comparisonInput,
+          { ...projectContext, idempotencyKey: key },
+        );
+        return json(response, 201, result, {
+          ...(result.replayed ? { "idempotency-replayed": "true" } : {}),
+          "x-request-id": requestIdValue,
+        });
+      }
       if (request.method === "POST" && matched.tail === "episodes") {
         const result = await useCases.createEpisode(
           parseEpisodeInput(await body(request)),
@@ -1561,6 +1632,34 @@ export function createApiServer(
             "x-request-id": requestIdValue,
           }
         );
+      }
+      if (
+        request.method === "POST" &&
+        matched.episode &&
+        matched.episodeAction === "fork-pattern" &&
+        matched.tail === `episodes/${matched.episode}:fork-pattern`
+      ) {
+        const key = idempotencyKey(request);
+        if (!key)
+          throw new ApplicationError("precondition_required", "Idempotency-Key is required.", false);
+        const result = await useCases.forkEpisodeFromPattern(
+          matched.episode,
+          forkEpisodeFromPatternInputSchema.parse(await body(request)),
+          { ...projectContext, idempotencyKey: key }
+        );
+        return json(response, 201, {
+          id: result.id,
+          revision: result.revision,
+          lifecycleState: result.lifecycleState,
+          sourceEpisodeId: result.sourceEpisodeId,
+          sourceEpisodeRevision: result.sourceEpisodeRevision,
+          patternLineage: result.patternLineage,
+        }, {
+          location: `/v1/workspaces/${matched.workspace}/projects/${matched.project}/episodes/${result.id}`,
+          etag: etag(result.revision),
+          ...(result.replayed ? { "idempotency-replayed": "true" } : {}),
+          "x-request-id": requestIdValue,
+        });
       }
       if (
         request.method === "POST" &&

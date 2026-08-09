@@ -17,6 +17,8 @@ import { Pool } from "pg";
 export * from "./contract.js";
 export * from "./speech-contract.js";
 export * from "./revision-analytics-contract.js";
+export * from "./revision-analytics-comparison-contract.js";
+export * from "./revision-analytics-comparison-use-case.js";
 export * from "./http-server.js";
 export * from "./job-process.js";
 export * from "./postgres-durable-workflow-loader.js";

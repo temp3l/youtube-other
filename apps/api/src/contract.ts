@@ -161,6 +161,18 @@ export const cloneEpisodeInputSchema = z
   .object({ expectedSourceRevision: z.number().int().nonnegative() })
   .strict();
 
+export const forkEpisodeFromPatternInputSchema = z
+  .object({
+    expectedSourceRevision: z.number().int().nonnegative(),
+    patternLineage: z.object({
+      patternId: opaqueId,
+      configurationRevision: opaqueId,
+      dependencyFingerprint: z.string().regex(/^[a-f0-9]{64}$/u),
+      provenanceHash: z.string().regex(/^[a-f0-9]{64}$/u),
+    }).strict(),
+  })
+  .strict();
+
 /** Keeps parsed-but-unsupported profile capability input distinct from malformed JSON. */
 export function parseEpisodeInput(value: unknown): EpisodeInput {
   const parsed = episodeInputSchema.safeParse(value);
@@ -525,6 +537,34 @@ export const openApiDocument = {
         },
       },
     },
+    "/v1/workspaces/{workspace}/projects/{project}/analytics-comparisons": {
+      post: {
+        operationId: "compareRevisionAnalytics",
+        description:
+          "Creates or reuses an immutable, observational-only locale/format comparison from persisted revision analytics. Requires the `content.write` workspace permission and an idempotency key; this operation never mutates a profile or dispatches a provider.",
+        parameters: [...projectParameters, parameter("IdempotencyKey")],
+        requestBody: {
+          required: true,
+          content: json("RevisionAnalyticsComparisonRequest"),
+        },
+        responses: {
+          "201": {
+            description: "Analytics comparison created, reused, or replayed",
+            headers: {
+              "Idempotency-Replayed": responseHeader("IdempotencyReplayed"),
+              "x-request-id": responseHeader("RequestId"),
+            },
+            content: json("RevisionAnalyticsComparisonResult"),
+          },
+          "400": response("BadRequest"),
+          ...authenticatedErrors,
+          "404": response("NotFound"),
+          "409": response("Conflict"),
+          "412": response("PreconditionFailed"),
+          "428": response("PreconditionRequired"),
+        },
+      },
+    },
     "/v1/workspaces/{workspace}/projects/{project}/episodes": {
       post: {
         operationId: "createEpisode",
@@ -637,6 +677,33 @@ export const openApiDocument = {
               "x-request-id": responseHeader("RequestId"),
             },
             content: json("EpisodeLifecycleResult"),
+          },
+          "400": response("BadRequest"),
+          ...authenticatedErrors,
+          "404": response("NotFound"),
+          "409": response("Conflict"),
+          "412": response("PreconditionFailed"),
+          "428": response("PreconditionRequired"),
+        },
+      },
+    },
+    "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}:fork-pattern": {
+      post: {
+        operationId: "forkEpisodeFromPattern",
+        description:
+          "Creates a new inactive-work draft from one immutable canonical Veronica source revision and records explicit pattern lineage. Requires the `content.write` workspace permission and an idempotency key; it never copies approvals or starts production work.",
+        parameters: [...episodeParameters, parameter("IdempotencyKey")],
+        requestBody: { required: true, content: json("ForkEpisodeFromPatternInput") },
+        responses: {
+          "201": {
+            description: "Pattern fork created",
+            headers: {
+              Location: responseHeader("Location"),
+              ETag: responseHeader("ETag"),
+              "Idempotency-Replayed": responseHeader("IdempotencyReplayed"),
+              "x-request-id": responseHeader("RequestId"),
+            },
+            content: json("PatternForkResult"),
           },
           "400": response("BadRequest"),
           ...authenticatedErrors,
@@ -1717,6 +1784,93 @@ export const openApiDocument = {
           replayed: { type: "boolean" },
         },
       },
+      RevisionAnalyticsComparisonRequest: {
+        type: "object",
+        additionalProperties: false,
+        required: [
+          "schemaVersion",
+          "contentProfileId",
+          "episodeId",
+          "metric",
+          "comparisonDimensions",
+          "cohorts",
+          "effectiveConfigurationHash",
+          "dependencyIdentity",
+        ],
+        properties: {
+          schemaVersion: { const: "revision-analytics-comparison-request.v1" },
+          contentProfileId: { const: "veronicabenini" },
+          episodeId: schema("OpaqueId"),
+          metric: schema("OpaqueId"),
+          comparisonDimensions: {
+            type: "array",
+            minItems: 1,
+            maxItems: 2,
+            uniqueItems: true,
+            items: { type: "string", enum: ["locale", "format"] },
+          },
+          cohorts: {
+            type: "array",
+            minItems: 2,
+            maxItems: 100,
+            items: {
+              type: "object",
+              additionalProperties: false,
+              required: ["observationId", "format"],
+              properties: {
+                observationId: schema("OpaqueId"),
+                format: { type: "string", enum: ["full", "short"] },
+              },
+            },
+          },
+          effectiveConfigurationHash: { type: "string", pattern: "^[a-f0-9]{64}$" },
+          dependencyIdentity: {
+            type: "object",
+            minProperties: 1,
+            maxProperties: 100,
+            additionalProperties: { type: "string", pattern: "^[a-f0-9]{64}$" },
+          },
+        },
+      },
+      RevisionAnalyticsComparison: {
+        type: "object",
+        additionalProperties: false,
+        required: [
+          "schemaVersion", "comparisonId", "contentProfileId", "episodeId", "metric",
+          "comparisonDimensions", "interpretation", "immutableObservationBindings", "cohorts",
+          "effectiveConfigurationHash", "dependencyIdentity", "provenance", "reuseRationale",
+          "regenerationRationale", "profileMutationEnabled", "providerDispatchEnabled", "fingerprint",
+        ],
+        properties: {
+          schemaVersion: { const: "revision-analytics-comparison.v1" },
+          comparisonId: schema("OpaqueId"),
+          contentProfileId: { const: "veronicabenini" },
+          episodeId: schema("OpaqueId"),
+          metric: schema("OpaqueId"),
+          comparisonDimensions: { type: "array", items: { type: "string", enum: ["locale", "format"] } },
+          interpretation: { const: "observational-non-causal" },
+          immutableObservationBindings: { type: "array", minItems: 2, items: { type: "object" } },
+          cohorts: { type: "array", minItems: 2, items: { type: "object" } },
+          effectiveConfigurationHash: { type: "string", pattern: "^[a-f0-9]{64}$" },
+          dependencyIdentity: { type: "object", additionalProperties: { type: "string", pattern: "^[a-f0-9]{64}$" } },
+          provenance: { type: "object" },
+          reuseRationale: { type: "string", enum: ["new-comparison", "content-hash-match"] },
+          regenerationRationale: { type: "string", enum: ["new-comparison", "observations-changed", "configuration-changed", "dependency-changed"] },
+          profileMutationEnabled: { const: false },
+          providerDispatchEnabled: { const: false },
+          fingerprint: { type: "string", pattern: "^[a-f0-9]{64}$" },
+        },
+      },
+      RevisionAnalyticsComparisonResult: {
+        type: "object",
+        additionalProperties: false,
+        required: ["comparison", "replayed", "reused"],
+        properties: {
+          comparison: schema("RevisionAnalyticsComparison"),
+          replayed: { type: "boolean" },
+          reused: { type: "boolean" },
+        },
+      },
       Project: {
         type: "object",
         additionalProperties: false,
@@ -1937,6 +2091,24 @@ export const openApiDocument = {
         required: ["expectedSourceRevision"],
         properties: { expectedSourceRevision: schema("Revision") },
       },
+      ForkEpisodeFromPatternInput: {
+        type: "object", additionalProperties: false,
+        required: ["expectedSourceRevision", "patternLineage"],
+        properties: {
+          expectedSourceRevision: schema("Revision"),
+          patternLineage: schema("PatternLineage"),
+        },
+      },
+      PatternLineage: {
+        type: "object", additionalProperties: false,
+        required: ["patternId", "configurationRevision", "dependencyFingerprint", "provenanceHash"],
+        properties: {
+          patternId: schema("OpaqueId"),
+          configurationRevision: schema("OpaqueId"),
+          dependencyFingerprint: { type: "string", pattern: "^[a-f0-9]{64}$" },
+          provenanceHash: { type: "string", pattern: "^[a-f0-9]{64}$" },
+        },
+      },
       EpisodeLifecycleResult: {
         type: "object", additionalProperties: false,
         required: ["id", "revision", "lifecycleState", "sourceEpisodeId", "sourceEpisodeRevision"],
@@ -1946,6 +2118,17 @@ export const openApiDocument = {
           lifecycleState: { type: "string", enum: ["active", "archived"] },
           sourceEpisodeId: { anyOf: [schema("OpaqueId"), { type: "null" }] },
           sourceEpisodeRevision: { anyOf: [schema("Revision"), { type: "null" }] },
+        },
+      },
+      PatternForkResult: {
+        type: "object", additionalProperties: false,
+        required: ["id", "revision", "lifecycleState", "sourceEpisodeId", "sourceEpisodeRevision", "patternLineage"],
+        properties: {
+          id: schema("OpaqueId"), revision: schema("Revision"),
+          lifecycleState: { const: "active" },
+          sourceEpisodeId: schema("OpaqueId"),
+          sourceEpisodeRevision: schema("Revision"),
+          patternLineage: schema("PatternLineage"),
         },
       },
       WorkflowAdmission: {
@@ -2374,6 +2557,7 @@ export type ProjectInput = z.infer<typeof projectInputSchema>;
 export type EpisodeInput = z.infer<typeof episodeInputSchema>;
 export type ArchiveEpisodeInput = z.infer<typeof archiveEpisodeInputSchema>;
 export type CloneEpisodeInput = z.infer<typeof cloneEpisodeInputSchema>;
+export type ForkEpisodeFromPatternInput = z.infer<typeof forkEpisodeFromPatternInputSchema>;
 export type WorkflowAdmission = z.infer<typeof workflowAdmissionSchema>;
 export type ApprovalInput = z.infer<typeof approvalInputSchema>;
 export type ApprovalRevocationInput = z.infer<
