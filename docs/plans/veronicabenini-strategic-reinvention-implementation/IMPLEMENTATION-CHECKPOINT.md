@@ -33,7 +33,7 @@
 | VRI-23 | VALIDATED | worker + coordinator review | SDK build and CLI 8/8; API use-case collection dependency-blocked | `8f7fa02` |
 | VRI-24 | VALIDATED | worker + coordinator review | domain/API/persistence 6/6; domain typecheck/build pass | `8f7fa02` |
 | VRI-25 | VALIDATED | worker + coordinator review | resolver 6/6 | `3b1315d` |
-| VRI-26 | IMPLEMENTED_VALIDATION_GAP | coordinator | acceptance evidence 2/2 and aspect-ratio 4/4; package typecheck pass; pilot fixture repaired but retry-budget unverified | `9b010ce` |
+| VRI-26 | VALIDATED | coordinator | pilot 1/1, acceptance evidence 2/2, aspect-ratio 4/4, and package typecheck pass | pending |
 
 ## VRI-01 evidence
 
@@ -60,8 +60,8 @@
 
 - The canonical acceptance artifact binds episode/workflow revision, effective configuration, dependencies, source provenance, shared visual reuse, cache reuse, source invalidation, and immutable approval history.
 - Release evidence remains redacted and fail-closed with zero provider dispatch or irreversible work.
-- The strategic pilot exposed and was repaired for stale canonical profile, workspace subpath, and source-evidence ledger fixtures; its same-command retry budget was exhausted before a post-repair run.
+- The strategic pilot validates all 20 registered stages, resume/cache reuse, source invalidation, immutable approval history, locale-neutral visuals, and fail-closed publication with zero provider mutations.
 
 ## Next executable tasks
 
-Complete final documentation/report reconciliation and commit VRI-26. External activation remains a post-implementation operator gate.
+Review and merge the implementation branch. External activation remains a separate post-implementation operator gate.

@@ -20,9 +20,9 @@ Added a persisted `veronicabenini.acceptance-evidence.v1` fixture binding produc
 - Acceptance evidence: 2/2 passed.
 - Aspect-ratio regression: 4/4 passed.
 - Strategic package typecheck: passed after narrow dependency fixes.
-- Pilot integration: progressed through two repaired stale fixture boundaries, then stopped at the retry limit; the final missing source-evidence ledger was added but not rerun.
+- Pilot integration: passed (1 test) after repairing the canonical gate fixture and missing `strategic.locale-media` evidence marker.
 - `git diff --check`: passed.
 
 ## Risk / follow-up
 
-Rerun the pilot integration in a fresh verification context. External activation, live publication, and provider dispatch still require separate reviewed evidence.
+External activation, live publication, and provider dispatch still require separate reviewed evidence.

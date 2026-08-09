@@ -132,6 +132,7 @@ export async function runStrategicEpisodePipeline(
 
   // Narration, captions, audio, and metadata are produced by their approved
   // downstream capabilities. This source-led stage must never synthesize them.
+  mark("strategic.locale-media");
   mark("strategic.voice-metadata-approval");
 
   const supplementalFiles = await loadStrategicSupplementalFiles({

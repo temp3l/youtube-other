@@ -101,7 +101,18 @@ async function writePilotEpisode(workspaceRoot: string): Promise<{
   await fs.mkdir(path.join(episodeRoot, "state", "veronicabenini"), { recursive: true });
   await fs.writeFile(
     path.join(episodeRoot, "blueprint.json"),
-    `${JSON.stringify({ ...blueprint, schemaVersion: "1.1", requiredApprovalGates: ["source", "publish"] }, null, 2)}\n`,
+    `${JSON.stringify({
+      ...blueprint,
+      schemaVersion: "1.1",
+      requiredApprovalGates: [
+        "source",
+        "canonical-script",
+        "localization",
+        "voice",
+        "final-render",
+        "publish",
+      ],
+    }, null, 2)}\n`,
   );
   await fs.writeFile(
     path.join(episodeRoot, "state", "veronicabenini", "approval-fixtures.json"),
