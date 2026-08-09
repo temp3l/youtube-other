@@ -791,8 +791,9 @@ export function createPostgresApiUseCases(input: {
         const nowValue = now().toISOString();
         const itemCount = await bulkProduction.countEligibleItems({ workspaceId: context.workspaceId, batchId });
         if (itemCount === 0) throw new ApplicationError("state_transition_rejected", "This batch has no eligible items to launch.", false);
-        await usageAudit.reserveQuotaDimension({ workspaceId: context.workspaceId, reservationId: `bulk-batch:${batchId}:active`, dimension: "active_batches", attributionKey: `bulk-batch:${batchId}:active`, subjectId: batchId, units: 1n, now: nowValue });
-        await usageAudit.reserveQuotaDimension({ workspaceId: context.workspaceId, reservationId: `bulk-batch:${batchId}:items`, dimension: "batch_items", attributionKey: `bulk-batch:${batchId}:items`, subjectId: batchId, units: BigInt(itemCount), now: nowValue });
+        const reservationPrefix = `bulk-batch:${batchId}:attempt:${batch.launchAttempt}`;
+        await usageAudit.reserveQuotaDimension({ workspaceId: context.workspaceId, reservationId: `${reservationPrefix}:active`, dimension: "active_batches", attributionKey: `${reservationPrefix}:active`, subjectId: batchId, units: 1n, now: nowValue });
+        await usageAudit.reserveQuotaDimension({ workspaceId: context.workspaceId, reservationId: `${reservationPrefix}:items`, dimension: "batch_items", attributionKey: `${reservationPrefix}:items`, subjectId: batchId, units: BigInt(itemCount), now: nowValue });
         const accepted: Array<{ readonly itemId: string; readonly workflowRunId: string; readonly jobId: string }> = [];
         const rejected: Array<{ readonly itemId: string; readonly code: string }> = [];
         for (;;) {
