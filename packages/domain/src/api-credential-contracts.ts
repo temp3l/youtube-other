@@ -52,6 +52,19 @@ export type ApiCredentialIssueInput = z.infer<
   typeof apiCredentialIssueInputSchema
 >;
 
+/** Rotation preserves the owning principal and bounds any dual-key window. */
+export const apiCredentialRotateInputSchema = z
+  .object({
+    name: nonEmptyStringSchema,
+    permissions: z.array(nonEmptyStringSchema).min(1),
+    expiresAt: isoDateTimeSchema,
+    overlapMs: z.number().int().min(0).max(86_400_000).default(0),
+  })
+  .strict();
+export type ApiCredentialRotateInput = z.infer<
+  typeof apiCredentialRotateInputSchema
+>;
+
 export const apiCredentialIssueResultSchema = z
   .object({
     credential: apiCredentialRecordSchema,

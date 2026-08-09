@@ -110,6 +110,47 @@ export const developerCredentialOpenApiPaths = {
       },
     },
   },
+  "/v1/workspaces/{workspace}/api-credentials/{key}:rotate": {
+    post: {
+      operationId: "rotateApiCredential",
+      description:
+        "Rotates a credential under a current strong ETag and bounded optional overlap. The replacement secret is returned exactly once. Requires `workspace.admin` and an idempotency key.",
+      parameters: [
+        ...apiCredentialParameters,
+        parameter("IfMatch"),
+        parameter("IdempotencyKey"),
+      ],
+      requestBody: {
+        required: true,
+        content: json("ApiCredentialRotateInput"),
+      },
+      responses: {
+        "201": {
+          description: "Credential rotated",
+          headers: {
+            ETag: responseHeader("ETag"),
+            "x-request-id": responseHeader("RequestId"),
+          },
+          content: json("ApiCredentialIssueResult"),
+        },
+        "200": {
+          description: "Idempotent replay without replacement secret",
+          headers: {
+            ETag: responseHeader("ETag"),
+            "Idempotency-Replayed": responseHeader("IdempotencyReplayed"),
+            "x-request-id": responseHeader("RequestId"),
+          },
+          content: json("ApiCredentialIssueResult"),
+        },
+        "400": response("BadRequest"),
+        ...authenticatedErrors,
+        "404": response("NotFound"),
+        "409": response("Conflict"),
+        "412": response("PreconditionFailed"),
+        "428": response("PreconditionRequired"),
+      },
+    },
+  },
   "/v1/workspaces/{workspace}/developer-journey-examples": {
     get: {
       operationId: "getDeveloperJourneyExamples",

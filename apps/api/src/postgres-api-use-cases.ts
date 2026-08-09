@@ -261,6 +261,7 @@ export function createPostgresApiUseCases(input: {
     listApiCredentials,
     getApiCredential,
     revokeApiCredential,
+    rotateApiCredential,
     getDeveloperJourneyExamples,
   } = createApiCredentialUseCases({
     pool: input.pool,
@@ -942,6 +943,7 @@ export function createPostgresApiUseCases(input: {
     listApiCredentials,
     getApiCredential,
     revokeApiCredential,
+    rotateApiCredential,
     getDeveloperJourneyExamples,
     ...webhookUseCases,
     ...contentReuseUseCases,

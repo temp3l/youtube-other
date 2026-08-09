@@ -18,6 +18,33 @@ export interface ApiProblem {
   readonly errors: readonly ProblemError[];
 }
 
+export interface ApiCredentialRotateInput {
+  readonly name: string;
+  readonly permissions: readonly string[];
+  readonly expiresAt: string;
+  readonly overlapMs?: number;
+}
+export interface ApiCredentialRecord {
+  readonly schemaVersion: "mediaforge.api-credential.v1";
+  readonly workspaceId: string;
+  readonly keyId: string;
+  readonly name: string;
+  readonly principalId: string;
+  readonly permissions: readonly string[];
+  readonly status: "active" | "overlapping" | "revoked" | "expired";
+  readonly expiresAt: string;
+  readonly overlapUntil?: string;
+  readonly revision: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+export interface ApiCredentialIssueResult {
+  readonly credential: ApiCredentialRecord;
+  readonly token?: string;
+  readonly replayed: boolean;
+  readonly showOnce: boolean;
+}
+
 export class ApiProblemError extends Error {
   public override readonly name = "ApiProblemError";
 
@@ -949,6 +976,24 @@ export class MediaforgeApiClient {
     return this.execute(
       `${this.projectPath(workspaceId, projectId)}/episodes/${encodePath(episodeId)}`,
       { ...(options ? { options } : {}) }
+    );
+  }
+
+  public rotateApiCredential(
+    workspaceId: string,
+    keyId: string,
+    input: ApiCredentialRotateInput,
+    options: ConditionalIdempotentRequestOptions
+  ): Promise<ApiResponse<ApiCredentialIssueResult>> {
+    return this.execute(
+      `${this.workspacePath(workspaceId)}/api-credentials/${encodePath(keyId)}:rotate`,
+      {
+        method: "POST",
+        body: input,
+        options,
+        ifMatch: options.ifMatch,
+        idempotencyKey: options.idempotencyKey,
+      }
     );
   }
 

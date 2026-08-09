@@ -786,6 +786,21 @@ export const openApiComponents = {
           overlapMs: { type: "integer", minimum: 0 },
         },
       },
+      ApiCredentialRotateInput: {
+        type: "object",
+        additionalProperties: false,
+        required: ["name", "permissions", "expiresAt"],
+        properties: {
+          name: { type: "string", minLength: 1, maxLength: 160 },
+          permissions: {
+            type: "array",
+            minItems: 1,
+            items: { type: "string", minLength: 1, maxLength: 160 },
+          },
+          expiresAt: { type: "string", format: "date-time" },
+          overlapMs: { type: "integer", minimum: 0, maximum: 86_400_000, default: 0 },
+        },
+      },
       ApiCredentialIssueResult: {
         type: "object",
         additionalProperties: false,

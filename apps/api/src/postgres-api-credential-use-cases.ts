@@ -6,6 +6,7 @@ import {
 import {
   apiCredentialIssueInputSchema,
   apiCredentialRevokeInputSchema,
+  apiCredentialRotateInputSchema,
   assertWorkspaceAdminCredentialAccess,
   buildApiCredentialIssueResult,
   buildDeveloperJourneyExamples,
@@ -193,6 +194,93 @@ export function createApiCredentialUseCases(input: {
         now: input.now().toISOString(),
       });
       return toRecord(key, input.now().toISOString());
+    },
+    rotateApiCredential: async (
+      keyId: string,
+      body: unknown,
+      context: Required<
+        Pick<
+          ApiRequestContext,
+          "workspaceId" | "principal" | "ifMatch" | "idempotencyKey"
+        >
+      >
+    ) => {
+      assertAdmin(context.principal);
+      if (!context.idempotencyKey)
+        throw new ApplicationError(
+          "precondition_required",
+          "Idempotency-Key is required.",
+          false
+        );
+      const parsed = apiCredentialRotateInputSchema.parse(body);
+      const scopedKey = `rotate:${keyId}:${context.idempotencyKey}`;
+      const evaluatedAt = input.now().toISOString();
+      const existing = await repository.findIssueIdempotency({
+        workspaceId: context.workspaceId,
+        idempotencyKey: scopedKey,
+      });
+      const { replay, requestFingerprint } = evaluateApiCredentialIssueReplay({
+        scope: {
+          workspaceId: context.workspaceId,
+          principalId: context.principal.principalId,
+          idempotencyKey: scopedKey,
+        },
+        requestBody: parsed,
+        existing: existing
+          ? {
+              requestFingerprint: existing.requestFingerprint,
+              keyId: existing.keyId,
+              createdAt: evaluatedAt,
+            }
+          : null,
+      });
+      if (replay.outcome === "conflict")
+        throw new ApplicationError(
+          "conflict",
+          "Idempotency key was reused with a different payload.",
+          false
+        );
+      if (replay.outcome === "replay" && existing) {
+        const key = await repository.get({
+          workspaceId: context.workspaceId,
+          keyId: existing.keyId,
+        });
+        if (!key)
+          throw new ApplicationError("not_found", "Resource not found.", false);
+        return buildApiCredentialIssueResult({
+          credential: toRecord(key, evaluatedAt),
+          replayed: true,
+        });
+      }
+      const previous = await repository.get({
+        workspaceId: context.workspaceId,
+        keyId,
+      });
+      if (!previous)
+        throw new ApplicationError("not_found", "Resource not found.", false);
+      const replacement = await service.rotate({
+        workspaceId: context.workspaceId,
+        previousKeyId: keyId,
+        previousExpectedRevision: Number(String(context.ifMatch).replace(/"/g, "")),
+        principalId: previous.principalId,
+        name: parsed.name,
+        permissions: parsed.permissions,
+        expiresAt: parsed.expiresAt,
+        overlapMs: parsed.overlapMs,
+        actorSubject: context.principal.principalId,
+      });
+      await repository.recordIssueIdempotency({
+        workspaceId: context.workspaceId,
+        idempotencyKey: scopedKey,
+        keyId: replacement.key.keyId,
+        requestFingerprint,
+        now: evaluatedAt,
+      });
+      return buildApiCredentialIssueResult({
+        credential: toRecord(replacement.key, evaluatedAt),
+        token: replacement.token,
+        replayed: false,
+      });
     },
     getDeveloperJourneyExamples: async () =>
       buildDeveloperJourneyExamples(input.now().toISOString()),

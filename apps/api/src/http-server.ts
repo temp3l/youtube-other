@@ -15,6 +15,7 @@ import {
   apiCredentialIssueResultSchema,
   apiCredentialRecordSchema,
   apiCredentialRevokeInputSchema,
+  apiCredentialRotateInputSchema,
   developerJourneyExamplesSchema,
   episodeAssetReferenceAttachInputSchema,
   episodeAssetReferenceAttachResultSchema,
@@ -263,6 +264,21 @@ export interface ApiUseCases {
       Pick<ApiRequestContext, "workspaceId" | "principal" | "ifMatch">
     >
   ): Promise<Record<string, unknown>>;
+  rotateApiCredential(
+    keyId: string,
+    body: unknown,
+    context: Required<
+      Pick<
+        ApiRequestContext,
+        "workspaceId" | "principal" | "ifMatch" | "idempotencyKey"
+      >
+    >
+  ): Promise<{
+    readonly credential: Record<string, unknown>;
+    readonly replayed: boolean;
+    readonly showOnce: boolean;
+    readonly token?: string;
+  }>;
   getDeveloperJourneyExamples(): Promise<Record<string, unknown>>;
   createWebhookEndpoint(
     body: unknown,
@@ -1478,6 +1494,12 @@ function requiredPermission(
   if (
     method === "POST" &&
     !matched.project &&
+    /^api-credentials\/[^/]+:rotate$/u.test(matched.tail ?? "")
+  )
+    return "workspace.admin";
+  if (
+    method === "POST" &&
+    !matched.project &&
     matched.tail === "webhook-endpoints"
   )
     return "webhook.manage";
@@ -1996,6 +2018,30 @@ export function createApiServer(
         );
         return json(response, 200, result, {
           etag: etag(result.revision),
+          "x-request-id": requestIdValue,
+        });
+      }
+      const apiCredentialRotateMatch = !matched.project
+        ? matched.tail?.match(/^api-credentials\/([^/]+):rotate$/u)
+        : null;
+      if (request.method === "POST" && apiCredentialRotateMatch?.[1]) {
+        const key = idempotencyKey(request);
+        if (!key)
+          throw new ApplicationError(
+            "precondition_required",
+            "Idempotency-Key is required.",
+            false
+          );
+        const result = apiCredentialIssueResultSchema.parse(
+          await useCases.rotateApiCredential(
+            apiCredentialRotateMatch[1],
+            apiCredentialRotateInputSchema.parse(await body(request)),
+            { ...context, ifMatch: strongIfMatch(request), idempotencyKey: key }
+          )
+        );
+        return json(response, result.replayed ? 200 : 201, result, {
+          etag: etag(result.credential.revision),
+          ...(result.replayed ? { "idempotency-replayed": "true" } : {}),
           "x-request-id": requestIdValue,
         });
       }

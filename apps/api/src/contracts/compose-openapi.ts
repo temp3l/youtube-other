@@ -1,10 +1,5 @@
-import { artifactLineageOpenApiPaths } from "./modules/artifact-lineage-paths.js";
-import { artifactReviewPublicationOpenApiPaths } from "./modules/artifact-review-publication-paths.js";
-import { contentOpenApiPaths } from "./modules/content-paths.js";
-import { platformOpenApiPaths } from "./modules/platform-paths.js";
-import { speechOpenApiPaths } from "./modules/speech-paths.js";
-import { workflowOpenApiPaths } from "./modules/workflow-paths.js";
 import { openApiComponents } from "./openapi-components.js";
+import { OPENAPI_PATH_MODULES } from "./openapi-registry.js";
 
 export const openApiDocument = {
   openapi: "3.1.0",
@@ -15,13 +10,6 @@ export const openApiDocument = {
   },
   jsonSchemaDialect: "https://json-schema.org/draft/2020-12/schema",
   security: [{ BearerAuth: [] }],
-  paths: {
-    ...platformOpenApiPaths,
-    ...contentOpenApiPaths,
-    ...workflowOpenApiPaths,
-    ...artifactLineageOpenApiPaths,
-    ...artifactReviewPublicationOpenApiPaths,
-    ...speechOpenApiPaths,
-  },
+  paths: Object.assign({}, ...OPENAPI_PATH_MODULES.map((module) => module.paths)),
   ...openApiComponents,
 } as const;

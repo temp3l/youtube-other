@@ -98,6 +98,13 @@ const useCases: ApiUseCases = {
     revokedAt: "2026-08-01T12:00:00.000Z",
     replayed: false,
   }),
+  rotateApiCredential: async () => ({
+    credential: {
+      schemaVersion: "mediaforge.api-credential.v1",
+      workspaceId: "ws-1", keyId: "key-rotated", name: "Replacement key", principalId: "user-1", permissions: ["content.read"], status: "active", expiresAt: "2030-01-01T00:00:00.000Z", revision: 0, createdAt: "2026-08-01T00:00:00.000Z", updatedAt: "2026-08-01T00:00:00.000Z",
+    },
+    token: "mfk_replacement", replayed: false, showOnce: true,
+  }),
 };
 const authenticate = async () => ({
   principalId: "user-1",
@@ -112,6 +119,7 @@ const authenticate = async () => ({
     "usage.read",
     "workflow.cancel",
     "workflow.start",
+    "workspace.admin",
   ],
   kind: "user" as const,
 });
@@ -232,6 +240,9 @@ describe("HTTP API contract", () => {
         },
         "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}/production-state": {
           get: { operationId: "getEpisodeProductionState" },
+        },
+        "/v1/workspaces/{workspace}/api-credentials/{key}:rotate": {
+          post: { operationId: "rotateApiCredential" },
         },
         "/v1/workspaces/{workspace}/projects/{project}/workflow-runs/{run}/steps":
           { get: { operationId: "listWorkflowSteps" } },
@@ -609,6 +620,30 @@ describe("HTTP API contract", () => {
         }),
       }),
     ]);
+  });
+
+  it("rotates a credential only with an ETag and returns its replacement secret once", async () => {
+    const running = await serve(
+      createApiServer({ useCases, authenticate, requestId: () => "request-key-rotate" })
+    );
+    closers.push(running.close);
+    const body = JSON.stringify({
+      name: "Replacement key", permissions: ["content.read"],
+      expiresAt: "2030-01-01T00:00:00.000Z", overlapMs: 60_000,
+    });
+    const missing = await request({
+      url: `${running.baseUrl}/v1/workspaces/ws-1/api-credentials/key-1:rotate`, method: "POST",
+      headers: { "content-type": "application/json", "idempotency-key": "rotate-1" }, body,
+    });
+    expect(missing.status, missing.body).toBe(428);
+    const response = await request({
+      url: `${running.baseUrl}/v1/workspaces/ws-1/api-credentials/key-1:rotate`, method: "POST",
+      headers: { "content-type": "application/json", "idempotency-key": "rotate-1", "if-match": '"2"' }, body,
+    });
+    expect(response.status).toBe(201);
+    expect(JSON.parse(response.body) as unknown).toMatchObject({
+      token: "mfk_replacement", showOnce: true, replayed: false,
+    });
   });
 
   it("rejects unsupported mathematics profile input as a stable 422 before dispatch", async () => {
