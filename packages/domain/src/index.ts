@@ -24,6 +24,8 @@ export * from "./api-credential-contracts.js";
 export * from "./api-credential-lifecycle.js";
 export * from "./webhook-contracts.js";
 export * from "./webhook-lifecycle.js";
+export * from "./content-reuse-contracts.js";
+export * from "./content-reuse-lifecycle.js";
 
 const episodeIdPattern = /^[a-z0-9][a-z0-9-]*$/;
 const sceneIdPattern = /^scene-[0-9]{3}$/;

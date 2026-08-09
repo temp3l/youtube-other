@@ -132,6 +132,18 @@ export const openApiComponents = {
         required: true,
         schema: schema("OpaqueId"),
       },
+      ProductionTemplateId: {
+        name: "template",
+        in: "path",
+        required: true,
+        schema: schema("OpaqueId"),
+      },
+      MimeTypeFilter: {
+        name: "filter[mimeType]",
+        in: "query",
+        required: false,
+        schema: { type: "string", minLength: 1, maxLength: 160 },
+      },
       ApprovalId: {
         name: "approval",
         in: "path",
@@ -1031,6 +1043,275 @@ export const openApiComponents = {
           delivered: { type: "boolean" },
           responseStatus: { type: "integer", minimum: 100, maximum: 599 },
           error: { type: "string", minLength: 1, maxLength: 2_000 },
+        },
+      },
+      ProductionTemplateSnapshot: {
+        type: "object",
+        additionalProperties: false,
+        required: ["profile", "configDefaults"],
+        properties: {
+          profile: {
+            type: "string",
+            enum: [
+              "dark_truth",
+              "mathematics_education",
+              "dynamic_generic",
+              "history",
+              "strategic_reinvention",
+            ],
+          },
+          configDefaults: { type: "object", additionalProperties: true },
+        },
+      },
+      ProductionTemplateRecord: {
+        type: "object",
+        additionalProperties: false,
+        required: [
+          "schemaVersion",
+          "workspaceId",
+          "templateId",
+          "name",
+          "profile",
+          "revision",
+          "snapshot",
+          "createdAt",
+          "updatedAt",
+        ],
+        properties: {
+          schemaVersion: {
+            type: "string",
+            enum: ["mediaforge.production-template.v1"],
+          },
+          workspaceId: schema("OpaqueId"),
+          templateId: schema("OpaqueId"),
+          name: { type: "string", minLength: 1, maxLength: 160 },
+          profile: {
+            type: "string",
+            enum: [
+              "dark_truth",
+              "mathematics_education",
+              "dynamic_generic",
+              "history",
+              "strategic_reinvention",
+            ],
+          },
+          revision: schema("Revision"),
+          snapshot: schema("ProductionTemplateSnapshot"),
+          createdAt: schema("DateTime"),
+          updatedAt: schema("DateTime"),
+        },
+      },
+      ProductionTemplatePage: {
+        type: "object",
+        additionalProperties: false,
+        required: ["items"],
+        properties: {
+          items: {
+            type: "array",
+            items: schema("ProductionTemplateRecord"),
+          },
+        },
+      },
+      ProductionTemplateCreateInput: {
+        type: "object",
+        additionalProperties: false,
+        required: ["name", "profile", "snapshot"],
+        properties: {
+          name: { type: "string", minLength: 1, maxLength: 160 },
+          profile: {
+            type: "string",
+            enum: [
+              "dark_truth",
+              "mathematics_education",
+              "dynamic_generic",
+              "history",
+              "strategic_reinvention",
+            ],
+          },
+          snapshot: schema("ProductionTemplateSnapshot"),
+        },
+      },
+      ProductionTemplateUpdateInput: {
+        type: "object",
+        additionalProperties: false,
+        required: ["name", "snapshot"],
+        properties: {
+          name: { type: "string", minLength: 1, maxLength: 160 },
+          snapshot: schema("ProductionTemplateSnapshot"),
+        },
+      },
+      ProductionTemplateBinding: {
+        type: "object",
+        additionalProperties: false,
+        required: [
+          "schemaVersion",
+          "templateId",
+          "pinnedRevision",
+          "appliedSnapshot",
+          "appliedAt",
+        ],
+        properties: {
+          schemaVersion: {
+            type: "string",
+            enum: ["mediaforge.production-template-binding.v1"],
+          },
+          templateId: schema("OpaqueId"),
+          pinnedRevision: schema("Revision"),
+          appliedSnapshot: schema("ProductionTemplateSnapshot"),
+          appliedAt: schema("DateTime"),
+        },
+      },
+      ProductionTemplateApplyInput: {
+        type: "object",
+        additionalProperties: false,
+        required: ["templateId"],
+        properties: {
+          templateId: schema("OpaqueId"),
+          pinnedRevision: schema("Revision"),
+        },
+      },
+      ProductionTemplateApplyResult: {
+        type: "object",
+        additionalProperties: false,
+        required: ["binding", "resolvedSnapshot"],
+        properties: {
+          binding: schema("ProductionTemplateBinding"),
+          resolvedSnapshot: schema("ProductionTemplateSnapshot"),
+        },
+      },
+      EpisodeCloneInput: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          sourceRevision: schema("Revision"),
+          targetProjectId: schema("OpaqueId"),
+          copyPolicy: {
+            type: "string",
+            enum: ["content_and_permitted_assets", "content_only"],
+          },
+        },
+      },
+      OmittedCloneAsset: {
+        type: "object",
+        additionalProperties: false,
+        required: ["assetId", "reason"],
+        properties: {
+          assetId: schema("OpaqueId"),
+          reason: { type: "string", minLength: 1, maxLength: 160 },
+        },
+      },
+      EpisodeCloneResult: {
+        type: "object",
+        additionalProperties: false,
+        required: ["id", "revision", "omittedAssets", "resetRuntimeIdentity"],
+        properties: {
+          id: schema("OpaqueId"),
+          revision: schema("Revision"),
+          omittedAssets: {
+            type: "array",
+            items: schema("OmittedCloneAsset"),
+          },
+          resetRuntimeIdentity: { type: "boolean", enum: [true] },
+        },
+      },
+      AssetReuseEligibility: {
+        type: "object",
+        additionalProperties: false,
+        required: ["eligible"],
+        properties: {
+          eligible: { type: "boolean" },
+          reason: { type: "string", minLength: 1, maxLength: 160 },
+          mode: {
+            type: "string",
+            enum: ["reference", "copy_on_write"],
+          },
+        },
+      },
+      ReusableAssetRecord: {
+        type: "object",
+        additionalProperties: false,
+        required: [
+          "id",
+          "mimeType",
+          "bytes",
+          "sha256",
+          "lifecycle",
+          "provenance",
+          "eligibility",
+        ],
+        properties: {
+          id: schema("OpaqueId"),
+          mimeType: { type: "string", minLength: 1, maxLength: 160 },
+          bytes: { type: "integer", minimum: 0 },
+          sha256: { type: "string", pattern: "^[a-f0-9]{64}$" },
+          lifecycle: {
+            type: "string",
+            enum: ["active", "archived", "shared", "revoked", "prohibited"],
+          },
+          provenance: { type: "string", maxLength: 8_192 },
+          eligibility: schema("AssetReuseEligibility"),
+        },
+      },
+      ReusableAssetPage: {
+        type: "object",
+        additionalProperties: false,
+        required: ["items"],
+        properties: {
+          items: {
+            type: "array",
+            items: schema("ReusableAssetRecord"),
+          },
+          nextAfter: { type: "string", minLength: 1, maxLength: 4_096 },
+        },
+      },
+      EpisodeAssetReferenceRecord: {
+        type: "object",
+        additionalProperties: false,
+        required: [
+          "schemaVersion",
+          "assetId",
+          "sha256",
+          "provenance",
+          "mode",
+          "attachmentKey",
+          "createdAt",
+        ],
+        properties: {
+          schemaVersion: {
+            type: "string",
+            enum: ["mediaforge.episode-asset-reference.v1"],
+          },
+          assetId: schema("OpaqueId"),
+          sha256: { type: "string", pattern: "^[a-f0-9]{64}$" },
+          provenance: { type: "string", maxLength: 8_192 },
+          mode: {
+            type: "string",
+            enum: ["reference", "copy_on_write"],
+          },
+          attachmentKey: schema("OpaqueId"),
+          createdAt: schema("DateTime"),
+        },
+      },
+      EpisodeAssetReferenceAttachInput: {
+        type: "object",
+        additionalProperties: false,
+        required: ["assetId"],
+        properties: {
+          assetId: schema("OpaqueId"),
+          mode: {
+            type: "string",
+            enum: ["reference", "copy_on_write"],
+          },
+          attachmentKey: schema("OpaqueId"),
+        },
+      },
+      EpisodeAssetReferenceAttachResult: {
+        type: "object",
+        additionalProperties: false,
+        required: ["reference", "replayed"],
+        properties: {
+          reference: schema("EpisodeAssetReferenceRecord"),
+          replayed: { type: "boolean" },
         },
       },
       ProjectInput: {

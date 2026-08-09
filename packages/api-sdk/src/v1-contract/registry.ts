@@ -2,6 +2,7 @@ import { artifactLineageSdkV1Operations } from "./modules/artifact-lineage-opera
 import { artifactSdkV1Operations, publicationSdkV1Operations, reviewSdkV1Operations } from "./modules/artifact-review-publication-operations.js";
 import { contentSdkV1Operations } from "./modules/content-operations.js";
 import { developerCredentialSdkV1Operations } from "./modules/developer-credential-operations.js";
+import { lifecycleSdkV1Operations } from "./modules/lifecycle-operations.js";
 import { webhookSdkV1Operations } from "./modules/webhook-operations.js";
 import { platformSdkV1Operations } from "./modules/platform-operations.js";
 import { workflowSdkV1Operations } from "./modules/workflow-operations.js";
@@ -16,6 +17,11 @@ export const SDK_V1_OPERATION_MODULES: readonly SdkV1OperationModule[] = [
     operations: developerCredentialSdkV1Operations,
   },
   { id: "webhook", owner: "developer", operations: webhookSdkV1Operations },
+  {
+    id: "lifecycle",
+    owner: "lifecycle",
+    operations: lifecycleSdkV1Operations,
+  },
   { id: "content", owner: "content", operations: contentSdkV1Operations },
   { id: "workflow", owner: "workflow", operations: workflowSdkV1Operations },
   {
@@ -74,6 +80,7 @@ export const SDK_V1_OPERATIONS = mergeOperations(
 ) as typeof platformSdkV1Operations &
   typeof developerCredentialSdkV1Operations &
   typeof webhookSdkV1Operations &
+  typeof lifecycleSdkV1Operations &
   typeof contentSdkV1Operations &
   typeof workflowSdkV1Operations &
   typeof artifactLineageSdkV1Operations &

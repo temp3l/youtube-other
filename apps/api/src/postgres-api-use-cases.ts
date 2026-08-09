@@ -36,6 +36,7 @@ import {
 } from "./contract.js";
 import { createApiWorkflowAdmissionUseCase } from "./http-server.js";
 import { createApiCredentialUseCases } from "./postgres-api-credential-use-cases.js";
+import { createApiContentReuseUseCases } from "./postgres-api-content-reuse-use-cases.js";
 import { createApiWebhookUseCases } from "./postgres-api-webhook-use-cases.js";
 
 interface CursorValue {
@@ -263,6 +264,12 @@ export function createPostgresApiUseCases(input: {
     createId,
   });
   const webhookUseCases = createApiWebhookUseCases({
+    pool: input.pool,
+    cursorSecret: input.cursorSecret,
+    now,
+    createId,
+  });
+  const contentReuseUseCases = createApiContentReuseUseCases({
     pool: input.pool,
     cursorSecret: input.cursorSecret,
     now,
@@ -987,5 +994,6 @@ export function createPostgresApiUseCases(input: {
     revokeApiCredential,
     getDeveloperJourneyExamples,
     ...webhookUseCases,
+    ...contentReuseUseCases,
   };
 }

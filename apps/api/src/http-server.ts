@@ -16,6 +16,16 @@ import {
   apiCredentialRecordSchema,
   apiCredentialRevokeInputSchema,
   developerJourneyExamplesSchema,
+  episodeAssetReferenceAttachInputSchema,
+  episodeAssetReferenceAttachResultSchema,
+  episodeCloneInputSchema,
+  episodeCloneResultSchema,
+  productionTemplateApplyInputSchema,
+  productionTemplateApplyResultSchema,
+  productionTemplateCreateInputSchema,
+  productionTemplateRecordSchema,
+  productionTemplateUpdateInputSchema,
+  reusableAssetPageSchema,
   webhookDeliveryAttemptPageSchema,
   webhookDeliveryRecordSchema,
   webhookEndpointCreateInputSchema,
@@ -293,6 +303,58 @@ export interface ApiUseCases {
       Pick<ApiRequestContext, "workspaceId" | "principal" | "ifMatch">
     >
   ): Promise<Record<string, unknown>>;
+  createProductionTemplate(
+    body: unknown,
+    context: Required<Pick<ApiRequestContext, "workspaceId" | "principal">>
+  ): Promise<Record<string, unknown>>;
+  listProductionTemplates(
+    context: Required<Pick<ApiRequestContext, "workspaceId" | "principal">>
+  ): Promise<{ readonly items: readonly Record<string, unknown>[] }>;
+  getProductionTemplate(
+    templateId: string,
+    context: Required<Pick<ApiRequestContext, "workspaceId" | "principal">>
+  ): Promise<Record<string, unknown>>;
+  updateProductionTemplate(
+    templateId: string,
+    body: unknown,
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "principal" | "ifMatch">
+    >
+  ): Promise<Record<string, unknown>>;
+  listReusableAssets(
+    after: string | undefined,
+    size: number,
+    filters: { readonly mimeType?: string },
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal">
+    >
+  ): Promise<Record<string, unknown>>;
+  cloneEpisode(
+    episodeId: string,
+    body: unknown,
+    context: Required<
+      Pick<
+        ApiRequestContext,
+        "workspaceId" | "projectId" | "principal" | "idempotencyKey"
+      >
+    >
+  ): Promise<Record<string, unknown>>;
+  attachEpisodeAssetReference(
+    episodeId: string,
+    body: unknown,
+    context: Required<Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal">>
+  ): Promise<Record<string, unknown>>;
+  applyProductionTemplate(
+    episodeId: string,
+    body: unknown,
+    context: Required<Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal">>
+  ): Promise<Record<string, unknown>>;
+  getEpisodeProductionTemplateBinding(
+    episodeId: string,
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal">
+    >
+  ): Promise<Record<string, unknown> | null>;
   createProject(
     input: ProjectInput,
     context: ApiRequestContext
@@ -974,6 +1036,7 @@ function route(pathname: string): {
   readonly approval?: string;
   readonly approvalChallenge?: string;
   readonly approvalAction?: "revoke";
+  readonly episodeAction?: "clone";
   readonly tail?: string;
 } | null {
   const parts = pathname.split("/").filter(Boolean).map(decodeURIComponent);
@@ -990,6 +1053,7 @@ function route(pathname: string): {
     approval?: string;
     approvalChallenge?: string;
     approvalAction?: "revoke";
+    episodeAction?: "clone";
     tail?: string;
   } = { workspace: parts[2] };
   if (parts[3] !== "projects") {
@@ -1002,7 +1066,15 @@ function route(pathname: string): {
   }
   result.project = parts[4];
   result.tail = parts.slice(5).join("/");
-  if (parts[5] === "episodes" && parts[6]) result.episode = parts[6];
+  if (parts[5] === "episodes" && parts[6]) {
+    const cloneAction = parts[6].match(/^(.+):clone$/u);
+    if (cloneAction?.[1]) {
+      result.episode = cloneAction[1];
+      result.episodeAction = "clone";
+    } else {
+      result.episode = parts[6];
+    }
+  }
   if (parts[5] === "workflow-runs" && parts[6]) {
     const action = parts[6].match(/^(.+):(cancel|resume)$/u);
     if (action?.[1] && (action[2] === "cancel" || action[2] === "resume")) {
@@ -1134,7 +1206,56 @@ function requiredPermission(
       /^videos\/[^/]+\/speech-override$/u.test(matched.tail ?? ""))
   )
     return "content.write";
-  if (!matched.project) return null;
+  if (
+    method === "GET" &&
+    !matched.project &&
+    matched.tail === "production-templates"
+  )
+    return "content.read";
+  if (
+    method === "POST" &&
+    !matched.project &&
+    matched.tail === "production-templates"
+  )
+    return "content.write";
+  if (
+    method === "GET" &&
+    !matched.project &&
+    /^production-templates\/[^/]+$/u.test(matched.tail ?? "")
+  )
+    return "content.read";
+  if (
+    method === "PATCH" &&
+    !matched.project &&
+    /^production-templates\/[^/]+$/u.test(matched.tail ?? "")
+  )
+    return "content.write";
+  if (method === "GET" && matched.tail === "reusable-assets")
+    return "content.read";
+  if (
+    method === "POST" &&
+    matched.episode &&
+    matched.episodeAction === "clone"
+  )
+    return "content.write";
+  if (
+    method === "POST" &&
+    matched.episode &&
+    matched.tail === `episodes/${matched.episode}/asset-references`
+  )
+    return "content.write";
+  if (
+    method === "POST" &&
+    matched.episode &&
+    matched.tail === `episodes/${matched.episode}/production-template:apply`
+  )
+    return "content.write";
+  if (
+    method === "GET" &&
+    matched.episode &&
+    matched.tail === `episodes/${matched.episode}/production-template-binding`
+  )
+    return "content.read";
   if (method === "GET" && matched.tail === "episodes") return "content.read";
   if (method === "POST" && matched.tail === "episodes") return "content.write";
   if (
@@ -1863,6 +1984,76 @@ export function createApiServer(
           201,
           { id: result.id, revision: result.revision },
           { etag: etag(result.revision), "x-request-id": requestIdValue }
+        );
+      }
+      if (
+        request.method === "POST" &&
+        matched.episode &&
+        matched.episodeAction === "clone"
+      ) {
+        const key = idempotencyKey(request);
+        if (!key)
+          throw new ApplicationError(
+            "precondition_required",
+            "Idempotency-Key is required.",
+            false
+          );
+        const result = episodeCloneResultSchema.parse(
+          await useCases.cloneEpisode(
+            matched.episode,
+            episodeCloneInputSchema.parse(await body(request)),
+            { ...projectContext, idempotencyKey: key }
+          )
+        );
+        return json(response, 201, result, {
+          etag: etag(result.revision),
+          "x-request-id": requestIdValue,
+        });
+      }
+      if (
+        request.method === "POST" &&
+        matched.episode &&
+        matched.tail === `episodes/${matched.episode}/asset-references`
+      ) {
+        const result = episodeAssetReferenceAttachResultSchema.parse(
+          await useCases.attachEpisodeAssetReference(
+            matched.episode,
+            episodeAssetReferenceAttachInputSchema.parse(await body(request)),
+            projectContext
+          )
+        );
+        return json(response, 201, result, { "x-request-id": requestIdValue });
+      }
+      if (
+        request.method === "POST" &&
+        matched.episode &&
+        matched.tail === `episodes/${matched.episode}/production-template:apply`
+      ) {
+        const result = productionTemplateApplyResultSchema.parse(
+          await useCases.applyProductionTemplate(
+            matched.episode,
+            productionTemplateApplyInputSchema.parse(await body(request)),
+            projectContext
+          )
+        );
+        return json(response, 200, result, { "x-request-id": requestIdValue });
+      }
+      if (
+        request.method === "GET" &&
+        matched.episode &&
+        matched.tail === `episodes/${matched.episode}/production-template-binding`
+      ) {
+        const result = await useCases.getEpisodeProductionTemplateBinding(
+          matched.episode,
+          projectContext
+        );
+        if (!result)
+          throw new ApplicationError("not_found", "Resource not found.", false);
+        return json(
+          response,
+          200,
+          productionTemplateApplyResultSchema.parse(result),
+          { "x-request-id": requestIdValue }
         );
       }
       if (
