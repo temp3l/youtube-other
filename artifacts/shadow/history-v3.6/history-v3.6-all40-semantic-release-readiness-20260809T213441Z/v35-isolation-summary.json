@@ -1,0 +1,6 @@
+{
+  "status": "PASS",
+  "frozenCommit": "f04262c16bfd1a89d1b404b1ac291a89dc699a0d",
+  "frozenTagObject": "149a2d160b140d13a97f66155a4b8705f6adf652",
+  "note": "The census reads frozen V3.5 sources only; no V3.5 source, plan, approval, or shared serialization file was written."
+}

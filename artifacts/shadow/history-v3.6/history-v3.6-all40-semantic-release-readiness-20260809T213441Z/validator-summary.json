@@ -1,0 +1,10 @@
+{
+  "rejectedCandidateCount": 48,
+  "rejectionDiagnostics": {
+    "RELATION_PROPER_NAME_FRAGMENTATION": 21,
+    "SHADOW_RELATION_INSUFFICIENT_CARDINALITY": 31,
+    "SHADOW_RELATION_PARTICIPANT_UNRESOLVED": 2,
+    "SHADOW_RELATION_PROPOSITION_AMBIGUOUS": 9
+  },
+  "unresolvedParticipants": 2
+}

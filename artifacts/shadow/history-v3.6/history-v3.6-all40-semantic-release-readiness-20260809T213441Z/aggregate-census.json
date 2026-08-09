@@ -1,0 +1,263 @@
+{
+  "totalClaims": 3774,
+  "totalNativeStructuredClaims": 0,
+  "totalNativePropositions": 0,
+  "totalCompatibilityPropositions": 111,
+  "totalAtoms": 111,
+  "totalCandidates": 236,
+  "totalValidatedRelations": 103,
+  "totalProofs": 0,
+  "diagnostics": {
+    "GROUNDING_PARTICIPANT_UNRESOLVED": 2,
+    "RELATION_PROPER_NAME_FRAGMENTATION": 21,
+    "SHADOW_RELATION_INSUFFICIENT_CARDINALITY": 31,
+    "SHADOW_RELATION_PARTICIPANT_UNRESOLVED": 2,
+    "SHADOW_RELATION_PROPOSITION_AMBIGUOUS": 9
+  },
+  "zeroRelationEpisodes": [
+    "history-youtube-history-30-video-story-pack-15-spartacus-slave-army",
+    "history-youtube-history-30-video-story-pack-24-fall-of-tenochtitlan"
+  ],
+  "density": [
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-01-bronze-age-collapse",
+      "relationsPer100Claims": 2.11,
+      "candidatesPer100Claims": 4.21,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-02-napoleons-invasion-of-russia",
+      "relationsPer100Claims": 4.26,
+      "candidatesPer100Claims": 9.57,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-03-fall-of-the-roman-empire",
+      "relationsPer100Claims": 4.72,
+      "candidatesPer100Claims": 11.32,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-04-black-death",
+      "relationsPer100Claims": 3.13,
+      "candidatesPer100Claims": 7.29,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-05-franklin-expedition",
+      "relationsPer100Claims": 3.26,
+      "candidatesPer100Claims": 5.43,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-06-mongol-war-machine",
+      "relationsPer100Claims": 1.02,
+      "candidatesPer100Claims": 3.06,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-07-day-life-medieval-peasant",
+      "relationsPer100Claims": 3.06,
+      "candidatesPer100Claims": 6.12,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-08-cuban-missile-crisis",
+      "relationsPer100Claims": 2.04,
+      "candidatesPer100Claims": 3.06,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-09-cleopatra-beyond-legend",
+      "relationsPer100Claims": 5.49,
+      "candidatesPer100Claims": 14.29,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-10-titanic-decisions-disaster",
+      "relationsPer100Claims": 2.11,
+      "candidatesPer100Claims": 4.21,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-11-pompeii-the-last-day",
+      "relationsPer100Claims": 4.21,
+      "candidatesPer100Claims": 7.37,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-12-year-536-when-the-sun-disappeared",
+      "relationsPer100Claims": 1.05,
+      "candidatesPer100Claims": 2.11,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-13-caesar-in-gaul",
+      "relationsPer100Claims": 1.11,
+      "candidatesPer100Claims": 4.44,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-14-caesar-vs-pompey",
+      "relationsPer100Claims": 2.2,
+      "candidatesPer100Claims": 10.99,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-15-spartacus-slave-army",
+      "relationsPer100Claims": 0,
+      "candidatesPer100Claims": 0,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-16-hannibal-at-cannae",
+      "relationsPer100Claims": 2.2,
+      "candidatesPer100Claims": 4.4,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-17-alexander-breaks-persia",
+      "relationsPer100Claims": 3.13,
+      "candidatesPer100Claims": 9.38,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-18-peloponnesian-war-athens-destroys-itself",
+      "relationsPer100Claims": 1,
+      "candidatesPer100Claims": 2,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-19-great-heathen-army",
+      "relationsPer100Claims": 1.08,
+      "candidatesPer100Claims": 5.38,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-20-1066-battle-that-changed-england",
+      "relationsPer100Claims": 1.09,
+      "candidatesPer100Claims": 3.26,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-21-fall-of-constantinople",
+      "relationsPer100Claims": 5.43,
+      "candidatesPer100Claims": 11.96,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-22-first-crusade-jerusalem",
+      "relationsPer100Claims": 1.98,
+      "candidatesPer100Claims": 3.96,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-23-rise-of-the-samurai",
+      "relationsPer100Claims": 3.26,
+      "candidatesPer100Claims": 5.43,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-24-fall-of-tenochtitlan",
+      "relationsPer100Claims": 0,
+      "candidatesPer100Claims": 1.04,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-25-maya-collapse",
+      "relationsPer100Claims": 2.88,
+      "candidatesPer100Claims": 5.77,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-26-greenland-vikings-vanished",
+      "relationsPer100Claims": 4.12,
+      "candidatesPer100Claims": 9.28,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-27-fall-of-angkor",
+      "relationsPer100Claims": 3.3,
+      "candidatesPer100Claims": 7.69,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-28-end-of-the-pyramid-age",
+      "relationsPer100Claims": 3.23,
+      "candidatesPer100Claims": 8.6,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-29-discovery-of-tutankhamun",
+      "relationsPer100Claims": 5.32,
+      "candidatesPer100Claims": 9.57,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-30-salem-witch-trials",
+      "relationsPer100Claims": 2,
+      "candidatesPer100Claims": 6,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion",
+      "relationsPer100Claims": 4.4,
+      "candidatesPer100Claims": 9.89,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-32-stalingrad-city-that-broke-hitler",
+      "relationsPer100Claims": 3.33,
+      "candidatesPer100Claims": 7.78,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-33-pearl-harbor-road-to-war",
+      "relationsPer100Claims": 3.37,
+      "candidatesPer100Claims": 8.99,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-34-hiroshima-decision-to-use-the-bomb",
+      "relationsPer100Claims": 2.17,
+      "candidatesPer100Claims": 3.26,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-35-chernobyl-night-reactor-exploded",
+      "relationsPer100Claims": 2.13,
+      "candidatesPer100Claims": 4.26,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-36-spanish-armada-why-it-failed",
+      "relationsPer100Claims": 2.13,
+      "candidatesPer100Claims": 6.38,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-37-french-revolution-reign-of-terror",
+      "relationsPer100Claims": 1.08,
+      "candidatesPer100Claims": 2.15,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-38-great-fire-of-london",
+      "relationsPer100Claims": 2.08,
+      "candidatesPer100Claims": 3.13,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-39-lost-colony-of-roanoke",
+      "relationsPer100Claims": 8.33,
+      "candidatesPer100Claims": 15.48,
+      "nativePropositionsPer100Claims": 0
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-40-rapa-nui-collapse-myth",
+      "relationsPer100Claims": 1.06,
+      "candidatesPer100Claims": 3.19,
+      "nativePropositionsPer100Claims": 0
+    }
+  ]
+}

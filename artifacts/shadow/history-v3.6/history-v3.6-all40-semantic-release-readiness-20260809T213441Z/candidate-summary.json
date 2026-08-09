@@ -1,0 +1,35 @@
+{
+  "total": 236,
+  "bySourceRule": {
+    "adjacent-movement-purpose-not-destination": 1,
+    "adjacent-policy-response-explicit-condition": 1,
+    "atomic-grounding:explicit-structured-proposition-v1": 87,
+    "causal-because": 59,
+    "causal-caused": 7,
+    "causal-contributed-to": 5,
+    "causal-preserved": 6,
+    "causal-relative-clause-caused": 2,
+    "dependency-depended-on": 23,
+    "evidence-enumeration-found": 1,
+    "evidence-enumeration-grouped-graves": 1,
+    "movement-arrival-from": 1,
+    "movement-bounded-endpoints": 36,
+    "place-comparison-rather-than": 4,
+    "policy-response-single-claim": 2
+  },
+  "byRelationKind": {
+    "movement": 1,
+    "spatial-comparison": 2,
+    "spatial-area": 0,
+    "causal": 140,
+    "dependency": 43,
+    "process": 0,
+    "temporal-sequence": 0,
+    "policy-response": 0,
+    "evidence-set": 2,
+    "event-location": 0
+  },
+  "rejected": 48,
+  "semanticDuplicateCollapseCount": 85,
+  "evidenceMergeCount": 0
+}

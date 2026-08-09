@@ -1,0 +1,11 @@
+{
+  "historyTypecheck": "PASS",
+  "targetedEslint": "PASS",
+  "v36SemanticValidatorProofSuites": "PASS (193 tests)",
+  "goldenSemanticFixtures": "included in V3.6 suite",
+  "sameEightDeterministicRegression": "included in V3.6 suite",
+  "all40Run1": "PASS",
+  "all40Run2": "PASS",
+  "providerCalls": 0,
+  "llmSemanticCalls": 0
+}

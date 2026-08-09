@@ -1,0 +1,173 @@
+{
+  "sourceCommit": "72b4ee8010f22f6ea3c663edc8c3e90dbeb7aa67",
+  "acceptedBaselineCommit": "72b4ee8010f22f6ea3c663edc8c3e90dbeb7aa67",
+  "acceptedBaselineTagObject": "fec5a1bd04ffdd6dd798e93ce98fbce9ab764393",
+  "preCensusCheckpointCommit": "72b4ee8010f22f6ea3c663edc8c3e90dbeb7aa67",
+  "frozenV35Commit": "f04262c16bfd1a89d1b404b1ac291a89dc699a0d",
+  "episodeInventory": [
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-01-bronze-age-collapse",
+      "title": "The Bronze Age Collapse: When Civilizations Fell Together"
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-02-napoleons-invasion-of-russia",
+      "title": "Napoleon’s Invasion of Russia: The Campaign That Destroyed an Army"
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-03-fall-of-the-roman-empire",
+      "title": "The Fall of the Roman Empire: How the West Came Apart"
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-04-black-death",
+      "title": "The Black Death: The Pandemic That Remade Europe"
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-05-franklin-expedition",
+      "title": "The Mystery of the Franklin Expedition: Lost in the Arctic"
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-06-mongol-war-machine",
+      "title": "The Mongol War Machine: How Steppe Armies Conquered Empires"
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-07-day-life-medieval-peasant",
+      "title": "A Day in the Life of a Medieval Peasant"
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-08-cuban-missile-crisis",
+      "title": "The Cuban Missile Crisis: Thirteen Days Near Nuclear War"
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-09-cleopatra-beyond-legend",
+      "title": "Cleopatra Beyond the Legend: Pharaoh, Politician, and Enemy of Rome"
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-10-titanic-decisions-disaster",
+      "title": "Titanic: The Decisions That Caused the Disaster"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-11-pompeii-the-last-day",
+      "title": "Pompeii: The Last Day Before the City Vanished"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-12-year-536-when-the-sun-disappeared",
+      "title": "The Year 536: When the Sun Disappeared"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-13-caesar-in-gaul",
+      "title": "Caesar in Gaul: How Rome Conquered a Civilization"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-14-caesar-vs-pompey",
+      "title": "Caesar vs Pompey: The Civil War That Ended the Republic"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-15-spartacus-slave-army",
+      "title": "Spartacus: How a Slave Army Terrified Rome"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-16-hannibal-at-cannae",
+      "title": "Hannibal at Cannae: Rome’s Worst Day"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-17-alexander-breaks-persia",
+      "title": "Alexander the Great: The Campaign That Broke Persia"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-18-peloponnesian-war-athens-destroys-itself",
+      "title": "The Peloponnesian War: How Athens Destroyed Itself"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-19-great-heathen-army",
+      "title": "The Great Heathen Army: The Viking Invasion of England"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-20-1066-battle-that-changed-england",
+      "title": "1066: The Battle That Changed England"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-21-fall-of-constantinople",
+      "title": "The Fall of Constantinople: The Day the Roman Empire Ended"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-22-first-crusade-jerusalem",
+      "title": "The Crusaders Take Jerusalem: Victory and Massacre in 1099"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-23-rise-of-the-samurai",
+      "title": "The Rise of the Samurai: How Warriors Took Control of Japan"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-24-fall-of-tenochtitlan",
+      "title": "The Fall of Tenochtitlan: How the Aztec Empire Was Conquered"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-25-maya-collapse",
+      "title": "The Maya Collapse: Why the Great Cities Were Abandoned"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-26-greenland-vikings-vanished",
+      "title": "The Greenland Vikings: Why Europe’s Arctic Colony Vanished"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-27-fall-of-angkor",
+      "title": "Angkor: The Fall of the World’s Largest Medieval City"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-28-end-of-the-pyramid-age",
+      "title": "The End of the Pyramid Age: Why Egypt Stopped Building Giants"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-29-discovery-of-tutankhamun",
+      "title": "Tutankhamun: The Discovery That Recreated Ancient Egypt"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-30-salem-witch-trials",
+      "title": "The Salem Witch Trials: How Fear Became Evidence"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion",
+      "title": "D-Day: How the Allies Broke Into Fortress Europe"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-32-stalingrad-city-that-broke-hitler",
+      "title": "Stalingrad: The City That Broke Hitler’s Army"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-33-pearl-harbor-road-to-war",
+      "title": "Pearl Harbor: The Decisions That Brought America Into the War"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-34-hiroshima-decision-to-use-the-bomb",
+      "title": "Hiroshima: The Decision to Use the Atomic Bomb"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-35-chernobyl-night-reactor-exploded",
+      "title": "Chernobyl: The Night the Reactor Exploded"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-36-spanish-armada-why-it-failed",
+      "title": "The Spanish Armada: Why the Invasion of England Failed"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-37-french-revolution-reign-of-terror",
+      "title": "The Reign of Terror: How the French Revolution Turned on Itself"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-38-great-fire-of-london",
+      "title": "The Great Fire of London: Four Days That Remade a City"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-39-lost-colony-of-roanoke",
+      "title": "Roanoke: What Happened to England’s Lost Colony?"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-40-rapa-nui-collapse-myth",
+      "title": "Easter Island: The Collapse Story That Was Wrong"
+    }
+  ],
+  "generatedAt": "2026-08-09T21:34:41.134Z",
+  "liveProviderCalls": 0,
+  "llmSemanticCalls": 0,
+  "historicalNativeSidecarsAvailable": false
+}
