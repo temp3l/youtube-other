@@ -41,8 +41,10 @@ const validProvenance = {
   frozenV35ProductionTag: "history-v3.5-frozen-before-v36",
   acceptedV35SemanticBaselineCommitSha: "82b4192f6e832523ce00675e39593e3f98a96403",
   acceptedV35SemanticBaselineTag: "history-v3.5-semantic-baseline",
+  contractBaselineCommitSha: "022f2177cc0e66f47cb5d652d6d456ce12a5a7be",
   schemaVersion: HISTORY_V36_REVIEW_PROVENANCE_SCHEMA,
   artifactKind: HISTORY_V36_REVIEW_ARTIFACT_KIND,
+  episodeSet: ["representative-episode"],
 };
 
 describe("History V3.6 generated relation JSON Schema", () => {
@@ -115,7 +117,7 @@ describe("History V3.6 generated provenance JSON Schema", () => {
   it("is a strict object schema with all authoritative fields", () => {
     expect(reviewArtifactProvenanceJsonSchemaV36.type).toBe("object");
     expect(reviewArtifactProvenanceJsonSchemaV36.additionalProperties).toBe(false);
-    expect(reviewArtifactProvenanceJsonSchemaV36.required).toHaveLength(10);
+    expect(reviewArtifactProvenanceJsonSchemaV36.required).toHaveLength(12);
     expect(reviewArtifactProvenanceSchemaV36.safeParse(validProvenance).success).toBe(true);
     expect(provenanceJsonSchema.safeParse(validProvenance).success).toBe(true);
   });

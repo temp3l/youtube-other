@@ -40,7 +40,7 @@ Consequently, Lisbon → English Channel supported by `[C1]` and by `[C1, C2]` r
 
 ## Phase 2 shadow candidate extraction
 
-`extractShadowRelationCandidatesV36` is deliberately narrow. It projects only explicit `groundedPropositions` from episode-local `RelationSupportClaimV36` inputs, creates hardened relation records, merges identical semantic IDs by support provenance, and runs deterministic validation before returning candidates. Text alone is not enough: the extractor does not use rules over narration, does not call an LLM, and rejects malformed propositions instead of inferring a substitute.
+`extractShadowRelationCandidatesV36` is deliberately narrow. It projects only explicit `groundedPropositions` from episode-local `RelationSupportClaimV36` inputs, creates hardened relation records, merges identical semantic IDs by support provenance, and runs deterministic validation before returning candidates. The separate representative adapter may create those propositions only from persisted structured claims, resolved entity bindings, and a small enumerated vocabulary of exact proposition forms. It does not scan narration generally, call an LLM, or infer a substitute for missing participants.
 
 Its result is marked `v36-shadow`, contains validated relations plus rejected/skipped candidate diagnostics, and has no production planner, configuration, map, or diagram consumer. It is a golden-corpus/proof-bound integration seam—not production extraction.
 

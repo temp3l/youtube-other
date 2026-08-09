@@ -19,6 +19,6 @@ Shadow relation extraction must not begin until semantic-identity independence f
 
 Persisted relation records use `history-explanatory-relations.v2`; review provenance uses `history-v3.6-relation-ir-review-provenance.v2`. Consumers must use their versioned contracts and must not interpret the removed ambiguous `semanticBaselineCommitSha` field.
 
-## Phase 2 status
+## Representative shadow extraction status
 
-The repository now provides a deterministic, proof-bearing shadow extractor. It materializes only claim `groundedPropositions`, merges evidence for identical semantic IDs, validates candidates, and reports rejected or foreign-episode inputs. It does not parse free text, implement rules or LLM extraction, wire `HISTORY_RELATION_IR_VERSION`, change V3.5, or invoke V3.6 compilers. Broader candidate extraction remains a future shadow-only extension.
+The repository now provides a deterministic, proof-bearing representative shadow adapter. It projects only bounded, explicitly enumerated proposition forms from persisted V3.5 structured claims and their resolved entity bindings, then materializes, deduplicates, and validates them through the hardened V3.6 gate. It retains rejected candidates and typed extraction diagnostics. It does not use an LLM, broad NLP, `HISTORY_RELATION_IR_VERSION`, V3.5 mutation, or V3.6 compilers.

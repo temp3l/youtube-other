@@ -33,6 +33,10 @@
       "type": "string",
       "const": "history-v3.5-semantic-baseline"
     },
+    "contractBaselineCommitSha": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{40}$"
+    },
     "schemaVersion": {
       "type": "string",
       "const": "history-v3.6-relation-ir-review-provenance.v2"
@@ -40,6 +44,14 @@
     "artifactKind": {
       "type": "string",
       "const": "history-v3.6-relation-ir-review"
+    },
+    "episodeSet": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
     }
   },
   "required": [
@@ -51,8 +63,10 @@
     "frozenV35ProductionTag",
     "acceptedV35SemanticBaselineCommitSha",
     "acceptedV35SemanticBaselineTag",
+    "contractBaselineCommitSha",
     "schemaVersion",
-    "artifactKind"
+    "artifactKind",
+    "episodeSet"
   ],
   "additionalProperties": false,
   "$id": "https://mediaforge.local/schemas/history/v3.6/review-provenance-schema.json",

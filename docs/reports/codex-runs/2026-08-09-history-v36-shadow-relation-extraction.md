@@ -1,11 +1,11 @@
-# V3.6 shadow relation extraction
+# V3.6 representative shadow relation extraction
 
-Summary: Added a proof-bearing, shadow-only extractor that projects explicit claim propositions, merges semantic duplicates by evidence, validates candidates, and reports rejected or foreign claims.
+Summary: Added a bounded structured-claim candidate proposer, strict validation accounting, representative differential artifact generator, and provenance corpus identity. V3.5 remains untouched.
 
-Changed paths: `packages/history/src/v36/explanatory-relation-shadow-extractor-v36.{ts,unit.test.ts}`; `packages/history/src/index.ts`; `docs/history/v3.6/{explanatory-relation-ir,migration-plan}.md`.
+Changed paths: `packages/history/src/v36/representative-shadow-extraction-v36.{ts,unit.test.ts}`, `review-provenance-v36.ts`, `v35-v36-diff-v36.ts`, `scripts/generate-history-v36-representative-shadow-review.ts`, V3.6 docs/schema.
 
-Tests/checks: focused extractor Vitest 5/5; hardened V3.6 IR Vitest 59/59; `@mediaforge/history` typecheck; targeted ESLint — all pass.
+Tests: focused V3.6 suite 73/73; `@mediaforge/history` typecheck; targeted ESLint.
 
-Commit hash: `0b6604ee9439ac09ddec14f86517d6736ece803c`.
+Commit hash: recorded after commit.
 
-Unresolved risks: extraction accepts only explicit structured propositions; no free-text rules, LLM extraction, V3.5 wiring, maps, or diagrams were added.
+Unresolved risks: bounded extraction has deliberately low recall; review artifact awaits independent semantic review. No V3.6 compiler, renderer, or V3.5 code changed.

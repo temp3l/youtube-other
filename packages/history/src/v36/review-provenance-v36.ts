@@ -20,8 +20,11 @@ export const reviewArtifactProvenanceSchemaV36 = z.object({
   frozenV35ProductionTag: z.literal("history-v3.5-frozen-before-v36"),
   acceptedV35SemanticBaselineCommitSha: gitShaSchema,
   acceptedV35SemanticBaselineTag: z.literal("history-v3.5-semantic-baseline"),
+  contractBaselineCommitSha: gitShaSchema,
   schemaVersion: z.literal(HISTORY_V36_REVIEW_PROVENANCE_SCHEMA),
   artifactKind: z.literal(HISTORY_V36_REVIEW_ARTIFACT_KIND),
+  /** Ordered, explicit corpus identity; never infer this from artifact contents. */
+  episodeSet: z.array(z.string().trim().min(1)).min(1),
 }).strict();
 
 /** Machine-enforcing Draft 2020-12 schema generated from the runtime validator. */

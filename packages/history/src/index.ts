@@ -83,5 +83,6 @@ export * from "./history-approval-pack-progress.js";
 export * from "./v36/explanatory-relation-v36.js";
 export * from "./v36/explanatory-relation-validator-v36.js";
 export * from "./v36/explanatory-relation-shadow-extractor-v36.js";
+export * from "./v36/representative-shadow-extraction-v36.js";
 export * from "./v36/review-provenance-v36.js";
 export * from "./v36/v35-v36-diff-v36.js";

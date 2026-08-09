@@ -13,3 +13,7 @@
 | `RELATION_DUPLICATE_SEMANTIC_IDENTITY` | A batch repeats deterministic relation semantics. |
 | `RELATION_SEMANTIC_IDENTITY_MISMATCH` | Stored ID does not match deterministic semantics. |
 | `RELATION_EVIDENCE_FINGERPRINT_MISMATCH` | Stored evidence fingerprint does not match canonical support provenance. |
+| `SHADOW_RELATION_PARTICIPANT_UNRESOLVED` | A bounded extraction form lacks a resolved participant. |
+| `SHADOW_RELATION_PROPOSITION_AMBIGUOUS` | Structured claim data does not establish a safe V3.6 proposition. |
+| `SHADOW_RELATION_TAXONOMY_UNSUPPORTED` | The explicit proposition needs a relation kind outside the frozen taxonomy. |
+| `SHADOW_RELATION_INSUFFICIENT_CARDINALITY` | A bounded proposal has too few required participants. |
