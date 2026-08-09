@@ -1,0 +1,124 @@
+{
+  "rule": "SUPPORT_COMPLETION_BEAT_V1",
+  "narrationKeywordHeuristics": 0,
+  "guessedPlacements": 0,
+  "singleBeatSupport": 33,
+  "multiBeatSupport": 1,
+  "provisionalTimingPlacements": 34,
+  "examples": [
+    {
+      "relationId": "relation-causal-265d87bbd6e247f54cfcef53",
+      "relationKind": "causal",
+      "supportClaimIds": [
+        "claim-480703f7fefa622ce85ebc65"
+      ],
+      "supportBeatIds": [
+        "beat-0044"
+      ],
+      "anchor": {
+        "beatId": "beat-0044",
+        "startMs": 493975,
+        "endMs": 499699,
+        "narrationSpan": {
+          "endUtf16Exclusive": 5881,
+          "startUtf16": 5813
+        }
+      }
+    },
+    {
+      "relationId": "relation-dependency-3e92a46348bd78098492edb7",
+      "relationKind": "dependency",
+      "supportClaimIds": [
+        "claim-9e576b423fa332133d2c2ba1"
+      ],
+      "supportBeatIds": [
+        "beat-0013"
+      ],
+      "anchor": {
+        "beatId": "beat-0013",
+        "startMs": 124783,
+        "endMs": 138520,
+        "narrationSpan": {
+          "endUtf16Exclusive": 1652,
+          "startUtf16": 1479
+        }
+      }
+    },
+    {
+      "relationId": "relation-dependency-8d305ddc77b213e310d5b325",
+      "relationKind": "dependency",
+      "supportClaimIds": [
+        "claim-1ac10496509ccda56242f88a"
+      ],
+      "supportBeatIds": [
+        "beat-0051"
+      ],
+      "anchor": {
+        "beatId": "beat-0051",
+        "startMs": 550070,
+        "endMs": 572393,
+        "narrationSpan": {
+          "endUtf16Exclusive": 6757,
+          "startUtf16": 6469
+        }
+      }
+    },
+    {
+      "relationId": "relation-evidence-set-93d52d78d0c9b849fd8db24a",
+      "relationKind": "evidence-set",
+      "supportClaimIds": [
+        "claim-256740d7c97e87c2fd1ff4cd"
+      ],
+      "supportBeatIds": [
+        "beat-0018"
+      ],
+      "anchor": {
+        "beatId": "beat-0018",
+        "startMs": 182022,
+        "endMs": 203773,
+        "narrationSpan": {
+          "endUtf16Exclusive": 2411,
+          "startUtf16": 2169
+        }
+      }
+    },
+    {
+      "relationId": "relation-causal-12242fe1bfc3d3da804bf371",
+      "relationKind": "causal",
+      "supportClaimIds": [
+        "claim-e7ccf1aa69a13de61594802b"
+      ],
+      "supportBeatIds": [
+        "beat-0014"
+      ],
+      "anchor": {
+        "beatId": "beat-0014",
+        "startMs": 140436,
+        "endMs": 150754,
+        "narrationSpan": {
+          "endUtf16Exclusive": 1775,
+          "startUtf16": 1641
+        }
+      }
+    },
+    {
+      "relationId": "relation-causal-15084cb5f069edff2edb4533",
+      "relationKind": "causal",
+      "supportClaimIds": [
+        "claim-8a707b4321b2663a2061939c"
+      ],
+      "supportBeatIds": [
+        "beat-0018"
+      ],
+      "anchor": {
+        "beatId": "beat-0018",
+        "startMs": 194318,
+        "endMs": 203489,
+        "narrationSpan": {
+          "endUtf16Exclusive": 2362,
+          "startUtf16": 2261
+        }
+      }
+    }
+  ]
+}

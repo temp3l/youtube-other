@@ -1,0 +1,936 @@
+{
+  "schemaVersion": "history-visual-plan-shadow.v1",
+  "plannerVersion": "history-visual-plan-shadow.v3.6.0",
+  "episodeId": "history-youtube-history-10-video-story-pack-05-franklin-expedition",
+  "shadowOnly": true,
+  "basePlan": {
+    "schemaVersion": "history-visual-plan.v3.5",
+    "plannerVersion": "history-visual-planner.v3.5.0",
+    "planHash": "b9742e8f781051f03680e7f772d8810167d322caca87454396a4fae655de572d",
+    "timingSource": "provisional-text-estimate",
+    "totalDurationMs": 670130,
+    "productionBlockerCodes": [
+      "TIMING_MEASUREMENT_REQUIRED"
+    ],
+    "beatIds": [
+      "beat-0001",
+      "beat-0002",
+      "beat-0003",
+      "beat-0004",
+      "beat-0005",
+      "beat-0006",
+      "beat-0007",
+      "beat-0008",
+      "beat-0009",
+      "beat-0010",
+      "beat-0011",
+      "beat-0012",
+      "beat-0013",
+      "beat-0014",
+      "beat-0015",
+      "beat-0016",
+      "beat-0017",
+      "beat-0018",
+      "beat-0019",
+      "beat-0020",
+      "beat-0021",
+      "beat-0022",
+      "beat-0023",
+      "beat-0024",
+      "beat-0025",
+      "beat-0026",
+      "beat-0027",
+      "beat-0028",
+      "beat-0029",
+      "beat-0030",
+      "beat-0031",
+      "beat-0032",
+      "beat-0033",
+      "beat-0034",
+      "beat-0035",
+      "beat-0036",
+      "beat-0037",
+      "beat-0038",
+      "beat-0039",
+      "beat-0040",
+      "beat-0041",
+      "beat-0042",
+      "beat-0043",
+      "beat-0044",
+      "beat-0045",
+      "beat-0046",
+      "beat-0047",
+      "beat-0048",
+      "beat-0049",
+      "beat-0050",
+      "beat-0051",
+      "beat-0052",
+      "beat-0053",
+      "beat-0054",
+      "beat-0055",
+      "beat-0056",
+      "beat-0057",
+      "beat-0058",
+      "beat-0059",
+      "beat-0060",
+      "beat-0061",
+      "beat-0062",
+      "beat-0063",
+      "beat-0064",
+      "beat-0065",
+      "beat-0066",
+      "beat-0067"
+    ],
+    "shotIds": [
+      "shot-0001-01",
+      "shot-0002-01",
+      "shot-0002-02",
+      "shot-0002-03",
+      "shot-0003-01",
+      "shot-0004-01",
+      "shot-0005-01",
+      "shot-0006-01",
+      "shot-0007-01",
+      "shot-0007-02",
+      "shot-0008-01",
+      "shot-0009-01",
+      "shot-0009-02",
+      "shot-0009-03",
+      "shot-0010-01",
+      "shot-0010-02",
+      "shot-0011-01",
+      "shot-0011-02",
+      "shot-0012-01",
+      "shot-0013-01",
+      "shot-0013-02",
+      "shot-0014-01",
+      "shot-0014-02",
+      "shot-0015-01",
+      "shot-0016-01",
+      "shot-0016-02",
+      "shot-0017-01",
+      "shot-0018-01",
+      "shot-0019-01",
+      "shot-0020-01",
+      "shot-0021-01",
+      "shot-0022-01",
+      "shot-0023-01",
+      "shot-0024-01",
+      "shot-0025-01",
+      "shot-0026-01",
+      "shot-0027-01",
+      "shot-0028-01",
+      "shot-0029-01",
+      "shot-0030-01",
+      "shot-0031-01",
+      "shot-0031-02",
+      "shot-0032-01",
+      "shot-0032-02",
+      "shot-0033-01",
+      "shot-0034-01",
+      "shot-0034-02",
+      "shot-0034-03",
+      "shot-0035-01",
+      "shot-0035-02",
+      "shot-0036-01",
+      "shot-0036-02",
+      "shot-0036-03",
+      "shot-0037-01",
+      "shot-0038-01",
+      "shot-0038-01-b",
+      "shot-0038-02",
+      "shot-0038-03",
+      "shot-0039-01",
+      "shot-0040-01",
+      "shot-0041-01",
+      "shot-0042-01",
+      "shot-0042-02",
+      "shot-0043-01",
+      "shot-0044-01",
+      "shot-0044-02",
+      "shot-0045-01",
+      "shot-0045-02",
+      "shot-0046-01",
+      "shot-0046-02",
+      "shot-0047-01",
+      "shot-0048-01",
+      "shot-0048-02",
+      "shot-0049-01",
+      "shot-0049-02",
+      "shot-0050-01",
+      "shot-0050-02",
+      "shot-0051-01",
+      "shot-0051-02",
+      "shot-0052-01",
+      "shot-0053-01",
+      "shot-0053-02",
+      "shot-0054-01",
+      "shot-0054-02",
+      "shot-0055-01",
+      "shot-0056-01",
+      "shot-0056-02",
+      "shot-0057-01",
+      "shot-0057-02",
+      "shot-0057-03",
+      "shot-0058-01",
+      "shot-0058-02",
+      "shot-0058-03",
+      "shot-0059-01",
+      "shot-0059-02",
+      "shot-0060-01",
+      "shot-0060-02",
+      "shot-0061-01",
+      "shot-0061-02",
+      "shot-0062-01",
+      "shot-0062-02",
+      "shot-0062-03",
+      "shot-0063-01",
+      "shot-0064-01",
+      "shot-0065-01",
+      "shot-0066-01",
+      "shot-0066-02",
+      "shot-0066-03",
+      "shot-0067-01",
+      "shot-0067-01-b",
+      "shot-0067-02",
+      "shot-0067-03"
+    ]
+  },
+  "coexistence": {
+    "mode": "ADDITIVE_SEMANTIC_OVERLAY",
+    "baseBeatsPreserved": true,
+    "baseShotsPreserved": true,
+    "replacementCount": 0
+  },
+  "renderSpecs": [
+    {
+      "schemaVersion": "history-renderer-shadow-spec.v1",
+      "rendererVersion": "history-renderer-shadow.v3.6.0",
+      "disposition": "RENDER_SPEC",
+      "renderSpecId": "history-render-spec-c029af2a717d5af6fa57e9ff",
+      "compilerIntentId": "history-compiler-intent-11fcc029ec5a70e97662c697",
+      "relationId": "relation-causal-910a573b8067c848edc1c1ae",
+      "relationKind": "causal",
+      "episodeId": "history-youtube-history-10-video-story-pack-05-franklin-expedition",
+      "rendererRule": "diagram-causal-svg.v1",
+      "shadowOnly": true,
+      "provenance": {
+        "relationId": "relation-causal-910a573b8067c848edc1c1ae",
+        "evidenceFingerprint": "evidence-6a339dd53af0c752ef7800c3",
+        "supportClaimIds": [
+          "claim-d06297ae8bfc80681632986c"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      },
+      "width": 1200,
+      "height": 675,
+      "renderTarget": "DIAGRAM_SVG",
+      "semanticPayload": {
+        "schemaVersion": "history-compiler-shadow-intent.v1",
+        "compilerVersion": "history-compiler-shadow.v3.6.0",
+        "compilerIntentId": "history-compiler-intent-11fcc029ec5a70e97662c697",
+        "compilerRule": "diagram-causal.v1",
+        "episodeId": "history-youtube-history-10-video-story-pack-05-franklin-expedition",
+        "relationId": "relation-causal-910a573b8067c848edc1c1ae",
+        "provenance": {
+          "relationId": "relation-causal-910a573b8067c848edc1c1ae",
+          "evidenceFingerprint": "evidence-6a339dd53af0c752ef7800c3",
+          "supportClaimIds": [
+            "claim-d06297ae8bfc80681632986c"
+          ],
+          "structuredPropositionIds": [],
+          "atomicGroundingIds": []
+        },
+        "shadowOnly": true,
+        "disposition": "DIAGRAM",
+        "relationKind": "causal",
+        "diagramSemanticType": "causal-chain",
+        "cause": {
+          "canonicalLabel": "cold water preserved the wrecks"
+        },
+        "effect": {
+          "canonicalLabel": "Archaeology is unusually powerful here"
+        },
+        "causalAssertionStatus": "asserted"
+      },
+      "points": [
+        {
+          "id": "node-0-cold-water-preserved-the-wrecks",
+          "label": "cold water preserved the wrecks",
+          "x": 150,
+          "y": 340,
+          "role": "cause"
+        },
+        {
+          "id": "node-1-archaeology-is-unusually-powerful-here",
+          "label": "Archaeology is unusually powerful here",
+          "x": 1050,
+          "y": 340,
+          "role": "effect",
+          "status": "asserted"
+        }
+      ],
+      "edges": [
+        {
+          "from": "node-0-cold-water-preserved-the-wrecks",
+          "to": "node-1-archaeology-is-unusually-powerful-here",
+          "semanticType": "causes",
+          "directed": true,
+          "label": "causal · asserted"
+        }
+      ],
+      "legend": [
+        "cause → effect",
+        "assertion: asserted"
+      ]
+    },
+    {
+      "schemaVersion": "history-renderer-shadow-spec.v1",
+      "rendererVersion": "history-renderer-shadow.v3.6.0",
+      "disposition": "RENDER_SPEC",
+      "renderSpecId": "history-render-spec-a19039a39b9a699a67b7dd44",
+      "compilerIntentId": "history-compiler-intent-eb90992a1a4061a0f3df5e8e",
+      "relationId": "relation-causal-955f7f4f29e0c2498eddb9bb",
+      "relationKind": "causal",
+      "episodeId": "history-youtube-history-10-video-story-pack-05-franklin-expedition",
+      "rendererRule": "diagram-causal-svg.v1",
+      "shadowOnly": true,
+      "provenance": {
+        "relationId": "relation-causal-955f7f4f29e0c2498eddb9bb",
+        "evidenceFingerprint": "evidence-4129e2df8719f54826b54e4a",
+        "supportClaimIds": [
+          "claim-b4ce2f1185e4dceefe240161"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      },
+      "width": 1200,
+      "height": 675,
+      "renderTarget": "DIAGRAM_SVG",
+      "semanticPayload": {
+        "schemaVersion": "history-compiler-shadow-intent.v1",
+        "compilerVersion": "history-compiler-shadow.v3.6.0",
+        "compilerIntentId": "history-compiler-intent-eb90992a1a4061a0f3df5e8e",
+        "compilerRule": "diagram-causal.v1",
+        "episodeId": "history-youtube-history-10-video-story-pack-05-franklin-expedition",
+        "relationId": "relation-causal-955f7f4f29e0c2498eddb9bb",
+        "provenance": {
+          "relationId": "relation-causal-955f7f4f29e0c2498eddb9bb",
+          "evidenceFingerprint": "evidence-4129e2df8719f54826b54e4a",
+          "supportClaimIds": [
+            "claim-b4ce2f1185e4dceefe240161"
+          ],
+          "structuredPropositionIds": [],
+          "atomicGroundingIds": []
+        },
+        "shadowOnly": true,
+        "disposition": "DIAGRAM",
+        "relationKind": "causal",
+        "diagramSemanticType": "causal-chain",
+        "cause": {
+          "canonicalLabel": "uncertainty about which evidence to believe"
+        },
+        "effect": {
+          "canonicalLabel": "the mystery endured"
+        },
+        "causalAssertionStatus": "asserted"
+      },
+      "points": [
+        {
+          "id": "node-0-uncertainty-about-which-evidence-to-believe",
+          "label": "uncertainty about which evidence to believe",
+          "x": 150,
+          "y": 340,
+          "role": "cause"
+        },
+        {
+          "id": "node-1-the-mystery-endured",
+          "label": "the mystery endured",
+          "x": 1050,
+          "y": 340,
+          "role": "effect",
+          "status": "asserted"
+        }
+      ],
+      "edges": [
+        {
+          "from": "node-0-uncertainty-about-which-evidence-to-believe",
+          "to": "node-1-the-mystery-endured",
+          "semanticType": "causes",
+          "directed": true,
+          "label": "causal · asserted"
+        }
+      ],
+      "legend": [
+        "cause → effect",
+        "assertion: asserted"
+      ]
+    },
+    {
+      "schemaVersion": "history-renderer-shadow-spec.v1",
+      "rendererVersion": "history-renderer-shadow.v3.6.0",
+      "disposition": "RENDER_SPEC",
+      "renderSpecId": "history-render-spec-1b2fc80d6a460b4ca2f89447",
+      "compilerIntentId": "history-compiler-intent-b71cb7aee061154a9b954557",
+      "relationId": "relation-evidence-set-ce64b4d1b82bec384e66d6b0",
+      "relationKind": "evidence-set",
+      "episodeId": "history-youtube-history-10-video-story-pack-05-franklin-expedition",
+      "rendererRule": "diagram-evidence-set-svg.v1",
+      "shadowOnly": true,
+      "provenance": {
+        "relationId": "relation-evidence-set-ce64b4d1b82bec384e66d6b0",
+        "evidenceFingerprint": "evidence-98f3bcf502558b4899bd5758",
+        "supportClaimIds": [
+          "claim-318504248e85a04faa5519d6"
+        ],
+        "structuredPropositionIds": [
+          "structured-proposition-84ca3483d6e730e47a165e29",
+          "structured-proposition-b74bee33e92712e05a262e5c"
+        ],
+        "atomicGroundingIds": [
+          "grounding-0d229a068a866213fc5b3608",
+          "grounding-41f0ad4434af411b35347113"
+        ]
+      },
+      "width": 1200,
+      "height": 675,
+      "renderTarget": "DIAGRAM_SVG",
+      "semanticPayload": {
+        "schemaVersion": "history-compiler-shadow-intent.v1",
+        "compilerVersion": "history-compiler-shadow.v3.6.0",
+        "compilerIntentId": "history-compiler-intent-b71cb7aee061154a9b954557",
+        "compilerRule": "diagram-evidence-set.v1",
+        "episodeId": "history-youtube-history-10-video-story-pack-05-franklin-expedition",
+        "relationId": "relation-evidence-set-ce64b4d1b82bec384e66d6b0",
+        "provenance": {
+          "relationId": "relation-evidence-set-ce64b4d1b82bec384e66d6b0",
+          "evidenceFingerprint": "evidence-98f3bcf502558b4899bd5758",
+          "supportClaimIds": [
+            "claim-318504248e85a04faa5519d6"
+          ],
+          "structuredPropositionIds": [
+            "structured-proposition-84ca3483d6e730e47a165e29",
+            "structured-proposition-b74bee33e92712e05a262e5c"
+          ],
+          "atomicGroundingIds": [
+            "grounding-0d229a068a866213fc5b3608",
+            "grounding-41f0ad4434af411b35347113"
+          ]
+        },
+        "shadowOnly": true,
+        "disposition": "DIAGRAM",
+        "relationKind": "evidence-set",
+        "diagramSemanticType": "evidence-set",
+        "subject": {
+          "canonicalLabel": "search findings"
+        },
+        "evidence": [
+          {
+            "canonicalLabel": "graves of John Torrington, John Hartnell, and William Braine"
+          },
+          {
+            "canonicalLabel": "remains of the expedition’s winter camp from 1845 to 1846"
+          }
+        ],
+        "unorderedSemanticSet": true,
+        "semanticEdges": []
+      },
+      "points": [
+        {
+          "id": "node-0-search-findings",
+          "label": "search findings",
+          "x": 170,
+          "y": 240,
+          "role": "evidence-subject"
+        },
+        {
+          "id": "node-1-graves-of-john-torrington-john-hartnell-and-william-braine",
+          "label": "graves of John Torrington, John Hartnell, and William Braine",
+          "x": 600,
+          "y": 240,
+          "role": "unordered-evidence-member"
+        },
+        {
+          "id": "node-2-remains-of-the-expedition-s-winter-camp-from-1845-to-1846",
+          "label": "remains of the expedition’s winter camp from 1845 to 1846",
+          "x": 1030,
+          "y": 240,
+          "role": "unordered-evidence-member"
+        }
+      ],
+      "edges": [],
+      "legend": [
+        "unordered evidence set",
+        "no semantic member edges"
+      ]
+    },
+    {
+      "schemaVersion": "history-renderer-shadow-spec.v1",
+      "rendererVersion": "history-renderer-shadow.v3.6.0",
+      "disposition": "RENDER_SPEC",
+      "renderSpecId": "history-render-spec-2e018136d99cc159744fc289",
+      "compilerIntentId": "history-compiler-intent-5d237afe67338712fd604ae7",
+      "relationId": "relation-evidence-set-d263d0846a780b5512a4e685",
+      "relationKind": "evidence-set",
+      "episodeId": "history-youtube-history-10-video-story-pack-05-franklin-expedition",
+      "rendererRule": "diagram-evidence-set-svg.v1",
+      "shadowOnly": true,
+      "provenance": {
+        "relationId": "relation-evidence-set-d263d0846a780b5512a4e685",
+        "evidenceFingerprint": "evidence-98f3bcf502558b4899bd5758",
+        "supportClaimIds": [
+          "claim-318504248e85a04faa5519d6"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      },
+      "width": 1200,
+      "height": 675,
+      "renderTarget": "DIAGRAM_SVG",
+      "semanticPayload": {
+        "schemaVersion": "history-compiler-shadow-intent.v1",
+        "compilerVersion": "history-compiler-shadow.v3.6.0",
+        "compilerIntentId": "history-compiler-intent-5d237afe67338712fd604ae7",
+        "compilerRule": "diagram-evidence-set.v1",
+        "episodeId": "history-youtube-history-10-video-story-pack-05-franklin-expedition",
+        "relationId": "relation-evidence-set-d263d0846a780b5512a4e685",
+        "provenance": {
+          "relationId": "relation-evidence-set-d263d0846a780b5512a4e685",
+          "evidenceFingerprint": "evidence-98f3bcf502558b4899bd5758",
+          "supportClaimIds": [
+            "claim-318504248e85a04faa5519d6"
+          ],
+          "structuredPropositionIds": [],
+          "atomicGroundingIds": []
+        },
+        "shadowOnly": true,
+        "disposition": "DIAGRAM",
+        "relationKind": "evidence-set",
+        "diagramSemanticType": "evidence-set",
+        "evidence": [
+          {
+            "canonicalLabel": "graves of John Torrington, John Hartnell, and William Braine"
+          },
+          {
+            "canonicalLabel": "the remains of the expedition’s winter camp from 1845 to 1846"
+          }
+        ],
+        "unorderedSemanticSet": true,
+        "semanticEdges": []
+      },
+      "points": [
+        {
+          "id": "node-0-graves-of-john-torrington-john-hartnell-and-william-braine",
+          "label": "graves of John Torrington, John Hartnell, and William Braine",
+          "x": 170,
+          "y": 240,
+          "role": "unordered-evidence-member"
+        },
+        {
+          "id": "node-1-the-remains-of-the-expedition-s-winter-camp-from-1845-to-1846",
+          "label": "the remains of the expedition’s winter camp from 1845 to 1846",
+          "x": 1030,
+          "y": 240,
+          "role": "unordered-evidence-member"
+        }
+      ],
+      "edges": [],
+      "legend": [
+        "unordered evidence set",
+        "no semantic member edges"
+      ]
+    },
+    {
+      "schemaVersion": "history-renderer-shadow-spec.v1",
+      "rendererVersion": "history-renderer-shadow.v3.6.0",
+      "disposition": "RENDER_SPEC",
+      "renderSpecId": "history-render-spec-87579c4afd848f222c8cbd36",
+      "compilerIntentId": "history-compiler-intent-48d839826102ce44deadb116",
+      "relationId": "relation-evidence-set-d746808189d93e902e87a8ea",
+      "relationKind": "evidence-set",
+      "episodeId": "history-youtube-history-10-video-story-pack-05-franklin-expedition",
+      "rendererRule": "diagram-evidence-set-svg.v1",
+      "shadowOnly": true,
+      "provenance": {
+        "relationId": "relation-evidence-set-d746808189d93e902e87a8ea",
+        "evidenceFingerprint": "evidence-cf336cb5de7cebd672c0414e",
+        "supportClaimIds": [
+          "claim-32172a8401d82c0f5e12e3d3"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      },
+      "width": 1200,
+      "height": 675,
+      "renderTarget": "DIAGRAM_SVG",
+      "semanticPayload": {
+        "schemaVersion": "history-compiler-shadow-intent.v1",
+        "compilerVersion": "history-compiler-shadow.v3.6.0",
+        "compilerIntentId": "history-compiler-intent-48d839826102ce44deadb116",
+        "compilerRule": "diagram-evidence-set.v1",
+        "episodeId": "history-youtube-history-10-video-story-pack-05-franklin-expedition",
+        "relationId": "relation-evidence-set-d746808189d93e902e87a8ea",
+        "provenance": {
+          "relationId": "relation-evidence-set-d746808189d93e902e87a8ea",
+          "evidenceFingerprint": "evidence-cf336cb5de7cebd672c0414e",
+          "supportClaimIds": [
+            "claim-32172a8401d82c0f5e12e3d3"
+          ],
+          "structuredPropositionIds": [],
+          "atomicGroundingIds": []
+        },
+        "shadowOnly": true,
+        "disposition": "DIAGRAM",
+        "relationKind": "evidence-set",
+        "diagramSemanticType": "evidence-set",
+        "evidence": [
+          {
+            "canonicalLabel": "abandoned equipment"
+          },
+          {
+            "canonicalLabel": "graves"
+          },
+          {
+            "canonicalLabel": "human remains"
+          },
+          {
+            "canonicalLabel": "one written message"
+          }
+        ],
+        "unorderedSemanticSet": true,
+        "semanticEdges": []
+      },
+      "points": [
+        {
+          "id": "node-0-abandoned-equipment",
+          "label": "abandoned equipment",
+          "x": 170,
+          "y": 240,
+          "role": "unordered-evidence-member"
+        },
+        {
+          "id": "node-1-graves",
+          "label": "graves",
+          "x": 600,
+          "y": 240,
+          "role": "unordered-evidence-member"
+        },
+        {
+          "id": "node-2-human-remains",
+          "label": "human remains",
+          "x": 1030,
+          "y": 240,
+          "role": "unordered-evidence-member"
+        },
+        {
+          "id": "node-3-one-written-message",
+          "label": "one written message",
+          "x": 170,
+          "y": 430,
+          "role": "unordered-evidence-member"
+        }
+      ],
+      "edges": [],
+      "legend": [
+        "unordered evidence set",
+        "no semantic member edges"
+      ]
+    },
+    {
+      "schemaVersion": "history-renderer-shadow-spec.v1",
+      "rendererVersion": "history-renderer-shadow.v3.6.0",
+      "disposition": "RENDER_SPEC",
+      "renderSpecId": "history-render-spec-ff1e89d5662832cb6b3d2091",
+      "compilerIntentId": "history-compiler-intent-37a0c9a84bac53209961eb65",
+      "relationId": "relation-process-357ad4096b0d3699768f6e5a",
+      "relationKind": "process",
+      "episodeId": "history-youtube-history-10-video-story-pack-05-franklin-expedition",
+      "rendererRule": "diagram-process-svg.v1",
+      "shadowOnly": true,
+      "provenance": {
+        "relationId": "relation-process-357ad4096b0d3699768f6e5a",
+        "evidenceFingerprint": "evidence-3c575bf2ae1d432e402f4af7",
+        "supportClaimIds": [
+          "claim-6c18dacd4ee9e8039e194b0d"
+        ],
+        "structuredPropositionIds": [
+          "structured-proposition-2e39e0dfddbc6b6defc310f1"
+        ],
+        "atomicGroundingIds": [
+          "grounding-a04500aba005ce5821e46da2"
+        ]
+      },
+      "width": 1200,
+      "height": 675,
+      "renderTarget": "DIAGRAM_SVG",
+      "semanticPayload": {
+        "schemaVersion": "history-compiler-shadow-intent.v1",
+        "compilerVersion": "history-compiler-shadow.v3.6.0",
+        "compilerIntentId": "history-compiler-intent-37a0c9a84bac53209961eb65",
+        "compilerRule": "diagram-process.v1",
+        "episodeId": "history-youtube-history-10-video-story-pack-05-franklin-expedition",
+        "relationId": "relation-process-357ad4096b0d3699768f6e5a",
+        "provenance": {
+          "relationId": "relation-process-357ad4096b0d3699768f6e5a",
+          "evidenceFingerprint": "evidence-3c575bf2ae1d432e402f4af7",
+          "supportClaimIds": [
+            "claim-6c18dacd4ee9e8039e194b0d"
+          ],
+          "structuredPropositionIds": [
+            "structured-proposition-2e39e0dfddbc6b6defc310f1"
+          ],
+          "atomicGroundingIds": [
+            "grounding-a04500aba005ce5821e46da2"
+          ]
+        },
+        "shadowOnly": true,
+        "disposition": "DIAGRAM",
+        "relationKind": "process",
+        "diagramSemanticType": "process",
+        "steps": [
+          {
+            "canonicalLabel": "the ships wintered there"
+          },
+          {
+            "canonicalLabel": "the ships sailed south through Peel Sound"
+          }
+        ],
+        "orderSemantics": "process-order-not-causality"
+      },
+      "points": [
+        {
+          "id": "node-0-the-ships-wintered-there",
+          "label": "the ships wintered there",
+          "x": 150,
+          "y": 340,
+          "role": "process-step-1"
+        },
+        {
+          "id": "node-1-the-ships-sailed-south-through-peel-sound",
+          "label": "the ships sailed south through Peel Sound",
+          "x": 1050,
+          "y": 340,
+          "role": "process-step-2"
+        }
+      ],
+      "edges": [
+        {
+          "from": "node-0-the-ships-wintered-there",
+          "to": "node-1-the-ships-sailed-south-through-peel-sound",
+          "semanticType": "process-order-not-causality",
+          "directed": true,
+          "label": "next process step"
+        }
+      ],
+      "legend": [
+        "process-order-not-causality"
+      ]
+    }
+  ],
+  "placements": [
+    {
+      "disposition": "PLACED",
+      "placementId": "history-visual-placement-289dabedc79873958e3874ef",
+      "renderSpecId": "history-render-spec-c029af2a717d5af6fa57e9ff",
+      "compilerIntentId": "history-compiler-intent-11fcc029ec5a70e97662c697",
+      "relationId": "relation-causal-910a573b8067c848edc1c1ae",
+      "relationKind": "causal",
+      "renderTarget": "DIAGRAM_SVG",
+      "operation": "ATTACH_SEMANTIC_OVERLAY",
+      "placementRule": "SUPPORT_COMPLETION_BEAT_V1",
+      "supportClaimIds": [
+        "claim-d06297ae8bfc80681632986c"
+      ],
+      "supportBeatIds": [
+        "beat-0063"
+      ],
+      "anchor": {
+        "beatId": "beat-0063",
+        "startMs": 605981,
+        "endMs": 612281,
+        "narrationSpan": {
+          "endUtf16Exclusive": 7044,
+          "startUtf16": 6965
+        }
+      },
+      "preservedBaseShotIds": [
+        "shot-0063-01"
+      ],
+      "preservesBaseShots": true,
+      "timingBasis": "provisional-text-estimate"
+    },
+    {
+      "disposition": "PLACED",
+      "placementId": "history-visual-placement-10b7df52b3d863728f9607f4",
+      "renderSpecId": "history-render-spec-a19039a39b9a699a67b7dd44",
+      "compilerIntentId": "history-compiler-intent-eb90992a1a4061a0f3df5e8e",
+      "relationId": "relation-causal-955f7f4f29e0c2498eddb9bb",
+      "relationKind": "causal",
+      "renderTarget": "DIAGRAM_SVG",
+      "operation": "ATTACH_SEMANTIC_OVERLAY",
+      "placementRule": "SUPPORT_COMPLETION_BEAT_V1",
+      "supportClaimIds": [
+        "claim-b4ce2f1185e4dceefe240161"
+      ],
+      "supportBeatIds": [
+        "beat-0067"
+      ],
+      "anchor": {
+        "beatId": "beat-0067",
+        "startMs": 643783,
+        "endMs": 670130,
+        "narrationSpan": {
+          "endUtf16Exclusive": 7700,
+          "startUtf16": 7416
+        }
+      },
+      "preservedBaseShotIds": [
+        "shot-0067-01",
+        "shot-0067-01-b",
+        "shot-0067-02",
+        "shot-0067-03"
+      ],
+      "preservesBaseShots": true,
+      "timingBasis": "provisional-text-estimate"
+    },
+    {
+      "disposition": "PLACED",
+      "placementId": "history-visual-placement-574ebab0aa9308f6706635c9",
+      "renderSpecId": "history-render-spec-1b2fc80d6a460b4ca2f89447",
+      "compilerIntentId": "history-compiler-intent-b71cb7aee061154a9b954557",
+      "relationId": "relation-evidence-set-ce64b4d1b82bec384e66d6b0",
+      "relationKind": "evidence-set",
+      "renderTarget": "DIAGRAM_SVG",
+      "operation": "ATTACH_SEMANTIC_OVERLAY",
+      "placementRule": "SUPPORT_COMPLETION_BEAT_V1",
+      "supportClaimIds": [
+        "claim-318504248e85a04faa5519d6"
+      ],
+      "supportBeatIds": [
+        "beat-0016"
+      ],
+      "anchor": {
+        "beatId": "beat-0016",
+        "startMs": 142045,
+        "endMs": 156937,
+        "narrationSpan": {
+          "endUtf16Exclusive": 1894,
+          "startUtf16": 1732
+        }
+      },
+      "preservedBaseShotIds": [
+        "shot-0016-01",
+        "shot-0016-02"
+      ],
+      "preservesBaseShots": true,
+      "timingBasis": "provisional-text-estimate"
+    },
+    {
+      "disposition": "PLACED",
+      "placementId": "history-visual-placement-946ff92352e16ab18378bd05",
+      "renderSpecId": "history-render-spec-2e018136d99cc159744fc289",
+      "compilerIntentId": "history-compiler-intent-5d237afe67338712fd604ae7",
+      "relationId": "relation-evidence-set-d263d0846a780b5512a4e685",
+      "relationKind": "evidence-set",
+      "renderTarget": "DIAGRAM_SVG",
+      "operation": "ATTACH_SEMANTIC_OVERLAY",
+      "placementRule": "SUPPORT_COMPLETION_BEAT_V1",
+      "supportClaimIds": [
+        "claim-318504248e85a04faa5519d6"
+      ],
+      "supportBeatIds": [
+        "beat-0016"
+      ],
+      "anchor": {
+        "beatId": "beat-0016",
+        "startMs": 142045,
+        "endMs": 156937,
+        "narrationSpan": {
+          "endUtf16Exclusive": 1894,
+          "startUtf16": 1732
+        }
+      },
+      "preservedBaseShotIds": [
+        "shot-0016-01",
+        "shot-0016-02"
+      ],
+      "preservesBaseShots": true,
+      "timingBasis": "provisional-text-estimate"
+    },
+    {
+      "disposition": "PLACED",
+      "placementId": "history-visual-placement-f689094e437b5c9fad1a6a1d",
+      "renderSpecId": "history-render-spec-87579c4afd848f222c8cbd36",
+      "compilerIntentId": "history-compiler-intent-48d839826102ce44deadb116",
+      "relationId": "relation-evidence-set-d746808189d93e902e87a8ea",
+      "relationKind": "evidence-set",
+      "renderTarget": "DIAGRAM_SVG",
+      "operation": "ATTACH_SEMANTIC_OVERLAY",
+      "placementRule": "SUPPORT_COMPLETION_BEAT_V1",
+      "supportClaimIds": [
+        "claim-32172a8401d82c0f5e12e3d3"
+      ],
+      "supportBeatIds": [
+        "beat-0006"
+      ],
+      "anchor": {
+        "beatId": "beat-0006",
+        "startMs": 37802,
+        "endMs": 44102,
+        "narrationSpan": {
+          "endUtf16Exclusive": 510,
+          "startUtf16": 426
+        }
+      },
+      "preservedBaseShotIds": [
+        "shot-0006-01"
+      ],
+      "preservesBaseShots": true,
+      "timingBasis": "provisional-text-estimate"
+    },
+    {
+      "disposition": "PLACED",
+      "placementId": "history-visual-placement-64c5bb1fe8a351aaa9029476",
+      "renderSpecId": "history-render-spec-ff1e89d5662832cb6b3d2091",
+      "compilerIntentId": "history-compiler-intent-37a0c9a84bac53209961eb65",
+      "relationId": "relation-process-357ad4096b0d3699768f6e5a",
+      "relationKind": "process",
+      "renderTarget": "DIAGRAM_SVG",
+      "operation": "ATTACH_SEMANTIC_OVERLAY",
+      "placementRule": "SUPPORT_COMPLETION_BEAT_V1",
+      "supportClaimIds": [
+        "claim-6c18dacd4ee9e8039e194b0d"
+      ],
+      "supportBeatIds": [
+        "beat-0017"
+      ],
+      "anchor": {
+        "beatId": "beat-0017",
+        "startMs": 156937,
+        "endMs": 163237,
+        "narrationSpan": {
+          "endUtf16Exclusive": 1964,
+          "startUtf16": 1895
+        }
+      },
+      "preservedBaseShotIds": [
+        "shot-0017-01"
+      ],
+      "preservesBaseShots": true,
+      "timingBasis": "provisional-text-estimate"
+    }
+  ],
+  "safePlacementAbstentions": [],
+  "summary": {
+    "renderSpecs": 6,
+    "placed": 6,
+    "safePlacementAbstentions": 0,
+    "mapPlacements": 0,
+    "diagramPlacements": 6,
+    "duplicatePlacements": 0,
+    "orphanRenderSpecs": 0,
+    "replacementCount": 0
+  },
+  "planHash": "8a7df39fc47cb299ba7adebcf8adc8e60ade52c489d1c76ea4c6b96f497f1703"
+}

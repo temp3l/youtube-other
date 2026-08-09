@@ -1,0 +1,26 @@
+{
+  "result": "PASS",
+  "counts": {
+    "semanticInferenceInPlanner": 0,
+    "narrationKeywordRelationInference": 0,
+    "guessedPlacementSemantics": 0,
+    "inventedGeography": 0,
+    "purposeAsDestination": 0,
+    "intentAsCompletedMovement": 0,
+    "modalityLoss": 0,
+    "directionOrderCorruption": 0,
+    "proofSupportLoss": 0,
+    "duplicateSemanticVisualPlacement": 0,
+    "orphanSemanticRenderSpecWithoutTypedDiagnostic": 0,
+    "silentRenderSpecDrop": 0,
+    "v35HeuristicFallbackInsideV36": 0,
+    "semanticRelationIdMutation": 0,
+    "compilerIntentIdMutation": 0,
+    "renderSpecIdMutation": 0,
+    "evidenceFingerprintMutation": 0,
+    "nonDeterministicShadowPlan": 0,
+    "productionV36Activation": 0,
+    "v35ProductionOutputChange": 0
+  },
+  "total": 0
+}
