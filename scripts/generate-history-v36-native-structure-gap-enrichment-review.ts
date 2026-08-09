@@ -88,9 +88,11 @@ if (experiment.relationComparison.after.candidates !== 50 || experiment.relation
 
 const allNativeEnvelopes = experiment.runs.flatMap((run) => run.native.structuredClaims.envelopes);
 const allNativePropositions = allNativeEnvelopes.flatMap((envelope) => envelope.propositions);
-const compatibilityBackfillMislabeledNative = allNativeEnvelopes.filter((envelope) =>
-  (envelope.source.kind === "existing-structured-claim") !==
-  envelope.propositions.every((proposition) => proposition.provenance.generationMethod === "native-structured-claim-generation")
+const compatibilityBackfillMislabeledNative = allNativeEnvelopes.flatMap((envelope) =>
+  envelope.propositions.filter((proposition) =>
+    (envelope.source.kind === "existing-structured-claim") !==
+    (proposition.provenance.generationMethod === "native-structured-claim-generation")
+  )
 ).length;
 const inventedParticipantBindings = allNativePropositions.flatMap((proposition) => [
   proposition.subject,
