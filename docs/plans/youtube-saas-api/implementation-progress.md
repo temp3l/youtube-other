@@ -56,9 +56,9 @@ Notes: Usage dimensions, reservation lifecycle, estimate projection with cache/r
 
 ### YSAAS-009
 Status: in progress
-Commit: 9236fa2, 3188f69, 0e50124
-Validation: focused bulk preflight and persistence migration tests pass; domain build and persistence typecheck pass
-Notes: Added a bounded, deterministic bulk selection preflight that preserves an eligibility reason for every candidate and excludes successful/permanent-failure items from retry selection. Persisted tenant-scoped batch/item rows retain all selected items and their eligibility evidence, with idempotency conflict protection and RLS. Authoritative execution-time reauthorization, quota reservation, API/SDK, and BFF remain.
+Commit: 9236fa2, 3188f69, 0e50124, 5b8358a
+Validation: focused bulk preflight, persistence migration, and API SDK tests pass; domain build, persistence/API/SDK typechecks pass. API contract suite is blocked before collection by pre-existing missing `@mediaforge/domain/visual-retention/treatment-catalog.js` from built `dark-truth`.
+Notes: Added a bounded, deterministic bulk selection preflight that preserves an eligibility reason for every candidate and excludes successful/permanent-failure items from retry selection. Persisted tenant-scoped batch/item rows retain all selected items and their eligibility evidence, with idempotency conflict protection and RLS. Tenant-scoped batch result reads are now exposed through API/OpenAPI/SDK. Authoritative execution-time reauthorization, quota reservation, launch/retry/cancel, and BFF remain.
 
 ### YSAAS-011
 Status: completed
