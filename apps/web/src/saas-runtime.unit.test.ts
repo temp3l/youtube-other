@@ -111,6 +111,20 @@ describe("SaaS runtime", () => {
       createProject: async (_identity, input) => { createdProjects.push(input.name); return { id: "p1", revision: 1 }; },
       listEpisodes: async () => ({ items: [{ id: "e1", revision: 2, createdAt: "2026-08-08T00:00:00.000Z", updatedAt: "2026-08-08T00:00:00.000Z", content: { type: "history", version: "1", topic: "The Silk Road", presetId: "historical-biography", format: "standard", audienceLevel: "general" } }] }),
       getEpisode: async () => ({ id: "e1", revision: 2, content: { type: "history", version: "1", topic: "The Silk Road", presetId: "historical-biography", format: "standard", audienceLevel: "general" } }),
+      getEpisodeProductionState: async () => ({
+        schemaVersion: "mediaforge.production.v1" as const,
+        projectId: "p1",
+        episodeId: "e1",
+        currentProductionRevision: { id: "production-revision-1" },
+        lifecycleStage: "reviewing" as const,
+        workflow: { activeRunId: "run-1", runStatus: "succeeded" as const, jobId: "job-1" },
+        validation: { items: [] }, review: {}, render: {}, localization: {}, publication: {},
+        blockers: [{ code: "approval_missing", message: "A review decision is required before publication.", severity: "blocking" as const, evidence: [] }],
+        warnings: [],
+        actions: [{ actionId: "submit-review", kind: "submit_review", label: "Submit for review", enabled: true }],
+        projectedAt: "2026-08-09T00:00:00.000Z",
+        projectionInputFingerprint: "a".repeat(64),
+      }),
       createEpisode: async () => ({ id: "e1", revision: 1 }),
       replaceEpisode: async () => { throw new (await import("@mediaforge/api-sdk")).ApiProblemError({ type: "about:blank", title: "Precondition failed", status: 412, detail: "This brief has a newer revision.", code: "precondition_failed", requestId: "req-1", retryable: false, errors: [] }, new Response()); },
       startWorkflow: async () => ({ workflowRunId: "run-1", jobId: "job-1", revision: 1, links: { workflowRun: "", job: "" } }),
@@ -122,6 +136,8 @@ describe("SaaS runtime", () => {
       listAssets: async () => ({ items: [] }),
       listValidations: async () => ({ items: [] }),
       getApprovalChallenge: async () => ({ id: "challenge-1", subjectId: "e1", subjectRevision: 2, artifactHash: "a".repeat(64), expiresAt: "2030-01-01T00:00:00.000Z", consumedAt: null }),
+      listReviewQueue: async () => ({ items: [{ id: "challenge-1", challengeId: "challenge-1", subjectId: "e1", expiresAt: "2030-01-01T00:00:00.000Z" }] }),
+      listApprovalHistory: async () => ({ items: [{ id: "approval-1", subjectId: "e1", decision: "approved" }] }),
       recordApproval: async () => ({ id: "approval-1", jobId: "job-1", revision: 1 }),
       revokeApproval: async () => ({ id: "approval-1", revision: 2, state: "revoked", revokedAt: "2026-08-08T00:00:00.000Z" }),
       publishing: {
@@ -166,6 +182,8 @@ describe("SaaS runtime", () => {
     const dashboard = await fetch(`${baseUrl}/`);
     expect(await dashboard.text()).toContain("Editorial workspace");
     expect(await (await fetch(`${baseUrl}/episodes`)).text()).toContain("The Silk Road");
+    const episodeWorkspace = await fetch(`${baseUrl}/projects/p1/episodes/e1`);
+    expect(await episodeWorkspace.text()).toContain("A review decision is required before publication.");
     const settings = await fetch(`${baseUrl}/settings`);
     const settingsHtml = await settings.text();
     expect(settingsHtml).toContain("Languages and voice readiness");
@@ -175,9 +193,9 @@ describe("SaaS runtime", () => {
     expect(settingsHtml).toContain("Voice profile selection and generation are disabled");
     const reviewerHandoff = await fetch(`${baseUrl}/reviews`);
     const reviewerHtml = await reviewerHandoff.text();
-    expect(reviewerHtml).toContain("Reviewer handoff");
-    expect(reviewerHtml).toContain("Review checklist");
-    expect(reviewerHtml).toContain("No approval queue is fabricated here");
+    expect(reviewerHtml).toContain("Review queue");
+    expect(reviewerHtml).toContain("Actionable reviews");
+    expect(reviewerHtml).toContain("Approval history");
     expect(await (await fetch(`${baseUrl}/assets`)).text()).toContain("Asset library");
     const publishing = await fetch(`${baseUrl}/publishing?project=p1&episode=e1`);
     const publishingHtml = await publishing.text();

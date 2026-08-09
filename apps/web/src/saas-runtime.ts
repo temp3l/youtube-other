@@ -273,6 +273,19 @@ async function renderJourneyPage(identity: SaasIdentity, path: string, gateway: 
     if (path === "/settings") return shell(identity.session, path, "Languages and voice readiness", "Choose only the locale your profile is entitled for. Voice credentials, consent records, and provider settings remain server-side.", languageAndVoiceReadiness(identity.session));
     if (path === "/reviews" || path === "/assets") {
       const projects = (await gateway.listProjects(identity)).items;
+      if (path === "/reviews") {
+        const reviewData = await Promise.all(projects.map(async (project) => ({
+          project,
+          queue: await gateway.listReviewQueue(identity, project.id),
+          history: await gateway.listApprovalHistory(identity, project.id),
+        })));
+        const queueRows = reviewData.flatMap(({ project, queue }) => queue.items.map((item) => {
+          const challengeId = String(item["challengeId"] ?? item.id);
+          return `<a class="row link-row" href="/projects/${encodeURIComponent(project.id)}/approval-challenges/${encodeURIComponent(challengeId)}"><div><strong>${escapeHtml(String(item["subjectId"] ?? "Review subject"))}</strong><span>${escapeHtml(project.name)} · expires ${escapeHtml(String(item["expiresAt"] ?? "not supplied"))}</span></div><span class="tag">Review</span></a>`;
+        }));
+        const historyRows = reviewData.flatMap(({ project, history }) => history.items.map((item) => `<div class="row"><div><strong>${escapeHtml(String(item["subjectId"] ?? item.id))}</strong><span>${escapeHtml(project.name)} · ${escapeHtml(String(item["decision"] ?? item["state"] ?? "recorded"))}</span></div><span class="tag neutral">Immutable</span></div>`));
+        return shell(identity.session, path, "Review queue", "Review decisions are bound to the exact revision and artifact hash. History is immutable; current validity is resolved by the API.", `<section class="card"><h2>Actionable reviews</h2><p>Open a challenge to inspect its precise evidence before deciding.</p></section><div style="margin-top:12px">${queueRows.length ? `<div class="stack">${queueRows.join("")}</div>` : empty("No reviews awaiting a decision", "New hash-bound review challenges will appear here.")}</div><section class="card" style="margin-top:18px"><h2>Approval history</h2><p>Recorded decisions are facts, not editable notes.</p></section><div style="margin-top:12px">${historyRows.length ? `<div class="stack">${historyRows.join("")}</div>` : empty("No approval history", "Completed or revoked approvals will appear here.")}</div>`);
+      }
       const evidence = await Promise.all(projects.map(async (project) => ({
         project,
         assets: (await gateway.listAssets(identity, project.id)).items,
@@ -280,7 +293,7 @@ async function renderJourneyPage(identity: SaasIdentity, path: string, gateway: 
       })));
       const rows = evidence.length ? `<div class="stack">${evidence.map(({ project, assets, validations }) => `<a class="row link-row" href="/projects/${encodeURIComponent(project.id)}/assets"><div><strong>${escapeHtml(project.name)}</strong><span>${assets.length === 1 ? "1 asset" : `${assets.length} assets`} · ${validations.length === 1 ? "1 validation" : `${validations.length} validations`} · inspect immutable evidence</span></div><span class="tag ${assets.length && validations.length ? "" : "neutral"}">${assets.length && validations.length ? "Ready to inspect" : "Awaiting evidence"}</span></a>`).join("")}</div>` : empty("No review evidence yet", "Start with a project and typed episode brief; evidence appears after production.", "/projects/new");
       if (path === "/assets") return shell(identity.session, path, "Asset library", "Browse evidence by project. Asset files remain controlled; this workspace shows metadata and validation only.", rows);
-      return shell(identity.session, path, "Reviewer handoff", "Inspect immutable evidence first. A decision is possible only against the exact revision, hash, role, and expiry in a supplied approval challenge.", `<section class="card"><h2>Review checklist</h2><p>1. Inspect asset lifecycle and provenance. 2. Resolve validation findings. 3. Compare the exact artifact hash. 4. Record only the scoped approval challenge.</p></section><div style="margin-top:18px">${rows}</div><div class="notice" style="margin-top:18px">No approval queue is fabricated here. The next API addition is a tenant-scoped list of real review challenges.</div>`);
+      return shell(identity.session, path, "Reviewer handoff", "Inspect immutable evidence first. A decision is possible only against the exact revision, hash, role, and expiry in a supplied approval challenge.", `<section class="card"><h2>Review checklist</h2><p>1. Inspect asset lifecycle and provenance. 2. Resolve validation findings. 3. Compare the exact artifact hash. 4. Record only the scoped approval challenge.</p></section><div style="margin-top:18px">${rows}</div>`);
     }
     if (path === "/") {
       const projects = (await gateway.listProjects(identity)).items;
@@ -341,9 +354,21 @@ async function renderJourneyPage(identity: SaasIdentity, path: string, gateway: 
       const projectId = decodeURIComponent(episodeMatch[1]!); const episodeId = decodeURIComponent(episodeMatch[2]!);
       const project = (await gateway.listProjects(identity)).items.find((item) => item.id === projectId);
       if (!project) return shell(identity.session, path, "Episode unavailable", "This episode is not available in this workspace.", `<p><a class="button" href="/projects">Back to projects</a></p>`);
-      const episode = await gateway.getEpisode(identity, projectId, episodeId);
+      const [episode, productionState] = await Promise.all([
+        gateway.getEpisode(identity, projectId, episodeId),
+        gateway.getEpisodeProductionState(identity, projectId, episodeId),
+      ]);
       const profile = project.profile as SaasProfile;
-      return shell(identity.session, path, "Episode brief", "Every save creates a versioned revision. Starting work pins this exact revision.", `<div class="grid"><section class="card"><h2>Current revision</h2><div class="metric">${episode.revision}</div><p>Use a refresh if someone else saves a newer version.</p></section><section class="card"><h2>Profile</h2><p>${escapeHtml(profileLabels[profile] ?? project.profile)}</p></section><section class="card"><h2>Language</h2><p>${localeLabels[pilotLocaleByProfile[profile]]} is the entitled production language.</p></section></div><div style="margin-top:18px">${episodeForm(identity.session, project, `/projects/${encodeURIComponent(projectId)}/episodes/${encodeURIComponent(episodeId)}`, episode)}</div><div style="margin-top:18px">${workflowForm(projectId, episodeId, episode.revision, profile)}</div>`);
+      const gateRows = productionState.blockers.length
+        ? `<div class="stack">${productionState.blockers.map((gate) => `<div class="row"><div><strong>${escapeHtml(gate.code.replaceAll("_", " "))}</strong><span>${escapeHtml(gate.message)}</span></div><span class="tag danger">Blocked</span></div>`).join("")}</div>`
+        : `<div class="notice" role="status">No blocking gate is currently recorded.</div>`;
+      const actionRows = productionState.actions.length
+        ? `<div class="stack">${productionState.actions.map((action) => `<div class="row"><div><strong>${escapeHtml(action.label)}</strong><span>${escapeHtml(action.enabled ? "Available for this revision." : (action.reason ?? "Unavailable for this revision."))}</span></div><span class="tag ${action.enabled ? "" : "neutral"}">${action.enabled ? "Available" : "Unavailable"}</span></div>`).join("")}</div>`
+        : "";
+      const runLink = productionState.workflow.activeRunId
+        ? `<p><a class="button secondary" href="/workflows/${encodeURIComponent(projectId)}/${encodeURIComponent(productionState.workflow.activeRunId)}${productionState.workflow.jobId ? `?job=${encodeURIComponent(productionState.workflow.jobId)}` : ""}">Open production timeline</a></p>`
+        : "";
+      return shell(identity.session, path, "Episode workspace", "This view is driven by the durable production projection; gate and action availability are never inferred in the browser.", `<div class="grid"><section class="card"><h2>Production state</h2><div class="metric">${escapeHtml(productionState.lifecycleStage.replaceAll("_", " "))}</div><p>Projected ${escapeHtml(productionState.projectedAt)}.</p></section><section class="card"><h2>Current revision</h2><div class="metric">${episode.revision}</div><p>Use a refresh if someone else saves a newer version.</p></section><section class="card"><h2>Profile</h2><p>${escapeHtml(profileLabels[profile] ?? project.profile)}</p></section></div><section class="card" style="margin-top:18px"><h2>Required before the next action</h2>${gateRows}${runLink}</section>${actionRows ? `<section class="card" style="margin-top:18px"><h2>Permitted actions</h2>${actionRows}</section>` : ""}<div style="margin-top:18px">${episodeForm(identity.session, project, `/projects/${encodeURIComponent(projectId)}/episodes/${encodeURIComponent(episodeId)}`, episode)}</div><div style="margin-top:18px">${workflowForm(projectId, episodeId, episode.revision, profile)}</div>`);
     }
     const workflowMatch = path.match(/^\/workflows\/([^/]+)\/([^/]+)$/u);
     if (workflowMatch) {

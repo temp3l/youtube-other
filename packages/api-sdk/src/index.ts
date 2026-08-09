@@ -245,6 +245,26 @@ export interface WorkflowRun {
   readonly status: WorkflowRunStatus;
 }
 
+/** Canonical, tenant-scoped production state. UI actions must be driven by this projection. */
+export interface EpisodeProductionState {
+  readonly schemaVersion: "mediaforge.production.v1";
+  readonly projectId: string;
+  readonly episodeId: string;
+  readonly currentProductionRevision: Record<string, unknown>;
+  readonly lifecycleStage: "draft" | "producing" | "validating" | "reviewing" | "rendering" | "publish_ready" | "published" | "blocked" | "archived";
+  readonly workflow: { readonly activeRunId?: string; readonly runStatus?: WorkflowRunStatus | "none"; readonly runRevision?: number; readonly jobId?: string; readonly jobStatus?: string; readonly jobRevision?: number; readonly sanitizedFailureCode?: string };
+  readonly validation: { readonly items: readonly { readonly validationId: string; readonly status: "passed" | "failed" | "pending" | "unknown"; readonly resultFingerprint?: string }[] };
+  readonly review: Record<string, unknown>;
+  readonly render: Record<string, unknown>;
+  readonly localization: Record<string, unknown>;
+  readonly publication: Record<string, unknown>;
+  readonly blockers: readonly { readonly code: string; readonly message: string; readonly severity: "blocking" | "warning"; readonly evidence: readonly Record<string, unknown>[] }[];
+  readonly warnings: readonly { readonly code: string; readonly message: string; readonly severity: "blocking" | "warning"; readonly evidence: readonly Record<string, unknown>[] }[];
+  readonly actions: readonly { readonly actionId: string; readonly kind: string; readonly label: string; readonly enabled: boolean; readonly reason?: string }[];
+  readonly projectedAt: string;
+  readonly projectionInputFingerprint: string;
+}
+
 export interface WorkflowStep {
   readonly id: string;
   readonly status: string;
@@ -307,6 +327,17 @@ export interface ApprovalChallenge {
   readonly expiresAt: string;
   readonly consumedAt: string | null;
 }
+
+export interface ReviewQueueItem {
+  readonly id: string;
+  readonly [key: string]: unknown;
+}
+export interface ReviewQueuePage { readonly items: readonly ReviewQueueItem[]; }
+export interface ApprovalHistoryItem {
+  readonly id: string;
+  readonly [key: string]: unknown;
+}
+export interface ApprovalHistoryPage { readonly items: readonly ApprovalHistoryItem[]; }
 
 export interface ValidationResult {
   readonly id: string;
@@ -921,6 +952,18 @@ export class MediaforgeApiClient {
     );
   }
 
+  public getEpisodeProductionState(
+    workspaceId: string,
+    projectId: string,
+    episodeId: string,
+    options?: RequestOptions
+  ): Promise<ApiResponse<EpisodeProductionState>> {
+    return this.execute(
+      `${this.projectPath(workspaceId, projectId)}/episodes/${encodePath(episodeId)}/production-state`,
+      { ...(options ? { options } : {}) }
+    );
+  }
+
   public replaceEpisodeContent(
     workspaceId: string,
     projectId: string,
@@ -1185,6 +1228,27 @@ export class MediaforgeApiClient {
         idempotencyKey: options.idempotencyKey,
       }
     );
+  }
+
+  public listReviewQueue(
+    workspaceId: string,
+    projectId: string,
+    options?: RequestOptions
+  ): Promise<ApiResponse<ReviewQueuePage>> {
+    return this.execute(`${this.projectPath(workspaceId, projectId)}/review-queue`, {
+      ...(options ? { options } : {}),
+    });
+  }
+
+  public listApprovalHistory(
+    workspaceId: string,
+    projectId: string,
+    options: RequestOptions & { readonly subjectId?: string } = {}
+  ): Promise<ApiResponse<ApprovalHistoryPage>> {
+    const query = options.subjectId
+      ? `?${new URLSearchParams({ "filter[subjectId]": options.subjectId }).toString()}`
+      : "";
+    return this.execute(`${this.projectPath(workspaceId, projectId)}/approval-history${query}`, { options });
   }
 
   public revokeApproval(

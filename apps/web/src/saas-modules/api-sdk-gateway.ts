@@ -36,6 +36,15 @@ export function createApiSdkSaasJourneyGateway(input: {
         )
       ).data;
     },
+    async getEpisodeProductionState(identity, projectId, episodeId) {
+      return (
+        await client(identity).getEpisodeProductionState(
+          workspace(identity),
+          projectId,
+          episodeId
+        )
+      ).data;
+    },
     async createEpisode(identity, projectId, value, _idempotencyKey) {
       return (
         await client(identity).createEpisode(
@@ -144,6 +153,12 @@ export function createApiSdkSaasJourneyGateway(input: {
           challengeId
         )
       ).data;
+    },
+    async listReviewQueue(identity, projectId) {
+      return (await client(identity).listReviewQueue(workspace(identity), projectId)).data;
+    },
+    async listApprovalHistory(identity, projectId) {
+      return (await client(identity).listApprovalHistory(workspace(identity), projectId)).data;
     },
     async recordApproval(
       identity,

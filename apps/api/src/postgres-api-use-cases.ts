@@ -616,6 +616,18 @@ export function createPostgresApiUseCases(input: {
       );
       return record ? { id: record.runId, revision: record.revision, status: record.status } : null;
     },
+    getEpisodeProductionState: async (episodeId, context) => {
+      const record = await repository.withWorkspaceTransaction(
+        context.workspaceId,
+        (transaction) =>
+          transaction.getEpisodeProductionState({
+            workspaceId: context.workspaceId,
+            projectId: context.projectId,
+            episodeId,
+          })
+      );
+      return record?.state ?? null;
+    },
     listWorkflowPortfolio: async (query, context) => {
       const filter = workflowPortfolioFilterSchema.parse({
         schemaVersion: WORKFLOW_PORTFOLIO_SCHEMA_VERSION,

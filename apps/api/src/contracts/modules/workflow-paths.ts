@@ -1,5 +1,22 @@
 import { authenticatedErrors, episodeParameters, jobParameters, json, parameter, projectParameters, requestIdParameter, response, responseHeader, workflowParameters, workspaceParameters } from "../openapi-helpers.js";
 export const workflowOpenApiPaths = {
+    "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}/production-state": {
+      get: {
+        operationId: "getEpisodeProductionState",
+        description:
+          "Returns the canonical episode production projection, including durable gates and permitted actions. Requires `content.read`.",
+        parameters: episodeParameters,
+        responses: {
+          "200": {
+            description: "Canonical episode production state",
+            headers: { "x-request-id": responseHeader("RequestId") },
+            content: json("EpisodeProductionState"),
+          },
+          ...authenticatedErrors,
+          "404": response("NotFound"),
+        },
+      },
+    },
     "/v1/workspaces/{workspace}/workflow-portfolio": {
       get: {
         operationId: "listWorkflowPortfolio",

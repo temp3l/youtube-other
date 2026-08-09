@@ -38,6 +38,15 @@ const useCases: ApiUseCases = {
     revision: 0,
   }),
   getWorkflow: async () => ({ id: "run-1", revision: 2, status: "queued" }),
+  getEpisodeProductionState: async () => ({
+    schemaVersion: "mediaforge.production.v1",
+    projectId: "project-1",
+    episodeId: "episode-1",
+    currentProductionRevision: {
+      schemaVersion: "mediaforge.production.v1", id: "production-revision-1", projectId: "project-1", episodeId: "episode-1", episodeRevision: 2, resolvedConfigFingerprint: "a".repeat(64), locale: "en", variant: "full", createdAt: "2026-08-01T00:00:00.000Z",
+    },
+    lifecycleStage: "reviewing", workflow: { activeRunId: "run-1", runStatus: "awaiting_approval", runRevision: 2, jobId: "job-1", jobStatus: "waiting_for_approval", jobRevision: 1 }, validation: { items: [] }, review: { requiredGates: [], approvals: [] }, render: { status: "none", renderArtifactHashes: [] }, localization: { variants: [] }, publication: { readiness: "disabled", publishReady: false }, blockers: [{ severity: "blocking", code: "approval_missing", message: "Approval is required.", evidence: [{ kind: "workflow_run", id: "run-1" }] }], warnings: [], actions: [], projectedAt: "2026-08-01T00:00:00.000Z", projectionInputFingerprint: "b".repeat(64),
+  }),
   listWorkflowSteps: async () => ({ items: [] }),
   cancelWorkflow: async () => ({
     workflowRunId: "run-1",
@@ -220,6 +229,9 @@ describe("HTTP API contract", () => {
       paths: {
         "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}": {
           get: { operationId: "getEpisode" },
+        },
+        "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}/production-state": {
+          get: { operationId: "getEpisodeProductionState" },
         },
         "/v1/workspaces/{workspace}/projects/{project}/workflow-runs/{run}/steps":
           { get: { operationId: "listWorkflowSteps" } },
@@ -560,6 +572,43 @@ describe("HTTP API contract", () => {
     });
     expect(weak.status).toBe(412);
     expect(replacements).toHaveLength(1);
+  });
+
+  it("returns only the canonical tenant-scoped episode production state", async () => {
+    const calls: unknown[] = [];
+    const running = await serve(
+      createApiServer({
+        useCases: {
+          ...useCases,
+          getEpisodeProductionState: async (episodeId, context) => {
+            calls.push({ episodeId, context });
+            return useCases.getEpisodeProductionState(episodeId, context);
+          },
+        },
+        authenticate,
+        requestId: () => "request-production-state",
+      })
+    );
+    closers.push(running.close);
+    const response = await request({
+      url: `${running.baseUrl}/v1/workspaces/ws-1/projects/project-1/episodes/episode-1/production-state`,
+    });
+    expect(response.status).toBe(200);
+    expect(JSON.parse(response.body) as unknown).toMatchObject({
+      projectId: "project-1",
+      episodeId: "episode-1",
+      lifecycleStage: "reviewing",
+      blockers: [{ code: "approval_missing" }],
+    });
+    expect(calls).toEqual([
+      expect.objectContaining({
+        episodeId: "episode-1",
+        context: expect.objectContaining({
+          workspaceId: "ws-1",
+          projectId: "project-1",
+        }),
+      }),
+    ]);
   });
 
   it("rejects unsupported mathematics profile input as a stable 422 before dispatch", async () => {

@@ -1,16 +1,19 @@
 import type {
   ApprovalAccepted,
   ApprovalChallenge,
+  ApprovalHistoryPage,
   ApprovalRevoked,
   AssetPage,
   AuditEventPage,
   Episode,
+  EpisodeProductionState,
   EpisodeInput,
   EpisodePage,
   Job,
   Project,
   ProjectInput,
   ProjectPage,
+  ReviewQueuePage,
   Publication,
   PublicationPreflightInput,
   PublicationPreflightResult,
@@ -53,6 +56,7 @@ export interface SaasJourneyGateway {
   createProject(identity: SaasIdentity, input: ProjectInput, idempotencyKey: string): Promise<Project>;
   listEpisodes(identity: SaasIdentity, projectId: string): Promise<EpisodePage>;
   getEpisode(identity: SaasIdentity, projectId: string, episodeId: string): Promise<Episode>;
+  getEpisodeProductionState(identity: SaasIdentity, projectId: string, episodeId: string): Promise<EpisodeProductionState>;
   createEpisode(identity: SaasIdentity, projectId: string, input: EpisodeInput, idempotencyKey: string): Promise<{ readonly id: string; readonly revision: number }>;
   replaceEpisode(identity: SaasIdentity, projectId: string, episodeId: string, input: EpisodeInput, ifMatch: string): Promise<Episode>;
   startWorkflow(identity: SaasIdentity, projectId: string, episodeId: string, input: WorkflowAdmission, idempotencyKey: string): Promise<WorkflowCommandAccepted>;
@@ -64,6 +68,8 @@ export interface SaasJourneyGateway {
   listAssets(identity: SaasIdentity, projectId: string): Promise<AssetPage>;
   listValidations(identity: SaasIdentity, projectId: string): Promise<ValidationPage>;
   getApprovalChallenge(identity: SaasIdentity, projectId: string, challengeId: string): Promise<ApprovalChallenge>;
+  listReviewQueue(identity: SaasIdentity, projectId: string): Promise<ReviewQueuePage>;
+  listApprovalHistory(identity: SaasIdentity, projectId: string): Promise<ApprovalHistoryPage>;
   recordApproval(identity: SaasIdentity, projectId: string, input: { readonly challengeId: string; readonly subjectId: string; readonly expectedRevision: number; readonly decision: "approved" | "rejected"; readonly reason: string }, ifMatch: string, idempotencyKey: string): Promise<ApprovalAccepted>;
   revokeApproval(identity: SaasIdentity, projectId: string, approvalId: string, reason: string, ifMatch: string, idempotencyKey: string): Promise<ApprovalRevoked>;
   getQuota(identity: SaasIdentity): Promise<WorkspaceQuotaStatus>;

@@ -28,6 +28,7 @@ import {
   retentionPolicyRecordSchema,
   episodeCloneInputSchema,
   episodeCloneResultSchema,
+  episodeProductionStateSchema,
   productionTemplateApplyInputSchema,
   productionTemplateApplyResultSchema,
   productionTemplateCreateInputSchema,
@@ -595,6 +596,12 @@ export interface ApiUseCases {
       Pick<ApiRequestContext, "workspaceId" | "projectId" | "requestId">
     >
   ): Promise<ApiPublication | null>;
+  getEpisodeProductionState(
+    episodeId: string,
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "projectId" | "requestId">
+    >
+  ): Promise<Record<string, unknown> | null>;
   recordApproval(
     input: ApprovalInput,
     context: Required<
@@ -1606,6 +1613,12 @@ function requiredPermission(
     method === "GET" &&
     matched.episode &&
     matched.tail === `episodes/${matched.episode}`
+  )
+    return "content.read";
+  if (
+    method === "GET" &&
+    matched.episode &&
+    matched.tail === `episodes/${matched.episode}/production-state`
   )
     return "content.read";
   if (
@@ -2637,6 +2650,24 @@ export function createApiServer(
           response,
           200,
           productionTemplateApplyResultSchema.parse(result),
+          { "x-request-id": requestIdValue }
+        );
+      }
+      if (
+        request.method === "GET" &&
+        matched.episode &&
+        matched.tail === `episodes/${matched.episode}/production-state`
+      ) {
+        const result = await useCases.getEpisodeProductionState(
+          matched.episode,
+          projectContext
+        );
+        if (!result)
+          throw new ApplicationError("not_found", "Resource not found.", false);
+        return json(
+          response,
+          200,
+          episodeProductionStateSchema.parse(result),
           { "x-request-id": requestIdValue }
         );
       }
