@@ -11,7 +11,7 @@ canonical narration → claims → resolved entities/places
 → ExplanatoryRelation → deterministic validation → future compilers
 ```
 
-The V3.6 module does not extract relations, compile maps/diagrams, or affect V3.5 production plans. The future configuration seam is `HISTORY_RELATION_IR_VERSION=v35|v36-shadow|v36`; it is documented only, so the production default remains V3.5.
+The V3.6 module has a proof-bearing shadow extractor, but no map/diagram compiler and no effect on V3.5 production plans. The future configuration seam is `HISTORY_RELATION_IR_VERSION=v35|v36-shadow|v36`; it is documented only, so the production default remains V3.5.
 
 ## Semantics and identity
 
@@ -37,6 +37,12 @@ Invalid cardinality is rejected before a final semantic ID is computed. Directio
 `supportClaimIds` is a canonical, sorted, deduplicated provenance set. Its separate `evidenceFingerprint` is `evidence-{sha256-prefix}` over that set. It never contributes to `id`.
 
 Consequently, Lisbon → English Channel supported by `[C1]` and by `[C1, C2]` resolves to one semantic relation ID with different evidence fingerprints. A later candidate/extraction layer may merge valid support into the one canonical support set, but that merge must not change the semantic ID or relation participants.
+
+## Phase 2 shadow candidate extraction
+
+`extractShadowRelationCandidatesV36` is deliberately narrow. It projects only explicit `groundedPropositions` from episode-local `RelationSupportClaimV36` inputs, creates hardened relation records, merges identical semantic IDs by support provenance, and runs deterministic validation before returning candidates. Text alone is not enough: the extractor does not use rules over narration, does not call an LLM, and rejects malformed propositions instead of inferring a substitute.
+
+Its result is marked `v36-shadow`, contains validated relations plus rejected/skipped candidate diagnostics, and has no production planner, configuration, map, or diagram consumer. It is a golden-corpus/proof-bound integration seam—not production extraction.
 
 ## Contract and provenance versioning
 
