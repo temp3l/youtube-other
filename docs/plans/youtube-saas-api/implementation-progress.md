@@ -56,9 +56,9 @@ Notes: Usage dimensions, reservation lifecycle, estimate projection with cache/r
 
 ### YSAAS-009
 Status: in progress
-Commit: 9236fa2, 3188f69, 0e50124, 5b8358a
+Commit: 9236fa2, 3188f69, 0e50124, 5b8358a, 6f88755
 Validation: focused bulk preflight, persistence migration, and API SDK tests pass; domain build, persistence/API/SDK typechecks pass. API contract suite is blocked before collection by pre-existing missing `@mediaforge/domain/visual-retention/treatment-catalog.js` from built `dark-truth`.
-Notes: Added a bounded, deterministic bulk selection preflight that preserves an eligibility reason for every candidate and excludes successful/permanent-failure items from retry selection. Persisted tenant-scoped batch/item rows retain all selected items and their eligibility evidence, with idempotency conflict protection and RLS. Tenant-scoped batch result reads are now exposed through API/OpenAPI/SDK. Authoritative execution-time reauthorization, quota reservation, launch/retry/cancel, and BFF remain.
+Notes: Added a bounded, deterministic bulk selection preflight that preserves an eligibility reason for every candidate and excludes successful/permanent-failure items from retry selection. Persisted tenant-scoped batch/item rows retain all selected items and their eligibility evidence, with idempotency conflict protection and RLS. API/OpenAPI/SDK now expose tenant-scoped batch reads and an idempotent, authoritative preflight that rereads project/episode/configuration/quota state before storing outcomes. It does not start child workflows. Quota reservation, launch/retry/cancel, and BFF remain.
 
 ### YSAAS-011
 Status: completed
