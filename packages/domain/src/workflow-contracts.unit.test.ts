@@ -24,6 +24,7 @@ import {
   workflowEventSchema,
   workflowDefinitionSchema,
   workflowInstanceSchema,
+  contentProfileIdSchema,
 } from "./workflow-contracts.js";
 
 const now = "2026-07-14T12:00:00.000Z";
@@ -92,18 +93,21 @@ describe("shared workflow contracts", () => {
     ).toThrow();
   });
 
-  it("adds Italian and the fail-closed strategic profile without changing other profiles", () => {
+  it("persists the canonical Veronica profile and normalizes its compatibility alias", () => {
     expect(
       contentProfileSchema.parse({
         ...profileBase,
-        id: "strategic-reinvention",
-        genreId: "strategic-reinvention",
+        id: "veronicabenini",
+        genreId: "veronicabenini",
         creatorProfileId: "veronica-benini",
         canonicalLocale: "it",
         supportedLocales: ["it", "en"],
         autoPublish: false,
       }).canonicalLocale
     ).toBe("it");
+    expect(contentProfileIdSchema.parse("strategic-reinvention")).toBe(
+      "veronicabenini"
+    );
   });
 
   it("rejects unknown fields at top-level and nested boundaries", () => {

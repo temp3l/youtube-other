@@ -7,6 +7,7 @@ import {
 import {
   creatorProfileSchema,
   genreDefinitionSchema,
+  VERONICA_CONTENT_PROFILE_ID,
   type CreatorProfile,
   type EffectiveContentPolicy,
   type GenreDefinition,
@@ -77,12 +78,12 @@ export function parseStrategicReinventionProfile(genreYaml: string, creatorYaml:
   const sourceGenre = parseYaml(genreYaml, genreSourceSchema);
   const sourceCreator = parseYaml(creatorYaml, creatorSourceSchema);
   const genre = genreDefinitionSchema.parse({
-    schemaVersion: "1.1", id: sourceGenre.id, displayName: sourceGenre.displayName, description: sourceGenre.description,
+    schemaVersion: "1.1", id: VERONICA_CONTENT_PROFILE_ID, displayName: sourceGenre.displayName, description: sourceGenre.description,
     version: sourceGenre.version, canonicalLocale: "it", episodeModes: sourceGenre.episodeModes.map(({ id }) => id),
     requiredApprovalGates: sourceGenre.approvalPolicy.requiredGates, autoPublish: false,
   });
   const creatorProfile = creatorProfileSchema.parse({
-    schemaVersion: "1.1", id: sourceCreator.id, displayName: sourceCreator.displayName, genreId: sourceCreator.genreId,
+    schemaVersion: "1.1", id: sourceCreator.id, displayName: sourceCreator.displayName, genreId: VERONICA_CONTENT_PROFILE_ID,
     status: sourceCreator.status, canonicalLocale: sourceCreator.locale.canonical, supportedLocales: sourceCreator.locale.supported,
     autoPublish: false, syntheticNarrationEnabled: false, generatedLikenessEnabled: false,
   });
