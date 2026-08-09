@@ -6,5 +6,6 @@ export * from "./cache.js";
 export * from "./caller-migration.js";
 export * from "./task-registry.js";
 export * from "./workflow-errors.js";
+export * from "./review-pack.js";
 export * from "./workflow-store.js";
 export * from "./workflow-operator.js";

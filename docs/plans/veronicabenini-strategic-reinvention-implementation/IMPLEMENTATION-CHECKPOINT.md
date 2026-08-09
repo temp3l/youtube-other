@@ -4,7 +4,7 @@
 - Starting HEAD: `f04262c16bfd1a89d1b404b1ac291a89dc699a0d`
 - Plan baseline after fast-forward: `46d624c`
 - Pre-existing changes preserved: `.codex/config.toml`; `prompts/codex-veronicabenini-implement-all-waves.md`
-- Current wave: 3 — derivatives
+- Current wave: 4 — workflow/render
 
 | Task | Status | Owner | Validation | Checkpoint |
 | --- | --- | --- | --- | --- |
@@ -17,9 +17,10 @@
 | VRI-07 | VALIDATED | worker + coordinator review | 4 focused tests; visual-planning build pass | `a6def0e` |
 | VRI-08 | VALIDATED | worker + coordinator review | 5 focused tests pass | `a6def0e` |
 | VRI-09 | VALIDATED | worker + coordinator review | 6 focused tests pass; rendering build dependency-blocked | `d2cd6e0` |
-| VRI-10 | VALIDATED | worker + coordinator review | 4 focused tests pass; Veronica typecheck blocked by existing readonly errors | pending commit |
+| VRI-10 | VALIDATED | worker + coordinator review | 4 focused tests pass; Veronica typecheck blocked by existing readonly errors | `bc35d75` |
 | VRI-11 | VALIDATED | worker + coordinator review | 5 focused tests pass; supplementary speech suite dependency-blocked | `d2cd6e0` |
-| VRI-12..VRI-26 | NOT_STARTED | unassigned | not run | none |
+| VRI-12 | VALIDATED | worker + coordinator review | 15 focused tests and workflow-engine typecheck pass | pending commit |
+| VRI-13..VRI-26 | NOT_STARTED | unassigned | not run | none |
 
 ## VRI-01 evidence
 
@@ -44,4 +45,4 @@
 
 ## Next executable tasks
 
-VRI-12 is the next serial merge barrier.
+VRI-13 is the next serial orchestration barrier; VRI-14 and VRI-15 follow it.

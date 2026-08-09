@@ -27,6 +27,11 @@ import {
   WorkflowStoreError,
   isWorkflowTransitionAllowed,
 } from "./workflow-store.js";
+import {
+  REVIEW_PACK_SCHEMA_VERSION,
+  buildReviewPackDelta,
+  workflowReviewPackSchema,
+} from "./review-pack.js";
 
 const hashA = "a".repeat(64);
 const hashB = "b".repeat(64);
@@ -361,6 +366,92 @@ describe("workflow state, events, locks, and reconciliation", () => {
     await expect(store.applyManualSuccess(forbidden)).rejects.toMatchObject<
       Partial<WorkflowStoreError>
     >({ code: "OVERRIDE_FORBIDDEN" });
+  });
+
+  it("persists canonical revision-scoped review packs with redacted delta remediation", async () => {
+    const veronicaStore = new WorkflowStore({
+      unitRoot: temporaryRoot,
+      workflow: {
+        ...workflow,
+        profileId: "strategic-reinvention",
+      },
+      identity: {
+        instanceId: "instance-veronica",
+        unitId: "episode-001",
+        locale: "en",
+        variant: "full",
+      },
+      now: () => currentTime,
+    });
+    await veronicaStore.initialize();
+    const original = workflowReviewPackSchema.parse({
+      schemaVersion: REVIEW_PACK_SCHEMA_VERSION,
+      id: "review-pack-original",
+      workflowInstanceId: "instance-veronica",
+      taskId: "test.prepare",
+      profileId: "strategic-reinvention",
+      unitId: "episode-001",
+      locale: "en",
+      variant: "full",
+      boundRevision: "revision-1",
+      artifactHashes: [hashA],
+      inputArtifactHashes: [hashB],
+      configurationFingerprint: hashA,
+      dependencyFingerprint: hashB,
+      provenance: [
+        {
+          artifactHash: hashA,
+          producer: "test.prepare@1.0.0",
+          sourceRevision: "source-revision-1",
+        },
+      ],
+      reuseRationale: "new-content",
+      remediation: { action: "none", reason: "Initial review." },
+      createdAt: currentTime.toISOString(),
+    });
+    await veronicaStore.recordReviewPack(original);
+    currentTime = new Date(currentTime.getTime() + 1_000);
+    const remediated = workflowReviewPackSchema.parse({
+      ...original,
+      id: "review-pack-remediated",
+      reuseRationale: "language-independent-visual",
+      remediation: {
+        action: "re-translate",
+        reason: "Only localized overlays require regeneration.",
+      },
+      failureEvidence: {
+        code: "TRANSLATION_OVERFLOW",
+        message: "Localized overlay exceeds the safe area.",
+        remediation: "Reflow the localized overlay and review it again.",
+        details: { authorization: "do-not-export", frame: "overlay-001" },
+      },
+      createdAt: currentTime.toISOString(),
+    });
+    await veronicaStore.recordReviewPack(remediated);
+
+    const records = await veronicaStore.reviewPacksForTask("test.prepare");
+    expect(records).toHaveLength(2);
+    expect(records[0]?.profileId).toBe("veronicabenini");
+    expect(records[1]?.failureEvidence?.details).toEqual({
+      authorization: "[REDACTED]",
+      frame: "overlay-001",
+    });
+    const delta = buildReviewPackDelta({
+      previous: records[0]!,
+      current: records[1]!,
+    });
+    expect(delta).toMatchObject({
+      changedArtifactHashes: [],
+      preservedArtifactHashes: [hashA],
+      configurationChanged: false,
+      dependenciesChanged: false,
+      requiresRegeneration: false,
+      remediation: { action: "re-translate" },
+      failureEvidence: {
+        details: { authorization: "[REDACTED]", frame: "overlay-001" },
+      },
+    });
+    await expect(fs.stat(veronicaStore.reviewPacksPath)).resolves.toBeDefined();
   });
 
   it("invalidates each affected task once while preserving unrelated artifacts", async () => {

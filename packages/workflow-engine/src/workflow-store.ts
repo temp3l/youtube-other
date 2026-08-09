@@ -51,6 +51,11 @@ import {
   type ArtifactSemanticIdentity,
   type CacheDecision,
 } from "./cache.js";
+import {
+  workflowReviewPackSchema,
+  type WorkflowReviewPack,
+} from "./review-pack.js";
+import { redactStructuredMetadata } from "./attempt-observability.js";
 
 export const WORKFLOW_STORE_VERSION = "mediaforge.workflow-store.v1" as const;
 
@@ -415,6 +420,7 @@ export class WorkflowStore {
   public readonly statePath: string;
   public readonly eventsPath: string;
   public readonly approvalsPath: string;
+  public readonly reviewPacksPath: string;
   public readonly overridesPath: string;
   public readonly locksRoot: string;
   public readonly runsRoot: string;
@@ -439,6 +445,7 @@ export class WorkflowStore {
     this.statePath = path.join(this.root, "state.json");
     this.eventsPath = path.join(this.root, "events.jsonl");
     this.approvalsPath = path.join(this.root, "approvals.json");
+    this.reviewPacksPath = path.join(this.root, "review-packs.json");
     this.overridesPath = path.join(this.root, "overrides.json");
     this.locksRoot = path.join(this.root, "locks");
     this.runsRoot = path.join(this.root, "runs");
@@ -978,6 +985,58 @@ export class WorkflowStore {
           : {}),
       })
     );
+  }
+
+  /**
+   * Append immutable, revision-bound review evidence. Approval decisions remain
+   * authoritative through recordApproval/currentApproval; this ledger supplies
+   * the portable delta and remediation evidence a reviewer needs to decide.
+   */
+  public async recordReviewPack(recordInput: WorkflowReviewPack): Promise<void> {
+    const record = workflowReviewPackSchema.parse({
+      ...recordInput,
+      ...(recordInput.failureEvidence
+        ? {
+            failureEvidence: {
+              ...recordInput.failureEvidence,
+              details: redactStructuredMetadata(
+                recordInput.failureEvidence.details
+              ),
+            },
+          }
+        : {}),
+    });
+    const state = await this.readState();
+    this.assertOperatorIdentity(record, state);
+    this.assertTaskInState(record.taskId, state);
+    if (record.boundRevision !== state.workflowRevision) {
+      throw new WorkflowStoreError(
+        "OPERATOR_RECORD_INVALID",
+        "Review-pack evidence must be bound to the current workflow revision."
+      );
+    }
+    await this.ensureOperatorRecord(
+      this.reviewPacksPath,
+      record,
+      workflowReviewPackSchema
+    );
+  }
+
+  public async reviewPacksForTask(
+    taskIdInput: string
+  ): Promise<readonly WorkflowReviewPack[]> {
+    const state = await this.readState();
+    const taskId = taskIdSchema.parse(taskIdInput);
+    this.assertTaskInState(taskId, state);
+    return (await this.readOperatorRecords(
+      this.reviewPacksPath,
+      workflowReviewPackSchema
+    ))
+      .filter(
+        (record) =>
+          record.workflowInstanceId === state.id && record.taskId === taskId
+      )
+      .sort((left, right) => left.createdAt.localeCompare(right.createdAt));
   }
 
   /**
@@ -1853,6 +1912,9 @@ export class WorkflowStore {
     if (!(await pathExists(this.approvalsPath))) {
       await durableJson(this.approvalsPath, empty);
     }
+    if (!(await pathExists(this.reviewPacksPath))) {
+      await durableJson(this.reviewPacksPath, empty);
+    }
     if (!(await pathExists(this.overridesPath))) {
       await durableJson(this.overridesPath, empty);
     }
@@ -1904,7 +1966,13 @@ export class WorkflowStore {
   }
 
   private assertOperatorIdentity(
-    record: ApprovalRecord,
+    record: {
+      readonly workflowInstanceId: WorkflowInstance["id"];
+      readonly profileId: WorkflowInstance["profileId"];
+      readonly unitId: WorkflowInstance["unitId"];
+      readonly locale: WorkflowInstance["locale"];
+      readonly variant: WorkflowInstance["variant"];
+    },
     state: WorkflowInstance
   ): void {
     if (
