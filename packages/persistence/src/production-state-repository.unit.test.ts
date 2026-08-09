@@ -27,6 +27,7 @@ describe("postgres migration registry", () => {
       "workflow-authority",
       "durable-dispatch",
       "production-state",
+      "capability-configuration",
       "principal-directory",
       "quota-dimensions",
     ]);

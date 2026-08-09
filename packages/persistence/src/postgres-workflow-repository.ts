@@ -39,6 +39,11 @@ import {
   replaceEpisodeProductionState,
   type ReplaceEpisodeProductionStateInput,
 } from "./production-state-repository.js";
+import {
+  getEpisodeConfigurationOverride,
+  getGenreConfiguration,
+  getTenantSettings,
+} from "./postgres-capability-configuration-repository.js";
 
 export interface CommandAdmissionResult {
   readonly kind: "admitted" | "replayed";
@@ -698,6 +703,10 @@ function translate(error: unknown): never {
 
 export class WorkspaceTransactionRepository {
   public constructor(private readonly connection: Queryable) {}
+
+  public getTenantSettings(workspaceId: string) { return getTenantSettings(this.connection, workspaceId); }
+  public getGenreConfiguration(workspaceId: string, profileId: string) { return getGenreConfiguration(this.connection, workspaceId, profileId); }
+  public getEpisodeConfigurationOverride(input: { readonly workspaceId: string; readonly projectId: string; readonly episodeId: string }) { return getEpisodeConfigurationOverride(this.connection, input); }
 
   public listCurrentProductionUnitSnapshots(input: {
     readonly workspaceId: string;
