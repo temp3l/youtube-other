@@ -3,18 +3,18 @@
 Source plan: `docs/plans/youtube-saas-api/implementation-progress.md`
 Date: 2026-08-09
 
-Implementation commit: `07b052b`
+Summary: Validated the server-rendered bulk BFF, repaired its cancellation form, and aligned the runtime capability fixture with YSAAS-018’s authoritative configuration contract.
 
-Summary: Completed YSAAS-020’s typed integration BFF. Credential and webhook mutations consume a single-use recent-auth confirmation bound to workspace, principal, action, and server session; show-once secrets return only in the immediate no-store response. The screen lists redacted status/history and generated API journey steps.
+Files changed: `apps/web/src/saas-runtime.ts`, `apps/web/src/saas-runtime.unit.test.ts`, plan ledger, and this report.
 
-Files changed: web runtime/gateway/OIDC files; API SDK client and focused test; persistence composition adapter and focused test; ledger.
+Tasks completed: YSAAS-019 follow-up checkpoint. Tasks partially completed: YSAAS-022; YSAAS-023 has unit and PostgreSQL evidence but no seeded API/BFF fault-matrix fixture. Tasks not completed: YSAAS-024, pending external authority/evidence.
 
-Completed: YSAAS-020. Partial/not completed: none.
+Deviation: bulk selection remains a bounded manual list; filter/pagination has no server contract.
 
-Deviation: no deployment server composition exists here, so the adapter is exported rather than instantiated.
+Checks: `pnpm test:focused -- apps/web/src/saas-runtime.unit.test.ts` passed (4).
 
-Checks: focused adapter and SDK tests; SDK build; web typecheck—all passed.
+Test results: bulk cancellation renders and posts through the BFF with idempotency.
 
-Risks/next: deployment must inject `recordRecentAuth` into OIDC and `recentAuthConsumer` into runtime. Browser-flow HTTP tests remain blocked by sandbox loopback `EPERM`. YSAAS-009/019 provide persisted bulk operations and BFF. YSAAS-022 now has tenant readiness, narrow title/ID search, and current production-state actions; retention, membership, and lifecycle BFF contracts remain absent.
+Known risks/follow-up: Do not certify YSAAS-023 or enable external publication. Next: add a seeded tenant-to-BFF acceptance fixture.
 
-YSAAS-023 now has passing provider-free executor and disposable-Postgres workflow evidence, but lacks a seeded API/BFF fixture for the remaining fault matrix. YSAAS-024 is blocked pending explicit external authority and current evidence; no provider calls or feature enablement were attempted.
+Commit: `67a64ed`.

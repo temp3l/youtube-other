@@ -57,14 +57,14 @@ Notes: Usage dimensions, reservation lifecycle, estimate projection with cache/r
 ### YSAAS-009
 Status: completed
 Commit: 9236fa2, 3188f69, 0e50124, 5b8358a, 6f88755, 6a5bd38, 3475923, ba5db9e, 2134144, 4140d7a, bd39623, 490addf, 14f9895, 913a3c7
-Validation: focused bulk preflight, persistence migration, and API SDK tests pass; domain build, persistence/API/SDK typechecks pass. API contract suite is blocked before collection by pre-existing missing `@mediaforge/domain/visual-retention/treatment-catalog.js` from built `dark-truth`.
+Validation: focused bulk preflight, persistence migration, and API SDK tests pass; domain build, persistence/API/SDK typechecks pass. The prior domain-subpath resolver block is fixed; a seeded API acceptance fixture is still absent.
 Notes: Added bounded deterministic preflight, persisted tenant-scoped batch/item evidence and RLS, typed reads/preflight/launch/retry/cancel API+SDK, quota-backed child admission, terminal settlement/capacity release, retry generations, and server-owned BFF/page controls. The browser submits at most 100 explicit items and displays only server-calculated results; successful items never retry.
 
 ### YSAAS-019
 Status: completed
-Commit: 6167c53
-Validation: API SDK build and web typecheck pass; focused runtime suite blocked by sandbox loopback `EPERM` before assertions
-Notes: Server-rendered bounded bulk preflight/result page and typed BFF operations; no client eligibility/quota/orchestration.
+Commit: 6167c53, 67a64ed
+Validation: API SDK build and web typecheck pass; focused `saas-runtime.unit.test.ts` pass (4) outside the sandbox loopback restriction
+Notes: Server-rendered bounded bulk preflight/result page and typed BFF operations; no client eligibility/quota/orchestration. Cancellation now supplies the required idempotency key.
 
 ### YSAAS-022
 Status: in progress
