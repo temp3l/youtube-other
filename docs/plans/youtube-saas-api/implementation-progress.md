@@ -56,9 +56,9 @@ Notes: Usage dimensions, reservation lifecycle, estimate projection with cache/r
 
 ### YSAAS-009
 Status: in progress
-Commit: 9236fa2, 3188f69, 0e50124, 5b8358a, 6f88755, 6a5bd38
+Commit: 9236fa2, 3188f69, 0e50124, 5b8358a, 6f88755, 6a5bd38, 3475923
 Validation: focused bulk preflight, persistence migration, and API SDK tests pass; domain build, persistence/API/SDK typechecks pass. API contract suite is blocked before collection by pre-existing missing `@mediaforge/domain/visual-retention/treatment-catalog.js` from built `dark-truth`.
-Notes: Added a bounded, deterministic bulk selection preflight that preserves an eligibility reason for every candidate and excludes successful/permanent-failure items from retry selection. Persisted tenant-scoped batch/item rows retain all selected items and their eligibility evidence, with idempotency conflict protection and RLS. API/OpenAPI/SDK now expose tenant-scoped batch reads and an idempotent, authoritative preflight that rereads project/episode/configuration/quota state before storing outcomes. A `SKIP LOCKED` claim/completion primitive now prevents duplicate child admission and aggregates item outcomes. Quota reservation, launch/retry/cancel, and BFF remain.
+Notes: Added a bounded, deterministic bulk selection preflight that preserves an eligibility reason for every candidate and excludes successful/permanent-failure items from retry selection. Persisted tenant-scoped batch/item rows retain all selected items and their eligibility evidence, with idempotency conflict protection and RLS. API/OpenAPI/SDK now expose tenant-scoped batch reads and an idempotent, authoritative preflight that rereads project/episode/configuration/quota state before storing outcomes. A `SKIP LOCKED` claim/completion primitive now prevents duplicate child admission, binds child workflow/job IDs without treating queued work as complete, and cancels only unadmitted items. Quota reservation, launch/retry, child cancellation fan-out, and BFF remain.
 
 ### YSAAS-011
 Status: completed
