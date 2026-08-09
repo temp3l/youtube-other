@@ -1,4 +1,3 @@
-import path from "node:path";
 import { createHash } from "node:crypto";
 import {
   contentLocaleSchema,
@@ -8,7 +7,9 @@ import {
 import {
   WorkflowOperator,
   createTaskRegistry,
+  WorkflowBlockedError,
   type TaskImplementation,
+  type WorkflowOperatorOptions,
 } from "@mediaforge/workflow-engine";
 import {
   createStrategicFullTaskRegistrations,
@@ -18,7 +19,29 @@ import {
   strategicFullWorkflowDefinition,
   strategicSupplementalWorkflowDefinition,
 } from "./task-registry.js";
-import { runStrategicEpisodePipeline } from "./episode-pipeline.js";
+
+export const STRATEGIC_CANONICAL_WORKFLOW_ADAPTER_VERSION =
+  "veronicabenini.canonical-workflow-adapter.v1" as const;
+
+/**
+ * The old strategic bridge materialized an entire fixture pipeline for every
+ * task invocation. Each task now has an explicit canonical binding instead:
+ * provider dispatch and fixture generation are deliberately unavailable until
+ * the owning capability contributes verified, revision-bound artifacts.
+ */
+function disabledCanonicalStage(taskId: string): TaskImplementation {
+  return async (context) => {
+    if (context.control.signal.aborted) {
+      throw new WorkflowBlockedError(
+        `Canonical Veronica task ${taskId} was cancelled before execution.`,
+      );
+    }
+    throw new WorkflowBlockedError(
+      `Canonical Veronica task ${taskId} is not enabled for direct execution.`,
+      "Provide the owning capability's approved, revision-bound artifact; provider dispatch and fixture generation are disabled.",
+    );
+  };
+}
 
 function workflowInstanceId(
   workflowId: string,
@@ -33,51 +56,44 @@ function workflowInstanceId(
     .slice(0, 32)}`;
 }
 
-function createStrategicEpisodeImplementations(input: {
-  readonly workspaceRoot: string;
-  readonly episodeId: string;
-}): Readonly<Partial<Record<string, TaskImplementation>>> {
-  const runPipeline =
-    (stage: string): TaskImplementation =>
-    async () => {
-      const result = await runStrategicEpisodePipeline({
-        workspaceRoot: input.workspaceRoot,
-        episodeId: input.episodeId,
-        resume: true,
-      });
-      return {
-        outputArtifacts: [],
-        warnings: result.resumed
-          ? [`${stage} reused cached strategic episode pipeline state.`]
-          : [`${stage} materialized strategic episode pipeline state.`],
-      };
-    };
+function createStrategicEpisodeImplementations(
+  provided: Readonly<Partial<Record<string, TaskImplementation>>> = {},
+): Readonly<Partial<Record<string, TaskImplementation>>> {
   const implementations: Record<string, TaskImplementation> = {};
   for (const taskId of STRATEGIC_FULL_TASK_IDS) {
     if (taskId.endsWith("-approval") || taskId.endsWith("-review")) {
       continue;
     }
-    implementations[taskId] = runPipeline(taskId);
+    implementations[taskId] = provided[taskId] ?? disabledCanonicalStage(taskId);
   }
   return implementations;
 }
 
-export function createStrategicFullWorkflowOperator(request: {
+export interface StrategicWorkflowOperatorRequest {
   readonly unitRoot: string;
   readonly episodeId: string;
   readonly locale?: string;
   readonly variant?: string;
-}): WorkflowOperator {
+  readonly implementations?: Readonly<Partial<Record<string, TaskImplementation>>>;
+  readonly availableArtifacts?: WorkflowOperatorOptions["availableArtifacts"];
+  readonly approvalArtifactHashes?: WorkflowOperatorOptions["approvalArtifactHashes"];
+  readonly fingerprintMaterial?: WorkflowOperatorOptions["fingerprintMaterial"];
+  readonly verifyArtifact?: WorkflowOperatorOptions["verifyArtifact"];
+  readonly executionControl?: WorkflowOperatorOptions["executionControl"];
+}
+
+export function createStrategicFullWorkflowOperator(
+  request: StrategicWorkflowOperatorRequest,
+): WorkflowOperator {
   const unitId = productionUnitIdSchema.parse(request.episodeId);
   const locale = contentLocaleSchema.parse(request.locale ?? "it");
   const variant = contentVariantSchema.parse(request.variant ?? "full");
-  const workspaceRoot = path.dirname(request.unitRoot);
   return new WorkflowOperator({
     unitRoot: request.unitRoot,
     workflow: strategicFullWorkflowDefinition,
     registry: createTaskRegistry(
       createStrategicFullTaskRegistrations(
-        createStrategicEpisodeImplementations({ workspaceRoot, episodeId: unitId }),
+        createStrategicEpisodeImplementations(request.implementations),
       ),
     ),
     identity: {
@@ -92,16 +108,48 @@ export function createStrategicFullWorkflowOperator(request: {
       locale,
       variant,
     },
+    ...(request.availableArtifacts ? { availableArtifacts: request.availableArtifacts } : {}),
+    ...(request.approvalArtifactHashes ? { approvalArtifactHashes: request.approvalArtifactHashes } : {}),
+    ...(request.fingerprintMaterial ? { fingerprintMaterial: request.fingerprintMaterial } : {}),
+    ...(request.executionControl ? { executionControl: request.executionControl } : {}),
+    // Callers must bind the canonical repository verifier. Unverified fixtures
+    // remain rejected when no capability verifier is supplied.
+    verifyArtifact: request.verifyArtifact ?? (() => false),
   });
 }
 
-export function createStrategicSupplementalWorkflowOperator(request: {
-  readonly unitRoot: string;
-  readonly episodeId: string;
-  readonly locale?: string;
-  readonly variant?: string;
-}): WorkflowOperator {
-  return createStrategicFullWorkflowOperator(request);
+export function createStrategicSupplementalWorkflowOperator(
+  request: StrategicWorkflowOperatorRequest,
+): WorkflowOperator {
+  const unitId = productionUnitIdSchema.parse(request.episodeId);
+  const locale = contentLocaleSchema.parse(request.locale ?? "it");
+  const variant = contentVariantSchema.parse(request.variant ?? "full");
+  return new WorkflowOperator({
+    unitRoot: request.unitRoot,
+    workflow: strategicSupplementalWorkflowDefinition,
+    registry: createTaskRegistry(
+      createStrategicSupplementalTaskRegistrations(
+        createStrategicEpisodeImplementations(request.implementations),
+      ),
+    ),
+    identity: {
+      instanceId: workflowInstanceId(
+        strategicSupplementalWorkflowDefinition.id,
+        strategicSupplementalWorkflowDefinition.revision,
+        unitId,
+        locale,
+        variant,
+      ),
+      unitId,
+      locale,
+      variant,
+    },
+    ...(request.availableArtifacts ? { availableArtifacts: request.availableArtifacts } : {}),
+    ...(request.approvalArtifactHashes ? { approvalArtifactHashes: request.approvalArtifactHashes } : {}),
+    ...(request.fingerprintMaterial ? { fingerprintMaterial: request.fingerprintMaterial } : {}),
+    ...(request.executionControl ? { executionControl: request.executionControl } : {}),
+    verifyArtifact: request.verifyArtifact ?? (() => false),
+  });
 }
 
 function advanceWorkflowFixture(taskIds: readonly string[], registrations: ReturnType<typeof createStrategicFullTaskRegistrations>): {

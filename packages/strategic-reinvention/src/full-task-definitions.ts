@@ -1,7 +1,7 @@
 import type { ArtifactContract, ArtifactKind, TaskDefinition } from "@mediaforge/domain";
 
 export const STRATEGIC_FULL_TASK_REGISTRY_VERSION =
-  "strategic-reinvention.full-task-registry.v1" as const;
+  "veronicabenini.full-task-registry.v2" as const;
 
 const artifact = (
   kind: ArtifactKind,
@@ -132,7 +132,7 @@ export const STRATEGIC_FULL_TASK_DEFINITIONS = [
   {
     id: "strategic.locale-media",
     name: "Prepare locale media",
-    description: "Write supplied-audio, captions, and metadata fixtures for each locale.",
+    description: "Bind reviewed supplied-human audio, captions, and metadata for each locale.",
     owner: "@mediaforge/strategic-reinvention",
     executionKind: "deterministic",
     dependencies: ["strategic.localization-approval", "strategic.canonical-script-approval"],

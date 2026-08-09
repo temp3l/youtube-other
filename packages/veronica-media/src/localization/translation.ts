@@ -5,6 +5,11 @@ import {
   type PlanLocaleEditionInput,
 } from "@mediaforge/story-localization/locale-edition";
 
+export type {
+  LocaleEditionArtifact,
+  PlanLocaleEditionInput,
+} from "@mediaforge/story-localization/locale-edition";
+
 export interface VeronicaTranslationRequest {
   readonly sourceText: string;
   readonly sourceLanguage: string;

@@ -19,8 +19,9 @@
 | VRI-09 | VALIDATED | worker + coordinator review | 6 focused tests pass; rendering build dependency-blocked | `d2cd6e0` |
 | VRI-10 | VALIDATED | worker + coordinator review | 4 focused tests pass; Veronica typecheck blocked by existing readonly errors | `bc35d75` |
 | VRI-11 | VALIDATED | worker + coordinator review | 5 focused tests pass; supplementary speech suite dependency-blocked | `d2cd6e0` |
-| VRI-12 | VALIDATED | worker + coordinator review | 15 focused tests and workflow-engine typecheck pass | pending commit |
-| VRI-13..VRI-26 | NOT_STARTED | unassigned | not run | none |
+| VRI-12 | VALIDATED | worker + coordinator review | 15 focused tests and workflow-engine typecheck pass | `ac08bc8` |
+| VRI-13 | VALIDATED | worker + coordinator review | 2 focused tests and workflow-engine build pass; package typecheck has unrelated blockers | pending commit |
+| VRI-14..VRI-26 | NOT_STARTED | unassigned | not run | none |
 
 ## VRI-01 evidence
 
@@ -45,4 +46,4 @@
 
 ## Next executable tasks
 
-VRI-13 is the next serial orchestration barrier; VRI-14 and VRI-15 follow it.
+VRI-14 is executable; VRI-15 follows its render-derivative contract.

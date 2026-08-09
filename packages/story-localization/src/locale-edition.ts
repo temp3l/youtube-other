@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import {
   contentProfileIdSchema,
   normalizeContentProfileId,
+  type ContentLocale,
   type ContentProfileId,
 } from "@mediaforge/domain";
 import { z } from "zod";
@@ -67,8 +68,8 @@ export interface PlanLocaleEditionInput {
   readonly contentProfileId: ContentProfileId | "strategic-reinvention" | "veronica-benini";
   readonly episodeId: string;
   readonly productionRevisionId: string;
-  readonly locale: string;
-  readonly canonicalLocale: string;
+  readonly locale: ContentLocale;
+  readonly canonicalLocale: ContentLocale;
   readonly narrationRevisionId: string;
   readonly narrationFingerprint: string;
   readonly translatedOverlays?: readonly {

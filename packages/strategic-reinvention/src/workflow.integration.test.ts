@@ -5,12 +5,12 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   createStrategicFullTaskRegistry,
   createStrategicSupplementalTaskRegistry,
-  loadStrategicReinventionProfile,
-  runStrategicSupplementalMediaBridge,
   strategicFullWorkflowDefinition,
   strategicSupplementalWorkflowDefinition,
   STRATEGIC_FULL_TASK_IDS,
-} from "./index.js";
+} from "./task-registry.js";
+import { loadStrategicReinventionProfile } from "./profile.js";
+import { runStrategicSupplementalMediaBridge } from "./supplemental-media-bridge.js";
 import { createFixturePng, createFixturePptx } from "@mediaforge/veronica-media";
 
 const temporaryRoots: string[] = [];
@@ -28,16 +28,16 @@ describe("strategic supplemental media workflow", () => {
 
   it("registers the full strategic-reinvention episode DAG", () => {
     const registry = createStrategicFullTaskRegistry();
-    expect(strategicFullWorkflowDefinition.profileId).toBe("strategic-reinvention");
-    const taskIds = registry.list("strategic-reinvention").map((task) => task.id);
+    expect(strategicFullWorkflowDefinition.profileId).toBe("veronicabenini");
+    const taskIds = registry.list("veronicabenini").map((task) => task.id);
     expect(taskIds).toHaveLength(STRATEGIC_FULL_TASK_IDS.length);
     expect(new Set(taskIds)).toEqual(new Set(STRATEGIC_FULL_TASK_IDS));
   });
 
   it("keeps the supplemental-media slice as a sub-workflow", () => {
     const registry = createStrategicSupplementalTaskRegistry();
-    expect(strategicSupplementalWorkflowDefinition.profileId).toBe("strategic-reinvention");
-    const taskIds = registry.list("strategic-reinvention").map((task) => task.id);
+    expect(strategicSupplementalWorkflowDefinition.profileId).toBe("veronicabenini");
+    const taskIds = registry.list("veronicabenini").map((task) => task.id);
     expect(taskIds).toHaveLength(5);
   });
 
