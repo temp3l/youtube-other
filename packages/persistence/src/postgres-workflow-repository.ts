@@ -1805,6 +1805,30 @@ export class WorkspaceTransactionRepository {
     return result.rows[0] ? mapPublicationIntent(result.rows[0]) : null;
   }
 
+  public async cancelPublicationIntent(input: {
+    readonly workspaceId: string;
+    readonly projectId: string;
+    readonly publicationId: string;
+    readonly expectedRevision: number;
+    readonly now: string;
+  }): Promise<PublicationIntentRecord | null> {
+    const result = await this.connection.query<PublicationIntentRow>(
+      `UPDATE publications
+       SET status = 'cancelled', revision = revision + 1, updated_at = $5::timestamptz
+       WHERE workspace_id = $1 AND project_id = $2 AND publication_id = $3
+         AND revision = $4 AND status = 'pending'
+       RETURNING *`,
+      [
+        input.workspaceId,
+        input.projectId,
+        input.publicationId,
+        input.expectedRevision,
+        input.now,
+      ]
+    );
+    return result.rows[0] ? mapPublicationIntent(result.rows[0]) : null;
+  }
+
   /**
    * Records upload intent without dispatching provider mutation. The command,
    * immutable binding, prepared effect, audit event, and notification outbox
@@ -3439,6 +3463,19 @@ export class PostgresPublicationIntentRepository {
           input.projectId,
           input.publicationId
         )
+    );
+  }
+
+  public cancel(input: {
+    readonly workspaceId: string;
+    readonly projectId: string;
+    readonly publicationId: string;
+    readonly expectedRevision: number;
+    readonly now: string;
+  }): Promise<PublicationIntentRecord | null> {
+    return this.repository.withWorkspaceTransaction(
+      input.workspaceId,
+      (transaction) => transaction.cancelPublicationIntent(input)
     );
   }
 

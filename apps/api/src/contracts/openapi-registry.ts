@@ -8,6 +8,7 @@ import { localizationOpenApiPaths } from "./modules/localization-paths.js";
 import { reviewOpenApiPaths } from "./modules/review-paths.js";
 import { webhookOpenApiPaths } from "./modules/webhook-paths.js";
 import { platformOpenApiPaths } from "./modules/platform-paths.js";
+import { publicationPreparationOpenApiPaths } from "./modules/publication-preparation-paths.js";
 import { speechOpenApiPaths } from "./modules/speech-paths.js";
 import { workflowOpenApiPaths } from "./modules/workflow-paths.js";
 
@@ -34,6 +35,11 @@ export const OPENAPI_PATH_MODULES: readonly OpenApiPathModule[] = [
   },
   { id: "review", owner: "review", paths: reviewOpenApiPaths },
   { id: "localization", owner: "localization", paths: localizationOpenApiPaths },
+  {
+    id: "publication-preparation",
+    owner: "publication",
+    paths: publicationPreparationOpenApiPaths,
+  },
   { id: "speech", owner: "speech", paths: speechOpenApiPaths },
 ];
 

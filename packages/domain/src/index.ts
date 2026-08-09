@@ -32,6 +32,8 @@ export * from "./review-lifecycle-contracts.js";
 export * from "./review-lifecycle.js";
 export * from "./localization-derivative-contracts.js";
 export * from "./localization-derivative-lifecycle.js";
+export * from "./publication-preparation-contracts.js";
+export * from "./publication-preparation-lifecycle.js";
 
 const episodeIdPattern = /^[a-z0-9][a-z0-9-]*$/;
 const sceneIdPattern = /^scene-[0-9]{3}$/;

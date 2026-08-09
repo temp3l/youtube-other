@@ -6,6 +6,7 @@ import { lifecycleSdkV1Operations } from "./modules/lifecycle-operations.js";
 import { webhookSdkV1Operations } from "./modules/webhook-operations.js";
 import { localizationSdkV1Operations } from "./modules/localization-operations.js";
 import { platformSdkV1Operations } from "./modules/platform-operations.js";
+import { publicationPreparationSdkV1Operations } from "./modules/publication-operations.js";
 import { workflowSdkV1Operations } from "./modules/workflow-operations.js";
 import type { SdkV1OperationContract, SdkV1OperationModule } from "./types.js";
 
@@ -44,7 +45,10 @@ export const SDK_V1_OPERATION_MODULES: readonly SdkV1OperationModule[] = [
   {
     id: "publication",
     owner: "publication",
-    operations: publicationSdkV1Operations,
+    operations: {
+      ...publicationSdkV1Operations,
+      ...publicationPreparationSdkV1Operations,
+    },
   },
 ];
 

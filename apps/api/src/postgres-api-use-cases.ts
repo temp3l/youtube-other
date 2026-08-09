@@ -38,6 +38,7 @@ import { createApiWorkflowAdmissionUseCase } from "./http-server.js";
 import { createApiCredentialUseCases } from "./postgres-api-credential-use-cases.js";
 import { createApiContentLifecycleUseCases } from "./postgres-api-content-lifecycle-use-cases.js";
 import { createApiLocalizationUseCases } from "./postgres-api-localization-use-cases.js";
+import { createApiPublicationPreparationUseCases } from "./postgres-api-publication-preparation-use-cases.js";
 import { createApiReviewUseCases } from "./postgres-api-review-use-cases.js";
 import { createApiContentReuseUseCases } from "./postgres-api-content-reuse-use-cases.js";
 import { createApiWebhookUseCases } from "./postgres-api-webhook-use-cases.js";
@@ -289,6 +290,11 @@ export function createPostgresApiUseCases(input: {
     createId,
   });
   const localizationUseCases = createApiLocalizationUseCases({
+    pool: input.pool,
+    now,
+    createId,
+  });
+  const publicationPreparationUseCases = createApiPublicationPreparationUseCases({
     pool: input.pool,
     now,
     createId,
@@ -930,5 +936,6 @@ export function createPostgresApiUseCases(input: {
     ...contentLifecycleUseCases,
     ...reviewUseCases,
     ...localizationUseCases,
+    ...publicationPreparationUseCases,
   };
 }

@@ -710,6 +710,71 @@ export interface ApiUseCases {
       Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal" | "requestId">
     >
   ): Promise<unknown>;
+  listPublishingChannels(
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "principal" | "requestId">
+    >
+  ): Promise<{ readonly items: readonly unknown[] }>;
+  getPublishingChannel(
+    channelId: string,
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "principal" | "requestId">
+    >
+  ): Promise<unknown>;
+  beginChannelConnect(
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "principal" | "requestId">
+    >
+  ): Promise<unknown>;
+  disconnectPublishingChannel(
+    channelId: string,
+    context: Required<
+      Pick<
+        ApiRequestContext,
+        "workspaceId" | "principal" | "requestId" | "ifMatch"
+      >
+    >
+  ): Promise<unknown>;
+  evaluatePublicationPreflight(
+    episodeId: string,
+    body: unknown,
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal" | "requestId">
+    >
+  ): Promise<unknown>;
+  preparePublicationIntent(
+    episodeId: string,
+    body: unknown,
+    context: Required<
+      Pick<
+        ApiRequestContext,
+        | "workspaceId"
+        | "projectId"
+        | "principal"
+        | "requestId"
+        | "idempotencyKey"
+      >
+    >
+  ): Promise<unknown>;
+  cancelPublicationIntent(
+    publicationId: string,
+    context: Required<
+      Pick<
+        ApiRequestContext,
+        "workspaceId" | "projectId" | "principal" | "requestId" | "ifMatch"
+      >
+    >
+  ): Promise<unknown>;
+  updatePublicationSchedule(
+    publicationId: string,
+    body: unknown,
+    context: Required<
+      Pick<
+        ApiRequestContext,
+        "workspaceId" | "projectId" | "principal" | "requestId" | "ifMatch"
+      >
+    >
+  ): Promise<unknown>;
 }
 
 /** Application boundary for all speech entry points. Provider adapters are never HTTP dependencies. */
@@ -1161,6 +1226,11 @@ function route(pathname: string): {
   readonly localizationDerivative?: string;
   readonly localizationDerivativeAction?: "compare" | "retry";
   readonly episodeLocalizationPreflight?: boolean;
+  readonly publishingChannel?: string;
+  readonly publishingChannelAction?: "disconnect";
+  readonly publicationAction?: "cancel" | "updateSchedule";
+  readonly episodePublicationPreflight?: boolean;
+  readonly episodePublicationPrepare?: boolean;
   readonly tail?: string;
 } | null {
   const parts = pathname.split("/").filter(Boolean).map(decodeURIComponent);
@@ -1182,8 +1252,29 @@ function route(pathname: string): {
     localizationDerivative?: string;
     localizationDerivativeAction?: "compare" | "retry";
     episodeLocalizationPreflight?: boolean;
+    publishingChannel?: string;
+    publishingChannelAction?: "disconnect";
+    publicationAction?: "cancel" | "updateSchedule";
+    episodePublicationPreflight?: boolean;
+    episodePublicationPrepare?: boolean;
     tail?: string;
   } = { workspace: parts[2] };
+  if (
+    parts[3] === "publishing-channels" ||
+    parts[3] === "publishing-channels:connect"
+  ) {
+    result.tail = parts.slice(3).join("/");
+    if (parts[4]) {
+      const disconnect = parts[4].match(/^(.+):disconnect$/u);
+      if (disconnect?.[1]) {
+        result.publishingChannel = disconnect[1];
+        result.publishingChannelAction = "disconnect";
+      } else {
+        result.publishingChannel = parts[4];
+      }
+    }
+    return result;
+  }
   if (parts[3] !== "projects") {
     result.tail = parts.slice(3).join("/");
     return result;
@@ -1218,7 +1309,19 @@ function route(pathname: string): {
   }
   if (parts[5] === "jobs" && parts[6]) result.job = parts[6];
   if (parts[5] === "assets" && parts[6]) result.asset = parts[6];
-  if (parts[5] === "publications" && parts[6]) result.publication = parts[6];
+  if (parts[5] === "publications" && parts[6]) {
+    const cancel = parts[6].match(/^(.+):cancel$/u);
+    const schedule = parts[6].match(/^(.+):updateSchedule$/u);
+    if (cancel?.[1]) {
+      result.publication = cancel[1];
+      result.publicationAction = "cancel";
+    } else if (schedule?.[1]) {
+      result.publication = schedule[1];
+      result.publicationAction = "updateSchedule";
+    } else {
+      result.publication = parts[6];
+    }
+  }
   if (parts[5] === "approvals" && parts[6]) {
     if (parts[7] === "validity") {
       result.approval = parts[6];
@@ -1229,6 +1332,22 @@ function route(pathname: string): {
         result.approvalAction = "revoke";
       }
     }
+  }
+  if (
+    parts[5] === "episodes" &&
+    parts[6] &&
+    parts[7] === "publication-intents:preflight"
+  ) {
+    result.episode = parts[6];
+    result.episodePublicationPreflight = true;
+  }
+  if (
+    parts[5] === "episodes" &&
+    parts[6] &&
+    parts[7] === "publication-intents:prepare"
+  ) {
+    result.episode = parts[6];
+    result.episodePublicationPrepare = true;
   }
   if (parts[5] === "episodes" && parts[6] && parts[7] === "localization-derivatives") {
     result.episode = parts[6];
@@ -1270,6 +1389,8 @@ type ApiPermission =
   | "content.read"
   | "content.write"
   | "publication.read"
+  | "publication.schedule"
+  | "channel.credentials.manage"
   | "usage.read"
   | "validation.read"
   | "workflow.cancel"
@@ -1294,6 +1415,34 @@ function requiredPermission(
     return "content.read";
   if (method === "GET" && !matched.project && matched.tail === "provider-health")
     return "usage.read";
+  if (
+    method === "GET" &&
+    !matched.project &&
+    matched.tail === "publishing-channels"
+  )
+    return "publication.read";
+  if (
+    method === "GET" &&
+    !matched.project &&
+    matched.publishingChannel &&
+    matched.tail === `publishing-channels/${matched.publishingChannel}`
+  )
+    return "publication.read";
+  if (
+    method === "POST" &&
+    !matched.project &&
+    matched.tail === "publishing-channels:connect"
+  )
+    return "workspace.admin";
+  if (
+    method === "POST" &&
+    !matched.project &&
+    matched.publishingChannel &&
+    matched.publishingChannelAction === "disconnect" &&
+    matched.tail ===
+      `publishing-channels/${matched.publishingChannel}:disconnect`
+  )
+    return "channel.credentials.manage";
   if (
     method === "GET" &&
     !matched.project &&
@@ -1592,6 +1741,35 @@ function requiredPermission(
     matched.tail === `episodes/${matched.episode}/localization-derivatives`
   )
     return "content.write";
+  if (
+    method === "POST" &&
+    matched.episode &&
+    matched.episodePublicationPreflight &&
+    matched.tail ===
+      `episodes/${matched.episode}/publication-intents:preflight`
+  )
+    return "publication.schedule";
+  if (
+    method === "POST" &&
+    matched.episode &&
+    matched.episodePublicationPrepare &&
+    matched.tail === `episodes/${matched.episode}/publication-intents:prepare`
+  )
+    return "publication.schedule";
+  if (
+    method === "POST" &&
+    matched.publication &&
+    matched.publicationAction === "cancel" &&
+    matched.tail === `publications/${matched.publication}:cancel`
+  )
+    return "publication.schedule";
+  if (
+    method === "POST" &&
+    matched.publication &&
+    matched.publicationAction === "updateSchedule" &&
+    matched.tail === `publications/${matched.publication}:updateSchedule`
+  )
+    return "publication.schedule";
   return null;
 }
 
@@ -2207,6 +2385,55 @@ export function createApiServer(
         );
         return json(response, 200, result, {
           etag: etag(result.revision),
+          "x-request-id": requestIdValue,
+        });
+      }
+      if (
+        !matched.project &&
+        request.method === "GET" &&
+        matched.tail === "publishing-channels"
+      ) {
+        const result = await useCases.listPublishingChannels(context);
+        return json(response, 200, result, { "x-request-id": requestIdValue });
+      }
+      if (
+        !matched.project &&
+        request.method === "GET" &&
+        matched.publishingChannel &&
+        matched.tail === `publishing-channels/${matched.publishingChannel}`
+      ) {
+        const result = await useCases.getPublishingChannel(
+          matched.publishingChannel,
+          context
+        );
+        return json(response, 200, result, {
+          etag: etag((result as { revision: number }).revision),
+          "x-request-id": requestIdValue,
+        });
+      }
+      if (
+        !matched.project &&
+        request.method === "POST" &&
+        matched.tail === "publishing-channels:connect"
+      ) {
+        const result = await useCases.beginChannelConnect(context);
+        return json(response, 200, result, { "x-request-id": requestIdValue });
+      }
+      if (
+        !matched.project &&
+        request.method === "POST" &&
+        matched.publishingChannel &&
+        matched.publishingChannelAction === "disconnect" &&
+        matched.tail ===
+          `publishing-channels/${matched.publishingChannel}:disconnect`
+      ) {
+        const match = strongIfMatch(request);
+        const result = await useCases.disconnectPublishingChannel(
+          matched.publishingChannel,
+          { ...context, ifMatch: match }
+        );
+        return json(response, 200, result, {
+          etag: etag((result as { revision: number }).revision),
           "x-request-id": requestIdValue,
         });
       }
@@ -2860,6 +3087,70 @@ export function createApiServer(
           matched.episode,
           matched.localizationDerivative,
           projectContext
+        );
+        return json(response, 200, result, { "x-request-id": requestIdValue });
+      }
+      if (
+        request.method === "POST" &&
+        matched.episode &&
+        matched.episodePublicationPreflight &&
+        matched.tail ===
+          `episodes/${matched.episode}/publication-intents:preflight`
+      ) {
+        const result = await useCases.evaluatePublicationPreflight(
+          matched.episode,
+          await body(request),
+          projectContext
+        );
+        return json(response, 200, result, { "x-request-id": requestIdValue });
+      }
+      if (
+        request.method === "POST" &&
+        matched.episode &&
+        matched.episodePublicationPrepare &&
+        matched.tail === `episodes/${matched.episode}/publication-intents:prepare`
+      ) {
+        const key = idempotencyKey(request);
+        if (!key)
+          throw new ApplicationError(
+            "precondition_required",
+            "Idempotency-Key is required.",
+            false
+          );
+        const result = await useCases.preparePublicationIntent(
+          matched.episode,
+          await body(request),
+          { ...projectContext, idempotencyKey: key }
+        );
+        return json(response, 201, result, { "x-request-id": requestIdValue });
+      }
+      if (
+        request.method === "POST" &&
+        matched.publication &&
+        matched.publicationAction === "cancel" &&
+        matched.tail === `publications/${matched.publication}:cancel`
+      ) {
+        const match = strongIfMatch(request);
+        const result = await useCases.cancelPublicationIntent(
+          matched.publication,
+          { ...projectContext, ifMatch: match }
+        );
+        return json(response, 200, result, {
+          etag: etag((result as { revision: number }).revision),
+          "x-request-id": requestIdValue,
+        });
+      }
+      if (
+        request.method === "POST" &&
+        matched.publication &&
+        matched.publicationAction === "updateSchedule" &&
+        matched.tail === `publications/${matched.publication}:updateSchedule`
+      ) {
+        const match = strongIfMatch(request);
+        const result = await useCases.updatePublicationSchedule(
+          matched.publication,
+          await body(request),
+          { ...projectContext, ifMatch: match }
         );
         return json(response, 200, result, { "x-request-id": requestIdValue });
       }
