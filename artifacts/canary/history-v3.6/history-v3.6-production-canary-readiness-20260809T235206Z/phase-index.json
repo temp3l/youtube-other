@@ -1,0 +1,20 @@
+{
+  "phases": [
+    {
+      "phase": "0",
+      "result": "PASS",
+      "tag": "history-v3.6-pre-production-canary"
+    },
+    {
+      "phase": "1",
+      "result": "PASS",
+      "commit": "8a2e0db4b10a164784a2d78ec8343aeeac14fea6",
+      "tag": "history-v3.6-production-canary-routing-baseline"
+    },
+    {
+      "phase": "2",
+      "result": "BLOCKED_BY_MEASURED_TIMING",
+      "reason": "Measured audio is below the configured production duration minimum."
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "episodeId": "history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion",
+  "status": "BLOCKED_BY_MEASURED_TIMING",
+  "audioAssetPath": "artifacts/canary/history-v3.6/workspace/history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion/locales/en/full/audio/narration.wav",
+  "audioAssetHash": "d691a6a6f50f6fd02a49b6d268435da7a22690cab16f77d9304f24da83179e76",
+  "measuredDurationMs": 367634,
+  "measuredDurationSeconds": 367.634,
+  "wordSegmentTimingSource": "measured TTS segment durations plus ffprobe narration duration",
+  "timingArtifactPath": "artifacts/canary/history-v3.6/workspace/history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion/locales/en/full/audio/tts-generation.json",
+  "timingArtifactHash": "2d7812a6389e13d6b7fceebfb170b40027ceae0dfef6868f392ef8a4a1bc36d5",
+  "provider": "openai-compatible",
+  "model": "gpt-4o-mini-tts",
+  "voice": "onyx",
+  "generatedAt": "2026-08-09T23:44:44.141Z",
+  "durationPolicy": {
+    "allowedMinDurationMs": 480000,
+    "allowedMaxDurationMs": 1200000,
+    "result": "TIMING_OUTSIDE_ALLOWED_RANGE"
+  },
+  "provisionalTextEstimateUsed": false
+}

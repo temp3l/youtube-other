@@ -53,34 +53,71 @@ const routing = {
     canaryEpisodesValue: allowlist,
   }),
 };
-const timingGate = (episodeId: string) => ({
-  episodeId,
-  status: "BLOCKED_BY_MEASURED_TIMING",
-  existingAudioArtifact: null,
-  measuredDurationMs: null,
-  timingArtifactHash: null,
-  provider: "openai-compatible",
-  model: "gpt-4o-mini-tts",
-  voice: "onyx",
-  localAttempt: {
-    result: "FAILED",
-    reason: "Sandbox network DNS resolution failed before provider contact (curl exit 6).",
-  },
-  externalRetry: {
-    result: "NOT_RUN",
-    reason:
-      "Execution environment requires explicit user authorization to transmit the canary narration payload to the configured external provider.",
-  },
-  safeFallbackUsed: false,
-  provisionalTextEstimateUsed: false,
-});
+const timingGate = async (episodeId: string) => {
+  const audioDirectory = path.join(
+    root,
+    "workspace",
+    episodeId,
+    "locales/en/full/audio"
+  );
+  const narrationPath = path.join(audioDirectory, "narration.wav");
+  const timingPath = path.join(audioDirectory, "tts-generation.json");
+  const timing = JSON.parse(await fs.readFile(timingPath, "utf8")) as {
+    readonly model: string;
+    readonly voice: string;
+    readonly generatedAt: string;
+    readonly actualDurationSeconds: number;
+  };
+  const { stdout } = await execute(
+    "ffprobe",
+    [
+      "-v",
+      "error",
+      "-show_entries",
+      "format=duration",
+      "-of",
+      "default=noprint_wrappers=1:nokey=1",
+      narrationPath,
+    ],
+    { cwd: repository }
+  );
+  const measuredDurationMs = Math.round(Number.parseFloat(stdout.trim()) * 1000);
+  if (!Number.isFinite(measuredDurationMs) || measuredDurationMs <= 0)
+    throw new Error(`Unable to measure ${episodeId} narration audio.`);
+  return {
+    episodeId,
+    status: "BLOCKED_BY_MEASURED_TIMING",
+    audioAssetPath: path.relative(repository, narrationPath),
+    audioAssetHash: await hashFile(narrationPath),
+    measuredDurationMs,
+    measuredDurationSeconds: measuredDurationMs / 1000,
+    wordSegmentTimingSource: "measured TTS segment durations plus ffprobe narration duration",
+    timingArtifactPath: path.relative(repository, timingPath),
+    timingArtifactHash: await hashFile(timingPath),
+    provider: "openai-compatible",
+    model: timing.model,
+    voice: timing.voice,
+    generatedAt: timing.generatedAt,
+    durationPolicy: {
+      allowedMinDurationMs: 480000,
+      allowedMaxDurationMs: 1200000,
+      result: "TIMING_OUTSIDE_ALLOWED_RANGE",
+    },
+    provisionalTextEstimateUsed: false,
+  };
+};
+const [blackDeathTiming, dDayTiming] = await Promise.all([
+  timingGate(blackDeath),
+  timingGate(dDay),
+]);
 const blocked = {
   state: "NOT_RUN",
-  reason: "Measured timing is mandatory before a production-candidate V3.6 plan may be built.",
+  reason:
+    "Measured narration exists, but it is below the configured 480000ms production minimum. Candidate plans would fail TIMING_OUTSIDE_ALLOWED_RANGE.",
 };
 const payloads: Record<string, unknown> = {
   "README.md":
-    "# History V3.6 production-canary readiness\n\nBlocked before canary plan generation: measured timing could not be obtained without explicit authorization to transmit the two narration scripts to the configured OpenAI-compatible TTS provider. No production episode or asset was changed.\n",
+    "# History V3.6 production-canary readiness\n\nBoth isolated canaries have authoritative measured TTS audio, but each is below the configured 480-second History production minimum. Candidate plan generation is blocked before semantic/render activation. No production episode or asset was changed.\n",
   "phase-index.json": {
     phases: [
       {
@@ -94,7 +131,11 @@ const payloads: Record<string, unknown> = {
         commit: head,
         tag: "history-v3.6-production-canary-routing-baseline",
       },
-      { phase: "2", result: "BLOCKED_BY_MEASURED_TIMING" },
+      {
+        phase: "2",
+        result: "BLOCKED_BY_MEASURED_TIMING",
+        reason: "Measured audio is below the configured production duration minimum.",
+      },
     ],
   },
   "routing-seam-summary.json": routing,
@@ -104,8 +145,8 @@ const payloads: Record<string, unknown> = {
     candidateOutputRoot: "artifacts/canary/history-v3.6",
     allowedEpisodes: [blackDeath, dDay],
   },
-  "black-death-timing.json": timingGate(blackDeath),
-  "d-day-timing.json": timingGate(dDay),
+  "black-death-timing.json": blackDeathTiming,
+  "d-day-timing.json": dDayTiming,
   "black-death-plan-summary.json": blocked,
   "d-day-plan-summary.json": blocked,
   "black-death-render-review.json": blocked,
@@ -118,7 +159,7 @@ const payloads: Record<string, unknown> = {
     note: "No V3.6 candidate plan was built because timing is blocked.",
   },
   "activation-instructions.md":
-    "Global activation is not ready. First authorize or supply authoritative measured timing for both canaries, then run the isolated canary plan and render validation.\n",
+    "Global activation is not ready. Resolve the measured-duration policy failure for both canaries, then rerun the isolated plan and render validation.\n",
   "rollback-instructions.md":
     "Keep MEDIAFORGE_HISTORY_V36_VISUAL_PLAN unset or set it to off. The default and non-allowlisted routes are V3.5.\n",
   "future-episode-timing-policy.md":
@@ -131,7 +172,8 @@ const payloads: Record<string, unknown> = {
       "18 renderer/compiler/plan preflight tests",
       "7 focused canary-routing/plan tests",
     ],
-    timingGeneration: "BLOCKED_BY_EXTERNAL_PAYLOAD_AUTHORIZATION",
+    measuredTiming: "PASS",
+    candidatePlanAdmission: "BLOCKED_BY_TIMING_OUTSIDE_ALLOWED_RANGE",
   },
   "invariant-summary.json": {
     result: "PASS",
@@ -143,14 +185,15 @@ const payloads: Record<string, unknown> = {
   "production-canary-decision.json": {
     verdict: "BLOCKED_BY_MEASURED_TIMING",
     humanDecisionRequired: true,
-    exactGate: "Gate B — measured timing cannot be obtained without external payload authorization.",
+    exactGate:
+      "Gate B — the existing configured TTS path produced authoritative timing, but neither canary satisfies the configured production duration policy.",
     productionActivated: false,
   },
   "provenance.json": {
     artifactInputHead: head,
     baseline: "history-v3.6-production-readiness-baseline",
     frozenV35: "history-v3.5-frozen-before-v36",
-    providerCalls: { ttsCompleted: 0, llm: 0, image: 0, web: 0, geocoding: 0 },
+    providerCalls: { ttsCompleted: 2, llm: 0, image: 0, web: 0, geocoding: 0 },
     productionActivated: false,
   },
 };

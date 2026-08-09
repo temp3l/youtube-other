@@ -24,8 +24,18 @@
 
 - starting SHA: `aada46d5da13c0f4c0ab8d34aaad986680198ef1`
 - goal: obtain authoritative measured timing for Black Death and D-Day in isolated canary workspaces
-- result: `BLOCKED_BY_MEASURED_TIMING`; the configured OpenAI-compatible TTS route needs explicit authorization to transmit the two narration scripts externally
-- tests: timing attempt reached no provider (`curl` DNS exit 6); checksum verification and ZIP integrity passed for the blocked-gate evidence bundle
-- invariants: zero completed provider calls; no estimated timing, V3.6 plan, render, V3.5 output change, or production activation
+- result: superseded after authorization; the configured OpenAI-compatible route generated both isolated narration assets
+- tests: initial sandbox attempt reached no provider (`curl` DNS exit 6); external authorized provider runs completed
+- invariants: no estimated timing, V3.5 output change, or production activation
 - commit/tag: `321fd6f6bce6eac462d3d0a5ac6a39636a22e7de` / `history-v3.6-production-canary-timing-gate`
-- next: human authorizes that exact payload/destination, or supplies authoritative measured timing for both episode IDs
+- next: assess the measured durations against the production policy
+
+## Phase 3
+
+- starting SHA: `8a2e0db4b10a164784a2d78ec8343aeeac14fea6`
+- goal: admit the two measured-timing canaries to V3.6 candidate planning
+- result: `BLOCKED_BY_MEASURED_TIMING`; Black Death is `399857ms` and D-Day is `367634ms`, both below the configured `480000ms` History minimum
+- tests: authoritative TTS generation (`gpt-4o-mini-tts` / `onyx`), ffprobe duration measurement, candidate-plan admission check, checksum verification, and ZIP integrity
+- invariants: TTS calls 2; LLM/image/web/geocoding 0; no provisional timing accepted, V3.6 plan/render generated, V3.5 output change, or production activation
+- commit/tag: pending measured-duration gate checkpoint
+- next: human decides whether to revise the canonical scripts, authorize a scoped supported pacing change, or change the global duration policy

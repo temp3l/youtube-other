@@ -1,0 +1,13 @@
+{
+  "artifactInputHead": "8a2e0db4b10a164784a2d78ec8343aeeac14fea6",
+  "baseline": "history-v3.6-production-readiness-baseline",
+  "frozenV35": "history-v3.5-frozen-before-v36",
+  "providerCalls": {
+    "ttsCompleted": 2,
+    "llm": 0,
+    "image": 0,
+    "web": 0,
+    "geocoding": 0
+  },
+  "productionActivated": false
+}

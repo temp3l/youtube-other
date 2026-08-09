@@ -1,0 +1,4 @@
+{
+  "state": "NOT_RUN",
+  "reason": "Measured narration exists, but it is below the configured 480000ms production minimum. Candidate plans would fail TIMING_OUTSIDE_ALLOWED_RANGE."
+}
