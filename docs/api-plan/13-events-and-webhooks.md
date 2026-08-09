@@ -29,7 +29,7 @@ Event envelope:
 - `job.retry_scheduled|dead_lettered`
 - `asset.ready|rejected|deleted`
 - `validation.completed`
-- `approval.created|rejected|revoked`
+- `approval.created|approved|rejected|revoked`
 - `publication.started|succeeded|failed|reconciliation_required`
 - `webhook_endpoint.disabled`
 

@@ -762,6 +762,29 @@ export function createPostgresApiUseCases(input: {
             })}`,
             requestFingerprint: digest({ projectId: context.projectId, approval }),
             now: timestamp,
+            ...(approval.review
+              ? {
+                  gate: approval.review.gate,
+                  locale: approval.review.locale,
+                  variant: approval.review.variant,
+                  inputArtifactHashes: approval.review.inputArtifactHashes,
+                  outputArtifactHashes: approval.review.outputArtifactHashes,
+                  actor: context.principal.principalId,
+                  ...(approval.review.reviewerRole
+                    ? { reviewerRole: approval.review.reviewerRole }
+                    : {}),
+                  ...(approval.review.expiresAt
+                    ? { expiresAt: approval.review.expiresAt }
+                    : {}),
+                  ...(approval.review.supersedesApprovalId
+                    ? { supersedesApprovalId: approval.review.supersedesApprovalId }
+                    : {}),
+                  highRisk: approval.review.highRisk,
+                  ...(approval.review.requiredDistinctActors !== undefined
+                    ? { requiredDistinctActors: approval.review.requiredDistinctActors }
+                    : {}),
+                }
+              : {}),
           })
         );
         const response = result.response as { readonly id?: unknown; readonly jobId?: unknown; readonly revision?: unknown };

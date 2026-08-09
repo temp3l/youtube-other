@@ -222,6 +222,37 @@ export const workflowAdmissionSchema = z
     publicationMode: z.literal("none"),
   })
   .strict();
+const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/u);
+const approvalReviewScopeSchema = z
+  .object({
+    gate: z.enum([
+      "source",
+      "canonical-script",
+      "localization",
+      "voice",
+      "final-render",
+      "publish",
+    ]),
+    locale: z.enum(["en", "de", "es", "fr", "pt", "it"]),
+    variant: z.enum(["full", "short"]),
+    inputArtifactHashes: z.array(sha256Schema).min(1).max(100),
+    outputArtifactHashes: z.array(sha256Schema).min(1).max(100),
+    reviewerRole: z.string().trim().min(1).max(120).optional(),
+    expiresAt: z.iso.datetime({ offset: true }).optional(),
+    supersedesApprovalId: opaqueId.optional(),
+    highRisk: z.boolean().default(false),
+    requiredDistinctActors: z.number().int().min(1).max(10).optional(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.highRisk && (value.requiredDistinctActors ?? 1) < 2) {
+      context.addIssue({
+        code: "custom",
+        path: ["requiredDistinctActors"],
+        message: "High-risk review requires at least two distinct reviewers.",
+      });
+    }
+  });
 export const approvalInputSchema = z
   .object({
     challengeId: opaqueId,
@@ -229,6 +260,7 @@ export const approvalInputSchema = z
     expectedRevision: z.number().int().nonnegative(),
     decision: z.enum(["approved", "rejected"]),
     reason: z.string().trim().min(1).max(2_000),
+    review: approvalReviewScopeSchema.optional(),
   })
   .strict();
 export const approvalRevocationInputSchema = z
@@ -812,7 +844,7 @@ export const openApiDocument = {
         responses: {
           "200": {
             description:
-              "Safe estimate; provider credentials and narration are excluded.",
+              "Safe estimate; provider authentication material and narration are excluded.",
             headers: { "x-request-id": responseHeader("RequestId") },
             content: json("SpeechEstimate"),
           },
@@ -923,7 +955,7 @@ export const openApiDocument = {
       post: {
         operationId: "createSpeechProfile",
         description:
-          "Creates a logical voice profile; provider credentials are never accepted. Requires the `content.write` workspace permission.",
+          "Creates a logical voice profile; provider authentication material is never accepted. Requires the `content.write` workspace permission.",
         parameters: workspaceParameters,
         requestBody: { required: true, content: json("SpeechProfileInput") },
         responses: {
@@ -2082,6 +2114,24 @@ export const openApiDocument = {
           expectedRevision: schema("Revision"),
           decision: { type: "string", enum: ["approved", "rejected"] },
           reason: { type: "string", minLength: 1, maxLength: 2_000 },
+          review: { $ref: "#/components/schemas/ApprovalReviewScope" },
+        },
+      },
+      ApprovalReviewScope: {
+        type: "object",
+        additionalProperties: false,
+        required: ["gate", "locale", "variant", "inputArtifactHashes", "outputArtifactHashes", "highRisk"],
+        properties: {
+          gate: { type: "string", enum: ["source", "canonical-script", "localization", "voice", "final-render", "publish"] },
+          locale: { type: "string", enum: ["en", "de", "es", "fr", "pt", "it"] },
+          variant: { type: "string", enum: ["full", "short"] },
+          inputArtifactHashes: { type: "array", minItems: 1, maxItems: 100, items: { type: "string", pattern: "^[a-f0-9]{64}$" } },
+          outputArtifactHashes: { type: "array", minItems: 1, maxItems: 100, items: { type: "string", pattern: "^[a-f0-9]{64}$" } },
+          reviewerRole: { type: "string", minLength: 1, maxLength: 120 },
+          expiresAt: { type: "string", format: "date-time" },
+          supersedesApprovalId: schema("OpaqueId"),
+          highRisk: { type: "boolean", default: false },
+          requiredDistinctActors: { type: "integer", minimum: 1, maximum: 10 },
         },
       },
       ApprovalAccepted: {

@@ -36,6 +36,33 @@ export const CREATOR_VOICE_TIMING_DERIVATIVE_VERSION =
 export const CREATOR_VOICE_CAPTION_DERIVATIVE_VERSION =
   "creator-voice-captions.v1" as const;
 
+/** Explicit recovery policy: Veronica source voice never falls back to TTS. */
+export type CreatorVoiceRecoveryDecision =
+  | { readonly kind: "retry-supplied-media"; readonly reason: "retryable" }
+  | { readonly kind: "reconcile-supplied-media"; readonly reason: "uncertain" }
+  | { readonly kind: "manual-source-replacement"; readonly reason: "permanent" | "blocked" }
+  | { readonly kind: "cancelled"; readonly reason: "cancelled" };
+
+export function resolveCreatorVoiceRecovery(input: {
+  readonly profileId: ContentProfileId | "strategic-reinvention";
+  readonly failureClass: "retryable" | "permanent" | "blocked" | "cancelled" | "uncertain";
+}): CreatorVoiceRecoveryDecision {
+  if (canonicalCreatorVoiceProfileId(input.profileId) !== VERONICA_CONTENT_PROFILE_ID) {
+    throw new Error("Creator voice recovery policy is only available for Veronica.");
+  }
+  switch (input.failureClass) {
+    case "retryable":
+      return { kind: "retry-supplied-media", reason: "retryable" };
+    case "uncertain":
+      return { kind: "reconcile-supplied-media", reason: "uncertain" };
+    case "permanent":
+    case "blocked":
+      return { kind: "manual-source-replacement", reason: input.failureClass };
+    case "cancelled":
+      return { kind: "cancelled", reason: "cancelled" };
+  }
+}
+
 export function canonicalCreatorVoiceProfileId(input: unknown): ContentProfileId {
   return contentProfileIdSchema.parse(normalizeContentProfileId(input));
 }

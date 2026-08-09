@@ -4,7 +4,7 @@
 - Starting HEAD: `f04262c16bfd1a89d1b404b1ac291a89dc699a0d`
 - Plan baseline after fast-forward: `46d624c`
 - Pre-existing changes preserved: `.codex/config.toml`; `prompts/codex-veronicabenini-implement-all-waves.md`
-- Current wave: 6 — API/operations
+- Current wave: 7 — analytics/compatibility
 
 | Task | Status | Owner | Validation | Checkpoint |
 | --- | --- | --- | --- | --- |
@@ -26,8 +26,10 @@
 | VRI-16 | VALIDATED | worker + coordinator review | 5 focused tests pass; youtube-upload typecheck dependency-blocked | `a65710f` |
 | VRI-17 | VALIDATED | worker + coordinator review | 3 focused tests and workflow-engine typecheck pass | `f6b98e9` |
 | VRI-18 | VALIDATED | worker + coordinator review | 5 focused tests and config build pass | `f6b98e9` |
-| VRI-19 | PARTIAL | worker + coordinator review | contract reached 11/12; corrected final fixture not rerun; API dependency chain blocked | pending |
-| VRI-20..VRI-26 | NOT_STARTED | unassigned | not run | none |
+| VRI-19 | VALIDATED | worker + coordinator review | API contract 13/13; HTTP/typecheck dependency-chain blocked | `2ef097b` |
+| VRI-20 | VALIDATED | worker + coordinator review | API contract 13/13; webhook 13/13 | pending |
+| VRI-21 | VALIDATED | worker + coordinator review | 12 focused tests pass; application typecheck dependency-chain blocked | pending |
+| VRI-22..VRI-26 | NOT_STARTED | unassigned | not run | none |
 
 ## VRI-01 evidence
 
@@ -52,4 +54,4 @@
 
 ## Next executable tasks
 
-VRI-20 and VRI-21 are the remaining Wave 6 parallel set after the VRI-19 checkpoint.
+VRI-22 and VRI-25 are the Wave 7 parallel set; VRI-23/VRI-24 follow VRI-22.

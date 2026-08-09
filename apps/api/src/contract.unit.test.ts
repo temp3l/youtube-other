@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   archiveEpisodeInputSchema,
+  approvalInputSchema,
   cloneEpisodeInputSchema,
   dynamicGenericContentSchema,
   episodeInputSchema,
@@ -218,6 +219,38 @@ describe("OpenAPI contract", () => {
     });
   });
 
+  it("accepts only revision-bound, attributable review scope at the API boundary", () => {
+    const scoped = {
+      challengeId: "challenge-1",
+      subjectId: "run-1",
+      expectedRevision: 4,
+      decision: "approved",
+      reason: "Reviewed the approved Italian delivery bundle.",
+      review: {
+        gate: "publish",
+        locale: "it",
+        variant: "full",
+        inputArtifactHashes: ["a".repeat(64)],
+        outputArtifactHashes: ["b".repeat(64)],
+        highRisk: true,
+        requiredDistinctActors: 2,
+      },
+    } as const;
+    expect(approvalInputSchema.parse(scoped)).toEqual(scoped);
+    expect(approvalInputSchema.safeParse({
+      ...scoped,
+      review: { ...scoped.review, requiredDistinctActors: 1 },
+    }).success).toBe(false);
+    expect(approvalInputSchema.safeParse({
+      ...scoped,
+      review: { ...scoped.review, inputArtifactHashes: ["not-a-hash"] },
+    }).success).toBe(false);
+    expect(openApiDocument.components.schemas.ApprovalReviewScope).toMatchObject({
+      additionalProperties: false,
+      required: expect.arrayContaining(["gate", "inputArtifactHashes", "outputArtifactHashes"]),
+    });
+  });
+
   it("accepts only bounded semantic input for dynamic generic episodes", () => {
     const canonical = {
       type: "dynamic_generic", version: "1",
@@ -334,6 +367,8 @@ describe("OpenAPI contract", () => {
       ["createEpisode", "content.write"],
       ["getEpisode", "content.read"],
       ["replaceEpisodeContent", "content.write"],
+      ["archiveEpisode", "content.write"],
+      ["cloneEpisode", "content.write"],
       ["admitWorkflow", "workflow.start"],
       ["getWorkflow", "content.read"],
       ["listWorkflowSteps", "content.read"],
@@ -345,6 +380,19 @@ describe("OpenAPI contract", () => {
       ["getPublication", "publication.read"],
       ["recordApproval", "approval.decide"],
       ["revokeApproval", "approval.decide"],
+      ["estimateSpeech", "content.read"],
+      ["createSpeechGeneration", "content.write"],
+      ["getSpeechGeneration", "content.read"],
+      ["retrySpeechGeneration", "content.write"],
+      ["cancelSpeechGeneration", "content.write"],
+      ["listSpeechProfiles", "content.read"],
+      ["createSpeechProfile", "content.write"],
+      ["createSpeechProfileVersion", "content.write"],
+      ["validateSpeechProfileVersion", "content.write"],
+      ["activateSpeechProfileVersion", "content.write"],
+      ["deprecateSpeechProfileVersion", "content.write"],
+      ["setGenreSpeechPolicy", "content.write"],
+      ["setVideoSpeechOverride", "content.write"],
     ]);
     for (const { path, operation } of operations()) {
       if (!path.startsWith("/v1/workspaces/")) continue;

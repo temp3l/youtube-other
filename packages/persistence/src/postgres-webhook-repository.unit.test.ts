@@ -101,7 +101,7 @@ describe("Postgres webhook repository", () => {
       "DROP TRIGGER IF EXISTS workflow_events_immutable"
     );
     expect(POSTGRES_WORKFLOW_STATE_MIGRATION).toContain(
-      "WHEN type = 'approval.recorded' THEN 'approval.created'"
+      "WHEN type = 'approval.recorded' THEN 'approval.approved'"
     );
     expect(POSTGRES_WORKFLOW_STATE_MIGRATION).toContain(
       "WHEN type = 'publication.intent_recorded' THEN 'publication.started'"

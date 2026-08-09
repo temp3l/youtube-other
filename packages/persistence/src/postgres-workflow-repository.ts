@@ -1666,7 +1666,7 @@ export class WorkspaceTransactionRepository {
       ]
     );
     const approvalEventType =
-      input.decision === "rejected" ? "approval.rejected" : "approval.created";
+      input.decision === "rejected" ? "approval.rejected" : "approval.approved";
     await this.connection.query(
       `INSERT INTO workflow_events (
          workspace_id, event_id, run_id, subject_revision,
@@ -1683,7 +1683,6 @@ export class WorkspaceTransactionRepository {
         JSON.stringify({
           approvalId: input.approvalId,
           decision: input.decision,
-          reason: input.reason,
           ...(hasScope
             ? {
                 gate: input.gate,
@@ -1696,7 +1695,6 @@ export class WorkspaceTransactionRepository {
                 requiredDistinctActors: input.highRisk
                   ? Math.max(2, input.requiredDistinctActors ?? 1)
                   : input.requiredDistinctActors ?? 1,
-                ...(input.reviewerRole ? { reviewerRole: input.reviewerRole } : {}),
                 ...(input.expiresAt ? { expiresAt: input.expiresAt } : {}),
                 ...(input.supersedesApprovalId
                   ? { supersedesApprovalId: input.supersedesApprovalId }

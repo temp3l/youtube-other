@@ -524,7 +524,7 @@ SET subject_type = CASE
 WHERE subject_type IS NULL OR subject_id IS NULL OR subject_version IS NULL;
 UPDATE workflow_events SET type = CASE
   WHEN type = 'approval.recorded' AND data ->> 'decision' = 'rejected' THEN 'approval.rejected'
-  WHEN type = 'approval.recorded' THEN 'approval.created'
+  WHEN type = 'approval.recorded' THEN 'approval.approved'
   WHEN type = 'publication.intent_recorded' THEN 'publication.started'
   ELSE type
 END
