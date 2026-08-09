@@ -22,6 +22,7 @@
     "@mediaforge/rendering": "workspace:*",
     "@mediaforge/shared": "workspace:*",
     "@mediaforge/source-ingestion": "workspace:*",
+    "@mediaforge/story-localization": "workspace:*",
     "@mediaforge/visual-planning": "workspace:*",
     "zod": "^4.0.14"
   }

@@ -9,6 +9,10 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./dist/index.js"
+    },
+    "./locale-edition": {
+      "types": "./src/locale-edition.ts",
+      "default": "./src/locale-edition.ts"
     }
   },
   "scripts": {
@@ -16,6 +20,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@mediaforge/domain": "workspace:*",
     "@mediaforge/observability": "workspace:*",
     "@mediaforge/shared": "workspace:*",
     "@mediaforge/workflow-engine": "workspace:*",

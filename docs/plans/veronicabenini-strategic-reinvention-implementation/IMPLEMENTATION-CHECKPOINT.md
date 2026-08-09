@@ -16,9 +16,9 @@
 | VRI-06 | VALIDATED | worker + coordinator review | 6 focused tests; visual-planning build pass | `94710be` |
 | VRI-07 | VALIDATED | worker + coordinator review | 4 focused tests; visual-planning build pass | `a6def0e` |
 | VRI-08 | VALIDATED | worker + coordinator review | 5 focused tests pass | `a6def0e` |
-| VRI-09 | VALIDATED | worker + coordinator review | 6 focused tests pass; rendering build dependency-blocked | pending commit |
-| VRI-10 | NOT_STARTED | unassigned | not run | none |
-| VRI-11 | VALIDATED | worker + coordinator review | 5 focused tests pass; supplementary speech suite dependency-blocked | pending commit |
+| VRI-09 | VALIDATED | worker + coordinator review | 6 focused tests pass; rendering build dependency-blocked | `d2cd6e0` |
+| VRI-10 | VALIDATED | worker + coordinator review | 4 focused tests pass; Veronica typecheck blocked by existing readonly errors | pending commit |
+| VRI-11 | VALIDATED | worker + coordinator review | 5 focused tests pass; supplementary speech suite dependency-blocked | `d2cd6e0` |
 | VRI-12..VRI-26 | NOT_STARTED | unassigned | not run | none |
 
 ## VRI-01 evidence
@@ -44,4 +44,4 @@
 
 ## Next executable tasks
 
-VRI-10 and VRI-12 are unblocked and remain serial at their merge barriers.
+VRI-12 is the next serial merge barrier.

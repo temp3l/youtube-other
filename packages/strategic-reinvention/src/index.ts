@@ -5,6 +5,7 @@ export * from "./provenance-validation.js";
 export * from "./source-adaptation.js";
 export * from "./source-adaptation-bridge.js";
 export * from "./scene-visual-plan-policy.js";
+export * from "./locale-edition.js";
 export * from "./full-task-definitions.js";
 export * from "./episode-pipeline.js";
 export * from "./supplemental-media-bridge.js";
