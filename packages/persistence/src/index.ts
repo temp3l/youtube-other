@@ -11,6 +11,7 @@ export * from "./relational-workflow-state.js";
 export * from "./postgres-migration-registry.js";
 export * from "./postgres-production-state.js";
 export * from "./postgres-capability-configuration-repository.js";
+export * from "./postgres-recent-auth-confirmation-repository.js";
 export * from "./production-state-repository.js";
 export * from "./postgres-workflow-repository.js";
 export * from "./workflow-portfolio-repository.js";

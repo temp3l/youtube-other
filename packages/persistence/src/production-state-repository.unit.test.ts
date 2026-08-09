@@ -28,6 +28,7 @@ describe("postgres migration registry", () => {
       "durable-dispatch",
       "production-state",
       "capability-configuration",
+      "recent-auth-confirmation",
       "principal-directory",
       "quota-dimensions",
     ]);
