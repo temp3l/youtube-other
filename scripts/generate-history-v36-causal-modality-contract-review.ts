@@ -6,10 +6,8 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
 import { extractCandidateGapInventoryV36 } from "../packages/history/src/v36/candidate-gap-inventory-v36.js";
-import {
-  representativeNativeEpisodeFragmentsV36,
-  runRepresentativeNativeStructuredClaimExperimentV36,
-} from "../packages/history/src/v36/native-structured-claim-experiment-v36.js";
+import { runRepresentativeNativeStructuredClaimExperimentV36 } from "../packages/history/src/v36/native-structured-claim-experiment-v36.js";
+import { representativeNativeEpisodeFragmentsV36 } from "../packages/history/src/v36/native-structured-claim-fixtures-v36.js";
 
 const exec = promisify(execFile);
 const repository = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
