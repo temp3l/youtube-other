@@ -12,4 +12,11 @@ describe("Postgres bulk production repository", () => {
     expect(POSTGRES_BULK_PRODUCTION_MIGRATION).toContain("FORCE ROW LEVEL SECURITY");
     expect(POSTGRES_MIGRATION_MODULES.map((module) => module.id)).toContain("bulk-production");
   });
+
+  it("keeps running claims and completed child outcomes distinct from eligibility", async () => {
+    const source = await import("node:fs/promises").then((fs) => fs.readFile(new URL("./postgres-bulk-production-repository.ts", import.meta.url), "utf8"));
+    expect(source).toContain("FOR UPDATE OF item SKIP LOCKED");
+    expect(source).toContain("AND status='running'");
+    expect(source).toContain("workflow_run_id=$5");
+  });
 });

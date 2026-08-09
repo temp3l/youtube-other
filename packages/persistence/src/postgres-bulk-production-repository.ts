@@ -64,6 +64,15 @@ export interface BulkProductionBatchRecord {
   readonly updatedAt: string;
 }
 
+export interface ClaimedBulkProductionItem {
+  readonly itemId: string;
+  readonly projectId: string;
+  readonly episodeId: string;
+  readonly expectedRevision: number;
+  readonly locale: string;
+  readonly variant: string;
+}
+
 export class PostgresBulkProductionRepository {
   public constructor(private readonly pool: PostgresPool) {}
 
@@ -136,6 +145,42 @@ export class PostgresBulkProductionRepository {
       const result = await client.query<{ readonly workspace_id: string; readonly batch_id: string; readonly selection_fingerprint: string; readonly status: string; readonly created_at: string; readonly updated_at: string }>(`SELECT workspace_id, batch_id, selection_fingerprint, status, created_at, updated_at FROM bulk_production_batches WHERE workspace_id=$1 AND batch_id=$2`, [input.workspaceId, input.batchId]);
       const row = result.rows[0];
       return row ? { workspaceId: row.workspace_id, batchId: row.batch_id, selectionFingerprint: row.selection_fingerprint, status: row.status, createdAt: row.created_at, updatedAt: row.updated_at } : null;
+    });
+  }
+
+  /** Claims one item with SKIP LOCKED so concurrent launchers cannot duplicate admission. */
+  public async claimNextRunnableItem(input: { readonly workspaceId: string; readonly batchId: string; readonly now: string }): Promise<ClaimedBulkProductionItem | null> {
+    return this.withWorkspace(input.workspaceId, async (client) => {
+      const result = await client.query<{ readonly item: { readonly item_id: string; readonly project_id: string; readonly episode_id: string; readonly expected_revision: string | number; readonly locale: string; readonly variant: string } | null }>(`WITH candidate AS (
+        SELECT item.item_id FROM bulk_production_batch_items AS item
+        JOIN bulk_production_batches AS batch ON batch.workspace_id=item.workspace_id AND batch.batch_id=item.batch_id
+        WHERE item.workspace_id=$1 AND item.batch_id=$2 AND batch.status IN ('planned','running') AND item.eligible=TRUE AND item.status='pending'
+        ORDER BY item.selection_order FOR UPDATE OF item SKIP LOCKED LIMIT 1
+      ), claimed AS (
+        UPDATE bulk_production_batch_items AS item SET status='running', updated_at=$3::timestamptz
+        FROM candidate WHERE item.workspace_id=$1 AND item.batch_id=$2 AND item.item_id=candidate.item_id
+        RETURNING item.item_id, item.project_id, item.episode_id, item.expected_revision, item.locale, item.variant
+      ) UPDATE bulk_production_batches SET status='running', updated_at=$3::timestamptz
+        WHERE workspace_id=$1 AND batch_id=$2 AND EXISTS (SELECT 1 FROM claimed)
+        RETURNING (SELECT row_to_json(claimed) FROM claimed LIMIT 1) AS item`, [input.workspaceId, input.batchId, input.now]);
+      const value = result.rows[0]?.item;
+      if (!value) return null;
+      return { itemId: value.item_id, projectId: value.project_id, episodeId: value.episode_id, expectedRevision: Number(value.expected_revision), locale: value.locale, variant: value.variant };
+    });
+  }
+
+  public async completeClaimedItem(input: { readonly workspaceId: string; readonly batchId: string; readonly itemId: string; readonly status: "succeeded" | "failed-retryable" | "failed-permanent" | "cancelled"; readonly workflowRunId?: string; readonly jobId?: string; readonly errorCode?: string; readonly errorMessage?: string; readonly now: string }): Promise<boolean> {
+    return this.withWorkspace(input.workspaceId, async (client) => {
+      const updated = await client.query<{ readonly item_id: string }>(`UPDATE bulk_production_batch_items SET status=$4, workflow_run_id=$5, job_id=$6, error_code=$7, error_message=$8, updated_at=$9::timestamptz WHERE workspace_id=$1 AND batch_id=$2 AND item_id=$3 AND status='running' RETURNING item_id`, [input.workspaceId, input.batchId, input.itemId, input.status, input.workflowRunId ?? null, input.jobId ?? null, input.errorCode ?? null, input.errorMessage ?? null, input.now]);
+      if (!updated.rows[0]) return false;
+      await client.query(`UPDATE bulk_production_batches AS batch SET status = CASE
+        WHEN EXISTS (SELECT 1 FROM bulk_production_batch_items WHERE workspace_id=$1 AND batch_id=$2 AND status IN ('pending','running')) THEN 'running'
+        WHEN EXISTS (SELECT 1 FROM bulk_production_batch_items WHERE workspace_id=$1 AND batch_id=$2 AND status='failed-permanent') AND EXISTS (SELECT 1 FROM bulk_production_batch_items WHERE workspace_id=$1 AND batch_id=$2 AND status='succeeded') THEN 'partial'
+        WHEN EXISTS (SELECT 1 FROM bulk_production_batch_items WHERE workspace_id=$1 AND batch_id=$2 AND status='failed-permanent') THEN 'failed'
+        WHEN EXISTS (SELECT 1 FROM bulk_production_batch_items WHERE workspace_id=$1 AND batch_id=$2 AND status='failed-retryable') THEN 'partial'
+        WHEN NOT EXISTS (SELECT 1 FROM bulk_production_batch_items WHERE workspace_id=$1 AND batch_id=$2 AND eligible=TRUE) THEN 'failed'
+        ELSE 'succeeded' END, updated_at=$3::timestamptz WHERE batch.workspace_id=$1 AND batch.batch_id=$2`, [input.workspaceId, input.batchId, input.now]);
+      return true;
     });
   }
 }
