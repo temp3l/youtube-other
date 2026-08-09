@@ -2335,6 +2335,14 @@ export const openApiComponents = {
         type: "object", additionalProperties: false, required: ["id", "accepted", "rejected"],
         properties: { id: schema("OpaqueId"), accepted: { type: "array", items: { type: "object", additionalProperties: false, required: ["itemId", "workflowRunId", "jobId"], properties: { itemId: schema("OpaqueId"), workflowRunId: schema("OpaqueId"), jobId: schema("OpaqueId") } } }, rejected: { type: "array", items: { type: "object", additionalProperties: false, required: ["itemId", "code"], properties: { itemId: schema("OpaqueId"), code: { type: "string", minLength: 1, maxLength: 160 } } } } },
       },
+      BulkProductionRetryResult: {
+        type: "object", required: ["id", "retriedItems"], additionalProperties: false,
+        properties: { id: schema("OpaqueId"), retriedItems: { type: "integer", minimum: 1 } },
+      },
+      BulkProductionCancellationResult: {
+        type: "object", required: ["id", "status", "cancellationRequestedJobIds"], additionalProperties: false,
+        properties: { id: schema("OpaqueId"), status: { type: "string", enum: ["cancelling", "cancelled"] }, cancellationRequestedJobIds: { type: "array", items: schema("OpaqueId") } },
+      },
       Job: {
         type: "object",
         additionalProperties: false,

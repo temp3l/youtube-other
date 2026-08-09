@@ -825,6 +825,34 @@ export function createPostgresApiUseCases(input: {
         return { id: batchId, accepted, rejected };
       } catch (error) { return translatePersistence(error); }
     },
+    retryBulkProduction: async (batchId, context) => {
+      try {
+        const retriedItems = await bulkProduction.retryTerminalItems({
+          workspaceId: context.workspaceId,
+          batchId,
+          now: now().toISOString(),
+        });
+        if (retriedItems === 0)
+          throw new ApplicationError("state_transition_rejected", "This batch has no retryable items.", false);
+        return { id: batchId, retriedItems };
+      } catch (error) { return translatePersistence(error); }
+    },
+    cancelBulkProduction: async (batchId, context) => {
+      try {
+        const childJobIds = await bulkProduction.listAdmittedChildJobs({ workspaceId: context.workspaceId, batchId });
+        const status = await bulkProduction.requestCancellation({ workspaceId: context.workspaceId, batchId, now: now().toISOString() });
+        if (status === "not_cancellable")
+          throw new ApplicationError("state_transition_rejected", "This batch cannot be cancelled in its current state.", false);
+        const requested: string[] = [];
+        for (const jobId of childJobIds) {
+          const outcome = await repository.withWorkspaceTransaction(context.workspaceId, (transaction) =>
+            transaction.requestDurableJobCancellation({ workspaceId: context.workspaceId, jobId, now: now().toISOString() })
+          );
+          if (outcome !== "not_cancellable") requested.push(jobId);
+        }
+        return { id: batchId, status, cancellationRequestedJobIds: requested };
+      } catch (error) { return translatePersistence(error); }
+    },
     previewArtifactInvalidation: async (episodeId, input, context) => {
       const episode = await repository.withWorkspaceTransaction(
         context.workspaceId,

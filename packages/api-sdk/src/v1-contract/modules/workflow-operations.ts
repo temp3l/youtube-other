@@ -1,6 +1,12 @@
 import type { SdkV1OperationContract } from "../types.js";
 
 export const workflowSdkV1Operations = {
+  retryBulkProduction: {
+    method: "POST", path: "/v1/workspaces/{workspace}/bulk-production-batches/{batch}:retry", successStatus: "202", responseSchema: "BulkProductionRetryResult", requestSchema: null, requiredHeaders: ["IdempotencyKey"], problemResponses: true,
+  },
+  cancelBulkProduction: {
+    method: "POST", path: "/v1/workspaces/{workspace}/bulk-production-batches/{batch}:cancel", successStatus: "202", responseSchema: "BulkProductionCancellationResult", requestSchema: null, requiredHeaders: [], problemResponses: true,
+  },
   launchBulkProduction: {
     method: "POST", path: "/v1/workspaces/{workspace}/bulk-production-batches/{batch}:launch", successStatus: "202", responseSchema: "BulkProductionLaunchResult", requestSchema: null, requiredHeaders: ["IdempotencyKey"], problemResponses: true,
   },

@@ -1,5 +1,21 @@
 import { authenticatedErrors, episodeParameters, jobParameters, json, parameter, projectParameters, requestIdParameter, response, responseHeader, workflowParameters, workspaceParameters } from "../openapi-helpers.js";
 export const workflowOpenApiPaths = {
+    "/v1/workspaces/{workspace}/bulk-production-batches/{batch}:retry": {
+      post: {
+        operationId: "retryBulkProduction",
+        description: "Reopens only retryable or cancelled items for a new quota-backed attempt. Requires `workflow.start` and Idempotency-Key.",
+        parameters: [...workspaceParameters, parameter("BatchId"), parameter("IdempotencyKey")],
+        responses: { "202": { description: "Retry accepted", headers: { "x-request-id": responseHeader("RequestId") }, content: json("BulkProductionRetryResult") }, "428": response("PreconditionRequired"), ...authenticatedErrors },
+      },
+    },
+    "/v1/workspaces/{workspace}/bulk-production-batches/{batch}:cancel": {
+      post: {
+        operationId: "cancelBulkProduction",
+        description: "Stops future claims and requests cancellation for admitted child jobs. Requires `workflow.cancel`.",
+        parameters: [...workspaceParameters, parameter("BatchId")],
+        responses: { "202": { description: "Cancellation accepted", headers: { "x-request-id": responseHeader("RequestId") }, content: json("BulkProductionCancellationResult") }, ...authenticatedErrors },
+      },
+    },
     "/v1/workspaces/{workspace}/bulk-production-batches/{batch}:launch": {
       post: {
         operationId: "launchBulkProduction",

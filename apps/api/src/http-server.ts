@@ -510,6 +510,8 @@ export interface ApiUseCases {
     batchId: string,
     context: Required<Pick<ApiRequestContext, "workspaceId" | "principal" | "requestId" | "idempotencyKey">>
   ): Promise<{ readonly id: string; readonly accepted: readonly { readonly itemId: string; readonly workflowRunId: string; readonly jobId: string }[]; readonly rejected: readonly { readonly itemId: string; readonly code: string }[] }>;
+  retryBulkProduction?(batchId: string, context: Required<Pick<ApiRequestContext, "workspaceId" | "principal" | "requestId" | "idempotencyKey">>): Promise<{ readonly id: string; readonly retriedItems: number }>;
+  cancelBulkProduction?(batchId: string, context: Required<Pick<ApiRequestContext, "workspaceId" | "principal" | "requestId">>): Promise<{ readonly id: string; readonly status: string; readonly cancellationRequestedJobIds: readonly string[] }>;
   getWorkspaceCapabilities(context: Required<Pick<ApiRequestContext, "workspaceId" | "requestId">>): Promise<Record<string, unknown> | null>;
   getEpisodeResolvedConfiguration(episodeId: string, context: Required<Pick<ApiRequestContext, "workspaceId" | "projectId" | "requestId">>): Promise<Record<string, unknown> | null>;
   previewArtifactInvalidation(
@@ -1463,6 +1465,10 @@ function requiredPermission(
     return "workflow.start";
   if (method === "POST" && !matched.project && /^bulk-production-batches\/[^/]+:launch$/u.test(matched.tail ?? ""))
     return "workflow.start";
+  if (method === "POST" && !matched.project && /^bulk-production-batches\/[^/]+:retry$/u.test(matched.tail ?? ""))
+    return "workflow.start";
+  if (method === "POST" && !matched.project && /^bulk-production-batches\/[^/]+:cancel$/u.test(matched.tail ?? ""))
+    return "workflow.cancel";
   if (method === "GET" && !matched.project && matched.tail === "capabilities") return "content.read";
   if (method === "GET" && !matched.project && matched.tail === "provider-health")
     return "usage.read";
@@ -2306,6 +2312,26 @@ export function createApiServer(
         const key = idempotencyKey(request);
         if (!key) throw new ApplicationError("precondition_required", "Idempotency-Key is required.", false);
         const result = await useCases.launchBulkProduction(decodeURIComponent(bulkLaunch[1]!), { ...context, idempotencyKey: key });
+        return json(response, 202, result, { "x-request-id": requestIdValue });
+      }
+      const bulkRetry = !matched.project && request.method === "POST"
+        ? matched.tail?.match(/^bulk-production-batches\/([^/]+):retry$/u)
+        : null;
+      if (bulkRetry) {
+        if (!useCases.retryBulkProduction)
+          throw new ApplicationError("not_found", "Resource not found.", false);
+        const key = idempotencyKey(request);
+        if (!key) throw new ApplicationError("precondition_required", "Idempotency-Key is required.", false);
+        const result = await useCases.retryBulkProduction(decodeURIComponent(bulkRetry[1]!), { ...context, idempotencyKey: key });
+        return json(response, 202, result, { "x-request-id": requestIdValue });
+      }
+      const bulkCancel = !matched.project && request.method === "POST"
+        ? matched.tail?.match(/^bulk-production-batches\/([^/]+):cancel$/u)
+        : null;
+      if (bulkCancel) {
+        if (!useCases.cancelBulkProduction)
+          throw new ApplicationError("not_found", "Resource not found.", false);
+        const result = await useCases.cancelBulkProduction(decodeURIComponent(bulkCancel[1]!), context);
         return json(response, 202, result, { "x-request-id": requestIdValue });
       }
       if (

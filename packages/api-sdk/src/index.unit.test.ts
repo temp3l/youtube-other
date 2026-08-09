@@ -94,6 +94,16 @@ describe("Mediaforge API SDK", () => {
     expect(new Headers(request!.init?.headers).get("idempotency-key")).toBe("bulk-launch-1");
   });
 
+  it("maps bulk retry and cancellation actions", async () => {
+    const requests: Array<{ readonly url: string; readonly init?: RequestInit }> = [];
+    const client = new MediaforgeApiClient({ baseUrl: "https://api.example.test", request: (async (url: string | URL | Request, init?: RequestInit) => { requests.push({ url: String(url), ...(init ? { init } : {}) }); return jsonResponse({ id: "batch-1", retriedItems: 1 }, { status: 202 }); }) as typeof fetch });
+    await client.retryBulkProduction("ws-1", "batch/one", { idempotencyKey: "bulk-retry-1" });
+    await client.cancelBulkProduction("ws-1", "batch/one");
+    expect(new URL(requests[0]!.url).pathname).toBe("/v1/workspaces/ws-1/bulk-production-batches/batch%2Fone:retry");
+    expect(new Headers(requests[0]!.init?.headers).get("idempotency-key")).toBe("bulk-retry-1");
+    expect(new URL(requests[1]!.url).pathname).toBe("/v1/workspaces/ws-1/bulk-production-batches/batch%2Fone:cancel");
+  });
+
   it("types the canonical mathematics capability contract", () => {
     expectTypeOf<MathematicsEducationContent["grade"]>().toEqualTypeOf<
       5 | 6 | 7 | 8 | 9 | 10
