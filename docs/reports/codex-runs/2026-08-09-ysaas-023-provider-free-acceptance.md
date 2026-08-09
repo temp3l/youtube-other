@@ -1,11 +1,11 @@
 # YSAAS-023 provider-free acceptance
 
-Summary: Added an API-context provider-free BFF fixture. It creates a history project and brief through the typed SDK/BFF, proves the application-role database record, and confirms a second tenant cannot read the project or brief.
+Summary: Extended the API-context provider-free BFF fixture with stale-brief protection. One current revision succeeds; a second BFF edit with the same stale revision gets a safe `412`, and the durable record retains only the current brief.
 
 Changed paths: `apps/api/src/provider-free-bff.integration.test.ts`, plan ledger, and reports.
 
-Checks: provider-free executor unit test passed (5). Focused disposable-Postgres workflow integration passed (8): RLS isolation, stale transition rejection, leased/fenced durable jobs, and retry lifecycle. `pnpm test:focused -- apps/api/src/provider-free-bff.integration.test.ts` passed (1) against a disposable loopback PostgreSQL database.
+Checks: `git diff --check` passed. `pnpm test:focused -- apps/api/src/provider-free-bff.integration.test.ts` collected one test but skipped it because this checkout has no `.env`/`.env.postgres` disposable-Postgres configuration. Prior evidence: provider-free executor unit test passed (5); durable workflow integration passed (8); initial BFF fixture passed (1).
 
-Commit: `bbacc3a`.
+Commit: `cdccac7`.
 
-Risks: No accepted evidence yet for quota, stale review, webhook replay, validation/quarantine, cancellation/reclaim, revoked membership, or a completed review/audit journey. The fixture deliberately does not call onboarding because its lifecycle read model is outside the workflow-schema test setup. Do not certify YSAAS-023 yet.
+Risks: No accepted evidence yet for quota, stale review, webhook replay, validation/quarantine, cancellation/reclaim, revoked membership, or a completed review/audit journey. Rerun the focused fixture with its disposable-Postgres URLs before accepting this slice. The fixture deliberately omits onboarding because its lifecycle read model is outside the workflow-schema setup. Do not certify YSAAS-023 yet.

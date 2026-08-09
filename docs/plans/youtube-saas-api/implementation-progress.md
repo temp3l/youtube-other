@@ -74,9 +74,9 @@ Notes: Server-rendered tenant readiness checklist, v1 episode title/ID search, c
 
 ### YSAAS-023
 Status: in progress
-Commit: 3829107
-Validation: provider-free executor unit pass (5); disposable-Postgres workflow integration pass (8); API-context provider-free BFF fixture pass (1)
-Notes: Unit-test resolver now supports the domain visual-retention subpath. Existing focused integration proves tenant RLS, stale transitions, durable fencing, and retry lifecycle. The API-context fixture creates a history project and brief through the BFF/API SDK, proves durable tenant-scoped storage, and proves cross-tenant BFF non-leakage. It deliberately stays within the provisioned workflow schema; onboarding's lifecycle read model is not part of this fixture. The remaining fault matrix is still required before certification.
+Commit: 3829107, cdccac7
+Validation: provider-free executor unit pass (5); disposable-Postgres workflow integration pass (8); prior API-context provider-free BFF fixture pass (1). Current focused invocation skips because this checkout has no `.env`/`.env.postgres` disposable-Postgres configuration.
+Notes: Unit-test resolver now supports the domain visual-retention subpath. Existing focused integration proves tenant RLS, stale transitions, durable fencing, and retry lifecycle. The API-context fixture creates a history project and brief through the BFF/API SDK, then accepts one current revision and rejects a concurrent stale revision with the safe BFF `412` response while retaining the current durable brief. It also proves cross-tenant BFF non-leakage. It deliberately stays within the provisioned workflow schema; onboarding's lifecycle read model is not part of this fixture. The remaining fault matrix is still required before certification.
 
 ### YSAAS-024
 Status: blocked
