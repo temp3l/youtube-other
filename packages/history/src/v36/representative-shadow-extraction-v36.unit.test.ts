@@ -95,6 +95,8 @@ describe("V3.6 representative structured-claim shadow projection", () => {
 
   it("permits the explicit Titanic ice concept without fragmenting an unrelated proper name", () => {
     const result = runRepresentativeShadowExtractionV36(source("history-youtube-history-10-video-story-pack-10-titanic-decisions-disaster"));
+    expect(result.grounding.propositions).toEqual(expect.arrayContaining([expect.objectContaining({ claimId: "claim-cf84a3dbbd24f86a28cc6978", predicate: "causes" })]));
+    expect(result.candidates).toEqual(expect.arrayContaining([expect.objectContaining({ claimId: "claim-cf84a3dbbd24f86a28cc6978", source: "atomic-claim-grounding", status: "valid" })]));
     expect(result.candidates).toEqual(expect.arrayContaining([expect.objectContaining({ claimId: "claim-cf84a3dbbd24f86a28cc6978", status: "valid", diagnostics: [] })]));
     expect(result.extraction.relations).toEqual(expect.arrayContaining([expect.objectContaining({ kind: "causal", cause: expect.objectContaining({ canonicalLabel: "ice" }) })]));
   });

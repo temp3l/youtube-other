@@ -7,8 +7,8 @@ V3.5 combines entity/geography inference, geo facts, diagram concepts, context w
 ## Boundary
 
 ```text
-canonical narration → claims → resolved entities/places
-→ ExplanatoryRelation → deterministic validation → future compilers
+canonical narration → claims → V3.6 atomic claim grounding
+→ grounded relation evidence → ExplanatoryRelation → deterministic validation → future compilers
 ```
 
 The V3.6 module has a proof-bearing shadow extractor, but no map/diagram compiler and no effect on V3.5 production plans. The future configuration seam is `HISTORY_RELATION_IR_VERSION=v35|v36-shadow|v36`; it is documented only, so the production default remains V3.5.
@@ -50,9 +50,19 @@ The optional `bounded-llm-claim-projection` source is a shadow-only proposer beh
 
 Strict structured output may reference only participant and support IDs supplied in the packet. Unknown participants, out-of-window evidence, purpose-as-destination movement, schema failures, provider failures, and exhausted budgets fail open to deterministic-only shadow output. Successful responses use a timestamp-free SHA-256 cache identity over the episode, ordered claim IDs, normalized claim content, participant bindings, relation schema, prompt version, model, and provider.
 
+### Phase 2.3 atomic claim grounding
+
+`groundAtomicClaimsV36` adds a claim-local, V3.6-only evidence layer before relation extraction. Its bounded predicate and assertion-status vocabularies distinguish asserted facts from intended, attempted, uncertain, counterfactual, and reported propositions. Every atom retains its episode and claim IDs, exact UTF-16 source span and text hash, resolved participant IDs, stable grounding rule, and grounding schema version.
+
+Grounding IDs are deterministic hashes of canonical proposition semantics plus exact source provenance. Proper names remain atomic, grouped concepts stay grouped, nested evidence entities remain qualifiers, and unresolved place participants fail closed. Franklin grounds Britain as movement origin and Northwest Passage as a search object—not a destination—and Spanish Armada mission language remains intended rather than completed movement.
+
+The lowering adapter maps only exact asserted, claim-local atoms that mechanically match the existing evidence union. It neither composes claims nor approves relations. The deterministic proposer and `ExplanatoryRelation` validator remain unchanged semantic authorities; the bounded LLM path remains opt-in and live calls are outside Phase 2.3.
+
 ## Contract and provenance versioning
 
 The hardened persisted relation contract is `history-explanatory-relations.v2`. V1 review artifacts must not be treated as V2 records because V1 overloaded semantic identity with evidence provenance. `explanatoryRelationSchemaV36` is the authoritative Zod runtime validator; `relation-schema.json` is machine-enforcing Draft 2020-12 JSON Schema generated directly from it with Zod's native JSON-Schema exporter. `relation-contract-document.json` is supplemental field-level review documentation generated alongside it.
+
+The atomic grounding contract is independently versioned as `history-atomic-claim-grounding.v1`. `atomicGroundingArtifactSchemaV36` is authoritative; `atomic-grounding-schema.json` and `atomic-grounding-contract-document.json` are generated mechanically from the same module.
 
 Review artifact provenance is independently versioned as `history-v3.6-relation-ir-review-provenance.v3`. V3 separates the dedicated `history-v3.6-shadow-relations-review` artifact kind from the earlier relation-IR contract review kind. `reviewArtifactProvenanceSchemaV36` remains the authoritative strict Zod runtime validator and generates `provenance-schema.json`.
 

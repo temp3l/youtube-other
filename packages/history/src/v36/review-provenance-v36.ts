@@ -69,3 +69,31 @@ export const boundedLlmReviewArtifactProvenanceSchemaV36 = z.object({
 export type BoundedLlmReviewArtifactProvenanceV36 = z.infer<
   typeof boundedLlmReviewArtifactProvenanceSchemaV36
 >;
+
+export const HISTORY_V36_ATOMIC_GROUNDING_REVIEW_PROVENANCE_SCHEMA =
+  "history-v3.6-atomic-grounding-review-provenance.v1" as const;
+export const HISTORY_V36_ATOMIC_GROUNDING_REVIEW_ARTIFACT_KIND =
+  "history-v3.6-atomic-grounding-review" as const;
+
+/** Dedicated Phase 2.3 provenance; older V3.6 review contracts stay immutable. */
+export const atomicGroundingReviewArtifactProvenanceSchemaV36 = z.object({
+  generatedAt: utcTimestampSchema,
+  v36ImplementationCommitSha: gitShaSchema,
+  phase22BaselineCommitSha: gitShaSchema,
+  phase22BaselineTag: z.literal("history-v3.6-bounded-llm-shadow-baseline"),
+  contractBaselineCommitSha: gitShaSchema,
+  contractBaselineTag: z.literal("history-v3.6-contract-preflight-baseline"),
+  frozenV35ProductionCommitSha: gitShaSchema,
+  frozenV35ProductionTag: z.literal("history-v3.5-frozen-before-v36"),
+  acceptedV35SemanticBaselineCommitSha: gitShaSchema,
+  acceptedV35SemanticBaselineTag: z.literal("history-v3.5-semantic-baseline"),
+  groundingSchemaVersion: z.literal("history-atomic-claim-grounding.v1"),
+  schemaVersion: z.literal(HISTORY_V36_ATOMIC_GROUNDING_REVIEW_PROVENANCE_SCHEMA),
+  artifactKind: z.literal(HISTORY_V36_ATOMIC_GROUNDING_REVIEW_ARTIFACT_KIND),
+  episodeSet: z.array(z.string().trim().min(1)).length(8),
+  liveLlmCalls: z.literal(false),
+}).strict();
+
+export type AtomicGroundingReviewArtifactProvenanceV36 = z.infer<
+  typeof atomicGroundingReviewArtifactProvenanceSchemaV36
+>;

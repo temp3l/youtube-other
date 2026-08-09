@@ -1,4 +1,9 @@
 import {
+  groundAtomicClaimsV36,
+  lowerAtomicGroundingEvidenceV36,
+  type AtomicGroundingResultV36,
+} from "./atomic-claim-grounder-v36.js";
+import {
   claimIdV36,
   entityIdV36,
   episodeIdV36,
@@ -16,6 +21,7 @@ import type { RelationDiagnosticV36 } from "./explanatory-relation-validator-v36
 /** The only allowed origins for a representative shadow proposal. */
 export type ShadowCandidateSourceV36 =
   | "structured-claim-projection"
+  | "atomic-claim-grounding"
   | "bounded-adjacent-claim-projection"
   | "bounded-llm-claim-projection";
 
@@ -90,6 +96,7 @@ export interface RepresentativeShadowExtractionResultV36 {
   readonly episodeId: string;
   readonly claims: readonly RelationSupportClaimV36[];
   readonly entities: readonly ResolvedEntityV36[];
+  readonly grounding: AtomicGroundingResultV36;
   readonly extraction: ShadowRelationExtractionResultV36;
   readonly candidates: readonly ShadowCandidateRecordV36[];
 }
@@ -200,7 +207,12 @@ function adjacentCandidates(source: RepresentativeShadowSourceV36): readonly Sha
   return rejectedCandidates;
 }
 
-type Draft = { readonly proposition: GroundedRelationPropositionV36; readonly rule: string; readonly participantIds: readonly string[] };
+type Draft = {
+  readonly proposition: GroundedRelationPropositionV36;
+  readonly rule: string;
+  readonly participantIds: readonly string[];
+  readonly source?: ShadowCandidateSourceV36;
+};
 
 /**
  * A deliberately small projection vocabulary.  Each rule is an explicit proposition
@@ -276,18 +288,30 @@ function projectClaim(
 
 /** Projects a persisted V3.5 structured-claim envelope without changing V3.5 semantics. */
 export function runRepresentativeShadowExtractionV36(source: RepresentativeShadowSourceV36): RepresentativeShadowExtractionResultV36 {
+  const grounding = groundAtomicClaimsV36(source);
   const projectedClaims: RelationSupportClaimV36[] = [];
   const projected: Array<{ claim: StructuredClaimSourceV36; draft: Draft; index: number }> = [];
   const candidates: ShadowCandidateRecordV36[] = [];
   for (const claim of source.claims) {
     const result = projectClaim(source, claim);
-    const drafts = result.filter((item): item is Draft => "proposition" in item);
+    const existingDrafts = result.filter((item): item is Draft => "proposition" in item);
     const rejections = result.filter((item): item is ShadowCandidateRecordV36 => "status" in item);
+    const atomicRecord = grounding.claims.find((item) => item.claimId === claimIdV36(claim.id));
+    const atomicDrafts: Draft[] = (atomicRecord?.propositions ?? []).flatMap((proposition) =>
+      lowerAtomicGroundingEvidenceV36([proposition]).map((lowered) => ({
+        proposition: lowered,
+        rule: `atomic-grounding:${proposition.provenance.groundingRuleId}`,
+        participantIds: proposition.provenance.resolvedParticipantIds,
+        source: "atomic-claim-grounding" as const,
+      }))
+    );
+    const drafts = [...existingDrafts, ...atomicDrafts];
     candidates.push(...rejections);
     projected.push(...drafts.map((draft, index) => ({ claim, draft, index })));
     projectedClaims.push({
       id: claimIdV36(claim.id), episodeId: episodeIdV36(source.episodeId), normalizedProposition: claim.normalizedProposition,
-      claimKind: claim.claimKind, groundedPropositions: drafts.map((draft) => draft.proposition),
+      claimKind: claim.claimKind,
+      groundedPropositions: [...new Map(drafts.map((draft) => [JSON.stringify(draft.proposition), draft.proposition])).values()],
     });
   }
   candidates.push(...adjacentCandidates(source));
@@ -301,7 +325,7 @@ export function runRepresentativeShadowExtractionV36(source: RepresentativeShado
     );
     candidates.push({
       id: candidateId(item.claim.id, item.index), episodeId: source.episodeId, claimId: item.claim.id, supportClaimIds: [item.claim.id], windowSize: 1,
-      source: "structured-claim-projection", extractionRule: item.draft.rule,
+      source: item.draft.source ?? "structured-claim-projection", extractionRule: item.draft.rule,
       normalizedProposition: item.claim.normalizedProposition, sourceSpans: item.claim.narrationSpans,
       resolvedParticipantIds: item.draft.participantIds,
       status: relation ? "valid" : "rejected",
@@ -309,5 +333,5 @@ export function runRepresentativeShadowExtractionV36(source: RepresentativeShado
       diagnostics: rejectedCandidate?.diagnostics ?? (rejectedCandidate ? [{ code: "SHADOW_RELATION_PROPOSITION_AMBIGUOUS", message: rejectedCandidate.reason, affectedIds: [] }] : []),
     });
   }
-  return { mode: "v36-shadow", episodeId: source.episodeId, claims: projectedClaims, entities, extraction, candidates: candidates.sort((left, right) => left.id.localeCompare(right.id)) };
+  return { mode: "v36-shadow", episodeId: source.episodeId, claims: projectedClaims, entities, grounding, extraction, candidates: candidates.sort((left, right) => left.id.localeCompare(right.id)) };
 }

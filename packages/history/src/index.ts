@@ -81,6 +81,8 @@ export * from "./history-approval-pack-range.js";
 export * from "./history-approval-pack-concurrency.js";
 export * from "./history-approval-pack-progress.js";
 export * from "./v36/explanatory-relation-v36.js";
+export * from "./v36/atomic-claim-grounding-v36.js";
+export * from "./v36/atomic-claim-grounder-v36.js";
 export * from "./v36/explanatory-relation-validator-v36.js";
 export * from "./v36/explanatory-relation-shadow-extractor-v36.js";
 export * from "./v36/representative-shadow-extraction-v36.js";
