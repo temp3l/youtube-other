@@ -73,9 +73,10 @@ Validation: web typecheck pass; focused `saas-runtime.unit.test.ts` pass (4)
 Notes: Server-rendered tenant readiness checklist, v1 episode title/ID search, current action center from canonical production-state actions, and last-30-day tenant audit facts from the current server read page. Membership/role management, a paginated canonical action-event read model, lifecycle confirmations, and provider/channel handoffs remain absent because no corresponding BFF contracts exist.
 
 ### YSAAS-023
-Status: blocked
-Validation: provider-free executor unit pass (5); disposable-Postgres workflow integration pass (8). A candidate web-owned API/BFF fixture was intentionally not retained after two collection failures caused by its package dependency boundary.
-Notes: Unit-test resolver now supports the domain visual-retention subpath. Existing focused integration proves tenant RLS, stale transitions, durable fencing, and retry lifecycle. No isolated tenant-to-BFF acceptance fixture exercises the remaining fault matrix; do not certify provider-free acceptance yet. Place that fixture in the API integration context or add a deliberate test resolver boundary.
+Status: in progress
+Commit: 3829107
+Validation: provider-free executor unit pass (5); disposable-Postgres workflow integration pass (8); API-context provider-free BFF fixture pass (1)
+Notes: Unit-test resolver now supports the domain visual-retention subpath. Existing focused integration proves tenant RLS, stale transitions, durable fencing, and retry lifecycle. The API-context fixture creates a history project and brief through the BFF/API SDK, proves durable tenant-scoped storage, and proves cross-tenant BFF non-leakage. It deliberately stays within the provisioned workflow schema; onboarding's lifecycle read model is not part of this fixture. The remaining fault matrix is still required before certification.
 
 ### YSAAS-024
 Status: blocked

@@ -1,11 +1,11 @@
 # YSAAS-023 provider-free acceptance
 
-Summary: The deterministic provider-free executor seam runs after correcting the unit-test domain-subpath alias. A full tenant-to-BFF acceptance fixture is still absent; a web-owned candidate was removed rather than retaining an un-runnable test.
+Summary: Added an API-context provider-free BFF fixture. It creates a history project and brief through the typed SDK/BFF, proves the application-role database record, and confirms a second tenant cannot read the project or brief.
 
-Changed paths: acceptance reporting only; no unvalidated fixture was retained.
+Changed paths: `apps/api/src/provider-free-bff.integration.test.ts`, plan ledger, and reports.
 
-Checks: provider-free executor unit test passed (5). Focused disposable-Postgres workflow integration passed (8): RLS isolation, stale transition rejection, leased/fenced durable jobs, and retry lifecycle. Two focused candidate BFF runs stopped in collection: first could not resolve `pg` from `apps/web`, then could not resolve `@mediaforge/persistence`; no assertions ran.
+Checks: provider-free executor unit test passed (5). Focused disposable-Postgres workflow integration passed (8): RLS isolation, stale transition rejection, leased/fenced durable jobs, and retry lifecycle. `pnpm test:focused -- apps/api/src/provider-free-bff.integration.test.ts` passed (1) against a disposable loopback PostgreSQL database.
 
 Commit: `bbacc3a`.
 
-Risks: No accepted evidence for quota, stale review, webhook replay, quarantine, leakage, or one API/BFF journey. Add an isolated seeded Postgres+BFF fixture in the API integration package, or deliberately configure the web integration resolver, before certifying YSAAS-023.
+Risks: No accepted evidence yet for quota, stale review, webhook replay, validation/quarantine, cancellation/reclaim, revoked membership, or a completed review/audit journey. The fixture deliberately does not call onboarding because its lifecycle read model is outside the workflow-schema test setup. Do not certify YSAAS-023 yet.
