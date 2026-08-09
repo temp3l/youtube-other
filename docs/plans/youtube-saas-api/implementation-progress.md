@@ -1,6 +1,6 @@
 # YSAAS implementation progress
 
-Current wave: Wave 4 next (YSAAS-007 complete; YSAAS-008 or YSAAS-013 pending)
+Current wave: Wave 4 in progress (YSAAS-008 complete; YSAAS-013 pending)
 
 ## Anti-stuck execution rules (session)
 
@@ -83,3 +83,9 @@ Status: completed
 Commit: 5b8e493
 Validation: `review-lifecycle.unit.test.ts` pass (7); `postgres-review-repository.unit.test.ts` pass (1); domain/persistence emit pass; `apps/api` typecheck pass excluding pre-existing `job-process` / `provider-free-worker-entry` migrate errors
 Notes: Review queue/history/validity projections; submit/claim/decide lifecycle with producer separation; `request_changes` decision; optional approve rationale; `approval.request_changes` webhook event; review OpenAPI/SDK module; challenge metadata persistence for submitter/claim
+
+### YSAAS-008
+Status: completed
+Commit: 4562314
+Validation: `localization-derivative.unit.test.ts` pass (5); `postgres-localization-derivative-repository.unit.test.ts` pass (1); domain/persistence emit pass; `apps/api` typecheck pass excluding pre-existing `job-process` / `provider-free-worker-entry` migrate errors
+Notes: Locale derivative records with source fingerprint linkage; visual asset reuse classification; preflight/compare/retry API; localization OpenAPI/SDK module; derivative episode creation with localized slug metadata
