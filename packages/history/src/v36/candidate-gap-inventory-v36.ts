@@ -20,6 +20,8 @@ export type CandidateGapClassificationV36 =
 
 export const HISTORY_V36_TRANSFORMS_CAUSAL_CANDIDATE_RULE =
   "atomic-transforms-causal-candidate.v1" as const;
+export const HISTORY_V36_EVIDENCE_SET_CANDIDATE_RULE =
+  "atomic-contains-evidence-of-evidence-set-candidate.v1" as const;
 
 interface GapDispositionV36 {
   readonly claimId: string;
@@ -28,7 +30,10 @@ interface GapDispositionV36 {
   readonly classification: CandidateGapClassificationV36;
   readonly expectedRelationFamily: string | null;
   readonly reason: string;
-  readonly proposedFutureProjectorRule: typeof HISTORY_V36_TRANSFORMS_CAUSAL_CANDIDATE_RULE | null;
+  readonly proposedFutureProjectorRule:
+    | typeof HISTORY_V36_TRANSFORMS_CAUSAL_CANDIDATE_RULE
+    | typeof HISTORY_V36_EVIDENCE_SET_CANDIDATE_RULE
+    | null;
   readonly manualReviewRequired: boolean;
   readonly secondaryNote?: string;
   readonly currentRejectionMeaning: string;
@@ -42,14 +47,14 @@ interface GapDispositionV36 {
 const frozenDispositionsV36: readonly GapDispositionV36[] = [
   {
     claimId: "claim-256740d7c97e87c2fd1ff4cd",
-    primaryAtomicGroundingId: "grounding-e20845dcf5f591b5e1208b72",
-    primaryStructuredPropositionId: "structured-proposition-d8aac2d774023468d212e994",
-    classification: "NEEDS_ADDITIONAL_NATIVE_STRUCTURE",
+    primaryAtomicGroundingId: "grounding-dc5bf14670d6ce62aca1395c",
+    primaryStructuredPropositionId: "structured-proposition-962c8f67f82aede2f13baf6e",
+    classification: "DIRECT_PROJECTION_ELIGIBLE",
     expectedRelationFamily: "evidence-set",
-    reason: "The aggregate evidence object is one atomic participant; an evidence-set needs at least two explicit evidence members without splitting prose.",
-    proposedFutureProjectorRule: null,
+    reason: "Four asserted source-explicit evidence members now share one evidence target and can lower directly as one evidence-set without prose parsing.",
+    proposedFutureProjectorRule: HISTORY_V36_EVIDENCE_SET_CANDIDATE_RULE,
     manualReviewRequired: true,
-    currentRejectionMeaning: "No direct atomic candidate exists; constructing evidence-set from the aggregate would require prose decomposition and can fail relation cardinality.",
+    currentRejectionMeaning: "No candidate exists because Phase 2.11 deliberately stops before adding the now-mechanical evidence-set projector.",
   },
   {
     claimId: "claim-095a61f563fa2980b636c6cc",
@@ -90,12 +95,12 @@ const frozenDispositionsV36: readonly GapDispositionV36[] = [
     claimId: "claim-318504248e85a04faa5519d6",
     primaryAtomicGroundingId: "grounding-0d229a068a866213fc5b3608",
     primaryStructuredPropositionId: "structured-proposition-84ca3483d6e730e47a165e29",
-    classification: "NEEDS_ADDITIONAL_NATIVE_STRUCTURE",
+    classification: "DIRECT_PROJECTION_ELIGIBLE",
     expectedRelationFamily: "evidence-set",
-    reason: "The atom names only one evidence member. A direct evidence-set needs the separately typed companion member already available only in the prose-derived candidate.",
-    proposedFutureProjectorRule: null,
+    reason: "The camp remains and grouped graves are now two asserted source-explicit evidence atoms with a shared target and complete source lineage.",
+    proposedFutureProjectorRule: HISTORY_V36_EVIDENCE_SET_CANDIDATE_RULE,
     manualReviewRequired: true,
-    currentRejectionMeaning: "A structured prose-derived evidence candidate passes today, but this single atom cannot directly reproduce its two-member relation.",
+    currentRejectionMeaning: "The complete atoms remain a candidate-projection gap because Phase 2.11 adds no projector.",
   },
   {
     claimId: "claim-6102997fabdd9aa3492eccb4",
@@ -323,6 +328,31 @@ export const candidateGapProjectorRuleProposalsV36 = [
     },
     recommendation: "SAFE_FOR_PHASE_2_10",
   },
+  {
+    ruleId: HISTORY_V36_EVIDENCE_SET_CANDIDATE_RULE,
+    targetRelationKind: "evidence-set",
+    atomicShape: { predicate: "contains-evidence-of", assertionStatus: "asserted", sharedSubjectRequired: true },
+    participantMapping: { subject: "shared atomic.subject", evidence: "unordered distinct atomic.object set" },
+    directionOrderRule: "shared subject remains the evidence target; evidence members are an unordered semantic set",
+    assertionStatusRule: "asserted only; every admitted atom must be asserted",
+    cardinalityRule: "one shared resolved subject and at least two distinct resolved objects in one claim",
+    semanticIdExpectation: "existing evidence-set semantic identity from optional subject and canonical unordered evidence set",
+    evidenceLineageExpectation: "one support claim, every contributing atomic grounding/structured proposition ID, and exact claim-local spans",
+    negativeControls: [
+      "aggregate prose is not decomposed by the projector",
+      "grouping labels are not admitted as historical evidence members",
+      "nested proper names remain metadata on their source-backed grouped evidence member",
+      "different evidence targets are never combined",
+      "non-asserted atoms are never promoted",
+      "fewer than two distinct evidence members fail cardinality",
+    ],
+    validatorCompatibility: {
+      schemaPath: "packages/history/src/v36/explanatory-relation-v36.ts",
+      validatorPath: "packages/history/src/v36/explanatory-relation-validator-v36.ts",
+      result: "the existing evidence-set kind accepts an optional concept subject and at least two distinct concept evidence members",
+    },
+    recommendation: "PROPOSED_FOR_PHASE_2_12",
+  },
 ] as const;
 
 export function summarizeCandidateGapInventoryV36(records: readonly CandidateGapInventoryRecordV36[]) {
@@ -346,6 +376,6 @@ export function summarizeCandidateGapInventoryV36(records: readonly CandidateGap
     safeForPhase210ProjectorCount: activeProjectorRules.filter((rule) => rule.recommendation === "SAFE_FOR_PHASE_2_10").length,
     notReadyProjectorCount: 0,
     projectorRules: activeProjectorRules,
-    decision: "No further direct projector is approved by the Phase 2.9 inventory.",
+    decision: "Two evidence gaps are direct-projection-ready for Phase 2.12; Phase 2.11 adds no projector.",
   };
 }

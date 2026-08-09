@@ -29,7 +29,7 @@ async function loadRepresentative(fragment: string) {
   };
 }
 
-describe("History V3.6 Phase 2.9 candidate gap inventory", () => {
+describe("History V3.6 candidate gap inventory after Phase 2.11 enrichment", () => {
   it("reconciles the remaining same-eight claim-scoped gaps after the approved projection", async () => {
     const loaded = await Promise.all(representativeNativeEpisodeFragmentsV36.map(loadRepresentative));
     const experiment = runRepresentativeNativeStructuredClaimExperimentV36(loaded.map((item) => item.source));
@@ -65,8 +65,8 @@ describe("History V3.6 Phase 2.9 candidate gap inventory", () => {
     const summary = summarizeCandidateGapInventoryV36(records);
     expect(Object.keys(summary.classificationCounts)).toEqual(candidateGapClassificationValuesV36);
     expect(summary.classificationCounts).toEqual({
-      DIRECT_PROJECTION_ELIGIBLE: 0,
-      NEEDS_ADDITIONAL_NATIVE_STRUCTURE: 4,
+      DIRECT_PROJECTION_ELIGIBLE: 2,
+      NEEDS_ADDITIONAL_NATIVE_STRUCTURE: 2,
       NEEDS_CROSS_CLAIM_PROOF: 1,
       PARTICIPANT_RESOLUTION_GAP: 0,
       ASSERTION_OR_MODALITY_BLOCK: 3,
@@ -74,6 +74,16 @@ describe("History V3.6 Phase 2.9 candidate gap inventory", () => {
       INTENTIONALLY_NON_RELATIONAL: 2,
       VALIDATOR_CONTRACT_MISMATCH: 0,
     });
-    expect(summary.projectorRules).toEqual([]);
+    expect(summary.projectorRules).toEqual([
+      expect.objectContaining({
+        ruleId: "atomic-contains-evidence-of-evidence-set-candidate.v1",
+        targetRelationKind: "evidence-set",
+        eligibleGapIds: [
+          "candidate-gap-claim-256740d7c97e87c2fd1ff4cd",
+          "candidate-gap-claim-318504248e85a04faa5519d6",
+        ],
+        recommendation: "PROPOSED_FOR_PHASE_2_12",
+      }),
+    ]);
   });
 });

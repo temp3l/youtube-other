@@ -176,7 +176,7 @@ describe("History V3.6 representative native structured fixture experiment", () 
     expect(experiment.episodeIds).toHaveLength(8);
     expect(experiment.claimsEvaluated).toBe(749);
     expect(experiment.nativeStructuredClaimCount).toBe(21);
-    expect(experiment.nativeStructuredPropositionCount).toBe(22);
+    expect(experiment.nativeStructuredPropositionCount).toBe(26);
     expect(experiment.nativeProcessPropositionCount).toBe(2);
     expect(experiment.nativeTemporalPropositionCount).toBe(2);
     expect(experiment.atomicProcessPropositionCount).toBe(2);
@@ -191,7 +191,7 @@ describe("History V3.6 representative native structured fixture experiment", () 
     expect(experiment.missClassification.nativeStructurePresentAtomicGroundingGap).toBe(0);
     expect(experiment.phase26Comparison).toMatchObject({
       before: { nativeClaims: 17, nativePropositions: 18, insufficientStructure: 61, atomicPropositions: 37, candidates: 45, validatedRelations: 23 },
-      after: { nativeClaims: 21, nativePropositions: 22, insufficientStructure: 60, atomicPropositions: 41, candidates: 50, validatedRelations: 28 },
+      after: { nativeClaims: 21, nativePropositions: 26, insufficientStructure: 60, atomicPropositions: 45, candidates: 50, validatedRelations: 28 },
     });
     expect(experiment.phase27Comparison).toMatchObject({
       before: { candidates: 45, validatedRelations: 23, processRelations: 0, temporalSequenceRelations: 0 },
@@ -226,6 +226,20 @@ describe("History V3.6 representative native structured fixture experiment", () 
     const graves = franklinPropositions.find((proposition) => proposition.object?.label.includes("John Torrington"))!;
     expect(franklinPropositions.filter((proposition) => proposition.object?.label.includes("John Torrington"))).toHaveLength(1);
     expect(graves.qualifiers?.filter((qualifier) => qualifier.kind === "nested-entity")).toHaveLength(3);
+    const franklinEvidence = franklinPropositions.filter((proposition) =>
+      proposition.provenance.claimId === "claim-318504248e85a04faa5519d6"
+    );
+    expect(franklinEvidence.map((proposition) => proposition.object?.label)).toEqual([
+      "remains of the expedition’s winter camp from 1845 to 1846",
+      "graves of John Torrington, John Hartnell, and William Braine",
+    ]);
+
+    const bronze = sources.find((source) => source.shadow.episodeId.includes("bronze-age-collapse"))!;
+    const bronzeEvidence = createRepresentativeNativeStructuredSidecarV36(bronze.native).structuredClaims.envelopes
+      .find((envelope) => envelope.claimId === "claim-256740d7c97e87c2fd1ff4cd")!.propositions;
+    expect(bronzeEvidence.map((proposition) => proposition.object?.label)).toEqual([
+      "ships", "warriors", "families", "battle scenes",
+    ]);
 
     const armada = sources.find((source) => source.shadow.episodeId.includes("spanish-armada"))!;
     const armadaPropositions = createRepresentativeNativeStructuredSidecarV36(armada.native).structuredClaims.envelopes.flatMap((envelope) => envelope.propositions);
