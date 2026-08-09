@@ -1404,7 +1404,7 @@ export class WorkspaceTransactionRepository {
     readonly challengeId: string;
     readonly subjectId: string;
     readonly expectedRevision: number;
-    readonly decision: "approved" | "rejected";
+    readonly decision: "approved" | "rejected" | "request_changes";
     readonly reason: string;
     readonly approvalId: string;
     readonly jobId: string;
@@ -1599,7 +1599,11 @@ export class WorkspaceTransactionRepository {
       ]
     );
     const approvalEventType =
-      input.decision === "rejected" ? "approval.rejected" : "approval.created";
+      input.decision === "approved"
+        ? "approval.created"
+        : input.decision === "request_changes"
+          ? "approval.request_changes"
+          : "approval.rejected";
     await this.connection.query(
       `INSERT INTO workflow_events (
          workspace_id, event_id, run_id, subject_revision,

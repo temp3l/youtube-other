@@ -37,6 +37,7 @@ import {
 import { createApiWorkflowAdmissionUseCase } from "./http-server.js";
 import { createApiCredentialUseCases } from "./postgres-api-credential-use-cases.js";
 import { createApiContentLifecycleUseCases } from "./postgres-api-content-lifecycle-use-cases.js";
+import { createApiReviewUseCases } from "./postgres-api-review-use-cases.js";
 import { createApiContentReuseUseCases } from "./postgres-api-content-reuse-use-cases.js";
 import { createApiWebhookUseCases } from "./postgres-api-webhook-use-cases.js";
 
@@ -280,6 +281,11 @@ export function createPostgresApiUseCases(input: {
     pool: input.pool,
     evaluationSecret: input.cursorSecret,
     now,
+  });
+  const reviewUseCases = createApiReviewUseCases({
+    pool: input.pool,
+    now,
+    createId,
   });
 
   return {
@@ -908,105 +914,6 @@ export function createPostgresApiUseCases(input: {
         updatedAt: record.updatedAt,
       } : null;
     },
-    recordApproval: async (approval, context) => {
-      const headerRevision = parseEtag(context.ifMatch);
-      if (headerRevision !== approval.expectedRevision)
-        throw new ApplicationError("precondition_failed", "If-Match does not match expectedRevision.", false);
-      const timestamp = now().toISOString();
-      const approvalId = createId("approval");
-      const jobId = createId("job");
-      try {
-        const result = await repository.withWorkspaceTransaction(
-          context.workspaceId,
-          (transaction) => transaction.recordApproval({
-            workspaceId: context.workspaceId,
-            projectId: context.projectId,
-            challengeId: approval.challengeId,
-            subjectId: approval.subjectId,
-            expectedRevision: approval.expectedRevision,
-            decision: approval.decision,
-            reason: approval.reason,
-            approvalId,
-            jobId,
-            commandId: createId("command"),
-            outboxId: createId("outbox"),
-            idempotencyKey: `v1:${digest({
-              principalId: context.principal.principalId,
-              method: "POST",
-              route: `/v1/workspaces/${context.workspaceId}/projects/${context.projectId}/approvals`,
-              key: context.idempotencyKey,
-            })}`,
-            requestFingerprint: digest({ projectId: context.projectId, approval }),
-            now: timestamp,
-          })
-        );
-        const response = result.response as { readonly id?: unknown; readonly jobId?: unknown; readonly revision?: unknown };
-        if (typeof response.id !== "string" || typeof response.jobId !== "string" || typeof response.revision !== "number")
-          throw new ApplicationError("upstream_unavailable", "Stored approval response is invalid.", false);
-        return { id: response.id, jobId: response.jobId, revision: response.revision };
-      } catch (error) {
-        if (error instanceof WorkflowStateTransitionError)
-          throw new ApplicationError("precondition_failed", error.message, false);
-        return translatePersistence(error);
-      }
-    },
-    revokeApproval: async (approvalId, revocation, context) => {
-      const expectedRevision = parseEtag(context.ifMatch);
-      const timestamp = now().toISOString();
-      try {
-        const result = await repository.withWorkspaceTransaction(
-          context.workspaceId,
-          (transaction) => transaction.revokeApproval({
-            workspaceId: context.workspaceId,
-            projectId: context.projectId,
-            approvalId,
-            expectedRevision,
-            actorPrincipalId: context.principal.principalId,
-            reason: revocation.reason,
-            eventId: createId("event"),
-            commandId: createId("command"),
-            idempotencyKey: `v1:${digest({
-              principalId: context.principal.principalId,
-              method: "POST",
-              route: `/v1/workspaces/${context.workspaceId}/projects/${context.projectId}/approvals/${approvalId}:revoke`,
-              key: context.idempotencyKey,
-            })}`,
-            requestFingerprint: digest({
-              contractVersion: "v1",
-              projectId: context.projectId,
-              approvalId,
-              expectedRevision,
-              revocation,
-            }),
-            now: timestamp,
-          })
-        );
-        const response = result.response as { readonly id?: unknown; readonly revision?: unknown; readonly state?: unknown; readonly revokedAt?: unknown };
-        if (
-          response.id !== approvalId ||
-          typeof response.revision !== "number" ||
-          !Number.isSafeInteger(response.revision) ||
-          response.revision < 0 ||
-          response.state !== "revoked" ||
-          typeof response.revokedAt !== "string" ||
-          !Number.isFinite(Date.parse(response.revokedAt))
-        ) throw new ApplicationError("upstream_unavailable", "Stored approval revocation response is invalid.", false);
-        return {
-          id: response.id,
-          revision: response.revision,
-          state: response.state,
-          revokedAt: response.revokedAt,
-          replayed: result.kind === "replayed",
-        };
-      } catch (error) {
-        if (error instanceof WorkflowStateTransitionError) {
-          if (error.message.includes("Idempotency key"))
-            throw new ApplicationError("idempotency_key_conflict", "Idempotency key is already associated with a different request.", false);
-          throw new ApplicationError("precondition_failed", "Approval is missing, stale, rejected, already revoked, or outside the project.", false);
-        }
-        return translatePersistence(error);
-      }
-    },
     issueApiCredential,
     listApiCredentials,
     getApiCredential,
@@ -1015,5 +922,6 @@ export function createPostgresApiUseCases(input: {
     ...webhookUseCases,
     ...contentReuseUseCases,
     ...contentLifecycleUseCases,
+    ...reviewUseCases,
   };
 }

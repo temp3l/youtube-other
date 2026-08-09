@@ -19,6 +19,7 @@ export const PERSISTED_WEBHOOK_EVENT_SUBJECT_TYPES = Object.freeze({
   "validation.completed": "validation",
   "approval.created": "approval",
   "approval.rejected": "approval",
+  "approval.request_changes": "approval",
   "approval.revoked": "approval",
   "publication.started": "publication",
   "publication.succeeded": "publication",

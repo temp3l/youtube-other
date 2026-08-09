@@ -4,6 +4,7 @@ import { artifactReviewPublicationOpenApiPaths } from "./modules/artifact-review
 import { contentOpenApiPaths } from "./modules/content-paths.js";
 import { developerCredentialOpenApiPaths } from "./modules/developer-credential-paths.js";
 import { lifecycleOpenApiPaths } from "./modules/lifecycle-paths.js";
+import { reviewOpenApiPaths } from "./modules/review-paths.js";
 import { webhookOpenApiPaths } from "./modules/webhook-paths.js";
 import { platformOpenApiPaths } from "./modules/platform-paths.js";
 import { speechOpenApiPaths } from "./modules/speech-paths.js";
@@ -30,6 +31,7 @@ export const OPENAPI_PATH_MODULES: readonly OpenApiPathModule[] = [
     owner: "artifact",
     paths: artifactReviewPublicationOpenApiPaths,
   },
+  { id: "review", owner: "review", paths: reviewOpenApiPaths },
   { id: "speech", owner: "speech", paths: speechOpenApiPaths },
 ];
 

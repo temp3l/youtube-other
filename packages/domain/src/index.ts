@@ -28,6 +28,8 @@ export * from "./content-reuse-contracts.js";
 export * from "./content-reuse-lifecycle.js";
 export * from "./content-lifecycle-contracts.js";
 export * from "./content-lifecycle.js";
+export * from "./review-lifecycle-contracts.js";
+export * from "./review-lifecycle.js";
 
 const episodeIdPattern = /^[a-z0-9][a-z0-9-]*$/;
 const sceneIdPattern = /^scene-[0-9]{3}$/;

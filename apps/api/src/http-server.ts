@@ -634,6 +634,45 @@ export interface ApiUseCases {
     readonly revokedAt: string;
     readonly replayed: boolean;
   }>;
+  listReviewQueue(
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal" | "requestId">
+    >
+  ): Promise<{ readonly items: readonly unknown[] }>;
+  submitApprovalChallenge(
+    body: unknown,
+    context: Required<
+      Pick<
+        ApiRequestContext,
+        "workspaceId" | "projectId" | "principal" | "requestId" | "idempotencyKey"
+      >
+    >
+  ): Promise<{
+    readonly id: string;
+    readonly subjectId: string;
+    readonly subjectRevision: number;
+    readonly artifactHash: string;
+    readonly expiresAt: string;
+    readonly consumedAt: string | null;
+  }>;
+  claimApprovalChallenge(
+    challengeId: string,
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal" | "requestId">
+    >
+  ): Promise<unknown>;
+  listApprovalHistory(
+    runId: string | undefined,
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal" | "requestId">
+    >
+  ): Promise<{ readonly items: readonly unknown[] }>;
+  getApprovalValidity(
+    approvalId: string,
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal" | "requestId">
+    >
+  ): Promise<unknown>;
 }
 
 /** Application boundary for all speech entry points. Provider adapters are never HTTP dependencies. */
@@ -1079,6 +1118,7 @@ function route(pathname: string): {
   readonly publication?: string;
   readonly approval?: string;
   readonly approvalChallenge?: string;
+  readonly approvalChallengeAction?: "claim";
   readonly approvalAction?: "revoke";
   readonly episodeAction?: "clone" | "archive" | "restore" | "delete";
   readonly tail?: string;
@@ -1096,6 +1136,7 @@ function route(pathname: string): {
     publication?: string;
     approval?: string;
     approvalChallenge?: string;
+    approvalChallengeAction?: "claim";
     approvalAction?: "revoke";
     episodeAction?: "clone" | "archive" | "restore" | "delete";
     tail?: string;
@@ -1136,14 +1177,25 @@ function route(pathname: string): {
   if (parts[5] === "assets" && parts[6]) result.asset = parts[6];
   if (parts[5] === "publications" && parts[6]) result.publication = parts[6];
   if (parts[5] === "approvals" && parts[6]) {
-    const action = parts[6].match(/^(.+):revoke$/u);
-    if (action?.[1]) {
-      result.approval = action[1];
-      result.approvalAction = "revoke";
+    if (parts[7] === "validity") {
+      result.approval = parts[6];
+    } else {
+      const action = parts[6].match(/^(.+):revoke$/u);
+      if (action?.[1]) {
+        result.approval = action[1];
+        result.approvalAction = "revoke";
+      }
     }
   }
-  if (parts[5] === "approval-challenges" && parts[6])
-    result.approvalChallenge = parts[6];
+  if (parts[5] === "approval-challenges" && parts[6]) {
+    const claim = parts[6].match(/^(.+):claim$/u);
+    if (claim?.[1]) {
+      result.approvalChallenge = claim[1];
+      result.approvalChallengeAction = "claim";
+    } else {
+      result.approvalChallenge = parts[6];
+    }
+  }
   return result;
 }
 
@@ -1409,6 +1461,25 @@ function requiredPermission(
     matched.tail === `publications/${matched.publication}`
   )
     return "publication.read";
+  if (method === "GET" && matched.tail === "review-queue")
+    return "approval.decide";
+  if (method === "POST" && matched.tail === "approval-challenges")
+    return "content.write";
+  if (
+    method === "POST" &&
+    matched.approvalChallenge &&
+    matched.approvalChallengeAction === "claim" &&
+    matched.tail === `approval-challenges/${matched.approvalChallenge}:claim`
+  )
+    return "approval.decide";
+  if (method === "GET" && matched.tail === "approval-history")
+    return "approval.decide";
+  if (
+    method === "GET" &&
+    matched.approval &&
+    matched.tail === `approvals/${matched.approval}/validity`
+  )
+    return "approval.decide";
   if (method === "POST" && matched.tail === "approvals")
     return "approval.decide";
   if (
@@ -2521,6 +2592,54 @@ export function createApiServer(
           etag: etag(result.revision),
           "x-request-id": requestIdValue,
         });
+      }
+      if (request.method === "GET" && matched.tail === "review-queue") {
+        const result = await useCases.listReviewQueue(projectContext);
+        return json(response, 200, result, { "x-request-id": requestIdValue });
+      }
+      if (request.method === "POST" && matched.tail === "approval-challenges") {
+        const key = idempotencyKey(request);
+        if (!key)
+          throw new ApplicationError(
+            "precondition_required",
+            "Idempotency-Key is required.",
+            false
+          );
+        const result = await useCases.submitApprovalChallenge(
+          await body(request),
+          { ...projectContext, idempotencyKey: key }
+        );
+        return json(response, 201, result, { "x-request-id": requestIdValue });
+      }
+      if (
+        request.method === "POST" &&
+        matched.approvalChallenge &&
+        matched.approvalChallengeAction === "claim" &&
+        matched.tail === `approval-challenges/${matched.approvalChallenge}:claim`
+      ) {
+        const result = await useCases.claimApprovalChallenge(
+          matched.approvalChallenge,
+          projectContext
+        );
+        return json(response, 200, result, { "x-request-id": requestIdValue });
+      }
+      if (request.method === "GET" && matched.tail === "approval-history") {
+        const result = await useCases.listApprovalHistory(
+          url.searchParams.get("filter[subjectId]") ?? undefined,
+          projectContext
+        );
+        return json(response, 200, result, { "x-request-id": requestIdValue });
+      }
+      if (
+        request.method === "GET" &&
+        matched.approval &&
+        matched.tail === `approvals/${matched.approval}/validity`
+      ) {
+        const result = await useCases.getApprovalValidity(
+          matched.approval,
+          projectContext
+        );
+        return json(response, 200, result, { "x-request-id": requestIdValue });
       }
       if (request.method === "POST" && matched.tail === "approvals") {
         const key = idempotencyKey(request);

@@ -5,6 +5,7 @@ import {
   budgetTierSchema,
   dynamicGenreOverrideSchema,
 } from "@mediaforge/dynamic-genre";
+import { evaluateDecisionRationale } from "@mediaforge/domain";
 
 const opaqueId = z
   .string()
@@ -268,10 +269,25 @@ export const approvalInputSchema = z
     challengeId: opaqueId,
     subjectId: opaqueId,
     expectedRevision: z.number().int().nonnegative(),
-    decision: z.enum(["approved", "rejected"]),
-    reason: z.string().trim().min(1).max(2_000),
+    decision: z.enum(["approved", "rejected", "request_changes"]),
+    reason: z.string().trim().min(1).max(2_000).optional(),
+    override: z.boolean().optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((value, ctx) => {
+    const rationale = evaluateDecisionRationale({
+      decision: value.decision,
+      ...(value.reason !== undefined ? { reason: value.reason } : {}),
+      ...(value.override === true ? { isOverride: true } : {}),
+    });
+    if (!rationale.allowed) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["reason"],
+        message: rationale.message ?? "Decision rationale is required.",
+      });
+    }
+  });
 export const approvalRevocationInputSchema = z
   .object({ reason: z.string().trim().min(1).max(2_000) })
   .strict();
