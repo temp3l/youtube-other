@@ -7,11 +7,11 @@ Summary of implemented changes: production-unit lineage/snapshot persistence, wo
 
 Files changed: persistence production-state and workflow repository files; artifact OpenAPI/API/SDK files; web BFF/runtime files.
 
-Tasks completed: YSAAS-017 lineage persistence, comparison reads, and invalidation confirmation.
+Tasks completed: YSAAS-017 lineage persistence, comparison reads, invalidation confirmation, and YSAAS-018 configuration persistence foundation.
 
-Tasks partially completed: none for YSAAS-017.
+Tasks partially completed: YSAAS-018 resolution API and frontend.
 
-Tasks not completed: YSAAS-018 and YSAAS-020 prerequisites.
+Tasks not completed: YSAAS-020 prerequisite.
 
 Deviations from the original plan: diff availability is explicitly false; no diff service was fabricated.
 
@@ -21,4 +21,4 @@ Test results: persistence test and SDK/web checks pass. HTTP integration test co
 
 Known risks or follow-up work: pending confirmations use process-local state and need shared session persistence for horizontal scaling.
 
-Recommended next steps: implement authoritative configuration persistence.
+Recommended next steps: add the fail-closed tenant-scoped configuration/capability resolution API.
