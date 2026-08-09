@@ -29,3 +29,13 @@
 - invariants: all zero; 0 abstentions, duplicates, orphan specs, or V3.5 path changes
 - commit/tag: phase commit / `history-v3.6-all40-visual-plan-census-baseline`
 - next: consolidated approval pack and production-readiness audit
+
+## Phase 2.39
+
+- starting SHA: `8775f81b130bf6d94e4c8cac3968a8fc10734e77`
+- goal: compact approval pack, activation/rollback dry run, and readiness decision
+- result: `READY_WITH_KNOWN_NONBLOCKING_TERMINAL_CASES`
+- tests: OFF/shadow/rollback routing, checksums, ZIP integrity, final artifact inventory
+- invariants: all zero; production remains V3.5; provider calls remain zero
+- commit/tag: final phase commit / `history-v3.6-production-readiness-baseline`
+- next: production activation approval; do not activate without it

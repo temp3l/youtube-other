@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "history-visual-plan-shadow.v1",
+  "plannerVersion": "history-visual-plan-shadow.v3.6.0",
+  "shadowOnly": true,
+  "acceptedInputs": [
+    "V3.5 episode plan",
+    "validated V3.6 renderer specs",
+    "typed supportClaimIds"
+  ],
+  "placementRule": "SUPPORT_COMPLETION_BEAT_V1",
+  "coexistence": "ADDITIVE_SEMANTIC_OVERLAY",
+  "replacementCount": 0,
+  "inferenceSources": [],
+  "noSafePlacementDiagnostics": [
+    "EPISODE_ID_MISMATCH",
+    "SUPPORT_CLAIM_NOT_IN_BASE_PLAN",
+    "INVALID_SUPPORT_BEAT_TIMING"
+  ],
+  "frozenContracts": {
+    "semantic": "history-v3.6-all40-semantic-release-readiness-baseline",
+    "compiler": "history-v3.6-compiler-shadow-readiness-baseline",
+    "renderer": "history-v3.6-renderer-shadow-readiness-baseline",
+    "visualPlan": "history-v3.6-visual-plan-shadow-contract-baseline"
+  }
+}

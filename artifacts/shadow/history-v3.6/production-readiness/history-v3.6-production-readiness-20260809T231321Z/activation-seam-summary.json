@@ -1,0 +1,28 @@
+{
+  "result": "PASS",
+  "flag": "MEDIAFORGE_HISTORY_V36_VISUAL_PLAN",
+  "default": {
+    "route": "V3_5_PRODUCTION",
+    "activationFlag": "MEDIAFORGE_HISTORY_V36_VISUAL_PLAN",
+    "configuredValue": "off",
+    "productionActivated": false,
+    "reason": "V3_6_DISABLED_BY_DEFAULT"
+  },
+  "explicitShadowFixture": {
+    "route": "V3_6_SHADOW",
+    "activationFlag": "MEDIAFORGE_HISTORY_V36_VISUAL_PLAN",
+    "configuredValue": "shadow",
+    "productionActivated": false,
+    "reason": "V3_6_SHADOW_EXPLICITLY_ENABLED"
+  },
+  "rejectedProductionLikeValue": {
+    "route": "V3_5_PRODUCTION",
+    "activationFlag": "MEDIAFORGE_HISTORY_V36_VISUAL_PLAN",
+    "configuredValue": "off",
+    "productionActivated": false,
+    "reason": "V3_6_DISABLED_BY_DEFAULT"
+  },
+  "wiredIntoProductionWorkflow": false,
+  "productionActivated": false,
+  "activationBoundary": "Actual production routing remains a later human-approved Gate A change."
+}

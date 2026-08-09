@@ -1,0 +1,7 @@
+{
+  "status": "KNOWN_NONBLOCKING_TERMINAL_CASE",
+  "timingMeasurementRequiredEpisodes": 40,
+  "timingSource": "provisional-text-estimate",
+  "measuredTimingInvented": false,
+  "productionRequirementPreserved": true
+}
