@@ -48,6 +48,9 @@ export function createApiSdkSaasJourneyGateway(input: {
     async getWorkspaceCapabilities(identity) {
       return (await client(identity).getWorkspaceCapabilities(workspace(identity))).data;
     },
+    async getEpisodeResolvedConfiguration(identity, projectId, episodeId) {
+      return (await client(identity).getEpisodeResolvedConfiguration(workspace(identity), projectId, episodeId)).data;
+    },
     async compareProductionUnitSnapshots(identity, projectId, episodeId) {
       return (await client(identity).compareProductionUnitSnapshots(workspace(identity), projectId, episodeId)).data;
     },

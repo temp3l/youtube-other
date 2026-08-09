@@ -57,12 +57,6 @@ const profileLabels: Readonly<Record<SaasProfile, string>> = {
   strategic_reinvention: "Veronica Benini strategic reinvention",
 };
 
-const pilotLocaleByProfile: Readonly<Record<SaasProfile, "en" | "it">> = {
-  mathematics_education: "en",
-  history: "en",
-  dark_truth: "en",
-  strategic_reinvention: "it",
-};
 
 const localeLabels: Readonly<Record<"en" | "de" | "es" | "fr" | "it" | "pt", string>> = {
   en: "English", de: "German", es: "Spanish", fr: "French", it: "Italian", pt: "Portuguese",
@@ -185,9 +179,8 @@ function capitalise(value: string): string {
   return value.length ? `${value[0]!.toUpperCase()}${value.slice(1)}` : value;
 }
 
-function workflowForm(projectId: string, episodeId: string, episodeRevision: number, profile: SaasProfile): string {
-  const locale = pilotLocaleByProfile[profile];
-  return `<form class="card form" method="post" action="/projects/${encodeURIComponent(projectId)}/episodes/${encodeURIComponent(episodeId)}/workflow-runs"><h2>Start provider-free production</h2><p>The episode revision is pinned before durable work begins. Publication remains unavailable.</p>${idempotencyField()}<input type="hidden" name="episodeRevision" value="${episodeRevision}"><label class="field">Production language<select name="locale"><option value="${locale}">${localeLabels[locale]} (${locale})</option></select><span class="hint">This profile is currently entitled for ${localeLabels[locale]} only.</span></label><div class="actions"><button class="button" type="submit">Start workflow</button></div></form>`;
+function workflowForm(projectId: string, episodeId: string, episodeRevision: number, locales: readonly string[]): string {
+  return `<form class="card form" method="post" action="/projects/${encodeURIComponent(projectId)}/episodes/${encodeURIComponent(episodeId)}/workflow-runs"><h2>Start provider-free production</h2><p>The episode revision is pinned before durable work begins. Publication remains unavailable.</p>${idempotencyField()}<input type="hidden" name="episodeRevision" value="${episodeRevision}"><label class="field">Production language<select name="locale">${locales.map((locale) => `<option value="${escapeHtml(locale)}">${escapeHtml(localeLabels[locale as keyof typeof localeLabels] ?? locale)} (${escapeHtml(locale)})</option>`).join("")}</select><span class="hint">Options are resolved from persisted workspace configuration.</span></label><div class="actions"><button class="button" type="submit">Start workflow</button></div></form>`;
 }
 
 function languageAndVoiceReadiness(capabilities: CapabilityRegistry): string {
@@ -353,10 +346,11 @@ async function renderJourneyPage(identity: SaasIdentity, path: string, gateway: 
       const projectId = decodeURIComponent(episodeMatch[1]!); const episodeId = decodeURIComponent(episodeMatch[2]!);
       const project = (await gateway.listProjects(identity)).items.find((item) => item.id === projectId);
       if (!project) return shell(identity.session, path, "Episode unavailable", "This episode is not available in this workspace.", `<p><a class="button" href="/projects">Back to projects</a></p>`);
-      const [episode, productionState, comparisons] = await Promise.all([
+      const [episode, productionState, comparisons, configuration] = await Promise.all([
         gateway.getEpisode(identity, projectId, episodeId),
         gateway.getEpisodeProductionState(identity, projectId, episodeId),
         gateway.compareProductionUnitSnapshots(identity, projectId, episodeId),
+        gateway.getEpisodeResolvedConfiguration(identity, projectId, episodeId),
       ]);
       const profile = project.profile as SaasProfile;
       const gateRows = productionState.blockers.length
@@ -376,7 +370,7 @@ async function renderJourneyPage(identity: SaasIdentity, path: string, gateway: 
       const comparisonRows = comparisons.items.length
         ? `<div class="stack">${comparisons.items.map(({ current, previous, comparison }) => `<div class="row"><div><strong>${escapeHtml(current.snapshot.address.kind.replaceAll("_", " "))}${current.snapshot.address.unitKey ? ` · ${escapeHtml(current.snapshot.address.unitKey)}` : ""}</strong><span>${escapeHtml(current.snapshot.status)} snapshot from ${escapeHtml(current.createdAt)}${previous ? ` · previous snapshot ${escapeHtml(previous.createdAt)}` : " · no prior immutable baseline"}</span></div><span class="tag neutral">${comparison ? "Metadata comparison" : "Current only"}</span></div>`).join("")}</div>`
         : empty("No production-unit snapshots yet", "Comparison becomes available after a worker persists immutable production output.");
-      return shell(identity.session, path, "Episode workspace", "This view is driven by durable server projections; gate, comparison, and action availability are never inferred in the browser.", `<div class="grid"><section class="card"><h2>Production state</h2><div class="metric">${escapeHtml(productionState.lifecycleStage.replaceAll("_", " "))}</div><p>Projected ${escapeHtml(productionState.projectedAt)}.</p></section><section class="card"><h2>Current revision</h2><div class="metric">${episode.revision}</div><p>Use a refresh if someone else saves a newer version.</p></section><section class="card"><h2>Profile</h2><p>${escapeHtml(profileLabels[profile] ?? project.profile)}</p></section></div><section class="card" style="margin-top:18px"><h2>Required before the next action</h2>${gateRows}${runLink}</section><section class="card" style="margin-top:18px"><h2>Artifact lineage and comparison</h2><p>Baselines are immutable worker snapshots. No browser-side artifact graph is constructed.</p>${comparisonRows}</section><div style="margin-top:18px">${invalidationForm}</div>${confirmation}${actionRows ? `<section class="card" style="margin-top:18px"><h2>Permitted actions</h2>${actionRows}</section>` : ""}<div style="margin-top:18px">${episodeForm(identity.session, project, `/projects/${encodeURIComponent(projectId)}/episodes/${encodeURIComponent(episodeId)}`, episode)}</div><div style="margin-top:18px">${workflowForm(projectId, episodeId, episode.revision, profile)}</div>`);
+      return shell(identity.session, path, "Episode workspace", "This view is driven by durable server projections; gate, comparison, and action availability are never inferred in the browser.", `<div class="grid"><section class="card"><h2>Production state</h2><div class="metric">${escapeHtml(productionState.lifecycleStage.replaceAll("_", " "))}</div><p>Projected ${escapeHtml(productionState.projectedAt)}.</p></section><section class="card"><h2>Current revision</h2><div class="metric">${episode.revision}</div><p>Use a refresh if someone else saves a newer version.</p></section><section class="card"><h2>Profile</h2><p>${escapeHtml(profileLabels[profile] ?? project.profile)}</p></section></div><section class="card" style="margin-top:18px"><h2>Required before the next action</h2>${gateRows}${runLink}</section><section class="card" style="margin-top:18px"><h2>Artifact lineage and comparison</h2><p>Baselines are immutable worker snapshots. No browser-side artifact graph is constructed.</p>${comparisonRows}</section><div style="margin-top:18px">${invalidationForm}</div>${confirmation}${actionRows ? `<section class="card" style="margin-top:18px"><h2>Permitted actions</h2>${actionRows}</section>` : ""}<div style="margin-top:18px">${episodeForm(identity.session, project, `/projects/${encodeURIComponent(projectId)}/episodes/${encodeURIComponent(episodeId)}`, episode)}</div><div style="margin-top:18px">${workflowForm(projectId, episodeId, episode.revision, configuration.supportedLocales)}</div>`);
     }
     const workflowMatch = path.match(/^\/workflows\/([^/]+)\/([^/]+)$/u);
     if (workflowMatch) {

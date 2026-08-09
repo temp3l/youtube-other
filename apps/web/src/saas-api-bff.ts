@@ -31,6 +31,7 @@ import type {
   ValidationPage,
   WorkspaceQuotaStatus,
   CapabilityRegistry,
+  ResolvedProductionConfiguration,
   WorkflowAdmission,
   WorkflowCommandAccepted,
   WorkflowRun,
@@ -63,6 +64,7 @@ export interface SaasJourneyGateway {
   getEpisode(identity: SaasIdentity, projectId: string, episodeId: string): Promise<Episode>;
   getEpisodeProductionState(identity: SaasIdentity, projectId: string, episodeId: string): Promise<EpisodeProductionState>;
   getWorkspaceCapabilities(identity: SaasIdentity): Promise<CapabilityRegistry>;
+  getEpisodeResolvedConfiguration(identity: SaasIdentity, projectId: string, episodeId: string): Promise<ResolvedProductionConfiguration>;
   compareProductionUnitSnapshots(identity: SaasIdentity, projectId: string, episodeId: string): Promise<ProductionUnitComparisonPage>;
   previewArtifactInvalidation(identity: SaasIdentity, projectId: string, episodeId: string, input: { readonly changes: readonly ProductionUnitChange[] }): Promise<ArtifactInvalidationPreview>;
   regenerateProductionUnits(identity: SaasIdentity, projectId: string, episodeId: string, input: { readonly targets: readonly ProductionUnitChange["address"][]; readonly reason?: string }, idempotencyKey: string): Promise<ProductionUnitRegenerationAccepted>;

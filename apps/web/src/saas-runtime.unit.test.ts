@@ -126,6 +126,7 @@ describe("SaaS runtime", () => {
         projectionInputFingerprint: "a".repeat(64),
       }),
       getWorkspaceCapabilities: async () => ({ schemaVersion: "mediaforge.capability.v1" as const, capabilityVersion: "a".repeat(64), entitledProfiles: ["history"], cells: [{ profileId: "history", locales: ["en"], variants: ["full"], renderProfiles: ["youtube"], publicationModes: ["none"], approvalModes: ["required"] }], tenantConfigurableFields: ["supportedLocales"], generatedAt: "2026-08-09T00:00:00.000Z" }),
+      getEpisodeResolvedConfiguration: async () => ({ schemaVersion: "mediaforge.capability.v1" as const, profileId: "history", supportedLocales: ["en"], defaultLocale: "en", supportedVariants: ["full"], approvalMode: "required", publicationMode: "none", renderProfile: "youtube", requiredReviewGates: ["content"], configurationRevision: 1, capabilityVersion: "a".repeat(64), fingerprint: "b".repeat(64), provenance: [], resolvedAt: "2026-08-09T00:00:00.000Z" }),
       compareProductionUnitSnapshots: async () => ({ items: [] }),
       previewArtifactInvalidation: async () => ({ changedAddresses: [], invalidatedUnits: [], preservedUnits: [], regenerationTargets: [], staleReviewReadiness: false, stalePublishReadiness: false, gateEvidenceUpdates: [], projectedAt: "2026-08-09T00:00:00.000Z" }),
       regenerateProductionUnits: async () => ({ acceptedTargets: [], workflowRunId: "run-1", jobId: "job-1", revision: 1 }),

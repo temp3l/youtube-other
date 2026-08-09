@@ -11,6 +11,9 @@ import {
 } from "../openapi-helpers.js";
 
 export const artifactLineageOpenApiPaths = {
+  "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}/resolved-configuration": {
+    get: { operationId: "getEpisodeResolvedConfiguration", description: "Resolves the persisted tenant, profile, and episode configuration. Returns 404 until tenant configuration is provisioned.", parameters: [...episodeParameters], responses: { "200": { description: "Resolved production configuration", headers: { "x-request-id": responseHeader("RequestId") }, content: json("ResolvedProductionConfiguration") }, "404": response("NotFound"), ...authenticatedErrors } },
+  },
   "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}/production-units": {
     get: {
       operationId: "listProductionUnitSnapshots",

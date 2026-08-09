@@ -96,6 +96,7 @@ export interface WorkspaceQuotaStatus {
   readonly revision: number;
 }
 export interface CapabilityRegistry { readonly schemaVersion: "mediaforge.capability.v1"; readonly capabilityVersion: string; readonly entitledProfiles: readonly string[]; readonly cells: readonly { readonly profileId: string; readonly locales: readonly string[]; readonly variants: readonly string[]; readonly renderProfiles: readonly string[]; readonly publicationModes: readonly string[]; readonly approvalModes: readonly string[] }[]; readonly tenantConfigurableFields: readonly string[]; readonly generatedAt: string; }
+export interface ResolvedProductionConfiguration { readonly schemaVersion: "mediaforge.capability.v1"; readonly profileId: string; readonly supportedLocales: readonly string[]; readonly defaultLocale: string; readonly supportedVariants: readonly string[]; readonly approvalMode: string; readonly publicationMode: string; readonly renderProfile: string; readonly requiredReviewGates: readonly string[]; readonly configurationRevision: number; readonly capabilityVersion: string; readonly fingerprint: string; readonly provenance: readonly unknown[]; readonly resolvedAt: string; }
 
 export interface UsageRecord {
   readonly id: string;
@@ -1021,6 +1022,7 @@ export class MediaforgeApiClient {
   }
 
   public getWorkspaceCapabilities(workspaceId: string, options?: RequestOptions): Promise<ApiResponse<CapabilityRegistry>> { return this.execute(`${this.workspacePath(workspaceId)}/capabilities`, { ...(options ? { options } : {}) }); }
+  public getEpisodeResolvedConfiguration(workspaceId: string, projectId: string, episodeId: string, options?: RequestOptions): Promise<ApiResponse<ResolvedProductionConfiguration>> { return this.execute(`${this.projectPath(workspaceId, projectId)}/episodes/${encodePath(episodeId)}/resolved-configuration`, { ...(options ? { options } : {}) }); }
 
   public listProductionUnitSnapshots(workspaceId: string, projectId: string, episodeId: string, options?: RequestOptions): Promise<ApiResponse<ProductionUnitSnapshotPage>> {
     return this.execute(`${this.projectPath(workspaceId, projectId)}/episodes/${encodePath(episodeId)}/production-units`, { ...(options ? { options } : {}) });
