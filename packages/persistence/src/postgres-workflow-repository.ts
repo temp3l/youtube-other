@@ -44,6 +44,7 @@ import {
   getGenreConfiguration,
   getTenantSettings,
 } from "./postgres-capability-configuration-repository.js";
+import { settleBulkProductionItemForTerminalJob } from "./postgres-bulk-production-repository.js";
 
 export interface CommandAdmissionResult {
   readonly kind: "admitted" | "replayed";
@@ -3005,6 +3006,21 @@ export class WorkspaceTransactionRepository {
     return this.finishDurableJob({ ...input, status: "cancelled" });
   }
 
+  public settleBulkProductionItemForTerminalJob(input: {
+    readonly workspaceId: string;
+    readonly jobId: string;
+    readonly status:
+      | "succeeded"
+      | "failed-retryable"
+      | "failed-permanent"
+      | "cancelled";
+    readonly errorCode?: string;
+    readonly errorMessage?: string;
+    readonly now: string;
+  }): Promise<boolean> {
+    return settleBulkProductionItemForTerminalJob(this.connection, input);
+  }
+
   public async scheduleDurableJobRetry(input: {
     readonly workspaceId: string;
     readonly jobId: string;
@@ -3479,7 +3495,7 @@ export class PostgresDurableJobRepository {
     );
   }
 
-  public completeJob(input: {
+  public async completeJob(input: {
     readonly workspaceId: string;
     readonly jobId: string;
     readonly workerId: string;
@@ -3488,36 +3504,72 @@ export class PostgresDurableJobRepository {
   }): Promise<boolean> {
     return this.repository.withWorkspaceTransaction(
       input.workspaceId,
-      (transaction) => transaction.completeDurableJob(input)
+      async (transaction) => {
+        const completed = await transaction.completeDurableJob(input);
+        if (completed)
+          await transaction.settleBulkProductionItemForTerminalJob({
+            ...input,
+            status: "succeeded",
+          });
+        return completed;
+      }
     );
   }
 
-  public failJob(
+  public async failJob(
     input: Parameters<WorkspaceTransactionRepository["failDurableJob"]>[0]
   ): Promise<boolean> {
     return this.repository.withWorkspaceTransaction(
       input.workspaceId,
-      (transaction) => transaction.failDurableJob(input)
+      async (transaction) => {
+        const failed = await transaction.failDurableJob(input);
+        if (failed)
+          await transaction.settleBulkProductionItemForTerminalJob({
+            ...input,
+            status: "failed-permanent",
+            errorCode: "child_terminal_failure",
+            errorMessage: input.error,
+          });
+        return failed;
+      }
     );
   }
 
-  public scheduleJobRetry(
+  public async scheduleJobRetry(
     input: Parameters<
       WorkspaceTransactionRepository["scheduleDurableJobRetry"]
     >[0]
   ): Promise<"retry_scheduled" | "dead_letter" | "lost_lease"> {
     return this.repository.withWorkspaceTransaction(
       input.workspaceId,
-      (transaction) => transaction.scheduleDurableJobRetry(input)
+      async (transaction) => {
+        const outcome = await transaction.scheduleDurableJobRetry(input);
+        if (outcome === "dead_letter")
+          await transaction.settleBulkProductionItemForTerminalJob({
+            ...input,
+            status: "failed-retryable",
+            errorCode: "child_dead_lettered",
+            errorMessage: input.error,
+          });
+        return outcome;
+      }
     );
   }
 
-  public markJobCancelled(
+  public async markJobCancelled(
     input: Parameters<WorkspaceTransactionRepository["cancelDurableJob"]>[0]
   ): Promise<boolean> {
     return this.repository.withWorkspaceTransaction(
       input.workspaceId,
-      (transaction) => transaction.cancelDurableJob(input)
+      async (transaction) => {
+        const cancelled = await transaction.cancelDurableJob(input);
+        if (cancelled)
+          await transaction.settleBulkProductionItemForTerminalJob({
+            ...input,
+            status: "cancelled",
+          });
+        return cancelled;
+      }
     );
   }
 }

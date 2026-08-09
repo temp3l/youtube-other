@@ -1,6 +1,10 @@
 import type { BulkProductionPreflight } from "@mediaforge/domain";
 
-import type { PostgresPool, PostgresQueryResult } from "./postgres-workflow-repository.js";
+import type {
+  PostgresPool,
+  PostgresQueryResult,
+  Queryable,
+} from "./postgres-workflow-repository.js";
 
 export const POSTGRES_BULK_PRODUCTION_MIGRATION = `
 CREATE TABLE IF NOT EXISTS bulk_production_batches (
@@ -41,6 +45,8 @@ CREATE TABLE IF NOT EXISTS bulk_production_batch_items (
 );
 CREATE INDEX IF NOT EXISTS bulk_production_batch_items_status_idx
   ON bulk_production_batch_items (workspace_id, batch_id, status, selection_order);
+CREATE UNIQUE INDEX IF NOT EXISTS bulk_production_batch_items_job_id_idx
+  ON bulk_production_batch_items (workspace_id, job_id) WHERE job_id IS NOT NULL;
 DO $$ DECLARE table_name TEXT; BEGIN
   FOREACH table_name IN ARRAY ARRAY['bulk_production_batches', 'bulk_production_batch_items'] LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', table_name);
@@ -71,6 +77,79 @@ export interface ClaimedBulkProductionItem {
   readonly expectedRevision: number;
   readonly locale: string;
   readonly variant: string;
+}
+
+/**
+ * Settles the one bulk item bound to a durable child job. Callers must run this
+ * through the same workspace transaction that accepted the fenced job outcome.
+ */
+export async function settleBulkProductionItemForTerminalJob(
+  connection: Queryable,
+  input: {
+    readonly workspaceId: string;
+    readonly jobId: string;
+    readonly status:
+      | "succeeded"
+      | "failed-retryable"
+      | "failed-permanent"
+      | "cancelled";
+    readonly errorCode?: string;
+    readonly errorMessage?: string;
+    readonly now: string;
+  }
+): Promise<boolean> {
+  const updated = await connection.query<{ readonly batch_id: string }>(
+    `UPDATE bulk_production_batch_items
+     SET status=$3, error_code=$4, error_message=$5, updated_at=$6::timestamptz
+     WHERE workspace_id=$1 AND job_id=$2 AND status='running'
+     RETURNING batch_id`,
+    [
+      input.workspaceId,
+      input.jobId,
+      input.status,
+      input.errorCode ?? null,
+      input.errorMessage?.slice(0, 2_000) ?? null,
+      input.now,
+    ]
+  );
+  const item = updated.rows[0];
+  if (!item) return false;
+
+  await connection.query(
+    `UPDATE bulk_production_batches AS batch SET status = CASE
+       WHEN batch.status='cancelling' AND NOT EXISTS (
+         SELECT 1 FROM bulk_production_batch_items
+         WHERE workspace_id=$1 AND batch_id=$2 AND status IN ('pending','running')
+       ) THEN 'cancelled'
+       WHEN EXISTS (
+         SELECT 1 FROM bulk_production_batch_items
+         WHERE workspace_id=$1 AND batch_id=$2 AND status IN ('pending','running')
+       ) THEN 'running'
+       WHEN EXISTS (
+         SELECT 1 FROM bulk_production_batch_items
+         WHERE workspace_id=$1 AND batch_id=$2 AND status='failed-permanent'
+       ) AND EXISTS (
+         SELECT 1 FROM bulk_production_batch_items
+         WHERE workspace_id=$1 AND batch_id=$2 AND status='succeeded'
+       ) THEN 'partial'
+       WHEN EXISTS (
+         SELECT 1 FROM bulk_production_batch_items
+         WHERE workspace_id=$1 AND batch_id=$2 AND status='failed-permanent'
+       ) THEN 'failed'
+       WHEN EXISTS (
+         SELECT 1 FROM bulk_production_batch_items
+         WHERE workspace_id=$1 AND batch_id=$2 AND status='failed-retryable'
+       ) THEN 'partial'
+       WHEN NOT EXISTS (
+         SELECT 1 FROM bulk_production_batch_items
+         WHERE workspace_id=$1 AND batch_id=$2 AND eligible=TRUE
+       ) THEN 'failed'
+       ELSE 'succeeded' END,
+       updated_at=$3::timestamptz
+     WHERE batch.workspace_id=$1 AND batch.batch_id=$2`,
+    [input.workspaceId, item.batch_id, input.now]
+  );
+  return true;
 }
 
 export class PostgresBulkProductionRepository {

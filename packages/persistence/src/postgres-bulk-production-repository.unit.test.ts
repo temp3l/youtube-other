@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { POSTGRES_BULK_PRODUCTION_MIGRATION } from "./postgres-bulk-production-repository.js";
+import {
+  POSTGRES_BULK_PRODUCTION_MIGRATION,
+  settleBulkProductionItemForTerminalJob,
+} from "./postgres-bulk-production-repository.js";
 import { POSTGRES_MIGRATION_MODULES } from "./postgres-migration-registry.js";
 
 describe("Postgres bulk production repository", () => {
@@ -9,6 +12,7 @@ describe("Postgres bulk production repository", () => {
     expect(POSTGRES_BULK_PRODUCTION_MIGRATION).toContain("CREATE TABLE IF NOT EXISTS bulk_production_batch_items");
     expect(POSTGRES_BULK_PRODUCTION_MIGRATION).toContain("UNIQUE (workspace_id, idempotency_key)");
     expect(POSTGRES_BULK_PRODUCTION_MIGRATION).toContain("eligibility_reasons JSONB NOT NULL");
+    expect(POSTGRES_BULK_PRODUCTION_MIGRATION).toContain("bulk_production_batch_items_job_id_idx");
     expect(POSTGRES_BULK_PRODUCTION_MIGRATION).toContain("FORCE ROW LEVEL SECURITY");
     expect(POSTGRES_MIGRATION_MODULES.map((module) => module.id)).toContain("bulk-production");
   });
@@ -21,5 +25,32 @@ describe("Postgres bulk production repository", () => {
     expect(source).toContain("workflow_run_id IS NULL");
     expect(source).toContain("status='cancelling'");
     expect(source).toContain("status='pending'");
+    expect(source).toContain("settleBulkProductionItemForTerminalJob");
+    expect(source).toContain("WHERE workspace_id=$1 AND job_id=$2 AND status='running'");
+  });
+
+  it("settles a linked terminal child through the caller transaction", async () => {
+    const statements: string[] = [];
+    const connection = {
+      async query<T>(sql: string): Promise<{ readonly rows: readonly T[] }> {
+        statements.push(sql);
+        return statements.length === 1
+          ? { rows: [{ batch_id: "batch-1" }] as readonly T[] }
+          : { rows: [] };
+      },
+    };
+
+    await expect(
+      settleBulkProductionItemForTerminalJob(connection, {
+        workspaceId: "workspace-a",
+        jobId: "job-1",
+        status: "failed-retryable",
+        errorCode: "child_dead_lettered",
+        now: "2026-08-09T12:00:00.000Z",
+      })
+    ).resolves.toBe(true);
+    expect(statements).toHaveLength(2);
+    expect(statements[0]).toContain("job_id=$2 AND status='running'");
+    expect(statements[1]).toContain("batch.status='cancelling'");
   });
 });
