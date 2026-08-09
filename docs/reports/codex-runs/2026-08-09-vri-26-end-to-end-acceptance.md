@@ -2,6 +2,8 @@
 
 Date: 2026-08-09
 
+Commit: `9b010ce`
+
 ## Changed files
 
 - Strategic acceptance/pilot/pipeline/source bridges and focused tests
