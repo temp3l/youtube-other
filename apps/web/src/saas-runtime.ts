@@ -115,7 +115,7 @@ export function renderSignedOutShell(): string {
 
 const navigation = [
   ["/", "Overview"], ["/projects", "Projects"], ["/episodes", "Episodes"],
-  ["/workflows", "Workflows"], ["/bulk", "Bulk"], ["/reviews", "Review"], ["/assets", "Assets"], ["/onboarding", "Onboarding"], ["/search", "Search"],
+  ["/workflows", "Workflows"], ["/bulk", "Bulk"], ["/actions", "Actions"], ["/reviews", "Review"], ["/assets", "Assets"], ["/onboarding", "Onboarding"], ["/search", "Search"],
   ["/publishing", "Publishing"], ["/usage", "Usage"], ["/integrations", "Integrations"], ["/settings", "Settings"],
 ] as const;
 
@@ -291,6 +291,13 @@ async function renderJourneyPage(identity: SaasIdentity, path: string, gateway: 
       const results = (await Promise.all(projects.map(async (project) => ({ project, episodes: (await gateway.listEpisodes(identity, project.id)).items })))).flatMap(({ project, episodes }) => episodes.filter((episode) => episode.id.toLocaleLowerCase().includes(query) || episodeTitle(episode.content).toLocaleLowerCase().includes(query)).map((episode) => ({ project, episode })));
       const rows = results.map(({ project, episode }) => `<a class="row link-row" href="/projects/${encodeURIComponent(project.id)}/episodes/${encodeURIComponent(episode.id)}"><div><strong>${escapeHtml(episodeTitle(episode.content))}</strong><span>${escapeHtml(project.name)} · ID ${escapeHtml(episode.id)}</span></div><span class="tag">Open</span></a>`).join("");
       return shell(identity.session, path, "Search", "Results are limited to title and ID of episodes visible in this workspace.", `<form class="card form" method="get" action="/search"><label class="field">Episode title or ID<input required name="q" value="${escapeHtml(query)}" maxlength="160"></label><button class="button" type="submit">Search</button></form><section class="card" style="margin-top:18px"><h2>Results</h2><p>${results.length} matching episode${results.length === 1 ? "" : "s"}.</p></section><div class="stack" style="margin-top:12px">${rows || empty("No matching episodes", "Try an exact episode ID or a different title term.")}</div>`);
+    }
+    if (path === "/actions") {
+      const projects = (await gateway.listProjects(identity)).items;
+      const episodes = (await Promise.all(projects.map(async (project) => ({ project, episodes: (await gateway.listEpisodes(identity, project.id)).items })))).flatMap(({ project, episodes }) => episodes.map((episode) => ({ project, episode })));
+      const states = await Promise.all(episodes.map(async ({ project, episode }) => ({ project, episode, state: await gateway.getEpisodeProductionState(identity, project.id, episode.id) })));
+      const rows = states.flatMap(({ project, episode, state }) => state.actions.filter((action) => action.enabled).map((action) => `<a class="row link-row" href="/projects/${encodeURIComponent(project.id)}/episodes/${encodeURIComponent(episode.id)}"><div><strong>${escapeHtml(action.label)}</strong><span>${escapeHtml(project.name)} · ${escapeHtml(episodeTitle(episode.content))} · ${escapeHtml(state.lifecycleStage)}</span></div><span class="tag">Open</span></a>`));
+      return shell(identity.session, path, "Action center", "Current server-authoritative actions only. Immutable audit retention remains separate.", `<section class="card"><h2>Active actions</h2><p>Actions deep-link to current episode state and are recalculated on every request.</p></section><div class="stack" style="margin-top:12px">${rows.length ? rows.join("") : empty("No active actions", "Current workflow, review, and production actions will appear here when the server enables them.")}</div><section class="notice" style="margin-top:18px"><strong>History is separate.</strong><p>This view does not infer expired actions from audit facts. Retention policy and historical action records require a dedicated server read model.</p></section>`);
     }
     if (path === "/bulk") {
       const bulk = gateway.bulk;
