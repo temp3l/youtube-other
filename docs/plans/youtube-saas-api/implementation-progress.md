@@ -1,6 +1,6 @@
 # YSAAS implementation progress
 
-Current wave: Wave 5 in progress (YSAAS-020 API prerequisite complete; YSAAS-017 and YSAAS-018 remain blocked)
+Current wave: Wave 5 in progress (YSAAS-017 lineage prerequisite complete; YSAAS-018 and YSAAS-020 remain blocked)
 
 ## Anti-stuck execution rules (session)
 
@@ -112,7 +112,7 @@ Notes: Server-side publishing BFF/SDK methods; channel status/connect/disconnect
 Status: partial / blocked
 Commit: 07c3653
 Validation: focused web runtime and API integration tests pass; API SDK build and web/API typechecks pass
-Notes: Canonical tenant/project/episode production-state API, SDK, BFF, episode workspace, review queue, and immutable approval history are implemented. Artifact comparison and invalidation confirmation are blocked because no tenant-scoped production-unit lineage/snapshot read projection exists; the existing mutation preview requires the client to supply those snapshots.
+Notes: Canonical tenant/project/episode production-state API, SDK, BFF, episode workspace, review queue, and immutable approval history are implemented. `69de15d` adds append-only worker-bound production-unit snapshot persistence plus tenant/project/episode reads and metadata comparisons; invalidation previews now load persisted snapshots instead of accepting client copies. Invalidation confirmation remains to be wired in the BFF.
 
 ### YSAAS-018
 Status: blocked
