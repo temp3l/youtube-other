@@ -1,6 +1,6 @@
 # YSAAS implementation progress
 
-Current wave: Wave 4 in progress (YSAAS-008 complete; YSAAS-013 pending)
+Current wave: Wave 4 in progress (YSAAS-013 complete; YSAAS-014 next)
 
 ## Anti-stuck execution rules (session)
 
@@ -89,3 +89,9 @@ Status: completed
 Commit: 4562314
 Validation: `localization-derivative.unit.test.ts` pass (5); `postgres-localization-derivative-repository.unit.test.ts` pass (1); domain/persistence emit pass; `apps/api` typecheck pass excluding pre-existing `job-process` / `provider-free-worker-entry` migrate errors
 Notes: Locale derivative records with source fingerprint linkage; visual asset reuse classification; preflight/compare/retry API; localization OpenAPI/SDK module; derivative episode creation with localized slug metadata
+
+### YSAAS-013
+Status: completed
+Commit: 9011a68
+Validation: `publication-preparation-lifecycle.unit.test.ts` pass (6); `postgres-publication-preparation-repository.unit.test.ts` pass (1); domain/persistence/api-sdk emit pass; `apps/api` typecheck pass for YSAAS-013 files excluding pre-existing `job-process` / `provider-free-worker-entry` migrate errors
+Notes: Publishing channel safe state + OAuth session binding; metadata revisions; publish-ready preflight gate (ADR-YSAAS-015); schedule policy fail-closed; intent prepare/cancel/schedule supersede; publication-preparation OpenAPI/SDK module; `cancelPublicationIntent` on workflow repository
