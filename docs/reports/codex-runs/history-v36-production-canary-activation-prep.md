@@ -37,5 +37,5 @@
 - result: `BLOCKED_BY_MEASURED_TIMING`; Black Death is `399857ms` and D-Day is `367634ms`, both below the configured `480000ms` History minimum
 - tests: authoritative TTS generation (`gpt-4o-mini-tts` / `onyx`), ffprobe duration measurement, candidate-plan admission check, checksum verification, and ZIP integrity
 - invariants: TTS calls 2; LLM/image/web/geocoding 0; no provisional timing accepted, V3.6 plan/render generated, V3.5 output change, or production activation
-- commit/tag: pending measured-duration gate checkpoint
+- commit/tag: `23e7bb3e43c50b1d17beb084b89dc4f1a2152edc` / `history-v3.6-production-canary-duration-gate`
 - next: human decides whether to revise the canonical scripts, authorize a scoped supported pacing change, or change the global duration policy
