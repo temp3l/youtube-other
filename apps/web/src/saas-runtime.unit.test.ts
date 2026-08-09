@@ -107,6 +107,8 @@ describe("SaaS runtime", () => {
   it("keeps project, typed episode, workflow, and stale-edit actions behind the BFF", async () => {
     const createdProjects: string[] = [];
     const cancelledBulkBatches: string[] = [];
+    const retainedAuditAt = new Date(Date.now() - 1_000).toISOString();
+    const expiredAuditAt = new Date(Date.now() - 31 * 24 * 60 * 60 * 1_000).toISOString();
     const journey: SaasJourneyGateway = {
       listProjects: async () => ({ items: [{ id: "p1", revision: 1, name: "History pilot", profile: "history", createdAt: "2026-08-08T00:00:00.000Z", updatedAt: "2026-08-08T00:00:00.000Z" }] }),
       createProject: async (_identity, input) => { createdProjects.push(input.name); return { id: "p1", revision: 1 }; },
@@ -170,7 +172,10 @@ describe("SaaS runtime", () => {
       },
       getQuota: async () => ({ workspaceId: "workspace-pilot", budgetLimitMinor: "0", reservedMinor: "0", settledMinor: "0", availableMinor: "0", revision: 1 }),
       listUsage: async () => ({ items: [] }),
-      listAudit: async () => ({ items: [] }),
+      listAudit: async () => ({ items: [
+        { id: "audit-recent", action: "workflow.completed", subjectId: "run-1", actorId: "worker-1", correlationId: "correlation-recent", causationId: null, data: { internal: "not rendered" }, occurredAt: retainedAuditAt },
+        { id: "audit-expired", action: "workflow.expired", subjectId: "run-old", actorId: "worker-1", correlationId: "correlation-expired", causationId: null, data: { internal: "not rendered" }, occurredAt: expiredAuditAt },
+      ] }),
     };
     const baseUrl = await serve(createSaasRuntime({
       resolveSession: async () => ({ workspaceId: "workspace-pilot", principalId: "principal-ada", principalName: "Ada", workspaceName: "Pilot", profiles: ["history"] }),
@@ -210,6 +215,12 @@ describe("SaaS runtime", () => {
     expect(reviewerHtml).toContain("Review queue");
     expect(reviewerHtml).toContain("Actionable reviews");
     expect(reviewerHtml).toContain("Approval history");
+    const actions = await fetch(`${baseUrl}/actions`);
+    const actionsHtml = await actions.text();
+    expect(actionsHtml).toContain("Recent domain events");
+    expect(actionsHtml).toContain("workflow.completed");
+    expect(actionsHtml).not.toContain("workflow.expired");
+    expect(actionsHtml).not.toContain("not rendered");
     expect(await (await fetch(`${baseUrl}/assets`)).text()).toContain("Asset library");
     const bulkBatch = await fetch(`${baseUrl}/bulk?batch=batch-1`);
     expect(await bulkBatch.text()).toContain('action="/bulk/batch-1:cancel"');
