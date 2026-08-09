@@ -84,6 +84,7 @@ export * from "./v36/explanatory-relation-v36.js";
 export * from "./v36/atomic-claim-grounding-v36.js";
 export * from "./v36/atomic-claim-grounder-v36.js";
 export * from "./v36/atomic-relation-candidate-projector-v36.js";
+export * from "./v36/candidate-gap-inventory-v36.js";
 export * from "./v36/structured-claim-v36.js";
 export * from "./v36/structured-claim-enricher-v36.js";
 export * from "./v36/native-structured-claim-generator-v36.js";
