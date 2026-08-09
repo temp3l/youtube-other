@@ -1,0 +1,8 @@
+{
+  "phase": "2.31",
+  "result": "PASS",
+  "supported": ["movement", "spatial-comparison", "spatial-area", "event-location"],
+  "rawGeocoding": false,
+  "semanticFallback": false,
+  "shadowOnly": true
+}
