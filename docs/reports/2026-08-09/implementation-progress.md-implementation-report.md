@@ -16,3 +16,5 @@ Deviation: no deployment server composition exists here, so the adapter is expor
 Checks: focused adapter and SDK tests; SDK build; web typecheck—all passed.
 
 Risks/next: deployment must inject `recordRecentAuth` into OIDC and `recentAuthConsumer` into runtime. Browser-flow HTTP tests remain blocked by sandbox loopback `EPERM`. YSAAS-009/019 provide persisted bulk operations and BFF. YSAAS-022 now has tenant readiness, narrow title/ID search, and current production-state actions; retention, membership, and lifecycle BFF contracts remain absent.
+
+YSAAS-023 is blocked before focused test collection by the stale built `dark-truth` package and lacks an isolated end-to-end acceptance fixture. YSAAS-024 is blocked pending explicit external authority and current evidence; no provider calls or feature enablement were attempted.

@@ -72,6 +72,16 @@ Commit: af66cab, 3cb83e9
 Validation: web typecheck pass
 Notes: Server-rendered tenant readiness checklist, v1 episode title/ID search, and current action center from canonical production-state actions. Member/role management, 30-day action retention, lifecycle confirmations, and provider/channel handoffs remain absent because no corresponding BFF contracts exist.
 
+### YSAAS-023
+Status: blocked
+Validation: `provider-free-profile-executor.unit.test.ts` blocked before collection by stale built `dark-truth` missing `@mediaforge/domain/visual-retention/treatment-catalog.js`
+Notes: No existing isolated tenant-to-BFF acceptance fixture exercises the required fault matrix. Do not certify provider-free acceptance from unit seams.
+
+### YSAAS-024
+Status: blocked
+Validation: no external calls attempted
+Notes: Explicit external-system authority and current evidence are required. Publication flag remains off.
+
 ### YSAAS-011
 Status: completed
 Commit: 639a9a4
