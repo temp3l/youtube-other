@@ -202,3 +202,44 @@ export function backfillStructuredClaimsV36(
     },
   };
 }
+
+/**
+ * Claim-local shadow merge: native structure wins for its canonical claim while
+ * untouched claims retain the explicitly labeled historical compatibility path.
+ */
+export function mergeNativeStructuredClaimsWithCompatibilityV36(input: {
+  readonly source: AtomicGroundingSourceV36;
+  readonly frozenGrounding: AtomicGroundingResultV36;
+  readonly nativeEnvelopes: readonly StructuredClaimEnvelopeV36[];
+  readonly nativeDiagnostics?: readonly StructuredClaimDiagnosticV36[];
+}): StructuredClaimEnrichmentResultV36 {
+  const compatibility = backfillStructuredClaimsV36(input.source, input.frozenGrounding);
+  const nativeByClaim = new Map(
+    input.nativeEnvelopes
+      .filter((envelope) => envelope.episodeId === input.source.episodeId && envelope.propositions.length > 0)
+      .map((envelope) => [envelope.claimId, envelope] as const)
+  );
+  const envelopes = compatibility.envelopes.map((envelope) =>
+    nativeByClaim.get(envelope.claimId) ?? envelope
+  );
+  const nativeClaimIds = new Set(nativeByClaim.keys());
+  const diagnostics = [
+    ...compatibility.diagnostics.filter((item) => !nativeClaimIds.has(item.claimId)),
+    ...(input.nativeDiagnostics ?? []),
+  ];
+  const propositions = envelopes.flatMap((envelope) => envelope.propositions);
+  return {
+    schemaVersion: HISTORY_STRUCTURED_CLAIM_SCHEMA_V36,
+    episodeId: input.source.episodeId,
+    envelopes,
+    diagnostics,
+    metrics: {
+      canonicalClaims: input.source.claims.length,
+      claimsWithStructuredPropositions: envelopes.filter((envelope) => envelope.propositions.length > 0).length,
+      structuredPropositions: propositions.length,
+      nativeStructuredPropositions: propositions.filter((proposition) => proposition.provenance.generationMethod === "native-structured-claim-generation").length,
+      backfillStructuredPropositions: propositions.filter((proposition) => proposition.provenance.generationMethod === "deterministic-shadow-enrichment").length,
+      diagnosticsByCode: countValues(diagnostics.map((item) => item.code)),
+    },
+  };
+}

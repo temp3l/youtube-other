@@ -6,8 +6,13 @@ import {
 } from "./atomic-claim-grounder-v36.js";
 import {
   backfillStructuredClaimsV36,
+  mergeNativeStructuredClaimsWithCompatibilityV36,
   type StructuredClaimEnrichmentResultV36,
 } from "./structured-claim-enricher-v36.js";
+import type {
+  StructuredClaimDiagnosticV36,
+  StructuredClaimEnvelopeV36,
+} from "./structured-claim-v36.js";
 import {
   claimIdV36,
   entityIdV36,
@@ -295,10 +300,21 @@ function projectClaim(
 /** Projects a persisted V3.5 structured-claim envelope without changing V3.5 semantics. */
 export function runRepresentativeShadowExtractionV36(
   source: RepresentativeShadowSourceV36,
-  options: { readonly consumeStructuredClaims?: boolean } = {}
+  options: {
+    readonly consumeStructuredClaims?: boolean;
+    readonly nativeStructuredClaimEnvelopes?: readonly StructuredClaimEnvelopeV36[];
+    readonly nativeStructuredClaimDiagnostics?: readonly StructuredClaimDiagnosticV36[];
+  } = {}
 ): RepresentativeShadowExtractionResultV36 {
   const frozenGrounding = groundAtomicClaimsFallbackV36(source);
-  const structuredClaims = backfillStructuredClaimsV36(source, frozenGrounding);
+  const structuredClaims = options.nativeStructuredClaimEnvelopes?.length
+    ? mergeNativeStructuredClaimsWithCompatibilityV36({
+        source,
+        frozenGrounding,
+        nativeEnvelopes: options.nativeStructuredClaimEnvelopes,
+        nativeDiagnostics: options.nativeStructuredClaimDiagnostics ?? [],
+      })
+    : backfillStructuredClaimsV36(source, frozenGrounding);
   const grounding = options.consumeStructuredClaims === false
     ? frozenGrounding
     : groundAtomicClaimsV36({ ...source, structuredClaimEnvelopes: structuredClaims.envelopes });
