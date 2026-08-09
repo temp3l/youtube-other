@@ -11,7 +11,7 @@ Tasks completed: YSAAS-017 lineage persistence, comparison reads, invalidation c
 
 Tasks partially completed: none for YSAAS-018.
 
-Tasks not completed: YSAAS-020 prerequisite.
+Tasks not completed: YSAAS-020 BFF verifier and integrations UI.
 
 Deviations from the original plan: diff availability is explicitly false; no diff service was fabricated.
 
@@ -21,4 +21,4 @@ Test results: persistence test and SDK/web checks pass. HTTP integration test co
 
 Known risks or follow-up work: pending confirmations use process-local state and need shared session persistence for horizontal scaling.
 
-Recommended next steps: implement persisted action-bound recent-auth confirmation for YSAAS-020.
+Recommended next steps: bind recent-auth records to BFF identity/session data and gate integrations mutations.

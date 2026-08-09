@@ -122,6 +122,6 @@ Notes: Tenant, profile/genre, and episode configuration layers persist under wor
 
 ### YSAAS-020
 Status: in progress
-Commit: 281a6c7
-Validation: exact credential-rotation integration test pass; domain build pass
-Notes: Credential rotation with bounded overlap, ETag and idempotency preconditions, show-once secret, replay redaction, OpenAPI, and SDK support are complete. The BFF/UI journey, step-up confirmation hook, webhook management, and API explorer remain.
+Commit: 587483a
+Validation: recent-auth confirmation persistence focused test pass
+Notes: Credential rotation with bounded overlap, ETag and idempotency preconditions, show-once secret, replay redaction, OpenAPI, and SDK support are complete. `587483a` persists atomic one-time recent-auth confirmations bound to workspace/principal/action/CSRF session. The BFF identity binding, verifier enforcement, integrations UI, webhook management, and API explorer remain.
