@@ -1,6 +1,15 @@
 import type { SdkV1OperationContract } from "../types.js";
 
 export const workflowSdkV1Operations = {
+  getBulkProductionBatch: {
+    method: "GET",
+    path: "/v1/workspaces/{workspace}/bulk-production-batches/{batch}",
+    successStatus: "200",
+    responseSchema: "BulkProductionBatch",
+    requestSchema: null,
+    requiredHeaders: [],
+    problemResponses: true,
+  },
   listWorkflowPortfolio: {
     method: "GET",
     path: "/v1/workspaces/{workspace}/workflow-portfolio",

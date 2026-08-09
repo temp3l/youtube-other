@@ -23,6 +23,7 @@ import {
 } from "@mediaforge/domain";
 import {
   PostgresUsageAuditRepository,
+  PostgresBulkProductionRepository,
   PostgresPublicationIntentRepository,
   PostgresWorkflowRepository,
   WorkflowStateTransitionError,
@@ -260,6 +261,7 @@ export function createPostgresApiUseCases(input: {
     throw new Error("API cursor signing secret must contain at least 32 bytes.");
   const repository = new PostgresWorkflowRepository(input.pool);
   const usageAudit = new PostgresUsageAuditRepository(input.pool);
+  const bulkProduction = new PostgresBulkProductionRepository(input.pool);
   const publications = new PostgresPublicationIntentRepository(repository);
   const now = input.now ?? (() => new Date());
   const createId = input.createId ?? id;
@@ -720,6 +722,19 @@ export function createPostgresApiUseCases(input: {
           updatedAt: item.updatedAt,
         })),
         ...(page.nextCursor ? { nextCursor: page.nextCursor } : {}),
+      };
+    },
+    getBulkProductionBatch: async (batchId, context) => {
+      const batch = await bulkProduction.getBatch({ workspaceId: context.workspaceId, batchId });
+      if (!batch) return null;
+      const items = await bulkProduction.listItems({ workspaceId: context.workspaceId, batchId });
+      return {
+        id: batch.batchId,
+        status: batch.status,
+        selectionFingerprint: batch.selectionFingerprint,
+        createdAt: batch.createdAt,
+        updatedAt: batch.updatedAt,
+        items: items.map((item) => ({ id: item.itemId, eligible: item.eligible, status: item.status, reasons: item.reasons })),
       };
     },
     previewArtifactInvalidation: async (episodeId, input, context) => {

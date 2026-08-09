@@ -498,6 +498,10 @@ export interface ApiUseCases {
     readonly items: readonly Record<string, unknown>[];
     readonly nextCursor?: string;
   }>;
+  getBulkProductionBatch?(
+    batchId: string,
+    context: Required<Pick<ApiRequestContext, "workspaceId" | "requestId">>
+  ): Promise<{ readonly id: string; readonly status: string; readonly selectionFingerprint: string; readonly createdAt: string; readonly updatedAt: string; readonly items: readonly { readonly id: string; readonly eligible: boolean; readonly status: string; readonly reasons: readonly string[] }[] } | null>;
   getWorkspaceCapabilities(context: Required<Pick<ApiRequestContext, "workspaceId" | "requestId">>): Promise<Record<string, unknown> | null>;
   getEpisodeResolvedConfiguration(episodeId: string, context: Required<Pick<ApiRequestContext, "workspaceId" | "projectId" | "requestId">>): Promise<Record<string, unknown> | null>;
   previewArtifactInvalidation(
@@ -1445,6 +1449,8 @@ function requiredPermission(
     return "audit.read";
   if (method === "GET" && !matched.project && matched.tail === "workflow-portfolio")
     return "content.read";
+  if (method === "GET" && !matched.project && /^bulk-production-batches\/[^/]+$/u.test(matched.tail ?? ""))
+    return "content.read";
   if (method === "GET" && !matched.project && matched.tail === "capabilities") return "content.read";
   if (method === "GET" && !matched.project && matched.tail === "provider-health")
     return "usage.read";
@@ -2256,6 +2262,19 @@ export function createApiServer(
           },
           context
         );
+        return json(response, 200, result, { "x-request-id": requestIdValue });
+      }
+      const bulkBatch = !matched.project && request.method === "GET"
+        ? matched.tail?.match(/^bulk-production-batches\/([^/]+)$/u)
+        : null;
+      if (bulkBatch) {
+        if (!useCases.getBulkProductionBatch)
+          throw new ApplicationError("not_found", "Resource not found.", false);
+        const result = await useCases.getBulkProductionBatch(
+          decodeURIComponent(bulkBatch[1]!),
+          context
+        );
+        if (!result) throw new ApplicationError("not_found", "Resource not found.", false);
         return json(response, 200, result, { "x-request-id": requestIdValue });
       }
       if (

@@ -65,6 +65,19 @@ describe("Mediaforge API SDK", () => {
     expect(new Headers(requests[8]!.init?.headers).get("if-match")).toBe('"4"');
   });
 
+  it("maps tenant-scoped bulk batch result reads", async () => {
+    const urls: string[] = [];
+    const client = new MediaforgeApiClient({
+      baseUrl: "https://api.example.test",
+      request: (async (url: string | URL | Request) => {
+        urls.push(String(url));
+        return jsonResponse({ id: "batch-1", status: "planned", selectionFingerprint: "a".repeat(64), createdAt: "2026-08-09T00:00:00.000Z", updatedAt: "2026-08-09T00:00:00.000Z", items: [] });
+      }) as typeof fetch,
+    });
+    await expect(client.getBulkProductionBatch("ws-1", "batch/one")).resolves.toMatchObject({ data: { id: "batch-1", items: [] } });
+    expect(new URL(urls[0]!).pathname).toBe("/v1/workspaces/ws-1/bulk-production-batches/batch%2Fone");
+  });
+
   it("types the canonical mathematics capability contract", () => {
     expectTypeOf<MathematicsEducationContent["grade"]>().toEqualTypeOf<
       5 | 6 | 7 | 8 | 9 | 10

@@ -130,4 +130,12 @@ export class PostgresBulkProductionRepository {
       return result.rows.map((row) => ({ itemId: row.item_id, eligible: row.eligible, status: row.status, reasons: Array.isArray(row.eligibility_reasons) ? row.eligibility_reasons.filter((value): value is string => typeof value === "string") : [] }));
     });
   }
+
+  public async getBatch(input: { readonly workspaceId: string; readonly batchId: string }): Promise<BulkProductionBatchRecord | null> {
+    return this.withWorkspace(input.workspaceId, async (client) => {
+      const result = await client.query<{ readonly workspace_id: string; readonly batch_id: string; readonly selection_fingerprint: string; readonly status: string; readonly created_at: string; readonly updated_at: string }>(`SELECT workspace_id, batch_id, selection_fingerprint, status, created_at, updated_at FROM bulk_production_batches WHERE workspace_id=$1 AND batch_id=$2`, [input.workspaceId, input.batchId]);
+      const row = result.rows[0];
+      return row ? { workspaceId: row.workspace_id, batchId: row.batch_id, selectionFingerprint: row.selection_fingerprint, status: row.status, createdAt: row.created_at, updatedAt: row.updated_at } : null;
+    });
+  }
 }

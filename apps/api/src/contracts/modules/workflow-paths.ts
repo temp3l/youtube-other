@@ -1,5 +1,17 @@
 import { authenticatedErrors, episodeParameters, jobParameters, json, parameter, projectParameters, requestIdParameter, response, responseHeader, workflowParameters, workspaceParameters } from "../openapi-helpers.js";
 export const workflowOpenApiPaths = {
+    "/v1/workspaces/{workspace}/bulk-production-batches/{batch}": {
+      get: {
+        operationId: "getBulkProductionBatch",
+        description: "Returns one tenant-scoped bulk preflight/result record, including every selected item outcome. Requires `content.read`.",
+        parameters: [...workspaceParameters, parameter("BatchId")],
+        responses: {
+          "200": { description: "Bulk production batch", headers: { "x-request-id": responseHeader("RequestId") }, content: json("BulkProductionBatch") },
+          "404": response("NotFound"),
+          ...authenticatedErrors,
+        },
+      },
+    },
     "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}/production-state": {
       get: {
         operationId: "getEpisodeProductionState",

@@ -96,6 +96,14 @@ export interface WebhookDeliveryRecord {
 export interface WebhookDeliveryPage { readonly items: readonly WebhookDeliveryRecord[]; readonly nextAfter?: string; }
 
 export interface ProductionUnitAddress { readonly kind: string; readonly unitKey?: string; }
+export interface BulkProductionBatch {
+  readonly id: string;
+  readonly status: "planned" | "running" | "partial" | "succeeded" | "failed" | "cancelling" | "cancelled";
+  readonly selectionFingerprint: string;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly items: readonly { readonly id: string; readonly eligible: boolean; readonly status: "pending" | "running" | "succeeded" | "failed-retryable" | "failed-permanent" | "cancelled" | "ineligible"; readonly reasons: readonly string[] }[];
+}
 export interface ProductionUnitSnapshot { readonly address: ProductionUnitAddress; readonly inputFingerprint: string; readonly contentHash?: string; readonly status: "missing" | "valid" | "stale" | "invalidated"; readonly artifactRecordId?: string; }
 export interface ProductionUnitSnapshotRecord { readonly snapshotId: string; readonly snapshot: ProductionUnitSnapshot; readonly createdAt: string; }
 export interface ArtifactComparisonMetadata { readonly baselineKind: "previous" | "approved" | "source"; readonly baselineContentHash: string; readonly currentContentHash?: string; readonly textDiffAvailable: boolean; readonly visualDiffAvailable: boolean; readonly timestampAwareMediaDiffAvailable: boolean; }
@@ -1109,6 +1117,10 @@ export class MediaforgeApiClient {
       `${this.projectPath(workspaceId, projectId)}/episodes/${encodePath(episodeId)}/production-state`,
       { ...(options ? { options } : {}) }
     );
+  }
+
+  public getBulkProductionBatch(workspaceId: string, batchId: string, options?: RequestOptions): Promise<ApiResponse<BulkProductionBatch>> {
+    return this.execute(`${this.workspacePath(workspaceId)}/bulk-production-batches/${encodePath(batchId)}`, { ...(options ? { options } : {}) });
   }
 
   public getWorkspaceCapabilities(workspaceId: string, options?: RequestOptions): Promise<ApiResponse<CapabilityRegistry>> { return this.execute(`${this.workspacePath(workspaceId)}/capabilities`, { ...(options ? { options } : {}) }); }

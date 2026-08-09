@@ -132,6 +132,12 @@ export const openApiComponents = {
         required: true,
         schema: schema("OpaqueId"),
       },
+      BatchId: {
+        name: "batch",
+        in: "path",
+        required: true,
+        schema: schema("OpaqueId"),
+      },
       ProductionTemplateId: {
         name: "template",
         in: "path",
@@ -2295,6 +2301,26 @@ export const openApiComponents = {
             items: schema("WorkflowPortfolioEntry"),
           },
           nextCursor: { type: "string", minLength: 1, maxLength: 4_096 },
+        },
+      },
+      BulkProductionBatch: {
+        type: "object", additionalProperties: false,
+        required: ["id", "status", "selectionFingerprint", "createdAt", "updatedAt", "items"],
+        properties: {
+          id: schema("OpaqueId"),
+          status: { type: "string", enum: ["planned", "running", "partial", "succeeded", "failed", "cancelling", "cancelled"] },
+          selectionFingerprint: { type: "string", pattern: "^[a-f0-9]{64}$" },
+          createdAt: { type: "string", format: "date-time" }, updatedAt: { type: "string", format: "date-time" },
+          items: { type: "array", items: schema("BulkProductionBatchItem") },
+        },
+      },
+      BulkProductionBatchItem: {
+        type: "object", additionalProperties: false,
+        required: ["id", "eligible", "status", "reasons"],
+        properties: {
+          id: schema("OpaqueId"), eligible: { type: "boolean" },
+          status: { type: "string", enum: ["pending", "running", "succeeded", "failed-retryable", "failed-permanent", "cancelled", "ineligible"] },
+          reasons: { type: "array", items: { type: "string", minLength: 1, maxLength: 160 } },
         },
       },
       Job: {
