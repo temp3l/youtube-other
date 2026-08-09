@@ -97,3 +97,42 @@ export const atomicGroundingReviewArtifactProvenanceSchemaV36 = z.object({
 export type AtomicGroundingReviewArtifactProvenanceV36 = z.infer<
   typeof atomicGroundingReviewArtifactProvenanceSchemaV36
 >;
+
+export const HISTORY_V36_PROCESS_TEMPORAL_CANDIDATE_REVIEW_PROVENANCE_SCHEMA =
+  "history-v3.6-process-temporal-candidate-review-provenance.v1" as const;
+export const HISTORY_V36_PROCESS_TEMPORAL_CANDIDATE_REVIEW_ARTIFACT_KIND =
+  "history-v3.6-process-temporal-candidate-review" as const;
+
+/** Phase 2.8 provenance distinguishes annotated tag objects from peeled commits. */
+export const processTemporalCandidateReviewProvenanceSchemaV36 = z.object({
+  v36ImplementationCommitSha: gitShaSchema,
+  phase27ImplementationCommitSha: gitShaSchema,
+  phase27ReportCommitSha: gitShaSchema,
+  phase27Tag: z.literal("history-v3.6-native-process-temporal-baseline"),
+  contractBaselineCommitSha: gitShaSchema,
+  contractBaselineTag: z.literal("history-v3.6-contract-preflight-baseline"),
+  frozenV35ProductionCommitSha: gitShaSchema,
+  frozenV35ProductionTag: z.literal("history-v3.5-frozen-before-v36"),
+  frozenV35ProductionTagObjectSha: gitShaSchema,
+  acceptedV35SemanticBaselineCommitSha: gitShaSchema,
+  acceptedV35SemanticBaselineTag: z.literal("history-v3.5-semantic-baseline"),
+  artifactKind: z.literal(HISTORY_V36_PROCESS_TEMPORAL_CANDIDATE_REVIEW_ARTIFACT_KIND),
+  schemaVersion: z.literal(HISTORY_V36_PROCESS_TEMPORAL_CANDIDATE_REVIEW_PROVENANCE_SCHEMA),
+  episodeSet: z.array(z.object({
+    episodeId: z.string().trim().min(1),
+    title: z.string().trim().min(1),
+  }).strict()).length(8),
+  generatedAt: utcTimestampSchema,
+  gitBranch: z.string().trim().min(1),
+  liveProviderCalls: z.literal(0),
+}).strict();
+
+export const processTemporalCandidateReviewProvenanceJsonSchemaV36 = {
+  ...z.toJSONSchema(processTemporalCandidateReviewProvenanceSchemaV36),
+  $id: "https://mediaforge.local/schemas/history/v3.6/process-temporal-candidate-review-provenance-schema.json",
+  title: "History V3.6 process/temporal candidate review provenance",
+};
+
+export type ProcessTemporalCandidateReviewProvenanceV36 = z.infer<
+  typeof processTemporalCandidateReviewProvenanceSchemaV36
+>;

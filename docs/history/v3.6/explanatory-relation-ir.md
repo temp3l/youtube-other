@@ -56,7 +56,13 @@ Strict structured output may reference only participant and support IDs supplied
 
 Grounding IDs are deterministic hashes of canonical proposition semantics plus exact source provenance. Proper names remain atomic, grouped concepts stay grouped, nested evidence entities remain qualifiers, and unresolved place participants fail closed. Franklin grounds Britain as movement origin and Northwest Passage as a search object—not a destination—and Spanish Armada mission language remains intended rather than completed movement.
 
-The lowering adapter maps only exact asserted, claim-local atoms that mechanically match the existing evidence union. It neither composes claims nor approves relations. The deterministic proposer and `ExplanatoryRelation` validator remain unchanged semantic authorities; the bounded LLM path remains opt-in and live calls are outside Phase 2.3.
+The Phase 2.3 lowering adapter maps only exact asserted, claim-local causal, dependency, and comparison atoms that mechanically match the existing evidence union. It neither composes claims nor approves relations. The deterministic proposer and `ExplanatoryRelation` validator remain unchanged semantic authorities; the bounded LLM path remains opt-in and live calls are outside Phase 2.3.
+
+### Phase 2.8 process and temporal candidate projection
+
+`projectAtomicRelationCandidateV36` adds exactly two claim-local rules: asserted `process-sequence` atoms project to `process`, and asserted `precedes` atoms project to `temporal-sequence`. Ordered semantic participants are copied directly from the atom, while grounding ID, structured-proposition ID, assertion status, exact source span, support claim, rule ID, and source discriminator remain candidate provenance. Non-asserted modalities fail closed because the relation contract cannot preserve them.
+
+Process identity uses only the supported ordered steps. A synthetic process-container label is retained, when present, as non-authoritative candidate metadata and never becomes a relation participant or validator evidence. Neither process order nor chronology emits a causal candidate. The existing `ExplanatoryRelation` validator remains unchanged and is still the sole admission authority.
 
 ## Contract and provenance versioning
 
@@ -65,6 +71,8 @@ The hardened persisted relation contract is `history-explanatory-relations.v2`. 
 The atomic grounding contract is independently versioned as `history-atomic-claim-grounding.v2`. `atomicGroundingArtifactSchemaV36` is authoritative; `atomic-grounding-schema.json` and `atomic-grounding-contract-document.json` are generated mechanically from the same module. V2 adds direct `process-sequence` and `precedes` projection plus native structured-proposition lineage; it does not add relation inference.
 
 Review artifact provenance is independently versioned as `history-v3.6-relation-ir-review-provenance.v3`. V3 separates the dedicated `history-v3.6-shadow-relations-review` artifact kind from the earlier relation-IR contract review kind. `reviewArtifactProvenanceSchemaV36` remains the authoritative strict Zod runtime validator and generates `provenance-schema.json`.
+
+The Phase 2.8 review uses the dedicated `history-v3.6-process-temporal-candidate-review-provenance.v1` schema. Fields ending in `CommitSha` contain peeled commits; the annotated V3.5 tag object is recorded separately as `frozenV35ProductionTagObjectSha`.
 
 ## Fail closed
 

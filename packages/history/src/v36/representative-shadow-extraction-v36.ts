@@ -5,6 +5,17 @@ import {
   type AtomicGroundingResultV36,
 } from "./atomic-claim-grounder-v36.js";
 import {
+  projectAtomicRelationCandidateV36,
+  type AtomicRelationCandidateProjectionRuleV36,
+  type AtomicRelationCandidateSourceV36,
+  type ProcessGroupingMetadataV36,
+  type ProjectedAtomicRelationCandidateV36,
+} from "./atomic-relation-candidate-projector-v36.js";
+import type {
+  AtomicAssertionStatusV36,
+  AtomicSourceSpanV36,
+} from "./atomic-claim-grounding-v36.js";
+import {
   backfillStructuredClaimsV36,
   mergeNativeStructuredClaimsWithCompatibilityV36,
   type StructuredClaimEnrichmentResultV36,
@@ -32,6 +43,7 @@ import type { RelationDiagnosticV36 } from "./explanatory-relation-validator-v36
 export type ShadowCandidateSourceV36 =
   | "structured-claim-projection"
   | "atomic-claim-grounding"
+  | AtomicRelationCandidateSourceV36
   | "bounded-adjacent-claim-projection"
   | "bounded-llm-claim-projection";
 
@@ -69,6 +81,15 @@ export interface ShadowCandidateRecordV36 {
   readonly status: "valid" | "rejected";
   readonly semanticRelationId?: string;
   readonly evidenceFingerprint?: string;
+  readonly atomicGroundingIds?: readonly string[];
+  readonly structuredPropositionIds?: readonly string[];
+  readonly projectionRuleId?: AtomicRelationCandidateProjectionRuleV36;
+  readonly assertionStatus?: AtomicAssertionStatusV36;
+  readonly atomicSourceSpans?: readonly AtomicSourceSpanV36[];
+  /** Identity-bearing order copied directly from the atomic proposition. */
+  readonly semanticParticipantIds?: readonly string[];
+  /** Never part of relation semantics or validator evidence. */
+  readonly processGrouping?: ProcessGroupingMetadataV36;
   readonly diagnostics: readonly ShadowCandidateDiagnosticV36[];
 }
 
@@ -223,6 +244,7 @@ type Draft = {
   readonly rule: string;
   readonly participantIds: readonly string[];
   readonly source?: ShadowCandidateSourceV36;
+  readonly atomicProjection?: ProjectedAtomicRelationCandidateV36;
 };
 
 /**
@@ -326,14 +348,24 @@ export function runRepresentativeShadowExtractionV36(
     const existingDrafts = result.filter((item): item is Draft => "proposition" in item);
     const rejections = result.filter((item): item is ShadowCandidateRecordV36 => "status" in item);
     const atomicRecord = grounding.claims.find((item) => item.claimId === claimIdV36(claim.id));
-    const atomicDrafts: Draft[] = (atomicRecord?.propositions ?? []).flatMap((proposition) =>
-      lowerAtomicGroundingEvidenceV36([proposition]).map((lowered) => ({
+    const atomicDrafts: Draft[] = (atomicRecord?.propositions ?? []).flatMap((proposition) => {
+      const directProjection = projectAtomicRelationCandidateV36(proposition);
+      return [
+        ...lowerAtomicGroundingEvidenceV36([proposition]).map((lowered) => ({
         proposition: lowered,
         rule: `atomic-grounding:${proposition.provenance.groundingRuleId}`,
         participantIds: proposition.provenance.resolvedParticipantIds,
         source: "atomic-claim-grounding" as const,
-      }))
-    );
+        })),
+        ...(directProjection?.status === "projected" ? [{
+          proposition: directProjection.proposition,
+          rule: directProjection.projectionRuleId,
+          participantIds: directProjection.semanticParticipantIds,
+          source: directProjection.candidateSource,
+          atomicProjection: directProjection,
+        }] : []),
+      ];
+    });
     const drafts = [...existingDrafts, ...atomicDrafts];
     candidates.push(...rejections);
     projected.push(...drafts.map((draft, index) => ({ claim, draft, index })));
@@ -359,6 +391,17 @@ export function runRepresentativeShadowExtractionV36(
       resolvedParticipantIds: item.draft.participantIds,
       status: relation ? "valid" : "rejected",
       ...(relation ? { semanticRelationId: relation.id, evidenceFingerprint: relation.evidenceFingerprint } : {}),
+      ...(item.draft.atomicProjection ? {
+        atomicGroundingIds: item.draft.atomicProjection.atomicGroundingIds,
+        structuredPropositionIds: item.draft.atomicProjection.structuredPropositionIds,
+        projectionRuleId: item.draft.atomicProjection.projectionRuleId,
+        assertionStatus: item.draft.atomicProjection.assertionStatus,
+        atomicSourceSpans: [item.draft.atomicProjection.sourceSpan],
+        semanticParticipantIds: item.draft.atomicProjection.semanticParticipantIds,
+        ...(item.draft.atomicProjection.processGrouping
+          ? { processGrouping: item.draft.atomicProjection.processGrouping }
+          : {}),
+      } : {}),
       diagnostics: rejectedCandidate?.diagnostics ?? (rejectedCandidate ? [{ code: "SHADOW_RELATION_PROPOSITION_AMBIGUOUS", message: rejectedCandidate.reason, affectedIds: [] }] : []),
     });
   }

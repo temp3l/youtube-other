@@ -1,3 +1,5 @@
+import { execFileSync } from "node:child_process";
+
 import { z } from "zod";
 import { describe, expect, it } from "vitest";
 
@@ -11,12 +13,17 @@ import { goldenSemanticFixturesV36 } from "./golden-semantic-fixtures-v36.js";
 import {
   HISTORY_V36_REVIEW_ARTIFACT_KIND,
   HISTORY_V36_REVIEW_PROVENANCE_SCHEMA,
+  HISTORY_V36_PROCESS_TEMPORAL_CANDIDATE_REVIEW_ARTIFACT_KIND,
+  HISTORY_V36_PROCESS_TEMPORAL_CANDIDATE_REVIEW_PROVENANCE_SCHEMA,
+  processTemporalCandidateReviewProvenanceJsonSchemaV36,
+  processTemporalCandidateReviewProvenanceSchemaV36,
   reviewArtifactProvenanceJsonSchemaV36,
   reviewArtifactProvenanceSchemaV36,
 } from "./review-provenance-v36.js";
 
 const relationJsonSchema = z.fromJSONSchema(explanatoryRelationJsonSchemaV36);
 const provenanceJsonSchema = z.fromJSONSchema(reviewArtifactProvenanceJsonSchemaV36);
+const processTemporalProvenanceJsonSchema = z.fromJSONSchema(processTemporalCandidateReviewProvenanceJsonSchemaV36);
 
 function serialized(value: unknown): Record<string, unknown> {
   return JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
@@ -134,5 +141,42 @@ describe("History V3.6 generated provenance JSON Schema", () => {
     expectProvenanceRejected({ ...validProvenance, generatedAt: "2026-08-09T10:36:38+02:00" });
     expectProvenanceRejected({ ...validProvenance, artifactKind: "wrong-artifact" });
     expectProvenanceRejected({ ...validProvenance, unexpected: true });
+  });
+});
+
+describe("History V3.6 Phase 2.8 provenance JSON Schema", () => {
+  const valid = {
+    v36ImplementationCommitSha: "a".repeat(40),
+    phase27ImplementationCommitSha: "8e40dda55ec1f83162be21907b2194f01c8241c7",
+    phase27ReportCommitSha: "c71189ed7f70e02179012911feb4fffd13b87cb1",
+    phase27Tag: "history-v3.6-native-process-temporal-baseline",
+    contractBaselineCommitSha: "022f2177cc0e66f47cb5d652d6d456ce12a5a7be",
+    contractBaselineTag: "history-v3.6-contract-preflight-baseline",
+    frozenV35ProductionCommitSha: "f04262c16bfd1a89d1b404b1ac291a89dc699a0d",
+    frozenV35ProductionTag: "history-v3.5-frozen-before-v36",
+    frozenV35ProductionTagObjectSha: "149a2d160b140d13a97f66155a4b8705f6adf652",
+    acceptedV35SemanticBaselineCommitSha: "82b4192f6e832523ce00675e39593e3f98a96403",
+    acceptedV35SemanticBaselineTag: "history-v3.5-semantic-baseline",
+    artifactKind: HISTORY_V36_PROCESS_TEMPORAL_CANDIDATE_REVIEW_ARTIFACT_KIND,
+    schemaVersion: HISTORY_V36_PROCESS_TEMPORAL_CANDIDATE_REVIEW_PROVENANCE_SCHEMA,
+    episodeSet: Array.from({ length: 8 }, (_, index) => ({ episodeId: `episode-${index}`, title: `Episode ${index}` })),
+    generatedAt: "2026-08-09T18:00:00.000Z",
+    gitBranch: "master",
+    liveProviderCalls: 0,
+  };
+
+  it("requires separate peeled commit and annotated tag-object fields", () => {
+    const parsed = processTemporalCandidateReviewProvenanceSchemaV36.parse(valid);
+    expect(execFileSync("git", ["cat-file", "-t", parsed.frozenV35ProductionCommitSha], { encoding: "utf8" }).trim()).toBe("commit");
+    expect(execFileSync("git", ["cat-file", "-t", parsed.frozenV35ProductionTagObjectSha], { encoding: "utf8" }).trim()).toBe("tag");
+    expect(processTemporalProvenanceJsonSchema.safeParse(valid).success).toBe(true);
+    const missingTagObject = { ...valid };
+    delete (missingTagObject as Partial<typeof valid>).frozenV35ProductionTagObjectSha;
+    expect(processTemporalCandidateReviewProvenanceSchemaV36.safeParse(missingTagObject).success).toBe(false);
+    expect(processTemporalCandidateReviewProvenanceSchemaV36.safeParse({
+      ...valid,
+      frozenV35ProductionCommitSha: "149a2d160b140d13a97f66155a4b8705f6adf652",
+      unexpectedAlias: true,
+    }).success).toBe(false);
   });
 });

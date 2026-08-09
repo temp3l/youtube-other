@@ -191,10 +191,19 @@ describe("History V3.6 representative native structured fixture experiment", () 
     expect(experiment.missClassification.nativeStructurePresentAtomicGroundingGap).toBe(0);
     expect(experiment.phase26Comparison).toMatchObject({
       before: { nativeClaims: 17, nativePropositions: 18, insufficientStructure: 61, atomicPropositions: 37, candidates: 45, validatedRelations: 23 },
-      after: { nativeClaims: 21, nativePropositions: 22, insufficientStructure: 60, atomicPropositions: 41, candidates: 45, validatedRelations: 23 },
+      after: { nativeClaims: 21, nativePropositions: 22, insufficientStructure: 60, atomicPropositions: 41, candidates: 49, validatedRelations: 27 },
     });
-    expect(experiment.missClassification.atomicGroundingPresentCandidateProjectionGap).toBe(16);
-    expect(experiment.relationComparison.after).toMatchObject({ processRelations: 0, temporalSequenceRelations: 0 });
+    expect(experiment.phase27Comparison).toMatchObject({
+      before: { candidates: 45, validatedRelations: 23, processRelations: 0, temporalSequenceRelations: 0 },
+      after: { candidates: 49, validatedRelations: 27, processRelations: 2, temporalSequenceRelations: 2 },
+    });
+    expect(experiment.missClassification.atomicGroundingPresentCandidateProjectionGap).toBe(12);
+    expect(experiment.missClassification.candidateProposedValidatorReject).toBe(0);
+    expect(experiment.candidateProjection).toEqual({
+      process: { proposed: 2, validatorAccepts: 2, validatorRejects: 0 },
+      temporal: { proposed: 2, validatorAccepts: 2, validatorRejects: 0 },
+    });
+    expect(experiment.relationComparison.after).toMatchObject({ processRelations: 2, temporalSequenceRelations: 2 });
   });
 
   it("preserves movement, evidence nesting, assertion scope, and V3.5 false-positive controls", () => {
@@ -222,6 +231,15 @@ describe("History V3.6 representative native structured fixture experiment", () 
     expect(battleRun.native.extraction.relations.some((relation) => JSON.stringify(relation).includes("King Edward") && JSON.stringify(relation).includes("Europe"))).toBe(false);
     const battleProcess = battleRun.native.grounding.propositions.find((proposition) => proposition.claimId === "claim-6bbe9288262216a338a95084")!;
     expect(battleProcess).toMatchObject({ predicate: "process-sequence", processSteps: [{ stepOrder: 1 }, { stepOrder: 2 }] });
+    expect(battleRun.native.candidates.find((candidate) => candidate.claimId === battleProcess.claimId)).toMatchObject({
+      source: "atomic-process-projection",
+      projectionRuleId: "atomic-process-sequence-candidate.v1",
+      atomicGroundingIds: [battleProcess.groundingId],
+      structuredPropositionIds: [battleProcess.provenance.structuredPropositionId],
+      semanticParticipantIds: battleProcess.processSteps!.map((step) => step.participant.id),
+      processGrouping: { treatment: "non-authoritative-grouping-metadata" },
+      status: "valid",
+    });
 
     const titanic = sources.find((source) => source.shadow.episodeId.includes("titanic"))!;
     const titanicPropositions = createRepresentativeNativeStructuredSidecarV36(titanic.native).structuredClaims.envelopes.flatMap((envelope) => envelope.propositions);
@@ -229,6 +247,17 @@ describe("History V3.6 representative native structured fixture experiment", () 
     expect(titanicPropositions.find((proposition) => proposition.predicate === "precedes")).toMatchObject({
       subject: { label: "the collision" },
       object: { label: "Thomas Andrews inspected the damage" },
+    });
+    const titanicRun = experiment.runs.find((run) => run.episodeId.includes("titanic"))!;
+    const temporalCandidate = titanicRun.native.candidates.find((candidate) => candidate.source === "atomic-temporal-projection")!;
+    expect(temporalCandidate).toMatchObject({
+      projectionRuleId: "atomic-precedes-temporal-candidate.v1",
+      status: "valid",
+      assertionStatus: "asserted",
+    });
+    expect(titanicRun.native.extraction.relations.find((relation) => relation.id === temporalCandidate.semanticRelationId)).toMatchObject({
+      kind: "temporal-sequence",
+      steps: [{ canonicalLabel: "the collision" }, { canonicalLabel: "Thomas Andrews inspected the damage" }],
     });
   });
 
