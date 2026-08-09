@@ -26,6 +26,8 @@ import {
 import {
   PostgresUsageAuditRepository,
   PostgresBulkProductionRepository,
+  WorkspaceQuotaExceededError,
+  WorkspaceQuotaPolicyMissingError,
   PostgresPublicationIntentRepository,
   PostgresWorkflowRepository,
   WorkflowStateTransitionError,
@@ -201,6 +203,8 @@ function parseEtag(value: string): number {
 
 function translatePersistence(error: unknown): never {
   if (error instanceof ApplicationError) throw error;
+  if (error instanceof WorkspaceQuotaExceededError || error instanceof WorkspaceQuotaPolicyMissingError)
+    throw new ApplicationError(error instanceof WorkspaceQuotaExceededError ? "quota_exceeded" : "state_transition_rejected", error.message, false);
   if (error instanceof WorkflowStateTransitionError) {
     const conflict = error.message.toLowerCase().includes("already");
     throw new ApplicationError(
@@ -777,6 +781,48 @@ export function createPostgresApiUseCases(input: {
         selectionFingerprint: stored.batch.selectionFingerprint,
         items: items.map((item) => ({ id: item.itemId, eligible: item.eligible, status: item.status, reasons: item.reasons })),
       };
+    },
+    launchBulkProduction: async (batchId, context) => {
+      try {
+        const batch = await bulkProduction.getBatch({ workspaceId: context.workspaceId, batchId });
+        if (!batch) throw new ApplicationError("not_found", "Resource not found.", false);
+        if (batch.status !== "planned" && batch.status !== "running")
+          throw new ApplicationError("state_transition_rejected", "This batch cannot be launched in its current state.", false);
+        const nowValue = now().toISOString();
+        const itemCount = await bulkProduction.countEligibleItems({ workspaceId: context.workspaceId, batchId });
+        if (itemCount === 0) throw new ApplicationError("state_transition_rejected", "This batch has no eligible items to launch.", false);
+        await usageAudit.reserveQuotaDimension({ workspaceId: context.workspaceId, reservationId: `bulk-batch:${batchId}:active`, dimension: "active_batches", attributionKey: `bulk-batch:${batchId}:active`, subjectId: batchId, units: 1n, now: nowValue });
+        await usageAudit.reserveQuotaDimension({ workspaceId: context.workspaceId, reservationId: `bulk-batch:${batchId}:items`, dimension: "batch_items", attributionKey: `bulk-batch:${batchId}:items`, subjectId: batchId, units: BigInt(itemCount), now: nowValue });
+        const accepted: Array<{ readonly itemId: string; readonly workflowRunId: string; readonly jobId: string }> = [];
+        const rejected: Array<{ readonly itemId: string; readonly code: string }> = [];
+        for (;;) {
+          const item = await bulkProduction.claimNextRunnableItem({ workspaceId: context.workspaceId, batchId, now: now().toISOString() });
+          if (!item) break;
+          const configured = await repository.withWorkspaceTransaction(context.workspaceId, async (transaction) => {
+            const [episode, tenant] = await Promise.all([
+              transaction.getEpisode(context.workspaceId, item.projectId, item.episodeId),
+              transaction.getTenantSettings(context.workspaceId),
+            ]);
+            return episode?.revision === item.expectedRevision && tenant !== null;
+          });
+          if (!configured) {
+            await bulkProduction.completeClaimedItem({ workspaceId: context.workspaceId, batchId, itemId: item.itemId, status: "failed-permanent", errorCode: "stale_or_unconfigured", errorMessage: "The item no longer has current revision and configuration evidence.", now: now().toISOString() });
+            rejected.push({ itemId: item.itemId, code: "stale_or_unconfigured" });
+            continue;
+          }
+          try {
+            const child = await admit({ template: "episode-production", episodeRevision: item.expectedRevision, locales: [item.locale], variants: [item.variant as "full" | "short"], approvalMode: "required", publicationMode: "none" }, { ...context, projectId: item.projectId, episodeId: item.episodeId, idempotencyKey: `${context.idempotencyKey}:item:${item.itemId}` });
+            const recorded = await bulkProduction.recordClaimedAdmission({ workspaceId: context.workspaceId, batchId, itemId: item.itemId, workflowRunId: child.workflowRunId, jobId: child.jobId, now: now().toISOString() });
+            if (!recorded) throw new ApplicationError("state_transition_rejected", "The batch item admission changed concurrently.", false);
+            accepted.push({ itemId: item.itemId, workflowRunId: child.workflowRunId, jobId: child.jobId });
+          } catch (error) {
+            const application = error instanceof ApplicationError ? error : null;
+            await bulkProduction.completeClaimedItem({ workspaceId: context.workspaceId, batchId, itemId: item.itemId, status: application?.retryable ? "failed-retryable" : "failed-permanent", errorCode: application?.code ?? "workflow_admission_failed", errorMessage: "Child workflow admission did not complete.", now: now().toISOString() });
+            rejected.push({ itemId: item.itemId, code: application?.code ?? "workflow_admission_failed" });
+          }
+        }
+        return { id: batchId, accepted, rejected };
+      } catch (error) { return translatePersistence(error); }
     },
     previewArtifactInvalidation: async (episodeId, input, context) => {
       const episode = await repository.withWorkspaceTransaction(

@@ -506,6 +506,10 @@ export interface ApiUseCases {
     body: unknown,
     context: Required<Pick<ApiRequestContext, "workspaceId" | "principal" | "requestId" | "idempotencyKey">>
   ): Promise<{ readonly id: string; readonly replayed: boolean; readonly status: string; readonly selectionFingerprint: string; readonly items: readonly { readonly id: string; readonly eligible: boolean; readonly status: string; readonly reasons: readonly string[] }[] }>;
+  launchBulkProduction?(
+    batchId: string,
+    context: Required<Pick<ApiRequestContext, "workspaceId" | "principal" | "requestId" | "idempotencyKey">>
+  ): Promise<{ readonly id: string; readonly accepted: readonly { readonly itemId: string; readonly workflowRunId: string; readonly jobId: string }[]; readonly rejected: readonly { readonly itemId: string; readonly code: string }[] }>;
   getWorkspaceCapabilities(context: Required<Pick<ApiRequestContext, "workspaceId" | "requestId">>): Promise<Record<string, unknown> | null>;
   getEpisodeResolvedConfiguration(episodeId: string, context: Required<Pick<ApiRequestContext, "workspaceId" | "projectId" | "requestId">>): Promise<Record<string, unknown> | null>;
   previewArtifactInvalidation(
@@ -1457,6 +1461,8 @@ function requiredPermission(
     return "content.read";
   if (method === "POST" && !matched.project && matched.tail === "bulk-production-batches:preflight")
     return "workflow.start";
+  if (method === "POST" && !matched.project && /^bulk-production-batches\/[^/]+:launch$/u.test(matched.tail ?? ""))
+    return "workflow.start";
   if (method === "GET" && !matched.project && matched.tail === "capabilities") return "content.read";
   if (method === "GET" && !matched.project && matched.tail === "provider-health")
     return "usage.read";
@@ -2290,6 +2296,17 @@ export function createApiServer(
         if (!key) throw new ApplicationError("idempotency_required", "Idempotency-Key is required.", false);
         const result = await useCases.preflightBulkProduction(await body(request), { ...context, idempotencyKey: key });
         return json(response, result.replayed ? 200 : 201, result, { "x-request-id": requestIdValue, ...(result.replayed ? { "idempotency-replayed": "true" } : {}) });
+      }
+      const bulkLaunch = !matched.project && request.method === "POST"
+        ? matched.tail?.match(/^bulk-production-batches\/([^/]+):launch$/u)
+        : null;
+      if (bulkLaunch) {
+        if (!useCases.launchBulkProduction)
+          throw new ApplicationError("not_found", "Resource not found.", false);
+        const key = idempotencyKey(request);
+        if (!key) throw new ApplicationError("precondition_required", "Idempotency-Key is required.", false);
+        const result = await useCases.launchBulkProduction(decodeURIComponent(bulkLaunch[1]!), { ...context, idempotencyKey: key });
+        return json(response, 202, result, { "x-request-id": requestIdValue });
       }
       if (
         !matched.project &&

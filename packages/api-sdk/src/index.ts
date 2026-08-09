@@ -106,6 +106,7 @@ export interface BulkProductionBatch {
 }
 export interface BulkProductionPreflightInput { readonly items: readonly { readonly projectId: string; readonly episodeId: string; readonly expectedRevision: number; readonly locale: "en" | "de" | "es" | "fr" | "pt" | "it"; readonly variant: "full" | "short" }[]; }
 export interface BulkProductionPreflightResult { readonly id: string; readonly replayed: boolean; readonly status: "planned"; readonly selectionFingerprint: string; readonly items: BulkProductionBatch["items"]; }
+export interface BulkProductionLaunchResult { readonly id: string; readonly accepted: readonly { readonly itemId: string; readonly workflowRunId: string; readonly jobId: string }[]; readonly rejected: readonly { readonly itemId: string; readonly code: string }[]; }
 export interface ProductionUnitSnapshot { readonly address: ProductionUnitAddress; readonly inputFingerprint: string; readonly contentHash?: string; readonly status: "missing" | "valid" | "stale" | "invalidated"; readonly artifactRecordId?: string; }
 export interface ProductionUnitSnapshotRecord { readonly snapshotId: string; readonly snapshot: ProductionUnitSnapshot; readonly createdAt: string; }
 export interface ArtifactComparisonMetadata { readonly baselineKind: "previous" | "approved" | "source"; readonly baselineContentHash: string; readonly currentContentHash?: string; readonly textDiffAvailable: boolean; readonly visualDiffAvailable: boolean; readonly timestampAwareMediaDiffAvailable: boolean; }
@@ -1127,6 +1128,10 @@ export class MediaforgeApiClient {
 
   public preflightBulkProduction(workspaceId: string, input: BulkProductionPreflightInput, options: IdempotentRequestOptions): Promise<ApiResponse<BulkProductionPreflightResult>> {
     return this.execute(`${this.workspacePath(workspaceId)}/bulk-production-batches:preflight`, { method: "POST", body: input, options, idempotencyKey: options.idempotencyKey });
+  }
+
+  public launchBulkProduction(workspaceId: string, batchId: string, options: IdempotentRequestOptions): Promise<ApiResponse<BulkProductionLaunchResult>> {
+    return this.execute(`${this.workspacePath(workspaceId)}/bulk-production-batches/${encodePath(batchId)}:launch`, { method: "POST", options, idempotencyKey: options.idempotencyKey });
   }
 
   public getWorkspaceCapabilities(workspaceId: string, options?: RequestOptions): Promise<ApiResponse<CapabilityRegistry>> { return this.execute(`${this.workspacePath(workspaceId)}/capabilities`, { ...(options ? { options } : {}) }); }

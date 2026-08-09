@@ -1,5 +1,13 @@
 import { authenticatedErrors, episodeParameters, jobParameters, json, parameter, projectParameters, requestIdParameter, response, responseHeader, workflowParameters, workspaceParameters } from "../openapi-helpers.js";
 export const workflowOpenApiPaths = {
+    "/v1/workspaces/{workspace}/bulk-production-batches/{batch}:launch": {
+      post: {
+        operationId: "launchBulkProduction",
+        description: "Reserves configured batch quotas, rechecks each claimed item, and admits child workflows. Completion remains worker-owned. Requires `workflow.start` and Idempotency-Key.",
+        parameters: [...workspaceParameters, parameter("BatchId"), parameter("IdempotencyKey")],
+        responses: { "202": { description: "Child admissions accepted", headers: { "x-request-id": responseHeader("RequestId") }, content: json("BulkProductionLaunchResult") }, "428": response("PreconditionRequired"), "429": response("TooManyRequests"), ...authenticatedErrors },
+      },
+    },
     "/v1/workspaces/{workspace}/bulk-production-batches:preflight": {
       post: {
         operationId: "preflightBulkProduction",

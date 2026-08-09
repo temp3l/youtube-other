@@ -86,6 +86,14 @@ describe("Mediaforge API SDK", () => {
     expect(new Headers(request!.init?.headers).get("idempotency-key")).toBe("bulk-1");
   });
 
+  it("maps bulk launch with a batch-scoped idempotency key", async () => {
+    let request: { readonly url: string; readonly init?: RequestInit } | undefined;
+    const client = new MediaforgeApiClient({ baseUrl: "https://api.example.test", request: (async (url: string | URL | Request, init?: RequestInit) => { request = { url: String(url), ...(init ? { init } : {}) }; return jsonResponse({ id: "batch-1", accepted: [], rejected: [] }, { status: 202 }); }) as typeof fetch });
+    await client.launchBulkProduction("ws-1", "batch/one", { idempotencyKey: "bulk-launch-1" });
+    expect(new URL(request!.url).pathname).toBe("/v1/workspaces/ws-1/bulk-production-batches/batch%2Fone:launch");
+    expect(new Headers(request!.init?.headers).get("idempotency-key")).toBe("bulk-launch-1");
+  });
+
   it("types the canonical mathematics capability contract", () => {
     expectTypeOf<MathematicsEducationContent["grade"]>().toEqualTypeOf<
       5 | 6 | 7 | 8 | 9 | 10

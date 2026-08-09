@@ -2331,6 +2331,10 @@ export const openApiComponents = {
         type: "object", additionalProperties: false, required: ["id", "replayed", "status", "selectionFingerprint", "items"],
         properties: { id: schema("OpaqueId"), replayed: { type: "boolean" }, status: { type: "string", enum: ["planned"] }, selectionFingerprint: { type: "string", pattern: "^[a-f0-9]{64}$" }, items: { type: "array", items: schema("BulkProductionBatchItem") } },
       },
+      BulkProductionLaunchResult: {
+        type: "object", additionalProperties: false, required: ["id", "accepted", "rejected"],
+        properties: { id: schema("OpaqueId"), accepted: { type: "array", items: { type: "object", additionalProperties: false, required: ["itemId", "workflowRunId", "jobId"], properties: { itemId: schema("OpaqueId"), workflowRunId: schema("OpaqueId"), jobId: schema("OpaqueId") } } }, rejected: { type: "array", items: { type: "object", additionalProperties: false, required: ["itemId", "code"], properties: { itemId: schema("OpaqueId"), code: { type: "string", minLength: 1, maxLength: 160 } } } } },
+      },
       Job: {
         type: "object",
         additionalProperties: false,

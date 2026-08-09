@@ -148,6 +148,13 @@ export class PostgresBulkProductionRepository {
     });
   }
 
+  public async countEligibleItems(input: { readonly workspaceId: string; readonly batchId: string }): Promise<number> {
+    return this.withWorkspace(input.workspaceId, async (client) => {
+      const result = await client.query<{ readonly count: string | number }>(`SELECT COUNT(*)::bigint AS count FROM bulk_production_batch_items WHERE workspace_id=$1 AND batch_id=$2 AND eligible=TRUE`, [input.workspaceId, input.batchId]);
+      return Number(result.rows[0]?.count ?? 0);
+    });
+  }
+
   /** Claims one item with SKIP LOCKED so concurrent launchers cannot duplicate admission. */
   public async claimNextRunnableItem(input: { readonly workspaceId: string; readonly batchId: string; readonly now: string }): Promise<ClaimedBulkProductionItem | null> {
     return this.withWorkspace(input.workspaceId, async (client) => {
