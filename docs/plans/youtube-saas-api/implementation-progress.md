@@ -56,9 +56,9 @@ Notes: Usage dimensions, reservation lifecycle, estimate projection with cache/r
 
 ### YSAAS-009
 Status: in progress
-Commit: 9236fa2
-Validation: focused bulk preflight domain test passes
-Notes: Added a bounded, deterministic bulk selection preflight that preserves an eligibility reason for every candidate and excludes successful/permanent-failure items from retry selection. Durable batch persistence, authoritative item reauthorization, quota reservation, API/SDK, and BFF remain.
+Commit: 9236fa2, 3188f69
+Validation: focused bulk preflight and persistence migration tests pass; domain build and persistence typecheck pass
+Notes: Added a bounded, deterministic bulk selection preflight that preserves an eligibility reason for every candidate and excludes successful/permanent-failure items from retry selection. Persisted tenant-scoped batch/item rows retain all selected items and their eligibility evidence, with idempotency conflict protection and RLS. Authoritative execution-time reauthorization, quota reservation, API/SDK, and BFF remain.
 
 ### YSAAS-011
 Status: completed
