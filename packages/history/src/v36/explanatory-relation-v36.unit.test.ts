@@ -1,6 +1,3 @@
-import { readFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
-
 import { describe, expect, it } from "vitest";
 
 import {
@@ -143,22 +140,6 @@ describe("History V3.6 invariant and determinism contracts", () => {
       "dependency -> dependent; dependent depends on dependency"
     );
     expect(relationContractDocumentV36.relationKinds["evidence-set"].ordering).toContain("unordered");
-  });
-
-  it("uses an explicit, versioned provenance contract without the ambiguous alias", async () => {
-    const provenancePath = fileURLToPath(new URL("../../../../docs/history/v3.6/provenance-schema.json", import.meta.url));
-    const schema = JSON.parse(await readFile(provenancePath, "utf8")) as {
-      schemaVersion: string;
-      required: readonly string[];
-      properties: Record<string, unknown>;
-    };
-    expect(schema.schemaVersion).toBe("history-v3.6-relation-ir-review-provenance.v2");
-    expect(schema.required).toEqual(expect.arrayContaining([
-      "v36ImplementationCommitSha",
-      "frozenV35ProductionCommitSha",
-      "acceptedV35SemanticBaselineCommitSha",
-    ]));
-    expect(schema.properties).not.toHaveProperty("semanticBaselineCommitSha");
   });
 
   it("rejects cross-episode support and duplicate semantic identities", () => {

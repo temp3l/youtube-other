@@ -46,9 +46,9 @@ Its result is marked `v36-shadow`, contains validated relations plus rejected/sk
 
 ## Contract and provenance versioning
 
-The hardened persisted relation contract is `history-explanatory-relations.v2`. V1 review artifacts must not be treated as V2 records because V1 overloaded semantic identity with evidence provenance. The field-level contract is generated from `relationContractDocumentV36` in the V3.6 source module using `scripts/generate-history-v36-relation-contract-docs.ts`.
+The hardened persisted relation contract is `history-explanatory-relations.v2`. V1 review artifacts must not be treated as V2 records because V1 overloaded semantic identity with evidence provenance. `explanatoryRelationSchemaV36` is the authoritative Zod runtime validator; `relation-schema.json` is machine-enforcing Draft 2020-12 JSON Schema generated directly from it with Zod's native JSON-Schema exporter. `relation-contract-document.json` is supplemental field-level review documentation generated alongside it.
 
-Review artifact provenance is independently versioned as `history-v3.6-relation-ir-review-provenance.v2`. It names the V3.6 implementation commit, the frozen V3.5 production checkpoint, and the accepted V3.5 semantic baseline separately. V2 emits no `semanticBaselineCommitSha` alias; persisted consumers must branch on provenance schema version.
+Review artifact provenance is independently versioned as `history-v3.6-relation-ir-review-provenance.v2`. `reviewArtifactProvenanceSchemaV36` is its authoritative strict Zod runtime validator and generates `provenance-schema.json`. It names the V3.6 implementation commit, the frozen V3.5 production checkpoint, and the accepted V3.5 semantic baseline separately. V2 emits no `semanticBaselineCommitSha` alias; persisted consumers must branch on provenance schema version.
 
 ## Fail closed
 

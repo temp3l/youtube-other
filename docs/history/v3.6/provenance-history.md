@@ -1,0 +1,12 @@
+# V3.6 provenance history reconciliation
+
+This record reconciles the V3.5/V3.6 transition using Git objects, immutable tags, prior V3.6 review artifacts, and the cited historical reports. Current V2 provenance is authoritative and does not reintroduce `semanticBaselineCommitSha`.
+
+| SHA | Established role and tag | Artifact/report evidence | Historical ambiguity | V2 canonical field |
+| --- | --- | --- | --- | --- |
+| `aae72a565c4cf00e9b61576fc04f06e1a9a0fe73` | Annotated tag object `history-v3.5-semantic-baseline`, pointing to commit `82b4192…`; accepted V3.5 semantic and corpus baseline. | Tag annotation says “Accepted History V3.5 semantic and corpus baseline”; 2026-08-08 remediation reports cite it as the semantic baseline. | Some older V3.5 artifacts used `semanticBaselineCommitSha` for this tag object rather than its peeled commit. | `acceptedV35SemanticBaselineTag`; its peeled commit is `acceptedV35SemanticBaselineCommitSha`. |
+| `82b4192f6e832523ce00675e39593e3f98a96403` | Peeled commit for `history-v3.5-semantic-baseline`; accepted V3.5 semantic and corpus baseline. | Git tag object above resolves to this commit; V2 V3.6 review artifacts generated at `2026-08-09T10:23:04Z` and later record it explicitly. | None after tag peeling; historical references sometimes used the tag-object SHA instead. | `acceptedV35SemanticBaselineCommitSha`. |
+| `f04262c16bfd1a89d1b404b1ac291a89dc699a0d` | Commit tagged `history-v3.5-frozen-before-v36`; frozen V3.5 production checkpoint. | Immutable tag annotation says “Freeze V3.5 before V3.6 explanatory relation IR”; V3.6 V1 review artifacts generated `2026-08-08T18:26:32Z` through `2026-08-09T07:57:44Z` referenced it. | Those V1 artifacts called it `semanticBaselineCommitSha`, even though Git/tag evidence establishes a production freeze. | `frozenV35ProductionCommitSha` and `frozenV35ProductionTag`. |
+| `2ac83c25460e0b5cdc1d337fe0ed9a1c6bda43e3` | Pre-hardening V3.6 documentation checkpoint, later tagged `history-v3.6-relation-ir-pre-hardening`. | Git subject is `docs(history): record final v3.6 baseline`; V1 review artifact at `2026-08-09T07:57:44Z` uses it as `gitCommitSha`. | It was not a V3.5 baseline and had no overloaded provenance role. | Superseded for implementation provenance by `v36ImplementationCommitSha` on each generated V2 artifact. |
+
+V2 review artifacts distinguish the three roles explicitly: `v36ImplementationCommitSha`, `frozenV35ProductionCommitSha`, and `acceptedV35SemanticBaselineCommitSha`.

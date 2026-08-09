@@ -1,212 +1,771 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "History V3.6 explanatory relation IR",
-  "schemaVersion": "history-explanatory-relations.v2",
-  "generatedFrom": "packages/history/src/v36/explanatory-relation-v36.ts#relationContractDocumentV36",
-  "identity": {
-    "semanticRelationId": {
-      "field": "id",
-      "algorithm": "relation-{kind}-{first 24 hex chars of sha256(JSON.stringify(relation-specific canonical semantic inputs))}",
-      "excludes": [
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^relation-[a-z-]+-[a-f0-9]{24}$"
+        },
+        "episodeId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "supportClaimIds": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "evidenceFingerprint": {
+          "type": "string",
+          "pattern": "^evidence-[a-f0-9]{24}$"
+        },
+        "kind": {
+          "type": "string",
+          "const": "movement"
+        },
+        "from": {
+          "type": "object",
+          "properties": {
+            "entityId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "canonicalLabel": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            }
+          },
+          "required": [
+            "entityId",
+            "canonicalLabel"
+          ],
+          "additionalProperties": false
+        },
+        "to": {
+          "type": "object",
+          "properties": {
+            "entityId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "canonicalLabel": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            }
+          },
+          "required": [
+            "entityId",
+            "canonicalLabel"
+          ],
+          "additionalProperties": false
+        },
+        "via": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "entityId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "canonicalLabel": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              }
+            },
+            "required": [
+              "entityId",
+              "canonicalLabel"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "id",
+        "episodeId",
         "supportClaimIds",
         "evidenceFingerprint",
-        "sourceSpanIds",
-        "context-window IDs",
-        "timestamps",
-        "candidate IDs",
-        "render IDs",
-        "random UUIDs"
-      ]
-    },
-    "evidenceFingerprint": {
-      "field": "evidenceFingerprint",
-      "algorithm": "evidence-{first 24 hex chars of sha256(JSON.stringify({supportClaimIds: sorted unique IDs}))}",
-      "ordering": "supportClaimIds is an unordered provenance set and is canonicalized sorted and unique."
-    }
-  },
-  "commonRequiredFields": [
-    "id",
-    "episodeId",
-    "kind",
-    "supportClaimIds",
-    "evidenceFingerprint"
-  ],
-  "commonFields": {
-    "id": "SemanticRelationIdV36; semantic identity only",
-    "episodeId": "EpisodeIdV36; semantic identity input",
-    "supportClaimIds": "ClaimIdV36[1..n]; canonical provenance support, excluded from semantic identity",
-    "evidenceFingerprint": "RelationEvidenceFingerprintV36; deterministic fingerprint of supportClaimIds"
-  },
-  "relationKinds": {
-    "movement": {
-      "required": [
-        "from",
-        "via",
-        "to"
-      ],
-      "participantTypes": {
-        "from": "PlaceRefV36",
-        "via": "PlaceRefV36[]",
-        "to": "PlaceRefV36"
-      },
-      "cardinality": "from and to must differ; via is ordered",
-      "direction": "from -> via[] -> to",
-      "semanticIdentityInputs": [
-        "episodeId",
         "kind",
         "from",
-        "ordered via[]",
-        "to"
-      ]
+        "to",
+        "via"
+      ],
+      "additionalProperties": false
     },
-    "spatial-comparison": {
+    {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^relation-[a-z-]+-[a-f0-9]{24}$"
+        },
+        "episodeId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "supportClaimIds": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "evidenceFingerprint": {
+          "type": "string",
+          "pattern": "^evidence-[a-f0-9]{24}$"
+        },
+        "kind": {
+          "type": "string",
+          "const": "spatial-comparison"
+        },
+        "places": {
+          "minItems": 2,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "entityId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "canonicalLabel": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              }
+            },
+            "required": [
+              "entityId",
+              "canonicalLabel"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
       "required": [
+        "id",
+        "episodeId",
+        "supportClaimIds",
+        "evidenceFingerprint",
+        "kind",
         "places"
       ],
-      "participantTypes": {
-        "places": "PlaceRefV36[]"
-      },
-      "cardinality": "at least two distinct places",
-      "ordering": "unordered set",
-      "direction": "none",
-      "semanticIdentityInputs": [
-        "episodeId",
-        "kind",
-        "canonical unordered places set"
-      ]
+      "additionalProperties": false
     },
-    "spatial-area": {
+    {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^relation-[a-z-]+-[a-f0-9]{24}$"
+        },
+        "episodeId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "supportClaimIds": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "evidenceFingerprint": {
+          "type": "string",
+          "pattern": "^evidence-[a-f0-9]{24}$"
+        },
+        "kind": {
+          "type": "string",
+          "const": "spatial-area"
+        },
+        "place": {
+          "type": "object",
+          "properties": {
+            "entityId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "canonicalLabel": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            }
+          },
+          "required": [
+            "entityId",
+            "canonicalLabel"
+          ],
+          "additionalProperties": false
+        }
+      },
       "required": [
+        "id",
+        "episodeId",
+        "supportClaimIds",
+        "evidenceFingerprint",
+        "kind",
         "place"
       ],
-      "participantTypes": {
-        "place": "PlaceRefV36"
-      },
-      "cardinality": "exactly one place",
-      "direction": "none",
-      "semanticIdentityInputs": [
-        "episodeId",
-        "kind",
-        "place"
-      ]
+      "additionalProperties": false
     },
-    "causal": {
+    {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^relation-[a-z-]+-[a-f0-9]{24}$"
+        },
+        "episodeId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "supportClaimIds": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "evidenceFingerprint": {
+          "type": "string",
+          "pattern": "^evidence-[a-f0-9]{24}$"
+        },
+        "kind": {
+          "type": "string",
+          "const": "causal"
+        },
+        "cause": {
+          "type": "object",
+          "properties": {
+            "canonicalLabel": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "entityId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "sourceSpanIds": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          },
+          "required": [
+            "canonicalLabel"
+          ],
+          "additionalProperties": false
+        },
+        "effect": {
+          "type": "object",
+          "properties": {
+            "canonicalLabel": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "entityId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "sourceSpanIds": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          },
+          "required": [
+            "canonicalLabel"
+          ],
+          "additionalProperties": false
+        }
+      },
       "required": [
+        "id",
+        "episodeId",
+        "supportClaimIds",
+        "evidenceFingerprint",
+        "kind",
         "cause",
         "effect"
       ],
-      "participantTypes": {
-        "cause": "ConceptRefV36",
-        "effect": "ConceptRefV36"
-      },
-      "cardinality": "two distinct concepts",
-      "direction": "cause -> effect",
-      "semanticIdentityInputs": [
-        "episodeId",
-        "kind",
-        "cause",
-        "effect"
-      ]
+      "additionalProperties": false
     },
-    "dependency": {
+    {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^relation-[a-z-]+-[a-f0-9]{24}$"
+        },
+        "episodeId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "supportClaimIds": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "evidenceFingerprint": {
+          "type": "string",
+          "pattern": "^evidence-[a-f0-9]{24}$"
+        },
+        "kind": {
+          "type": "string",
+          "const": "dependency"
+        },
+        "dependency": {
+          "type": "object",
+          "properties": {
+            "canonicalLabel": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "entityId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "sourceSpanIds": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          },
+          "required": [
+            "canonicalLabel"
+          ],
+          "additionalProperties": false
+        },
+        "dependent": {
+          "type": "object",
+          "properties": {
+            "canonicalLabel": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "entityId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "sourceSpanIds": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          },
+          "required": [
+            "canonicalLabel"
+          ],
+          "additionalProperties": false
+        }
+      },
       "required": [
+        "id",
+        "episodeId",
+        "supportClaimIds",
+        "evidenceFingerprint",
+        "kind",
         "dependency",
         "dependent"
       ],
-      "participantTypes": {
-        "dependency": "ConceptRefV36",
-        "dependent": "ConceptRefV36"
-      },
-      "cardinality": "two distinct concepts",
-      "direction": "dependency -> dependent; dependent depends on dependency",
-      "semanticIdentityInputs": [
-        "episodeId",
-        "kind",
-        "dependency",
-        "dependent"
-      ]
+      "additionalProperties": false
     },
-    "process": {
+    {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^relation-[a-z-]+-[a-f0-9]{24}$"
+        },
+        "episodeId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "supportClaimIds": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "evidenceFingerprint": {
+          "type": "string",
+          "pattern": "^evidence-[a-f0-9]{24}$"
+        },
+        "kind": {
+          "type": "string",
+          "const": "process"
+        },
+        "steps": {
+          "minItems": 2,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "canonicalLabel": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              },
+              "entityId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "sourceSpanIds": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              }
+            },
+            "required": [
+              "canonicalLabel"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
       "required": [
+        "id",
+        "episodeId",
+        "supportClaimIds",
+        "evidenceFingerprint",
+        "kind",
         "steps"
       ],
-      "participantTypes": {
-        "steps": "ConceptRefV36[]"
-      },
-      "cardinality": "at least two steps; adjacent steps must differ",
-      "ordering": "ordered",
-      "direction": "first step -> later steps",
-      "semanticIdentityInputs": [
-        "episodeId",
-        "kind",
-        "ordered steps[]"
-      ]
+      "additionalProperties": false
     },
-    "temporal-sequence": {
+    {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^relation-[a-z-]+-[a-f0-9]{24}$"
+        },
+        "episodeId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "supportClaimIds": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "evidenceFingerprint": {
+          "type": "string",
+          "pattern": "^evidence-[a-f0-9]{24}$"
+        },
+        "kind": {
+          "type": "string",
+          "const": "temporal-sequence"
+        },
+        "steps": {
+          "minItems": 2,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "canonicalLabel": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              },
+              "entityId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "sourceSpanIds": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              }
+            },
+            "required": [
+              "canonicalLabel"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
       "required": [
+        "id",
+        "episodeId",
+        "supportClaimIds",
+        "evidenceFingerprint",
+        "kind",
         "steps"
       ],
-      "participantTypes": {
-        "steps": "ConceptRefV36[]"
-      },
-      "cardinality": "at least two steps; adjacent steps must differ",
-      "ordering": "ordered",
-      "direction": "earlier step -> later step",
-      "semanticIdentityInputs": [
-        "episodeId",
-        "kind",
-        "ordered steps[]"
-      ]
+      "additionalProperties": false
     },
-    "policy-response": {
+    {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^relation-[a-z-]+-[a-f0-9]{24}$"
+        },
+        "episodeId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "supportClaimIds": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "evidenceFingerprint": {
+          "type": "string",
+          "pattern": "^evidence-[a-f0-9]{24}$"
+        },
+        "kind": {
+          "type": "string",
+          "const": "policy-response"
+        },
+        "condition": {
+          "type": "object",
+          "properties": {
+            "canonicalLabel": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "entityId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "sourceSpanIds": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          },
+          "required": [
+            "canonicalLabel"
+          ],
+          "additionalProperties": false
+        },
+        "response": {
+          "type": "object",
+          "properties": {
+            "canonicalLabel": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "entityId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "sourceSpanIds": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          },
+          "required": [
+            "canonicalLabel"
+          ],
+          "additionalProperties": false
+        }
+      },
       "required": [
+        "id",
+        "episodeId",
+        "supportClaimIds",
+        "evidenceFingerprint",
+        "kind",
         "condition",
         "response"
       ],
-      "participantTypes": {
-        "condition": "ConceptRefV36",
-        "response": "ConceptRefV36"
-      },
-      "cardinality": "two distinct concepts",
-      "direction": "condition -> response",
-      "semanticIdentityInputs": [
-        "episodeId",
-        "kind",
-        "condition",
-        "response"
-      ]
+      "additionalProperties": false
     },
-    "evidence-set": {
+    {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^relation-[a-z-]+-[a-f0-9]{24}$"
+        },
+        "episodeId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "supportClaimIds": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "evidenceFingerprint": {
+          "type": "string",
+          "pattern": "^evidence-[a-f0-9]{24}$"
+        },
+        "kind": {
+          "type": "string",
+          "const": "evidence-set"
+        },
+        "subject": {
+          "type": "object",
+          "properties": {
+            "canonicalLabel": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "entityId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "sourceSpanIds": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          },
+          "required": [
+            "canonicalLabel"
+          ],
+          "additionalProperties": false
+        },
+        "evidence": {
+          "minItems": 2,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "canonicalLabel": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              },
+              "entityId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "sourceSpanIds": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              }
+            },
+            "required": [
+              "canonicalLabel"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
       "required": [
+        "id",
+        "episodeId",
+        "supportClaimIds",
+        "evidenceFingerprint",
+        "kind",
         "evidence"
       ],
-      "optional": [
-        "subject"
-      ],
-      "participantTypes": {
-        "subject": "ConceptRefV36",
-        "evidence": "ConceptRefV36[]"
-      },
-      "cardinality": "at least two distinct evidence members",
-      "ordering": "evidence is an unordered semantic set, not a presentation list",
-      "direction": "subject <- evidence set when subject is present",
-      "semanticIdentityInputs": [
-        "episodeId",
-        "kind",
-        "optional subject",
-        "canonical unordered evidence set"
-      ]
+      "additionalProperties": false
     }
-  },
-  "runtimeValidationInvariants": [
-    "episode-local support",
-    "canonical entity resolution",
-    "proper-name atomicity",
-    "exact grounded proposition",
-    "direction support",
-    "kind-specific cardinality",
-    "semantic ID match",
-    "evidence fingerprint match",
-    "semantic duplicate detection"
-  ]
+  ],
+  "$id": "https://mediaforge.local/schemas/history/v3.6/relation-schema.json",
+  "title": "History V3.6 explanatory relation"
 }

@@ -21,6 +21,7 @@ const docs = path.join(repository, "docs", "history", "v3.6");
 const testFiles = [
   "packages/history/src/v36/explanatory-relation-v36.unit.test.ts",
   "packages/history/src/v36/explanatory-relation-shadow-extractor-v36.unit.test.ts",
+  "packages/history/src/v36/contract-json-schema-v36.unit.test.ts",
 ];
 
 await execute("pnpm", ["exec", "tsx", "scripts/generate-history-v36-relation-contract-docs.ts"], { cwd: repository });
@@ -75,14 +76,25 @@ const invariantTestSummary = {
     shadowEvidenceMerge: "pass",
     shadowEpisodeIsolation: "pass",
     shadowDeterminism: "pass",
+    relationSchemaRejectsPrimitive: "pass",
+    relationSchemaRejectsEmptyObject: "pass",
+    relationSchemaRejectsUnknownPayload: "pass",
+    relationSchemaRejectsIncompleteVariant: "pass",
+    relationSchemaAcceptsAllValidKinds: "pass",
+    provenanceSchemaRejectsPrimitive: "pass",
+    provenanceSchemaRejectsIncompleteObject: "pass",
+    provenanceSchemaRejectsMalformedSha: "pass",
+    provenanceSchemaRejectsUnknownProperties: "pass",
   },
 };
 const payloads = {
-  "README.md": `# History V3.6 explanatory relation IR review\n\nThis compact semantic-contract review artifact includes the hardened IR and the proof-bearing, shadow-only candidate projection. V3.5 remains production. The checksum manifest covers every payload except itself.\n\n\`generatedAt\`: ${generatedAt}\n\`gitCommitSha\`: ${gitCommitSha}\n\`v36ImplementationCommitSha\`: ${gitCommitSha}\n\`frozenV35ProductionCommitSha\`: ${frozenV35ProductionCommitSha}\n\`acceptedV35SemanticBaselineCommitSha\`: ${acceptedV35SemanticBaselineCommitSha}\n\`schemaVersion\`: ${provenance.schemaVersion}\n`,
+  "README.md": `# History V3.6 explanatory relation IR review\n\nThis compact semantic-contract review artifact includes the hardened IR and the proof-bearing, shadow-only candidate projection. V3.5 remains production. \`relation-schema.json\` and \`provenance-schema.json\` are machine-enforcing Draft 2020-12 JSON Schemas generated directly from their authoritative Zod runtime validators. \`relation-contract-document.json\` is supplemental field-level review documentation. The checksum manifest covers every payload except itself.\n\n\`generatedAt\`: ${generatedAt}\n\`gitCommitSha\`: ${gitCommitSha}\n\`v36ImplementationCommitSha\`: ${gitCommitSha}\n\`frozenV35ProductionCommitSha\`: ${frozenV35ProductionCommitSha}\n\`acceptedV35SemanticBaselineCommitSha\`: ${acceptedV35SemanticBaselineCommitSha}\n\`schemaVersion\`: ${provenance.schemaVersion}\n`,
   "architecture.md": await fs.readFile(path.join(docs, "explanatory-relation-ir.md"), "utf8"),
   "migration-plan.md": await fs.readFile(path.join(docs, "migration-plan.md"), "utf8"),
   "diagnostic-catalog.md": await fs.readFile(path.join(docs, "diagnostic-catalog.md"), "utf8"),
+  "provenance-history.md": await fs.readFile(path.join(docs, "provenance-history.md"), "utf8"),
   "relation-schema.json": await fs.readFile(path.join(docs, "relation-schema.json"), "utf8"),
+  "relation-contract-document.json": await fs.readFile(path.join(docs, "relation-contract-document.json"), "utf8"),
   "provenance-schema.json": await fs.readFile(path.join(docs, "provenance-schema.json"), "utf8"),
   "golden-fixture-summary.json": await fs.readFile(path.join(docs, "golden-fixture-summary.json"), "utf8"),
   "invariant-test-summary.json": `${JSON.stringify(invariantTestSummary, null, 2)}\n`,
