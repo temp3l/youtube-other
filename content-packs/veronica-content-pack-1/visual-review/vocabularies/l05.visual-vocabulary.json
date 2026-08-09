@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "veronicabenini-positioning-visual-vocabulary.v1",
+  "episodeId": "L05",
+  "semanticDomains": [
+    "book-positioning",
+    "expertise-perceived-value",
+    "authority-recognition",
+    "content-positioning"
+  ],
+  "recurringMotifs": [
+    "manuscript-to-book-to-reader artifact lifecycle",
+    "visible evidence trails and consequential client choices",
+    "knowledge moving through stages, interviews, and recommendations",
+    "one core idea propagating across a physical media ecosystem"
+  ],
+  "environments": [
+    "author worktable",
+    "small print workshop",
+    "reader recommendation setting",
+    "case-study archive",
+    "client decision setting",
+    "active professional context",
+    "case-study archive",
+    "client decision setting",
+    "active professional context",
+    "editorial wall",
+    "podcast booth",
+    "multi-format production table"
+  ],
+  "materialPalette": [
+    "warm paper",
+    "coral accent",
+    "ink",
+    "glass",
+    "unfinished wood"
+  ],
+  "excludedCliches": [
+    "generic professional in office",
+    "laptop-at-desk pose",
+    "repeated notebook-and-cards staging",
+    "unmotivated business handshake"
+  ],
+  "sourceSemanticHash": "cab94325f0a0e9fcee75d931505f44ecb9f9fa23e558347936680b821c61aae6",
+  "cacheKey": "b361bfaa49990debb28b46b7ff6289f25327366471596e3fbe2a75b70902ba22",
+  "vocabularyHash": "a114a1f2420366b86eef34a4d20804da0fe16ff7e603e550ac7393fc69f2ae92"
+}

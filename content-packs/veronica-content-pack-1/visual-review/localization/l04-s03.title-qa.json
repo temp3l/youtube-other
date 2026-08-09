@@ -1,0 +1,96 @@
+{
+  "schemaVersion": "veronicabenini-title-transcreation-qa.v2",
+  "contentId": "L04-S03",
+  "locales": {
+    "en": {
+      "metadataTitle": "Make Other People Talk About Your Expertise",
+      "displayTitle": "Make Other People Talk About Your Expertise",
+      "displayLines": [
+        "Make Other People Talk",
+        "About Your Expertise"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "de": {
+      "metadataTitle": "Sorge dafür, dass andere über deine Expertise sprechen",
+      "displayTitle": "Sorge dafür, dass andere über deine Expertise sprechen",
+      "displayLines": [
+        "Sorge dafür, dass andere",
+        "über deine Expertise sprechen"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "medium",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": [
+        "overlay-fit-resolved-with-approved-display-layout"
+      ]
+    },
+    "it": {
+      "metadataTitle": "Fai parlare gli altri della tua competenza",
+      "displayTitle": "Fai parlare gli altri della tua competenza",
+      "displayLines": [
+        "Fai parlare gli altri",
+        "della tua competenza"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "fr": {
+      "metadataTitle": "Faites parler les autres de votre expertise",
+      "displayTitle": "Faites parler les autres de votre expertise",
+      "displayLines": [
+        "Faites parler les autres",
+        "de votre expertise"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "pt": {
+      "metadataTitle": "Faça outras pessoas falarem da sua competência",
+      "displayTitle": "Faça outras pessoas falarem da sua competência",
+      "displayLines": [
+        "Faça outras pessoas",
+        "falarem da sua competência"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    }
+  },
+  "sourceTitlesHash": "63c7ecec5c8303184b17ec800c22200c356833d5913d319a81698c4ac4c958e9",
+  "cacheKey": "eb323e5a2bcbe188e3e6b86e2c58abb7cd25e993acde83e2a4a31ee4c047f5b4",
+  "artifactHash": "bde40c59daffc1b1ca74878cc4b8df2e544ae3012790191055b1ab86c3ae6142"
+}

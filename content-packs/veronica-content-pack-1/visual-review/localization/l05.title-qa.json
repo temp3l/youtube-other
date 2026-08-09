@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "veronicabenini-title-transcreation-qa.v2",
+  "contentId": "L05",
+  "locales": {
+    "en": {
+      "metadataTitle": "How a Book Can Position You as an Expert",
+      "displayTitle": "How a Book Can Position You as an Expert",
+      "displayLines": [
+        "How a Book Can Position",
+        "You as an Expert"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "de": {
+      "metadataTitle": "Wie ein Buch dich als Expertin positionieren kann",
+      "displayTitle": "Wie ein Buch dich als Expertin positionieren kann",
+      "displayLines": [
+        "Wie ein Buch dich als",
+        "Expertin positionieren kann"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "it": {
+      "metadataTitle": "Come un libro può posizionarti come esperta",
+      "displayTitle": "Come un libro può posizionarti come esperta",
+      "displayLines": [
+        "Come un libro può",
+        "posizionarti come esperta"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "fr": {
+      "metadataTitle": "Comment un livre peut vous positionner comme experte",
+      "displayTitle": "Comment un livre peut vous positionner comme experte",
+      "displayLines": [
+        "Comment un livre peut vous",
+        "positionner comme experte"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "pt": {
+      "metadataTitle": "Como um livro pode posicionar você como especialista",
+      "displayTitle": "Como um livro pode posicionar você como especialista",
+      "displayLines": [
+        "Como um livro pode posicionar",
+        "você como especialista"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    }
+  },
+  "sourceTitlesHash": "6c9c9c593fb3be9d4df2086f6e2c33343819b49f8c1a87fa0249c1534dc48bd3",
+  "cacheKey": "472e32cd384c4ce2dbf6ddf5898afaed0a376c2d6fd55172e5bdc63c0ccabd3d",
+  "artifactHash": "e7049ad8c8255835c36170e571f9c25c21ace81bae27346bcf3b425fb5901531"
+}

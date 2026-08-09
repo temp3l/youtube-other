@@ -1,0 +1,1417 @@
+{
+  "schemaVersion": "veronicabenini-positioning-visual-plan.v2",
+  "plannerVersion": "veronicabenini-positioning-visual-planner.v2.1",
+  "contentId": "L05-S02",
+  "parentLongFormId": "L05",
+  "format": "short",
+  "aspectRatio": "9:16",
+  "canonicalNarrationSource": "shorts/en/l05-s02-dont-write-a-book-about-everything-you-know.md",
+  "canonicalSourceHash": "655f02195b6064b8352b5bfda9b5395b497efa59b0d48f5a92a4c3c8fc3068b0",
+  "sourceNarrationSemanticHash": "42d1fbb9a433b4c5d38f5649a0b41aae7fa258ef0d6ea7aa8bd448eedd7e7bc1",
+  "semanticBeatStructureHash": "9685f3e554cf5bb4cf4f14844fbe4f6d5a1110da49d60d57de467a21b8f6d68d",
+  "semanticPlanCacheKey": "e0069cca61f15e5c4b27a974816002630cb6489b11af8c0dbd9ead22319c6b54",
+  "canonicalImagePlanHash": "c3aeae188e5f4c7674159426aa06345fee437022f4f72f6e4121a72f83eb75da",
+  "renderEventPlanHash": "2c7f14c404056a2d783a7f1b23cf651d517a38f321759d148fba9f1259beb9c6",
+  "localizedTitleArtifact": {
+    "schemaVersion": "veronicabenini-title-transcreation-qa.v2",
+    "contentId": "L05-S02",
+    "locales": {
+      "en": {
+        "metadataTitle": "Don’t Write a Book About Everything You Know",
+        "displayTitle": "Don’t Write a Book About Everything You Know",
+        "displayLines": [
+          "Don’t Write a Book About",
+          "Everything You Know"
+        ],
+        "displayTitleDistinctFromMetadata": false,
+        "minimumFontScale": 1,
+        "naturalness": "reviewed-source",
+        "semanticPreservation": "pass",
+        "excessiveLength": false,
+        "sourceOverlayOverflowRisk": "low",
+        "overlayOverflowRisk": "low",
+        "awkwardLiteralTranslation": false,
+        "warnings": []
+      },
+      "de": {
+        "metadataTitle": "Schreib kein Buch über alles, was du weißt",
+        "displayTitle": "Schreib kein Buch über alles, was du weißt",
+        "displayLines": [
+          "Schreib kein Buch über",
+          "alles, was du weißt"
+        ],
+        "displayTitleDistinctFromMetadata": false,
+        "minimumFontScale": 1,
+        "naturalness": "reviewed-source",
+        "semanticPreservation": "pass",
+        "excessiveLength": false,
+        "sourceOverlayOverflowRisk": "low",
+        "overlayOverflowRisk": "low",
+        "awkwardLiteralTranslation": false,
+        "warnings": []
+      },
+      "it": {
+        "metadataTitle": "Non scrivere un libro su tutto ciò che sai",
+        "displayTitle": "Non scrivere un libro su tutto ciò che sai",
+        "displayLines": [
+          "Non scrivere un libro",
+          "su tutto ciò che sai"
+        ],
+        "displayTitleDistinctFromMetadata": false,
+        "minimumFontScale": 1,
+        "naturalness": "reviewed-source",
+        "semanticPreservation": "pass",
+        "excessiveLength": false,
+        "sourceOverlayOverflowRisk": "low",
+        "overlayOverflowRisk": "low",
+        "awkwardLiteralTranslation": false,
+        "warnings": []
+      },
+      "fr": {
+        "metadataTitle": "N’écrivez pas un livre sur tout ce que vous savez",
+        "displayTitle": "N’écrivez pas un livre sur tout ce que vous savez",
+        "displayLines": [
+          "N’écrivez pas un livre",
+          "sur tout ce que vous savez"
+        ],
+        "displayTitleDistinctFromMetadata": false,
+        "minimumFontScale": 1,
+        "naturalness": "reviewed-source",
+        "semanticPreservation": "pass",
+        "excessiveLength": false,
+        "sourceOverlayOverflowRisk": "low",
+        "overlayOverflowRisk": "low",
+        "awkwardLiteralTranslation": false,
+        "warnings": []
+      },
+      "pt": {
+        "metadataTitle": "Não escreva um livro sobre tudo o que você sabe",
+        "displayTitle": "Não escreva um livro sobre tudo o que você sabe",
+        "displayLines": [
+          "Não escreva um livro",
+          "sobre tudo o que você sabe"
+        ],
+        "displayTitleDistinctFromMetadata": false,
+        "minimumFontScale": 1,
+        "naturalness": "reviewed-source",
+        "semanticPreservation": "pass",
+        "excessiveLength": false,
+        "sourceOverlayOverflowRisk": "low",
+        "overlayOverflowRisk": "low",
+        "awkwardLiteralTranslation": false,
+        "warnings": []
+      }
+    },
+    "sourceTitlesHash": "0ac718c93afd383de92982f600955c1278da3849006b2c00fc49deea9df0cb81",
+    "cacheKey": "c7a73eb51ce601ac9d32903a0dfa197007fd0eb465d966fbf5fa9e2f44bc43ad",
+    "artifactHash": "0500302418e0a2fe2271864620897c8945daf7b4f33a90be8fe4ff30f94da897"
+  },
+  "visualVocabulary": {
+    "schemaVersion": "veronicabenini-positioning-visual-vocabulary.v1",
+    "episodeId": "L05",
+    "semanticDomains": [
+      "book-positioning",
+      "expertise-perceived-value",
+      "authority-recognition",
+      "content-positioning"
+    ],
+    "recurringMotifs": [
+      "manuscript-to-book-to-reader artifact lifecycle",
+      "visible evidence trails and consequential client choices",
+      "knowledge moving through stages, interviews, and recommendations",
+      "one core idea propagating across a physical media ecosystem"
+    ],
+    "environments": [
+      "author worktable",
+      "small print workshop",
+      "reader recommendation setting",
+      "case-study archive",
+      "client decision setting",
+      "active professional context",
+      "case-study archive",
+      "client decision setting",
+      "active professional context",
+      "editorial wall",
+      "podcast booth",
+      "multi-format production table"
+    ],
+    "materialPalette": [
+      "warm paper",
+      "coral accent",
+      "ink",
+      "glass",
+      "unfinished wood"
+    ],
+    "excludedCliches": [
+      "generic professional in office",
+      "laptop-at-desk pose",
+      "repeated notebook-and-cards staging",
+      "unmotivated business handshake"
+    ],
+    "sourceSemanticHash": "cab94325f0a0e9fcee75d931505f44ecb9f9fa23e558347936680b821c61aae6",
+    "cacheKey": "b361bfaa49990debb28b46b7ff6289f25327366471596e3fbe2a75b70902ba22",
+    "vocabularyHash": "a114a1f2420366b86eef34a4d20804da0fe16ff7e603e550ac7393fc69f2ae92"
+  },
+  "coldOpen": null,
+  "progression": [
+    "HOOK",
+    "PROOF",
+    "MANIFESTATION",
+    "REVERSAL",
+    "PAYOFF"
+  ],
+  "continuity": {
+    "mode": "ensemble-independent",
+    "variationDimensions": [
+      "age",
+      "gender-presentation",
+      "profession",
+      "environment",
+      "framing"
+    ],
+    "scenesShareIdentity": false
+  },
+  "scenes": [
+    {
+      "sceneId": "L05-S02-HOOK",
+      "progressionStage": "HOOK",
+      "narrationAnchor": "provocative-tension-unresolved-Don’t Write a Book About Everything You Know",
+      "startMs": 0,
+      "durationMs": 6000,
+      "treatment": {
+        "treatmentId": "l05-s02-hook-treatment",
+        "sceneId": "L05-S02-HOOK",
+        "progressionStage": "HOOK",
+        "narrativeBeat": "provocative-tension-unresolved-Don’t Write a Book About Everything You Know",
+        "communicationIntent": "create-tension",
+        "strategy": "product-object-still-life",
+        "subjectRequirement": "overbroad manuscript collapsing under accumulated topics",
+        "environment": "vertical editorial table overloaded by incompatible page stacks",
+        "composition": "top-heavy page tower compressing toward one viable focused spine",
+        "camera": "57mm oblique vertical still-life",
+        "lighting": "raking paper light with deep load-bearing shadows",
+        "action": "excess page stacks buckle until one focused volume remains",
+        "props": [
+          "overloaded manuscript tower and focused book block",
+          "discarded topic bundles"
+        ],
+        "motionOpportunities": [
+          "prop-detail",
+          "transition-state",
+          "punch-in"
+        ],
+        "diagram": null,
+        "grammar": {
+          "strategy": "product-object-still-life",
+          "subjectArchetype": "overbroad manuscript collapsing under accumulated topics",
+          "environment": "vertical editorial table overloaded by incompatible page stacks",
+          "composition": "top-heavy page tower compressing toward one viable focused spine",
+          "camera": "57mm oblique vertical still-life",
+          "props": [
+            "overloaded manuscript tower and focused book block",
+            "discarded topic bundles"
+          ],
+          "topology": "none",
+          "semanticTokens": [
+            "about",
+            "book",
+            "don",
+            "everything",
+            "know",
+            "provocative",
+            "tension",
+            "unresolved",
+            "write"
+          ],
+          "continuityIdentityId": null
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "product-object-still-life",
+          "subjectArchetype": "overbroad manuscript collapsing under accumulated topics",
+          "environmentArchetype": "vertical editorial table overloaded by incompatible page stacks",
+          "compositionArchetype": "top-heavy page tower compressing toward one viable focused spine",
+          "cameraArchetype": "57mm oblique vertical still-life",
+          "lightingArchetype": "raking paper light with deep load-bearing shadows",
+          "actionArchetype": "excess page stacks buckle until one focused volume remains",
+          "dominantObjectArchetype": "overloaded manuscript tower and focused book block",
+          "motionArchetype": "page-stack collapse into focused consolidation"
+        },
+        "treatmentHash": "06e9b8fb48813a3efd3805994728059f904cbaa68f10efd0c304fd9611b29a9a"
+      },
+      "overlayKey": "l05-s02.l05-s02-hook",
+      "assetId": "l05-s02-hook-base",
+      "eventIds": [
+        "l05-s02-hook-event-01",
+        "l05-s02-hook-event-02"
+      ]
+    },
+    {
+      "sceneId": "L05-S02-V01",
+      "progressionStage": "PROOF",
+      "narrationAnchor": "everything-book-confusion",
+      "startMs": 6000,
+      "durationMs": 8700,
+      "treatment": {
+        "treatmentId": "l05-s02-v01-treatment",
+        "sceneId": "L05-S02-V01",
+        "progressionStage": "PROOF",
+        "narrativeBeat": "everything-book-confusion",
+        "communicationIntent": "make-proof-visible",
+        "strategy": "product-object-still-life",
+        "subjectRequirement": "authority artifact with visible physical history; mid-career hospitality owner",
+        "environment": "editorial tabletop beside production materials; backstage production zone",
+        "composition": "top-down still life with diagonal artifact progression; left-to-right reveal path",
+        "camera": "50mm overhead copy-stand; elevated diagonal viewpoint",
+        "lighting": "warm raking artifact light",
+        "action": "observable proof accumulates toward trust",
+        "props": [
+          "manuscript pages",
+          "bound book",
+          "page tabs",
+          "book evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "diagram-build",
+          "highlighted-region",
+          "punch-in"
+        ],
+        "diagram": {
+          "diagramId": "l05-s02-v01-diagram",
+          "proposition": "everything-book-confusion",
+          "textFreeBackground": true,
+          "type": "cause-effect",
+          "causes": [
+            {
+              "id": "l05-s02-v01-diagram-cause-a",
+              "semanticRole": "cause-a",
+              "labelKey": "l05-s02-v01-diagram.cause-a"
+            },
+            {
+              "id": "l05-s02-v01-diagram-cause-b",
+              "semanticRole": "cause-b",
+              "labelKey": "l05-s02-v01-diagram.cause-b"
+            },
+            {
+              "id": "l05-s02-v01-diagram-cause-c",
+              "semanticRole": "cause-c",
+              "labelKey": "l05-s02-v01-diagram.cause-c"
+            }
+          ],
+          "effect": {
+            "id": "l05-s02-v01-diagram-consequence",
+            "semanticRole": "consequence",
+            "labelKey": "l05-s02-v01-diagram.consequence"
+          },
+          "edges": [
+            {
+              "from": "l05-s02-v01-diagram-cause-a",
+              "to": "l05-s02-v01-diagram-consequence",
+              "semanticRole": "causes"
+            },
+            {
+              "from": "l05-s02-v01-diagram-cause-b",
+              "to": "l05-s02-v01-diagram-consequence",
+              "semanticRole": "causes"
+            },
+            {
+              "from": "l05-s02-v01-diagram-cause-c",
+              "to": "l05-s02-v01-diagram-consequence",
+              "semanticRole": "causes"
+            }
+          ],
+          "overlayLabelKeys": [
+            "l05-s02-v01-diagram.cause-a",
+            "l05-s02-v01-diagram.cause-b",
+            "l05-s02-v01-diagram.cause-c",
+            "l05-s02-v01-diagram.consequence"
+          ]
+        },
+        "grammar": {
+          "strategy": "product-object-still-life",
+          "subjectArchetype": "authority artifact with visible physical history; mid-career hospitality owner",
+          "environment": "editorial tabletop beside production materials; backstage production zone",
+          "composition": "top-down still life with diagonal artifact progression; left-to-right reveal path",
+          "camera": "50mm overhead copy-stand; elevated diagonal viewpoint",
+          "props": [
+            "manuscript pages",
+            "bound book",
+            "page tabs",
+            "book evidence artifact"
+          ],
+          "topology": "cause-effect",
+          "semanticTokens": [
+            "book",
+            "confusion",
+            "everything"
+          ],
+          "continuityIdentityId": null
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "product-object-still-life",
+          "subjectArchetype": "authority artifact with visible physical history; mid-career hospitality owner",
+          "environmentArchetype": "editorial tabletop beside production materials; backstage production zone",
+          "compositionArchetype": "top-down still life with diagonal artifact progression; left-to-right reveal path",
+          "cameraArchetype": "50mm overhead copy-stand; elevated diagonal viewpoint",
+          "lightingArchetype": "warm raking artifact light",
+          "actionArchetype": "observable proof accumulates toward trust",
+          "dominantObjectArchetype": "manuscript pages",
+          "motionArchetype": "establishing-crop-then-diagram-build-then-highlighted-region-then-punch-in"
+        },
+        "treatmentHash": "2b9d8d6abfa865de28f001158f8efd8bded6ab86197e8c8092222b71a5cfb078"
+      },
+      "overlayKey": "l05-s02.l05-s02-v01",
+      "assetId": "l05-s02-v01-base",
+      "eventIds": [
+        "l05-s02-v01-event-01",
+        "l05-s02-v01-event-02"
+      ]
+    },
+    {
+      "sceneId": "L05-S02-V02",
+      "progressionStage": "MANIFESTATION",
+      "narrationAnchor": "focused-problem-reader",
+      "startMs": 14700,
+      "durationMs": 8700,
+      "treatment": {
+        "treatmentId": "l05-s02-v02-treatment",
+        "sceneId": "L05-S02-V02",
+        "progressionStage": "MANIFESTATION",
+        "narrativeBeat": "focused-problem-reader",
+        "communicationIntent": "show-consequence",
+        "strategy": "abstract-conceptual",
+        "subjectRequirement": "physical light, shadow, and material expressing an invisible idea; older technical consultant",
+        "environment": "architectural light laboratory; client point-of-decision zone",
+        "composition": "geometric negative-space study with one changing boundary; central void separating competing signals",
+        "camera": "90mm orthographic detail; subjective client viewpoint",
+        "lighting": "controlled graphic light with clear shape separation",
+        "action": "cause resolves into a visible consequence",
+        "props": [
+          "translucent planes",
+          "prism",
+          "shadow grid",
+          "focused evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "diagram-build",
+          "highlighted-region",
+          "punch-in"
+        ],
+        "diagram": {
+          "diagramId": "l05-s02-v02-diagram",
+          "proposition": "focused-problem-reader",
+          "textFreeBackground": true,
+          "type": "funnel",
+          "stages": [
+            {
+              "id": "l05-s02-v02-diagram-broad-market",
+              "semanticRole": "broad-market",
+              "labelKey": "l05-s02-v02-diagram.broad-market"
+            },
+            {
+              "id": "l05-s02-v02-diagram-qualified-segment",
+              "semanticRole": "qualified-segment",
+              "labelKey": "l05-s02-v02-diagram.qualified-segment"
+            },
+            {
+              "id": "l05-s02-v02-diagram-chosen-niche",
+              "semanticRole": "chosen-niche",
+              "labelKey": "l05-s02-v02-diagram.chosen-niche"
+            }
+          ],
+          "direction": "broad-to-narrow",
+          "overlayLabelKeys": [
+            "l05-s02-v02-diagram.broad-market",
+            "l05-s02-v02-diagram.qualified-segment",
+            "l05-s02-v02-diagram.chosen-niche"
+          ]
+        },
+        "grammar": {
+          "strategy": "abstract-conceptual",
+          "subjectArchetype": "physical light, shadow, and material expressing an invisible idea; older technical consultant",
+          "environment": "architectural light laboratory; client point-of-decision zone",
+          "composition": "geometric negative-space study with one changing boundary; central void separating competing signals",
+          "camera": "90mm orthographic detail; subjective client viewpoint",
+          "props": [
+            "translucent planes",
+            "prism",
+            "shadow grid",
+            "focused evidence artifact"
+          ],
+          "topology": "funnel",
+          "semanticTokens": [
+            "focused",
+            "problem",
+            "reader"
+          ],
+          "continuityIdentityId": null
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "abstract-conceptual",
+          "subjectArchetype": "physical light, shadow, and material expressing an invisible idea; older technical consultant",
+          "environmentArchetype": "architectural light laboratory; client point-of-decision zone",
+          "compositionArchetype": "geometric negative-space study with one changing boundary; central void separating competing signals",
+          "cameraArchetype": "90mm orthographic detail; subjective client viewpoint",
+          "lightingArchetype": "controlled graphic light with clear shape separation",
+          "actionArchetype": "cause resolves into a visible consequence",
+          "dominantObjectArchetype": "translucent planes",
+          "motionArchetype": "establishing-crop-then-diagram-build-then-highlighted-region-then-punch-in"
+        },
+        "treatmentHash": "a5fa926c5ebc3f72ae25e4c5e01e1ff1be202de7978e1fa119d2ed47d571d4aa"
+      },
+      "overlayKey": "l05-s02.l05-s02-v02",
+      "assetId": "l05-s02-v02-base",
+      "eventIds": [
+        "l05-s02-v02-event-01",
+        "l05-s02-v02-event-02"
+      ]
+    },
+    {
+      "sceneId": "L05-S02-V03",
+      "progressionStage": "REVERSAL",
+      "narrationAnchor": "deep-single-topic",
+      "startMs": 23400,
+      "durationMs": 8700,
+      "treatment": {
+        "treatmentId": "l05-s02-v03-treatment",
+        "sceneId": "L05-S02-V03",
+        "progressionStage": "REVERSAL",
+        "narrativeBeat": "deep-single-topic",
+        "communicationIntent": "explain-causality",
+        "strategy": "semantic-diagram",
+        "subjectRequirement": "unlabeled shapes with proposition-specific relationships; nonbinary creative director",
+        "environment": "warm-paper editorial diagram field; artifact archive zone",
+        "composition": "topology-led orthographic composition; occluded-to-visible information progression",
+        "camera": "orthographic graphic plane; lateral profile viewpoint",
+        "lighting": "controlled graphic light with clear shape separation",
+        "action": "multiple visible conditions produce one outcome",
+        "props": [
+          "semantic nodes",
+          "directional connectors",
+          "highlight region",
+          "deep evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "slow-push",
+          "subject-detail",
+          "transition-state"
+        ],
+        "diagram": null,
+        "grammar": {
+          "strategy": "semantic-diagram",
+          "subjectArchetype": "unlabeled shapes with proposition-specific relationships; nonbinary creative director",
+          "environment": "warm-paper editorial diagram field; artifact archive zone",
+          "composition": "topology-led orthographic composition; occluded-to-visible information progression",
+          "camera": "orthographic graphic plane; lateral profile viewpoint",
+          "props": [
+            "semantic nodes",
+            "directional connectors",
+            "highlight region",
+            "deep evidence artifact"
+          ],
+          "topology": "none",
+          "semanticTokens": [
+            "deep",
+            "single",
+            "topic"
+          ],
+          "continuityIdentityId": null
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "semantic-diagram",
+          "subjectArchetype": "unlabeled shapes with proposition-specific relationships; nonbinary creative director",
+          "environmentArchetype": "warm-paper editorial diagram field; artifact archive zone",
+          "compositionArchetype": "topology-led orthographic composition; occluded-to-visible information progression",
+          "cameraArchetype": "orthographic graphic plane; lateral profile viewpoint",
+          "lightingArchetype": "controlled graphic light with clear shape separation",
+          "actionArchetype": "multiple visible conditions produce one outcome",
+          "dominantObjectArchetype": "semantic nodes",
+          "motionArchetype": "establishing-crop-then-slow-push-then-subject-detail-then-transition-state"
+        },
+        "treatmentHash": "55258033ab39d6e95d9c6f3e78e0850cbfee2614fe6bab6c7fa34917f46bc9b6"
+      },
+      "overlayKey": "l05-s02.l05-s02-v03",
+      "assetId": "l05-s02-v03-base",
+      "eventIds": [
+        "l05-s02-v03-event-01",
+        "l05-s02-v03-event-02"
+      ]
+    },
+    {
+      "sceneId": "L05-S02-V04",
+      "progressionStage": "PAYOFF",
+      "narrationAnchor": "easy-recommendation",
+      "startMs": 32100,
+      "durationMs": 8700,
+      "treatment": {
+        "treatmentId": "l05-s02-v04-treatment",
+        "sceneId": "L05-S02-V04",
+        "progressionStage": "PAYOFF",
+        "narrativeBeat": "easy-recommendation",
+        "communicationIntent": "deliver-payoff",
+        "strategy": "social-interaction",
+        "subjectRequirement": "peer recommending a specialist to another decision maker; woman-led retail founder",
+        "environment": "event foyer, café queue, or backstage conversation; peer-referral setting",
+        "composition": "over-shoulder conversational triangle; near-far contrast between choice and result",
+        "camera": "65mm candid eye-line compression; compressed distant observation",
+        "lighting": "natural public-space practical light",
+        "action": "the final visual state resolves the proposition",
+        "props": [
+          "shared artifact",
+          "phone shown without UI",
+          "easy evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "slow-push",
+          "subject-detail",
+          "transition-state"
+        ],
+        "diagram": null,
+        "grammar": {
+          "strategy": "social-interaction",
+          "subjectArchetype": "peer recommending a specialist to another decision maker; woman-led retail founder",
+          "environment": "event foyer, café queue, or backstage conversation; peer-referral setting",
+          "composition": "over-shoulder conversational triangle; near-far contrast between choice and result",
+          "camera": "65mm candid eye-line compression; compressed distant observation",
+          "props": [
+            "shared artifact",
+            "phone shown without UI",
+            "easy evidence artifact"
+          ],
+          "topology": "none",
+          "semanticTokens": [
+            "easy",
+            "recommendation"
+          ],
+          "continuityIdentityId": null
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "social-interaction",
+          "subjectArchetype": "peer recommending a specialist to another decision maker; woman-led retail founder",
+          "environmentArchetype": "event foyer, café queue, or backstage conversation; peer-referral setting",
+          "compositionArchetype": "over-shoulder conversational triangle; near-far contrast between choice and result",
+          "cameraArchetype": "65mm candid eye-line compression; compressed distant observation",
+          "lightingArchetype": "natural public-space practical light",
+          "actionArchetype": "the final visual state resolves the proposition",
+          "dominantObjectArchetype": "shared artifact",
+          "motionArchetype": "establishing-crop-then-slow-push-then-subject-detail-then-transition-state"
+        },
+        "treatmentHash": "5ac1e393d989f29f5052195d52d58327eed0a06a67c60ea7f4e522d810005986"
+      },
+      "overlayKey": "l05-s02.l05-s02-v04",
+      "assetId": "l05-s02-v04-base",
+      "eventIds": [
+        "l05-s02-v04-event-01",
+        "l05-s02-v04-event-02"
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "assetId": "l05-s02-hook-base",
+      "contentId": "L05-S02",
+      "sceneId": "L05-S02-HOOK",
+      "semanticPurpose": "provocative-tension-unresolved-Don’t Write a Book About Everything You Know",
+      "strategy": "product-object-still-life",
+      "prompt": "Text-free 9:16 product-object-still-life treatment for provocative tension unresolved Don’t Write a Book About Everything You Know. Communication intent: create-tension. Subject: overbroad manuscript collapsing under accumulated topics. Environment: vertical editorial table overloaded by incompatible page stacks. Composition: top-heavy page tower compressing toward one viable focused spine. Camera: 57mm oblique vertical still-life. Props: overloaded manuscript tower and focused book block, discarded topic bundles. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "9:16",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "subject-aware-crop",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "protected subject and overlay regions survive a subject-aware derivative"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "native composition"
+        }
+      ],
+      "subjectIdentityId": null,
+      "referenceAssetId": null,
+      "semanticFingerprint": "0d759599669b7b9825b41289c9054da3ca37939b357120f3ec48c60b70b08cbc",
+      "generatedAssetCacheKey": "45cecfe6ce45134c1896a53d7875ddd615f3acf3dbe76b23de16ec11896644f0"
+    },
+    {
+      "assetId": "l05-s02-v01-base",
+      "contentId": "L05-S02",
+      "sceneId": "L05-S02-V01",
+      "semanticPurpose": "everything-book-confusion",
+      "strategy": "product-object-still-life",
+      "prompt": "Text-free 9:16 product-object-still-life treatment for everything book confusion. Communication intent: make-proof-visible. Subject: authority artifact with visible physical history; mid-career hospitality owner. Environment: editorial tabletop beside production materials; backstage production zone. Composition: top-down still life with diagonal artifact progression; left-to-right reveal path. Camera: 50mm overhead copy-stand; elevated diagonal viewpoint. Props: manuscript pages, bound book, page tabs, book evidence artifact. Proposition-specific cause-effect structure with 4 separately rendered label anchors. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "9:16",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "subject-aware-crop",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "protected subject and overlay regions survive a subject-aware derivative"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "native composition"
+        }
+      ],
+      "subjectIdentityId": null,
+      "referenceAssetId": null,
+      "semanticFingerprint": "d0dfb69400e99204eb38a854417cee59404266d998cf6a1466c3576ce1718af5",
+      "generatedAssetCacheKey": "cd91d8f2d45595277048a8c92d950ef9a3b82ebe763a22d972042508b64f909d"
+    },
+    {
+      "assetId": "l05-s02-v02-base",
+      "contentId": "L05-S02",
+      "sceneId": "L05-S02-V02",
+      "semanticPurpose": "focused-problem-reader",
+      "strategy": "abstract-conceptual",
+      "prompt": "Text-free 9:16 abstract-conceptual treatment for focused problem reader. Communication intent: show-consequence. Subject: physical light, shadow, and material expressing an invisible idea; older technical consultant. Environment: architectural light laboratory; client point-of-decision zone. Composition: geometric negative-space study with one changing boundary; central void separating competing signals. Camera: 90mm orthographic detail; subjective client viewpoint. Props: translucent planes, prism, shadow grid, focused evidence artifact. Proposition-specific funnel structure with 3 separately rendered label anchors. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "9:16",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "subject-aware-crop",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "protected subject and overlay regions survive a subject-aware derivative"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "native composition"
+        }
+      ],
+      "subjectIdentityId": null,
+      "referenceAssetId": null,
+      "semanticFingerprint": "9c8697e65bba9c53fe2950459eef27c1d2a7551c8449dac68d687c5c6e7b6c2d",
+      "generatedAssetCacheKey": "c187cd8c5ef5239bafa504fddcaae7f0df09143d0bcae8bc8833d0035675485c"
+    },
+    {
+      "assetId": "l05-s02-v03-base",
+      "contentId": "L05-S02",
+      "sceneId": "L05-S02-V03",
+      "semanticPurpose": "deep-single-topic",
+      "strategy": "semantic-diagram",
+      "prompt": "Text-free 9:16 semantic-diagram treatment for deep single topic. Communication intent: explain-causality. Subject: unlabeled shapes with proposition-specific relationships; nonbinary creative director. Environment: warm-paper editorial diagram field; artifact archive zone. Composition: topology-led orthographic composition; occluded-to-visible information progression. Camera: orthographic graphic plane; lateral profile viewpoint. Props: semantic nodes, directional connectors, highlight region, deep evidence artifact. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "9:16",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "subject-aware-crop",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "protected subject and overlay regions survive a subject-aware derivative"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "native composition"
+        }
+      ],
+      "subjectIdentityId": null,
+      "referenceAssetId": null,
+      "semanticFingerprint": "cf865e703005d98340ab6d27042a43b9a0dabb7ab74f01ce31bcda27eef58fbe",
+      "generatedAssetCacheKey": "f00871b080d1939da40748ef3e77d2bec42cf60af64a9dd9e0dc4fa9b3f6de33"
+    },
+    {
+      "assetId": "l05-s02-v04-base",
+      "contentId": "L05-S02",
+      "sceneId": "L05-S02-V04",
+      "semanticPurpose": "easy-recommendation",
+      "strategy": "social-interaction",
+      "prompt": "Text-free 9:16 social-interaction treatment for easy recommendation. Communication intent: deliver-payoff. Subject: peer recommending a specialist to another decision maker; woman-led retail founder. Environment: event foyer, café queue, or backstage conversation; peer-referral setting. Composition: over-shoulder conversational triangle; near-far contrast between choice and result. Camera: 65mm candid eye-line compression; compressed distant observation. Props: shared artifact, phone shown without UI, easy evidence artifact. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "9:16",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "subject-aware-crop",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "protected subject and overlay regions survive a subject-aware derivative"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "native composition"
+        }
+      ],
+      "subjectIdentityId": null,
+      "referenceAssetId": null,
+      "semanticFingerprint": "ce47ecca7011e9a6a7ddab122ea7e8e94da1c977a6b987e1b20bbd0bf4e81569",
+      "generatedAssetCacheKey": "e2a0420d1389da27623c5224013d9fb0a5c0c950cb9bd4cb0501a701e1ab7d2b"
+    }
+  ],
+  "visualEvents": [
+    {
+      "eventId": "l05-s02-hook-event-01",
+      "sceneId": "L05-S02-HOOK",
+      "assetId": "l05-s02-hook-base",
+      "kind": "prop-detail",
+      "startMs": 0,
+      "durationMs": 3000,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "prop"
+      },
+      "renderCacheKey": "45de57a95e3d4137f077b697abab97b48ba5c2ed78289630a27d44a3665a0391"
+    },
+    {
+      "eventId": "l05-s02-hook-event-02",
+      "sceneId": "L05-S02-HOOK",
+      "assetId": "l05-s02-hook-base",
+      "kind": "transition-state",
+      "startMs": 3000,
+      "durationMs": 3000,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "41c9b0dae2972c43e1c194b59758f7ae23db6e9223bbc6115ae0c47141a7712b"
+    },
+    {
+      "eventId": "l05-s02-v01-event-01",
+      "sceneId": "L05-S02-V01",
+      "assetId": "l05-s02-v01-base",
+      "kind": "establishing-crop",
+      "startMs": 6000,
+      "durationMs": 4350,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "5dbd64e745e8930220c350a1fc3bcdb98bc4ae80a6f694b82d007a6c31781dd9"
+    },
+    {
+      "eventId": "l05-s02-v01-event-02",
+      "sceneId": "L05-S02-V01",
+      "assetId": "l05-s02-v01-base",
+      "kind": "diagram-build",
+      "startMs": 10350,
+      "durationMs": 4350,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "7c2ce702486da9df3ba602f8e785c2ec0ed57024212a76ee2ea9cbf2dd00c43d"
+    },
+    {
+      "eventId": "l05-s02-v02-event-01",
+      "sceneId": "L05-S02-V02",
+      "assetId": "l05-s02-v02-base",
+      "kind": "establishing-crop",
+      "startMs": 14700,
+      "durationMs": 4350,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "38922d062c92f8e1d768a2f8702b8f17d56c5a93fc9b35888a3be832d9d604e9"
+    },
+    {
+      "eventId": "l05-s02-v02-event-02",
+      "sceneId": "L05-S02-V02",
+      "assetId": "l05-s02-v02-base",
+      "kind": "diagram-build",
+      "startMs": 19050,
+      "durationMs": 4350,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "c6d6ce109c6b4f7a619a6ddd28ad13f3b571817f425b2f45eeb2e3700b0a8f43"
+    },
+    {
+      "eventId": "l05-s02-v03-event-01",
+      "sceneId": "L05-S02-V03",
+      "assetId": "l05-s02-v03-base",
+      "kind": "establishing-crop",
+      "startMs": 23400,
+      "durationMs": 4350,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "3483f79cf9291d47d38fe2be8c8ce804aa13e03173c39b76da96dcef47d8ac14"
+    },
+    {
+      "eventId": "l05-s02-v03-event-02",
+      "sceneId": "L05-S02-V03",
+      "assetId": "l05-s02-v03-base",
+      "kind": "slow-push",
+      "startMs": 27750,
+      "durationMs": 4350,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "93bd1fa08c14fd25d6fd62b7290ed80f966c657a0426d54d56c9c292398619cd"
+    },
+    {
+      "eventId": "l05-s02-v04-event-01",
+      "sceneId": "L05-S02-V04",
+      "assetId": "l05-s02-v04-base",
+      "kind": "establishing-crop",
+      "startMs": 32100,
+      "durationMs": 4350,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "570737d2e56dfaa62da08f49c2b6e584f4141678fe3921e8921df9f1b54810ed"
+    },
+    {
+      "eventId": "l05-s02-v04-event-02",
+      "sceneId": "L05-S02-V04",
+      "assetId": "l05-s02-v04-base",
+      "kind": "slow-push",
+      "startMs": 36450,
+      "durationMs": 4350,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "48b6e1317f5d2c3702e36a50652e189f2ea9e434284d144032b2806a5bcdee9f"
+    }
+  ],
+  "diagrams": [
+    {
+      "diagramId": "l05-s02-v01-diagram",
+      "proposition": "everything-book-confusion",
+      "textFreeBackground": true,
+      "type": "cause-effect",
+      "causes": [
+        {
+          "id": "l05-s02-v01-diagram-cause-a",
+          "semanticRole": "cause-a",
+          "labelKey": "l05-s02-v01-diagram.cause-a"
+        },
+        {
+          "id": "l05-s02-v01-diagram-cause-b",
+          "semanticRole": "cause-b",
+          "labelKey": "l05-s02-v01-diagram.cause-b"
+        },
+        {
+          "id": "l05-s02-v01-diagram-cause-c",
+          "semanticRole": "cause-c",
+          "labelKey": "l05-s02-v01-diagram.cause-c"
+        }
+      ],
+      "effect": {
+        "id": "l05-s02-v01-diagram-consequence",
+        "semanticRole": "consequence",
+        "labelKey": "l05-s02-v01-diagram.consequence"
+      },
+      "edges": [
+        {
+          "from": "l05-s02-v01-diagram-cause-a",
+          "to": "l05-s02-v01-diagram-consequence",
+          "semanticRole": "causes"
+        },
+        {
+          "from": "l05-s02-v01-diagram-cause-b",
+          "to": "l05-s02-v01-diagram-consequence",
+          "semanticRole": "causes"
+        },
+        {
+          "from": "l05-s02-v01-diagram-cause-c",
+          "to": "l05-s02-v01-diagram-consequence",
+          "semanticRole": "causes"
+        }
+      ],
+      "overlayLabelKeys": [
+        "l05-s02-v01-diagram.cause-a",
+        "l05-s02-v01-diagram.cause-b",
+        "l05-s02-v01-diagram.cause-c",
+        "l05-s02-v01-diagram.consequence"
+      ]
+    },
+    {
+      "diagramId": "l05-s02-v02-diagram",
+      "proposition": "focused-problem-reader",
+      "textFreeBackground": true,
+      "type": "funnel",
+      "stages": [
+        {
+          "id": "l05-s02-v02-diagram-broad-market",
+          "semanticRole": "broad-market",
+          "labelKey": "l05-s02-v02-diagram.broad-market"
+        },
+        {
+          "id": "l05-s02-v02-diagram-qualified-segment",
+          "semanticRole": "qualified-segment",
+          "labelKey": "l05-s02-v02-diagram.qualified-segment"
+        },
+        {
+          "id": "l05-s02-v02-diagram-chosen-niche",
+          "semanticRole": "chosen-niche",
+          "labelKey": "l05-s02-v02-diagram.chosen-niche"
+        }
+      ],
+      "direction": "broad-to-narrow",
+      "overlayLabelKeys": [
+        "l05-s02-v02-diagram.broad-market",
+        "l05-s02-v02-diagram.qualified-segment",
+        "l05-s02-v02-diagram.chosen-niche"
+      ]
+    }
+  ],
+  "assetReuseDecisions": [
+    {
+      "sourceAssetId": "l05-cold_open-base",
+      "sourceContentId": "L05",
+      "targetContentId": "L05-S02",
+      "targetSceneId": "L05-S02-HOOK",
+      "eligible": true,
+      "reuseMode": "vertical-derivative",
+      "cropAdaptation": "subject-aware-crop",
+      "semanticCompatibility": 0.4923,
+      "reason": "semantic purpose, continuity, and protected crop regions are compatible"
+    },
+    {
+      "sourceAssetId": "l05-v01-base",
+      "sourceContentId": "L05",
+      "targetContentId": "L05-S02",
+      "targetSceneId": "L05-S02-V01",
+      "eligible": true,
+      "reuseMode": "vertical-derivative",
+      "cropAdaptation": "subject-aware-crop",
+      "semanticCompatibility": 0.52,
+      "reason": "semantic purpose, continuity, and protected crop regions are compatible"
+    },
+    {
+      "sourceAssetId": "l05-v06-base",
+      "sourceContentId": "L05",
+      "targetContentId": "L05-S02",
+      "targetSceneId": "L05-S02-V02",
+      "eligible": false,
+      "reuseMode": "not-reusable",
+      "cropAdaptation": "none",
+      "semanticCompatibility": 0.12,
+      "reason": "semantic-purpose-insufficiently-compatible"
+    },
+    {
+      "sourceAssetId": "l05-v03-base",
+      "sourceContentId": "L05",
+      "targetContentId": "L05-S02",
+      "targetSceneId": "L05-S02-V03",
+      "eligible": true,
+      "reuseMode": "vertical-derivative",
+      "cropAdaptation": "subject-aware-crop",
+      "semanticCompatibility": 0.52,
+      "reason": "semantic purpose, continuity, and protected crop regions are compatible"
+    },
+    {
+      "sourceAssetId": "l05-v07-base",
+      "sourceContentId": "L05",
+      "targetContentId": "L05-S02",
+      "targetSceneId": "L05-S02-V04",
+      "eligible": true,
+      "reuseMode": "vertical-derivative",
+      "cropAdaptation": "subject-aware-crop",
+      "semanticCompatibility": 0.4,
+      "reason": "semantic purpose, continuity, and protected crop regions are compatible"
+    }
+  ],
+  "diversityMetrics": {
+    "visualGrammarDuplicateRate": 0,
+    "subjectArchetypeDuplicateRate": 0,
+    "environmentDuplicateRate": 0,
+    "compositionDuplicateRate": 0,
+    "cameraDuplicateRate": 0,
+    "propDuplicateRate": 0,
+    "diagramTopologyDuplicateRate": 0,
+    "consecutiveSceneSimilarity": {
+      "mean": 0.0709,
+      "maximum": 0.1417,
+      "violatingPairs": []
+    },
+    "hookVsScene1Similarity": 0.1417,
+    "status": "pass",
+    "failures": []
+  },
+  "cadenceMetrics": {
+    "durationMs": 40800,
+    "baseAssetCount": 5,
+    "visualEventCount": 10,
+    "eventsPerBaseAsset": 2,
+    "meanSecondsPerEvent": 4.08,
+    "shortestEventSeconds": 3,
+    "longestEventSeconds": 4.35,
+    "targetRangeSeconds": [
+      3,
+      7
+    ],
+    "targetComplianceRate": 1,
+    "hookMeanSecondsPerEvent": 3
+  },
+  "localizationCompatibility": {
+    "locales": [
+      "en",
+      "de",
+      "it",
+      "fr",
+      "pt"
+    ],
+    "canonicalImageryLocale": "en",
+    "textInGeneratedImage": false,
+    "translationInvalidatesCanonicalImagery": false,
+    "overlaysRenderedSeparately": true
+  },
+  "productionCoverage": {
+    "ctaEndScreenPlacement": "planned",
+    "motionTreatment": "planned",
+    "overlayStrategy": "planned",
+    "musicSfx": "unsupported-not-planned",
+    "thumbnail": {
+      "concept": "manuscript-to-book-to-reader artifact lifecycle; one legible tension, no generic portrait",
+      "titleRelationship": "thumbnail visualizes the consequence or contradiction; title supplies the claim",
+      "localeStrategy": "text-free-image-localized-overlay"
+    }
+  },
+  "cacheInvalidation": {
+    "semanticPlanInvalidatesOn": [
+      "canonical-narrative-semantic-change",
+      "semantic-beat-structure-change",
+      "visual-vocabulary-change",
+      "planner-algorithm-version-change"
+    ],
+    "canonicalImageInvalidatesOn": [
+      "semantic-plan-change",
+      "image-provider-or-model-change",
+      "prompt-contract-change"
+    ],
+    "titleQaInvalidatesOn": [
+      "localized-title-change",
+      "title-qa-version-change"
+    ],
+    "renderEventsInvalidateOn": [
+      "semantic-plan-change",
+      "ffmpeg-renderer-version-change",
+      "timing-change"
+    ]
+  },
+  "migration": {
+    "legacyV1Plan": "inspect-only-replan-required",
+    "legacyAssetReuse": "eligible-only-after-semantic-fingerprint-match"
+  },
+  "validation": {
+    "status": "pass",
+    "failures": []
+  },
+  "planHash": "0f6ed09181109bf8e2c9fa71d21962ee9e50c5d6c62cd2b7e00343006670b972"
+}

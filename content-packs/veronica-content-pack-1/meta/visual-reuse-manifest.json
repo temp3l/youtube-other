@@ -1,0 +1,1399 @@
+{
+  "schemaVersion": 2,
+  "seriesId": "positioning-series-v2-optimized",
+  "canonicalLocale": "en",
+  "locales": {
+    "en": "English",
+    "de": "German",
+    "it": "Italian",
+    "fr": "French",
+    "pt": "Portuguese (Brazilian-leaning neutral)"
+  },
+  "contentCounts": {
+    "long": 6,
+    "short": 18,
+    "localizedNarrations": 120
+  },
+  "visualReuse": {
+    "principle": "Generate each contentId visual asset set once from the canonical English semantic plan and reuse it for every locale.",
+    "regenerateVisualsForLocalization": false,
+    "embeddedTextInGeneratedImages": "forbidden",
+    "localizedText": "render-time overlays/subtitles only",
+    "timing": "Align localized TTS to the same semantic visual-beat order; vary still-image hold duration and trim/loop reusable motion scenes rather than regenerating assets.",
+    "localeSpecificVisuals": "Only if a future localization introduces materially different cultural or factual content; current pack does not."
+  },
+  "contents": [
+    {
+      "contentId": "L01",
+      "format": "long",
+      "canonicalLocale": "en",
+      "locales": [
+        "en",
+        "de",
+        "it",
+        "fr",
+        "pt"
+      ],
+      "titles": {
+        "en": "Why Better Experts Still Lose Clients",
+        "de": "Warum bessere Fachleute trotzdem Kunden verlieren",
+        "it": "Perché anche i professionisti migliori perdono clienti",
+        "fr": "Pourquoi les meilleurs experts perdent quand même des clients",
+        "pt": "Por que até bons especialistas perdem clientes"
+      },
+      "narrationFiles": {
+        "en": "long/en/01-why-being-good-at-your-job-isnt-enough.md",
+        "de": "long/de/01-why-being-good-at-your-job-isnt-enough.md",
+        "it": "long/it/01-why-being-good-at-your-job-isnt-enough.md",
+        "fr": "long/fr/01-why-being-good-at-your-job-isnt-enough.md",
+        "pt": "long/pt/01-why-being-good-at-your-job-isnt-enough.md"
+      },
+      "visualAssetKey": "L01-VISUALS-v2",
+      "visualBeats": [
+        {
+          "sceneId": "L01-V01",
+          "concept": "real-expertise-invisible"
+        },
+        {
+          "sceneId": "L01-V02",
+          "concept": "customer-perception"
+        },
+        {
+          "sceneId": "L01-V03",
+          "concept": "specialist-vs-generalist"
+        },
+        {
+          "sceneId": "L01-V04",
+          "concept": "customer-mental-category"
+        },
+        {
+          "sceneId": "L01-V05",
+          "concept": "coherent-brand-signals"
+        },
+        {
+          "sceneId": "L01-V06",
+          "concept": "perceived-value"
+        },
+        {
+          "sceneId": "L01-V07",
+          "concept": "positioning-self-test"
+        }
+      ],
+      "visualPolicy": {
+        "generateOnce": true,
+        "generatedFromLocale": "en",
+        "embeddedText": false,
+        "localizeTextAtRender": true,
+        "timing": "retime-scene-holds-to-localized-narration"
+      }
+    },
+    {
+      "contentId": "L02",
+      "format": "long",
+      "canonicalLocale": "en",
+      "locales": [
+        "en",
+        "de",
+        "it",
+        "fr",
+        "pt"
+      ],
+      "titles": {
+        "en": "Why Trying to Sell to Everyone Makes You Invisible",
+        "de": "Warum du unsichtbar wirst, wenn du an alle verkaufen willst",
+        "it": "Perché cercare di vendere a tutti ti rende invisibile",
+        "fr": "Pourquoi vouloir vendre à tout le monde vous rend invisible",
+        "pt": "Por que tentar vender para todo mundo torna você invisível"
+      },
+      "narrationFiles": {
+        "en": "long/en/02-how-to-find-your-niche-without-making-yourself-too-small.md",
+        "de": "long/de/02-how-to-find-your-niche-without-making-yourself-too-small.md",
+        "it": "long/it/02-how-to-find-your-niche-without-making-yourself-too-small.md",
+        "fr": "long/fr/02-how-to-find-your-niche-without-making-yourself-too-small.md",
+        "pt": "long/pt/02-how-to-find-your-niche-without-making-yourself-too-small.md"
+      },
+      "visualAssetKey": "L02-VISUALS-v2",
+      "visualBeats": [
+        {
+          "sceneId": "L02-V01",
+          "concept": "broad-market-vs-niche"
+        },
+        {
+          "sceneId": "L02-V02",
+          "concept": "ideal-customer-context"
+        },
+        {
+          "sceneId": "L02-V03",
+          "concept": "niche-and-subniche"
+        },
+        {
+          "sceneId": "L02-V04",
+          "concept": "generic-vs-specific-message"
+        },
+        {
+          "sceneId": "L02-V05",
+          "concept": "problem-recognition"
+        },
+        {
+          "sceneId": "L02-V06",
+          "concept": "market-problem-solution"
+        },
+        {
+          "sceneId": "L02-V07",
+          "concept": "niche-content-boundaries"
+        },
+        {
+          "sceneId": "L02-V08",
+          "concept": "specificity-test"
+        }
+      ],
+      "visualPolicy": {
+        "generateOnce": true,
+        "generatedFromLocale": "en",
+        "embeddedText": false,
+        "localizeTextAtRender": true,
+        "timing": "retime-scene-holds-to-localized-narration"
+      }
+    },
+    {
+      "contentId": "L03",
+      "format": "long",
+      "canonicalLocale": "en",
+      "locales": [
+        "en",
+        "de",
+        "it",
+        "fr",
+        "pt"
+      ],
+      "titles": {
+        "en": "How to Become Known as an Expert When Nobody Knows You Yet",
+        "de": "Wie du als Expertin bekannt wirst, wenn dich noch niemand kennt",
+        "it": "Come farti conoscere come esperta quando nessuno ti conosce ancora",
+        "fr": "Comment devenir reconnue comme experte quand personne ne vous connaît encore",
+        "pt": "Como se tornar conhecida como especialista quando ninguém conhece você ainda"
+      },
+      "narrationFiles": {
+        "en": "long/en/03-how-to-position-yourself-as-an-expert-from-zero.md",
+        "de": "long/de/03-how-to-position-yourself-as-an-expert-from-zero.md",
+        "it": "long/it/03-how-to-position-yourself-as-an-expert-from-zero.md",
+        "fr": "long/fr/03-how-to-position-yourself-as-an-expert-from-zero.md",
+        "pt": "long/pt/03-how-to-position-yourself-as-an-expert-from-zero.md"
+      },
+      "visualAssetKey": "L03-VISUALS-v2",
+      "visualBeats": [
+        {
+          "sceneId": "L03-V01",
+          "concept": "new-professional-identity"
+        },
+        {
+          "sceneId": "L03-V02",
+          "concept": "recognition-gap"
+        },
+        {
+          "sceneId": "L03-V03",
+          "concept": "coherent-touchpoints"
+        },
+        {
+          "sceneId": "L03-V04",
+          "concept": "content-as-evidence"
+        },
+        {
+          "sceneId": "L03-V05",
+          "concept": "industry-context"
+        },
+        {
+          "sceneId": "L03-V06",
+          "concept": "focused-offer"
+        },
+        {
+          "sceneId": "L03-V07",
+          "concept": "past-to-new-role-bridge"
+        },
+        {
+          "sceneId": "L03-V08",
+          "concept": "recognition-through-repetition"
+        },
+        {
+          "sceneId": "L03-V09",
+          "concept": "starter-checklist"
+        }
+      ],
+      "visualPolicy": {
+        "generateOnce": true,
+        "generatedFromLocale": "en",
+        "embeddedText": false,
+        "localizeTextAtRender": true,
+        "timing": "retime-scene-holds-to-localized-narration"
+      }
+    },
+    {
+      "contentId": "L04",
+      "format": "long",
+      "canonicalLocale": "en",
+      "locales": [
+        "en",
+        "de",
+        "it",
+        "fr",
+        "pt"
+      ],
+      "titles": {
+        "en": "Stop Posting Randomly: Build Content People Remember",
+        "de": "Hör auf, wahllos zu posten: Erstelle Content, den man sich merkt",
+        "it": "Smetti di pubblicare a caso: crea contenuti che restano impressi",
+        "fr": "Arrêtez de publier au hasard : créez du contenu qu’on retient",
+        "pt": "Pare de postar sem direção: crie conteúdo que as pessoas lembram"
+      },
+      "narrationFiles": {
+        "en": "long/en/04-the-content-strategy-that-makes-people-remember-you.md",
+        "de": "long/de/04-the-content-strategy-that-makes-people-remember-you.md",
+        "it": "long/it/04-the-content-strategy-that-makes-people-remember-you.md",
+        "fr": "long/fr/04-the-content-strategy-that-makes-people-remember-you.md",
+        "pt": "long/pt/04-the-content-strategy-that-makes-people-remember-you.md"
+      },
+      "visualAssetKey": "L04-VISUALS-v2",
+      "visualBeats": [
+        {
+          "sceneId": "L04-V01",
+          "concept": "content-as-memory-system"
+        },
+        {
+          "sceneId": "L04-V02",
+          "concept": "recognizable-topic-territory"
+        },
+        {
+          "sceneId": "L04-V03",
+          "concept": "interviews-and-adjacent-audiences"
+        },
+        {
+          "sceneId": "L04-V04",
+          "concept": "knowledge-distribution"
+        },
+        {
+          "sceneId": "L04-V05",
+          "concept": "topic-name-knowledge-loop"
+        },
+        {
+          "sceneId": "L04-V06",
+          "concept": "viral-vs-recognition"
+        },
+        {
+          "sceneId": "L04-V07",
+          "concept": "random-content-confusion"
+        },
+        {
+          "sceneId": "L04-V08",
+          "concept": "multi-format-same-position"
+        },
+        {
+          "sceneId": "L04-V09",
+          "concept": "content-system"
+        }
+      ],
+      "visualPolicy": {
+        "generateOnce": true,
+        "generatedFromLocale": "en",
+        "embeddedText": false,
+        "localizeTextAtRender": true,
+        "timing": "retime-scene-holds-to-localized-narration"
+      }
+    },
+    {
+      "contentId": "L05",
+      "format": "long",
+      "canonicalLocale": "en",
+      "locales": [
+        "en",
+        "de",
+        "it",
+        "fr",
+        "pt"
+      ],
+      "titles": {
+        "en": "How a Book Can Position You as an Expert",
+        "de": "Wie ein Buch dich als Expertin positionieren kann",
+        "it": "Come un libro può posizionarti come esperta",
+        "fr": "Comment un livre peut vous positionner comme experte",
+        "pt": "Como um livro pode posicionar você como especialista"
+      },
+      "narrationFiles": {
+        "en": "long/en/05-why-writing-a-book-can-make-you-the-expert.md",
+        "de": "long/de/05-why-writing-a-book-can-make-you-the-expert.md",
+        "it": "long/it/05-why-writing-a-book-can-make-you-the-expert.md",
+        "fr": "long/fr/05-why-writing-a-book-can-make-you-the-expert.md",
+        "pt": "long/pt/05-why-writing-a-book-can-make-you-the-expert.md"
+      },
+      "visualAssetKey": "L05-VISUALS-v2",
+      "visualBeats": [
+        {
+          "sceneId": "L05-V01",
+          "concept": "book-as-authority-object"
+        },
+        {
+          "sceneId": "L05-V02",
+          "concept": "publisher-independent-book"
+        },
+        {
+          "sceneId": "L05-V03",
+          "concept": "expertise-topic-intersection"
+        },
+        {
+          "sceneId": "L05-V04",
+          "concept": "professional-story"
+        },
+        {
+          "sceneId": "L05-V05",
+          "concept": "book-content-ecosystem"
+        },
+        {
+          "sceneId": "L05-V06",
+          "concept": "broad-vs-focused-book"
+        },
+        {
+          "sceneId": "L05-V07",
+          "concept": "recommendable-topic-association"
+        },
+        {
+          "sceneId": "L05-V08",
+          "concept": "book-positioning-test"
+        }
+      ],
+      "visualPolicy": {
+        "generateOnce": true,
+        "generatedFromLocale": "en",
+        "embeddedText": false,
+        "localizeTextAtRender": true,
+        "timing": "retime-scene-holds-to-localized-narration"
+      }
+    },
+    {
+      "contentId": "L06",
+      "format": "long",
+      "canonicalLocale": "en",
+      "locales": [
+        "en",
+        "de",
+        "it",
+        "fr",
+        "pt"
+      ],
+      "titles": {
+        "en": "Your Business Changed. Your Audience Didn't.",
+        "de": "Dein Business hat sich verändert. Dein Publikum noch nicht.",
+        "it": "Il tuo business è cambiato. Il pubblico non ancora.",
+        "fr": "Votre activité a changé. Votre audience, pas encore.",
+        "pt": "Seu negócio mudou. Seu público ainda não."
+      },
+      "narrationFiles": {
+        "en": "long/en/06-how-to-reposition-yourself-when-your-business-changes.md",
+        "de": "long/de/06-how-to-reposition-yourself-when-your-business-changes.md",
+        "it": "long/it/06-how-to-reposition-yourself-when-your-business-changes.md",
+        "fr": "long/fr/06-how-to-reposition-yourself-when-your-business-changes.md",
+        "pt": "long/pt/06-how-to-reposition-yourself-when-your-business-changes.md"
+      },
+      "visualAssetKey": "L06-VISUALS-v2",
+      "visualBeats": [
+        {
+          "sceneId": "L06-V01",
+          "concept": "old-position-new-offer-conflict"
+        },
+        {
+          "sceneId": "L06-V02",
+          "concept": "existing-market-association"
+        },
+        {
+          "sceneId": "L06-V03",
+          "concept": "define-new-position"
+        },
+        {
+          "sceneId": "L06-V04",
+          "concept": "bridge-old-to-new"
+        },
+        {
+          "sceneId": "L06-V05",
+          "concept": "new-evidence-content"
+        },
+        {
+          "sceneId": "L06-V06",
+          "concept": "old-and-new-overlap"
+        },
+        {
+          "sceneId": "L06-V07",
+          "concept": "repositioning-as-memory-change"
+        },
+        {
+          "sceneId": "L06-V08",
+          "concept": "market-language-shift"
+        }
+      ],
+      "visualPolicy": {
+        "generateOnce": true,
+        "generatedFromLocale": "en",
+        "embeddedText": false,
+        "localizeTextAtRender": true,
+        "timing": "retime-scene-holds-to-localized-narration"
+      }
+    },
+    {
+      "contentId": "L01-S01",
+      "format": "short",
+      "parentContentId": "L01",
+      "canonicalLocale": "en",
+      "locales": [
+        "en",
+        "de",
+        "it",
+        "fr",
+        "pt"
+      ],
+      "titles": {
+        "en": "Being Good Isn’t Enough",
+        "de": "Gut zu sein reicht nicht",
+        "it": "Essere bravi non basta",
+        "fr": "Être bon ne suffit pas",
+        "pt": "Ser bom não basta"
+      },
+      "narrationFiles": {
+        "en": "shorts/en/l01-s01-being-good-isnt-enough.md",
+        "de": "shorts/de/l01-s01-being-good-isnt-enough.md",
+        "it": "shorts/it/l01-s01-being-good-isnt-enough.md",
+        "fr": "shorts/fr/l01-s01-being-good-isnt-enough.md",
+        "pt": "shorts/pt/l01-s01-being-good-isnt-enough.md"
+      },
+      "visualAssetKey": "L01-S01-VISUALS-v2",
+      "visualBeats": [
+        {
+          "sceneId": "L01-S01-V01",
+          "concept": "skilled-professional-overlooked"
+        },
+        {
+          "sceneId": "L01-S01-V02",
+          "concept": "customer-visible-signals"
+        },
+        {
+          "sceneId": "L01-S01-V03",
+          "concept": "expertise-vs-perception"
+        },
+        {
+          "sceneId": "L01-S01-V04",
+          "concept": "expertise-made-visible"
+        }
+      ],
+      "visualPolicy": {
+        "generateOnce": true,
+        "generatedFromLocale": "en",
+        "embeddedText": false,
+        "localizeTextAtRender": true,
+        "timing": "retime-scene-holds-to-localized-narration"
+      }
+    },
+    {
+      "contentId": "L01-S02",
+      "format": "short",
+      "parentContentId": "L01",
+      "canonicalLocale": "en",
+      "locales": [
+        "en",
+        "de",
+        "it",
+        "fr",
+        "pt"
+      ],
+      "titles": {
+        "en": "Skill Won’t Fix This Positioning Problem",
+        "de": "Mehr Können löst dieses Positionierungsproblem nicht",
+        "it": "Più competenza non risolve questo problema di posizionamento",
+        "fr": "Plus de compétence ne résout pas ce problème de positionnement",
+        "pt": "Mais habilidade não resolve este problema de posicionamento"
+      },
+      "narrationFiles": {
+        "en": "shorts/en/l01-s02-expertise-vs-perception.md",
+        "de": "shorts/de/l01-s02-expertise-vs-perception.md",
+        "it": "shorts/it/l01-s02-expertise-vs-perception.md",
+        "fr": "shorts/fr/l01-s02-expertise-vs-perception.md",
+        "pt": "shorts/pt/l01-s02-expertise-vs-perception.md"
+      },
+      "visualAssetKey": "L01-S02-VISUALS-v2",
+      "visualBeats": [
+        {
+          "sceneId": "L01-S02-V01",
+          "concept": "real-expertise"
+        },
+        {
+          "sceneId": "L01-S02-V02",
+          "concept": "customer-mental-model"
+        },
+        {
+          "sceneId": "L01-S02-V03",
+          "concept": "coherent-evidence-signals"
+        },
+        {
+          "sceneId": "L01-S02-V04",
+          "concept": "market-sees-value"
+        }
+      ],
+      "visualPolicy": {
+        "generateOnce": true,
+        "generatedFromLocale": "en",
+        "embeddedText": false,
+        "localizeTextAtRender": true,
+        "timing": "retime-scene-holds-to-localized-narration"
+      }
+    },
+    {
+      "contentId": "L01-S03",
+      "format": "short",
+      "parentContentId": "L01",
+      "canonicalLocale": "en",
+      "locales": [
+        "en",
+        "de",
+        "it",
+        "fr",
+        "pt"
+      ],
+      "titles": {
+        "en": "What Do People Remember You For?",
+        "de": "Wofür erinnern sich Menschen an dich?",
+        "it": "Per cosa ti ricordano le persone?",
+        "fr": "Pour quoi les gens se souviennent-ils de vous ?",
+        "pt": "Pelo que as pessoas lembram de você?"
+      },
+      "narrationFiles": {
+        "en": "shorts/en/l01-s03-what-do-people-remember-you-for.md",
+        "de": "shorts/de/l01-s03-what-do-people-remember-you-for.md",
+        "it": "shorts/it/l01-s03-what-do-people-remember-you-for.md",
+        "fr": "shorts/fr/l01-s03-what-do-people-remember-you-for.md",
+        "pt": "shorts/pt/l01-s03-what-do-people-remember-you-for.md"
+      },
+      "visualAssetKey": "L01-S03-VISUALS-v2",
+      "visualBeats": [
+        {
+          "sceneId": "L01-S03-V01",
+          "concept": "desired-position"
+        },
+        {
+          "sceneId": "L01-S03-V02",
+          "concept": "external-perception-test"
+        },
+        {
+          "sceneId": "L01-S03-V03",
+          "concept": "gap-between-intent-and-memory"
+        },
+        {
+          "sceneId": "L01-S03-V04",
+          "concept": "problem-triggers-name"
+        }
+      ],
+      "visualPolicy": {
+        "generateOnce": true,
+        "generatedFromLocale": "en",
+        "embeddedText": false,
+        "localizeTextAtRender": true,
+        "timing": "retime-scene-holds-to-localized-narration"
+      }
+    },
+    {
+      "contentId": "L02-S01",
+      "format": "short",
+      "parentContentId": "L02",
+      "canonicalLocale": "en",
+      "locales": [
+        "en",
+        "de",
+        "it",
+        "fr",
+        "pt"
+      ],
+      "titles": {
+        "en": "Trying to Sell to Everyone Is the Problem",
+        "de": "An alle verkaufen zu wollen ist das Problem",
+        "it": "Cercare di vendere a tutti è il problema",
+        "fr": "Vouloir vendre à tout le monde est le problème",
+        "pt": "Tentar vender para todo mundo é o problema"
+      },
+      "narrationFiles": {
+        "en": "shorts/en/l02-s01-selling-to-everyone-is-the-problem.md",
+        "de": "shorts/de/l02-s01-selling-to-everyone-is-the-problem.md",
+        "it": "shorts/it/l02-s01-selling-to-everyone-is-the-problem.md",
+        "fr": "shorts/fr/l02-s01-selling-to-everyone-is-the-problem.md",
+        "pt": "shorts/pt/l02-s01-selling-to-everyone-is-the-problem.md"
+      },
+      "visualAssetKey": "L02-S01-VISUALS-v2",
+      "visualBeats": [
+        {
+          "sceneId": "L02-S01-V01",
+          "concept": "everyone-message"
+        },
+        {
+          "sceneId": "L02-S01-V02",
+          "concept": "different-customer-needs"
+        },
+        {
+          "sceneId": "L02-S01-V03",
+          "concept": "niche-recognition"
+        },
+        {
+          "sceneId": "L02-S01-V04",
+          "concept": "specificity-advantage"
+        }
+      ],
+      "visualPolicy": {
+        "generateOnce": true,
+        "generatedFromLocale": "en",
+        "embeddedText": false,
+        "localizeTextAtRender": true,
+        "timing": "retime-scene-holds-to-localized-narration"
+      }
+    },
+    {
+      "contentId": "L02-S02",
+      "format": "short",
+      "parentContentId": "L02",
+      "canonicalLocale": "en",
+      "locales": [
+        "en",
+        "de",
+        "it",
+        "fr",
+        "pt"
+      ],
+      "titles": {
+        "en": "Why a Smaller Niche Can Make You Bigger",
+        "de": "Warum eine kleinere Nische dich größer machen kann",
+        "it": "Perché una nicchia più piccola può farti crescere",
+        "fr": "Pourquoi une niche plus petite peut vous faire grandir",
+        "pt": "Por que um nicho menor pode fazer você crescer"
+      },
+      "narrationFiles": {
+        "en": "shorts/en/l02-s02-why-smaller-niches-can-make-you-bigger.md",
+        "de": "shorts/de/l02-s02-why-smaller-niches-can-make-you-bigger.md",
+        "it": "shorts/it/l02-s02-why-smaller-niches-can-make-you-bigger.md",
+        "fr": "shorts/fr/l02-s02-why-smaller-niches-can-make-you-bigger.md",
+        "pt": "shorts/pt/l02-s02-why-smaller-niches-can-make-you-bigger.md"
+      },
+      "visualAssetKey": "L02-S02-VISUALS-v2",
+      "visualBeats": [
+        {
+          "sceneId": "L02-S02-V01",
+          "concept": "fear-of-small-niche"
+        },
+        {
+          "sceneId": "L02-S02-V02",
+          "concept": "specific-niche-memory"
+        },
+        {
+          "sceneId": "L02-S02-V03",
+          "concept": "expand-from-strong-position"
+        },
+        {
+          "sceneId": "L02-S02-V04",
+          "concept": "niche-as-foothold"
+        }
+      ],
+      "visualPolicy": {
+        "generateOnce": true,
+        "generatedFromLocale": "en",
+        "embeddedText": false,
+        "localizeTextAtRender": true,
+        "timing": "retime-scene-holds-to-localized-narration"
+      }
+    },
+    {
+      "contentId": "L02-S03",
+      "format": "short",
+      "parentContentId": "L02",
+      "canonicalLocale": "en",
+      "locales": [
+        "en",
+        "de",
+        "it",
+        "fr",
+        "pt"
+      ],
+      "titles": {
+        "en": "The 3-Question Positioning Test",
+        "de": "Der Positionierungs-Test mit 3 Fragen",
+        "it": "Il test di posizionamento in 3 domande",
+        "fr": "Le test de positionnement en 3 questions",
+        "pt": "O teste de posicionamento em 3 perguntas"
+      },
+      "narrationFiles": {
+        "en": "shorts/en/l02-s03-market-problem-solution-test.md",
+        "de": "shorts/de/l02-s03-market-problem-solution-test.md",
+        "it": "shorts/it/l02-s03-market-problem-solution-test.md",
+        "fr": "shorts/fr/l02-s03-market-problem-solution-test.md",
+        "pt": "shorts/pt/l02-s03-market-problem-solution-test.md"
+      },
+      "visualAssetKey": "L02-S03-VISUALS-v2",
+      "visualBeats": [
+        {
+          "sceneId": "L02-S03-V01",
+          "concept": "market"
+        },
+        {
+          "sceneId": "L02-S03-V02",
+          "concept": "problem"
+        },
+        {
+          "sceneId": "L02-S03-V03",
+          "concept": "solution"
+        },
+        {
+          "sceneId": "L02-S03-V04",
+          "concept": "three-part-alignment"
+        }
+      ],
+      "visualPolicy": {
+        "generateOnce": true,
+        "generatedFromLocale": "en",
+        "embeddedText": false,
+        "localizeTextAtRender": true,
+        "timing": "retime-scene-holds-to-localized-narration"
+      }
+    },
+    {
+      "contentId": "L03-S01",
+      "format": "short",
+      "parentContentId": "L03",
+      "canonicalLocale": "en",
+      "locales": [
+        "en",
+        "de",
+        "it",
+        "fr",
+        "pt"
+      ],
+      "titles": {
+        "en": "You Can’t Just Call Yourself an Expert",
+        "de": "Du kannst dich nicht einfach Expertin nennen",
+        "it": "Non basta definirti esperta",
+        "fr": "Il ne suffit pas de vous déclarer experte",
+        "pt": "Não basta se chamar de especialista"
+      },
+      "narrationFiles": {
+        "en": "shorts/en/l03-s01-you-cant-just-call-yourself-an-expert.md",
+        "de": "shorts/de/l03-s01-you-cant-just-call-yourself-an-expert.md",
+        "it": "shorts/it/l03-s01-you-cant-just-call-yourself-an-expert.md",
+        "fr": "shorts/fr/l03-s01-you-cant-just-call-yourself-an-expert.md",
+        "pt": "shorts/pt/l03-s01-you-cant-just-call-yourself-an-expert.md"
+      },
+      "visualAssetKey": "L03-S01-VISUALS-v2",
+      "visualBeats": [
+        {
+          "sceneId": "L03-S01-V01",
+          "concept": "expert-label"
+        },
+        {
+          "sceneId": "L03-S01-V02",
+          "concept": "evidence-signals"
+        },
+        {
+          "sceneId": "L03-S01-V03",
+          "concept": "coherent-touchpoints"
+        },
+        {
+          "sceneId": "L03-S01-V04",
+          "concept": "others-call-you-expert"
+        }
+      ],
+      "visualPolicy": {
+        "generateOnce": true,
+        "generatedFromLocale": "en",
+        "embeddedText": false,
+        "localizeTextAtRender": true,
+        "timing": "retime-scene-holds-to-localized-narration"
+      }
+    },
+    {
+      "contentId": "L03-S02",
+      "format": "short",
+      "parentContentId": "L03",
+      "canonicalLocale": "en",
+      "locales": [
+        "en",
+        "de",
+        "it",
+        "fr",
+        "pt"
+      ],
+      "titles": {
+        "en": "Starting From Zero? Build These 3 Signals",
+        "de": "Start bei null? Baue zuerst diese 3 Signale",
+        "it": "Parti da zero? Costruisci prima questi 3 segnali",
+        "fr": "Vous partez de zéro ? Construisez ces 3 signaux",
+        "pt": "Começando do zero? Construa estes 3 sinais"
+      },
+      "narrationFiles": {
+        "en": "shorts/en/l03-s02-three-signals-to-build-from-zero.md",
+        "de": "shorts/de/l03-s02-three-signals-to-build-from-zero.md",
+        "it": "shorts/it/l03-s02-three-signals-to-build-from-zero.md",
+        "fr": "shorts/fr/l03-s02-three-signals-to-build-from-zero.md",
+        "pt": "shorts/pt/l03-s02-three-signals-to-build-from-zero.md"
+      },
+      "visualAssetKey": "L03-S02-VISUALS-v2",
+      "visualBeats": [
+        {
+          "sceneId": "L03-S02-V01",
+          "concept": "clear-offer"
+        },
+        {
+          "sceneId": "L03-S02-V02",
+          "concept": "useful-content"
+        },
+        {
+          "sceneId": "L03-S02-V03",
+          "concept": "relevant-context"
+        },
+        {
+          "sceneId": "L03-S02-V04",
+          "concept": "alignment-over-volume"
+        }
+      ],
+      "visualPolicy": {
+        "generateOnce": true,
+        "generatedFromLocale": "en",
+        "embeddedText": false,
+        "localizeTextAtRender": true,
+        "timing": "retime-scene-holds-to-localized-narration"
+      }
+    },
+    {
+      "contentId": "L03-S03",
+      "format": "short",
+      "parentContentId": "L03",
+      "canonicalLocale": "en",
+      "locales": [
+        "en",
+        "de",
+        "it",
+        "fr",
+        "pt"
+      ],
+      "titles": {
+        "en": "Your Website Has Five Seconds",
+        "de": "Deine Website hat fünf Sekunden",
+        "it": "Il tuo sito ha cinque secondi",
+        "fr": "Votre site a cinq secondes",
+        "pt": "Seu site tem cinco segundos"
+      },
+      "narrationFiles": {
+        "en": "shorts/en/l03-s03-your-website-has-five-seconds.md",
+        "de": "shorts/de/l03-s03-your-website-has-five-seconds.md",
+        "it": "shorts/it/l03-s03-your-website-has-five-seconds.md",
+        "fr": "shorts/fr/l03-s03-your-website-has-five-seconds.md",
+        "pt": "shorts/pt/l03-s03-your-website-has-five-seconds.md"
+      },
+      "visualAssetKey": "L03-S03-VISUALS-v2",
+      "visualBeats": [
+        {
+          "sceneId": "L03-S03-V01",
+          "concept": "website-first-impression"
+        },
+        {
+          "sceneId": "L03-S03-V02",
+          "concept": "who-problem-fit"
+        },
+        {
+          "sceneId": "L03-S03-V03",
+          "concept": "clear-category"
+        },
+        {
+          "sceneId": "L03-S03-V04",
+          "concept": "simple-coherent-site"
+        }
+      ],
+      "visualPolicy": {
+        "generateOnce": true,
+        "generatedFromLocale": "en",
+        "embeddedText": false,
+        "localizeTextAtRender": true,
+        "timing": "retime-scene-holds-to-localized-narration"
+      }
+    },
+    {
+      "contentId": "L04-S01",
+      "format": "short",
+      "parentContentId": "L04",
+      "canonicalLocale": "en",
+      "locales": [
+        "en",
+        "de",
+        "it",
+        "fr",
+        "pt"
+      ],
+      "titles": {
+        "en": "Stop Posting Random Content",
+        "de": "Hör auf, wahllos Content zu posten",
+        "it": "Smetti di pubblicare contenuti a caso",
+        "fr": "Arrêtez de publier du contenu au hasard",
+        "pt": "Pare de postar conteúdo sem direção"
+      },
+      "narrationFiles": {
+        "en": "shorts/en/l04-s01-stop-posting-random-content.md",
+        "de": "shorts/de/l04-s01-stop-posting-random-content.md",
+        "it": "shorts/it/l04-s01-stop-posting-random-content.md",
+        "fr": "shorts/fr/l04-s01-stop-posting-random-content.md",
+        "pt": "shorts/pt/l04-s01-stop-posting-random-content.md"
+      },
+      "visualAssetKey": "L04-S01-VISUALS-v2",
+      "visualBeats": [
+        {
+          "sceneId": "L04-S01-V01",
+          "concept": "random-content"
+        },
+        {
+          "sceneId": "L04-S01-V02",
+          "concept": "core-expertise"
+        },
+        {
+          "sceneId": "L04-S01-V03",
+          "concept": "problem-angle-matrix"
+        },
+        {
+          "sceneId": "L04-S01-V04",
+          "concept": "cumulative-content"
+        }
+      ],
+      "visualPolicy": {
+        "generateOnce": true,
+        "generatedFromLocale": "en",
+        "embeddedText": false,
+        "localizeTextAtRender": true,
+        "timing": "retime-scene-holds-to-localized-narration"
+      }
+    },
+    {
+      "contentId": "L04-S02",
+      "format": "short",
+      "parentContentId": "L04",
+      "canonicalLocale": "en",
+      "locales": [
+        "en",
+        "de",
+        "it",
+        "fr",
+        "pt"
+      ],
+      "titles": {
+        "en": "The Goal Is Recognition, Not Views",
+        "de": "Das Ziel ist Wiedererkennung, nicht Views",
+        "it": "L’obiettivo è il riconoscimento, non le visualizzazioni",
+        "fr": "Le but, c’est la reconnaissance, pas les vues",
+        "pt": "O objetivo é reconhecimento, não visualizações"
+      },
+      "narrationFiles": {
+        "en": "shorts/en/l04-s02-the-goal-is-recognition-not-views.md",
+        "de": "shorts/de/l04-s02-the-goal-is-recognition-not-views.md",
+        "it": "shorts/it/l04-s02-the-goal-is-recognition-not-views.md",
+        "fr": "shorts/fr/l04-s02-the-goal-is-recognition-not-views.md",
+        "pt": "shorts/pt/l04-s02-the-goal-is-recognition-not-views.md"
+      },
+      "visualAssetKey": "L04-S02-VISUALS-v2",
+      "visualBeats": [
+        {
+          "sceneId": "L04-S02-V01",
+          "concept": "viral-attention"
+        },
+        {
+          "sceneId": "L04-S02-V02",
+          "concept": "topic-name-knowledge"
+        },
+        {
+          "sceneId": "L04-S02-V03",
+          "concept": "recognition-vs-views"
+        },
+        {
+          "sceneId": "L04-S02-V04",
+          "concept": "right-memory"
+        }
+      ],
+      "visualPolicy": {
+        "generateOnce": true,
+        "generatedFromLocale": "en",
+        "embeddedText": false,
+        "localizeTextAtRender": true,
+        "timing": "retime-scene-holds-to-localized-narration"
+      }
+    },
+    {
+      "contentId": "L04-S03",
+      "format": "short",
+      "parentContentId": "L04",
+      "canonicalLocale": "en",
+      "locales": [
+        "en",
+        "de",
+        "it",
+        "fr",
+        "pt"
+      ],
+      "titles": {
+        "en": "Make Other People Talk About Your Expertise",
+        "de": "Sorge dafür, dass andere über deine Expertise sprechen",
+        "it": "Fai parlare gli altri della tua competenza",
+        "fr": "Faites parler les autres de votre expertise",
+        "pt": "Faça outras pessoas falarem da sua competência"
+      },
+      "narrationFiles": {
+        "en": "shorts/en/l04-s03-make-other-people-talk-about-your-expertise.md",
+        "de": "shorts/de/l04-s03-make-other-people-talk-about-your-expertise.md",
+        "it": "shorts/it/l04-s03-make-other-people-talk-about-your-expertise.md",
+        "fr": "shorts/fr/l04-s03-make-other-people-talk-about-your-expertise.md",
+        "pt": "shorts/pt/l04-s03-make-other-people-talk-about-your-expertise.md"
+      },
+      "visualAssetKey": "L04-S03-VISUALS-v2",
+      "visualBeats": [
+        {
+          "sceneId": "L04-S03-V01",
+          "concept": "recommendation-without-you"
+        },
+        {
+          "sceneId": "L04-S03-V02",
+          "concept": "shareable-expertise"
+        },
+        {
+          "sceneId": "L04-S03-V03",
+          "concept": "problem-name-association"
+        },
+        {
+          "sceneId": "L04-S03-V04",
+          "concept": "positioning-becomes-reputation"
+        }
+      ],
+      "visualPolicy": {
+        "generateOnce": true,
+        "generatedFromLocale": "en",
+        "embeddedText": false,
+        "localizeTextAtRender": true,
+        "timing": "retime-scene-holds-to-localized-narration"
+      }
+    },
+    {
+      "contentId": "L05-S01",
+      "format": "short",
+      "parentContentId": "L05",
+      "canonicalLocale": "en",
+      "locales": [
+        "en",
+        "de",
+        "it",
+        "fr",
+        "pt"
+      ],
+      "titles": {
+        "en": "You Don’t Need a Publisher to Build Authority",
+        "de": "Du brauchst keinen Verlag, um Autorität aufzubauen",
+        "it": "Non ti serve un editore per costruire autorevolezza",
+        "fr": "Vous n’avez pas besoin d’un éditeur pour construire votre autorité",
+        "pt": "Você não precisa de editora para construir autoridade"
+      },
+      "narrationFiles": {
+        "en": "shorts/en/l05-s01-you-dont-need-a-publisher.md",
+        "de": "shorts/de/l05-s01-you-dont-need-a-publisher.md",
+        "it": "shorts/it/l05-s01-you-dont-need-a-publisher.md",
+        "fr": "shorts/fr/l05-s01-you-dont-need-a-publisher.md",
+        "pt": "shorts/pt/l05-s01-you-dont-need-a-publisher.md"
+      },
+      "visualAssetKey": "L05-S01-VISUALS-v2",
+      "visualBeats": [
+        {
+          "sceneId": "L05-S01-V01",
+          "concept": "book-without-big-publisher"
+        },
+        {
+          "sceneId": "L05-S01-V02",
+          "concept": "organized-expertise"
+        },
+        {
+          "sceneId": "L05-S01-V03",
+          "concept": "book-as-shareable-evidence"
+        },
+        {
+          "sceneId": "L05-S01-V04",
+          "concept": "visible-authority"
+        }
+      ],
+      "visualPolicy": {
+        "generateOnce": true,
+        "generatedFromLocale": "en",
+        "embeddedText": false,
+        "localizeTextAtRender": true,
+        "timing": "retime-scene-holds-to-localized-narration"
+      }
+    },
+    {
+      "contentId": "L05-S02",
+      "format": "short",
+      "parentContentId": "L05",
+      "canonicalLocale": "en",
+      "locales": [
+        "en",
+        "de",
+        "it",
+        "fr",
+        "pt"
+      ],
+      "titles": {
+        "en": "Don’t Write a Book About Everything You Know",
+        "de": "Schreib kein Buch über alles, was du weißt",
+        "it": "Non scrivere un libro su tutto ciò che sai",
+        "fr": "N’écrivez pas un livre sur tout ce que vous savez",
+        "pt": "Não escreva um livro sobre tudo o que você sabe"
+      },
+      "narrationFiles": {
+        "en": "shorts/en/l05-s02-dont-write-a-book-about-everything-you-know.md",
+        "de": "shorts/de/l05-s02-dont-write-a-book-about-everything-you-know.md",
+        "it": "shorts/it/l05-s02-dont-write-a-book-about-everything-you-know.md",
+        "fr": "shorts/fr/l05-s02-dont-write-a-book-about-everything-you-know.md",
+        "pt": "shorts/pt/l05-s02-dont-write-a-book-about-everything-you-know.md"
+      },
+      "visualAssetKey": "L05-S02-VISUALS-v2",
+      "visualBeats": [
+        {
+          "sceneId": "L05-S02-V01",
+          "concept": "everything-book-confusion"
+        },
+        {
+          "sceneId": "L05-S02-V02",
+          "concept": "focused-problem-reader"
+        },
+        {
+          "sceneId": "L05-S02-V03",
+          "concept": "deep-single-topic"
+        },
+        {
+          "sceneId": "L05-S02-V04",
+          "concept": "easy-recommendation"
+        }
+      ],
+      "visualPolicy": {
+        "generateOnce": true,
+        "generatedFromLocale": "en",
+        "embeddedText": false,
+        "localizeTextAtRender": true,
+        "timing": "retime-scene-holds-to-localized-narration"
+      }
+    },
+    {
+      "contentId": "L05-S03",
+      "format": "short",
+      "parentContentId": "L05",
+      "canonicalLocale": "en",
+      "locales": [
+        "en",
+        "de",
+        "it",
+        "fr",
+        "pt"
+      ],
+      "titles": {
+        "en": "One Book Can Become Months of Content",
+        "de": "Ein Buch kann zu Monaten voller Content werden",
+        "it": "Un libro può diventare mesi di contenuti",
+        "fr": "Un livre peut devenir des mois de contenu",
+        "pt": "Um livro pode virar meses de conteúdo"
+      },
+      "narrationFiles": {
+        "en": "shorts/en/l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+        "de": "shorts/de/l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+        "it": "shorts/it/l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+        "fr": "shorts/fr/l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+        "pt": "shorts/pt/l05-s03-one-book-can-become-fifty-pieces-of-content.md"
+      },
+      "visualAssetKey": "L05-S03-VISUALS-v2",
+      "visualBeats": [
+        {
+          "sceneId": "L05-S03-V01",
+          "concept": "book-content-engine"
+        },
+        {
+          "sceneId": "L05-S03-V02",
+          "concept": "chapter-to-shorts"
+        },
+        {
+          "sceneId": "L05-S03-V03",
+          "concept": "argument-to-article"
+        },
+        {
+          "sceneId": "L05-S03-V04",
+          "concept": "coherent-multi-format-knowledge"
+        }
+      ],
+      "visualPolicy": {
+        "generateOnce": true,
+        "generatedFromLocale": "en",
+        "embeddedText": false,
+        "localizeTextAtRender": true,
+        "timing": "retime-scene-holds-to-localized-narration"
+      }
+    },
+    {
+      "contentId": "L06-S01",
+      "format": "short",
+      "parentContentId": "L06",
+      "canonicalLocale": "en",
+      "locales": [
+        "en",
+        "de",
+        "it",
+        "fr",
+        "pt"
+      ],
+      "titles": {
+        "en": "Your Audience Remembers the Old You",
+        "de": "Dein Publikum erinnert sich an dein altes Ich",
+        "it": "Il pubblico ricorda ancora la vecchia te",
+        "fr": "Votre audience se souvient encore de l’ancienne version de vous",
+        "pt": "Seu público ainda lembra da versão antiga de você"
+      },
+      "narrationFiles": {
+        "en": "shorts/en/l06-s01-your-audience-remembers-the-old-you.md",
+        "de": "shorts/de/l06-s01-your-audience-remembers-the-old-you.md",
+        "it": "shorts/it/l06-s01-your-audience-remembers-the-old-you.md",
+        "fr": "shorts/fr/l06-s01-your-audience-remembers-the-old-you.md",
+        "pt": "shorts/pt/l06-s01-your-audience-remembers-the-old-you.md"
+      },
+      "visualAssetKey": "L06-S01-VISUALS-v2",
+      "visualBeats": [
+        {
+          "sceneId": "L06-S01-V01",
+          "concept": "business-changed-audience-memory"
+        },
+        {
+          "sceneId": "L06-S01-V02",
+          "concept": "old-category"
+        },
+        {
+          "sceneId": "L06-S01-V03",
+          "concept": "new-offer"
+        },
+        {
+          "sceneId": "L06-S01-V04",
+          "concept": "new-association"
+        }
+      ],
+      "visualPolicy": {
+        "generateOnce": true,
+        "generatedFromLocale": "en",
+        "embeddedText": false,
+        "localizeTextAtRender": true,
+        "timing": "retime-scene-holds-to-localized-narration"
+      }
+    },
+    {
+      "contentId": "L06-S02",
+      "format": "short",
+      "parentContentId": "L06",
+      "canonicalLocale": "en",
+      "locales": [
+        "en",
+        "de",
+        "it",
+        "fr",
+        "pt"
+      ],
+      "titles": {
+        "en": "Changing Your Bio Isn’t Repositioning",
+        "de": "Eine neue Bio ist noch keine Repositionierung",
+        "it": "Cambiare la bio non è riposizionarsi",
+        "fr": "Changer votre bio n’est pas vous repositionner",
+        "pt": "Mudar a bio não é reposicionamento"
+      },
+      "narrationFiles": {
+        "en": "shorts/en/l06-s02-changing-your-bio-isnt-repositioning.md",
+        "de": "shorts/de/l06-s02-changing-your-bio-isnt-repositioning.md",
+        "it": "shorts/it/l06-s02-changing-your-bio-isnt-repositioning.md",
+        "fr": "shorts/fr/l06-s02-changing-your-bio-isnt-repositioning.md",
+        "pt": "shorts/pt/l06-s02-changing-your-bio-isnt-repositioning.md"
+      },
+      "visualAssetKey": "L06-S02-VISUALS-v2",
+      "visualBeats": [
+        {
+          "sceneId": "L06-S02-V01",
+          "concept": "bio-change"
+        },
+        {
+          "sceneId": "L06-S02-V02",
+          "concept": "memory-update"
+        },
+        {
+          "sceneId": "L06-S02-V03",
+          "concept": "new-evidence-system"
+        },
+        {
+          "sceneId": "L06-S02-V04",
+          "concept": "consistent-transition"
+        }
+      ],
+      "visualPolicy": {
+        "generateOnce": true,
+        "generatedFromLocale": "en",
+        "embeddedText": false,
+        "localizeTextAtRender": true,
+        "timing": "retime-scene-holds-to-localized-narration"
+      }
+    },
+    {
+      "contentId": "L06-S03",
+      "format": "short",
+      "parentContentId": "L06",
+      "canonicalLocale": "en",
+      "locales": [
+        "en",
+        "de",
+        "it",
+        "fr",
+        "pt"
+      ],
+      "titles": {
+        "en": "How to Change What People Know You For",
+        "de": "So änderst du, wofür Menschen dich kennen",
+        "it": "Come cambiare ciò per cui le persone ti conoscono",
+        "fr": "Comment changer ce pour quoi les gens vous connaissent",
+        "pt": "Como mudar aquilo pelo que as pessoas conhecem você"
+      },
+      "narrationFiles": {
+        "en": "shorts/en/l06-s03-change-what-people-know-you-for.md",
+        "de": "shorts/de/l06-s03-change-what-people-know-you-for.md",
+        "it": "shorts/it/l06-s03-change-what-people-know-you-for.md",
+        "fr": "shorts/fr/l06-s03-change-what-people-know-you-for.md",
+        "pt": "shorts/pt/l06-s03-change-what-people-know-you-for.md"
+      },
+      "visualAssetKey": "L06-S03-VISUALS-v2",
+      "visualBeats": [
+        {
+          "sceneId": "L06-S03-V01",
+          "concept": "current-association"
+        },
+        {
+          "sceneId": "L06-S03-V02",
+          "concept": "new-expertise"
+        },
+        {
+          "sceneId": "L06-S03-V03",
+          "concept": "bridge-story"
+        },
+        {
+          "sceneId": "L06-S03-V04",
+          "concept": "market-language-changes"
+        }
+      ],
+      "visualPolicy": {
+        "generateOnce": true,
+        "generatedFromLocale": "en",
+        "embeddedText": false,
+        "localizeTextAtRender": true,
+        "timing": "retime-scene-holds-to-localized-narration"
+      }
+    }
+  ],
+  "optimization": {
+    "editorialPass": "multilingual-youtube-retention-v2",
+    "visualSemanticOrderPreserved": true,
+    "localeSpecificVisualGenerationRequired": false,
+    "note": "Hooks and examples were optimized inside existing semantic beats. Generate one visual asset set per contentId and reuse across locales."
+  }
+}

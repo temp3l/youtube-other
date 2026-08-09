@@ -1,0 +1,96 @@
+{
+  "schemaVersion": "veronicabenini-title-transcreation-qa.v2",
+  "contentId": "L06",
+  "locales": {
+    "en": {
+      "metadataTitle": "Your Business Changed. Your Audience Didn't.",
+      "displayTitle": "Your Business Changed. Your Audience Didn't.",
+      "displayLines": [
+        "Your Business Changed.",
+        "Your Audience Didn't."
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "de": {
+      "metadataTitle": "Dein Business hat sich verändert. Dein Publikum noch nicht.",
+      "displayTitle": "Dein Business hat sich verändert. Dein Publikum noch nicht.",
+      "displayLines": [
+        "Dein Business hat sich verändert.",
+        "Dein Publikum noch nicht."
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "medium",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": [
+        "overlay-fit-resolved-with-approved-display-layout"
+      ]
+    },
+    "it": {
+      "metadataTitle": "Il tuo business è cambiato. Il pubblico non ancora.",
+      "displayTitle": "Il tuo business è cambiato. Il pubblico non ancora.",
+      "displayLines": [
+        "Il tuo business è cambiato.",
+        "Il pubblico non ancora."
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "fr": {
+      "metadataTitle": "Votre activité a changé. Votre audience, pas encore.",
+      "displayTitle": "Votre activité a changé. Votre audience, pas encore.",
+      "displayLines": [
+        "Votre activité a changé.",
+        "Votre audience, pas encore."
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "pt": {
+      "metadataTitle": "Seu negócio mudou. Seu público ainda não.",
+      "displayTitle": "Seu negócio mudou. Seu público ainda não.",
+      "displayLines": [
+        "Seu negócio mudou.",
+        "Seu público ainda não."
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    }
+  },
+  "sourceTitlesHash": "d0354c102085c9b79ea4f6e0d3560822faac9f14ffb5ef45a01d46226aefecef",
+  "cacheKey": "4241781aaf93b92e932cb2db7d1403e9be24dace270bb1536e147a97c08c9d4f",
+  "artifactHash": "fedc187612ab2b2acf63c252f046baa5435bacd6ba30a504513149c185a463b6"
+}

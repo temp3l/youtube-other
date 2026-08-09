@@ -1,0 +1,106 @@
+{
+  "schemaVersion": "veronicabenini-title-transcreation-qa.v2",
+  "contentId": "L03",
+  "locales": {
+    "en": {
+      "metadataTitle": "How to Become Known as an Expert When Nobody Knows You Yet",
+      "displayTitle": "How to Become Known as an Expert When Nobody Knows You Yet",
+      "displayLines": [
+        "How to Become Known as an",
+        "Expert When Nobody Knows You Yet"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "medium",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": [
+        "overlay-fit-resolved-with-approved-display-layout"
+      ]
+    },
+    "de": {
+      "metadataTitle": "Wie du als Expertin bekannt wirst, wenn dich noch niemand kennt",
+      "displayTitle": "Wie du als Expertin bekannt wirst, wenn dich noch niemand kennt",
+      "displayLines": [
+        "Wie du als Expertin bekannt wirst,",
+        "wenn dich noch niemand kennt"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "medium",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": [
+        "overlay-fit-resolved-with-approved-display-layout"
+      ]
+    },
+    "it": {
+      "metadataTitle": "Come farti conoscere come esperta quando nessuno ti conosce ancora",
+      "displayTitle": "Come farti conoscere come esperta quando nessuno ti conosce ancora",
+      "displayLines": [
+        "Come farti conoscere come esperta",
+        "quando nessuno ti conosce ancora"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "medium",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": [
+        "overlay-fit-resolved-with-approved-display-layout"
+      ]
+    },
+    "fr": {
+      "metadataTitle": "Comment devenir reconnue comme experte quand personne ne vous connaît encore",
+      "displayTitle": "Devenir experte reconnue quand personne ne vous connaît",
+      "displayLines": [
+        "Devenir experte reconnue",
+        "quand personne ne vous connaît"
+      ],
+      "displayTitleDistinctFromMetadata": true,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": true,
+      "sourceOverlayOverflowRisk": "high",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": [
+        "youtube-title-length",
+        "overlay-fit-resolved-with-approved-display-layout"
+      ]
+    },
+    "pt": {
+      "metadataTitle": "Como se tornar conhecida como especialista quando ninguém conhece você ainda",
+      "displayTitle": "Ser reconhecida como especialista sem ninguém conhecer você",
+      "displayLines": [
+        "Ser reconhecida como especialista",
+        "sem ninguém conhecer você"
+      ],
+      "displayTitleDistinctFromMetadata": true,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": true,
+      "sourceOverlayOverflowRisk": "high",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": [
+        "youtube-title-length",
+        "overlay-fit-resolved-with-approved-display-layout"
+      ]
+    }
+  },
+  "sourceTitlesHash": "f561787b21d6749cd29cbef89e361d748108d150c2c5db0b8366ad18e2af98da",
+  "cacheKey": "c86f8e1ce4a963312f9114f6e7f02e2216ac6094dc225008005630daf0257ec6",
+  "artifactHash": "5a66345a150956cdb0355ca387b41457b3ed4e4e4b1fa6d40615283af1bddcef"
+}

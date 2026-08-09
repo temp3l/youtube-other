@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "veronicabenini-positioning-visual-vocabulary.v1",
+  "episodeId": "L06",
+  "semanticDomains": [
+    "content-positioning",
+    "repositioning",
+    "authority-recognition",
+    "expertise-perceived-value"
+  ],
+  "recurringMotifs": [
+    "one core idea propagating across a physical media ecosystem",
+    "thresholds, bridges, and matched old/new identity states",
+    "knowledge moving through stages, interviews, and recommendations",
+    "visible evidence trails and consequential client choices"
+  ],
+  "environments": [
+    "editorial wall",
+    "podcast booth",
+    "multi-format production table",
+    "identity threshold corridor",
+    "old workplace",
+    "new client context",
+    "case-study archive",
+    "client decision setting",
+    "active professional context",
+    "case-study archive",
+    "client decision setting",
+    "active professional context"
+  ],
+  "materialPalette": [
+    "warm paper",
+    "coral accent",
+    "ink",
+    "glass",
+    "unfinished wood"
+  ],
+  "excludedCliches": [
+    "generic professional in office",
+    "laptop-at-desk pose",
+    "repeated notebook-and-cards staging",
+    "unmotivated business handshake"
+  ],
+  "sourceSemanticHash": "5227f3f9098f109870f31e2c68b108552e2654f4549eb2644b79f7a4b5805134",
+  "cacheKey": "40fcfd3a8ed912d90bd8e4a4eab95176ad16bd0b3a02915fac2f5ec5444fa989",
+  "vocabularyHash": "5806441110f15fdefcb2491e3d4205178d915801e8a5a4ac8404ee583a46f748"
+}

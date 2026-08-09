@@ -1,0 +1,99 @@
+{
+  "schemaVersion": "veronicabenini-title-transcreation-qa.v2",
+  "contentId": "L05-S01",
+  "locales": {
+    "en": {
+      "metadataTitle": "You Don’t Need a Publisher to Build Authority",
+      "displayTitle": "You Don’t Need a Publisher to Build Authority",
+      "displayLines": [
+        "You Don’t Need a Publisher",
+        "to Build Authority"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "de": {
+      "metadataTitle": "Du brauchst keinen Verlag, um Autorität aufzubauen",
+      "displayTitle": "Du brauchst keinen Verlag, um Autorität aufzubauen",
+      "displayLines": [
+        "Du brauchst keinen Verlag,",
+        "um Autorität aufzubauen"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "it": {
+      "metadataTitle": "Non ti serve un editore per costruire autorevolezza",
+      "displayTitle": "Non ti serve un editore per costruire autorevolezza",
+      "displayLines": [
+        "Non ti serve un editore",
+        "per costruire autorevolezza"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "fr": {
+      "metadataTitle": "Vous n’avez pas besoin d’un éditeur pour construire votre autorité",
+      "displayTitle": "Pas besoin d’éditeur pour bâtir votre autorité",
+      "displayLines": [
+        "Pas besoin d’éditeur",
+        "pour bâtir votre autorité"
+      ],
+      "displayTitleDistinctFromMetadata": true,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": true,
+      "sourceOverlayOverflowRisk": "medium",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": [
+        "youtube-title-length",
+        "overlay-fit-resolved-with-approved-display-layout"
+      ]
+    },
+    "pt": {
+      "metadataTitle": "Você não precisa de editora para construir autoridade",
+      "displayTitle": "Você não precisa de editora para construir autoridade",
+      "displayLines": [
+        "Você não precisa de editora",
+        "para construir autoridade"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "medium",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": [
+        "overlay-fit-resolved-with-approved-display-layout"
+      ]
+    }
+  },
+  "sourceTitlesHash": "73e4b418336890b58176157ab3c210fedcb4a87a1121789b48cae446d0a35467",
+  "cacheKey": "f789c26e90a6638b1cc5b73a746b6a136ec0224e24ad0dff6b4c45803033efec",
+  "artifactHash": "0ea4798f38db8771584c68ee64041a0d93fdf1a4ac5356352e97ef7871536bfb"
+}

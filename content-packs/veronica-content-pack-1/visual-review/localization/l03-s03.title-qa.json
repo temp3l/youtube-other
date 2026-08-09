@@ -1,0 +1,89 @@
+{
+  "schemaVersion": "veronicabenini-title-transcreation-qa.v2",
+  "contentId": "L03-S03",
+  "locales": {
+    "en": {
+      "metadataTitle": "Your Website Has Five Seconds",
+      "displayTitle": "Your Website Has Five Seconds",
+      "displayLines": [
+        "Your Website Has Five Seconds"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "de": {
+      "metadataTitle": "Deine Website hat fünf Sekunden",
+      "displayTitle": "Deine Website hat fünf Sekunden",
+      "displayLines": [
+        "Deine Website hat fünf Sekunden"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "it": {
+      "metadataTitle": "Il tuo sito ha cinque secondi",
+      "displayTitle": "Il tuo sito ha cinque secondi",
+      "displayLines": [
+        "Il tuo sito ha cinque secondi"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "fr": {
+      "metadataTitle": "Votre site a cinq secondes",
+      "displayTitle": "Votre site a cinq secondes",
+      "displayLines": [
+        "Votre site a cinq secondes"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "pt": {
+      "metadataTitle": "Seu site tem cinco segundos",
+      "displayTitle": "Seu site tem cinco segundos",
+      "displayLines": [
+        "Seu site tem cinco segundos"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    }
+  },
+  "sourceTitlesHash": "fc73f0c88168635b062b286f7d2eb8a776bf84f21b3e49902f5c454a778dd2f6",
+  "cacheKey": "983c48608dc6e4682591f5225f491182b8a9f1413072c590028653765db2fed6",
+  "artifactHash": "da3f053e2a8096e1a78f9118bb7fd8d81224659c9e1c6c9193a4cf8c9b0ced94"
+}

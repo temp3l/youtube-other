@@ -10,7 +10,11 @@ import {
   veronicaMediaPlanSchema,
   veronicaRenderManifestSchema,
 } from "@mediaforge/veronica-media";
-import { generateVeronicaBeniniReviewPacks, runStrategicSupplementalMediaBridge } from "@mediaforge/strategic-reinvention";
+import {
+  generatePositioningVisualPlans,
+  generateVeronicaBeniniReviewPacks,
+  runStrategicSupplementalMediaBridge,
+} from "@mediaforge/strategic-reinvention";
 
 export function registerVeronicaMediaCommands(program: Command): void {
   const veronica = program
@@ -69,6 +73,26 @@ export function registerVeronicaMediaCommands(program: Command): void {
         );
       },
     );
+
+  veronica
+    .command("plan-positioning-series")
+    .description("Create canonical locale-independent visual plans for a Veronica positioning narration pack")
+    .requiredOption("--pack <path>", "Extracted optimized positioning-series content pack")
+    .requiredOption("--output <path>", "Visual-plan review output directory")
+    .option("--json", "Emit machine-readable output", false)
+    .action(async (options: { pack: string; output: string; json: boolean }) => {
+      const result = await generatePositioningVisualPlans({
+        packDir: path.resolve(options.pack),
+        outputDir: path.resolve(options.output),
+      });
+      if (options.json) {
+        process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+        return;
+      }
+      process.stdout.write(
+        `Generated ${result.contentIds.length} canonical positioning visual plans.\nBulk review: ${result.reviewPackPath}\n`,
+      );
+    });
 
   veronica
     .command("review-pack")
