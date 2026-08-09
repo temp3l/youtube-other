@@ -1,0 +1,19 @@
+{
+  "phases": [
+    {
+      "phase": "0",
+      "result": "PASS",
+      "tag": "history-v3.6-pre-production-canary"
+    },
+    {
+      "phase": "1",
+      "result": "PASS",
+      "commit": "aada46d5da13c0f4c0ab8d34aaad986680198ef1",
+      "tag": "history-v3.6-production-canary-routing-baseline"
+    },
+    {
+      "phase": "2",
+      "result": "BLOCKED_BY_MEASURED_TIMING"
+    }
+  ]
+}

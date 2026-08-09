@@ -1,0 +1,20 @@
+{
+  "episodeId": "history-youtube-history-10-video-story-pack-04-black-death",
+  "status": "BLOCKED_BY_MEASURED_TIMING",
+  "existingAudioArtifact": null,
+  "measuredDurationMs": null,
+  "timingArtifactHash": null,
+  "provider": "openai-compatible",
+  "model": "gpt-4o-mini-tts",
+  "voice": "onyx",
+  "localAttempt": {
+    "result": "FAILED",
+    "reason": "Sandbox network DNS resolution failed before provider contact (curl exit 6)."
+  },
+  "externalRetry": {
+    "result": "NOT_RUN",
+    "reason": "Execution environment requires explicit user authorization to transmit the canary narration payload to the configured external provider."
+  },
+  "safeFallbackUsed": false,
+  "provisionalTextEstimateUsed": false
+}

@@ -1,0 +1,6 @@
+{
+  "verdict": "BLOCKED_BY_MEASURED_TIMING",
+  "humanDecisionRequired": true,
+  "exactGate": "Gate B — measured timing cannot be obtained without external payload authorization.",
+  "productionActivated": false
+}

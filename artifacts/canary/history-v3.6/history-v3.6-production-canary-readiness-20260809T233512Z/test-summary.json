@@ -1,0 +1,10 @@
+{
+  "result": "PASS_UNTIL_TIMING_GATE",
+  "checks": [
+    "History typecheck",
+    "targeted ESLint",
+    "18 renderer/compiler/plan preflight tests",
+    "7 focused canary-routing/plan tests"
+  ],
+  "timingGeneration": "BLOCKED_BY_EXTERNAL_PAYLOAD_AUTHORIZATION"
+}
