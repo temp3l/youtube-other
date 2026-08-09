@@ -23,6 +23,7 @@ export * from "./pilot-api-key-authenticator.js";
 export * from "./pilot-api-key-admin.js";
 export * from "./principal-provision.js";
 export * from "./publication-reconciliation.js";
+export * from "./publication-execution.js";
 export * from "./postgres-api-use-cases.js";
 export * from "./postgres-speech-use-cases.js";
 export * from "./reconciliation-process.js";

@@ -31,6 +31,8 @@ const intent: AdmitPublicationIntentInput = {
       contentHash: "d".repeat(64),
     },
   ],
+  metadataRevisionId: "metadata-revision-1",
+  metadataContentHash: "e".repeat(64),
   channelId: "channel-1",
   visibility: "private",
   scheduledAt: null,

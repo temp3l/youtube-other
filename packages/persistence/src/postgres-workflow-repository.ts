@@ -255,6 +255,9 @@ export interface PublicationIntentBinding {
   readonly credentialVersion: string;
   readonly assetHash: string;
   readonly artifactBindings: readonly PublicationArtifactBinding[];
+  /** Immutable metadata revision used for the post-upload metadata command. */
+  readonly metadataRevisionId: string;
+  readonly metadataContentHash: string;
   readonly channelId: string;
   readonly visibility: "private" | "unlisted" | "public";
   readonly scheduledAt: string | null;
@@ -311,6 +314,8 @@ interface PublicationIntentRow {
   readonly credential_version: string;
   readonly asset_hash: string;
   readonly artifact_bindings: readonly PublicationArtifactBinding[];
+  readonly metadata_revision_id: string;
+  readonly metadata_content_hash: string;
   readonly channel_id: string;
   readonly visibility: PublicationIntentBinding["visibility"];
   readonly scheduled_at: Date | string | null;
@@ -473,6 +478,8 @@ function mapPublicationIntent(
     credentialVersion: row.credential_version,
     assetHash: row.asset_hash,
     artifactBindings: row.artifact_bindings,
+    metadataRevisionId: row.metadata_revision_id,
+    metadataContentHash: row.metadata_content_hash,
     channelId: row.channel_id,
     visibility: row.visibility,
     scheduledAt:
@@ -507,6 +514,8 @@ function publicationActiveKey(binding: PublicationIntentBinding): string {
         binding.credentialVersion,
         binding.assetHash,
         binding.artifactBindings,
+        binding.metadataRevisionId,
+        binding.metadataContentHash,
         binding.channelId,
         binding.visibility,
         binding.scheduledAt,
@@ -539,6 +548,7 @@ function normalizedPublicationBinding(
   for (const [name, hash] of [
     ["approval artifact", binding.approvalArtifactHash],
     ["publication asset", binding.assetHash],
+    ["publication metadata", binding.metadataContentHash],
   ] as const) {
     if (!/^[a-f0-9]{64}$/u.test(hash))
       throw new WorkflowStateTransitionError(
@@ -600,6 +610,7 @@ function normalizedPublicationBinding(
     ["approval", binding.approvalId],
     ["actor principal", binding.actorPrincipalId],
     ["credential version", binding.credentialVersion],
+    ["metadata revision", binding.metadataRevisionId],
     ["channel", binding.channelId],
     ["recovery identity", binding.recoveryIdentity],
   ] as const) {
@@ -1797,7 +1808,8 @@ export class WorkspaceTransactionRepository {
          AND approval_policy IS NOT NULL
          AND actor_principal_id IS NOT NULL AND actor_principal_revision IS NOT NULL
          AND credential_version IS NOT NULL AND asset_hash IS NOT NULL
-         AND artifact_bindings IS NOT NULL AND channel_id IS NOT NULL
+         AND artifact_bindings IS NOT NULL AND metadata_revision_id IS NOT NULL
+         AND metadata_content_hash IS NOT NULL AND channel_id IS NOT NULL
          AND visibility IS NOT NULL AND playlist_ids IS NOT NULL
          AND recovery_identity IS NOT NULL`,
       [workspaceId, projectId, publicationId]
@@ -1905,14 +1917,15 @@ export class WorkspaceTransactionRepository {
            workspace_id, publication_id, project_id, run_id, status, revision,
            approval_id, approval_revision, approval_artifact_hash,
            actor_principal_id, actor_principal_revision, credential_version,
-           asset_hash, artifact_bindings, channel_id, visibility, scheduled_at,
+           asset_hash, artifact_bindings, metadata_revision_id,
+           metadata_content_hash, channel_id, visibility, scheduled_at,
            playlist_ids, recovery_identity, active_key, execution_fence,
            intent_lease_fence, channel_lease_fence, created_at, updated_at
            , approval_policy
          )
          SELECT $1, $2, $3, $4, 'pending', 0, $5, $6, $7, $8, $9, $10,
-                $11, $12::jsonb, $13, $14, $15::timestamptz, $16::jsonb,
-                $17, $18, 0, 0, 0, $19::timestamptz, $19::timestamptz, $20
+                $11, $12::jsonb, $13, $14, $15, $16::timestamptz, $17::jsonb,
+                $18, $19, 0, 0, 0, $21::timestamptz, $21::timestamptz, $22
          FROM workflow_run_bindings
          WHERE workspace_id = $1 AND project_id = $3 AND run_id = $4`,
         [
@@ -1928,6 +1941,8 @@ export class WorkspaceTransactionRepository {
           binding.credentialVersion,
           binding.assetHash,
           JSON.stringify(binding.artifactBindings),
+          binding.metadataRevisionId,
+          binding.metadataContentHash,
           binding.channelId,
           binding.visibility,
           binding.scheduledAt,
@@ -2086,11 +2101,13 @@ export class WorkspaceTransactionRepository {
            AND publication.credential_version = $10
            AND publication.asset_hash = $11
            AND publication.artifact_bindings = $12::jsonb
-           AND publication.channel_id = $13 AND publication.visibility = $14
-           AND publication.scheduled_at IS NOT DISTINCT FROM $15::timestamptz
-           AND publication.playlist_ids = $16::jsonb
-           AND publication.recovery_identity = $17
-           AND publication.approval_policy = $22
+           AND publication.metadata_revision_id = $13
+           AND publication.metadata_content_hash = $14
+           AND publication.channel_id = $15 AND publication.visibility = $16
+           AND publication.scheduled_at IS NOT DISTINCT FROM $17::timestamptz
+           AND publication.playlist_ids = $18::jsonb
+           AND publication.recovery_identity = $19
+           AND publication.approval_policy = $24
          FOR UPDATE OF publication
        ), locked_approval AS MATERIALIZED (
          SELECT approval.approval_id
@@ -2137,7 +2154,7 @@ export class WorkspaceTransactionRepository {
            )
            AND approval.output_artifact_hashes @> jsonb_build_array(intent.approval_artifact_hash)
            AND approval.reviewer_actor IS NOT NULL
-           AND (approval.expires_at IS NULL OR approval.expires_at > $21::timestamptz)
+           AND (approval.expires_at IS NULL OR approval.expires_at > $23::timestamptz)
            AND NOT EXISTS (
              SELECT 1 FROM approvals AS terminal
              WHERE terminal.workspace_id = approval.workspace_id
@@ -2165,7 +2182,7 @@ export class WorkspaceTransactionRepository {
                AND peer.input_artifact_hashes = approval.input_artifact_hashes
                AND peer.output_artifact_hashes = approval.output_artifact_hashes
                AND peer.reviewer_actor IS NOT NULL
-               AND (peer.expires_at IS NULL OR peer.expires_at > $21::timestamptz)
+               AND (peer.expires_at IS NULL OR peer.expires_at > $23::timestamptz)
            ) >= GREATEST(
              approval.required_distinct_actors,
              CASE WHEN approval.high_risk THEN 2 ELSE 1 END
@@ -2198,8 +2215,8 @@ export class WorkspaceTransactionRepository {
          INNER JOIN locked_intent AS intent
            ON intent.workspace_id = lease.workspace_id
           AND intent.publication_id = lease.publication_id
-         WHERE lease.lease_owner = $18 AND lease.lease_fence = $19
-           AND lease.lease_expires_at > $21::timestamptz
+         WHERE lease.lease_owner = $20 AND lease.lease_fence = $21
+           AND lease.lease_expires_at > $23::timestamptz
          FOR UPDATE OF lease
        ), locked_channel_lease AS MATERIALIZED (
          SELECT lease.channel_id
@@ -2207,8 +2224,8 @@ export class WorkspaceTransactionRepository {
          INNER JOIN locked_intent AS intent
            ON intent.workspace_id = lease.workspace_id
           AND intent.channel_id = lease.channel_id
-         WHERE lease.lease_owner = $18 AND lease.lease_fence = $20
-           AND lease.lease_expires_at > $21::timestamptz
+         WHERE lease.lease_owner = $20 AND lease.lease_fence = $22
+           AND lease.lease_expires_at > $23::timestamptz
          FOR UPDATE OF lease
        ), locked_artifacts AS MATERIALIZED (
          SELECT asset.asset_id
@@ -2221,22 +2238,32 @@ export class WorkspaceTransactionRepository {
           AND asset.content_hash = binding ->> 'contentHash'
          WHERE asset.status = 'ready'
          FOR UPDATE OF asset
+       ), locked_metadata AS MATERIALIZED (
+         SELECT metadata.metadata_revision_id
+         FROM publication_metadata_revisions AS metadata
+         INNER JOIN locked_intent AS intent
+           ON intent.workspace_id = metadata.workspace_id
+          AND intent.project_id = metadata.project_id
+          AND intent.metadata_revision_id = metadata.metadata_revision_id
+         WHERE metadata.content_hash = intent.metadata_content_hash
+         FOR UPDATE OF metadata
        ), authorized AS (
          SELECT intent.publication_id
          FROM locked_intent AS intent
-         WHERE (intent.scheduled_at IS NULL OR intent.scheduled_at <= $21::timestamptz)
+         WHERE (intent.scheduled_at IS NULL OR intent.scheduled_at <= $23::timestamptz)
            AND EXISTS (SELECT 1 FROM locked_approval)
            AND EXISTS (SELECT 1 FROM locked_actor)
            AND EXISTS (SELECT 1 FROM locked_credential)
            AND EXISTS (SELECT 1 FROM locked_intent_lease)
            AND EXISTS (SELECT 1 FROM locked_channel_lease)
+           AND EXISTS (SELECT 1 FROM locked_metadata)
            AND (SELECT COUNT(*) FROM locked_artifacts) = jsonb_array_length(intent.artifact_bindings)
        )
        UPDATE publications AS publication
        SET status = 'executing', revision = publication.revision + 1,
-           execution_fence = $20, intent_lease_fence = $19,
-           channel_lease_fence = $20,
-           updated_at = $21::timestamptz
+           execution_fence = $22, intent_lease_fence = $21,
+           channel_lease_fence = $22,
+           updated_at = $23::timestamptz
        FROM authorized
        WHERE publication.workspace_id = $1
          AND publication.publication_id = authorized.publication_id
@@ -2254,6 +2281,8 @@ export class WorkspaceTransactionRepository {
         binding.credentialVersion,
         binding.assetHash,
         JSON.stringify(binding.artifactBindings),
+        binding.metadataRevisionId,
+        binding.metadataContentHash,
         binding.channelId,
         binding.visibility,
         binding.scheduledAt,

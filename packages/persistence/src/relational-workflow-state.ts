@@ -373,6 +373,8 @@ CREATE TABLE IF NOT EXISTS publications (
   credential_version TEXT NULL,
   asset_hash TEXT NULL,
   artifact_bindings JSONB NULL,
+  metadata_revision_id TEXT NULL,
+  metadata_content_hash TEXT NULL,
   channel_id TEXT NULL,
   visibility TEXT NULL,
   scheduled_at TIMESTAMPTZ NULL,
@@ -402,6 +404,8 @@ ALTER TABLE publications ADD COLUMN IF NOT EXISTS actor_principal_revision BIGIN
 ALTER TABLE publications ADD COLUMN IF NOT EXISTS credential_version TEXT NULL;
 ALTER TABLE publications ADD COLUMN IF NOT EXISTS asset_hash TEXT NULL;
 ALTER TABLE publications ADD COLUMN IF NOT EXISTS artifact_bindings JSONB NULL;
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS metadata_revision_id TEXT NULL;
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS metadata_content_hash TEXT NULL;
 ALTER TABLE publications ADD COLUMN IF NOT EXISTS channel_id TEXT NULL;
 ALTER TABLE publications ADD COLUMN IF NOT EXISTS visibility TEXT NULL;
 ALTER TABLE publications ADD COLUMN IF NOT EXISTS scheduled_at TIMESTAMPTZ NULL;

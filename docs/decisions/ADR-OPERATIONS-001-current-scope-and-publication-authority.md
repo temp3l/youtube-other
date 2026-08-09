@@ -1,7 +1,7 @@
 # ADR-OPERATIONS-001: Current scope and publication authority
 
 Date: 2026-08-02  
-Status: accepted
+Status: superseded in part (publication execution only, 2026-08-09)
 
 ## Decision
 
@@ -36,3 +36,15 @@ Implementation and acceptance plans must not claim German multi-locale coverage
 or API-triggered publication. Existing historical documents that mention broader
 rollouts remain records of their original scope; this decision governs new work
 from this date.
+
+## Superseding publication-execution update (2026-08-09)
+
+YSAAS-014 supersedes item 2 only for the internal, tenant-bound execution
+path. It is guarded by a platform capability that defaults off; when off, it
+performs no provider mutation and exposes no public API/SDK mutation route.
+When explicitly enabled by a future controlled deployment, immutable intent,
+authorization confirmation, OAuth credential handle/version, artifact and
+metadata bindings, and channel/intent fences are rechecked immediately before
+private-first provider commands. Bounded metadata retries and read-only
+reconciliation are allowed; public-first uploads and unbounded retries remain
+prohibited. This update does not enable the capability in production.
