@@ -1,6 +1,6 @@
 # YSAAS implementation progress
 
-Current wave: Wave 5 ready (YSAAS-021 is the next publication task)
+Current wave: Wave 5 in progress (YSAAS-021 complete; YSAAS-017 next)
 
 ## Anti-stuck execution rules (session)
 
@@ -101,3 +101,9 @@ Status: completed
 Commit: 33c7a4b
 Validation: `publication-execution.unit.test.ts` pass (7); `pnpm exec tsc -p packages/persistence --noEmit` pass
 Notes: Default-off platform capability; no provider mutation while disabled; private-first fenced executor with immediate authority/metadata recheck, bounded metadata retry, tenant-bound provider/OAuth seam, and existing reconciliation for upload ambiguity. Public API/SDK mutation routes remain absent.
+
+### YSAAS-021
+Status: completed
+Commit: 3dd25da
+Validation: `saas-runtime.unit.test.ts` pass (4); targeted API SDK build and web typecheck pass
+Notes: Server-side publishing BFF/SDK methods; channel status/connect/disconnect; immutable preflight/prepare confirmation; safe publication status/schedule/cancel pages; flag-off hides executable control and reconciliation remains read-only. Metadata-only changes create a new immutable intent without media regeneration.
