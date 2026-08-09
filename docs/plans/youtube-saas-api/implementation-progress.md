@@ -122,6 +122,6 @@ Notes: Tenant, profile/genre, and episode configuration layers persist under wor
 
 ### YSAAS-020
 Status: in progress
-Commit: 587483a
-Validation: recent-auth confirmation persistence focused test pass
-Notes: Credential rotation with bounded overlap, ETag and idempotency preconditions, show-once secret, replay redaction, OpenAPI, and SDK support are complete. `587483a` persists atomic one-time recent-auth confirmations bound to workspace/principal/action/CSRF session. The BFF identity binding, verifier enforcement, integrations UI, webhook management, and API explorer remain.
+Commit: 873e045
+Validation: recent-auth confirmation persistence focused test and web typecheck pass
+Notes: Credential rotation with bounded overlap, ETag and idempotency preconditions, show-once secret, replay redaction, OpenAPI, and SDK support are complete. `587483a` persists atomic one-time recent-auth confirmations bound to workspace/principal/action/CSRF session. `873e045` adds a fail-closed OIDC hook requiring an IdP principal match, MFA AMR, and auth_time no older than five minutes. Deployment recorder wiring, mutation enforcement, integrations UI, webhook management, and API explorer remain.
