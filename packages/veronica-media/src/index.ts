@@ -30,6 +30,7 @@ export * from "./preparation/source-slide-redesign.js";
 export * from "./rendering/manifest-integrity.js";
 export * from "./rendering/build-render-manifest.js";
 export * from "./rendering/render-derivative.js";
+export * from "./delivery/delivery-bundle.js";
 export * from "./identifiers/episode-scope.js";
 export * from "./pipeline/input-fingerprint.js";
 export * from "./pipeline/orchestrator.js";

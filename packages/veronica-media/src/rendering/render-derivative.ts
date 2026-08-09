@@ -28,7 +28,10 @@ const renderVoiceManifestSchema = z.strictObject({
   captionsFingerprint: sha256Schema.optional(),
   approval: z.strictObject({
     state: z.literal("approved"),
-    approvalIds: z.array(identifierSchema).min(2),
+    approvalIds: z.array(identifierSchema).min(2).refine(
+      (approvalIds) => new Set(approvalIds).size === approvalIds.length,
+      "Voice approvals must come from distinct actors.",
+    ),
     boundRevision: identifierSchema,
   }),
 });

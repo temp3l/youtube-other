@@ -4,7 +4,7 @@
 - Starting HEAD: `f04262c16bfd1a89d1b404b1ac291a89dc699a0d`
 - Plan baseline after fast-forward: `46d624c`
 - Pre-existing changes preserved: `.codex/config.toml`; `prompts/codex-veronicabenini-implement-all-waves.md`
-- Current wave: 4 — workflow/render
+- Current wave: 5 — publish/bulk/policy
 
 | Task | Status | Owner | Validation | Checkpoint |
 | --- | --- | --- | --- | --- |
@@ -21,8 +21,9 @@
 | VRI-11 | VALIDATED | worker + coordinator review | 5 focused tests pass; supplementary speech suite dependency-blocked | `d2cd6e0` |
 | VRI-12 | VALIDATED | worker + coordinator review | 15 focused tests and workflow-engine typecheck pass | `ac08bc8` |
 | VRI-13 | VALIDATED | worker + coordinator review | 2 focused tests and workflow-engine build pass; package typecheck has unrelated blockers | `238d368` |
-| VRI-14 | VALIDATED | worker + coordinator review | 2 focused tests pass; isolated rendering build dependency-blocked | pending commit |
-| VRI-15..VRI-26 | NOT_STARTED | unassigned | not run | none |
+| VRI-14 | VALIDATED | worker + coordinator review | 2 focused tests pass; isolated rendering build dependency-blocked | `3d99eaf` |
+| VRI-15 | VALIDATED | worker + coordinator review | 4 focused delivery tests and 2 render regression tests pass | pending commit |
+| VRI-16..VRI-26 | NOT_STARTED | unassigned | not run | none |
 
 ## VRI-01 evidence
 
@@ -47,4 +48,4 @@
 
 ## Next executable tasks
 
-VRI-15 delivery bundles are now executable.
+VRI-16 is the serial publish gate; VRI-17 and VRI-18 are then executable by dependency.

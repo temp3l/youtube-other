@@ -6,6 +6,16 @@ import {
 } from "@mediaforge/domain";
 import { formatTimestampLabel, normalizeWhitespace, splitIntoWords } from "@mediaforge/shared";
 export {
+  DELIVERY_BUNDLE_SCHEMA_VERSION,
+  deliveryBundleSchema,
+  type DeliveryBundle,
+  type EditableLocaleMetadata,
+  type PlanDeliveryBundleInput,
+  planDeliveryBundle,
+  redactDeliveryBundleFailure,
+} from "./delivery-bundle.js";
+
+export {
   ConfigurationError,
   MetadataValidationError,
   OpenAIResponseError,
