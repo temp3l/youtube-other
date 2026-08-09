@@ -29,5 +29,13 @@
 - Start: `3e5311a`; target: deterministic same-eight full-feature compiler lane.
 - Change: repository-only dual-run review generator with relation/candidate/proof provenance and per-kind manual review records.
 - Tests: generator x2 internally, compiler focused regression, History typecheck, targeted ESLint, checksums/ZIP; invariants: all zero.
-- Commit/tag: assigned at phase close; artifact: `history-v3.6-compiler-feature-review-20260809T215942Z.zip`.
+- Commit/tag: `7288ee6`; `history-v3.6-compiler-feature-lane-baseline`; artifact: `history-v3.6-compiler-feature-review-20260809T215942Z.zip`.
 - Next: Phase 2.28 exact all-40 compatibility compiler census.
+
+## Phase 2.28
+
+- Start: `7288ee6`; target: exact accepted all-40 compatibility compiler census.
+- Change: two-run compilation of the accepted 103 relation IDs, compatibility-only qualification, V3.5 aggregate differential and before/after isolation hashes.
+- Tests: census x2 internally, exact ID equality, History typecheck, targeted ESLint, checksums/ZIP; invariants: all zero.
+- Commit/tag: assigned at phase close; artifact: `history-v3.6-all40-compiler-census-20260809T220300Z.zip`.
+- Next: Phase 2.29 consolidated compiler-shadow readiness close.

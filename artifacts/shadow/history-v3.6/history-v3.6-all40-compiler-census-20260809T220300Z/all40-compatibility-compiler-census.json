@@ -1,0 +1,29 @@
+{
+  "episodes": 40,
+  "relations": 103,
+  "dispositions": {
+    "DIAGRAM": 101,
+    "MAP": 2
+  },
+  "countsByRelationKind": {
+    "causal": 77,
+    "dependency": 22,
+    "evidence-set": 2,
+    "movement": 1,
+    "spatial-comparison": 1
+  },
+  "countsByCompilerRule": {
+    "diagram-causal.v1": 77,
+    "diagram-dependency.v1": 22,
+    "diagram-evidence-set.v1": 2,
+    "map-movement.v1": 1,
+    "map-spatial-comparison.v1": 1
+  },
+  "diagnostics": {},
+  "compilerCoverageRate": 1,
+  "safeAbstentionRate": 0,
+  "nativeAll40Available": false,
+  "relationsSupportedByNativeSemantics": 0,
+  "relationsSupportedOnlyByCompatibilitySemantics": 103,
+  "proofRelations": 0
+}

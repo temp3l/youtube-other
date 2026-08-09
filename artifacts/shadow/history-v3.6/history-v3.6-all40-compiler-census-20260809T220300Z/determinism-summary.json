@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "run1Hash": "509f95e270c4e4f2aa5ace81a7867310f49de1515754ff5a4d2986e8da1e8553",
+  "run2Hash": "509f95e270c4e4f2aa5ace81a7867310f49de1515754ff5a4d2986e8da1e8553",
+  "relationIdsMatchAcceptedCensus": true,
+  "compared": [
+    "relation disposition",
+    "compilerIntentId",
+    "serialized semantic intent",
+    "diagnostic codes",
+    "aggregate counts"
+  ]
+}

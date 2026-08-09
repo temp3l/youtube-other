@@ -1,0 +1,11 @@
+{
+  "all40Run1": "PASS",
+  "all40Run2": "PASS",
+  "exactAcceptedRelationIds": "PASS (103)",
+  "deterministic": "PASS",
+  "historyTypecheck": "PASS",
+  "targetedEslint": "PASS",
+  "providerCalls": 0,
+  "llmSemanticCalls": 0,
+  "imageProviderCalls": 0
+}
