@@ -1,6 +1,6 @@
 # YSAAS implementation progress
 
-Current wave: Wave 5 complete (YSAAS-017, YSAAS-018, and YSAAS-020 complete)
+Current wave: Wave 6 in progress (YSAAS-019 completed; YSAAS-022 and YSAAS-023 remain)
 
 ## Anti-stuck execution rules (session)
 
@@ -55,10 +55,16 @@ Validation: `usage-quota.unit.test.ts` pass (10); domain/persistence emit pass; 
 Notes: Usage dimensions, reservation lifecycle, estimate projection with cache/reuse, provider health resolver; enriched quota dimensions, usage filters, `GET /v1/workspaces/{workspace}/provider-health`
 
 ### YSAAS-009
-Status: in progress
+Status: completed
 Commit: 9236fa2, 3188f69, 0e50124, 5b8358a, 6f88755, 6a5bd38, 3475923, ba5db9e, 2134144, 4140d7a, bd39623, 490addf, 14f9895, 913a3c7
 Validation: focused bulk preflight, persistence migration, and API SDK tests pass; domain build, persistence/API/SDK typechecks pass. API contract suite is blocked before collection by pre-existing missing `@mediaforge/domain/visual-retention/treatment-catalog.js` from built `dark-truth`.
-Notes: Added a bounded, deterministic bulk selection preflight that preserves an eligibility reason for every candidate and excludes successful/permanent-failure items from retry selection. Persisted tenant-scoped batch/item rows retain all selected items and their eligibility evidence, with idempotency conflict protection and RLS. API/OpenAPI/SDK expose tenant-scoped reads, preflight, launch, retry, and cancellation. Launch reserves configured active-batch/item capacity, claims each item once, rereads current configuration/revision, admits the existing child workflow, and records queued child IDs or safe rejection codes. Fenced durable-job terminal mutations settle linked items; terminal aggregates release capacity. Retry uses fresh quota attribution. Cancellation stops unadmitted work and requests child-job cancellation. BFF remains.
+Notes: Added bounded deterministic preflight, persisted tenant-scoped batch/item evidence and RLS, typed reads/preflight/launch/retry/cancel API+SDK, quota-backed child admission, terminal settlement/capacity release, retry generations, and server-owned BFF/page controls. The browser submits at most 100 explicit items and displays only server-calculated results; successful items never retry.
+
+### YSAAS-019
+Status: completed
+Commit: 6167c53
+Validation: API SDK build and web typecheck pass; focused runtime suite blocked by sandbox loopback `EPERM` before assertions
+Notes: Server-rendered bounded bulk preflight/result page and typed BFF operations; no client eligibility/quota/orchestration.
 
 ### YSAAS-011
 Status: completed
