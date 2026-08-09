@@ -71,10 +71,35 @@ describe("veronica media plan contracts", () => {
     const fixtures = createVeronicaPilotFixtures();
     const assets = fixtures.files.map((file) => ingestSupplementalMediaAsset(file));
     const plan = buildSemanticMediaPlan({ episodeId: "episode-pilot", originalNarration: fixtures.narration.original, assets, targetLanguage: "it" });
+    const displayedAssetId = plan.visualStates[0]?.sourceAssetId;
     const parsed = veronicaMediaPlanSchema.safeParse({
       ...plan,
-      sourceAssets: plan.sourceAssets.map((asset, index) => index === 0 ? { ...asset, displayPolicy: "context-only" } : asset),
+      sourceAssets: plan.sourceAssets.map((asset) => asset.assetId === displayedAssetId ? { ...asset, displayPolicy: "context-only" } : asset),
     });
     expect(parsed.success).toBe(false);
+  });
+
+  it("records a fail-closed scene policy review without selecting context-only media", () => {
+    const fixtures = createVeronicaPilotFixtures();
+    const assets = fixtures.files.map((file) => ({
+      ...ingestSupplementalMediaAsset(file),
+      displayPolicy: "context-only" as const,
+    }));
+    const plan = buildSemanticMediaPlan({
+      episodeId: "episode-pilot",
+      originalNarration: fixtures.narration.original,
+      assets,
+      targetLanguage: "en",
+      sourceLanguage: "it",
+    });
+    expect(plan.visualStates).toHaveLength(0);
+    expect(plan.sceneVisualPlan.contentProfileId).toBe("veronicabenini");
+    expect(plan.sceneVisualPlan.policyReview).toEqual({
+      allowed: false,
+      reasonCodes: ["NO_DISPLAY_ALLOWED_SOURCE"],
+    });
+    expect(plan.approvalEligibility.issues.map((issue) => issue.code)).toContain(
+      "SCENE_VISUAL_POLICY_BLOCKED",
+    );
   });
 });

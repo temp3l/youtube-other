@@ -12,8 +12,9 @@
 | VRI-02 | VALIDATED | worker + coordinator review | 9 persistence tests pass; API suite dependency-blocked | `f17838f` |
 | VRI-03 | VALIDATED | worker + coordinator review | 13 focused tests; Veronica media typecheck pass | `f17838f` |
 | VRI-04 | VALIDATED | worker + coordinator review | 50 focused tests; shared typecheck pass | `f17838f` |
-| VRI-05 | VALIDATED | worker + coordinator review | 8 focused tests pass | pending commit |
-| VRI-06..VRI-26 | NOT_STARTED | unassigned | not run | none |
+| VRI-05 | VALIDATED | worker + coordinator review | 8 focused tests pass | `3dbeae1` |
+| VRI-06 | VALIDATED | worker + coordinator review | 6 focused tests; visual-planning build pass | pending commit |
+| VRI-07..VRI-26 | NOT_STARTED | unassigned | not run | none |
 
 ## VRI-01 evidence
 

@@ -238,6 +238,26 @@ export const veronicaApprovalEligibilitySchema = z.strictObject({
   issues: z.array(veronicaApprovalIssueSchema),
 });
 
+export const veronicaSceneVisualPlanSchema = z.strictObject({
+  schemaVersion: z.literal("scene-visual-policy.v1"),
+  contentProfileId: z.literal("veronicabenini"),
+  narrationRevisionId: veronicaIdSchema,
+  effectiveConfigurationHash: sha256Schema,
+  dependencyIdentity: z.record(z.string().min(1), sha256Schema),
+  scenes: z.array(z.strictObject({
+    sceneId: veronicaIdSchema,
+    narrationLineId: veronicaIdSchema,
+    sourceAssetId: veronicaIdSchema.optional(),
+    candidateId: veronicaIdSchema.optional(),
+    provenanceId: veronicaIdSchema.optional(),
+    rationale: z.enum(["display-allowed-source", "no-display-allowed-source"]),
+  })).min(1),
+  policyReview: z.strictObject({
+    allowed: z.boolean(),
+    reasonCodes: z.array(z.string().min(1)),
+  }),
+});
+
 export const veronicaRenderOperationSchema = z.discriminatedUnion("kind", [
   z.strictObject({
     kind: z.literal("contain"),
@@ -341,6 +361,7 @@ export const veronicaMediaPlanSchema = z
     claims: z.array(veronicaClaimReferenceSchema),
     narrationAnchors: z.array(veronicaNarrationAnchorSchema).min(1),
     narrationRevision: veronicaNarrationRevisionSchema,
+    sceneVisualPlan: veronicaSceneVisualPlanSchema,
     visualStates: z.array(veronicaVisualStateSchema),
     preparedAssets: z.array(veronicaPreparedAssetSchema),
     placements: z.array(veronicaMediaPlacementSchema),

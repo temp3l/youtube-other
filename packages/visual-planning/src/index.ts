@@ -96,3 +96,15 @@ export {
   type SuppliedEditorialMedia,
   type SuppliedMediaRightsEvidence,
 } from "./editorial-documentary-plan.js";
+
+export {
+  sceneVisualPolicyConfigurationHash,
+  selectSceneVisualMedia,
+  type SceneVisualPolicyCandidate,
+  type SceneVisualPolicyInput,
+  type SceneVisualPolicyResult,
+  type SceneVisualPolicyScene,
+  type SceneVisualPolicySource,
+  type SceneVisualSelection,
+  type SourceDisplayPolicy,
+} from "./scene-visual-policy.js";

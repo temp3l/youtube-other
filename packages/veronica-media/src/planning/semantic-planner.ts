@@ -13,6 +13,10 @@ import { buildNarrationAnchors, buildNarrationRevision } from "../narration/revi
 import { hashCanonical } from "../canonical-json.js";
 import { evaluateApprovalEligibility } from "../approval/eligibility.js";
 import { computePlannerMetrics } from "../metrics/planner-metrics.js";
+import {
+  sceneVisualPolicyConfigurationHash,
+  selectSceneVisualMedia,
+} from "@mediaforge/visual-planning";
 
 export interface SemanticPlannerInput {
   readonly episodeId: string;
@@ -21,6 +25,13 @@ export interface SemanticPlannerInput {
   readonly assets: readonly VeronicaIngestedAsset[];
   readonly targetLanguage: string;
   readonly sourceLanguage?: string;
+  /** Canonical source-led revision identity, when narration was planned upstream. */
+  readonly narrationRevisionId?: string;
+  /** Stable source-led scene/line lineage; visual semantics remain locale-independent. */
+  readonly narrationOutline?: readonly {
+    readonly sceneId: string;
+    readonly narrationLineId: string;
+  }[];
   readonly overrides?: Readonly<
     Record<
       string,
@@ -42,7 +53,7 @@ function chooseCandidates(asset: VeronicaIngestedAsset) {
 
 export function buildSemanticMediaPlan(input: SemanticPlannerInput): VeronicaMediaPlan {
   const revision = buildNarrationRevision({
-    revisionId: `revision-${input.episodeId}`,
+    revisionId: input.narrationRevisionId ?? `revision-${input.episodeId}`,
     originalScript: input.originalNarration,
     ...(input.revisedNarration ? { revisedScript: input.revisedNarration } : {}),
   });
@@ -57,21 +68,57 @@ export function buildSemanticMediaPlan(input: SemanticPlannerInput): VeronicaMed
     checksum: asset.checksum,
     byteLength: asset.byteLength,
     mediaKind: asset.mediaKind,
+    ...(asset.sourceKind ? { sourceKind: asset.sourceKind } : {}),
+    ...(asset.displayPolicy ? { displayPolicy: asset.displayPolicy } : {}),
+    ...(asset.immutableOriginal ? { immutableOriginal: true as const } : {}),
   }));
   const visualStates: VeronicaMediaPlan["visualStates"] = [];
   const preparedAssets: VeronicaMediaPlan["preparedAssets"] = [];
   const provenance: VeronicaMediaPlan["provenance"] = [];
   const placements: VeronicaMediaPlan["placements"] = [];
   const claims: VeronicaMediaPlan["claims"] = [];
+  const visualPolicy = selectSceneVisualMedia({
+    contentProfileId: "veronicabenini",
+    narrationRevisionId: revision.revisionId,
+    effectiveConfigurationHash: sceneVisualPolicyConfigurationHash({
+      narrationRevisionId: revision.revisionId,
+      sources: input.assets.map((asset) => ({
+        sourceAssetId: asset.assetId,
+        checksum: asset.checksum,
+        ...(asset.displayPolicy ? { displayPolicy: asset.displayPolicy } : {}),
+      })),
+    }),
+    dependencyIdentity: Object.fromEntries(
+      input.assets
+        .map((asset) => [asset.assetId, asset.checksum] as const)
+        .sort(([a], [b]) => a.localeCompare(b, "en")),
+    ),
+    scenes: anchors.map((anchor, index) => ({
+      sceneId: input.narrationOutline?.[index]?.sceneId ?? anchor.sceneId,
+      narrationLineId: input.narrationOutline?.[index]?.narrationLineId ?? anchor.anchorId,
+    })),
+    sources: input.assets.map((asset) => ({
+      sourceAssetId: asset.assetId,
+      checksum: asset.checksum,
+      ...(asset.displayPolicy ? { displayPolicy: asset.displayPolicy } : {}),
+      candidates: chooseCandidates(asset).map((candidate) => ({
+        candidateId: candidate.candidateId,
+        provenanceId: stableId("prov", input.episodeId, `${asset.assetId}:${candidate.candidateId}`),
+      })),
+    })),
+  });
 
   anchors.forEach((anchor, anchorIndex) => {
-    const asset = input.assets[anchorIndex % Math.max(input.assets.length, 1)];
+    const selection = visualPolicy.selections[anchorIndex];
+    const asset = selection?.sourceAssetId
+      ? input.assets.find((candidate) => candidate.assetId === selection.sourceAssetId)
+      : undefined;
     if (!asset) return;
     const override = input.overrides?.[asset.assetId];
     const candidates = chooseCandidates(asset);
     const candidate =
       candidates.find((entry) => entry.candidateId === override?.candidateId) ??
-      candidates[0];
+      candidates.find((entry) => entry.candidateId === selection?.candidateId);
     if (!candidate) return;
     const provenanceId = stableId("prov", input.episodeId, `${asset.assetId}:${candidate.candidateId}`);
     const sourceReference = {
@@ -88,7 +135,7 @@ export function buildSemanticMediaPlan(input: SemanticPlannerInput): VeronicaMed
         checksum: asset.checksum,
         sourceReference,
         transformationChain: ["adapt"],
-        language: input.targetLanguage,
+        language: input.sourceLanguage ?? "und",
         attributionMode: "on-screen",
         confidence: 0.9,
         warningCodes: [],
@@ -230,6 +277,15 @@ export function buildSemanticMediaPlan(input: SemanticPlannerInput): VeronicaMed
     claims,
     narrationAnchors: anchors,
     narrationRevision: revision,
+    sceneVisualPlan: {
+      schemaVersion: visualPolicy.schemaVersion,
+      contentProfileId: visualPolicy.contentProfileId,
+      narrationRevisionId: visualPolicy.narrationRevisionId,
+      effectiveConfigurationHash: visualPolicy.effectiveConfigurationHash,
+      dependencyIdentity: visualPolicy.dependencyIdentity,
+      scenes: visualPolicy.selections.map((selection) => ({ ...selection })),
+      policyReview: visualPolicy.review,
+    },
     visualStates,
     preparedAssets,
     placements,
@@ -281,10 +337,24 @@ export function buildSemanticMediaPlan(input: SemanticPlannerInput): VeronicaMed
     } } as VeronicaMediaPlan,
     ingestedAssets: input.assets,
   });
-  const contentHash = hashCanonical({ ...draftPlan, approvalEligibility });
+  const scenePolicyIssue = visualPolicy.review.allowed
+    ? []
+    : [{
+        code: "SCENE_VISUAL_POLICY_BLOCKED",
+        severity: "blocking-error" as const,
+        message: "No display-allowed source media is available for one or more scenes.",
+      }];
+  const finalApprovalEligibility = {
+    ...approvalEligibility,
+    renderEligible: approvalEligibility.renderEligible && scenePolicyIssue.length === 0,
+    contentReviewEligible: approvalEligibility.contentReviewEligible && scenePolicyIssue.length === 0,
+    productionEligible: false,
+    issues: [...approvalEligibility.issues, ...scenePolicyIssue],
+  };
+  const contentHash = hashCanonical({ ...draftPlan, approvalEligibility: finalApprovalEligibility });
   return veronicaMediaPlanSchema.parse({
     ...draftPlan,
-    approvalEligibility,
+    approvalEligibility: finalApprovalEligibility,
     contentHash,
   });
 }
