@@ -1,6 +1,6 @@
 # YSAAS implementation progress
 
-Current wave: Wave 2 in progress (YSAAS-016 complete; next wave task pending)
+Current wave: Wave 4 next (YSAAS-007 complete; YSAAS-008 or YSAAS-013 pending)
 
 ## Anti-stuck execution rules (session)
 
@@ -77,3 +77,9 @@ Status: completed
 Commit: 0eef7b9
 Validation: `content-lifecycle.unit.test.ts` pass (7); `postgres-content-lifecycle-repository.unit.test.ts` pass (1); domain/persistence/api-sdk emit pass; `apps/api` typecheck pass excluding pre-existing `job-process` / `provider-free-worker-entry` migrate errors
 Notes: Episode archive/restore/tombstone deletion with retention fail-closed evaluation; workspace retention policy read (unresolved when unconfigured); episode list visibility filter; lifecycle OpenAPI/SDK routes; persistence for lifecycle state, retention policy, deletion idempotency
+
+### YSAAS-007
+Status: completed
+Commit: 5b8e493
+Validation: `review-lifecycle.unit.test.ts` pass (7); `postgres-review-repository.unit.test.ts` pass (1); domain/persistence emit pass; `apps/api` typecheck pass excluding pre-existing `job-process` / `provider-free-worker-entry` migrate errors
+Notes: Review queue/history/validity projections; submit/claim/decide lifecycle with producer separation; `request_changes` decision; optional approve rationale; `approval.request_changes` webhook event; review OpenAPI/SDK module; challenge metadata persistence for submitter/claim
