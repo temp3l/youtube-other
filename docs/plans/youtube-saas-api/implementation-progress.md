@@ -1,6 +1,6 @@
 # YSAAS implementation progress
 
-Current wave: Wave 5 in progress (YSAAS-021 complete; YSAAS-017 next)
+Current wave: Wave 5 blocked (YSAAS-017 partial; YSAAS-018 and YSAAS-020 lack required API contracts)
 
 ## Anti-stuck execution rules (session)
 
@@ -107,3 +107,17 @@ Status: completed
 Commit: 3dd25da
 Validation: `saas-runtime.unit.test.ts` pass (4); targeted API SDK build and web typecheck pass
 Notes: Server-side publishing BFF/SDK methods; channel status/connect/disconnect; immutable preflight/prepare confirmation; safe publication status/schedule/cancel pages; flag-off hides executable control and reconciliation remains read-only. Metadata-only changes create a new immutable intent without media regeneration.
+
+### YSAAS-017
+Status: partial / blocked
+Commit: 07c3653
+Validation: focused web runtime and API integration tests pass; API SDK build and web/API typechecks pass
+Notes: Canonical tenant/project/episode production-state API, SDK, BFF, episode workspace, review queue, and immutable approval history are implemented. Artifact comparison and invalidation confirmation are blocked because no tenant-scoped production-unit lineage/snapshot read projection exists; the existing mutation preview requires the client to supply those snapshots.
+
+### YSAAS-018
+Status: blocked
+Notes: The domain resolver exists, but no tenant-scoped capability/configuration read API exposes inherited, overridden, and resolved selectable options. The current hard-coded pilot mapping must not be extended.
+
+### YSAAS-020
+Status: blocked
+Notes: Credential issuance/list/revoke and webhook APIs exist, but the required credential rotation-with-overlap endpoint is absent. YSAAS-011 explicitly deferred its public rotate route.
