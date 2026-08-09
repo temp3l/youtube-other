@@ -20,3 +20,10 @@ remains visible for real production approval.
 the pure routing seam. Missing, unknown, and production-like values resolve to
 V3.5. No production workflow reads this flag yet, so production behavior is
 unchanged and activation requires an explicit later approval and wiring step.
+
+For a bounded production candidate only,
+`MEDIAFORGE_HISTORY_V36_VISUAL_PLAN=canary` must be paired with an exact,
+comma-separated `MEDIAFORGE_HISTORY_V36_CANARY_EPISODES` allowlist. Only a
+named episode may select `V3_6_PRODUCTION_CANDIDATE`; all other episodes stay
+on V3.5. This route writes only isolated canary artifacts and never changes the
+global production default.
