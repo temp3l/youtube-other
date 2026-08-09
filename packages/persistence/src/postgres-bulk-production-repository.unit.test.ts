@@ -18,5 +18,8 @@ describe("Postgres bulk production repository", () => {
     expect(source).toContain("FOR UPDATE OF item SKIP LOCKED");
     expect(source).toContain("AND status='running'");
     expect(source).toContain("workflow_run_id=$5");
+    expect(source).toContain("workflow_run_id IS NULL");
+    expect(source).toContain("status='cancelling'");
+    expect(source).toContain("status='pending'");
   });
 });

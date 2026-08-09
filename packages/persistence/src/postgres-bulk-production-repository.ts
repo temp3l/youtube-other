@@ -183,4 +183,25 @@ export class PostgresBulkProductionRepository {
       return true;
     });
   }
+
+  /** Records child admission without conflating a queued child workflow with completion. */
+  public async recordClaimedAdmission(input: { readonly workspaceId: string; readonly batchId: string; readonly itemId: string; readonly workflowRunId: string; readonly jobId: string; readonly now: string }): Promise<boolean> {
+    return this.withWorkspace(input.workspaceId, async (client) => {
+      const result = await client.query<{ readonly item_id: string }>(`UPDATE bulk_production_batch_items SET workflow_run_id=$4, job_id=$5, updated_at=$6::timestamptz WHERE workspace_id=$1 AND batch_id=$2 AND item_id=$3 AND status='running' AND workflow_run_id IS NULL RETURNING item_id`, [input.workspaceId, input.batchId, input.itemId, input.workflowRunId, input.jobId, input.now]);
+      return result.rows.length === 1;
+    });
+  }
+
+  /** Stops future claims and cancels only work that has not yet been admitted. */
+  public async requestCancellation(input: { readonly workspaceId: string; readonly batchId: string; readonly now: string }): Promise<"cancelling" | "cancelled" | "not_cancellable"> {
+    return this.withWorkspace(input.workspaceId, async (client) => {
+      const batch = await client.query<{ readonly status: string }>(`UPDATE bulk_production_batches SET status='cancelling', updated_at=$3::timestamptz WHERE workspace_id=$1 AND batch_id=$2 AND status IN ('planned','running') RETURNING status`, [input.workspaceId, input.batchId, input.now]);
+      if (!batch.rows[0]) return "not_cancellable";
+      await client.query(`UPDATE bulk_production_batch_items SET status='cancelled', updated_at=$3::timestamptz WHERE workspace_id=$1 AND batch_id=$2 AND status='pending'`, [input.workspaceId, input.batchId, input.now]);
+      const running = await client.query<{ readonly item_id: string }>(`SELECT item_id FROM bulk_production_batch_items WHERE workspace_id=$1 AND batch_id=$2 AND status='running' LIMIT 1`, [input.workspaceId, input.batchId]);
+      if (running.rows[0]) return "cancelling";
+      await client.query(`UPDATE bulk_production_batches SET status='cancelled', updated_at=$3::timestamptz WHERE workspace_id=$1 AND batch_id=$2 AND status='cancelling'`, [input.workspaceId, input.batchId, input.now]);
+      return "cancelled";
+    });
+  }
 }
