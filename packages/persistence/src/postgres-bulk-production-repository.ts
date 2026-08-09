@@ -21,6 +21,8 @@ CREATE TABLE IF NOT EXISTS bulk_production_batches (
   PRIMARY KEY (workspace_id, batch_id),
   UNIQUE (workspace_id, idempotency_key)
 );
+ALTER TABLE bulk_production_batches
+  ADD COLUMN IF NOT EXISTS launch_attempt INTEGER NOT NULL DEFAULT 0;
 CREATE TABLE IF NOT EXISTS bulk_production_batch_items (
   workspace_id TEXT NOT NULL,
   batch_id TEXT NOT NULL,
@@ -67,6 +69,7 @@ export interface BulkProductionBatchRecord {
   readonly batchId: string;
   readonly selectionFingerprint: string;
   readonly status: string;
+  readonly launchAttempt: number;
   readonly createdAt: string;
   readonly updatedAt: string;
 }
@@ -218,16 +221,16 @@ export class PostgresBulkProductionRepository {
     try {
       await client.query("BEGIN");
       await client.query("SELECT set_config('app.workspace_id', $1, true)", [input.preflight.workspaceId]);
-      const inserted = await client.query<{ readonly workspace_id: string; readonly batch_id: string; readonly selection_fingerprint: string; readonly status: string; readonly created_at: string; readonly updated_at: string }>(
+      const inserted = await client.query<{ readonly workspace_id: string; readonly batch_id: string; readonly selection_fingerprint: string; readonly status: string; readonly launch_attempt: string | number; readonly created_at: string; readonly updated_at: string }>(
         `INSERT INTO bulk_production_batches (workspace_id, batch_id, idempotency_key, request_fingerprint, selection_fingerprint, status, created_by_principal_id, created_at, updated_at)
          VALUES ($1,$2,$3,$4,$5,'planned',$6,$7::timestamptz,$7::timestamptz)
          ON CONFLICT (workspace_id, idempotency_key) DO NOTHING
-         RETURNING workspace_id, batch_id, selection_fingerprint, status, created_at, updated_at`,
+         RETURNING workspace_id, batch_id, selection_fingerprint, status, launch_attempt, created_at, updated_at`,
         [input.preflight.workspaceId, input.batchId, input.idempotencyKey, input.requestFingerprint, input.preflight.selectionFingerprint, input.principalId, input.now]
       );
-      const toRecord = (value: { readonly workspace_id: string; readonly batch_id: string; readonly selection_fingerprint: string; readonly status: string; readonly created_at: string; readonly updated_at: string }): BulkProductionBatchRecord => ({ workspaceId: value.workspace_id, batchId: value.batch_id, selectionFingerprint: value.selection_fingerprint, status: value.status, createdAt: value.created_at, updatedAt: value.updated_at });
+      const toRecord = (value: { readonly workspace_id: string; readonly batch_id: string; readonly selection_fingerprint: string; readonly status: string; readonly launch_attempt: string | number; readonly created_at: string; readonly updated_at: string }): BulkProductionBatchRecord => ({ workspaceId: value.workspace_id, batchId: value.batch_id, selectionFingerprint: value.selection_fingerprint, status: value.status, launchAttempt: Number(value.launch_attempt), createdAt: value.created_at, updatedAt: value.updated_at });
       if (!inserted.rows[0]) {
-        const existing = await client.query<{ readonly workspace_id: string; readonly batch_id: string; readonly selection_fingerprint: string; readonly status: string; readonly created_at: string; readonly updated_at: string; readonly request_fingerprint: string }>(`SELECT workspace_id, batch_id, selection_fingerprint, status, created_at, updated_at, request_fingerprint FROM bulk_production_batches WHERE workspace_id=$1 AND idempotency_key=$2 FOR UPDATE`, [input.preflight.workspaceId, input.idempotencyKey]);
+        const existing = await client.query<{ readonly workspace_id: string; readonly batch_id: string; readonly selection_fingerprint: string; readonly status: string; readonly launch_attempt: string | number; readonly created_at: string; readonly updated_at: string; readonly request_fingerprint: string }>(`SELECT workspace_id, batch_id, selection_fingerprint, status, launch_attempt, created_at, updated_at, request_fingerprint FROM bulk_production_batches WHERE workspace_id=$1 AND idempotency_key=$2 FOR UPDATE`, [input.preflight.workspaceId, input.idempotencyKey]);
         const value = existing.rows[0];
         if (!value) throw new BulkProductionPersistenceError("Batch idempotency record disappeared.");
         if (value.request_fingerprint !== input.requestFingerprint) throw new BulkProductionPersistenceError("Idempotency key is already associated with a different batch request.");
@@ -252,15 +255,15 @@ export class PostgresBulkProductionRepository {
 
   public async getBatch(input: { readonly workspaceId: string; readonly batchId: string }): Promise<BulkProductionBatchRecord | null> {
     return this.withWorkspace(input.workspaceId, async (client) => {
-      const result = await client.query<{ readonly workspace_id: string; readonly batch_id: string; readonly selection_fingerprint: string; readonly status: string; readonly created_at: string; readonly updated_at: string }>(`SELECT workspace_id, batch_id, selection_fingerprint, status, created_at, updated_at FROM bulk_production_batches WHERE workspace_id=$1 AND batch_id=$2`, [input.workspaceId, input.batchId]);
+      const result = await client.query<{ readonly workspace_id: string; readonly batch_id: string; readonly selection_fingerprint: string; readonly status: string; readonly launch_attempt: string | number; readonly created_at: string; readonly updated_at: string }>(`SELECT workspace_id, batch_id, selection_fingerprint, status, launch_attempt, created_at, updated_at FROM bulk_production_batches WHERE workspace_id=$1 AND batch_id=$2`, [input.workspaceId, input.batchId]);
       const row = result.rows[0];
-      return row ? { workspaceId: row.workspace_id, batchId: row.batch_id, selectionFingerprint: row.selection_fingerprint, status: row.status, createdAt: row.created_at, updatedAt: row.updated_at } : null;
+      return row ? { workspaceId: row.workspace_id, batchId: row.batch_id, selectionFingerprint: row.selection_fingerprint, status: row.status, launchAttempt: Number(row.launch_attempt), createdAt: row.created_at, updatedAt: row.updated_at } : null;
     });
   }
 
   public async countEligibleItems(input: { readonly workspaceId: string; readonly batchId: string }): Promise<number> {
     return this.withWorkspace(input.workspaceId, async (client) => {
-      const result = await client.query<{ readonly count: string | number }>(`SELECT COUNT(*)::bigint AS count FROM bulk_production_batch_items WHERE workspace_id=$1 AND batch_id=$2 AND eligible=TRUE`, [input.workspaceId, input.batchId]);
+      const result = await client.query<{ readonly count: string | number }>(`SELECT COUNT(*)::bigint AS count FROM bulk_production_batch_items WHERE workspace_id=$1 AND batch_id=$2 AND eligible=TRUE AND status='pending'`, [input.workspaceId, input.batchId]);
       return Number(result.rows[0]?.count ?? 0);
     });
   }
@@ -321,6 +324,35 @@ export class PostgresBulkProductionRepository {
         now: input.now,
       });
       return "cancelled";
+    });
+  }
+
+  /** Reopens only terminal retryable/cancelled items; successful effects remain immutable. */
+  public async retryTerminalItems(input: { readonly workspaceId: string; readonly batchId: string; readonly now: string }): Promise<number> {
+    return this.withWorkspace(input.workspaceId, async (client) => {
+      const batch = await client.query<{ readonly batch_id: string }>(`UPDATE bulk_production_batches
+        SET status='planned', launch_attempt=launch_attempt + 1, updated_at=$3::timestamptz
+        WHERE workspace_id=$1 AND batch_id=$2 AND status IN ('partial','failed','cancelled')
+        RETURNING batch_id`, [input.workspaceId, input.batchId, input.now]);
+      if (!batch.rows[0]) return 0;
+      const items = await client.query<{ readonly item_id: string }>(`UPDATE bulk_production_batch_items
+        SET status='pending', workflow_run_id=NULL, job_id=NULL, error_code=NULL, error_message=NULL, updated_at=$3::timestamptz
+        WHERE workspace_id=$1 AND batch_id=$2 AND eligible=TRUE AND status IN ('failed-retryable','cancelled')
+        RETURNING item_id`, [input.workspaceId, input.batchId, input.now]);
+      if (items.rows.length === 0) {
+        await refreshBulkBatchStatus(client, input);
+        return 0;
+      }
+      return items.rows.length;
+    });
+  }
+
+  public async listAdmittedChildJobs(input: { readonly workspaceId: string; readonly batchId: string }): Promise<readonly string[]> {
+    return this.withWorkspace(input.workspaceId, async (client) => {
+      const result = await client.query<{ readonly job_id: string }>(`SELECT job_id FROM bulk_production_batch_items
+        WHERE workspace_id=$1 AND batch_id=$2 AND status='running' AND job_id IS NOT NULL
+        ORDER BY selection_order`, [input.workspaceId, input.batchId]);
+      return result.rows.map((item) => item.job_id);
     });
   }
 }

@@ -13,6 +13,7 @@ describe("Postgres bulk production repository", () => {
     expect(POSTGRES_BULK_PRODUCTION_MIGRATION).toContain("UNIQUE (workspace_id, idempotency_key)");
     expect(POSTGRES_BULK_PRODUCTION_MIGRATION).toContain("eligibility_reasons JSONB NOT NULL");
     expect(POSTGRES_BULK_PRODUCTION_MIGRATION).toContain("bulk_production_batch_items_job_id_idx");
+    expect(POSTGRES_BULK_PRODUCTION_MIGRATION).toContain("launch_attempt INTEGER NOT NULL DEFAULT 0");
     expect(POSTGRES_BULK_PRODUCTION_MIGRATION).toContain("FORCE ROW LEVEL SECURITY");
     expect(POSTGRES_MIGRATION_MODULES.map((module) => module.id)).toContain("bulk-production");
   });
@@ -29,6 +30,9 @@ describe("Postgres bulk production repository", () => {
     expect(source).toContain("WHERE workspace_id=$1 AND job_id=$2 AND status='running'");
     expect(source).toContain("releaseQuotaDimensionsForSubjectInTransaction");
     expect(source).toContain('dimensions: ["active_batches", "batch_items"]');
+    expect(source).toContain("retryTerminalItems");
+    expect(source).toContain("launch_attempt=launch_attempt + 1");
+    expect(source).toContain("status IN ('failed-retryable','cancelled')");
   });
 
   it("settles a linked terminal child through the caller transaction", async () => {
