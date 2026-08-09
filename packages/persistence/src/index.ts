@@ -14,6 +14,7 @@ export * from "./production-state-repository.js";
 export * from "./postgres-workflow-repository.js";
 export * from "./workflow-portfolio-repository.js";
 export * from "./postgres-webhook-repository.js";
+export * from "./postgres-webhook-signing-secret-repository.js";
 export * from "./postgres-usage-audit-repository.js";
 export * from "./postgres-principal-directory.js";
 export * from "./postgres-pilot-api-key-repository.js";

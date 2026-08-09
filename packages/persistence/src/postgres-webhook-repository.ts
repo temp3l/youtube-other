@@ -633,4 +633,41 @@ export class PostgresWebhookRepository {
       [input.newDeliveryId, input.now, input.workspaceId, input.sourceDeliveryId, input.expectedRevision]
     ), "Webhook replay requires an enabled endpoint and a terminal delivery at the expected revision.")));
   }
+
+  public async listDeliveryAttempts(input: {
+    readonly workspaceId: string;
+    readonly deliveryId: string;
+  }): Promise<
+    readonly {
+      readonly attemptNumber: number;
+      readonly outcome: "delivered" | "retry" | "dead_letter";
+      readonly responseStatus: number | null;
+      readonly error: string | null;
+      readonly attemptedAt: string;
+    }[]
+  > {
+    return this.transaction(input.workspaceId, async (client) => {
+      const result = await client.query<{
+        readonly attempt_number: number | string;
+        readonly outcome: "delivered" | "retry" | "dead_letter";
+        readonly response_status: number | string | null;
+        readonly error: string | null;
+        readonly attempted_at: Date | string;
+      }>(
+        `SELECT attempt_number, outcome, response_status, error, attempted_at
+         FROM webhook_delivery_attempts
+         WHERE workspace_id = $1 AND delivery_id = $2
+         ORDER BY attempt_number`,
+        [input.workspaceId, input.deliveryId]
+      );
+      return result.rows.map((row) => ({
+        attemptNumber: Number(row.attempt_number),
+        outcome: row.outcome,
+        responseStatus:
+          row.response_status === null ? null : Number(row.response_status),
+        error: row.error,
+        attemptedAt: timestamp(row.attempted_at),
+      }));
+    });
+  }
 }

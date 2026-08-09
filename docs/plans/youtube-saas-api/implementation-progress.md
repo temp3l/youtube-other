@@ -1,6 +1,6 @@
 # YSAAS implementation progress
 
-Current wave: Wave 2 in progress (YSAAS-011 complete; YSAAS-012+ next)
+Current wave: Wave 2 in progress (YSAAS-012 complete; YSAAS-015 next)
 
 ## Anti-stuck execution rules (session)
 
@@ -59,3 +59,9 @@ Status: completed
 Commit: 639a9a4
 Validation: `api-credential-lifecycle.unit.test.ts` pass (4); domain/application/persistence/api-sdk emit pass; `apps/api` typecheck pass excluding pre-existing `job-process` / `provider-free-worker-entry` migrate errors
 Notes: Named credential lifecycle, show-once issue with idempotency replay, revoke with If-Match, developer journey examples; API routes + OpenAPI/SDK developer-credential module; pilot key admin `name` env; rotate overlap persistence (no public rotate route yet)
+
+### YSAAS-012
+Status: completed
+Commit: pending
+Validation: `webhook-lifecycle.unit.test.ts` pass (4); domain/persistence/application/api-sdk emit pass; `apps/api` typecheck pass excluding pre-existing `job-process` / `provider-free-worker-entry` migrate errors
+Notes: Webhook endpoint CRUD, show-once secret create/rotate with overlap, test delivery, delivery history with redacted summaries, attempt listing, resend replay; encrypted signing-secret store; OpenAPI/SDK webhook module; `webhook.manage` permission

@@ -16,6 +16,15 @@ import {
   apiCredentialRecordSchema,
   apiCredentialRevokeInputSchema,
   developerJourneyExamplesSchema,
+  webhookDeliveryAttemptPageSchema,
+  webhookDeliveryRecordSchema,
+  webhookEndpointCreateInputSchema,
+  webhookEndpointCreateResultSchema,
+  webhookEndpointRecordSchema,
+  webhookEndpointUpdateInputSchema,
+  webhookSecretRotateInputSchema,
+  webhookSecretRotateResultSchema,
+  webhookTestResultSchema,
 } from "@mediaforge/domain";
 import { ZodError } from "zod";
 
@@ -236,6 +245,54 @@ export interface ApiUseCases {
     >
   ): Promise<Record<string, unknown>>;
   getDeveloperJourneyExamples(): Promise<Record<string, unknown>>;
+  createWebhookEndpoint(
+    body: unknown,
+    context: Required<Pick<ApiRequestContext, "workspaceId" | "principal">>
+  ): Promise<Record<string, unknown>>;
+  listWebhookEndpoints(
+    context: Required<Pick<ApiRequestContext, "workspaceId" | "principal">>
+  ): Promise<{ readonly items: readonly Record<string, unknown>[] }>;
+  getWebhookEndpoint(
+    endpointId: string,
+    context: Required<Pick<ApiRequestContext, "workspaceId" | "principal">>
+  ): Promise<Record<string, unknown>>;
+  updateWebhookEndpoint(
+    endpointId: string,
+    body: unknown,
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "principal" | "ifMatch">
+    >
+  ): Promise<Record<string, unknown>>;
+  rotateWebhookEndpointSecret(
+    endpointId: string,
+    body: unknown,
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "principal" | "ifMatch">
+    >
+  ): Promise<Record<string, unknown>>;
+  testWebhookEndpoint(
+    endpointId: string,
+    context: Required<Pick<ApiRequestContext, "workspaceId" | "principal">>
+  ): Promise<Record<string, unknown>>;
+  listWebhookDeliveries(
+    endpointId: string | undefined,
+    after: string | undefined,
+    size: number,
+    context: Required<Pick<ApiRequestContext, "workspaceId" | "principal">>
+  ): Promise<{
+    readonly items: readonly Record<string, unknown>[];
+    readonly nextAfter?: string;
+  }>;
+  listWebhookDeliveryAttempts(
+    deliveryId: string,
+    context: Required<Pick<ApiRequestContext, "workspaceId" | "principal">>
+  ): Promise<{ readonly items: readonly Record<string, unknown>[] }>;
+  resendWebhookDelivery(
+    deliveryId: string,
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "principal" | "ifMatch">
+    >
+  ): Promise<Record<string, unknown>>;
   createProject(
     input: ProjectInput,
     context: ApiRequestContext
@@ -980,7 +1037,8 @@ type ApiPermission =
   | "validation.read"
   | "workflow.cancel"
   | "workflow.start"
-  | "workspace.admin";
+  | "workspace.admin"
+  | "webhook.manage";
 
 /** Resolves authorization from the exact implemented operation, not only its HTTP verb. */
 function requiredPermission(
@@ -1024,6 +1082,29 @@ function requiredPermission(
     /^api-credentials\/[^/]+:revoke$/u.test(matched.tail ?? "")
   )
     return "workspace.admin";
+  if (
+    method === "POST" &&
+    !matched.project &&
+    matched.tail === "webhook-endpoints"
+  )
+    return "webhook.manage";
+  if (
+    method === "GET" &&
+    !matched.project &&
+    (matched.tail === "webhook-endpoints" ||
+      matched.tail === "webhook-deliveries" ||
+      /^webhook-endpoints\/[^/]+$/u.test(matched.tail ?? "") ||
+      /^webhook-deliveries\/[^/]+\/attempts$/u.test(matched.tail ?? ""))
+  )
+    return "webhook.manage";
+  if (
+    (method === "PATCH" || method === "POST") &&
+    !matched.project &&
+    (/^webhook-endpoints\/[^/]+:rotate-secret$/u.test(matched.tail ?? "") ||
+      /^webhook-endpoints\/[^/]+:test$/u.test(matched.tail ?? "") ||
+      /^webhook-deliveries\/[^/]+:resend$/u.test(matched.tail ?? ""))
+  )
+    return "webhook.manage";
   if (method === "POST" && !matched.project && matched.tail === "")
     return "content.write";
   if (method === "GET" && !matched.project && matched.tail === "")
@@ -1350,6 +1431,126 @@ export function createApiServer(
           )
         );
         return json(response, 200, result, {
+          etag: etag(result.revision),
+          "x-request-id": requestIdValue,
+        });
+      }
+      if (
+        request.method === "POST" &&
+        !matched.project &&
+        matched.tail === "webhook-endpoints"
+      ) {
+        const result = webhookEndpointCreateResultSchema.parse(
+          await useCases.createWebhookEndpoint(
+            webhookEndpointCreateInputSchema.parse(await body(request)),
+            context
+          )
+        );
+        return json(response, 201, result, {
+          etag: etag(result.endpoint.revision),
+          "x-request-id": requestIdValue,
+        });
+      }
+      if (
+        request.method === "GET" &&
+        !matched.project &&
+        matched.tail === "webhook-endpoints"
+      ) {
+        const result = await useCases.listWebhookEndpoints(context);
+        return json(response, 200, result, { "x-request-id": requestIdValue });
+      }
+      const webhookEndpointMatch = !matched.project
+        ? matched.tail?.match(/^webhook-endpoints\/([^/]+)$/u)
+        : null;
+      if (request.method === "GET" && webhookEndpointMatch?.[1]) {
+        const result = webhookEndpointRecordSchema.parse(
+          await useCases.getWebhookEndpoint(webhookEndpointMatch[1], context)
+        );
+        return json(response, 200, result, {
+          etag: etag(result.revision),
+          "x-request-id": requestIdValue,
+        });
+      }
+      if (request.method === "PATCH" && webhookEndpointMatch?.[1]) {
+        const match = strongIfMatch(request);
+        const result = webhookEndpointRecordSchema.parse(
+          await useCases.updateWebhookEndpoint(
+            webhookEndpointMatch[1],
+            webhookEndpointUpdateInputSchema.parse(await body(request)),
+            { ...context, ifMatch: match }
+          )
+        );
+        return json(response, 200, result, {
+          etag: etag(result.revision),
+          "x-request-id": requestIdValue,
+        });
+      }
+      const webhookRotateMatch = !matched.project
+        ? matched.tail?.match(/^webhook-endpoints\/([^/]+):rotate-secret$/u)
+        : null;
+      if (request.method === "POST" && webhookRotateMatch?.[1]) {
+        const match = strongIfMatch(request);
+        const rawBody = await body(request);
+        const result = webhookSecretRotateResultSchema.parse(
+          await useCases.rotateWebhookEndpointSecret(
+            webhookRotateMatch[1],
+            rawBody === undefined || rawBody === null
+              ? {}
+              : webhookSecretRotateInputSchema.parse(rawBody),
+            { ...context, ifMatch: match }
+          )
+        );
+        return json(response, 200, result, {
+          etag: etag(result.endpoint.revision),
+          "x-request-id": requestIdValue,
+        });
+      }
+      const webhookTestMatch = !matched.project
+        ? matched.tail?.match(/^webhook-endpoints\/([^/]+):test$/u)
+        : null;
+      if (request.method === "POST" && webhookTestMatch?.[1]) {
+        const result = webhookTestResultSchema.parse(
+          await useCases.testWebhookEndpoint(webhookTestMatch[1], context)
+        );
+        return json(response, 200, result, { "x-request-id": requestIdValue });
+      }
+      if (
+        request.method === "GET" &&
+        !matched.project &&
+        matched.tail === "webhook-deliveries"
+      ) {
+        const result = await useCases.listWebhookDeliveries(
+          url.searchParams.get("filter[endpointId]") ?? undefined,
+          url.searchParams.get("page[after]") ?? undefined,
+          pageSize(url),
+          context
+        );
+        return json(response, 200, result, { "x-request-id": requestIdValue });
+      }
+      const webhookAttemptsMatch = !matched.project
+        ? matched.tail?.match(/^webhook-deliveries\/([^/]+)\/attempts$/u)
+        : null;
+      if (request.method === "GET" && webhookAttemptsMatch?.[1]) {
+        const result = webhookDeliveryAttemptPageSchema.parse(
+          await useCases.listWebhookDeliveryAttempts(
+            webhookAttemptsMatch[1],
+            context
+          )
+        );
+        return json(response, 200, result, { "x-request-id": requestIdValue });
+      }
+      const webhookResendMatch = !matched.project
+        ? matched.tail?.match(/^webhook-deliveries\/([^/]+):resend$/u)
+        : null;
+      if (request.method === "POST" && webhookResendMatch?.[1]) {
+        const match = strongIfMatch(request);
+        const result = webhookDeliveryRecordSchema.parse(
+          await useCases.resendWebhookDelivery(webhookResendMatch[1], {
+            ...context,
+            ifMatch: match,
+          })
+        );
+        return json(response, 201, result, {
           etag: etag(result.revision),
           "x-request-id": requestIdValue,
         });

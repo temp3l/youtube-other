@@ -3,6 +3,7 @@ import { artifactLineageOpenApiPaths } from "./modules/artifact-lineage-paths.js
 import { artifactReviewPublicationOpenApiPaths } from "./modules/artifact-review-publication-paths.js";
 import { contentOpenApiPaths } from "./modules/content-paths.js";
 import { developerCredentialOpenApiPaths } from "./modules/developer-credential-paths.js";
+import { webhookOpenApiPaths } from "./modules/webhook-paths.js";
 import { platformOpenApiPaths } from "./modules/platform-paths.js";
 import { speechOpenApiPaths } from "./modules/speech-paths.js";
 import { workflowOpenApiPaths } from "./modules/workflow-paths.js";
@@ -14,6 +15,7 @@ export const OPENAPI_PATH_MODULES: readonly OpenApiPathModule[] = [
     owner: "developer",
     paths: developerCredentialOpenApiPaths,
   },
+  { id: "webhook", owner: "developer", paths: webhookOpenApiPaths },
   { id: "content", owner: "content", paths: contentOpenApiPaths },
   { id: "workflow", owner: "workflow", paths: workflowOpenApiPaths },
   {
