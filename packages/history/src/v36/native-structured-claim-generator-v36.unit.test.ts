@@ -191,13 +191,13 @@ describe("History V3.6 representative native structured fixture experiment", () 
     expect(experiment.missClassification.nativeStructurePresentAtomicGroundingGap).toBe(0);
     expect(experiment.phase26Comparison).toMatchObject({
       before: { nativeClaims: 17, nativePropositions: 18, insufficientStructure: 61, atomicPropositions: 37, candidates: 45, validatedRelations: 23 },
-      after: { nativeClaims: 21, nativePropositions: 26, insufficientStructure: 60, atomicPropositions: 45, candidates: 52, validatedRelations: 30 },
+      after: { nativeClaims: 21, nativePropositions: 26, insufficientStructure: 60, atomicPropositions: 45, candidates: 53, validatedRelations: 31 },
     });
     expect(experiment.phase27Comparison).toMatchObject({
       before: { candidates: 45, validatedRelations: 23, processRelations: 0, temporalSequenceRelations: 0 },
-      after: { candidates: 52, validatedRelations: 30, processRelations: 2, temporalSequenceRelations: 2 },
+      after: { candidates: 53, validatedRelations: 31, processRelations: 2, temporalSequenceRelations: 2 },
     });
-    expect(experiment.missClassification.atomicGroundingPresentCandidateProjectionGap).toBe(9);
+    expect(experiment.missClassification.atomicGroundingPresentCandidateProjectionGap).toBe(8);
     expect(experiment.missClassification.candidateProposedValidatorReject).toBe(0);
     expect(experiment.candidateProjection).toEqual({
       process: { proposed: 2, validatorAccepts: 2, validatorRejects: 0 },

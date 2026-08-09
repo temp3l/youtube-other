@@ -14,6 +14,11 @@ import {
   type RepresentativeShadowExtractionResultV36,
   type RepresentativeShadowSourceV36,
 } from "./representative-shadow-extraction-v36.js";
+import {
+  HISTORY_PROOF_AWARE_POLICY_RESPONSE_ADMISSION_V36,
+  admitProofAwarePolicyResponseV36,
+} from "./proof-aware-policy-response-admission-v36.js";
+import { approvedCrossClaimResponseClaimIdV36 } from "./cross-claim-proof-fixtures-v36.js";
 import { structuredClaimArtifactSchemaV36 } from "./structured-claim-v36.js";
 
 export interface RepresentativeNativeExperimentSourceV36 {
@@ -225,13 +230,40 @@ export function runRepresentativeNativeStructuredClaimExperimentV36(
 ) {
   const runs = sources.map((source): RepresentativeNativeExperimentRunV36 => {
     const sidecar = createRepresentativeNativeStructuredSidecarV36(source.native);
+    const native = runRepresentativeShadowExtractionV36(source.shadow, {
+      nativeStructuredClaimEnvelopes: sidecar.structuredClaims.envelopes,
+      nativeStructuredClaimDiagnostics: sidecar.structuredClaims.diagnostics,
+    });
+    const proofAdmission = admitProofAwarePolicyResponseV36(native);
+    const admittedNative = proofAdmission.status !== "admitted" ? native : {
+      ...native,
+      extraction: { ...native.extraction, relations: [...native.extraction.relations, proofAdmission.value.relation].sort((left, right) => left.id.localeCompare(right.id)) },
+      candidates: [...native.candidates, {
+        id: `proof-aware-${proofAdmission.value.proofEvidence.evidenceId}`,
+        episodeId: native.episodeId,
+        claimId: approvedCrossClaimResponseClaimIdV36,
+        supportClaimIds: proofAdmission.value.relation.supportClaimIds,
+        windowSize: 2 as const,
+        source: "proof-aware-relation-evidence" as const,
+        extractionRule: HISTORY_PROOF_AWARE_POLICY_RESPONSE_ADMISSION_V36,
+        normalizedProposition: "validated cross-claim policy-response proof",
+        sourceSpans: proofAdmission.value.proofEvidence.premises.map((premise) => ({ startUtf16: premise.sourceSpan.startUtf16, endUtf16Exclusive: premise.sourceSpan.endUtf16Exclusive })),
+        resolvedParticipantIds: proofAdmission.value.proofEvidence.premises.map((premise) => premise.participantId),
+        status: "valid" as const,
+        semanticRelationId: proofAdmission.value.relation.id,
+        evidenceFingerprint: proofAdmission.value.relation.evidenceFingerprint,
+        atomicGroundingIds: proofAdmission.value.proofEvidence.premises.map((premise) => premise.atomicGroundingId),
+        structuredPropositionIds: proofAdmission.value.proofEvidence.premises.map((premise) => premise.structuredPropositionId),
+        assertionStatus: "attempted" as const,
+        atomicSourceSpans: proofAdmission.value.proofEvidence.premises.map((premise) => premise.sourceSpan),
+        semanticParticipantIds: proofAdmission.value.proofEvidence.premises.map((premise) => premise.participantId),
+        diagnostics: [],
+      }].sort((left, right) => left.id.localeCompare(right.id)),
+    };
     return {
       episodeId: source.shadow.episodeId,
       baseline: runRepresentativeShadowExtractionV36(source.shadow),
-      native: runRepresentativeShadowExtractionV36(source.shadow, {
-        nativeStructuredClaimEnvelopes: sidecar.structuredClaims.envelopes,
-        nativeStructuredClaimDiagnostics: sidecar.structuredClaims.diagnostics,
-      }),
+      native: admittedNative,
     };
   });
   const baselineClaims = runs.flatMap((run) => run.baseline.grounding.claims);
@@ -252,7 +284,7 @@ export function runRepresentativeNativeStructuredClaimExperimentV36(
   const insufficientBefore = baselineClaims.filter((claim) => claim.coverage === "insufficient-structure").length;
   const insufficientAfter = nativeClaims.filter((claim) => claim.coverage === "insufficient-structure").length;
   const nativeClaimIds = new Set(nativeEnvelopes.map((envelope) => envelope.claimId));
-  const atomicCandidateSources = new Set(["atomic-claim-grounding", "atomic-process-projection", "atomic-temporal-projection", "atomic-transforms-causal-projection", "atomic-evidence-set-projection"]);
+  const atomicCandidateSources = new Set(["atomic-claim-grounding", "atomic-process-projection", "atomic-temporal-projection", "atomic-transforms-causal-projection", "atomic-evidence-set-projection", "proof-aware-relation-evidence"]);
   const nativeCandidateClaimIds = new Set(nativeCandidates.filter((candidate) => atomicCandidateSources.has(candidate.source)).map((candidate) => candidate.claimId));
   const nativeRejectedClaimIds = new Set(nativeCandidates.filter((candidate) => atomicCandidateSources.has(candidate.source) && candidate.status === "rejected").map((candidate) => candidate.claimId));
   const remainingInsufficient = nativeClaims.filter((claim) => claim.coverage === "insufficient-structure");
@@ -392,7 +424,7 @@ export function runRepresentativeNativeStructuredClaimExperimentV36(
       nativeStructurePresentAtomicGroundingGap: groundingGaps.length,
       atomicGroundingPresentCandidateProjectionGap: candidateProjectionGaps.length,
       candidateProposedValidatorReject: nativeRejectedClaimIds.size,
-      crossClaimProofMissing: runs.some((run) => run.episodeId.includes("04-black-death")) ? 1 : 0,
+      crossClaimProofMissing: nativeRelations.some((relation) => relation.kind === "policy-response" && relation.episodeId.includes("04-black-death")) ? 0 : 1,
       taxonomyGap: 0,
       unresolvedParticipant: unresolvedParticipantCount,
     },

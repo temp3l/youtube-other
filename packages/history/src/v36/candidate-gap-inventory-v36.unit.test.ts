@@ -37,10 +37,9 @@ describe("History V3.6 candidate gap inventory after Phase 2.12 evidence-set pro
       runs: experiment.runs,
       episodeTitles: new Map(loaded.map((item) => [item.source.shadow.episodeId, item.title])),
     });
-    expect(experiment.missClassification.atomicGroundingPresentCandidateProjectionGap).toBe(9);
-    expect(records).toHaveLength(9);
+    expect(experiment.missClassification.atomicGroundingPresentCandidateProjectionGap).toBe(8);
+    expect(records).toHaveLength(8);
     expect(records.map((record) => record.gapId)).toEqual([
-      "candidate-gap-claim-095a61f563fa2980b636c6cc",
       "candidate-gap-claim-27a228830af8714543142658",
       "candidate-gap-claim-6102997fabdd9aa3492eccb4",
       "candidate-gap-claim-7552fcb5134857307769fa18",
@@ -65,7 +64,7 @@ describe("History V3.6 candidate gap inventory after Phase 2.12 evidence-set pro
     expect(summary.classificationCounts).toEqual({
       DIRECT_PROJECTION_ELIGIBLE: 0,
       NEEDS_ADDITIONAL_NATIVE_STRUCTURE: 2,
-      NEEDS_CROSS_CLAIM_PROOF: 1,
+      NEEDS_CROSS_CLAIM_PROOF: 0,
       PARTICIPANT_RESOLUTION_GAP: 0,
       ASSERTION_OR_MODALITY_BLOCK: 3,
       TAXONOMY_MISMATCH: 1,

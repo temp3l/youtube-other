@@ -47,6 +47,7 @@ export type ShadowCandidateSourceV36 =
   | "structured-claim-projection"
   | "atomic-claim-grounding"
   | AtomicRelationCandidateSourceV36
+  | "proof-aware-relation-evidence"
   | "bounded-adjacent-claim-projection"
   | "bounded-llm-claim-projection";
 

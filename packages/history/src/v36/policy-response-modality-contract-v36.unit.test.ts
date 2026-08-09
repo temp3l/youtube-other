@@ -160,8 +160,8 @@ describe("selected policy-response modality runtime contract", () => {
   });
 });
 
-describe("Phase 2.15 prototype boundary", () => {
-  it("does not admit the Black Death relation or alter same-eight counts", async () => {
+describe("Phase 2.15 modality regression", () => {
+  it("preserves modality when the later proof-aware path admits the Black Death relation", async () => {
     const inputs = await Promise.all(representativeNativeEpisodeFragmentsV36.map(async (fragment) => {
       const entries = await fs.readdir(path.resolve("episodes"), { withFileTypes: true });
       const episodeId = entries.find((entry) => entry.isDirectory() && entry.name.includes(fragment) && !entry.name.endsWith("-v3.4"))!.name;
@@ -172,9 +172,9 @@ describe("Phase 2.15 prototype boundary", () => {
     }));
     const first = runRepresentativeNativeStructuredClaimExperimentV36(inputs);
     const second = runRepresentativeNativeStructuredClaimExperimentV36(inputs);
-    expect(first.relationComparison.after).toMatchObject({ candidates: 52, validatedRelations: 30 });
-    expect(first.missClassification.atomicGroundingPresentCandidateProjectionGap).toBe(9);
-    expect(first.runs.flatMap((run) => run.native.extraction.relations).filter((relation) => relation.kind === "policy-response" && relation.episodeId.includes("black-death"))).toHaveLength(0);
+    expect(first.relationComparison.after).toMatchObject({ candidates: 53, validatedRelations: 31 });
+    expect(first.missClassification.atomicGroundingPresentCandidateProjectionGap).toBe(8);
+    expect(first.runs.flatMap((run) => run.native.extraction.relations).filter((relation) => relation.kind === "policy-response" && relation.episodeId.includes("black-death"))).toEqual([expect.objectContaining({ conditionAssertionStatus: "uncertain", responseAssertionStatus: "attempted" })]);
     expect(second.relationComparison).toEqual(first.relationComparison);
     expect(second.missClassification).toEqual(first.missClassification);
   });

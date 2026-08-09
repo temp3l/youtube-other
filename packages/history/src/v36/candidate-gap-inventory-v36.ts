@@ -222,7 +222,7 @@ export function extractCandidateGapInventoryV36(input: {
       .filter((envelope) => envelope.source.kind === "existing-structured-claim")
       .map((envelope) => String(envelope.claimId)));
     const atomicCandidateClaimIds = new Set(run.native.candidates
-      .filter((candidate) => ["atomic-claim-grounding", "atomic-process-projection", "atomic-temporal-projection", "atomic-transforms-causal-projection", "atomic-evidence-set-projection"].includes(candidate.source))
+      .filter((candidate) => ["atomic-claim-grounding", "atomic-process-projection", "atomic-temporal-projection", "atomic-transforms-causal-projection", "atomic-evidence-set-projection", "proof-aware-relation-evidence"].includes(candidate.source))
       .map((candidate) => candidate.claimId));
     for (const claimId of nativeClaimIds) {
       const grounding = run.native.grounding.claims.find((claim) => claim.claimId === claimId);
