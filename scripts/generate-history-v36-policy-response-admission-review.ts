@@ -56,11 +56,17 @@ const assessment = assessPolicyResponseCandidateAdmissionV36(candidate);
 if (assessment.result !== "BLOCKED_MODALITY_LOSS") throw new Error("Admission must fail for modality loss.");
 const negativeControls = [
   ["unvalidated proof", constructProofBackedPolicyResponseCandidateV36({ ...proof, proofId: "cross-claim-proof-000000000000000000000000" })],
+  ["wrong proof pattern", assessPolicyResponseCandidateAdmissionV36({ ...candidate, proofPattern: "unsupported" })],
+  ["wrong target relation kind", assessPolicyResponseCandidateAdmissionV36({ ...candidate, targetRelationKind: "causal" })],
+  ["reversed proof direction", assessPolicyResponseCandidateAdmissionV36({ ...candidate, direction: "response-to-condition" })],
+  ["missing proof join", assessPolicyResponseCandidateAdmissionV36({ ...candidate, proofJoins: [] })],
   ["condition strengthened", assessPolicyResponseCandidateAdmissionV36({ ...candidate, condition: { ...candidate.condition, assertionStatus: "asserted" } })],
   ["response strengthened", assessPolicyResponseCandidateAdmissionV36({ ...candidate, response: { ...candidate.response, assertionStatus: "asserted" } })],
   ["flattened modalities", assessPolicyResponseCandidateAdmissionV36({ ...candidate, condition: { ...candidate.condition, assertionStatus: "asserted" }, response: { ...candidate.response, assertionStatus: "asserted" } })],
   ["participant substitution", assessPolicyResponseCandidateAdmissionV36({ ...candidate, condition: { ...candidate.condition, participantId: "substituted" } })],
   ["evidence mismatch", assessPolicyResponseCandidateAdmissionV36({ ...candidate, proofEvidenceFingerprint: "cross-claim-proof-evidence-000000000000000000000000" })],
+  ["different episode", assessPolicyResponseCandidateAdmissionV36({ ...candidate, episodeId: "other-episode" })],
+  ["unsupported premise cardinality", assessPolicyResponseCandidateAdmissionV36({ ...candidate, proofLineage: [candidate.proofLineage[0]] })],
 ] as const;
 const generatedAt = new Date().toISOString();
 const timestamp = generatedAt.replaceAll(/[-:]/gu, "").replace(/\.\d{3}Z$/u, "Z");

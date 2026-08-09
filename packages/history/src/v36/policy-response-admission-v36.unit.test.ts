@@ -56,6 +56,7 @@ describe("proof-backed V3.6 policy-response admission", () => {
       ["missing join", mutate(candidate, (copy) => { copy.proofJoins = []; }), "BLOCKED_INVALID_PROOF"],
       ["condition strengthening", mutate(candidate, (copy) => { copy.condition.assertionStatus = "asserted"; }), "BLOCKED_INVALID_PROOF"],
       ["response strengthening", mutate(candidate, (copy) => { copy.response.assertionStatus = "asserted"; }), "BLOCKED_INVALID_PROOF"],
+      ["asymmetric modality collapse", mutate(candidate, (copy) => { copy.condition.assertionStatus = "asserted"; copy.response.assertionStatus = "asserted"; }), "BLOCKED_INVALID_PROOF"],
       ["evidence mismatch", mutate(candidate, (copy) => { copy.proofEvidenceFingerprint = "cross-claim-proof-evidence-000000000000000000000000"; }), "BLOCKED_INVALID_PROOF"],
       ["participant substitution", mutate(candidate, (copy) => { copy.condition.participantId = "concept-substituted"; }), "BLOCKED_PARTICIPANT_OR_DIRECTION"],
       ["cross episode", mutate(candidate, (copy) => { copy.episodeId = "other-episode"; }), "BLOCKED_INVALID_PROOF"],
