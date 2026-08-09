@@ -1,6 +1,6 @@
 # YSAAS-009 bulk preflight foundation
 
-Implementation commits: `9236fa2`, `3188f69`
+Implementation commits: `9236fa2`, `3188f69`, `0e50124`
 
 Changed paths: `packages/domain/src/bulk-production-preflight.{ts,unit.test.ts}`, `packages/domain/src/index.ts`, plan ledger, and implementation report.
 
