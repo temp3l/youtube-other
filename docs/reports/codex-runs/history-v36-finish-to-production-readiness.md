@@ -22,7 +22,7 @@
 
 ## Phase 2.38
 
-- starting SHA: phase 2.37 checkpoint
+- starting SHA: `0735691559e17e892607e27f3b6856cf4597ecd0`
 - goal: exact all-40 shadow-plan census, differential, and V3.5 isolation
 - result: 40/40 episodes; 103/103 specs placed; 1,985 beats and 3,886 shots preserved
 - tests: all-40 lane x2, plan validation, V3.5 before/after hashes, checksums, ZIP integrity

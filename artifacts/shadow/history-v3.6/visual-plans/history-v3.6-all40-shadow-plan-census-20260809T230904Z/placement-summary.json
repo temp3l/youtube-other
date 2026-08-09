@@ -1,0 +1,9 @@
+{
+  "rule": "SUPPORT_COMPLETION_BEAT_V1",
+  "narrationKeywordHeuristics": 0,
+  "guessedPlacements": 0,
+  "singleBeatSupport": 103,
+  "multiBeatSupport": 0,
+  "provisionalTimingPlacements": 103,
+  "diagnostics": {}
+}

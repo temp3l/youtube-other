@@ -1,0 +1,9 @@
+{
+  "result": "PASS",
+  "frozenTag": "history-v3.5-frozen-before-v36",
+  "currentPlanFiles": 40,
+  "planHashSetBefore": "046390b5e150eb4a364684634730fdf03b12e998d6a21a5ed86e65237ef94a0a",
+  "planHashSetAfter": "046390b5e150eb4a364684634730fdf03b12e998d6a21a5ed86e65237ef94a0a",
+  "changedFrozenV35Paths": [],
+  "productionArtifactsWritten": 0
+}

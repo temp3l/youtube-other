@@ -1,0 +1,697 @@
+{
+  "comparisonPolicy": "aggregate semantic comparison; V3.6 is not required to reproduce V3.5 heuristic visuals",
+  "v35": {
+    "mapBeats": 56,
+    "diagramBeats": 11
+  },
+  "v36Shadow": {
+    "mapPlacements": 2,
+    "diagramPlacements": 101,
+    "insertions": 103,
+    "replacements": 0,
+    "unplacedSemanticVisuals": 0,
+    "planDensity": 0.05188916876574307
+  },
+  "episodeDeltas": [
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-01-bronze-age-collapse",
+      "v35": {
+        "mapBeats": 2,
+        "diagramBeats": 1,
+        "beats": 56,
+        "shots": 106
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 2,
+        "insertions": 2,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.03571428571428571
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-02-napoleons-invasion-of-russia",
+      "v35": {
+        "mapBeats": 6,
+        "diagramBeats": 3,
+        "beats": 65,
+        "shots": 101
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 4,
+        "insertions": 4,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.06153846153846154
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-03-fall-of-the-roman-empire",
+      "v35": {
+        "mapBeats": 2,
+        "diagramBeats": 2,
+        "beats": 57,
+        "shots": 104
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 5,
+        "insertions": 5,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.08771929824561403
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-04-black-death",
+      "v35": {
+        "mapBeats": 3,
+        "diagramBeats": 2,
+        "beats": 55,
+        "shots": 103
+      },
+      "v36Shadow": {
+        "mapPlacements": 1,
+        "diagramPlacements": 2,
+        "insertions": 3,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.05454545454545454
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-05-franklin-expedition",
+      "v35": {
+        "mapBeats": 8,
+        "diagramBeats": 1,
+        "beats": 67,
+        "shots": 112
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 3,
+        "insertions": 3,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.04477611940298507
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-06-mongol-war-machine",
+      "v35": {
+        "mapBeats": 2,
+        "diagramBeats": 0,
+        "beats": 49,
+        "shots": 102
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 1,
+        "insertions": 1,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.02040816326530612
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-07-day-life-medieval-peasant",
+      "v35": {
+        "mapBeats": 0,
+        "diagramBeats": 0,
+        "beats": 46,
+        "shots": 104
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 3,
+        "insertions": 3,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.06521739130434782
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-08-cuban-missile-crisis",
+      "v35": {
+        "mapBeats": 2,
+        "diagramBeats": 0,
+        "beats": 55,
+        "shots": 109
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 2,
+        "insertions": 2,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.03636363636363636
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-09-cleopatra-beyond-legend",
+      "v35": {
+        "mapBeats": 5,
+        "diagramBeats": 0,
+        "beats": 47,
+        "shots": 100
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 5,
+        "insertions": 5,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.10638297872340426
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-10-titanic-decisions-disaster",
+      "v35": {
+        "mapBeats": 1,
+        "diagramBeats": 0,
+        "beats": 47,
+        "shots": 108
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 2,
+        "insertions": 2,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.0425531914893617
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-11-pompeii-the-last-day",
+      "v35": {
+        "mapBeats": 1,
+        "diagramBeats": 0,
+        "beats": 46,
+        "shots": 91
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 4,
+        "insertions": 4,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.08695652173913043
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-12-year-536-when-the-sun-disappeared",
+      "v35": {
+        "mapBeats": 1,
+        "diagramBeats": 0,
+        "beats": 54,
+        "shots": 95
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 1,
+        "insertions": 1,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.018518518518518517
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-13-caesar-in-gaul",
+      "v35": {
+        "mapBeats": 2,
+        "diagramBeats": 0,
+        "beats": 51,
+        "shots": 98
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 1,
+        "insertions": 1,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.0196078431372549
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-14-caesar-vs-pompey",
+      "v35": {
+        "mapBeats": 1,
+        "diagramBeats": 1,
+        "beats": 51,
+        "shots": 98
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 2,
+        "insertions": 2,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.0392156862745098
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-15-spartacus-slave-army",
+      "v35": {
+        "mapBeats": 0,
+        "diagramBeats": 0,
+        "beats": 43,
+        "shots": 92
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 0,
+        "insertions": 0,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-16-hannibal-at-cannae",
+      "v35": {
+        "mapBeats": 4,
+        "diagramBeats": 0,
+        "beats": 51,
+        "shots": 95
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 2,
+        "insertions": 2,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.0392156862745098
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-17-alexander-breaks-persia",
+      "v35": {
+        "mapBeats": 2,
+        "diagramBeats": 0,
+        "beats": 58,
+        "shots": 104
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 3,
+        "insertions": 3,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.05172413793103448
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-18-peloponnesian-war-athens-destroys-itself",
+      "v35": {
+        "mapBeats": 3,
+        "diagramBeats": 0,
+        "beats": 55,
+        "shots": 98
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 1,
+        "insertions": 1,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.01818181818181818
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-19-great-heathen-army",
+      "v35": {
+        "mapBeats": 0,
+        "diagramBeats": 0,
+        "beats": 48,
+        "shots": 96
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 1,
+        "insertions": 1,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.020833333333333332
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-20-1066-battle-that-changed-england",
+      "v35": {
+        "mapBeats": 0,
+        "diagramBeats": 0,
+        "beats": 45,
+        "shots": 94
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 1,
+        "insertions": 1,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.022222222222222223
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-21-fall-of-constantinople",
+      "v35": {
+        "mapBeats": 3,
+        "diagramBeats": 0,
+        "beats": 50,
+        "shots": 94
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 5,
+        "insertions": 5,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.1
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-22-first-crusade-jerusalem",
+      "v35": {
+        "mapBeats": 0,
+        "diagramBeats": 0,
+        "beats": 49,
+        "shots": 92
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 2,
+        "insertions": 2,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.04081632653061224
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-23-rise-of-the-samurai",
+      "v35": {
+        "mapBeats": 0,
+        "diagramBeats": 0,
+        "beats": 52,
+        "shots": 100
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 3,
+        "insertions": 3,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.057692307692307696
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-24-fall-of-tenochtitlan",
+      "v35": {
+        "mapBeats": 0,
+        "diagramBeats": 0,
+        "beats": 48,
+        "shots": 92
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 0,
+        "insertions": 0,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-25-maya-collapse",
+      "v35": {
+        "mapBeats": 0,
+        "diagramBeats": 0,
+        "beats": 46,
+        "shots": 92
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 3,
+        "insertions": 3,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.06521739130434782
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-26-greenland-vikings-vanished",
+      "v35": {
+        "mapBeats": 3,
+        "diagramBeats": 0,
+        "beats": 45,
+        "shots": 87
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 4,
+        "insertions": 4,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.08888888888888889
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-27-fall-of-angkor",
+      "v35": {
+        "mapBeats": 0,
+        "diagramBeats": 0,
+        "beats": 48,
+        "shots": 94
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 3,
+        "insertions": 3,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.0625
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-28-end-of-the-pyramid-age",
+      "v35": {
+        "mapBeats": 0,
+        "diagramBeats": 0,
+        "beats": 41,
+        "shots": 96
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 3,
+        "insertions": 3,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.07317073170731707
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-29-discovery-of-tutankhamun",
+      "v35": {
+        "mapBeats": 0,
+        "diagramBeats": 0,
+        "beats": 44,
+        "shots": 94
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 5,
+        "insertions": 5,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.11363636363636363
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-30-salem-witch-trials",
+      "v35": {
+        "mapBeats": 0,
+        "diagramBeats": 0,
+        "beats": 46,
+        "shots": 98
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 2,
+        "insertions": 2,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.043478260869565216
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion",
+      "v35": {
+        "mapBeats": 0,
+        "diagramBeats": 0,
+        "beats": 41,
+        "shots": 92
+      },
+      "v36Shadow": {
+        "mapPlacements": 1,
+        "diagramPlacements": 3,
+        "insertions": 4,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.0975609756097561
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-32-stalingrad-city-that-broke-hitler",
+      "v35": {
+        "mapBeats": 0,
+        "diagramBeats": 1,
+        "beats": 47,
+        "shots": 94
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 3,
+        "insertions": 3,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.06382978723404255
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-33-pearl-harbor-road-to-war",
+      "v35": {
+        "mapBeats": 2,
+        "diagramBeats": 0,
+        "beats": 47,
+        "shots": 90
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 3,
+        "insertions": 3,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.06382978723404255
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-34-hiroshima-decision-to-use-the-bomb",
+      "v35": {
+        "mapBeats": 2,
+        "diagramBeats": 0,
+        "beats": 43,
+        "shots": 93
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 2,
+        "insertions": 2,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.046511627906976744
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-35-chernobyl-night-reactor-exploded",
+      "v35": {
+        "mapBeats": 1,
+        "diagramBeats": 0,
+        "beats": 45,
+        "shots": 95
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 2,
+        "insertions": 2,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.044444444444444446
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-36-spanish-armada-why-it-failed",
+      "v35": {
+        "mapBeats": 0,
+        "diagramBeats": 0,
+        "beats": 52,
+        "shots": 94
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 2,
+        "insertions": 2,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.038461538461538464
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-37-french-revolution-reign-of-terror",
+      "v35": {
+        "mapBeats": 0,
+        "diagramBeats": 0,
+        "beats": 44,
+        "shots": 90
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 1,
+        "insertions": 1,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.022727272727272728
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-38-great-fire-of-london",
+      "v35": {
+        "mapBeats": 0,
+        "diagramBeats": 0,
+        "beats": 46,
+        "shots": 89
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 2,
+        "insertions": 2,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.043478260869565216
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-39-lost-colony-of-roanoke",
+      "v35": {
+        "mapBeats": 0,
+        "diagramBeats": 0,
+        "beats": 51,
+        "shots": 98
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 7,
+        "insertions": 7,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.13725490196078433
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-40-rapa-nui-collapse-myth",
+      "v35": {
+        "mapBeats": 0,
+        "diagramBeats": 0,
+        "beats": 54,
+        "shots": 102
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 1,
+        "insertions": 1,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.018518518518518517
+      }
+    }
+  ]
+}
