@@ -26,11 +26,28 @@ const useCases: ApiUseCases = {
     id: "episode-1",
     revision: 2,
     content: { type: "dark_truth", version: "1" },
+    lifecycleState: "active",
+    sourceEpisodeId: null,
+    sourceEpisodeRevision: null,
   }),
   replaceEpisodeContent: async (id, input) => ({
     id,
     revision: 3,
     content: input.content,
+  }),
+  archiveEpisode: async (id) => ({
+    id,
+    revision: 3,
+    lifecycleState: "archived",
+    replayed: false,
+  }),
+  cloneEpisode: async (sourceEpisodeId) => ({
+    id: "episode-clone-1",
+    revision: 0,
+    lifecycleState: "active",
+    sourceEpisodeId,
+    sourceEpisodeRevision: 2,
+    replayed: false,
   }),
   admitWorkflow: async () => ({
     workflowRunId: "run-1",
@@ -643,6 +660,9 @@ describe("HTTP API contract", () => {
               id,
               revision: 5,
               content: { type: "dark_truth", version: "1" },
+              lifecycleState: "active",
+              sourceEpisodeId: null,
+              sourceEpisodeRevision: null,
             };
           },
           getJob: async (id, context) => {
@@ -723,6 +743,58 @@ describe("HTTP API contract", () => {
         id: "run-read",
         context: expect.objectContaining({ projectId: "project-1" }),
       }),
+    ]);
+  });
+
+  it("archives and clones episodes through authorized idempotent lifecycle commands", async () => {
+    const calls: unknown[] = [];
+    const running = await serve(
+      createApiServer({
+        useCases: {
+          ...useCases,
+          archiveEpisode: async (id, input, context) => {
+            calls.push({ operation: "archive", id, input, context });
+            return { id, revision: 4, lifecycleState: "archived", replayed: false };
+          },
+          cloneEpisode: async (id, input, context) => {
+            calls.push({ operation: "clone", id, input, context });
+            return {
+              id: "episode-clone-1", revision: 0, lifecycleState: "active",
+              sourceEpisodeId: id, sourceEpisodeRevision: input.expectedSourceRevision,
+              replayed: true,
+            };
+          },
+        },
+        authenticate,
+        requestId: () => "request-lifecycle",
+      })
+    );
+    closers.push(running.close);
+
+    const archivePath = `${running.baseUrl}/v1/workspaces/ws-1/projects/project-1/episodes/episode-1:archive`;
+    const missing = await request({ url: archivePath, method: "POST" });
+    expect(missing.status).toBe(428);
+
+    const archived = await request({
+      url: archivePath,
+      method: "POST",
+      headers: { "if-match": '"2"', "idempotency-key": "archive-key", "content-type": "application/json" },
+      body: JSON.stringify({ expectedRevision: 2, reason: "Superseded by approved revision." }),
+    });
+    const cloned = await request({
+      url: `${running.baseUrl}/v1/workspaces/ws-1/projects/project-1/episodes/episode-1:clone`,
+      method: "POST",
+      headers: { "idempotency-key": "clone-key", "content-type": "application/json" },
+      body: JSON.stringify({ expectedSourceRevision: 2 }),
+    });
+    expect(archived.status).toBe(200);
+    expect(archived.headers.etag).toBe('"4"');
+    expect(cloned.status).toBe(201);
+    expect(cloned.headers.location).toContain("episodes/episode-clone-1");
+    expect(cloned.headers["idempotency-replayed"]).toBe("true");
+    expect(calls).toEqual([
+      expect.objectContaining({ operation: "archive", id: "episode-1", context: expect.objectContaining({ ifMatch: '"2"', idempotencyKey: "archive-key" }) }),
+      expect.objectContaining({ operation: "clone", id: "episode-1", context: expect.objectContaining({ idempotencyKey: "clone-key" }) }),
     ]);
   });
 

@@ -15,12 +15,16 @@ import { ZodError } from "zod";
 import {
   approvalInputSchema,
   approvalRevocationInputSchema,
+  archiveEpisodeInputSchema,
+  cloneEpisodeInputSchema,
   openApiDocument,
   parseEpisodeInput,
   projectInputSchema,
   workflowAdmissionSchema,
   type ApprovalInput,
   type ApprovalRevocationInput,
+  type ArchiveEpisodeInput,
+  type CloneEpisodeInput,
   type EpisodeInput,
   type ProjectInput,
   type WorkflowAdmission,
@@ -200,6 +204,9 @@ export interface ApiUseCases {
     readonly id: string;
     readonly revision: number;
     readonly content: unknown;
+    readonly lifecycleState: "active" | "archived";
+    readonly sourceEpisodeId: string | null;
+    readonly sourceEpisodeRevision: number | null;
   } | null>;
   replaceEpisodeContent(
     episodeId: string,
@@ -214,6 +221,47 @@ export interface ApiUseCases {
     readonly id: string;
     readonly revision: number;
     readonly content: EpisodeInput["content"];
+  }>;
+  archiveEpisode(
+    episodeId: string,
+    input: ArchiveEpisodeInput,
+    context: Required<
+      Pick<
+        ApiRequestContext,
+        | "workspaceId"
+        | "projectId"
+        | "principal"
+        | "requestId"
+        | "ifMatch"
+        | "idempotencyKey"
+      >
+    >
+  ): Promise<{
+    readonly id: string;
+    readonly revision: number;
+    readonly lifecycleState: "archived";
+    readonly replayed: boolean;
+  }>;
+  cloneEpisode(
+    sourceEpisodeId: string,
+    input: CloneEpisodeInput,
+    context: Required<
+      Pick<
+        ApiRequestContext,
+        | "workspaceId"
+        | "projectId"
+        | "principal"
+        | "requestId"
+        | "idempotencyKey"
+      >
+    >
+  ): Promise<{
+    readonly id: string;
+    readonly revision: number;
+    readonly lifecycleState: "active";
+    readonly sourceEpisodeId: string;
+    readonly sourceEpisodeRevision: number;
+    readonly replayed: boolean;
   }>;
   admitWorkflow(
     input: WorkflowAdmission,
@@ -792,6 +840,7 @@ function route(pathname: string): {
   readonly workspace: string;
   readonly project?: string;
   readonly episode?: string;
+  readonly episodeAction?: "archive" | "clone";
   readonly run?: string;
   readonly runAction?: "cancel" | "resume";
   readonly job?: string;
@@ -807,6 +856,7 @@ function route(pathname: string): {
     workspace: string;
     project?: string;
     episode?: string;
+    episodeAction?: "archive" | "clone";
     run?: string;
     runAction?: "cancel" | "resume";
     job?: string;
@@ -826,7 +876,15 @@ function route(pathname: string): {
   }
   result.project = parts[4];
   result.tail = parts.slice(5).join("/");
-  if (parts[5] === "episodes" && parts[6]) result.episode = parts[6];
+  if (parts[5] === "episodes" && parts[6]) {
+    const action = parts[6].match(/^(.+):(archive|clone)$/u);
+    if (action?.[1] && (action[2] === "archive" || action[2] === "clone")) {
+      result.episode = action[1];
+      result.episodeAction = action[2];
+    } else {
+      result.episode = parts[6];
+    }
+  }
   if (parts[5] === "workflow-runs" && parts[6]) {
     const action = parts[6].match(/^(.+):(cancel|resume)$/u);
     if (action?.[1] && (action[2] === "cancel" || action[2] === "resume")) {
@@ -912,6 +970,13 @@ function requiredPermission(
     method === "PATCH" &&
     matched.episode &&
     matched.tail === `episodes/${matched.episode}`
+  )
+    return "content.write";
+  if (
+    method === "POST" &&
+    matched.episode &&
+    matched.episodeAction &&
+    matched.tail === `episodes/${matched.episode}:${matched.episodeAction}`
   )
     return "content.write";
   if (
@@ -1373,6 +1438,81 @@ export function createApiServer(
           etag: etag(result.revision),
           "x-request-id": requestIdValue,
         });
+      }
+      if (
+        request.method === "POST" &&
+        matched.episode &&
+        matched.episodeAction === "archive" &&
+        matched.tail === `episodes/${matched.episode}:archive`
+      ) {
+        const key = idempotencyKey(request);
+        if (!key)
+          throw new ApplicationError(
+            "precondition_required",
+            "Idempotency-Key is required.",
+            false
+          );
+        const result = await useCases.archiveEpisode(
+          matched.episode,
+          archiveEpisodeInputSchema.parse(await body(request)),
+          {
+            ...projectContext,
+            ifMatch: strongIfMatch(request),
+            idempotencyKey: key,
+          }
+        );
+        return json(
+          response,
+          200,
+          {
+            id: result.id,
+            revision: result.revision,
+            lifecycleState: result.lifecycleState,
+            sourceEpisodeId: null,
+            sourceEpisodeRevision: null,
+          },
+          {
+            etag: etag(result.revision),
+            ...(result.replayed ? { "idempotency-replayed": "true" } : {}),
+            "x-request-id": requestIdValue,
+          }
+        );
+      }
+      if (
+        request.method === "POST" &&
+        matched.episode &&
+        matched.episodeAction === "clone" &&
+        matched.tail === `episodes/${matched.episode}:clone`
+      ) {
+        const key = idempotencyKey(request);
+        if (!key)
+          throw new ApplicationError(
+            "precondition_required",
+            "Idempotency-Key is required.",
+            false
+          );
+        const result = await useCases.cloneEpisode(
+          matched.episode,
+          cloneEpisodeInputSchema.parse(await body(request)),
+          { ...projectContext, idempotencyKey: key }
+        );
+        return json(
+          response,
+          201,
+          {
+            id: result.id,
+            revision: result.revision,
+            lifecycleState: result.lifecycleState,
+            sourceEpisodeId: result.sourceEpisodeId,
+            sourceEpisodeRevision: result.sourceEpisodeRevision,
+          },
+          {
+            location: `/v1/workspaces/${matched.workspace}/projects/${matched.project}/episodes/${result.id}`,
+            etag: etag(result.revision),
+            ...(result.replayed ? { "idempotency-replayed": "true" } : {}),
+            "x-request-id": requestIdValue,
+          }
+        );
       }
       if (
         request.method === "POST" &&

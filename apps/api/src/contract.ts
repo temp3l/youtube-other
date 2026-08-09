@@ -1,7 +1,11 @@
 import { z } from "zod";
 
-import { ApplicationError } from "@mediaforge/application";
+import { ApplicationError } from "@mediaforge/application/errors.js";
 import { budgetTierSchema, dynamicGenreOverrideSchema } from "@mediaforge/dynamic-genre";
+import {
+  episodeBlueprintSchema,
+  normalizeContentProfileId,
+} from "@mediaforge/domain";
 
 const opaqueId = z
   .string()
@@ -74,12 +78,23 @@ const historyContentSchema = z
   })
   .strict();
 
-export const projectInputSchema = z
-  .object({
+function normalizeApiProfileInput(value: unknown): unknown {
+  if (!value || typeof value !== "object") return value;
+  const profile = Reflect.get(value, "profile");
+  return {
+    ...value as Record<string, unknown>,
+    profile: normalizeContentProfileId(profile),
+  };
+}
+
+export const projectInputSchema = z.preprocess(
+  normalizeApiProfileInput,
+  z.object({
     name: z.string().trim().min(1).max(160),
-    profile: z.enum(["dark_truth", "mathematics_education", "dynamic_generic", "history"]),
+    profile: z.enum(["dark_truth", "mathematics_education", "dynamic_generic", "history", "veronicabenini"]),
   })
-  .strict();
+  .strict(),
+);
 const dynamicGenericInputSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("completed_story"), locale: z.string().regex(/^[a-z]{2}(?:-[A-Z]{2})?$/u), canonicalLanguage: z.string().regex(/^[a-z]{2}(?:-[A-Z]{2})?$/u).optional(), title: z.string().trim().min(1).max(300), body: z.string().trim().min(1).max(120_000) }).strict(),
   z.object({ kind: z.literal("structured_outline"), locale: z.string().regex(/^[a-z]{2}(?:-[A-Z]{2})?$/u), canonicalLanguage: z.string().regex(/^[a-z]{2}(?:-[A-Z]{2})?$/u).optional(), title: z.string().trim().min(1).max(300), sections: z.array(z.object({ id: opaqueId, heading: z.string().trim().max(200).optional(), body: z.string().trim().min(1).max(30_000) }).strict()).min(1).max(200) }).strict().superRefine((value, context) => {
@@ -87,7 +102,33 @@ const dynamicGenericInputSchema = z.discriminatedUnion("kind", [
   }),
 ]);
 export const dynamicGenericContentSchema = z.object({ type: z.literal("dynamic_generic"), version: z.literal("1"), input: dynamicGenericInputSchema, budgetTier: budgetTierSchema, overrides: dynamicGenreOverrideSchema.optional() }).strict();
-export const episodeInputSchema = z
+export const veronicaBlueprintInputSchema = episodeBlueprintSchema.omit({
+  schemaVersion: true,
+  episodeId: true,
+  genreId: true,
+});
+export const veronicaContentSchema = z.strictObject({
+  type: z.literal("veronicabenini"),
+  version: z.literal("1"),
+  blueprint: veronicaBlueprintInputSchema,
+});
+
+function normalizeEpisodeProfileInput(value: unknown): unknown {
+  if (!value || typeof value !== "object") return value;
+  const content = Reflect.get(value, "content");
+  if (!content || typeof content !== "object") return value;
+  return {
+    ...value as Record<string, unknown>,
+    content: {
+      ...content as Record<string, unknown>,
+      type: normalizeContentProfileId(Reflect.get(content, "type")),
+    },
+  };
+}
+
+export const episodeInputSchema = z.preprocess(
+  normalizeEpisodeProfileInput,
+  z
   .object({
     content: z.discriminatedUnion("type", [
       z
@@ -102,9 +143,11 @@ export const episodeInputSchema = z
       mathematicsEducationContentSchema,
       historyContentSchema,
       dynamicGenericContentSchema,
+      veronicaContentSchema,
     ]),
   })
-  .strict();
+  .strict(),
+);
 
 /** Stable lifecycle commands are deliberately separate from mutable episode content. */
 export const archiveEpisodeInputSchema = z
@@ -148,6 +191,18 @@ export function parseEpisodeInput(value: unknown): EpisodeInput {
   }
   if (content && typeof content === "object" && Reflect.get(content, "type") === "dynamic_generic") {
     throw new ApplicationError("profile_input_invalid", "Dynamic generic episode input must contain only bounded semantic content and overrides.", false, [...new Set(parsed.error.issues.map((issue) => issue.path.join(".")))]);
+  }
+  if (
+    content &&
+    typeof content === "object" &&
+    normalizeContentProfileId(Reflect.get(content, "type")) === "veronicabenini"
+  ) {
+    throw new ApplicationError(
+      "profile_input_invalid",
+      "Veronica episode input must contain a valid source-led blueprint.",
+      false,
+      [...new Set(parsed.error.issues.map((issue) => issue.path.join(".")))],
+    );
   }
   throw parsed.error;
 }
@@ -425,6 +480,63 @@ export const openApiDocument = {
           "404": response("NotFound"),
           "412": response("PreconditionFailed"),
           "422": response("UnprocessableEntity"),
+          "428": response("PreconditionRequired"),
+        },
+      },
+    },
+    "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}:archive": {
+      post: {
+        operationId: "archiveEpisode",
+        description:
+          "Archives an active episode while preserving immutable revision history. Requires the `content.write` workspace permission, a current strong ETag, and an idempotency key.",
+        parameters: [
+          ...episodeParameters,
+          parameter("IfMatch"),
+          parameter("IdempotencyKey"),
+        ],
+        requestBody: { required: true, content: json("ArchiveEpisodeInput") },
+        responses: {
+          "200": {
+            description: "Episode archived",
+            headers: {
+              ETag: responseHeader("ETag"),
+              "Idempotency-Replayed": responseHeader("IdempotencyReplayed"),
+              "x-request-id": responseHeader("RequestId"),
+            },
+            content: json("EpisodeLifecycleResult"),
+          },
+          "400": response("BadRequest"),
+          ...authenticatedErrors,
+          "404": response("NotFound"),
+          "409": response("Conflict"),
+          "412": response("PreconditionFailed"),
+          "428": response("PreconditionRequired"),
+        },
+      },
+    },
+    "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}:clone": {
+      post: {
+        operationId: "cloneEpisode",
+        description:
+          "Clones an immutable source episode revision into a new active episode. Requires the `content.write` workspace permission and an idempotency key.",
+        parameters: [...episodeParameters, parameter("IdempotencyKey")],
+        requestBody: { required: true, content: json("CloneEpisodeInput") },
+        responses: {
+          "201": {
+            description: "Episode clone created",
+            headers: {
+              Location: responseHeader("Location"),
+              ETag: responseHeader("ETag"),
+              "Idempotency-Replayed": responseHeader("IdempotencyReplayed"),
+              "x-request-id": responseHeader("RequestId"),
+            },
+            content: json("EpisodeLifecycleResult"),
+          },
+          "400": response("BadRequest"),
+          ...authenticatedErrors,
+          "404": response("NotFound"),
+          "409": response("Conflict"),
+          "412": response("PreconditionFailed"),
           "428": response("PreconditionRequired"),
         },
       },
@@ -1457,7 +1569,7 @@ export const openApiDocument = {
           name: { type: "string", minLength: 1, maxLength: 160 },
           profile: {
             type: "string",
-            enum: ["dark_truth", "mathematics_education", "dynamic_generic", "history"],
+            enum: ["dark_truth", "mathematics_education", "dynamic_generic", "history", "veronicabenini"],
           },
         },
       },
@@ -1580,12 +1692,66 @@ export const openApiDocument = {
           },
         },
       },
+      VeronicaBlueprintBeat: {
+        type: "object",
+        additionalProperties: false,
+        required: ["beatId", "type", "purpose", "sourceIds"],
+        properties: {
+          beatId: { type: "string", pattern: "^[a-z0-9][a-z0-9-]{2,127}$" },
+          type: { type: "string", enum: ["hook", "situation", "story", "conventional-view", "reframe", "framework", "example", "action", "cta"] },
+          purpose: { type: "string", minLength: 1 },
+          sourceIds: { type: "array", minItems: 1, uniqueItems: true, items: { type: "string", pattern: "^[a-z0-9][a-z0-9-]{2,127}$" } },
+          claimIds: { type: "array", uniqueItems: true, items: { type: "string", pattern: "^[a-z0-9][a-z0-9-]{2,127}$" } },
+          visualIntent: { type: "string" },
+          sensitivity: { type: "string", enum: ["normal", "sensitive", "high-risk"] },
+        },
+      },
+      VeronicaBlueprintInput: {
+        type: "object",
+        additionalProperties: false,
+        required: ["creatorProfileId", "canonicalLocale", "mode", "sources", "contentTier", "thesis", "beats", "cta", "requiredApprovalGates"],
+        properties: {
+          creatorProfileId: { type: "string", minLength: 1 },
+          canonicalLocale: { type: "string", enum: ["en", "de", "es", "fr", "pt", "it"] },
+          mode: { type: "string", enum: ["story-to-strategy", "tactical-lesson", "position-essay", "myth-reality", "decision-framework", "case-diagnosis", "q-and-a", "guided-exercise"] },
+          sources: { type: "array", minItems: 1, uniqueItems: true, items: { type: "string", pattern: "^[a-z0-9][a-z0-9-]{2,127}$" } },
+          contentTier: { type: "string", enum: ["public", "lead-generation", "premium", "private"] },
+          thesis: { type: "string", minLength: 10 },
+          viewerProblem: { type: "string" },
+          forbiddenInferences: { type: "array", uniqueItems: true, items: { type: "string" } },
+          beats: { type: "array", minItems: 6, maxItems: 12, items: schema("VeronicaBlueprintBeat") },
+          cta: {
+            type: "object",
+            additionalProperties: false,
+            required: ["kind", "destination", "campaignId"],
+            properties: {
+              kind: { type: "string", enum: ["newsletter", "free-resource", "course", "membership", "consultation", "book", "none"] },
+              destination: { type: "string" },
+              campaignId: { type: "string" },
+              localizedDestinations: { type: "object", additionalProperties: { type: "string" } },
+            },
+          },
+          targetLocales: { type: "array", uniqueItems: true, items: { type: "string", enum: ["en", "de", "es", "fr", "pt", "it"] } },
+          requiredApprovalGates: { type: "array", minItems: 1, uniqueItems: true, items: { type: "string", enum: ["source", "canonical-script", "localization", "voice", "final-render", "publish"] } },
+        },
+      },
+      VeronicaContent: {
+        type: "object",
+        additionalProperties: false,
+        required: ["type", "version", "blueprint"],
+        properties: {
+          type: { const: "veronicabenini" },
+          version: { const: "1" },
+          blueprint: schema("VeronicaBlueprintInput"),
+        },
+      },
       EpisodeContent: {
         oneOf: [
           schema("DarkTruthContent"),
           schema("MathematicsEducationContent"),
           schema("HistoryContent"),
           schema("DynamicGenericContent"),
+          schema("VeronicaContent"),
         ],
         discriminator: { propertyName: "type" },
       },
@@ -1604,11 +1770,38 @@ export const openApiDocument = {
       Episode: {
         type: "object",
         additionalProperties: false,
-        required: ["id", "revision", "content"],
+        required: ["id", "revision", "content", "lifecycleState"],
         properties: {
           id: schema("OpaqueId"),
           revision: schema("Revision"),
           content: schema("EpisodeContent"),
+          lifecycleState: { type: "string", enum: ["active", "archived"] },
+          sourceEpisodeId: { anyOf: [schema("OpaqueId"), { type: "null" }] },
+          sourceEpisodeRevision: { anyOf: [schema("Revision"), { type: "null" }] },
+        },
+      },
+      ArchiveEpisodeInput: {
+        type: "object", additionalProperties: false,
+        required: ["expectedRevision", "reason"],
+        properties: {
+          expectedRevision: schema("Revision"),
+          reason: { type: "string", minLength: 1, maxLength: 2000 },
+        },
+      },
+      CloneEpisodeInput: {
+        type: "object", additionalProperties: false,
+        required: ["expectedSourceRevision"],
+        properties: { expectedSourceRevision: schema("Revision") },
+      },
+      EpisodeLifecycleResult: {
+        type: "object", additionalProperties: false,
+        required: ["id", "revision", "lifecycleState", "sourceEpisodeId", "sourceEpisodeRevision"],
+        properties: {
+          id: schema("OpaqueId"),
+          revision: schema("Revision"),
+          lifecycleState: { type: "string", enum: ["active", "archived"] },
+          sourceEpisodeId: { anyOf: [schema("OpaqueId"), { type: "null" }] },
+          sourceEpisodeRevision: { anyOf: [schema("Revision"), { type: "null" }] },
         },
       },
       WorkflowAdmission: {

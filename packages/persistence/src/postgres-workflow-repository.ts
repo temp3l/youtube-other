@@ -100,7 +100,8 @@ interface ProjectRow {
     | "dark_truth"
     | "mathematics_education"
     | "dynamic_generic"
-    | "history";
+    | "history"
+    | "veronicabenini";
   readonly revision: string | number;
   readonly created_at: Date | string;
   readonly updated_at: Date | string;
@@ -148,7 +149,8 @@ export interface ApiProjectRecord {
     | "dark_truth"
     | "mathematics_education"
     | "dynamic_generic"
-    | "history";
+    | "history"
+    | "veronicabenini";
   readonly revision: number;
   readonly createdAt: string;
   readonly updatedAt: string;
@@ -807,7 +809,8 @@ export class WorkspaceTransactionRepository {
       | "dark_truth"
       | "mathematics_education"
       | "dynamic_generic"
-      | "history";
+      | "history"
+      | "veronicabenini";
     readonly now: string;
   }): Promise<ApiProjectRecord> {
     try {

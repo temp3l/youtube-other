@@ -7,6 +7,7 @@ import {
   episodeInputSchema,
   openApiDocument,
   parseEpisodeInput,
+  projectInputSchema,
 } from "./contract.js";
 
 const expectedPaths = [
@@ -19,6 +20,8 @@ const expectedPaths = [
   "/v1/workspaces/{workspace}/projects",
   "/v1/workspaces/{workspace}/projects/{project}/episodes",
   "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}",
+  "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}:archive",
+  "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}:clone",
   "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}/workflow-runs",
   "/v1/workspaces/{workspace}/projects/{project}/workflow-runs/{run}",
   "/v1/workspaces/{workspace}/projects/{project}/workflow-runs/{run}/steps",
@@ -30,6 +33,18 @@ const expectedPaths = [
   "/v1/workspaces/{workspace}/projects/{project}/publications/{publication}",
   "/v1/workspaces/{workspace}/projects/{project}/approvals",
   "/v1/workspaces/{workspace}/projects/{project}/approvals/{approval}:revoke",
+  "/v1/workspaces/{workspace}/speech/estimates",
+  "/v1/workspaces/{workspace}/speech/generations",
+  "/v1/workspaces/{workspace}/speech/generations/{generation}",
+  "/v1/workspaces/{workspace}/speech/generations/{generation}:retry",
+  "/v1/workspaces/{workspace}/speech/generations/{generation}:cancel",
+  "/v1/workspaces/{workspace}/speech/profiles",
+  "/v1/workspaces/{workspace}/speech/profiles/{profile}/versions",
+  "/v1/workspaces/{workspace}/speech/profile-versions/{version}:validate",
+  "/v1/workspaces/{workspace}/speech/profile-versions/{version}/activate",
+  "/v1/workspaces/{workspace}/speech/profile-versions/{version}:deprecate",
+  "/v1/workspaces/{workspace}/genres/{genre}/speech-policy",
+  "/v1/workspaces/{workspace}/videos/{video}/speech-override",
 ] as const;
 
 type Operation = {
@@ -62,9 +77,13 @@ describe("OpenAPI contract", () => {
     expect(ids).toEqual([
       "getLiveness", "getReadiness", "getOpenApiDocument", "getQuota",
       "listUsageRecords", "listAuditEvents", "createProject",
-      "createEpisode", "getEpisode", "replaceEpisodeContent", "admitWorkflow", "getWorkflow",
+      "createEpisode", "getEpisode", "replaceEpisodeContent", "archiveEpisode", "cloneEpisode", "admitWorkflow", "getWorkflow",
       "listWorkflowSteps", "cancelWorkflow", "resumeWorkflow", "getJob",
       "getAsset", "listValidations", "getPublication", "recordApproval", "revokeApproval",
+      "estimateSpeech", "createSpeechGeneration", "getSpeechGeneration", "retrySpeechGeneration",
+      "cancelSpeechGeneration", "listSpeechProfiles", "createSpeechProfile", "createSpeechProfileVersion",
+      "validateSpeechProfileVersion", "activateSpeechProfileVersion", "deprecateSpeechProfileVersion",
+      "setGenreSpeechPolicy", "setVideoSpeechOverride",
     ]);
   });
 
@@ -92,6 +111,7 @@ describe("OpenAPI contract", () => {
     expect(Object.keys(openApiDocument.components.schemas)).toEqual(expect.arrayContaining([
       "Problem", "ProjectInput", "Project", "EpisodeInput", "Episode",
       "WorkflowAdmission", "WorkflowRun", "WorkflowStep", "Job", "Asset",
+      "ArchiveEpisodeInput", "CloneEpisodeInput", "EpisodeLifecycleResult",
       "JobFailureProblem", "ValidationResult", "ValidationPage", "ApprovalInput", "ApprovalAccepted",
       "WorkspaceQuotaStatus", "UsageRecord", "UsageRecordPage", "AuditEvent", "AuditEventPage",
       "Publication", "PublicationArtifactBinding",
@@ -212,6 +232,39 @@ describe("OpenAPI contract", () => {
     expect(openApiDocument.components.schemas.EpisodeContent.oneOf).toContainEqual({ $ref: "#/components/schemas/DynamicGenericContent" });
   });
 
+  it("normalizes Veronica aliases at ingress and exposes the canonical source-led blueprint contract", () => {
+    expect(projectInputSchema.parse({
+      name: "Veronica",
+      profile: "strategic-reinvention",
+    }).profile).toBe("veronicabenini");
+    const parsed = parseEpisodeInput({
+      content: {
+        type: "strategic-reinvention",
+        version: "1",
+        blueprint: {
+          creatorProfileId: "veronica-benini",
+          canonicalLocale: "it",
+          mode: "tactical-lesson",
+          sources: ["source-001"],
+          contentTier: "public",
+          thesis: "A sufficiently specific source-led strategic thesis.",
+          beats: ["hook", "situation", "story", "reframe", "framework", "cta"].map((type, index) => ({
+            beatId: `beat-${index}`,
+            type,
+            purpose: "Reviewed source-led beat.",
+            sourceIds: ["source-001"],
+          })),
+          cta: { kind: "free-resource", destination: "https://example.invalid/guide", campaignId: "campaign-001" },
+          requiredApprovalGates: ["source", "canonical-script", "voice", "final-render", "publish"],
+        },
+      },
+    });
+    expect(parsed.content.type).toBe("veronicabenini");
+    expect(openApiDocument.components.schemas.EpisodeContent.oneOf).toContainEqual({
+      $ref: "#/components/schemas/VeronicaContent",
+    });
+  });
+
   it("models job progress and redacted terminal failures", () => {
     expect(openApiDocument.components.schemas.Job).toMatchObject({
       required: expect.arrayContaining(["attempts", "cancellationRequested"]),
@@ -239,11 +292,16 @@ describe("OpenAPI contract", () => {
 
   it("documents request bodies, command preconditions, and response wire formats", () => {
     const byId = new Map(operations().map(({ operation }) => [operation.operationId, operation]));
-    for (const id of ["createProject", "createEpisode", "replaceEpisodeContent", "admitWorkflow", "recordApproval"]) {
+    for (const id of ["createProject", "createEpisode", "replaceEpisodeContent", "archiveEpisode", "cloneEpisode", "admitWorkflow", "recordApproval"]) {
       expect(byId.get(id)?.requestBody?.content).toHaveProperty("application/json");
     }
     expect(byId.get("admitWorkflow")?.parameters).toContainEqual({ $ref: "#/components/parameters/IdempotencyKey" });
     expect(byId.get("replaceEpisodeContent")?.parameters).toContainEqual({ $ref: "#/components/parameters/IfMatch" });
+    expect(byId.get("archiveEpisode")?.parameters).toEqual(expect.arrayContaining([
+      { $ref: "#/components/parameters/IfMatch" },
+      { $ref: "#/components/parameters/IdempotencyKey" },
+    ]));
+    expect(byId.get("cloneEpisode")?.parameters).toContainEqual({ $ref: "#/components/parameters/IdempotencyKey" });
     expect(byId.get("cancelWorkflow")?.parameters).toContainEqual({ $ref: "#/components/parameters/IfMatch" });
     expect(byId.get("resumeWorkflow")?.parameters).toEqual(expect.arrayContaining([
       { $ref: "#/components/parameters/IfMatch" },

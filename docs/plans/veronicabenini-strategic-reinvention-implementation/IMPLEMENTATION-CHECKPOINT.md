@@ -24,9 +24,10 @@
 | VRI-14 | VALIDATED | worker + coordinator review | 2 focused tests pass; isolated rendering build dependency-blocked | `3d99eaf` |
 | VRI-15 | VALIDATED | worker + coordinator review | 4 focused delivery tests and 2 render regression tests pass | `05e1cba` |
 | VRI-16 | VALIDATED | worker + coordinator review | 5 focused tests pass; youtube-upload typecheck dependency-blocked | `a65710f` |
-| VRI-17 | VALIDATED | worker + coordinator review | 3 focused tests and workflow-engine typecheck pass | pending commit |
-| VRI-18 | VALIDATED | worker + coordinator review | 5 focused tests and config build pass | pending commit |
-| VRI-19..VRI-26 | NOT_STARTED | unassigned | not run | none |
+| VRI-17 | VALIDATED | worker + coordinator review | 3 focused tests and workflow-engine typecheck pass | `f6b98e9` |
+| VRI-18 | VALIDATED | worker + coordinator review | 5 focused tests and config build pass | `f6b98e9` |
+| VRI-19 | PARTIAL | worker + coordinator review | contract reached 11/12; corrected final fixture not rerun; API dependency chain blocked | pending |
+| VRI-20..VRI-26 | NOT_STARTED | unassigned | not run | none |
 
 ## VRI-01 evidence
 
@@ -51,4 +52,4 @@
 
 ## Next executable tasks
 
-VRI-19 and VRI-21 are the Wave 6 parallel set; VRI-20 follows VRI-19's API contract.
+VRI-20 and VRI-21 are the remaining Wave 6 parallel set after the VRI-19 checkpoint.

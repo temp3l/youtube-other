@@ -190,6 +190,7 @@ export interface EpisodeLifecycleUseCases {
       readonly projectId: string;
       readonly principal: AuthenticatedPrincipal;
       readonly requestId: string;
+      readonly ifMatch: string;
       readonly idempotencyKey: string;
     }
   ): Promise<{ readonly id: string; readonly revision: number; readonly lifecycleState: "archived"; readonly replayed: boolean }>;
@@ -402,6 +403,9 @@ export function createPostgresApiUseCases(input: {
         id: record.episodeId,
         revision: record.revision,
         content: record.content,
+        lifecycleState: record.lifecycleState,
+        sourceEpisodeId: record.sourceEpisodeId,
+        sourceEpisodeRevision: record.sourceEpisodeRevision,
       } : null;
     },
     replaceEpisodeContent: async (episodeId, episode, context) => {
@@ -454,6 +458,8 @@ export function createPostgresApiUseCases(input: {
     },
     archiveEpisode: async (episodeId, archive, context) => {
       const parsed = archiveEpisodeInputSchema.parse(archive);
+      if (parseEtag(context.ifMatch) !== parsed.expectedRevision)
+        throw new ApplicationError("precondition_failed", "If-Match does not match expectedRevision.", false);
       requireEpisodeLifecycleMutationAuthority(context);
       try {
         const result = await repository.withWorkspaceTransaction(

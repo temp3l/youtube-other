@@ -330,7 +330,7 @@ describe("PostgreSQL API use cases", () => {
       createId: (prefix) => `${prefix}-generated`,
     });
     const context = {
-      workspaceId: "ws-1", projectId: "project-1", requestId: "request-lifecycle", idempotencyKey: "lifecycle-key",
+      workspaceId: "ws-1", projectId: "project-1", requestId: "request-lifecycle", ifMatch: '"2"', idempotencyKey: "lifecycle-key",
       principal: { principalId: "user-1", workspaceId: "ws-1", permissions: ["content.write"], kind: "user" as const },
     };
 
