@@ -196,5 +196,44 @@ export function createApiSdkSaasJourneyGateway(input: {
         })
       ).data;
     },
+    publishing: {
+      async listChannels(identity) {
+        return (await client(identity).listPublishingChannels(workspace(identity))).data;
+      },
+      async beginChannelConnect(identity) {
+        const result = (await client(identity).beginPublishingChannelConnect(workspace(identity))).data;
+        return { authorizationUrl: result.authorizationUrl, expiresAt: result.expiresAt };
+      },
+      async disconnectChannel(identity, channelId, ifMatch) {
+        return (await client(identity).disconnectPublishingChannel(
+          workspace(identity), channelId, { ifMatch }
+        )).data;
+      },
+      async preflight(identity, projectId, episodeId, value) {
+        return (await client(identity).evaluatePublicationPreflight(
+          workspace(identity), projectId, episodeId, value
+        )).data;
+      },
+      async prepare(identity, projectId, episodeId, value, idempotencyKey) {
+        return (await client(identity).preparePublicationIntent(
+          workspace(identity), projectId, episodeId, value, { idempotencyKey }
+        )).data;
+      },
+      async getPublication(identity, projectId, publicationId) {
+        return (await client(identity).getPublication(
+          workspace(identity), projectId, publicationId
+        )).data;
+      },
+      async cancelPublication(identity, projectId, publicationId, ifMatch) {
+        return (await client(identity).cancelPublicationIntent(
+          workspace(identity), projectId, publicationId, { ifMatch }
+        )).data;
+      },
+      async updateSchedule(identity, projectId, publicationId, value, ifMatch) {
+        return (await client(identity).updatePublicationSchedule(
+          workspace(identity), projectId, publicationId, value, { ifMatch }
+        )).data;
+      },
+    },
   };
 }

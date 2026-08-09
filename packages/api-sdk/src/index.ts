@@ -352,6 +352,82 @@ export interface Publication {
   readonly updatedAt: string;
 }
 
+export interface PublishingChannel {
+  readonly schemaVersion: "mediaforge.publication-preparation.v1";
+  readonly workspaceId: string;
+  readonly channelId: string;
+  readonly displayName: string;
+  readonly providerChannelId?: string;
+  readonly connectionStatus:
+    | "disconnected"
+    | "connecting"
+    | "connected"
+    | "reauthorize_required"
+    | "degraded";
+  readonly credentialVersion?: string;
+  readonly defaultVisibility?: "private" | "unlisted" | "public";
+  readonly defaultLocale?: string;
+  readonly supportedLocales: readonly string[];
+  readonly revision: number;
+  readonly authorizationExpiresAt?: string;
+  readonly updatedAt: string;
+}
+export interface PublishingChannelPage { readonly items: readonly PublishingChannel[]; }
+export interface ChannelConnectBeginResult { readonly sessionId: string; readonly authorizationUrl: string; readonly expiresAt: string; }
+export interface PublicationMetadataInput {
+  readonly title: string;
+  readonly description: string;
+  readonly tags?: readonly string[];
+  readonly defaultAudioLanguage: string;
+  readonly thumbnailAssetId: string;
+  readonly thumbnailHash: string;
+  readonly captionAssetId?: string;
+  readonly captionHash?: string;
+}
+export interface PublicationPreflightInput {
+  readonly channelId: string;
+  readonly visibility: "private" | "unlisted" | "public";
+  readonly scheduledAt?: string | null;
+  readonly scheduleTimezone?: string;
+  readonly playlistIds?: readonly string[];
+  readonly approvalId: string;
+  readonly approvalRevision: number;
+  readonly approvalArtifactHash: string;
+  readonly assetHash: string;
+  readonly artifactBindings: readonly PublicationArtifactBinding[];
+  readonly metadata: PublicationMetadataInput;
+  readonly captionsRequired?: boolean;
+  readonly boundEpisodeRevision?: number;
+}
+export interface PublicationPreflightResult {
+  readonly admitted: boolean;
+  readonly rejections: readonly { readonly code: string; readonly message: string; readonly field?: string }[];
+  readonly metadataContentHash?: string;
+}
+export interface PublicationPrepareInput extends PublicationPreflightInput { readonly idempotencyKey?: string; }
+export interface PublicationMetadataRevision {
+  readonly schemaVersion: "mediaforge.publication-preparation.v1";
+  readonly metadataRevisionId: string;
+  readonly revision: number;
+  readonly contentHash: string;
+  readonly metadata: PublicationMetadataInput;
+  readonly createdAt: string;
+}
+export interface PublicationPrepareResult {
+  readonly publication: Publication;
+  readonly metadataRevision: PublicationMetadataRevision;
+  readonly replayed: boolean;
+}
+export interface PublicationScheduleUpdateInput {
+  readonly scheduledAt: string | null;
+  readonly scheduleTimezone?: string;
+}
+export interface PublicationScheduleUpdateResult {
+  readonly publication: Publication;
+  readonly replacedPublicationId: string;
+  readonly replayed: boolean;
+}
+
 export interface ApprovalInput {
   readonly challengeId: string;
   readonly subjectId: string;
@@ -1000,6 +1076,81 @@ export class MediaforgeApiClient {
       `${this.projectPath(workspaceId, projectId)}/publications/${encodePath(publicationId)}`,
       { ...(options ? { options } : {}) }
     );
+  }
+
+  public listPublishingChannels(
+    workspaceId: string,
+    options?: RequestOptions
+  ): Promise<ApiResponse<PublishingChannelPage>> {
+    return this.execute(`${this.workspacePath(workspaceId)}/publishing-channels`, {
+      ...(options ? { options } : {}),
+    });
+  }
+
+  public beginPublishingChannelConnect(
+    workspaceId: string,
+    options?: RequestOptions
+  ): Promise<ApiResponse<ChannelConnectBeginResult>> {
+    return this.execute(`${this.workspacePath(workspaceId)}/publishing-channels:connect`, {
+      method: "POST", ...(options ? { options } : {}),
+    });
+  }
+
+  public disconnectPublishingChannel(
+    workspaceId: string,
+    channelId: string,
+    options: ConditionalRequestOptions
+  ): Promise<ApiResponse<PublishingChannel>> {
+    return this.execute(`${this.workspacePath(workspaceId)}/publishing-channels/${encodePath(channelId)}:disconnect`, {
+      method: "POST", options, ifMatch: options.ifMatch,
+    });
+  }
+
+  public evaluatePublicationPreflight(
+    workspaceId: string,
+    projectId: string,
+    episodeId: string,
+    input: PublicationPreflightInput,
+    options?: RequestOptions
+  ): Promise<ApiResponse<PublicationPreflightResult>> {
+    return this.execute(`${this.projectPath(workspaceId, projectId)}/episodes/${encodePath(episodeId)}/publication-intents:preflight`, {
+      method: "POST", body: input, ...(options ? { options } : {}),
+    });
+  }
+
+  public preparePublicationIntent(
+    workspaceId: string,
+    projectId: string,
+    episodeId: string,
+    input: PublicationPrepareInput,
+    options: IdempotentRequestOptions
+  ): Promise<ApiResponse<PublicationPrepareResult>> {
+    return this.execute(`${this.projectPath(workspaceId, projectId)}/episodes/${encodePath(episodeId)}/publication-intents:prepare`, {
+      method: "POST", body: input, options, idempotencyKey: options.idempotencyKey,
+    });
+  }
+
+  public cancelPublicationIntent(
+    workspaceId: string,
+    projectId: string,
+    publicationId: string,
+    options: ConditionalRequestOptions
+  ): Promise<ApiResponse<Publication>> {
+    return this.execute(`${this.projectPath(workspaceId, projectId)}/publications/${encodePath(publicationId)}:cancel`, {
+      method: "POST", options, ifMatch: options.ifMatch,
+    });
+  }
+
+  public updatePublicationSchedule(
+    workspaceId: string,
+    projectId: string,
+    publicationId: string,
+    input: PublicationScheduleUpdateInput,
+    options: ConditionalRequestOptions
+  ): Promise<ApiResponse<PublicationScheduleUpdateResult>> {
+    return this.execute(`${this.projectPath(workspaceId, projectId)}/publications/${encodePath(publicationId)}:updateSchedule`, {
+      method: "POST", body: input, options, ifMatch: options.ifMatch,
+    });
   }
 
   public async *iterateValidations(

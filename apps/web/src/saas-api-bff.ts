@@ -11,6 +11,15 @@ import type {
   Project,
   ProjectInput,
   ProjectPage,
+  Publication,
+  PublicationPreflightInput,
+  PublicationPreflightResult,
+  PublicationPrepareInput,
+  PublicationPrepareResult,
+  PublicationScheduleUpdateInput,
+  PublicationScheduleUpdateResult,
+  PublishingChannel,
+  PublishingChannelPage,
   UsageRecordPage,
   ValidationPage,
   WorkspaceQuotaStatus,
@@ -22,11 +31,24 @@ import type {
 
 import type { SaasIdentity } from "./saas-runtime.js";
 
+/** Publishing is nested so existing provider-free BFFs retain no mutations. */
+export interface PublishingJourneyGateway {
+  listChannels(identity: SaasIdentity): Promise<PublishingChannelPage>;
+  beginChannelConnect(identity: SaasIdentity): Promise<{ readonly authorizationUrl: string; readonly expiresAt: string }>;
+  disconnectChannel(identity: SaasIdentity, channelId: string, ifMatch: string): Promise<PublishingChannel>;
+  preflight(identity: SaasIdentity, projectId: string, episodeId: string, input: PublicationPreflightInput): Promise<PublicationPreflightResult>;
+  prepare(identity: SaasIdentity, projectId: string, episodeId: string, input: PublicationPrepareInput, idempotencyKey: string): Promise<PublicationPrepareResult>;
+  getPublication(identity: SaasIdentity, projectId: string, publicationId: string): Promise<Publication>;
+  cancelPublication(identity: SaasIdentity, projectId: string, publicationId: string, ifMatch: string): Promise<Publication>;
+  updateSchedule(identity: SaasIdentity, projectId: string, publicationId: string, input: PublicationScheduleUpdateInput, ifMatch: string): Promise<PublicationScheduleUpdateResult>;
+}
+
 /**
  * Server-side gateway used by the web BFF. It deliberately receives a server
  * identity, never a browser-supplied bearer token.
  */
 export interface SaasJourneyGateway {
+  readonly publishing?: PublishingJourneyGateway;
   listProjects(identity: SaasIdentity): Promise<ProjectPage>;
   createProject(identity: SaasIdentity, input: ProjectInput, idempotencyKey: string): Promise<Project>;
   listEpisodes(identity: SaasIdentity, projectId: string): Promise<EpisodePage>;

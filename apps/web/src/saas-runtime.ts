@@ -43,6 +43,8 @@ export interface SaasRuntimeOptions {
   readonly resolveIdentity?: (request: http.IncomingMessage) => Promise<SaasIdentity | null>;
   /** Optional typed API gateway. Without it, all mutating controls stay absent. */
   readonly journey?: SaasJourneyGateway;
+  /** Platform capability, supplied server-side. Omitted means publication is off. */
+  readonly publicationExecutionEnabled?: boolean;
   /** Local fixture only: permits demo form posts when a preview proxy strips origin headers. */
   readonly allowUnverifiedDemoFormPosts?: boolean;
 }
@@ -112,7 +114,7 @@ export function renderSignedOutShell(): string {
 const navigation = [
   ["/", "Overview"], ["/projects", "Projects"], ["/episodes", "Episodes"],
   ["/workflows", "Workflows"], ["/reviews", "Review"], ["/assets", "Assets"],
-  ["/usage", "Usage"], ["/integrations", "Integrations"], ["/settings", "Settings"],
+  ["/publishing", "Publishing"], ["/usage", "Usage"], ["/integrations", "Integrations"], ["/settings", "Settings"],
 ] as const;
 
 function shell(session: SaasSession, path: string, title: string, subtitle: string, content: string, action?: string): string {
@@ -205,8 +207,69 @@ function problemDetail(error: unknown): { readonly status: number; readonly mess
   return { status: 502, message: "The workspace service is temporarily unavailable. Your data was not changed." };
 }
 
-async function renderJourneyPage(identity: SaasIdentity, path: string, gateway: SaasJourneyGateway, search = ""): Promise<string | null> {
+function publicationStatusMessage(status: string): string {
+  if (status === "published") return "The provider receipt is bound to this immutable intent.";
+  if (status === "reconciliation_required") return "Provider outcome is uncertain. Recovery is read-only and requires an operator; no retry will upload media again.";
+  if (status === "failed") return "Publication stopped safely. Create a new intent only after reviewing the recorded evidence.";
+  if (status === "executing") return "Execution is fenced and may only complete with a durable provider receipt.";
+  if (status === "cancelled") return "This intent was cancelled before provider execution.";
+  return "This immutable intent is prepared and awaiting its scheduled or controlled execution path.";
+}
+
+function publicationPrepareForm(input: {
+  readonly projectId: string;
+  readonly episodeId: string;
+  readonly episodeRevision: number;
+  readonly channels: readonly { readonly channelId: string; readonly displayName: string; readonly connectionStatus: string; readonly defaultVisibility?: "private" | "unlisted" | "public" }[];
+}): string {
+  const eligible = input.channels.filter((channel) => channel.connectionStatus === "connected");
+  if (eligible.length === 0) return `<section class="notice"><strong>Connect a channel before preparing an intent.</strong><p>OAuth remains server-side; an unavailable or expired channel cannot be selected.</p></section>`;
+  const channelOptions = eligible.map((channel) => `<option value="${escapeHtml(channel.channelId)}">${escapeHtml(channel.displayName)}</option>`).join("");
+  return `<form class="card form" method="post" action="/publishing/projects/${encodeURIComponent(input.projectId)}/episodes/${encodeURIComponent(input.episodeId)}:prepare"><h2>Prepare immutable publication intent</h2><p>Enter the exact approved artifacts and metadata. The server performs preflight and remains the authority for policy, horizon, approval, and OAuth checks.</p>${idempotencyField()}<input type="hidden" name="boundEpisodeRevision" value="${input.episodeRevision}"><label class="field">Channel<select name="channelId">${channelOptions}</select></label><label class="field">Visibility<select name="visibility"><option value="private">Private</option><option value="unlisted">Unlisted after validation</option><option value="public">Public after private-first validation</option></select></label><label class="field">Scheduled time <span class="hint">Optional RFC 3339 instant; server validates the configured horizon and provider constraints.</span><input name="scheduledAt" placeholder="2030-01-01T12:00:00Z"></label><label class="field">Schedule timezone<input name="scheduleTimezone" placeholder="Europe/Amsterdam"></label><label class="field">Approval ID<input required name="approvalId"></label><label class="field">Approval revision<input required name="approvalRevision" inputmode="numeric"></label><label class="field">Approved artifact hash<input required name="approvalArtifactHash"></label><label class="field">Video asset ID<input required name="videoAssetId"></label><label class="field">Video SHA-256<input required name="assetHash"></label><label class="field">Thumbnail asset ID<input required name="thumbnailAssetId"></label><label class="field">Thumbnail SHA-256<input required name="thumbnailHash"></label><label class="field">Caption asset ID <span class="hint">Optional when channel policy permits.</span><input name="captionAssetId"></label><label class="field">Caption SHA-256<input name="captionHash"></label><label class="field">Title<input required name="title" maxlength="200"></label><label class="field">Description<textarea required name="description" maxlength="5000"></textarea></label><label class="field">Tags <span class="hint">Comma-separated</span><input name="tags"></label><label class="field">Default audio language<input required name="defaultAudioLanguage" value="en"></label><label class="field"><input required type="checkbox" name="confirmed" value="yes"> I confirm this exact revision, destination, visibility, and metadata for preparation.</label><div class="actions"><button class="button" type="submit">Preflight and prepare</button></div></form>`;
+}
+
+async function renderPublishingPage(input: {
+  readonly identity: SaasIdentity;
+  readonly gateway: SaasJourneyGateway;
+  readonly search: string;
+  readonly executionEnabled: boolean;
+}): Promise<string> {
+  const publishing = input.gateway.publishing;
+  const unavailable = `<section class="notice"><strong>Publication execution is unavailable.</strong><p>The platform capability is off, so this page has no executable publish control and cannot trigger a provider mutation.</p></section>`;
+  if (!publishing) return shell(input.identity.session, "/publishing", "Publishing", "Prepare evidence and channel state without exposing browser credentials.", unavailable);
+  const [channels, projects] = await Promise.all([
+    publishing.listChannels(input.identity), input.gateway.listProjects(input.identity),
+  ]);
+  const selected = new URLSearchParams(input.search);
+  const projectId = selected.get("project");
+  const episodeId = selected.get("episode");
+  const episodeRows = (await Promise.all(projects.items.map(async (project) => ({
+    project, episodes: (await input.gateway.listEpisodes(input.identity, project.id)).items,
+  })))).flatMap(({ project, episodes }) => episodes.map((episode) => ({ project, episode })));
+  const chosen = episodeRows.find(({ project, episode }) => project.id === projectId && episode.id === episodeId);
+  const channelRows = channels.items.length ? `<div class="stack">${channels.items.map((channel) => `<div class="row"><div><strong>${escapeHtml(channel.displayName)}</strong><span>${escapeHtml(channel.connectionStatus.replaceAll("_", " "))}${channel.authorizationExpiresAt ? ` · authorization expires ${escapeHtml(channel.authorizationExpiresAt)}` : ""}</span></div><div class="actions"><span class="tag ${channel.connectionStatus === "connected" ? "" : "neutral"}">${escapeHtml(channel.connectionStatus)}</span>${channel.connectionStatus !== "disconnected" ? `<form method="post" action="/publishing/channels/${encodeURIComponent(channel.channelId)}:disconnect"><input type="hidden" name="revision" value="${channel.revision}">${idempotencyField()}<button class="button secondary" type="submit">Disconnect</button></form>` : ""}</div></div>`).join("")}</div>` : empty("No publishing channels", "Connect a channel through the server-side OAuth flow before preparing a publication.");
+  const episodeLinks = episodeRows.length ? `<div class="stack">${episodeRows.map(({ project, episode }) => `<a class="row link-row" href="/publishing?project=${encodeURIComponent(project.id)}&episode=${encodeURIComponent(episode.id)}"><div><strong>${escapeHtml(episodeTitle(episode.content))}</strong><span>${escapeHtml(project.name)} · revision ${episode.revision}</span></div><span class="tag neutral">Prepare</span></a>`).join("")}</div>` : empty("No episode brief", "Create and produce an episode before preparing publication evidence.", "/projects/new");
+  const execution = input.executionEnabled
+    ? `<section class="notice"><strong>Execution remains server-owned.</strong><p>No browser-held token or direct publish button is exposed. A controlled worker may execute only after its own authorization, fence, and provider checks.</p></section>`
+    : unavailable;
+  return shell(input.identity.session, "/publishing", "Publishing", "Channel credentials stay server-side. Every intent is immutable, preflighted, and private-first.", `${execution}<section class="card" style="margin-top:18px"><h2>Channels</h2><p>Connection and reauthorization state come from the server; credentials are never shown.</p><div class="actions" style="margin-top:12px"><form method="post" action="/publishing/channels:connect">${idempotencyField()}<button class="button" type="submit">Connect channel</button></form></div></section><div style="margin-top:12px">${channelRows}</div><section class="card" style="margin-top:18px"><h2>Choose an episode</h2><p>Preparation binds the exact source revision and metadata. Server preflight decides whether it is eligible.</p></section><div style="margin-top:12px">${episodeLinks}</div>${chosen ? `<div style="margin-top:18px">${publicationPrepareForm({ projectId: chosen.project.id, episodeId: chosen.episode.id, episodeRevision: chosen.episode.revision, channels: channels.items })}</div>` : ""}`);
+}
+
+async function renderJourneyPage(identity: SaasIdentity, path: string, gateway: SaasJourneyGateway, search = "", publicationExecutionEnabled = false): Promise<string | null> {
   try {
+    if (path === "/publishing") return renderPublishingPage({
+      identity, gateway, search, executionEnabled: publicationExecutionEnabled,
+    });
+    const publicationPath = path.match(/^\/publishing\/projects\/([^/]+)\/publications\/([^/]+)$/u);
+    if (publicationPath) {
+      const publishing = gateway.publishing;
+      if (!publishing) return shell(identity.session, path, "Publishing", "Publication state is unavailable for this workspace.", `<section class="notice">No publishing BFF is configured.</section>`);
+      const projectId = decodeURIComponent(publicationPath[1]!); const publicationId = decodeURIComponent(publicationPath[2]!);
+      const publication = await publishing.getPublication(identity, projectId, publicationId);
+      const controls = publication.status === "pending" ? `<div class="actions" style="margin-top:14px"><form method="post" action="/publishing/projects/${encodeURIComponent(projectId)}/publications/${encodeURIComponent(publication.id)}:cancel">${idempotencyField()}<input type="hidden" name="revision" value="${publication.revision}"><button class="button secondary" type="submit">Cancel intent</button></form></div><form class="card form" style="margin-top:14px" method="post" action="/publishing/projects/${encodeURIComponent(projectId)}/publications/${encodeURIComponent(publication.id)}:schedule">${idempotencyField()}<input type="hidden" name="revision" value="${publication.revision}"><label class="field">Scheduled time <span class="hint">Leave blank to remove the schedule. The server validates timezone and horizon.</span><input name="scheduledAt" value="${escapeHtml(publication.scheduledAt ?? "")}" placeholder="2030-01-01T12:00:00Z"></label><label class="field">Schedule timezone<input name="scheduleTimezone" placeholder="Europe/Amsterdam"></label><button class="button" type="submit">Update schedule</button></form>` : "";
+      const execution = publicationExecutionEnabled ? `<section class="notice"><strong>Execution is server-owned.</strong><p>The browser never receives an OAuth token or direct provider control. The internal worker must still pass its confirmation and fence checks.</p></section>` : `<section class="notice"><strong>Execution is disabled.</strong><p>The platform flag is off; no executable publish control is rendered.</p></section>`;
+      return shell(identity.session, path, "Publication intent", "This page displays only safe, immutable bindings and state.", `${execution}<section class="card" style="margin-top:18px"><h2>${escapeHtml(publication.status.replaceAll("_", " "))}</h2><p>${escapeHtml(publicationStatusMessage(publication.status))}</p><div class="stack" style="margin-top:14px"><div class="row"><div><strong>Destination</strong><span>Channel ${escapeHtml(publication.channelId)} · intended ${escapeHtml(publication.visibility)} visibility</span></div><span class="tag neutral">revision ${publication.revision}</span></div><div class="row"><div><strong>Source evidence</strong><span>Approval ${escapeHtml(publication.approvalId)} revision ${publication.approvalRevision} · asset ${escapeHtml(publication.assetHash)}</span></div><span class="tag neutral">Immutable</span></div><div class="row"><div><strong>Schedule</strong><span>${escapeHtml(publication.scheduledAt ?? "Not scheduled")}</span></div><span class="tag neutral">Server validated</span></div></div>${controls}</section><section class="card" style="margin-top:18px"><h2>Safe recovery</h2><p>Metadata changes require a new immutable intent. Reconciliation never guesses an external outcome or regenerates media.</p></section>`);
+    }
     if (path === "/settings") return shell(identity.session, path, "Languages and voice readiness", "Choose only the locale your profile is entitled for. Voice credentials, consent records, and provider settings remain server-side.", languageAndVoiceReadiness(identity.session));
     if (path === "/reviews" || path === "/assets") {
       const projects = (await gateway.listProjects(identity)).items;
@@ -324,6 +387,53 @@ function listField(input: URLSearchParams, name: string): readonly string[] {
   return (input.get(name) ?? "").split(",").map((item) => item.trim()).filter(Boolean).filter((item) => item.length <= 160).slice(0, 50);
 }
 
+function optionalField(input: URLSearchParams, name: string, maximum = 240): string | undefined {
+  const value = input.get(name)?.trim() ?? "";
+  if (!value) return undefined;
+  if (value.length > maximum) throw new Error(`Enter a valid ${name}.`);
+  return value;
+}
+
+function nonNegativeInteger(input: URLSearchParams, name: string): number {
+  const value = Number(requiredField(input, name, 20));
+  if (!Number.isSafeInteger(value) || value < 0) throw new Error(`Enter a valid ${name}.`);
+  return value;
+}
+
+function publicationPrepareInput(input: URLSearchParams) {
+  const captionAssetId = optionalField(input, "captionAssetId", 160);
+  const captionHash = optionalField(input, "captionHash", 64);
+  if ((captionAssetId === undefined) !== (captionHash === undefined))
+    throw new Error("Caption asset ID and SHA-256 must be supplied together.");
+  const scheduledAt = optionalField(input, "scheduledAt", 80);
+  const scheduleTimezone = optionalField(input, "scheduleTimezone", 80);
+  const visibility = requiredField(input, "visibility", 12);
+  if (visibility !== "private" && visibility !== "unlisted" && visibility !== "public")
+    throw new Error("Choose a valid visibility.");
+  return {
+    channelId: requiredField(input, "channelId", 160),
+    visibility,
+    ...(scheduledAt ? { scheduledAt } : {}),
+    ...(scheduleTimezone ? { scheduleTimezone } : {}),
+    approvalId: requiredField(input, "approvalId", 160),
+    approvalRevision: nonNegativeInteger(input, "approvalRevision"),
+    approvalArtifactHash: requiredField(input, "approvalArtifactHash", 64),
+    assetHash: requiredField(input, "assetHash", 64),
+    artifactBindings: [
+      { assetId: requiredField(input, "videoAssetId", 160), role: "video", contentHash: requiredField(input, "assetHash", 64) },
+      { assetId: requiredField(input, "thumbnailAssetId", 160), role: "thumbnail", contentHash: requiredField(input, "thumbnailHash", 64) },
+      ...(captionAssetId && captionHash ? [{ assetId: captionAssetId, role: "captions", contentHash: captionHash }] : []),
+    ],
+    metadata: {
+      title: requiredField(input, "title", 200), description: requiredField(input, "description", 5_000),
+      tags: listField(input, "tags"), defaultAudioLanguage: requiredField(input, "defaultAudioLanguage", 35),
+      thumbnailAssetId: requiredField(input, "thumbnailAssetId", 160), thumbnailHash: requiredField(input, "thumbnailHash", 64),
+      ...(captionAssetId ? { captionAssetId } : {}), ...(captionHash ? { captionHash } : {}),
+    },
+    boundEpisodeRevision: nonNegativeInteger(input, "boundEpisodeRevision"),
+  } as const;
+}
+
 function profileFromInput(value: string, session: SaasSession): SaasProfile {
   if (!(value in profileLabels) || !session.profiles.includes(value as SaasProfile)) throw new Error("This production profile is not entitled for this workspace.");
   return value as SaasProfile;
@@ -380,6 +490,52 @@ async function handleJourneyAction(input: {
     response.writeHead(303, { location }).end();
   };
   try {
+    if (path === "/publishing/channels:connect") {
+      const publishing = gateway.publishing;
+      if (!publishing) { actionError(response, identity.session, path, 409, "Channel connection is unavailable for this workspace."); return true; }
+      const started = await publishing.beginChannelConnect(identity);
+      response.writeHead(303, { location: started.authorizationUrl, "cache-control": "no-store" }).end(); return true;
+    }
+    const disconnectChannel = path.match(/^\/publishing\/channels\/([^/]+):disconnect$/u);
+    if (disconnectChannel) {
+      const publishing = gateway.publishing;
+      if (!publishing) { actionError(response, identity.session, path, 409, "Channel connection is unavailable for this workspace."); return true; }
+      await publishing.disconnectChannel(identity, decodeURIComponent(disconnectChannel[1]!), `"${nonNegativeInteger(values, "revision")}"`);
+      redirect("/publishing"); return true;
+    }
+    const preparePublication = path.match(/^\/publishing\/projects\/([^/]+)\/episodes\/([^/]+):prepare$/u);
+    if (preparePublication) {
+      const publishing = gateway.publishing;
+      if (!publishing) { actionError(response, identity.session, path, 409, "Publication preparation is unavailable for this workspace."); return true; }
+      if (values.get("confirmed") !== "yes") throw new Error("Confirm the exact revision, destination, visibility, and metadata.");
+      const projectId = decodeURIComponent(preparePublication[1]!); const episodeId = decodeURIComponent(preparePublication[2]!);
+      const publication = publicationPrepareInput(values);
+      const preflight = await publishing.preflight(identity, projectId, episodeId, publication);
+      if (!preflight.admitted) {
+        actionError(response, identity.session, path, 412, preflight.rejections.map((rejection) => rejection.message).join(" ") || "Publication preflight failed.");
+        return true;
+      }
+      const prepared = await publishing.prepare(identity, projectId, episodeId, publication, idempotencyKey);
+      redirect(`/publishing/projects/${encodeURIComponent(projectId)}/publications/${encodeURIComponent(prepared.publication.id)}`); return true;
+    }
+    const cancelPublication = path.match(/^\/publishing\/projects\/([^/]+)\/publications\/([^/]+):cancel$/u);
+    if (cancelPublication) {
+      const publishing = gateway.publishing;
+      if (!publishing) { actionError(response, identity.session, path, 409, "Publication control is unavailable for this workspace."); return true; }
+      const projectId = decodeURIComponent(cancelPublication[1]!); const publicationId = decodeURIComponent(cancelPublication[2]!);
+      await publishing.cancelPublication(identity, projectId, publicationId, `"${nonNegativeInteger(values, "revision")}"`);
+      redirect(`/publishing/projects/${encodeURIComponent(projectId)}/publications/${encodeURIComponent(publicationId)}`); return true;
+    }
+    const updateSchedule = path.match(/^\/publishing\/projects\/([^/]+)\/publications\/([^/]+):schedule$/u);
+    if (updateSchedule) {
+      const publishing = gateway.publishing;
+      if (!publishing) { actionError(response, identity.session, path, 409, "Publication control is unavailable for this workspace."); return true; }
+      const projectId = decodeURIComponent(updateSchedule[1]!); const publicationId = decodeURIComponent(updateSchedule[2]!);
+      const scheduledAt = optionalField(values, "scheduledAt", 80) ?? null;
+      const scheduleTimezone = optionalField(values, "scheduleTimezone", 80);
+      await publishing.updateSchedule(identity, projectId, publicationId, { scheduledAt, ...(scheduleTimezone ? { scheduleTimezone } : {}) }, `"${nonNegativeInteger(values, "revision")}"`);
+      redirect(`/publishing/projects/${encodeURIComponent(projectId)}/publications/${encodeURIComponent(publicationId)}`); return true;
+    }
     if (path === "/projects") {
       const profile = profileFromInput(requiredField(values, "profile"), identity.session);
       const project = await gateway.createProject(identity, { name: requiredField(values, "name", 160), profile }, idempotencyKey);
@@ -482,9 +638,9 @@ export function createSaasRuntime(options: SaasRuntimeOptions): http.Server {
       response.writeHead(405).end();
       return;
     }
-    const journey = resolvedIdentity && options.journey ? await renderJourneyPage(resolvedIdentity, path, options.journey, url.searchParams.toString()) : null;
+    const journey = resolvedIdentity && options.journey ? await renderJourneyPage(resolvedIdentity, path, options.journey, url.searchParams.toString(), options.publicationExecutionEnabled ?? false) : null;
     const page = journey ?? (session ? renderPage(session, path) : renderSignedOutShell());
-    const knownJourney = /^\/projects\/[^/]+(?:\/episodes\/[^/]+)?$/u.test(path) || /^\/projects\/[^/]+\/(?:assets|approval-challenges\/[^/]+)$/u.test(path) || /^\/workflows\/[^/]+\/[^/]+$/u.test(path);
+    const knownJourney = path === "/publishing" || /^\/publishing\/projects\/[^/]+\/publications\/[^/]+$/u.test(path) || /^\/projects\/[^/]+(?:\/episodes\/[^/]+)?$/u.test(path) || /^\/projects\/[^/]+\/(?:assets|approval-challenges\/[^/]+)$/u.test(path) || /^\/workflows\/[^/]+\/[^/]+$/u.test(path);
     response.writeHead(session && !navigation.some(([href]) => href === path) && path !== "/projects/new" && !knownJourney ? 404 : 200);
     if (request.method === "GET") response.end(applyStyleNonce(response, page));
     else response.end();
