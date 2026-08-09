@@ -78,6 +78,7 @@ const changedHistorySources = (await git("diff", "--name-only", phase28Implement
 const allowedHistorySourceChanges = new Set([
   "packages/history/src/index.ts",
   "packages/history/src/v36/candidate-gap-inventory-v36.ts",
+  "packages/history/src/v36/candidate-gap-inventory-v36.unit.test.ts",
 ]);
 if (changedHistorySources.some((file) => !allowedHistorySourceChanges.has(file))) {
   throw new Error(`Frozen Phase 2.8 semantic source changed: ${changedHistorySources.join(", ")}`);
