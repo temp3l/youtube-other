@@ -14,15 +14,15 @@ See `IMPLEMENTATION-CHECKPOINT.md` and per-task Codex run reports.
 
 ## Tasks
 
-- Completed: VRI-01 through VRI-04
+- Completed: VRI-01 through VRI-05
 - Partially completed: none
-- Not completed: VRI-05 through VRI-26
+- Not completed: VRI-06 through VRI-26
 - Deviations: branch fast-forwarded to `origin/master` because the requested plan was added after the starting checkout.
 
 ## Tests and results
 
-Focused suites passed for domain/config/profile (18), lifecycle persistence (9), source ingestion/media (13), cache/prompt (36), and workflow store (14). Domain, shared, and Veronica-media typechecks passed. API use-case collection remains blocked by unbuilt workspace dependencies. No live providers, publication, destructive migration, or generated-asset changes were run.
+Focused suites passed for domain/config/profile (18), lifecycle persistence (9), source ingestion/media (13), cache/prompt (36), workflow store (14), and source-led narration (8). Domain, shared, and Veronica-media typechecks passed. API use-case collection remains blocked by unbuilt workspace dependencies. No live providers, publication, destructive migration, or generated-asset changes were run.
 
 ## Risks and next steps
 
-Legacy persisted path migration remains owned by VRI-25. Execute VRI-05 and Wave 2 next.
+Legacy persisted path migration remains owned by VRI-25. Execute VRI-06 and VRI-08 next.

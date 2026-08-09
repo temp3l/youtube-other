@@ -4,15 +4,16 @@
 - Starting HEAD: `f04262c16bfd1a89d1b404b1ac291a89dc699a0d`
 - Plan baseline after fast-forward: `46d624c`
 - Pre-existing changes preserved: `.codex/config.toml`; `prompts/codex-veronicabenini-implement-all-waves.md`
-- Current wave: 1 — lifecycle/source/fingerprints merge gate
+- Current wave: 2 — editorial/visual
 
 | Task | Status | Owner | Validation | Checkpoint |
 | --- | --- | --- | --- | --- |
 | VRI-01 | VALIDATED | coordinator | 18 focused tests; domain/shared typechecks pass | `dcd7d4d` |
-| VRI-02 | VALIDATED | worker + coordinator review | 9 persistence tests pass; API suite dependency-blocked | pending wave commit |
-| VRI-03 | VALIDATED | worker + coordinator review | 13 focused tests; Veronica media typecheck pass | pending wave commit |
-| VRI-04 | VALIDATED | worker + coordinator review | 50 focused tests; shared typecheck pass | pending wave commit |
-| VRI-05..VRI-26 | NOT_STARTED | unassigned | not run | none |
+| VRI-02 | VALIDATED | worker + coordinator review | 9 persistence tests pass; API suite dependency-blocked | `f17838f` |
+| VRI-03 | VALIDATED | worker + coordinator review | 13 focused tests; Veronica media typecheck pass | `f17838f` |
+| VRI-04 | VALIDATED | worker + coordinator review | 50 focused tests; shared typecheck pass | `f17838f` |
+| VRI-05 | VALIDATED | worker + coordinator review | 8 focused tests pass | pending commit |
+| VRI-06..VRI-26 | NOT_STARTED | unassigned | not run | none |
 
 ## VRI-01 evidence
 
@@ -30,4 +31,4 @@
 
 ## Next executable tasks
 
-VRI-05 is unblocked. VRI-06 and VRI-08 follow it; VRI-07 follows VRI-06 plus the validated VRI-04 contract.
+VRI-06 and VRI-08 are unblocked and safe in parallel. VRI-07 follows VRI-06 plus the validated VRI-04 contract.
