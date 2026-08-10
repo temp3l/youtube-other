@@ -80,6 +80,7 @@ import {
   assertScriptScoreGate,
   createOpenAiStoryClientWithOptions,
 } from "@mediaforge/story-localization";
+import { preparePositioningProductionEpisode } from "@mediaforge/strategic-reinvention";
 import {
   buildSrt,
   createEpisodePathResolver,
@@ -3777,6 +3778,15 @@ async function runAudioNarrationPipeline(
               speed: pacing.selectedSpeed,
               outputFormat: "wav",
               baseVoiceInstructions: speechSettings.instructions,
+            });
+            // Promotion changes the canonical media identity even when the
+            // selected attempt misses a legacy target. Reconcile every
+            // downstream timing artifact from that selected WAV now.
+            await preparePositioningProductionEpisode({
+              workspaceRoot: path.dirname(episodeDir),
+              episodeId,
+              language: language as "en" | "de" | "es" | "fr" | "pt" | "it",
+              variant: "short",
             });
           }
         }

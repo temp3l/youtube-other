@@ -10,6 +10,12 @@ export interface VeronicaProductionPolicy {
   readonly stateComplexityRepresentation: "decisive-still" | "multi-state-sequence";
   readonly providerPromptLabel: string;
   readonly applyShortCausalRemediation: boolean;
+  readonly semanticAutoRemediation: {
+    readonly enabled: true;
+    readonly maxRounds: 2;
+    readonly actionableWarnings: readonly ["MULTI_STATE_STILL_AMBIGUITY"] | readonly [];
+    readonly policyVersion: "veronica-semantic-auto-remediation.v1";
+  };
 }
 
 const SHORT_POLICY: VeronicaProductionPolicy = {
@@ -18,6 +24,12 @@ const SHORT_POLICY: VeronicaProductionPolicy = {
   stateComplexityRepresentation: "decisive-still",
   providerPromptLabel: "Veronica conceptual Short",
   applyShortCausalRemediation: true,
+  semanticAutoRemediation: {
+    enabled: true,
+    maxRounds: 2,
+    actionableWarnings: ["MULTI_STATE_STILL_AMBIGUITY"],
+    policyVersion: "veronica-semantic-auto-remediation.v1",
+  },
 };
 
 const FULL_POLICY: VeronicaProductionPolicy = {
@@ -26,6 +38,12 @@ const FULL_POLICY: VeronicaProductionPolicy = {
   stateComplexityRepresentation: "multi-state-sequence",
   providerPromptLabel: "Veronica long-form editorial sequence",
   applyShortCausalRemediation: false,
+  semanticAutoRemediation: {
+    enabled: true,
+    maxRounds: 2,
+    actionableWarnings: [],
+    policyVersion: "veronica-semantic-auto-remediation.v1",
+  },
 };
 
 export function resolveVeronicaProductionPolicy(

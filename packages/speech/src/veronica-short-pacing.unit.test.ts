@@ -1,58 +1,54 @@
 import { describe, expect, it } from "vitest";
 import {
+  assessVeronicaShortDurationAcceptance,
   calibrateVeronicaShortPacing,
   estimateVeronicaShortPacingSpeed,
   resolveVeronicaShortPacingPolicy,
 } from "./veronica-short-pacing.js";
 
-describe("Veronica Short adaptive pacing", () => {
+describe("Veronica Short natural pacing", () => {
   const policy = resolveVeronicaShortPacingPolicy("en")!;
 
-  it("uses measured duration to slow a fast narration and selects the in-range candidate", async () => {
-    const result = await calibrateVeronicaShortPacing({
-      initialSpeed: 1.16, wordCount: 161, policy,
-      synthesize: async ({ requestedSpeed }) => requestedSpeed > 1.1
-        ? { audioHash: "a".repeat(64), durationSeconds: 51.5, cacheHit: false, hardConstraintsPassed: true }
-        : { audioHash: "b".repeat(64), durationSeconds: 59.1, cacheHit: false, hardConstraintsPassed: true },
-    });
+  it.each([75, 110])("accepts a naturally paced %ss Short without a duration-driven retry", async (durationSeconds) => {
+    let calls = 0;
+    const wordCount = Math.round(durationSeconds / 60 * 155);
+    const result = await calibrateVeronicaShortPacing({ initialSpeed: 1, wordCount, policy, synthesize: async () => { calls += 1; return { audioHash: "a".repeat(64), durationSeconds, cacheHit: true, hardConstraintsPassed: true }; } });
+    expect(result.attempts).toHaveLength(1);
+    expect(result.calibrationStatus).toBe("NORMAL_SHORT");
+    expect(result.selectedAttempt.pacingStatus).toBe("NATURAL");
+    expect(calls).toBe(1);
+  });
+
+  it("keeps a natural 121–179s result and requests editorial review", async () => {
+    const result = await calibrateVeronicaShortPacing({ initialSpeed: 1, wordCount: 387, policy, synthesize: async () => ({ audioHash: "b".repeat(64), durationSeconds: 150, cacheHit: true, hardConstraintsPassed: true }) });
+    expect(result.attempts).toHaveLength(1);
+    expect(result.calibrationStatus).toBe("LONG_SHORT_EDITORIAL_REVIEW");
+  });
+
+  it("fails the format policy above 180s without trying to accelerate", async () => {
+    let calls = 0;
+    const result = await calibrateVeronicaShortPacing({ initialSpeed: 1, wordCount: 500, policy, synthesize: async () => { calls += 1; return { audioHash: "c".repeat(64), durationSeconds: 181, cacheHit: false, hardConstraintsPassed: true }; } });
+    expect(result.calibrationStatus).toBe("SHORT_PLATFORM_DURATION_EXCEEDED");
+    expect(calls).toBe(1);
+  });
+
+  it("adjusts only an unreasonable speech rate toward the episode/locale profile", async () => {
+    const result = await calibrateVeronicaShortPacing({ initialSpeed: 1.16, wordCount: 210, policy, synthesize: async ({ attemptIndex }) => ({ audioHash: String(attemptIndex).repeat(64), durationSeconds: attemptIndex === 1 ? 60 : 82, cacheHit: false, hardConstraintsPassed: true }) });
     expect(result.attempts).toHaveLength(2);
     expect(result.attempts[1]!.requestedSpeed).toBeLessThan(1.16);
-    expect(result.selectedAttempt.measuredDurationSeconds).toBe(59.1);
+    expect(result.selectedAttempt.measuredDurationSeconds).toBe(82);
   });
 
-  it("uses the latest non-linear measurement and bounds attempts", async () => {
-    const durations = [51.5, 57.9, 59.1];
-    const result = await calibrateVeronicaShortPacing({
-      initialSpeed: 1.16, wordCount: 161, policy,
-      synthesize: async ({ attemptIndex }) => ({ audioHash: String(attemptIndex).repeat(64), durationSeconds: durations[attemptIndex - 1]!, cacheHit: false, hardConstraintsPassed: true }),
-    });
-    expect(result.attempts).toHaveLength(2);
-    expect(result.selectedAttempt.measuredDurationSeconds).toBe(57.9);
-    expect(result.calibrationStatus).toBe("WITHIN_ACCEPTANCE_TOLERANCE");
+  it("uses a conceptual-explainer English profile and no global inference for other locales", () => {
+    expect(policy.profileId).toBe("conceptual-explainer");
+    expect(policy.preferredWpmRange).toEqual([145, 165]);
+    expect(resolveVeronicaShortPacingPolicy("de")?.preferredWpmRange).toBeUndefined();
+    expect(resolveVeronicaShortPacingPolicy("en-US")?.platformMaximumDurationSeconds).toBe(180);
   });
 
-  it("does not leak the Short policy to full or unsupported locales", () => {
-    expect(resolveVeronicaShortPacingPolicy("es")).toBeUndefined();
-    expect(resolveVeronicaShortPacingPolicy("en-US")?.preferredDurationRangeSeconds).toEqual([58, 60]);
-  });
-
-  it("clamps an excessive correction to the configured safety envelope", () => {
-    const correction = estimateVeronicaShortPacingSpeed({ currentSpeed: 1.16, actualDurationSeconds: 20, policy });
-    expect(correction.clampApplied).toBe(true);
-    expect(correction.speed).toBeGreaterThanOrEqual(policy.minimumSpeed);
-  });
-
-  it("accepts 57.916s inside tolerance, but continues for 57.70s", async () => {
-    const accepted = await calibrateVeronicaShortPacing({ initialSpeed: 1.16, wordCount: 161, policy, synthesize: async () => ({ audioHash: "c".repeat(64), durationSeconds: 57.916, cacheHit: true, hardConstraintsPassed: true }) });
-    expect(accepted.calibrationStatus).toBe("WITHIN_ACCEPTANCE_TOLERANCE");
-    expect(accepted.selectedAttempt.pacingStatus).toBe("slightly-fast");
-    const continued = await calibrateVeronicaShortPacing({ initialSpeed: 1.16, wordCount: 161, policy, synthesize: async ({ attemptIndex }) => ({ audioHash: String(attemptIndex + 3).repeat(64), durationSeconds: attemptIndex === 1 ? 57.7 : 59, cacheHit: true, hardConstraintsPassed: true }) });
-    expect(continued.attempts).toHaveLength(2);
-    expect(continued.calibrationStatus).toBe("WITHIN_PREFERRED_RANGE");
-  });
-
-  it("does not accept tolerance when hard constraints fail", async () => {
-    const result = await calibrateVeronicaShortPacing({ initialSpeed: 1.16, wordCount: 161, policy, synthesize: async ({ attemptIndex }) => ({ audioHash: String(attemptIndex + 6).repeat(64), durationSeconds: 57.916, cacheHit: true, hardConstraintsPassed: false }) });
-    expect(result.calibrationStatus).toBe("PACING_TARGET_MISSED");
+  it("targets natural WPM rather than 60 or 120 seconds", () => {
+    const correction = estimateVeronicaShortPacingSpeed({ currentSpeed: 1, actualDurationSeconds: 60, wordCount: 210, policy });
+    expect(correction.speed).toBeLessThan(1);
+    expect(assessVeronicaShortDurationAcceptance({ durationSeconds: 121, policy, hardConstraintsPassed: true })).toBe("LONG_SHORT_EDITORIAL_REVIEW");
   });
 });

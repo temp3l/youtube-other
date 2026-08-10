@@ -86,6 +86,8 @@ export interface PreparePositioningProductionEpisodeResult {
   readonly manifestPath: string;
   readonly scenePlanPath: string;
   readonly sceneCount: number;
+  readonly semanticRemediationRounds: number;
+  readonly semanticRemediationStatus: "CONVERGED" | "NO_OP" | "SEMANTIC_REMEDIATION_EXHAUSTED";
 }
 
 function defaultScriptPath(
@@ -279,7 +281,12 @@ export async function preparePositioningProductionEpisode(
   const compiledScenePlan = compilePositioningProductionScenePlan({ episodeId, narration, plan: hardenedProductionPlan });
   const narrationPath = path.join(episodeDir, "locales", input.language, input.variant, "audio", "narration.wav");
   let measuredNarrationDurationSeconds: number | null = null;
-  try { measuredNarrationDurationSeconds = waveDurationSeconds(await fs.readFile(narrationPath)); } catch { /* TTS has not run yet; planning timing remains explicit. */ }
+  let selectedAudioHash: string | null = null;
+  try {
+    const narrationAudio = await fs.readFile(narrationPath);
+    measuredNarrationDurationSeconds = waveDurationSeconds(narrationAudio);
+    selectedAudioHash = createHash("sha256").update(narrationAudio).digest("hex");
+  } catch { /* TTS has not run yet; planning timing remains explicit. */ }
   const scenePlan = measuredNarrationDurationSeconds === null ? compiledScenePlan : reconcileScenePlan(compiledScenePlan, measuredNarrationDurationSeconds);
   // The final treatment owns all derived state. Rebuild, rather than retime a
   // prior event list, after narration timing becomes canonical.
@@ -349,9 +356,9 @@ export async function preparePositioningProductionEpisode(
     writeJsonAtomic(scenePlanPath, finalScenePlan),
     writeJsonAtomic(path.join(episodeDir, "locales", input.language, input.variant, "scene-plan.json"), finalScenePlan),
     writeJsonAtomic(path.join(episodeDir, "source", "pre-image-semantic-plan.v1.json"), canonicalPlan),
-    writeJsonAtomic(path.join(episodeDir, "shared", "pre-image-semantic-reviews.v1.json"), { schemaVersion: "veronica-pre-image-semantic-reviews.v1", gateVersion: VERONICA_PRE_IMAGE_SEMANTIC_GATE_VERSION, reviews: hardened.reviews }),
-    writeJsonAtomic(path.join(episodeDir, "locales", input.language, input.variant, "canonical-timing.v1.json"), { schemaVersion: "veronica-canonical-locale-timing.v1", locale: input.language, variant: input.variant, timingPhase: measuredNarrationDurationSeconds === null ? "pre-tts-planning" : "post-tts-reconciled", timingSource: measuredNarrationDurationSeconds === null ? "planned" : "proportional-total-audio-reconciliation", narrationDurationSeconds: measuredNarrationDurationSeconds ?? finalScenePlan.scenes.at(-1)?.timing.endSeconds ?? 0, scenes: finalScenePlan.scenes.map((scene) => ({ sceneId: scene.id, plannedDurationSeconds: scene.plannedDurationSeconds ?? scene.estimatedDurationSeconds, reconciledDurationSeconds: scene.reconciledDurationSeconds ?? scene.estimatedDurationSeconds, startSeconds: scene.timing.startSeconds, endSeconds: scene.timing.endSeconds })) }),
-    writeJsonAtomic(path.join(episodeDir, "locales", input.language, input.variant, "retimed-visual-events.json"), { schemaVersion: "veronica-retimed-visual-events.v1", timingSource: measuredNarrationDurationSeconds === null ? "planned" : "proportional-total-audio-reconciliation", events: retimedEvents }),
+    writeJsonAtomic(path.join(episodeDir, "shared", "pre-image-semantic-reviews.v1.json"), { schemaVersion: "veronica-pre-image-semantic-reviews.v2", gateVersion: VERONICA_PRE_IMAGE_SEMANTIC_GATE_VERSION, remediationPolicyVersion: hardened.decisions[0]?.remediationPolicyVersion ?? "veronica-semantic-auto-remediation.v1", initialReviews: hardened.initialReviews, reviews: hardened.reviews, remediationRounds: hardened.rounds, convergenceStatus: hardened.convergenceStatus, decisions: hardened.decisions, unchangedSceneIds: hardened.unchangedSceneIds, semanticPlanHash: hardened.semanticPlanHash }),
+    writeJsonAtomic(path.join(episodeDir, "locales", input.language, input.variant, "canonical-timing.v1.json"), { schemaVersion: "veronica-canonical-locale-timing.v2", locale: input.language, variant: input.variant, timingAlgorithmVersion: "proportional-total-audio-reconciliation.v2", timingPhase: measuredNarrationDurationSeconds === null ? "pre-tts-planning" : "post-tts-reconciled", timingSource: measuredNarrationDurationSeconds === null ? "planned" : "selected-canonical-audio", narrationHash: createHash("sha256").update(narration).digest("hex"), selectedAudioHash, timingFingerprint: createHash("sha256").update(JSON.stringify({ selectedAudioHash, narrationHash: createHash("sha256").update(narration).digest("hex"), locale: input.language, variant: input.variant, timingAlgorithmVersion: "proportional-total-audio-reconciliation.v2" })).digest("hex"), narrationDurationSeconds: measuredNarrationDurationSeconds ?? finalScenePlan.scenes.at(-1)?.timing.endSeconds ?? 0, scenes: finalScenePlan.scenes.map((scene) => ({ sceneId: scene.id, plannedDurationSeconds: scene.plannedDurationSeconds ?? scene.estimatedDurationSeconds, reconciledDurationSeconds: scene.reconciledDurationSeconds ?? scene.estimatedDurationSeconds, startSeconds: scene.timing.startSeconds, endSeconds: scene.timing.endSeconds })) }),
+    writeJsonAtomic(path.join(episodeDir, "locales", input.language, input.variant, "retimed-visual-events.json"), { schemaVersion: "veronica-retimed-visual-events.v2", timingSource: measuredNarrationDurationSeconds === null ? "planned" : "selected-canonical-audio", selectedAudioHash, timingFingerprint: createHash("sha256").update(JSON.stringify({ selectedAudioHash, duration: measuredNarrationDurationSeconds, semanticPlanHash: canonicalPlan.planHash })).digest("hex"), events: retimedEvents }),
     writeTextAtomic(canonicalScriptPath, narration),
     writeTextAtomic(languageScriptPath, narration),
   ]);
@@ -366,5 +373,7 @@ export async function preparePositioningProductionEpisode(
     manifestPath,
     scenePlanPath,
     sceneCount: scenePlan.scenes.length,
+    semanticRemediationRounds: hardened.rounds,
+    semanticRemediationStatus: hardened.convergenceStatus,
   };
 }

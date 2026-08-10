@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import type { PlannedScene, PositioningVisualTreatment } from "./positioning-visual-contracts.js";
+import type { PlannedScene, PositioningVisualPlanV2, PositioningVisualTreatment } from "./positioning-visual-contracts.js";
 import { stableHash } from "./positioning-visual-semantics.js";
-import { classifyVeronicaStillStateComplexity, normalizeProviderPromptSentence, normalizeVeronicaViewerVisibleFamilies, projectVeronicaProviderPrompt, reviewVeronicaPreImageTreatment } from "./veronica-pre-image-semantic-gate.js";
+import { classifyVeronicaStillStateComplexity, normalizeProviderPromptSentence, normalizeVeronicaViewerVisibleFamilies, projectVeronicaProviderPrompt, reviewVeronicaPreImageTreatment, runVeronicaSemanticRemediation } from "./veronica-pre-image-semantic-gate.js";
 
 function treatment(overrides: Partial<PositioningVisualTreatment> = {}): PositioningVisualTreatment {
   const base = { treatmentId: "treatment", sceneId: "scene", progressionStage: "PROOF" as const, narrativeBeat: "buyer recognition", communicationIntent: "make-proof-visible" as const, strategy: "client-decision" as const, subjectRequirement: "occupation-neutral expert and buyer", environment: "public threshold", composition: "buyer crosses a clear doorway", camera: "40mm buyer-height", lighting: "daylight", action: "a buyer hesitates, then crosses the doorway", props: ["open doorway", "visible space beyond"], motionOpportunities: ["establishing-crop", "reveal"] as const, diagram: null, grammar: { strategy: "client-decision" as const, subjectArchetype: "buyer", environment: "public threshold", composition: "buyer crosses a clear doorway", camera: "40mm", props: ["open doorway"], topology: "none" as const, semanticTokens: ["niche"], continuityIdentityId: null }, viewerVisibleFingerprint: { strategyFamily: "client-decision" as const, subjectArchetype: "buyer", environmentArchetype: "threshold", compositionArchetype: "crossing", cameraArchetype: "40mm", lightingArchetype: "daylight", actionArchetype: "crosses", dominantObjectArchetype: "doorway", motionArchetype: "reveal" }, treatmentHash: "a".repeat(64) };
@@ -15,7 +15,35 @@ function scene(overrides: Partial<PlannedScene> = {}): PlannedScene {
   };
 }
 
+function plan(scenes: readonly PlannedScene[]): PositioningVisualPlanV2 {
+  return {
+    contentId: "generic-fixture", plannerVersion: "test-planner", format: "short", aspectRatio: "9:16",
+    scenes, assets: [], planHash: "f".repeat(64), semanticPlanCacheKey: "e".repeat(64),
+  } as PositioningVisualPlanV2;
+}
+
 describe("Veronica pre-image semantic gate", () => {
+  it("does not rewrite a zero-blocker plan", () => {
+    const clean = plan([scene()]);
+    const result = runVeronicaSemanticRemediation({ plan: clean, narrationByScene: ["A buyer chooses a doorway."] });
+    expect(result.convergenceStatus).toBe("NO_OP");
+    expect(result.rounds).toBe(0);
+    expect(result.plan).toBe(clean);
+    expect(result.decisions).toEqual([]);
+  });
+
+  it("remediates only blocked scenes, reruns the gate, and preserves action ownership", () => {
+    const blocked = scene({ visibleThesis: "topic", treatment: treatment({ actionOwnerRole: "expert", action: "the expert opens a doorway while a buyer compares and chooses" }) });
+    const passing = scene({ sceneId: "scene-002", treatment: treatment({ sceneId: "scene-002", actionOwnerRole: "buyer", action: "a buyer compares the evidence, recognizes the difference, and chooses the clear route" }), visibleThesis: "Clear evidence lets the buyer recognize the difference and choose the relevant route.", newInformation: "This second scene adds the buyer's final evidence comparison and selection." });
+    const original = plan([blocked, passing]);
+    const result = runVeronicaSemanticRemediation({ plan: original, narrationByScene: ["The expert makes positioning evidence visible so a buyer can choose.", "The buyer compares the final evidence and chooses."] });
+    expect(result.convergenceStatus).toBe("CONVERGED");
+    expect(result.reviews.flatMap((review) => review.findings).filter((finding) => finding.severity === "blocker")).toEqual([]);
+    expect(result.plan.scenes[1]).toBe(passing);
+    expect(result.plan.scenes[0]!.treatment.actionOwnerRole).toBe("expert");
+    expect(result.decisions.map((decision) => decision.sceneId)).toEqual(["scene-001"]);
+    expect(result.plan.planHash).not.toBe(original.planHash);
+  });
   it("prefers a narration-native doorway relationship over abstract props", () => {
     const review = reviewVeronicaPreImageTreatment({ contentId: "L02-S02", sceneId: "scene-003", plannerVersion: "test", narration: "The niche is a doorway, not a wall.", narrationAnchor: "doorway", visibleThesis: "A buyer crosses a clear doorway into a larger accessible space.", newInformation: "Shows access rather than confinement through a concrete buyer decision.", treatment: treatment({ strategy: "abstract-conceptual", environment: "architectural light laboratory", composition: "prism and translucent planes", action: "light changes", props: ["prism", "shadow grid"] }) });
     expect(review.status).toBe("manual-review-required");

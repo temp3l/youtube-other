@@ -436,58 +436,214 @@ export function rebuildVeronicaFinalTreatmentState(input: {
   return { ...canonical, planHash: stableHash(canonical) } as PositioningVisualPlanV2;
 }
 
-/** Re-projects generic positioning scenes before provider review. No scene ID is special-cased. */
-export function hardenVeronicaPreImagePlan(input: { readonly plan: PositioningVisualPlanV2; readonly narrationByScene: readonly string[] }): { readonly plan: PositioningVisualPlanV2; readonly reviews: readonly VeronicaPreImageSemanticReview[] } {
-  const policy = resolveVeronicaProductionPolicy(input.plan.format);
-  const existingContinuity = (input.plan as PositioningVisualPlanV2 & { readonly continuity?: PositioningVisualPlanV2["continuity"] }).continuity ?? {
-    mode: "ensemble-independent" as const,
-    variationDimensions: ["age", "gender-presentation", "profession", "environment", "framing"] as const,
-    scenesShareIdentity: false as const,
+export type VeronicaSemanticFindingCode = VeronicaPreImageSemanticReview["findings"][number]["code"];
+
+export interface VeronicaSemanticRemediationDecision {
+  readonly sceneId: string;
+  readonly remediationRound: number;
+  readonly sourceFindingCodes: readonly VeronicaSemanticFindingCode[];
+  readonly treatmentBeforeHash: string;
+  readonly treatmentAfterHash: string;
+  readonly remediationPolicyVersion: string;
+}
+
+export interface VeronicaSemanticRemediationResult {
+  readonly plan: PositioningVisualPlanV2;
+  readonly initialReviews: readonly VeronicaPreImageSemanticReview[];
+  readonly reviews: readonly VeronicaPreImageSemanticReview[];
+  readonly decisions: readonly VeronicaSemanticRemediationDecision[];
+  readonly unchangedSceneIds: readonly string[];
+  readonly rounds: number;
+  readonly convergenceStatus: "CONVERGED" | "NO_OP" | "SEMANTIC_REMEDIATION_EXHAUSTED";
+  readonly remainingFindings: readonly VeronicaPreImageSemanticReview["findings"][number][];
+  readonly semanticPlanHash: string;
+}
+
+function gatePlan(input: {
+  readonly plan: PositioningVisualPlanV2;
+  readonly narrationByScene: readonly string[];
+}): readonly VeronicaPreImageSemanticReview[] {
+  const motif = input.plan.selectedRecurringMotif?.concept;
+  return input.plan.scenes.map((scene, index) => {
+    const previous = input.plan.scenes[index - 1];
+    return reviewVeronicaPreImageTreatment({
+      contentId: input.plan.contentId,
+      sceneId: scene.sceneId,
+      plannerVersion: input.plan.plannerVersion,
+      narration: input.narrationByScene[index] ?? scene.narrationAnchor,
+      narrationAnchor: scene.narrationAnchor,
+      visibleThesis: scene.visibleThesis ?? scene.treatment.narrativeBeat,
+      newInformation: scene.newInformation ?? scene.treatment.narrativeBeat,
+      treatment: scene.treatment,
+      ...(previous ? { previousTreatment: previous.treatment } : {}),
+      ...(motif ? { selectedMotif: motif } : {}),
+    });
+  });
+}
+
+function semanticKeywords(value: string): string {
+  const ignored = new Set(["about", "after", "again", "because", "before", "being", "could", "every", "from", "have", "into", "just", "more", "only", "other", "should", "than", "that", "their", "them", "then", "there", "these", "they", "this", "through", "when", "where", "which", "while", "with", "would", "your"]);
+  const words = normalized(value).split(" ").filter((word) => word.length >= 4 && !ignored.has(word));
+  return [...new Set(words)].slice(0, 5).join(" ") || "the narrated evidence";
+}
+
+function repairBlockedScene(input: {
+  readonly scene: PlannedScene;
+  readonly narration: string;
+  readonly findings: readonly VeronicaPreImageSemanticReview["findings"][number][];
+  readonly format: PositioningVisualPlanV2["format"];
+  readonly index: number;
+}): PlannedScene {
+  const codes = new Set(input.findings.map((finding) => finding.code));
+  const strongReplan = ["ABSTRACT_PROP_DRIFT", "OCCUPATION_PROXY_DRIFT", "SEMANTICALLY_DECORATIVE_SCENE", "NARRATION_RELATIONSHIP_MISMATCH"].some((code) => codes.has(code as VeronicaSemanticFindingCode));
+  const keywords = semanticKeywords(`${input.narration} ${input.scene.narrationAnchor}`);
+  const nativeThreshold = /\b(?:doorway|threshold|foothold|widen|wall)\b/iu.test(`${input.narration} ${input.scene.narrationAnchor}`);
+  const actionOwnerRole = input.scene.treatment.actionOwnerRole ?? legacyActionOwnerRole(input.scene.treatment) ?? "shared";
+  const causalObject = nativeThreshold ? "a concrete open threshold tied to the narrated choice" : "a concrete occupation-neutral evidence pattern tied to the narrated claim";
+  const visibleThesis = `Because ${keywords} changes the available evidence, the buyer compares what is visible and recognizes the consequence before choosing.`;
+  const buyerActionText = actionOwnerRole === "expert"
+    ? `At causal step ${input.index + 1}, the expert owns the main evidence action while a buyer compares ${causalObject}, recognizes the consequence, and chooses accordingly`
+    : actionOwnerRole === "buyer"
+      ? `At causal step ${input.index + 1}, the buyer compares ${causalObject}, recognizes the consequence, and chooses accordingly`
+      : actionOwnerRole === "none"
+        ? `At causal step ${input.index + 1}, a simultaneous comparison lets the buyer recognize and choose between ${causalObject} and the weaker alternative`
+        : `At causal step ${input.index + 1}, the expert and buyer examine ${causalObject} together; the buyer recognizes the consequence and chooses accordingly`;
+  const needsBuyer = codes.has("BUYER_PERSPECTIVE_REQUIRED");
+  const needsThesis = codes.has("VISIBLE_THESIS_REQUIRED");
+  const needsCompactState = input.format === "short" && codes.has("MULTI_STATE_STILL_AMBIGUITY");
+  const baseTreatment: PositioningVisualTreatment = strongReplan
+    ? {
+        ...input.scene.treatment,
+        narrativeBeat: visibleThesis,
+        strategy: nativeThreshold ? "client-decision" : "evidence-proof",
+        subjectRequirement: "occupation-neutral professional and buyer whose roles remain visually distinct",
+        environment: nativeThreshold ? "occupation-neutral public information setting with one concrete open threshold" : "occupation-neutral evidence and comparison setting",
+        composition: needsCompactState ? `one decisive threshold moment with the cause, buyer interpretation, and consequence simultaneously visible for ${keywords}` : `single causal composition: evidence at left, buyer interpretation at center, visible consequence at right for ${keywords}`,
+        camera: "buyer-height documentary view with the action owner and consequence legible in one frame",
+        action: buyerActionText,
+        actionOwnerRole,
+        props: [causalObject, "two concrete evidence alternatives", "observable buyer decision gesture"],
+        motionOpportunities: ["establishing-crop", "subject-detail", "slow-push"],
+        diagram: null,
+      }
+    : {
+        ...input.scene.treatment,
+        ...(needsThesis ? { narrativeBeat: visibleThesis } : {}),
+        ...(needsBuyer ? { action: buyerActionText } : {}),
+        ...(needsCompactState ? {
+          composition: `one decisive threshold moment with the current evidence and consequence simultaneously visible for ${keywords}`,
+          action: buyerActionText,
+        } : {}),
+        actionOwnerRole,
+      };
+  const treatment = refreshFinalTreatmentDerivedState(baseTreatment, actionOwnerRole);
+  return {
+    ...input.scene,
+    narrationAnchor: input.narration,
+    treatment,
+    visibleThesis: needsThesis || strongReplan ? visibleThesis : input.scene.visibleThesis,
+    newInformation: codes.has("SEMANTICALLY_DECORATIVE_SCENE") || strongReplan
+      ? `Scene ${input.index + 1} adds a distinct causal fact about ${keywords}: the evidence changes the buyer's observable decision.`
+      : input.scene.newInformation,
+    ...(needsCompactState ? { stateComplexity: "DECISIVE_TRANSITION_MOMENT" as const } : {}),
   };
-  const motif = /\b(?:doorway|wall|foothold|widen)\b/iu.test(input.narrationByScene.join(" ")) ? "doorway / threshold / widening access" : undefined;
-  const scenes = input.plan.scenes.map((scene, index) => {
-    const narration = input.narrationByScene[index] ?? scene.narrationAnchor;
-    const proposal = proposalFor(narration, index, input.plan.scenes.length);
-    if (!policy.applyShortCausalRemediation) {
-      const actionOwnerRole = legacyActionOwnerRole(scene.treatment);
-      return { ...scene, narrationAnchor: narration, treatment: refreshFinalTreatmentDerivedState(scene.treatment, actionOwnerRole) };
-    }
-    if (!proposal) {
-      const actionOwnerRole = legacyActionOwnerRole(scene.treatment);
-      return { ...scene, narrationAnchor: narration, treatment: refreshFinalTreatmentDerivedState(scene.treatment, actionOwnerRole) };
-    }
-    const treatmentBase = { ...scene.treatment, strategy: proposal.strategy, narrativeBeat: proposal.thesis, subjectRequirement: "recurring occupation-neutral expert and buyer", actionOwnerRole: proposal.actionOwnerRole, environment: proposal.environment, composition: proposal.composition, camera: proposal.camera, action: proposal.action, props: proposal.props, motionOpportunities: proposal.motion, diagram: null };
-    const treatment: PositioningVisualTreatment = refreshFinalTreatmentDerivedState({ ...treatmentBase, grammar: { ...scene.treatment.grammar, continuityIdentityId: `${input.plan.contentId.toLowerCase()}-causal-arc` } } as PositioningVisualTreatment, proposal.actionOwnerRole);
-    return { ...scene, narrationAnchor: narration, treatment, visibleThesis: proposal.thesis, newInformation: `Adds the next causal doorway/recognition relationship: ${proposal.thesis}`, visualFamily: "human-decision" as const, continuityGroup: `${input.plan.contentId.toLowerCase()}-causal-arc` };
-  });
-  const assets = input.plan.assets.map((asset, index) => {
-    const scene = scenes[index];
-    if (!scene) return asset;
-    const prompt = `Text-free ${input.plan.aspectRatio} Veronica business-psychology scene. Visible thesis: ${scene.visibleThesis} Human action: ${scene.treatment.action}. Environment: ${scene.treatment.environment}. Composition: ${scene.treatment.composition}. Camera: ${scene.treatment.camera}. Must show: ${scene.treatment.props.join(", ")}. No readable text, logos, UI, occupation-specific proxy, generic stock pose, decorative abstraction, prism, light laboratory, or unexplained diagram.`;
-    return { ...asset, semanticPurpose: scene.visibleThesis, strategy: scene.treatment.strategy, prompt, semanticFingerprint: stableHash({ sceneId: scene.sceneId, prompt }), generatedAssetCacheKey: stableHash({ prompt, semanticGateVersion: VERONICA_PRE_IMAGE_SEMANTIC_GATE_VERSION }), subjectIdentityId: `${input.plan.contentId.toLowerCase()}-causal-arc`, referenceAssetId: index === 0 ? null : input.plan.assets[0]?.assetId ?? null };
-  });
-  const reviews = scenes.map((scene, index) => {
-    const previous = index > 0 ? scenes[index - 1] : undefined;
-    return reviewVeronicaPreImageTreatment({ contentId: input.plan.contentId, sceneId: scene.sceneId, plannerVersion: input.plan.plannerVersion, narration: input.narrationByScene[index] ?? scene.narrationAnchor, narrationAnchor: scene.narrationAnchor, visibleThesis: scene.visibleThesis ?? scene.treatment.narrativeBeat, newInformation: scene.newInformation ?? scene.treatment.narrativeBeat, treatment: scene.treatment, ...(previous ? { previousTreatment: previous.treatment } : {}), ...(motif ? { selectedMotif: motif } : {}) });
-  });
-  const hardFailure = reviews.some((review) => review.status !== "pass");
-  const legacy = input.plan as PositioningVisualPlanV2 & {
-    readonly visualVocabulary?: PositioningVisualPlanV2["visualVocabulary"];
-    readonly cacheInvalidation?: PositioningVisualPlanV2["cacheInvalidation"];
-    readonly visualEvents?: PositioningVisualPlanV2["visualEvents"];
+}
+
+/** Gate-driven, provider-free, bounded semantic remediation. No content ID is special-cased. */
+export function runVeronicaSemanticRemediation(input: {
+  readonly plan: PositioningVisualPlanV2;
+  readonly narrationByScene: readonly string[];
+}): VeronicaSemanticRemediationResult {
+  const policy = resolveVeronicaProductionPolicy(input.plan.format).semanticAutoRemediation;
+  const initialReviews = gatePlan(input);
+  const actionable = (review: VeronicaPreImageSemanticReview) => review.findings.filter((finding) =>
+    finding.severity === "blocker" || finding.severity === "error" ||
+    (finding.severity === "warning" && policy.actionableWarnings.some((code) => code === finding.code)),
+  );
+  if (!policy.enabled || initialReviews.every((review) => actionable(review).length === 0)) {
+    return {
+      plan: input.plan,
+      initialReviews,
+      reviews: initialReviews,
+      decisions: [],
+      unchangedSceneIds: input.plan.scenes.map((scene) => scene.sceneId),
+      rounds: 0,
+      convergenceStatus: "NO_OP",
+      remainingFindings: initialReviews.flatMap((review) => actionable(review)),
+      semanticPlanHash: input.plan.planHash,
+    };
+  }
+  let plan = input.plan;
+  let reviews = initialReviews;
+  const decisions: VeronicaSemanticRemediationDecision[] = [];
+  let rounds = 0;
+  for (let round = 1; round <= policy.maxRounds; round += 1) {
+    const findingsByScene = new Map(reviews.map((review) => [review.sceneId, actionable(review)] as const));
+    const targets = plan.scenes.filter((scene) => (findingsByScene.get(scene.sceneId)?.length ?? 0) > 0);
+    if (targets.length === 0) break;
+    rounds = round;
+    const scenes = plan.scenes.map((scene, index) => {
+      const findings = findingsByScene.get(scene.sceneId) ?? [];
+      if (findings.length === 0) return scene;
+      const repaired = repairBlockedScene({ scene, narration: input.narrationByScene[index] ?? scene.narrationAnchor, findings, format: plan.format, index });
+      decisions.push({
+        sceneId: scene.sceneId,
+        remediationRound: round,
+        sourceFindingCodes: [...new Set(findings.map((finding) => finding.code))],
+        treatmentBeforeHash: scene.treatment.treatmentHash,
+        treatmentAfterHash: repaired.treatment.treatmentHash,
+        remediationPolicyVersion: policy.policyVersion,
+      });
+      return repaired;
+    });
+    const remainingBase = {
+      ...plan,
+      scenes,
+      semanticPlanCacheKey: stableHash({ previous: plan.semanticPlanCacheKey, policyVersion: policy.policyVersion, round, treatments: scenes.map((scene) => scene.treatment.treatmentHash) }),
+    };
+    plan = { ...remainingBase, planHash: stableHash(remainingBase) } as PositioningVisualPlanV2;
+    reviews = gatePlan({ plan, narrationByScene: input.narrationByScene });
+    if (reviews.every((review) => actionable(review).length === 0)) break;
+  }
+  const remainingFindings = reviews.flatMap((review) => actionable(review));
+  const convergenceStatus = remainingFindings.length === 0 ? "CONVERGED" as const : "SEMANTIC_REMEDIATION_EXHAUSTED" as const;
+  const remediatedSceneIds = new Set(decisions.map((decision) => decision.sceneId));
+  const provenance = {
+    schemaVersion: "veronica-semantic-remediation.v1",
+    policyVersion: policy.policyVersion,
+    maxRounds: policy.maxRounds,
+    rounds,
+    convergenceStatus,
+    initialBlockerCount: initialReviews.flatMap((review) => review.findings).filter((finding) => finding.severity === "blocker" || finding.severity === "error").length,
+    remainingBlockerCount: remainingFindings.filter((finding) => finding.severity === "blocker" || finding.severity === "error").length,
+    decisions,
   };
-  const visualVocabulary = legacy.visualVocabulary ?? {
-    schemaVersion: "veronicabenini-positioning-visual-vocabulary.v1",
-    episodeId: input.plan.contentId,
-    semanticDomains: [], recurringMotifs: [], environments: [], materialPalette: [], excludedCliches: [],
-    sourceSemanticHash: stableHash(input.plan.contentId), cacheKey: stableHash({ contentId: input.plan.contentId, legacy: true }), vocabularyHash: stableHash({ contentId: input.plan.contentId, legacy: true, version: 1 }),
-  } as PositioningVisualPlanV2["visualVocabulary"];
-  const cacheInvalidation = legacy.cacheInvalidation ?? {
-    semanticPlanInvalidatesOn: [], canonicalImageInvalidatesOn: [], titleQaInvalidatesOn: [], renderEventsInvalidateOn: [],
-  } as PositioningVisualPlanV2["cacheInvalidation"];
-  const visualEvents = legacy.visualEvents ?? [];
-  const shortContinuity = { mode: "persistent-protagonist" as const, identityId: `${input.plan.contentId.toLowerCase()}-causal-arc`, identityFingerprint: stableHash({ contentId: input.plan.contentId, motif }), appearance: { ageBand: "adult", genderPresentation: "unspecified", hair: "consistent but non-identifying", wardrobeAnchor: "neutral structured outerwear" }, referencePolicy: "reuse-only-for-linked-scenes" as const, linkedSceneIds: scenes.map((scene) => scene.sceneId) };
-  const base = { ...input.plan, continuity: policy.applyShortCausalRemediation ? shortContinuity : existingContinuity, scenes, assets, visualVocabulary: { ...visualVocabulary, recurringMotifs: motif ? [motif, ...visualVocabulary.recurringMotifs.filter((candidate) => candidate !== motif)] : visualVocabulary.recurringMotifs }, ...(motif ? { selectedRecurringMotif: { schemaVersion: "veronica-selected-recurring-motif.v1" as const, family: "threshold", concept: motif, source: "narration-native" as const, sceneIds: [] } } : {}), semanticPlanCacheKey: stableHash({ previous: input.plan.semanticPlanCacheKey, semanticGateVersion: VERONICA_PRE_IMAGE_SEMANTIC_GATE_VERSION, motif, continuity: policy.applyShortCausalRemediation ? "persistent-causal" : existingContinuity.mode, format: input.plan.format }), canonicalImagePlanHash: stableHash(assets), validation: { status: hardFailure ? "fail" as const : "pass" as const, failures: hardFailure ? reviews.flatMap((review) => review.requiredEdits) : [] } };
-  const plan = { ...base, visualEvents, renderEventPlanHash: stableHash({ events: visualEvents, canonicalTiming: "locale-timing-artifact" }), planHash: stableHash(base), cacheInvalidation: { ...cacheInvalidation, semanticPlanInvalidatesOn: [...cacheInvalidation.semanticPlanInvalidatesOn, "selected-recurring-motif-change", "continuity-strategy-change", "semantic-gate-version-change"], canonicalImageInvalidatesOn: [...cacheInvalidation.canonicalImageInvalidatesOn, "treatment-remediation-change", "anti-drift-projection-change"], renderEventsInvalidateOn: [...cacheInvalidation.renderEventsInvalidateOn, "canonical-locale-timing-change", "motion-plan-change"] } } as PositioningVisualPlanV2;
-  return { plan, reviews };
+  const finalBase = {
+    ...plan,
+    semanticRemediation: provenance,
+    validation: {
+      status: convergenceStatus === "CONVERGED" ? "pass" as const : "fail" as const,
+      failures: remainingFindings.map((finding) => `${finding.code}: ${finding.message}`),
+    },
+  };
+  const finalPlan = { ...finalBase, planHash: stableHash(finalBase) } as PositioningVisualPlanV2;
+  return {
+    plan: finalPlan,
+    initialReviews,
+    reviews,
+    decisions,
+    unchangedSceneIds: input.plan.scenes.filter((scene) => !remediatedSceneIds.has(scene.sceneId)).map((scene) => scene.sceneId),
+    rounds,
+    convergenceStatus,
+    remainingFindings,
+    semanticPlanHash: finalPlan.planHash,
+  };
+}
+
+/** Compatibility entry point used by the production adapter. */
+export function hardenVeronicaPreImagePlan(input: {
+  readonly plan: PositioningVisualPlanV2;
+  readonly narrationByScene: readonly string[];
+}): VeronicaSemanticRemediationResult {
+  return runVeronicaSemanticRemediation(input);
 }

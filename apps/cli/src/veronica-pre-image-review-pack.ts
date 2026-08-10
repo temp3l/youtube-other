@@ -4,22 +4,70 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import { scenePlanSchema } from "@mediaforge/domain";
-import { veronicaShortPacingCalibrationSchema } from "@mediaforge/speech";
+import { assessVeronicaShortPacing, resolveVeronicaShortPacingPolicy, veronicaShortPacingCalibrationSchema } from "@mediaforge/speech";
+import { preparePositioningProductionEpisode } from "@mediaforge/strategic-reinvention";
 import { z } from "zod";
 
-const PACK_SCHEMA_VERSION = "veronica-pre-image-review-pack.v4" as const;
+const PACK_SCHEMA_VERSION = "veronica-pre-image-review-pack.v5" as const;
+export const VERONICA_TIMING_INTEGRITY_EPSILON_SECONDS = 0.02;
 const execFileAsync = promisify(execFile);
 const reviewManifestSchema = z.strictObject({
   schemaVersion: z.literal(PACK_SCHEMA_VERSION), episodeId: z.string().min(1), language: z.string().min(1), variant: z.enum(["full", "short"]),
   sceneCount: z.number().int().positive(), narrationDurationSeconds: z.number().positive(), timingSource: z.string().min(1),
+  selectedAudioHash: z.string().regex(/^[a-f0-9]{64}$/u),
   providerRequestsAllowed: z.literal(false), sources: z.array(z.strictObject({ name: z.string().min(1), path: z.string().min(1), sha256: z.string().regex(/^[a-f0-9]{64}$/u) })).min(1),
   artifactHashes: z.record(z.string(), z.string().regex(/^[a-f0-9]{64}$/u)),
   packFileHashes: z.record(z.string(), z.string().regex(/^[a-f0-9]{64}$/u)),
+  packHashValidation: z.literal("PASS"),
+  packCrossArtifactIntegrity: z.object({ status: z.enum(["PASS", "FAIL"]), errorCode: z.literal("SELECTED_AUDIO_TIMING_MISMATCH").optional(), epsilonSeconds: z.number().positive(), checks: z.record(z.string(), z.number()), mismatches: z.array(z.string()) }),
+  semanticIntegrity: z.object({ status: z.enum(["PASS", "FAIL"]), blockerCount: z.number().int().nonnegative(), convergenceStatus: z.string().min(1) }),
+  overallPackValidity: z.boolean(),
   narrationDiagnostic: z.discriminatedUnion("mode", [
-    z.strictObject({ mode: z.literal("short-adaptive"), wordCount: z.number().int().nonnegative(), narrationDurationSeconds: z.number().positive(), approximateWordsPerMinute: z.number().nonnegative(), timingSource: z.string().min(1), initialTtsSpeed: z.number().positive(), ttsSpeed: z.number().positive(), calibrationAttemptCount: z.number().int().positive(), speedNormalizationApplied: z.boolean(), preferredDurationRangeSeconds: z.tuple([z.number().positive(), z.number().positive()]), preferredWpmRange: z.tuple([z.number().positive(), z.number().positive()]).optional(), pacingStatus: z.enum(["within-target", "slightly-fast", "fast", "very-fast", "slightly-slow", "slow"]), durationAcceptanceStatus: z.enum(["WITHIN_PREFERRED_RANGE", "WITHIN_ACCEPTANCE_TOLERANCE", "PACING_TARGET_MISSED"]) }),
+    z.object({ mode: z.literal("short-adaptive"), wordCount: z.number().int().nonnegative(), narrationDurationSeconds: z.number().positive(), approximateWordsPerMinute: z.number().nonnegative(), timingSource: z.string().min(1), initialTtsSpeed: z.number().positive(), ttsSpeed: z.number().positive(), calibrationAttemptCount: z.number().int().positive(), speedNormalizationApplied: z.boolean(), preferredDurationRangeSeconds: z.tuple([z.number().positive(), z.number().positive()]), preferredWpmRange: z.tuple([z.number().positive(), z.number().positive()]).optional(), pacingStatus: z.string().min(1), durationAcceptanceStatus: z.string().min(1), calibrationStatus: z.string().min(1), pacingPolicyVersion: z.string().min(1), calibrationPolicyVersion: z.string().min(1), legacyCalibrationPolicy: z.boolean(), editorialDurationStatus: z.enum(["NORMAL_SHORT", "LONG_SHORT_EDITORIAL_REVIEW", "SHORT_PLATFORM_DURATION_EXCEEDED"]) }),
     z.strictObject({ mode: z.literal("full-current-policy"), wordCount: z.number().int().nonnegative(), narrationDurationSeconds: z.number().positive(), approximateWordsPerMinute: z.number().nonnegative(), timingSource: z.string().min(1), pacingStatus: z.literal("not-configured"), durationAcceptanceStatus: z.literal("NOT_APPLICABLE") }),
   ]),
 });
+
+export interface VeronicaTimingIntegrityResult {
+  readonly status: "PASS" | "FAIL";
+  readonly errorCode?: "SELECTED_AUDIO_TIMING_MISMATCH";
+  readonly epsilonSeconds: number;
+  readonly checks: Readonly<Record<string, number>>;
+  readonly mismatches: readonly string[];
+}
+
+export function validateVeronicaTimingIntegrity(input: {
+  readonly audioDurationSeconds: number;
+  readonly calibrationDurationSeconds?: number;
+  readonly canonicalDurationSeconds: number;
+  readonly reviewManifestDurationSeconds?: number;
+  readonly episodeManifestFinalSceneEndSeconds: number;
+  readonly retimedSceneFinalEndSeconds: number;
+  readonly retimedEventFinalEndSeconds: number;
+  readonly cadenceDurationSeconds: number;
+  readonly selectedAudioHash: string;
+  readonly calibrationAudioHash?: string;
+  readonly canonicalTimingAudioHash?: string | null;
+  readonly epsilonSeconds?: number;
+}): VeronicaTimingIntegrityResult {
+  const epsilonSeconds = input.epsilonSeconds ?? VERONICA_TIMING_INTEGRITY_EPSILON_SECONDS;
+  const checks = {
+    decodedNarrationWav: input.audioDurationSeconds,
+    ...(input.calibrationDurationSeconds !== undefined ? { pacingCalibrationSelected: input.calibrationDurationSeconds } : {}),
+    canonicalTiming: input.canonicalDurationSeconds,
+    ...(input.reviewManifestDurationSeconds !== undefined ? { reviewManifest: input.reviewManifestDurationSeconds } : {}),
+    episodeManifestFinalSceneEnd: input.episodeManifestFinalSceneEndSeconds,
+    retimedScenePlanFinalEnd: input.retimedSceneFinalEndSeconds,
+    retimedVisualEventsFinalEnd: input.retimedEventFinalEndSeconds,
+    cadenceDuration: input.cadenceDurationSeconds,
+  };
+  const mismatches = Object.entries(checks).flatMap(([name, value]) => Math.abs(value - input.audioDurationSeconds) > epsilonSeconds ? [`${name}:${value.toFixed(6)}!=audio:${input.audioDurationSeconds.toFixed(6)}`] : []);
+  if (input.calibrationAudioHash !== undefined && input.calibrationAudioHash !== input.selectedAudioHash) mismatches.push("pacingCalibrationAudioHash!=narrationWavHash");
+  if (input.canonicalTimingAudioHash !== undefined && input.canonicalTimingAudioHash !== input.selectedAudioHash) mismatches.push("canonicalTimingAudioHash!=narrationWavHash");
+  return mismatches.length === 0
+    ? { status: "PASS", epsilonSeconds, checks, mismatches }
+    : { status: "FAIL", errorCode: "SELECTED_AUDIO_TIMING_MISMATCH", epsilonSeconds, checks, mismatches };
+}
 
 export interface VeronicaPreImageReviewPackResult {
   readonly packDir: string;
@@ -49,6 +97,22 @@ function zipFileName(input: PackInput, generatedAtMs: number): string {
 
 async function fileHash(filePath: string): Promise<string> {
   return createHash("sha256").update(await fs.readFile(filePath)).digest("hex");
+}
+
+function waveDurationSeconds(bytes: Buffer): number {
+  if (bytes.length < 44 || bytes.subarray(0, 4).toString("ascii") !== "RIFF" || bytes.subarray(8, 12).toString("ascii") !== "WAVE") throw new Error("Invalid narration WAV header.");
+  let offset = 12;
+  let byteRate = 0;
+  let dataSize = -1;
+  while (offset + 8 <= bytes.length) {
+    const id = bytes.subarray(offset, offset + 4).toString("ascii");
+    const size = bytes.readUInt32LE(offset + 4);
+    if (id === "fmt " && offset + 20 <= bytes.length) byteRate = bytes.readUInt32LE(offset + 16);
+    if (id === "data") { dataSize = size; break; }
+    offset += 8 + size + (size % 2);
+  }
+  if (byteRate <= 0 || dataSize < 0) throw new Error("Narration WAV has no measurable data chunk.");
+  return dataSize / byteRate;
 }
 
 async function requiredFile(filePath: string, label: string): Promise<void> {
@@ -132,12 +196,23 @@ function providerPromptsMarkdown(
 
 function shortNarrationDiagnostic(narrationDurationSeconds: number, timingSource: string, calibration: ReturnType<typeof veronicaShortPacingCalibrationSchema.parse>) {
   const initial = calibration.attempts[0]!;
-  return { mode: "short-adaptive" as const, wordCount: calibration.wordCount, narrationDurationSeconds, approximateWordsPerMinute: Math.round(calibration.wordCount / narrationDurationSeconds * 60 * 10) / 10, timingSource, initialTtsSpeed: initial.requestedSpeed, ttsSpeed: calibration.selectedSpeed, calibrationAttemptCount: calibration.attempts.length, speedNormalizationApplied: calibration.speedNormalizationApplied, preferredDurationRangeSeconds: calibration.targetDurationRange, ...(calibration.preferredWpmRange ? { preferredWpmRange: calibration.preferredWpmRange } : {}), pacingStatus: calibration.selectedPacingStatus, durationAcceptanceStatus: calibration.selectedDurationAcceptanceStatus };
+  const currentPolicy = resolveVeronicaShortPacingPolicy(calibration.locale);
+  const editorialDurationStatus = narrationDurationSeconds > 180 ? "SHORT_PLATFORM_DURATION_EXCEEDED" as const : narrationDurationSeconds > 120 ? "LONG_SHORT_EDITORIAL_REVIEW" as const : "NORMAL_SHORT" as const;
+  const pacingStatus = currentPolicy ? assessVeronicaShortPacing({ durationSeconds: narrationDurationSeconds, wordCount: calibration.wordCount, policy: currentPolicy }) : "NATURAL";
+  return { mode: "short-adaptive" as const, wordCount: calibration.wordCount, narrationDurationSeconds, approximateWordsPerMinute: Math.round(calibration.wordCount / narrationDurationSeconds * 60 * 10) / 10, timingSource, initialTtsSpeed: initial.requestedSpeed, ttsSpeed: calibration.selectedSpeed, calibrationAttemptCount: calibration.attempts.length, speedNormalizationApplied: calibration.speedNormalizationApplied, preferredDurationRangeSeconds: currentPolicy?.preferredDurationRangeSeconds ?? calibration.targetDurationRange, ...(currentPolicy?.preferredWpmRange ? { preferredWpmRange: currentPolicy.preferredWpmRange } : {}), pacingStatus, durationAcceptanceStatus: editorialDurationStatus, calibrationStatus: calibration.selectedDurationAcceptanceStatus, pacingPolicyVersion: currentPolicy?.pacingPolicyVersion ?? calibration.pacingPolicyVersion, calibrationPolicyVersion: calibration.pacingPolicyVersion, legacyCalibrationPolicy: calibration.pacingPolicyVersion !== currentPolicy?.pacingPolicyVersion, editorialDurationStatus };
 }
 
 export async function createVeronicaPreImageReviewPack(
   input: PackInput,
 ): Promise<VeronicaPreImageReviewPackResult> {
+  // The review-pack command is itself a production workflow boundary: always
+  // converge the source plan and reconcile currently selected audio first.
+  await preparePositioningProductionEpisode({
+    workspaceRoot: path.dirname(input.episodeDir),
+    episodeId: path.basename(input.episodeDir),
+    language: input.language as "en" | "de" | "es" | "fr" | "pt" | "it",
+    variant: input.variant,
+  });
   const localeRoot = path.join(input.episodeDir, "locales", input.language, input.variant);
   const sourcePlanPath = path.join(input.episodeDir, "source", "pre-image-semantic-plan.v1.json");
   const narrationPath = path.join(localeRoot, "audio", "narration.wav");
@@ -159,19 +234,27 @@ export async function createVeronicaPreImageReviewPack(
     requiredFile(semanticReviewPath, "semantic gate reviews"),
     ...(input.variant === "short" ? [requiredFile(pacingCalibrationPath, "adaptive pacing calibration")] : []),
   ]);
-  const [narration, scenePlanRaw, semanticReviewRaw, pacingCalibrationRaw] = await Promise.all([
+  const [narration, narrationBytes, scenePlanRaw, semanticReviewRaw, pacingCalibrationRaw, timingRaw, eventRaw, episodeManifestRaw, finalPlanRaw] = await Promise.all([
     fs.readFile(scriptPath, "utf8"),
+    fs.readFile(narrationPath),
     fs.readFile(scenePlanPath, "utf8"),
     fs.readFile(semanticReviewPath, "utf8"),
     input.variant === "short" ? fs.readFile(pacingCalibrationPath, "utf8") : Promise.resolve(null),
+    fs.readFile(timingPath, "utf8"),
+    fs.readFile(eventPath, "utf8"),
+    fs.readFile(manifestPath, "utf8"),
+    fs.readFile(sourcePlanPath, "utf8"),
   ]);
   const scenePlan = scenePlanSchema.parse(JSON.parse(scenePlanRaw) as unknown);
-  const timing = JSON.parse(await fs.readFile(timingPath, "utf8")) as { readonly timingSource?: unknown; readonly narrationDurationSeconds?: unknown };
+  const timing = JSON.parse(timingRaw) as { readonly timingSource?: unknown; readonly narrationDurationSeconds?: unknown; readonly selectedAudioHash?: unknown };
   if (typeof timing.timingSource !== "string" || typeof timing.narrationDurationSeconds !== "number") throw new Error(`Invalid canonical locale timing artifact: ${timingPath}`);
+  const audioDurationSeconds = waveDurationSeconds(narrationBytes);
+  const selectedAudioHash = createHash("sha256").update(narrationBytes).digest("hex");
+  const pacingCalibration = input.variant === "short" ? veronicaShortPacingCalibrationSchema.parse(JSON.parse(pacingCalibrationRaw ?? "") as unknown) : undefined;
   const diagnostic = input.variant === "short"
-    ? shortNarrationDiagnostic(timing.narrationDurationSeconds, timing.timingSource, veronicaShortPacingCalibrationSchema.parse(JSON.parse(pacingCalibrationRaw ?? "") as unknown))
-    : { mode: "full-current-policy" as const, wordCount: narration.match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)?/gu)?.length ?? 0, narrationDurationSeconds: timing.narrationDurationSeconds, approximateWordsPerMinute: Math.round((narration.match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)?/gu)?.length ?? 0) / timing.narrationDurationSeconds * 60 * 10) / 10, timingSource: timing.timingSource, pacingStatus: "not-configured" as const, durationAcceptanceStatus: "NOT_APPLICABLE" as const };
-  const finalPlan = z.object({ continuity: z.object({ mode: z.string() }).optional(), selectedRecurringMotif: z.object({ concept: z.string() }).optional(), scenes: z.array(z.object({ sceneId: z.string(), visibleThesis: z.string().optional(), stateComplexity: z.enum(["SINGLE_STATE", "DECISIVE_TRANSITION_MOMENT", "MULTI_STATE_REQUIRED"]).optional(), treatment: z.object({ actionOwnerRole: z.enum(["expert", "buyer", "shared", "none"]).optional() }) })), assets: z.array(z.object({ assetId: z.string(), sceneId: z.string(), prompt: z.string() })) }).parse(JSON.parse(await fs.readFile(sourcePlanPath, "utf8")) as unknown);
+    ? shortNarrationDiagnostic(audioDurationSeconds, timing.timingSource, pacingCalibration!)
+    : { mode: "full-current-policy" as const, wordCount: narration.match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)?/gu)?.length ?? 0, narrationDurationSeconds: audioDurationSeconds, approximateWordsPerMinute: Math.round((narration.match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)?/gu)?.length ?? 0) / audioDurationSeconds * 60 * 10) / 10, timingSource: timing.timingSource, pacingStatus: "not-configured" as const, durationAcceptanceStatus: "NOT_APPLICABLE" as const };
+  const finalPlan = z.object({ continuity: z.object({ mode: z.string() }).optional(), selectedRecurringMotif: z.object({ concept: z.string() }).optional(), semanticRemediation: z.object({ convergenceStatus: z.string(), rounds: z.number().int().nonnegative() }).optional(), cadenceMetrics: z.object({ durationMs: z.number().nonnegative() }), scenes: z.array(z.object({ sceneId: z.string(), visibleThesis: z.string().optional(), stateComplexity: z.enum(["SINGLE_STATE", "DECISIVE_TRANSITION_MOMENT", "MULTI_STATE_REQUIRED"]).optional(), treatment: z.object({ actionOwnerRole: z.enum(["expert", "buyer", "shared", "none"]).optional() }) })), assets: z.array(z.object({ assetId: z.string(), sceneId: z.string(), prompt: z.string() })) }).parse(JSON.parse(finalPlanRaw) as unknown);
   const stateByScene = new Map(scenePlan.scenes.map((scene, index) => [scene.id, finalPlan.scenes[index]?.stateComplexity ?? "SINGLE_STATE"] as const));
   const actorByScene = new Map(scenePlan.scenes.map((scene, index) => [scene.id, finalPlan.scenes[index]?.treatment.actionOwnerRole ?? "not applicable"] as const));
   const thesisByScene = new Map(scenePlan.scenes.flatMap((scene, index) => {
@@ -182,11 +265,26 @@ export async function createVeronicaPreImageReviewPack(
     const semanticSceneId = finalPlan.scenes[index]?.sceneId;
     return [scene.id, semanticSceneId ? finalPlan.assets.filter((asset) => asset.sceneId === semanticSceneId) : []] as const;
   }));
-  const semanticReviews = z.object({ reviews: z.array(z.object({ sceneId: z.string(), findings: z.array(z.object({ code: z.string(), severity: z.string(), message: z.string() })) })) }).parse(JSON.parse(semanticReviewRaw) as unknown);
-  const findingsByScene = new Map(semanticReviews.reviews.map((review) => [review.sceneId, review.findings.map((finding) => `${finding.severity}:${finding.code} — ${finding.message}`)] as const));
+  const semanticReviews = z.object({ convergenceStatus: z.string().optional(), remediationRounds: z.number().int().nonnegative().optional(), reviews: z.array(z.object({ sceneId: z.string(), findings: z.array(z.object({ code: z.string(), severity: z.string(), message: z.string() })) })) }).parse(JSON.parse(semanticReviewRaw) as unknown);
+  const findingsByScene = new Map(scenePlan.scenes.map((scene, index) => [scene.id, (semanticReviews.reviews[index]?.findings ?? []).map((finding) => `${finding.severity}:${finding.code} — ${finding.message}`)] as const));
   const allFindings = semanticReviews.reviews.flatMap((review) => review.findings);
   const warningCount = allFindings.filter((finding) => finding.severity === "warning" || finding.severity === "info").length;
   const blockerCount = allFindings.filter((finding) => finding.severity === "blocker" || finding.severity === "error").length;
+  const eventArtifact = z.object({ events: z.array(z.object({ startMs: z.number(), durationMs: z.number() })) }).parse(JSON.parse(eventRaw) as unknown);
+  const episodeManifest = z.object({ scenePlan: z.object({ scenes: z.array(z.object({ timing: z.object({ endSeconds: z.number() }) })) }) }).parse(JSON.parse(episodeManifestRaw) as unknown);
+  const finalEvent = eventArtifact.events.at(-1);
+  const integrity = validateVeronicaTimingIntegrity({
+    audioDurationSeconds,
+    ...(pacingCalibration ? { calibrationDurationSeconds: pacingCalibration.selectedDurationSeconds, calibrationAudioHash: pacingCalibration.selectedAudioHash } : {}),
+    canonicalDurationSeconds: timing.narrationDurationSeconds,
+    episodeManifestFinalSceneEndSeconds: episodeManifest.scenePlan.scenes.at(-1)?.timing.endSeconds ?? 0,
+    retimedSceneFinalEndSeconds: scenePlan.scenes.at(-1)?.timing.endSeconds ?? 0,
+    retimedEventFinalEndSeconds: finalEvent ? (finalEvent.startMs + finalEvent.durationMs) / 1_000 : 0,
+    cadenceDurationSeconds: finalPlan.cadenceMetrics.durationMs / 1_000,
+    selectedAudioHash,
+    ...(typeof timing.selectedAudioHash === "string" ? { canonicalTimingAudioHash: timing.selectedAudioHash } : {}),
+  });
+  if (integrity.status === "FAIL") throw new Error(`SELECTED_AUDIO_TIMING_MISMATCH: ${integrity.mismatches.join(", ")}`);
   const generatedAtMs = Date.now();
   const outputDir = packDir(input, generatedAtMs);
   await fs.mkdir(outputDir, { recursive: true });
@@ -205,7 +303,7 @@ export async function createVeronicaPreImageReviewPack(
   const promptPath = path.join(outputDir, "chatgpt-pre-image-review-request.md");
   const promptsPath = path.join(outputDir, "provider-image-prompts.md");
   const pacingSummary = diagnostic.mode === "short-adaptive"
-    ? `${diagnostic.wordCount} words; ${diagnostic.narrationDurationSeconds.toFixed(3)}s; ${diagnostic.approximateWordsPerMinute} WPM; ${diagnostic.pacingStatus}; ${diagnostic.durationAcceptanceStatus}; selected speed ${diagnostic.ttsSpeed}; calibration ${diagnostic.speedNormalizationApplied ? "applied" : "not required"}.`
+    ? `${diagnostic.wordCount} words; ${diagnostic.narrationDurationSeconds.toFixed(3)}s; ${diagnostic.approximateWordsPerMinute} WPM; natural-pacing status ${diagnostic.pacingStatus}; editorial duration ${diagnostic.editorialDurationStatus}; selected speed ${diagnostic.ttsSpeed}; cached calibration ${diagnostic.calibrationStatus}${diagnostic.legacyCalibrationPolicy ? " under legacy policy" : ""}.`
     : `${diagnostic.wordCount} words; ${diagnostic.narrationDurationSeconds.toFixed(3)}s; ${diagnostic.approximateWordsPerMinute} WPM; full-form pacing policy not configured.`;
   const promptMarkdown = promptReviewMarkdown({ variant: input.variant, narration, pacingSummary, scenes: scenePlan.scenes, findingsByScene, stateByScene, actorByScene, thesisByScene });
   await Promise.all([
@@ -232,12 +330,17 @@ export async function createVeronicaPreImageReviewPack(
       language: input.language,
       variant: input.variant,
       sceneCount: scenePlan.scenes.length,
-      narrationDurationSeconds: timing.narrationDurationSeconds,
+      narrationDurationSeconds: audioDurationSeconds,
       timingSource: timing.timingSource,
+      selectedAudioHash,
       providerRequestsAllowed: false,
       sources,
       artifactHashes,
       packFileHashes,
+      packHashValidation: "PASS",
+      packCrossArtifactIntegrity: integrity,
+      semanticIntegrity: { status: blockerCount === 0 && semanticReviews.convergenceStatus !== "SEMANTIC_REMEDIATION_EXHAUSTED" ? "PASS" : "FAIL", blockerCount, convergenceStatus: semanticReviews.convergenceStatus ?? "LEGACY_UNKNOWN" },
+      overallPackValidity: integrity.status === "PASS" && blockerCount === 0 && semanticReviews.convergenceStatus !== "SEMANTIC_REMEDIATION_EXHAUSTED",
       narrationDiagnostic: diagnostic,
     }), null, 2)}\n`,
     "utf8",
@@ -247,15 +350,17 @@ export async function createVeronicaPreImageReviewPack(
     readmePath,
     `# Veronica pre-image review pack\n\n- Episode: \`${path.basename(input.episodeDir)}\`
 - Locale / variant: \`${input.language}/${input.variant}\`
-- Narration duration: \`${timing.narrationDurationSeconds.toFixed(3)}s\`
-- Word count / approximate WPM: \`${diagnostic.wordCount}\` / \`${diagnostic.approximateWordsPerMinute}\`${diagnostic.mode === "short-adaptive" ? ` (\`${diagnostic.pacingStatus}\`; preferred duration \`${diagnostic.preferredDurationRangeSeconds.join("–")}s\`${diagnostic.preferredWpmRange ? `; WPM guidance \`${diagnostic.preferredWpmRange.join("–")}\`` : ""})\n- TTS pacing: initial \`${diagnostic.initialTtsSpeed}\`, selected \`${diagnostic.ttsSpeed}\`, \`${diagnostic.calibrationAttemptCount}\` measured attempt(s), normalization \`${diagnostic.speedNormalizationApplied}\`, acceptance \`${diagnostic.durationAcceptanceStatus}\`` : "\n- TTS pacing: full-form current policy preserved; no Short adaptive calibration."}
+- Narration duration: \`${audioDurationSeconds.toFixed(3)}s\`
+- Word count / approximate WPM: \`${diagnostic.wordCount}\` / \`${diagnostic.approximateWordsPerMinute}\`${diagnostic.mode === "short-adaptive" ? ` (natural-pacing \`${diagnostic.pacingStatus}\`${diagnostic.preferredWpmRange ? `; locale/profile WPM guidance \`${diagnostic.preferredWpmRange.join("–")}\`` : ""}; editorial duration \`${diagnostic.editorialDurationStatus}\`)\n- TTS pacing: initial \`${diagnostic.initialTtsSpeed}\`, selected \`${diagnostic.ttsSpeed}\`, \`${diagnostic.calibrationAttemptCount}\` cached measured attempt(s), normalization \`${diagnostic.speedNormalizationApplied}\`, calibration \`${diagnostic.calibrationStatus}\`; policy \`${diagnostic.calibrationPolicyVersion}\`${diagnostic.legacyCalibrationPolicy ? " (legacy cached audio reused; future generation uses current natural-pacing policy)" : ""}` : "\n- TTS pacing: full-form current policy preserved; no Short adaptive calibration."}
 - Canonical timing source: \`${timing.timingSource}\`
 - Scene count: \`${scenePlan.scenes.length}\`
 - Selected recurring motif: \`${finalPlan.selectedRecurringMotif?.concept ?? "none"}\`
 - Continuity strategy: \`${finalPlan.continuity?.mode ?? "not recorded"}\`
 - Automated semantic gate: review-required (\`${warningCount}\` warnings; \`${blockerCount}\` blockers); human pre-image approval is not recorded.
+- Semantic remediation: \`${semanticReviews.convergenceStatus ?? "LEGACY_UNKNOWN"}\` after \`${semanticReviews.remediationRounds ?? 0}\` round(s).
 - Provider request allowed: **false** — \`BLOCKED_PENDING_HUMAN_PRE_IMAGE_APPROVAL\`.
-- Pack validity: every source and copied pack file must match its SHA-256 in \`review-manifest.json\`.
+- PACK_HASH_VALIDATION: **PASS**.
+- PACK_CROSS_ARTIFACT_INTEGRITY: **${integrity.status}** (technical epsilon \`${integrity.epsilonSeconds}s\`).
 
 Review \`chatgpt-pre-image-review-request.md\`, \`visual-plan.json\`, \`retimed-scene-plan.json\`, \`canonical-locale-timing.v1.json\`, and \`retimed-visual-events.json\`; respond scene-by-scene, then record human approval through the normal workflow. \`provider-image-prompts.md\` is **UNAPPROVED / DO NOT SUBMIT**.\n`,
     "utf8",
