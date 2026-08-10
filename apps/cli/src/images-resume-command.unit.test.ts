@@ -4,6 +4,7 @@ import path from "node:path";
 import { mkdtempSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { scenePlanSchema } from "@mediaforge/domain";
+import { createPreImageReviewPack } from "./pre-image-review-pack.js";
 
 let workspaceDir = "";
 const imageGenerationMocks = vi.hoisted(() => ({
@@ -96,7 +97,6 @@ describe("images resume command", () => {
       path.join(episodeDir, "shared", "scenes.json"),
       `${JSON.stringify(makeScenePlan(), null, 2)}\n`
     );
-
     const result = await loadOrBootstrapEpisodeManifest({
       episode: "011-the-black-eyed-children",
     });
@@ -133,6 +133,8 @@ describe("images resume command", () => {
     const episodeDir = path.join(workspaceDir, "011-the-black-eyed-children");
     await fs.mkdir(path.join(episodeDir, "source"), { recursive: true });
     await fs.mkdir(path.join(episodeDir, "shared"), { recursive: true });
+    await fs.mkdir(path.join(episodeDir, "languages"), { recursive: true });
+    await fs.mkdir(path.join(episodeDir, "audio"), { recursive: true });
     await fs.writeFile(
       path.join(episodeDir, "source", "011-the-black-eyed-children-en-full.md"),
       "# Episode 011\n\n## Audio Generation Instructions\n\n- Keep the tone restrained.\n\n# Narration Script\n\nTwo children stood outside the door."
@@ -141,6 +143,15 @@ describe("images resume command", () => {
       path.join(episodeDir, "shared", "scenes.json"),
       `${JSON.stringify(makeScenePlan(), null, 2)}\n`
     );
+    await fs.writeFile(path.join(episodeDir, "languages", "script-en.md"), "Two children stood outside the door.");
+    await fs.writeFile(path.join(episodeDir, "audio", "narration.wav"), Buffer.alloc(44));
+    await loadOrBootstrapEpisodeManifest({ episode: "011-the-black-eyed-children" });
+    await createPreImageReviewPack({
+      episodeDir,
+      language: "en",
+      variant: "full",
+      genre: "dark-truth",
+    });
     imageGenerationMocks.generateEpisodeImages.mockResolvedValueOnce([
       {
         episodeId: "011-the-black-eyed-children",
@@ -221,6 +232,17 @@ describe("images resume command", () => {
       path.join(episodeDir, "shared", "scenes.json"),
       `${JSON.stringify(makeScenePlan(), null, 2)}\n`
     );
+    await fs.mkdir(path.join(episodeDir, "languages"), { recursive: true });
+    await fs.mkdir(path.join(episodeDir, "audio"), { recursive: true });
+    await fs.writeFile(path.join(episodeDir, "languages", "script-en.md"), "Two children stood outside the door.");
+    await fs.writeFile(path.join(episodeDir, "audio", "narration.wav"), Buffer.alloc(44));
+    await loadOrBootstrapEpisodeManifest({ episode: "011-the-black-eyed-children" });
+    await createPreImageReviewPack({
+      episodeDir,
+      language: "en",
+      variant: "full",
+      genre: "dark-truth",
+    });
     const outputPath = path.join(
       episodeDir,
       "shared",

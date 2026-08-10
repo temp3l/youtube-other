@@ -2997,7 +2997,8 @@ function buildVeronicaVisualQaBriefsFromArtifact(input: {
     "Muted narration must still reveal the principal relationship in one to two seconds.",
   ];
   return input.artifact.brief.assets.map((asset) => {
-    if (!sceneIds.has(asset.beatId))
+    const sceneId = sceneIdSchema.parse(asset.beatId);
+    if (!sceneIds.has(sceneId))
       throw new Error(
         `Veronica semantic asset ${asset.assetId} has no scene ${asset.beatId}.`
       );
@@ -5824,6 +5825,7 @@ registerHistoryCommands(program, {
       request.outputRoot ?? path.join(process.cwd(), "episodes")
     );
     const runtime = await loadRuntimeConfig({ workspaceDir: outputRoot });
+    const baseUrl = runtime.openAiCompatibleBaseUrl ?? process.env["OPENAI_BASE_URL"];
     return generateHistoryYoutubeMetadata({
       outputRoot,
       episodeId: request.episodeId,
@@ -5833,6 +5835,7 @@ registerHistoryCommands(program, {
         apiKey:
           runtime.openAiCompatibleApiKey ?? process.env["OPENAI_API_KEY"] ?? "",
         model: runtime.openAiMetadataModel ?? "gpt-5.4-mini",
+        maxOutputTokens: runtime.openAiMetadataMaxOutputTokens,
         repairModel:
           runtime.openAiValidatorModel ??
           runtime.openAiMetadataModel ??
@@ -5851,32 +5854,13 @@ registerHistoryCommands(program, {
         ...(runtime.openAiMetadataReasoningEffort
           ? { reasoningEffort: runtime.openAiMetadataReasoningEffort }
           : {}),
-        ...(runtime.openAiMetadataMaxOutputTokens !== undefined
-          ? { maxOutputTokens: runtime.openAiMetadataMaxOutputTokens }
-          : {}),
-        ...((runtime.openAiValidatorReasoningEffort ??
-        runtime.openAiMetadataReasoningEffort)
-          ? {
-              repairReasoningEffort:
-                runtime.openAiValidatorReasoningEffort ??
-                runtime.openAiMetadataReasoningEffort,
-            }
-          : {}),
-        ...((runtime.openAiValidatorMaxOutputTokens ??
-        runtime.openAiMetadataMaxOutputTokens)
-          ? {
-              repairMaxOutputTokens:
-                runtime.openAiValidatorMaxOutputTokens ??
-                runtime.openAiMetadataMaxOutputTokens,
-            }
-          : {}),
-        ...((runtime.openAiCompatibleBaseUrl ?? process.env["OPENAI_BASE_URL"])
-          ? {
-              baseUrl:
-                runtime.openAiCompatibleBaseUrl ??
-                process.env["OPENAI_BASE_URL"],
-            }
-          : {}),
+        repairReasoningEffort:
+          runtime.openAiValidatorReasoningEffort ??
+          runtime.openAiMetadataReasoningEffort,
+        repairMaxOutputTokens:
+          runtime.openAiValidatorMaxOutputTokens ??
+          runtime.openAiMetadataMaxOutputTokens,
+        ...(baseUrl !== undefined ? { baseUrl } : {}),
       },
     });
   },

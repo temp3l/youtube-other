@@ -57,10 +57,14 @@ async function veronicaMetadataOptions(input: {
   readonly dryRun: boolean;
 }): Promise<YoutubeMetadataGenerationOptions> {
   const runtime = await loadRuntimeConfig({ workspaceDir: path.resolve(input.workspace) });
+  const baseUrl = runtime.openAiCompatibleBaseUrl ?? process.env["OPENAI_BASE_URL"];
   return {
     apiKey: runtime.openAiCompatibleApiKey ?? process.env["OPENAI_API_KEY"] ?? "",
     model: runtime.openAiMetadataModel ?? "gpt-5.4-mini",
+    maxOutputTokens: runtime.openAiMetadataMaxOutputTokens,
     repairModel: runtime.openAiValidatorModel ?? runtime.openAiMetadataModel ?? "gpt-5.4-mini",
+    repairReasoningEffort: runtime.openAiValidatorReasoningEffort ?? runtime.openAiMetadataReasoningEffort,
+    repairMaxOutputTokens: runtime.openAiValidatorMaxOutputTokens ?? runtime.openAiMetadataMaxOutputTokens,
     language: "en",
     promptText: await fs.readFile(path.resolve("prompts", "youtube-metadata.prompt.md"), "utf8"),
     promptVersion: YOUTUBE_METADATA_PROMPT_VERSION,
@@ -70,10 +74,7 @@ async function veronicaMetadataOptions(input: {
     force: input.force,
     dryRun: input.dryRun,
     ...(runtime.openAiMetadataReasoningEffort ? { reasoningEffort: runtime.openAiMetadataReasoningEffort } : {}),
-    ...(runtime.openAiMetadataMaxOutputTokens !== undefined ? { maxOutputTokens: runtime.openAiMetadataMaxOutputTokens } : {}),
-    ...(runtime.openAiValidatorReasoningEffort ?? runtime.openAiMetadataReasoningEffort ? { repairReasoningEffort: runtime.openAiValidatorReasoningEffort ?? runtime.openAiMetadataReasoningEffort } : {}),
-    ...(runtime.openAiValidatorMaxOutputTokens ?? runtime.openAiMetadataMaxOutputTokens ? { repairMaxOutputTokens: runtime.openAiValidatorMaxOutputTokens ?? runtime.openAiMetadataMaxOutputTokens } : {}),
-    ...(runtime.openAiCompatibleBaseUrl ?? process.env["OPENAI_BASE_URL"] ? { baseUrl: runtime.openAiCompatibleBaseUrl ?? process.env["OPENAI_BASE_URL"] } : {}),
+    ...(baseUrl !== undefined ? { baseUrl } : {}),
   };
 }
 

@@ -234,6 +234,22 @@ function portablePath(value: string): string {
   return value.split(path.sep).join("/");
 }
 
+function candidateLayout(
+  layout: EpisodeScriptLayout,
+  rawLanguage?: string,
+  rawVariant?: string
+): {
+  readonly layout: EpisodeScriptLayout;
+  readonly rawLanguage?: string;
+  readonly rawVariant?: string;
+} {
+  return {
+    layout,
+    ...(rawLanguage !== undefined ? { rawLanguage } : {}),
+    ...(rawVariant !== undefined ? { rawVariant } : {}),
+  };
+}
+
 function parseCandidateLayout(
   episodeSlug: string,
   episodeRelativePath: string
@@ -244,52 +260,32 @@ function parseCandidateLayout(
 } | null {
   const parts = episodeRelativePath.split("/");
   if (episodeRelativePath === "script.md") {
-    return { layout: "root_script", rawLanguage: "en", rawVariant: "full" };
+    return candidateLayout("root_script", "en", "full");
   }
   const canonicalFull = /^languages\/script-([a-z0-9-]+)\.md$/iu.exec(
     episodeRelativePath
   );
   if (canonicalFull) {
-    return {
-      layout: "canonical_full",
-      rawLanguage: canonicalFull[1],
-      rawVariant: "full",
-    };
+    return candidateLayout("canonical_full", canonicalFull[1], "full");
   }
   const canonicalShort = /^languages\/short\/script-([a-z0-9-]+)\.md$/iu.exec(
     episodeRelativePath
   );
   if (canonicalShort) {
-    return {
-      layout: "canonical_short",
-      rawLanguage: canonicalShort[1],
-      rawVariant: "short",
-    };
+    return candidateLayout("canonical_short", canonicalShort[1], "short");
   }
   if (parts.length === 2 && parts[1] === "script.md") {
-    return {
-      layout: "language_script",
-      rawLanguage: parts[0],
-      rawVariant: "full",
-    };
+    return candidateLayout("language_script", parts[0], "full");
   }
   if (parts.length === 3 && parts[2] === "script.md") {
-    return {
-      layout: "language_variant_script",
-      rawLanguage: parts[0],
-      rawVariant: parts[1],
-    };
+    return candidateLayout("language_variant_script", parts[0], parts[1]);
   }
   if (
     parts.length === 4 &&
     parts[0] === "locales" &&
     parts[3] === "script.md"
   ) {
-    return {
-      layout: "locale_runtime_script",
-      rawLanguage: parts[1],
-      rawVariant: parts[2],
-    };
+    return candidateLayout("locale_runtime_script", parts[1], parts[2]);
   }
   const escapedEpisode = episodeSlug.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
   const sourcePack = new RegExp(
@@ -297,14 +293,10 @@ function parseCandidateLayout(
     "iu"
   ).exec(episodeRelativePath);
   if (sourcePack) {
-    return {
-      layout: "source_pack",
-      rawLanguage: sourcePack[1],
-      rawVariant: sourcePack[2],
-    };
+    return candidateLayout("source_pack", sourcePack[1], sourcePack[2]);
   }
   if (path.posix.basename(episodeRelativePath) === "script.md") {
-    return { layout: "unsupported_script" };
+    return candidateLayout("unsupported_script");
   }
   return null;
 }
@@ -1037,7 +1029,9 @@ export function registerEpisodeLayoutMigrationCommand(
           episodesRoot: opts.episodesRoot,
           profileId: opts.profile,
           write: opts.write === true,
-          confirmationMigrationId: opts.confirm,
+          ...(opts.confirm !== undefined
+            ? { confirmationMigrationId: opts.confirm }
+            : {}),
           confirmed: opts.yes === true,
         });
         if (opts.json ?? optsWithGlobals.json) {

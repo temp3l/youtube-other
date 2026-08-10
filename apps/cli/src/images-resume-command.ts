@@ -3,6 +3,7 @@ import path from "node:path";
 import { loadRuntimeConfig } from "@mediaforge/config";
 import {
   episodeManifestSchema,
+  sceneIdSchema,
   scenePlanSchema,
   type EpisodeManifest,
   type ScenePlan,
@@ -86,7 +87,8 @@ function buildVeronicaVisualQaBriefs(input: {
     "Muted narration must still reveal the principal relationship in one to two seconds.",
   ];
   return input.artifact.brief.assets.map((asset) => {
-    if (!sceneIds.has(asset.beatId))
+    const sceneId = sceneIdSchema.parse(asset.beatId);
+    if (!sceneIds.has(sceneId))
       throw new Error(
         `Veronica semantic asset ${asset.assetId} has no scene ${asset.beatId}.`
       );
@@ -597,8 +599,12 @@ export async function commandImagesResume(
               episodeId: manifest.episodeId,
               contentGenre: "veronicabenini",
             }),
-            veronicaVisualQaEvaluator,
-            veronicaVisualQaBriefs,
+            ...(veronicaVisualQaEvaluator !== undefined
+              ? { veronicaVisualQaEvaluator }
+              : {}),
+            ...(veronicaVisualQaBriefs !== undefined
+              ? { veronicaVisualQaBriefs }
+              : {}),
           }
         : {}),
     }
