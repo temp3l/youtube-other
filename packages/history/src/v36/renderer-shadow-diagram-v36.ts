@@ -75,7 +75,7 @@ export function adaptDiagramIntentToRenderSpecV36(
         `condition: ${intent.conditionAssertionStatus}`,
         `response: ${intent.responseAssertionStatus}`,
         intent.provenance.proof
-          ? `proof: ${intent.provenance.proof.proofId}`
+          ? "proof-backed"
           : "proof: not supplied",
       ];
       break;

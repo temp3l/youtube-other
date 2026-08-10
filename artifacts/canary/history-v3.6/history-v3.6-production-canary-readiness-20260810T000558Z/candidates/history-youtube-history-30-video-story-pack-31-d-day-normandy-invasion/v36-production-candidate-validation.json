@@ -1,0 +1,12 @@
+{
+  "valid": true,
+  "errors": [],
+  "counts": {
+    "duplicatePlacements": 0,
+    "orphanRenderSpecs": 0,
+    "silentRenderSpecDrops": 0,
+    "baseBeatDrops": 0,
+    "baseShotDrops": 0,
+    "replacements": 0
+  }
+}

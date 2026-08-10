@@ -39,3 +39,23 @@
 - invariants: TTS calls 2; LLM/image/web/geocoding 0; no provisional timing accepted, V3.6 plan/render generated, V3.5 output change, or production activation
 - commit/tag: `23e7bb3e43c50b1d17beb084b89dc4f1a2152edc` / `history-v3.6-production-canary-duration-gate`
 - next: human decides whether to revise the canonical scripts, authorize a scoped supported pacing change, or change the global duration policy
+
+## Phase 4
+
+- starting SHA: `85068f32fd6de775f48748a320e88a9c2755065f`
+- goal: apply the authorized History-only 300-second production minimum
+- result: PASS; `300000–1200000ms` now defines the measured History production window, while provisional timing remains blocking
+- tests: focused duration-policy unit test, History typecheck, targeted ESLint
+- invariants: no provider calls, unrelated genre-policy changes, or production activation
+- commit/tag: `5dda628f37b08149c95ac83f3a19d84d29c77249` / `history-v3.6-canary-duration-policy-300s`
+- next: reuse the two approved timing artifacts
+
+## Phase 5
+
+- starting SHA: `5dda628f37b08149c95ac83f3a19d84d29c77249`
+- goal: run measured V3.6 production-candidate plans and local canary rendering
+- result: PASS; both canaries passed timing, additive planning, semantic assertions, SVG/PNG review, FFmpeg smoke, differential, and rollback routing
+- tests: 9 focused renderer/plan tests, canary runner, ffprobe, checksum/ZIP integrity, V3.5 source-isolation check
+- invariants: all hard counts zero; V3.5 default/output unchanged; no provider calls during rerun
+- commit/tag: pending bounded-rollout readiness checkpoint
+- next: bounded rollout only; general V3.5 production-composer integration remains unchanged

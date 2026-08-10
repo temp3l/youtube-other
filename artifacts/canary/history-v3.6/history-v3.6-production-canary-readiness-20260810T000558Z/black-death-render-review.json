@@ -1,0 +1,53 @@
+{
+  "result": "PASS",
+  "episodeId": "history-youtube-history-10-video-story-pack-04-black-death",
+  "renderer": "History V3.6 SVG renderer adapters",
+  "outputDimensions": "1200x675",
+  "renderedOverlays": [
+    {
+      "renderSpecId": "history-render-spec-de3ebfbafe13497b5f451874",
+      "renderTarget": "DIAGRAM_SVG",
+      "svg": "artifacts/canary/history-v3.6/history-v3.6-production-canary-readiness-20260810T000558Z/candidates/history-youtube-history-10-video-story-pack-04-black-death/rendered-overlays/de3ebfbafe13497b5f451874.svg",
+      "png": "artifacts/canary/history-v3.6/history-v3.6-production-canary-readiness-20260810T000558Z/candidates/history-youtube-history-10-video-story-pack-04-black-death/rendered-overlays/de3ebfbafe13497b5f451874.png",
+      "svgSha256": "e723d2efcec3a9420128ad4c541191639357bca7a757cbbdf02d6d32f97b872d",
+      "pngSha256": "dcb4dee0430ae4a92d949654a214bb9be626b4e854b5a9c200bd34d5f3eee37a"
+    },
+    {
+      "renderSpecId": "history-render-spec-dfbbd8e98188b8746cce9b6b",
+      "renderTarget": "DIAGRAM_SVG",
+      "svg": "artifacts/canary/history-v3.6/history-v3.6-production-canary-readiness-20260810T000558Z/candidates/history-youtube-history-10-video-story-pack-04-black-death/rendered-overlays/dfbbd8e98188b8746cce9b6b.svg",
+      "png": "artifacts/canary/history-v3.6/history-v3.6-production-canary-readiness-20260810T000558Z/candidates/history-youtube-history-10-video-story-pack-04-black-death/rendered-overlays/dfbbd8e98188b8746cce9b6b.png",
+      "svgSha256": "9769a18b4c0f80f97f8d8d51ec605b542c846eac97faf67f2ceeb8d7ec19a3bf",
+      "pngSha256": "1512209e122cb4482c962e5e6a6190bc008d5de3775800b7f3f20a18bbc8a4c8"
+    },
+    {
+      "renderSpecId": "history-render-spec-4dd0304a6f33916ea0cf03f5",
+      "renderTarget": "DIAGRAM_SVG",
+      "svg": "artifacts/canary/history-v3.6/history-v3.6-production-canary-readiness-20260810T000558Z/candidates/history-youtube-history-10-video-story-pack-04-black-death/rendered-overlays/4dd0304a6f33916ea0cf03f5.svg",
+      "png": "artifacts/canary/history-v3.6/history-v3.6-production-canary-readiness-20260810T000558Z/candidates/history-youtube-history-10-video-story-pack-04-black-death/rendered-overlays/4dd0304a6f33916ea0cf03f5.png",
+      "svgSha256": "78e20b88d1da2cdff2b4238b23dd996438d36c7e3ce82b79b86ad53af1f9c892",
+      "pngSha256": "e7ab7aa77d5a3060d9f54ecadf6eb6f86780eedda451b955783cc33f639fd8e8"
+    },
+    {
+      "renderSpecId": "history-render-spec-518e170710488cef69613928",
+      "renderTarget": "MAP_SVG",
+      "svg": "artifacts/canary/history-v3.6/history-v3.6-production-canary-readiness-20260810T000558Z/candidates/history-youtube-history-10-video-story-pack-04-black-death/rendered-overlays/518e170710488cef69613928.svg",
+      "png": "artifacts/canary/history-v3.6/history-v3.6-production-canary-readiness-20260810T000558Z/candidates/history-youtube-history-10-video-story-pack-04-black-death/rendered-overlays/518e170710488cef69613928.png",
+      "svgSha256": "3ab10862c7c13934e6809b9fcc1df077d811db1612ca68e326a96446c60aa834",
+      "pngSha256": "2897a8a37c57d94b8466472d0d0b32f5191fdbaace12e530274e7bb44e94a0d5"
+    },
+    {
+      "renderSpecId": "history-render-spec-8c2731f1786f37300c370421",
+      "renderTarget": "DIAGRAM_SVG",
+      "svg": "artifacts/canary/history-v3.6/history-v3.6-production-canary-readiness-20260810T000558Z/candidates/history-youtube-history-10-video-story-pack-04-black-death/rendered-overlays/8c2731f1786f37300c370421.svg",
+      "png": "artifacts/canary/history-v3.6/history-v3.6-production-canary-readiness-20260810T000558Z/candidates/history-youtube-history-10-video-story-pack-04-black-death/rendered-overlays/8c2731f1786f37300c370421.png",
+      "svgSha256": "98ab6c3b7a704226c79bb5063017f47399fa4239b78d97c845415ee58efd8996",
+      "pngSha256": "a6257aa5b60c4523c6928030b049121c23b712dcfd38c24ec9d62568cfc9ff34"
+    }
+  ],
+  "ffmpegSmoke": {
+    "path": "artifacts/canary/history-v3.6/history-v3.6-production-canary-readiness-20260810T000558Z/candidates/history-youtube-history-10-video-story-pack-04-black-death/renderer-smoke.mkv",
+    "sha256": "8dd01ec84fe764be5c715937e3880a9f5e22d4dfe65c245a412f329681c9acb6"
+  },
+  "fullVideo": "NOT_RUN: the isolated workspaces contain no pre-existing V3.5 image/video composition to overlay; no ordinary image assets were regenerated."
+}

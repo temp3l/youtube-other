@@ -1,0 +1,20 @@
+{
+  "episodeId": "history-youtube-history-10-video-story-pack-04-black-death",
+  "status": "PASS",
+  "audioAssetPath": "artifacts/canary/history-v3.6/workspace/history-youtube-history-10-video-story-pack-04-black-death/locales/en/full/audio/narration.wav",
+  "audioAssetHash": "de0734a2c96fb6a2faefc551e97374dca26b31053c4e31e8f6850462d1145592",
+  "measuredDurationMs": 399857,
+  "measuredDurationSeconds": 399.857,
+  "wordSegmentTimingSource": "measured TTS segment durations plus ffprobe narration duration",
+  "timingArtifactPath": "artifacts/canary/history-v3.6/workspace/history-youtube-history-10-video-story-pack-04-black-death/locales/en/full/audio/tts-generation.json",
+  "timingArtifactHash": "6f3c9333cac0875bd8d55973f58017f3eef13cca6049cc94e78d17fdde1b3931",
+  "provider": "openai-compatible",
+  "model": "gpt-4o-mini-tts",
+  "voice": "onyx",
+  "generatedAt": "2026-08-09T23:43:21.946Z",
+  "durationPolicy": {
+    "allowedMinDurationMs": 300000,
+    "allowedMaxDurationMs": 1200000
+  },
+  "provisionalTextEstimateUsed": false
+}

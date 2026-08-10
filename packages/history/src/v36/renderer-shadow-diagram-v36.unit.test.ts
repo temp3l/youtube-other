@@ -57,7 +57,7 @@ describe("V3.6 diagram renderer shadow adapter", () => {
     } as DiagramIntentV36;
     const spec = adaptDiagramIntentToRenderSpecV36(intent);
     expect(spec.points.map((point) => point.status)).toEqual(["uncertain", "attempted"]);
-    expect(spec.legend).toContain("proof: p");
+    expect(spec.legend).toContain("proof-backed");
     expect(renderDiagramSpecSvgV36(spec)).toContain("attempted");
   });
 

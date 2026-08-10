@@ -1,0 +1,27 @@
+{
+  "phases": [
+    {
+      "phase": "0",
+      "result": "PASS"
+    },
+    {
+      "phase": "1",
+      "result": "PASS"
+    },
+    {
+      "phase": "2",
+      "result": "PASS",
+      "detail": "measured timing under the 300-second policy"
+    },
+    {
+      "phase": "3",
+      "result": "PASS",
+      "detail": "candidate plans and local renderer smoke"
+    },
+    {
+      "phase": "4",
+      "result": "PASS",
+      "detail": "semantic, differential, and rollback validation"
+    }
+  ]
+}

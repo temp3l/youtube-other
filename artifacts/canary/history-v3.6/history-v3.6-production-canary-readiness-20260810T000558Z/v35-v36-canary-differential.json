@@ -1,0 +1,41 @@
+{
+  "comparisonPolicy": "V3.6 overlays are additive; measured V3.5 beats/shots are preserved.",
+  "episodes": [
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-04-black-death",
+      "v35": {
+        "beatCount": 55,
+        "shotCount": 77,
+        "mapCount": 3,
+        "diagramCount": 2,
+        "totalDurationMs": 399857
+      },
+      "v36": {
+        "overlayCount": 5,
+        "mapCount": 1,
+        "diagramCount": 4,
+        "visualInsertions": 5,
+        "visualReplacements": 0,
+        "totalDurationMs": 399857
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion",
+      "v35": {
+        "beatCount": 41,
+        "shotCount": 70,
+        "mapCount": 0,
+        "diagramCount": 0,
+        "totalDurationMs": 367634
+      },
+      "v36": {
+        "overlayCount": 5,
+        "mapCount": 2,
+        "diagramCount": 3,
+        "visualInsertions": 5,
+        "visualReplacements": 0,
+        "totalDurationMs": 367634
+      }
+    }
+  ]
+}

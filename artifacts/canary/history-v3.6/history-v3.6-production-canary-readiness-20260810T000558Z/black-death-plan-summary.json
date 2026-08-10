@@ -1,0 +1,13 @@
+{
+  "result": "PASS",
+  "episodeId": "history-youtube-history-10-video-story-pack-04-black-death",
+  "timingSource": "measured-tts",
+  "v35MeasuredPlanHash": "d07e90889b8e2333354eecb05bf1b5f6ecc55259f9efce18e1ea8db0b1caba29",
+  "v36CandidatePlanHash": "2ba7a88b00215201aeadef49805d24e7588e8c5d47a65e8ad7465965625ae04e",
+  "beats": 55,
+  "shots": 77,
+  "overlays": 5,
+  "maps": 1,
+  "diagrams": 4,
+  "safePlacementAbstentions": 0
+}

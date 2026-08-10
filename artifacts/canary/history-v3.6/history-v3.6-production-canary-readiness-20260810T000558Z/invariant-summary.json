@@ -1,0 +1,12 @@
+{
+  "result": "PASS",
+  "productionActivated": 0,
+  "v35ProductionOutputChange": 0,
+  "semanticInferenceFallback": 0,
+  "v35HeuristicFallbackInsideV36": 0,
+  "provisionalTimingAccepted": 0,
+  "duplicatePlacements": 0,
+  "orphanRenderSpecs": 0,
+  "safePlacementAbstentions": 0,
+  "visualReplacements": 0
+}

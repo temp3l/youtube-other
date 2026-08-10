@@ -1,0 +1,13 @@
+{
+  "result": "PASS",
+  "episodeId": "history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion",
+  "timingSource": "measured-tts",
+  "v35MeasuredPlanHash": "66ccc3094dd4a8abc35302a73d0efd0f1802618133e31e4d56e99947d53593c1",
+  "v36CandidatePlanHash": "dc11aa15c426c7533d790d31a22b87b331a43b3f5d1ff6e3a26946bb4cdcbf72",
+  "beats": 41,
+  "shots": 70,
+  "overlays": 5,
+  "maps": 2,
+  "diagrams": 3,
+  "safePlacementAbstentions": 0
+}
