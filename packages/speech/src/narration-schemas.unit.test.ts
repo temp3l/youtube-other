@@ -469,6 +469,14 @@ describe("narration schemas", () => {
     expect(narrationGenerationMetadataSchema.parse(generationMetadata())).toBeDefined();
   });
 
+  it("accepts Italian narration artifacts", () => {
+    expect(
+      spokenNarrationArtifactSchema.safeParse(
+        spokenArtifact({ locale: "it", sourceStoryPath: "locales/it/full/script.md" })
+      ).success
+    ).toBe(true);
+  });
+
   it("rejects unknown fields on strict schemas", () => {
     expect(spokenNarrationArtifactSchema.safeParse({ ...spokenArtifact(), extra: true }).success).toBe(false);
   });

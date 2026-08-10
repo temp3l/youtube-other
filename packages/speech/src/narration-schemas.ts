@@ -4,7 +4,7 @@ export const NARRATION_ARTIFACT_SCHEMA_VERSION = "narration-artifact-v1" as cons
 
 const sha256Pattern = /^[a-f0-9]{64}$/u;
 const episodeIdPattern = /^[a-z0-9][a-z0-9-]{2,127}$/u;
-const localePattern = /^(en|de|es|fr|pt)$/u;
+const localePattern = /^(en|de|es|fr|it|pt)$/u;
 const portablePathPattern = /^(?!\/)(?!.*(?:^|\/)\.\.?(?:\/|$))(?!.*\/\/).+$/u;
 const chunkIdPattern = /^narr-chunk-[0-9]{3,}$/u;
 const codePattern = /^[A-Z][A-Z0-9_:-]{1,63}$/u;

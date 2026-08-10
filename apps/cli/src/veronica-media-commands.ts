@@ -2,7 +2,13 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Command } from "commander";
+import { loadRuntimeConfig } from "@mediaforge/config";
 import { runCommand } from "@mediaforge/process-runner";
+import {
+  buildSemanticImagePromptCacheKey,
+  inspectSemanticImagePromptCache,
+} from "@mediaforge/shared";
+import { createOpenAiStoryClientWithOptions } from "@mediaforge/story-localization";
 import {
   createVeronicaPilotFixtures,
   executeVeronicaRender,
@@ -15,8 +21,15 @@ import {
 import {
   generatePositioningVisualPlans,
   generateVeronicaBeniniReviewPacks,
+  buildVeronicaSemanticImagePromptPlanInput,
+  deriveVeronicaSemanticImagePromptBrief,
+  persistVeronicaSemanticImagePromptReview,
   preparePositioningProductionEpisode,
+  positioningProductionPlanSchema,
+  resolveVeronicaSemanticImagePromptPaths,
   runStrategicSupplementalMediaBridge,
+  VERONICA_SEMANTIC_IMAGE_PROMPT_PLANNER_VERSION,
+  type PositioningVisualPlanV2,
 } from "@mediaforge/strategic-reinvention";
 
 const mediaforgeBinPath = fileURLToPath(
@@ -26,12 +39,88 @@ const mediaforgeBinPath = fileURLToPath(
 type VeronicaLanguage = "en" | "de" | "es" | "fr" | "pt" | "it";
 type VeronicaVariant = "full" | "short";
 
+async function resolveCanonicalNarrationFromManifest(input: {
+  readonly workspace: string;
+  readonly episodeDir: string;
+  readonly canonicalNarrationSource: string;
+}): Promise<string | null> {
+  try {
+    const manifest = JSON.parse(
+      await fs.readFile(path.join(input.episodeDir, "manifest.json"), "utf8"),
+    ) as { readonly source?: { readonly filePath?: unknown } };
+    const sourcePath = manifest.source?.filePath;
+    if (typeof sourcePath !== "string" || path.isAbsolute(sourcePath)) return null;
+    const normalized = sourcePath.replaceAll("\\", "/");
+    const packageBoundary = normalized.indexOf("/shorts/");
+    const packageRoot =
+      packageBoundary >= 0
+        ? normalized.slice(0, packageBoundary)
+        : normalized.slice(0, Math.max(normalized.lastIndexOf("/"), 0));
+    if (!packageRoot) return null;
+    return path.resolve(
+      path.dirname(path.resolve(input.workspace)),
+      packageRoot,
+      input.canonicalNarrationSource,
+    );
+  } catch {
+    return null;
+  }
+}
+
 function parsePositiveInteger(value: string, label: string): number {
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed < 1) {
     throw new Error(`${label} must be a positive integer.`);
   }
   return parsed;
+}
+
+async function loadVeronicaSemanticInputs(input: {
+  readonly workspace: string;
+  readonly episodeId: string;
+  readonly variant: VeronicaVariant;
+  readonly planPath?: string;
+  readonly narrationPath?: string;
+}): Promise<{
+  readonly episodeDir: string;
+  readonly plan: PositioningVisualPlanV2;
+  readonly canonicalNarration: string;
+}> {
+  const episodeDir = path.join(path.resolve(input.workspace), input.episodeId);
+  const planPath = path.resolve(
+    input.planPath ?? path.join(episodeDir, "source", "visual-plan.json"),
+  );
+  const plan = positioningProductionPlanSchema.parse(
+    JSON.parse(await fs.readFile(planPath, "utf8")) as unknown,
+  ) as unknown as PositioningVisualPlanV2;
+  const manifestCanonicalNarration = await resolveCanonicalNarrationFromManifest({
+    workspace: input.workspace,
+    episodeDir,
+    canonicalNarrationSource: plan.canonicalNarrationSource,
+  });
+  const candidates = input.narrationPath
+    ? [path.resolve(input.narrationPath)]
+    : input.variant === "short"
+      ? [
+          ...(manifestCanonicalNarration ? [manifestCanonicalNarration] : []),
+          path.join(episodeDir, "source", "canonical-narration.md"),
+          path.join(episodeDir, "languages", "short", "script-en.md"),
+          path.join(episodeDir, "locales", "en", "short", "script.md"),
+        ]
+      : [
+          ...(manifestCanonicalNarration ? [manifestCanonicalNarration] : []),
+          path.join(episodeDir, "source", "canonical-narration.md"),
+          path.join(episodeDir, "languages", "script-en.md"),
+          path.join(episodeDir, "locales", "en", "full", "script.md"),
+        ];
+  for (const candidate of candidates) {
+    try {
+      return { episodeDir, plan, canonicalNarration: await fs.readFile(candidate, "utf8") };
+    } catch {
+      // Try the next canonical-only location.
+    }
+  }
+  throw new Error(`Canonical Veronica narration not found: ${candidates.join(", ")}.`);
 }
 
 export function registerVeronicaMediaCommands(program: Command): void {
@@ -79,6 +168,120 @@ export function registerVeronicaMediaCommands(program: Command): void {
     .command("images")
     .description("Generate Veronica positioning images through the canonical image pipeline");
   images
+    .command("derive-image-prompts")
+    .description("Derive one cached semantic image-prompt brief for a Veronica content ID")
+    .requiredOption("--workspace <path>", "Episode workspace root")
+    .requiredOption("--episode-id <id>", "Episode identifier")
+    .option("--variant <full|short>", "Canonical narration variant", "full")
+    .option("--plan <path>", "Approved positioning visual plan")
+    .option("--canonical-narration <path>", "Canonical English narration override")
+    .option("--refresh-image-prompt-brief", "refresh only the semantic prompt brief")
+    .option("--fixture-response <path>", "offline strict structured-output fixture")
+    .option("--dry-run", "show cache identity without calling OpenAI or writing artifacts")
+    .option("--json", "Emit machine-readable output", false)
+    .action(async (options: {
+      workspace: string;
+      episodeId: string;
+      variant: VeronicaVariant;
+      plan?: string;
+      canonicalNarration?: string;
+      refreshImagePromptBrief?: boolean;
+      fixtureResponse?: string;
+      dryRun?: boolean;
+      json: boolean;
+    }) => {
+      const source = await loadVeronicaSemanticInputs({
+        workspace: options.workspace,
+        episodeId: options.episodeId,
+        variant: options.variant,
+        ...(options.plan ? { planPath: options.plan } : {}),
+        ...(options.canonicalNarration
+          ? { narrationPath: options.canonicalNarration }
+          : {}),
+      });
+      const runtime = await loadRuntimeConfig({ workspaceDir: path.resolve(options.workspace) });
+      const model = options.fixtureResponse
+        ? "veronica-semantic-fixture-v1"
+        : process.env["VERONICA_IMAGE_PROMPT_PLANNER_MODEL"] ??
+          runtime.openAiStoryModel ??
+          "";
+      const normalized = buildVeronicaSemanticImagePromptPlanInput({
+        plan: source.plan,
+        canonicalNarration: source.canonicalNarration,
+      });
+      const dryRun = options.dryRun || program.opts<{ readonly dryRun?: boolean }>().dryRun;
+      if (dryRun) {
+        const identity = buildSemanticImagePromptCacheKey({
+          plan: normalized,
+          plannerPromptVersion: VERONICA_SEMANTIC_IMAGE_PROMPT_PLANNER_VERSION,
+          plannerModel: model,
+        });
+        process.stdout.write(
+          `${JSON.stringify({ dryRun: true, contentId: source.plan.contentId, assetCount: normalized.assets.length, ...identity }, null, 2)}\n`,
+        );
+        return;
+      }
+      const fixtureValue = options.fixtureResponse
+        ? (JSON.parse(await fs.readFile(path.resolve(options.fixtureResponse), "utf8")) as unknown)
+        : undefined;
+      const client = options.fixtureResponse
+        ? {
+            responses: {
+              create: async () => ({
+                id: "veronica-semantic-fixture",
+                status: "completed",
+                output_text: JSON.stringify(fixtureValue),
+              }),
+            },
+          }
+        : createOpenAiStoryClientWithOptions({
+            apiKey: runtime.openAiCompatibleApiKey ?? undefined,
+            baseUrl: runtime.openAiCompatibleBaseUrl ?? undefined,
+            maxRetries: 0,
+          });
+      const derived = await deriveVeronicaSemanticImagePromptBrief({
+        ...source,
+        client,
+        model,
+        ...(options.refreshImagePromptBrief ? { refresh: true } : {}),
+      });
+      const persisted = await persistVeronicaSemanticImagePromptReview({
+        episodeDir: source.episodeDir,
+        plan: source.plan,
+        artifact: derived.artifact,
+        cacheStatus: derived.cacheStatus,
+        previousArtifact: derived.previousArtifact,
+        findings: derived.findings,
+      });
+      const payload = {
+        contentId: source.plan.contentId,
+        cacheStatus: derived.cacheStatus,
+        cachePath: resolveVeronicaSemanticImagePromptPaths(source.episodeDir).cachePath,
+        reviewPath: persisted.reviewPath,
+        semanticBriefHash: derived.artifact.briefHash,
+        finalPromptSetHash: persisted.finalPromptSetHash,
+        staleAssetIds: persisted.staleAssetIds,
+        imageGenerationCalls: 0,
+      };
+      process.stdout.write(`${JSON.stringify(payload, options.json ? null : undefined, options.json ? 2 : undefined)}\n`);
+    });
+
+  images
+    .command("inspect-image-prompts")
+    .description("Inspect cached Veronica semantic prompt previews without provider calls")
+    .requiredOption("--workspace <path>", "Episode workspace root")
+    .requiredOption("--episode-id <id>", "Episode identifier")
+    .option("--json", "Emit machine-readable output", false)
+    .action(async (options: { workspace: string; episodeId: string; json: boolean }) => {
+      const episodeDir = path.join(path.resolve(options.workspace), options.episodeId);
+      const paths = resolveVeronicaSemanticImagePromptPaths(episodeDir);
+      const artifact = await inspectSemanticImagePromptCache(paths.cachePath);
+      const review = JSON.parse(await fs.readFile(paths.reviewPath, "utf8")) as unknown;
+      process.stdout.write(
+        `${JSON.stringify({ cachePath: paths.cachePath, reviewPath: paths.reviewPath, artifact, review }, null, options.json ? 2 : undefined)}\n`,
+      );
+    });
+  images
     .command("generate")
     .requiredOption("--workspace <path>", "Episode workspace root")
     .requiredOption("--episode-id <id>", "Episode identifier")
@@ -93,6 +296,8 @@ export function registerVeronicaMediaCommands(program: Command): void {
     )
     .option("--phase <auto|references|scenes>", "Image batch planning phase", "auto")
     .option("--dry-run", "Plan work without provider submission", false)
+    .option("--force", "Regenerate existing canonical images", false)
+    .option("--refresh-image-prompt-brief", "refresh semantic prompts before image execution", false)
     .option("--json", "Emit machine-readable output", false)
     .action(async (options: {
       workspace: string;
@@ -104,12 +309,40 @@ export function registerVeronicaMediaCommands(program: Command): void {
       maxBatchSize?: number;
       phase: "auto" | "references" | "scenes";
       dryRun: boolean;
+      force: boolean;
+      refreshImagePromptBrief: boolean;
       json: boolean;
     }) => {
+      if (!options.dryRun) {
+        const preflight = await runCommand(
+          process.execPath,
+          [
+            mediaforgeBinPath,
+            "veronica-media",
+            "images",
+            "derive-image-prompts",
+            "--workspace",
+            path.resolve(options.workspace),
+            "--episode-id",
+            options.episodeId,
+            "--variant",
+            options.variant,
+            ...(options.refreshImagePromptBrief
+              ? ["--refresh-image-prompt-brief"]
+              : []),
+            "--json",
+          ],
+          { allowNonZeroExit: true },
+        );
+        if (preflight.exitCode !== 0) {
+          if (preflight.stdout) process.stdout.write(preflight.stdout);
+          if (preflight.stderr) process.stderr.write(preflight.stderr);
+          process.exitCode = preflight.exitCode;
+          return;
+        }
+      }
       const args = [
         mediaforgeBinPath,
-        "--workspace",
-        path.resolve(options.workspace),
         ...(options.json ? ["--json"] : []),
         "images",
       ];
@@ -131,8 +364,9 @@ export function registerVeronicaMediaCommands(program: Command): void {
         }
         if (options.dryRun) args.push("--dry-run");
       } else {
-        args.push("resume", "--episode", options.episodeId);
+        args.push("resume", "--episode", options.episodeId, "--variant", options.variant);
         if (options.json) args.push("--json");
+        if (options.force) args.push("--force");
         if (options.concurrency !== undefined) {
           args.push("--concurrency", String(options.concurrency));
         }

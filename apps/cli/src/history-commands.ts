@@ -160,6 +160,16 @@ export interface HistoryCommandDependencies {
     readonly outputRoot?: string;
     readonly force?: boolean;
   }) => Promise<unknown>;
+  readonly deriveHistorySemanticImagePrompts?: (request: {
+    readonly episodeId: string;
+    readonly outputRoot?: string;
+    readonly refresh?: boolean;
+    readonly fixtureResponse?: string;
+  }) => Promise<unknown>;
+  readonly inspectHistorySemanticImagePrompts?: (request: {
+    readonly episodeId: string;
+    readonly outputRoot?: string;
+  }) => Promise<unknown>;
   readonly createCombinedHistoryApprovalBundleV35?: (request: {
     readonly episodeIds: readonly string[];
     readonly output: string;
@@ -514,6 +524,59 @@ export function registerHistoryCommands(
       .description(
         "Plan and explicitly approve History visuals before media generation"
       );
+    if (dependencies.deriveHistorySemanticImagePrompts) {
+      visuals
+        .command("derive-image-prompts <episode-id>")
+        .description("Derive one cached, fact-bound semantic prompt brief for a History episode")
+        .option("--output-root <path>")
+        .option("--refresh-image-prompt-brief", "refresh only the semantic prompt brief")
+        .option("--fixture-response <path>", "offline strict structured-output fixture")
+        .option("--json")
+        .action(
+          async (
+            episodeId: string,
+            options: {
+              readonly outputRoot?: string;
+              readonly refreshImagePromptBrief?: boolean;
+              readonly fixtureResponse?: string;
+              readonly json?: boolean;
+            },
+          ) => {
+            emit(
+              await dependencies.deriveHistorySemanticImagePrompts!({
+                episodeId,
+                ...(options.outputRoot ? { outputRoot: options.outputRoot } : {}),
+                ...(options.refreshImagePromptBrief ? { refresh: true } : {}),
+                ...(options.fixtureResponse
+                  ? { fixtureResponse: options.fixtureResponse }
+                  : {}),
+              }),
+              options.json ?? inherited().json,
+            );
+          },
+        );
+    }
+    if (dependencies.inspectHistorySemanticImagePrompts) {
+      visuals
+        .command("inspect-image-prompts <episode-id>")
+        .description("Inspect cached History semantic prompt previews without provider calls")
+        .option("--output-root <path>")
+        .option("--json")
+        .action(
+          async (
+            episodeId: string,
+            options: { readonly outputRoot?: string; readonly json?: boolean },
+          ) => {
+            emit(
+              await dependencies.inspectHistorySemanticImagePrompts!({
+                episodeId,
+                ...(options.outputRoot ? { outputRoot: options.outputRoot } : {}),
+              }),
+              options.json ?? inherited().json,
+            );
+          },
+        );
+    }
     visuals
       .command("plan <episode-id>")
       .option("--output-root <path>")

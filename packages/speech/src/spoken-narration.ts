@@ -77,6 +77,7 @@ const localeByLanguage: Readonly<Record<string, string>> = {
   de: "de",
   es: "es",
   fr: "fr",
+  it: "it",
   pt: "pt",
 };
 

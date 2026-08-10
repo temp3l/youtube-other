@@ -147,6 +147,41 @@ describe("history commands", () => {
     });
   });
 
+  it("registers cached History semantic prompt derivation and inspection", async () => {
+    const services = dependencies();
+    Object.assign(services, {
+      deriveHistorySemanticImagePrompts: vi.fn(async (request) => ({ request })),
+      inspectHistorySemanticImagePrompts: vi.fn(async (request) => ({ request })),
+    });
+    const program = new Command();
+    registerHistoryCommands(program, services);
+    await execute(program, [
+      "history",
+      "visuals",
+      "derive-image-prompts",
+      "history-episode-1",
+      "--refresh-image-prompt-brief",
+      "--fixture-response",
+      "fixture.json",
+      "--json",
+    ]);
+    expect(services.deriveHistorySemanticImagePrompts).toHaveBeenCalledWith({
+      episodeId: "history-episode-1",
+      refresh: true,
+      fixtureResponse: "fixture.json",
+    });
+    await execute(program, [
+      "history",
+      "visuals",
+      "inspect-image-prompts",
+      "history-episode-1",
+      "--json",
+    ]);
+    expect(services.inspectHistorySemanticImagePrompts).toHaveBeenCalledWith({
+      episodeId: "history-episode-1",
+    });
+  });
+
   it("keeps v2 planning and approval explicitly opt-in", async () => {
     const services = dependencies();
     const program = new Command();

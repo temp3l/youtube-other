@@ -20,8 +20,9 @@ describe("speech narration pacing presets", () => {
   });
 
   it("fails fast for unsupported language or profile requests", () => {
+    expect(resolveSpeechNarrationPacingPreset("it", "full").targetWpm).toBe(181);
     expect(() =>
-      resolveSpeechNarrationPacingPreset("it", "full")
+      resolveSpeechNarrationPacingPreset("nl", "full")
     ).toThrow("Unsupported narration pacing language");
     expect(() =>
       resolveSpeechNarrationPacingPreset("en", "teaser")

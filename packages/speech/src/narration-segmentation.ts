@@ -80,7 +80,7 @@ const sentenceBoundaryPattern = /(?<=[.!?…]["'»”)]*)\s+/u;
 
 function localeForLanguage(language: string): string {
   const normalized = language.toLowerCase();
-  return normalized === "en" || normalized === "de" || normalized === "es" || normalized === "fr" || normalized === "pt"
+  return normalized === "en" || normalized === "de" || normalized === "es" || normalized === "fr" || normalized === "it" || normalized === "pt"
     ? normalized
     : normalized.split("-", 1)[0] ?? normalized;
 }

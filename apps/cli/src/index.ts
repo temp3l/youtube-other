@@ -91,6 +91,7 @@ import {
   normalizeContentVariant,
   normalizeEpisodeId,
   normalizeLocaleCode,
+  inspectSemanticImagePromptCache,
   safeBasename,
   slugify,
   resolveEpisodeNarrationAudioPath,
@@ -220,6 +221,10 @@ import {
   diffHistoryTrustedScriptV33,
   reattestHistoryTrustDeltasV33,
   regenerateHistoryTrustedVisualsV33,
+  deriveHistorySemanticImagePromptBrief,
+  loadHistoryVisualPlanV35,
+  persistHistorySemanticImagePromptReview,
+  resolveHistorySemanticImagePromptPaths,
 } from "@mediaforge/history";
 import {
   ConnectedApiCliError,
@@ -5604,6 +5609,81 @@ registerHistoryCommands(program, {
   planHistoryVisualsV35,
   inspectHistoryVisualsV34,
   inspectHistoryVisualsV35,
+  deriveHistorySemanticImagePrompts: async (request) => {
+    const outputRoot = path.resolve(
+      request.outputRoot ?? path.join(process.cwd(), "episodes"),
+    );
+    const episodeDir = path.join(outputRoot, normalizeEpisodeId(request.episodeId));
+    const plan = await loadHistoryVisualPlanV35(episodeDir);
+    if (!plan) {
+      throw new Error(
+        `History V3.5 visual plan is required before semantic prompt derivation for ${request.episodeId}.`,
+      );
+    }
+    const runtime = await loadRuntimeConfig({ workspaceDir: outputRoot });
+    const fixtureValue = request.fixtureResponse
+      ? (JSON.parse(
+          await fs.readFile(path.resolve(request.fixtureResponse), "utf8"),
+        ) as unknown)
+      : undefined;
+    const client = request.fixtureResponse
+      ? {
+          responses: {
+            create: async () => ({
+              id: "history-semantic-fixture",
+              status: "completed",
+              output_text: JSON.stringify(fixtureValue),
+            }),
+          },
+        }
+      : createOpenAiStoryClientWithOptions({
+          apiKey: runtime.openAiCompatibleApiKey ?? undefined,
+          baseUrl: runtime.openAiCompatibleBaseUrl ?? undefined,
+          maxRetries: 0,
+        });
+    const derived = await deriveHistorySemanticImagePromptBrief({
+      episodeDir,
+      plan,
+      client,
+      model: request.fixtureResponse
+        ? "history-semantic-fixture-v1"
+        : process.env["HISTORY_IMAGE_PROMPT_PLANNER_MODEL"] ??
+          runtime.openAiStoryModel ??
+          "",
+      ...(request.refresh ? { refresh: true } : {}),
+    });
+    const persisted = await persistHistorySemanticImagePromptReview({
+      episodeDir,
+      plan,
+      artifact: derived.artifact,
+      cacheStatus: derived.cacheStatus,
+      previousArtifact: derived.previousArtifact,
+      findings: derived.findings,
+    });
+    return {
+      episodeId: plan.episodeId,
+      cacheStatus: derived.cacheStatus,
+      cachePath: resolveHistorySemanticImagePromptPaths(episodeDir).cachePath,
+      reviewPath: persisted.reviewPath,
+      semanticBriefHash: derived.artifact.briefHash,
+      finalPromptSetHash: persisted.finalPromptSetHash,
+      staleAssetIds: persisted.staleAssetIds,
+      imageGenerationCalls: 0,
+      researchCalls: 0,
+      claimExtractionCalls: 0,
+      webCalls: 0,
+    };
+  },
+  inspectHistorySemanticImagePrompts: async (request) => {
+    const episodeDir = path.join(
+      path.resolve(request.outputRoot ?? path.join(process.cwd(), "episodes")),
+      normalizeEpisodeId(request.episodeId),
+    );
+    const paths = resolveHistorySemanticImagePromptPaths(episodeDir);
+    const artifact = await inspectSemanticImagePromptCache(paths.cachePath);
+    const review = JSON.parse(await fs.readFile(paths.reviewPath, "utf8")) as unknown;
+    return { cachePath: paths.cachePath, reviewPath: paths.reviewPath, artifact, review };
+  },
   validateHistoryVisualPlanV34Command: async (request) => {
     const planned = await planHistoryVisualsV34(request);
     return planned.validation;

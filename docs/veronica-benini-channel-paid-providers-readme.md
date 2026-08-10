@@ -24,6 +24,22 @@ standard `source/` and `languages/` paths.
 
 ## Images
 
+Image execution first resolves one locale-independent semantic prompt brief for
+the canonical content ID. A cache hit makes no OpenAI text call; a missing or
+invalid brief stops before paid image generation. Inspect prompt previews with:
+
+```bash
+pnpm mediaforge -- veronica-media images derive-image-prompts \
+  --workspace episodes --episode-id l01-s01-being-good-isnt-enough \
+  --variant short --dry-run --json
+pnpm mediaforge -- veronica-media images inspect-image-prompts \
+  --workspace episodes --episode-id l01-s01-being-good-isnt-enough --json
+```
+
+Remove `--dry-run` for a semantic-only OpenAI call, or add
+`--refresh-image-prompt-brief` to refresh only this brief. Neither command
+generates images.
+
 Synchronous generation supports bounded scene concurrency:
 
 ```bash

@@ -19,9 +19,19 @@ describe("veronica media commands", () => {
       "render",
     ]);
     const images = veronica?.commands.find((command) => command.name() === "images");
+    expect(images?.commands.map((command) => command.name())).toEqual([
+      "derive-image-prompts",
+      "inspect-image-prompts",
+      "generate",
+    ]);
     const imageGenerate = images?.commands.find((command) => command.name() === "generate");
     expect(imageGenerate?.options.map((option) => option.long)).toEqual(
-      expect.arrayContaining(["--mode", "--concurrency", "--max-batch-size"]),
+      expect.arrayContaining([
+        "--mode",
+        "--concurrency",
+        "--max-batch-size",
+        "--refresh-image-prompt-brief",
+      ]),
     );
     const speech = veronica?.commands.find((command) => command.name() === "speech");
     expect(speech?.commands.map((command) => command.name())).toEqual([

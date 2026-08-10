@@ -8,6 +8,7 @@
 - `apps/cli/src/{veronica-media-commands,images-resume-command,index}.ts` and CLI test
 - `packages/rendering/src/index.ts` and affected workspace package exports
 - `docs/veronica-benini-channel-paid-providers-readme.md`
+- `locales/de/short/scene-plan.json` and derived audio/render artifacts for L01-S01
 
 ## Earlier checks
 
@@ -18,18 +19,18 @@
 
 ## Results
 
-The German vertical short rendered successfully at `1080x1920`, 26.634 seconds, H.264 video and 48 kHz stereo AAC. It uses the existing `shimmer` narration and five generated images; neither was regenerated. Scene slices were rebuilt from the existing WAV after the original 40.8-second plan yielded an empty final slice.
+`audio reslice-segments --variant short --retime` now writes a locale/variant-local scene plan scaled to existing narration duration and preserves canonical image filename hints. Vertical render consumes that plan. The German short was rerendered at `1080x1920`, 26.411 seconds, H.264 and 48 kHz stereo AAC; no narration or images were regenerated.
 
 ## Tests/checks run
 
 - `pnpm --filter @mediaforge/cli build`: passed.
 - `pnpm --filter @mediaforge/rendering build`: passed.
 - Final `render --profile vertical` validation: passed.
-- `ffprobe` final-media inspection: passed.
+- `ffprobe` final-media inspection: passed (26.411 seconds).
 
 ## Risks remaining
 
-The visual timeline retains the source plan's 40.8-second scene pacing while continuous German narration is 26.434 seconds; final mux duration is therefore narration-led (26.634 seconds). Regenerate the localized timing plan before a future render if exact scene-to-speech pacing is required.
+The retiming is proportional to original scene duration, not word-level forced alignment. Final clip drift is within 0.021 seconds; use timestamped alignment only if editorial pacing needs further refinement.
 
 ## Follow-up
 
