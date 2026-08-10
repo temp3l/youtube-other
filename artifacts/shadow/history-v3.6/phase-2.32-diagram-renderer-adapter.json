@@ -1,0 +1,9 @@
+{
+  "phase": "2.32",
+  "result": "PASS",
+  "supported": ["causal", "dependency", "process", "temporal-sequence", "policy-response", "evidence-set"],
+  "evidenceMemberEdges": 0,
+  "modalityPreserved": true,
+  "proofPreserved": true,
+  "shadowOnly": true
+}

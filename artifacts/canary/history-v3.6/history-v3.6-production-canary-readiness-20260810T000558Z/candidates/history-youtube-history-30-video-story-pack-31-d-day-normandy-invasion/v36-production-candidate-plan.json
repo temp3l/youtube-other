@@ -1,0 +1,726 @@
+{
+  "schemaVersion": "history-visual-plan-shadow.v1",
+  "plannerVersion": "history-visual-plan-shadow.v3.6.0",
+  "episodeId": "history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion",
+  "shadowOnly": true,
+  "basePlan": {
+    "schemaVersion": "history-visual-plan.v3.5",
+    "plannerVersion": "history-visual-planner.v3.5.0",
+    "planHash": "66ccc3094dd4a8abc35302a73d0efd0f1802618133e31e4d56e99947d53593c1",
+    "timingSource": "measured-tts",
+    "totalDurationMs": 367634,
+    "productionBlockerCodes": [],
+    "beatIds": [
+      "beat-0001",
+      "beat-0002",
+      "beat-0003",
+      "beat-0004",
+      "beat-0005",
+      "beat-0006",
+      "beat-0007",
+      "beat-0008",
+      "beat-0009",
+      "beat-0010",
+      "beat-0011",
+      "beat-0012",
+      "beat-0013",
+      "beat-0014",
+      "beat-0015",
+      "beat-0016",
+      "beat-0017",
+      "beat-0018",
+      "beat-0019",
+      "beat-0020",
+      "beat-0021",
+      "beat-0022",
+      "beat-0023",
+      "beat-0024",
+      "beat-0025",
+      "beat-0026",
+      "beat-0027",
+      "beat-0028",
+      "beat-0029",
+      "beat-0030",
+      "beat-0031",
+      "beat-0032",
+      "beat-0033",
+      "beat-0034",
+      "beat-0035",
+      "beat-0036",
+      "beat-0037",
+      "beat-0038",
+      "beat-0039",
+      "beat-0040",
+      "beat-0041"
+    ],
+    "shotIds": [
+      "shot-0001-01",
+      "shot-0002-01",
+      "shot-0003-01",
+      "shot-0003-02",
+      "shot-0004-01",
+      "shot-0004-02",
+      "shot-0005-01",
+      "shot-0006-01",
+      "shot-0006-02",
+      "shot-0007-01",
+      "shot-0007-02",
+      "shot-0007-03",
+      "shot-0008-01",
+      "shot-0008-02",
+      "shot-0009-01",
+      "shot-0010-01",
+      "shot-0011-01",
+      "shot-0012-01",
+      "shot-0013-01",
+      "shot-0013-02",
+      "shot-0014-01",
+      "shot-0014-02",
+      "shot-0015-01",
+      "shot-0015-02",
+      "shot-0015-03",
+      "shot-0016-01",
+      "shot-0016-02",
+      "shot-0017-01",
+      "shot-0017-02",
+      "shot-0018-01",
+      "shot-0018-02",
+      "shot-0019-01",
+      "shot-0019-02",
+      "shot-0020-01",
+      "shot-0020-02",
+      "shot-0021-01",
+      "shot-0021-02",
+      "shot-0022-01",
+      "shot-0022-02",
+      "shot-0023-01",
+      "shot-0024-01",
+      "shot-0024-02",
+      "shot-0025-01",
+      "shot-0025-02",
+      "shot-0026-01",
+      "shot-0026-02",
+      "shot-0026-03",
+      "shot-0027-01",
+      "shot-0028-01",
+      "shot-0028-02",
+      "shot-0029-01",
+      "shot-0029-02",
+      "shot-0030-01",
+      "shot-0031-01",
+      "shot-0031-02",
+      "shot-0032-01",
+      "shot-0032-02",
+      "shot-0033-01",
+      "shot-0033-02",
+      "shot-0034-01",
+      "shot-0035-01",
+      "shot-0036-01",
+      "shot-0037-01",
+      "shot-0037-02",
+      "shot-0037-03",
+      "shot-0038-01",
+      "shot-0038-02",
+      "shot-0039-01",
+      "shot-0040-01",
+      "shot-0041-01"
+    ]
+  },
+  "coexistence": {
+    "mode": "ADDITIVE_SEMANTIC_OVERLAY",
+    "baseBeatsPreserved": true,
+    "baseShotsPreserved": true,
+    "replacementCount": 0
+  },
+  "renderSpecs": [
+    {
+      "schemaVersion": "history-renderer-shadow-spec.v1",
+      "rendererVersion": "history-renderer-shadow.v3.6.0",
+      "disposition": "RENDER_SPEC",
+      "renderSpecId": "history-render-spec-49bcc518fddbaf1ed030ce14",
+      "compilerIntentId": "history-compiler-intent-89a546dfc1f7fc15e0504860",
+      "relationId": "relation-causal-9212db8b3d0745922bcbab98",
+      "relationKind": "causal",
+      "episodeId": "history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion",
+      "rendererRule": "diagram-causal-svg.v1",
+      "shadowOnly": true,
+      "provenance": {
+        "relationId": "relation-causal-9212db8b3d0745922bcbab98",
+        "evidenceFingerprint": "evidence-a4631d58ddf6a388f24d04eb",
+        "supportClaimIds": [
+          "claim-740238dabd4df86a4147d566"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      },
+      "width": 1200,
+      "height": 675,
+      "renderTarget": "DIAGRAM_SVG",
+      "semanticPayload": {
+        "schemaVersion": "history-compiler-shadow-intent.v1",
+        "compilerVersion": "history-compiler-shadow.v3.6.0",
+        "compilerIntentId": "history-compiler-intent-89a546dfc1f7fc15e0504860",
+        "compilerRule": "diagram-causal.v1",
+        "episodeId": "history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion",
+        "relationId": "relation-causal-9212db8b3d0745922bcbab98",
+        "provenance": {
+          "relationId": "relation-causal-9212db8b3d0745922bcbab98",
+          "evidenceFingerprint": "evidence-a4631d58ddf6a388f24d04eb",
+          "supportClaimIds": [
+            "claim-740238dabd4df86a4147d566"
+          ],
+          "structuredPropositionIds": [],
+          "atomicGroundingIds": []
+        },
+        "shadowOnly": true,
+        "disposition": "DIAGRAM",
+        "relationKind": "causal",
+        "diagramSemanticType": "causal-chain",
+        "cause": {
+          "canonicalLabel": "planning created options when plans failed"
+        },
+        "effect": {
+          "canonicalLabel": "D-Day succeeded"
+        },
+        "causalAssertionStatus": "asserted"
+      },
+      "points": [
+        {
+          "id": "node-0-planning-created-options-when-plans-failed",
+          "label": "planning created options when plans failed",
+          "x": 150,
+          "y": 340,
+          "role": "cause"
+        },
+        {
+          "id": "node-1-d-day-succeeded",
+          "label": "D-Day succeeded",
+          "x": 1050,
+          "y": 340,
+          "role": "effect",
+          "status": "asserted"
+        }
+      ],
+      "edges": [
+        {
+          "from": "node-0-planning-created-options-when-plans-failed",
+          "to": "node-1-d-day-succeeded",
+          "semanticType": "causes",
+          "directed": true,
+          "label": "causal · asserted"
+        }
+      ],
+      "legend": [
+        "cause → effect",
+        "assertion: asserted"
+      ]
+    },
+    {
+      "schemaVersion": "history-renderer-shadow-spec.v1",
+      "rendererVersion": "history-renderer-shadow.v3.6.0",
+      "disposition": "RENDER_SPEC",
+      "renderSpecId": "history-render-spec-354747e0183545775a7551b6",
+      "compilerIntentId": "history-compiler-intent-a2944a6a508ade41c347ee50",
+      "relationId": "relation-causal-d3ddad29050a3467f1c3fabc",
+      "relationKind": "causal",
+      "episodeId": "history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion",
+      "rendererRule": "diagram-causal-svg.v1",
+      "shadowOnly": true,
+      "provenance": {
+        "relationId": "relation-causal-d3ddad29050a3467f1c3fabc",
+        "evidenceFingerprint": "evidence-287c0d477532a86f5d9ba8bb",
+        "supportClaimIds": [
+          "claim-c78ea865fc76302c115e400f"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      },
+      "width": 1200,
+      "height": 675,
+      "renderTarget": "DIAGRAM_SVG",
+      "semanticPayload": {
+        "schemaVersion": "history-compiler-shadow-intent.v1",
+        "compilerVersion": "history-compiler-shadow.v3.6.0",
+        "compilerIntentId": "history-compiler-intent-a2944a6a508ade41c347ee50",
+        "compilerRule": "diagram-causal.v1",
+        "episodeId": "history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion",
+        "relationId": "relation-causal-d3ddad29050a3467f1c3fabc",
+        "provenance": {
+          "relationId": "relation-causal-d3ddad29050a3467f1c3fabc",
+          "evidenceFingerprint": "evidence-287c0d477532a86f5d9ba8bb",
+          "supportClaimIds": [
+            "claim-c78ea865fc76302c115e400f"
+          ],
+          "structuredPropositionIds": [],
+          "atomicGroundingIds": []
+        },
+        "shadowOnly": true,
+        "disposition": "DIAGRAM",
+        "relationKind": "causal",
+        "diagramSemanticType": "causal-chain",
+        "cause": {
+          "canonicalLabel": "The scattering"
+        },
+        "effect": {
+          "canonicalLabel": "confusion"
+        },
+        "causalAssertionStatus": "asserted"
+      },
+      "points": [
+        {
+          "id": "node-0-the-scattering",
+          "label": "The scattering",
+          "x": 150,
+          "y": 340,
+          "role": "cause"
+        },
+        {
+          "id": "node-1-confusion",
+          "label": "confusion",
+          "x": 1050,
+          "y": 340,
+          "role": "effect",
+          "status": "asserted"
+        }
+      ],
+      "edges": [
+        {
+          "from": "node-0-the-scattering",
+          "to": "node-1-confusion",
+          "semanticType": "causes",
+          "directed": true,
+          "label": "causal · asserted"
+        }
+      ],
+      "legend": [
+        "cause → effect",
+        "assertion: asserted"
+      ]
+    },
+    {
+      "schemaVersion": "history-renderer-shadow-spec.v1",
+      "rendererVersion": "history-renderer-shadow.v3.6.0",
+      "disposition": "RENDER_SPEC",
+      "renderSpecId": "history-render-spec-641cd45a17abd8640080a983",
+      "compilerIntentId": "history-compiler-intent-31d4b728f1699da6ff42b6b3",
+      "relationId": "relation-dependency-57731a6a0b69d018f5dc8d82",
+      "relationKind": "dependency",
+      "episodeId": "history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion",
+      "rendererRule": "diagram-dependency-svg.v1",
+      "shadowOnly": true,
+      "provenance": {
+        "relationId": "relation-dependency-57731a6a0b69d018f5dc8d82",
+        "evidenceFingerprint": "evidence-a5d20b0ea39cd549192d865b",
+        "supportClaimIds": [
+          "claim-d8057107608ffb331ce37c1e"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      },
+      "width": 1200,
+      "height": 675,
+      "renderTarget": "DIAGRAM_SVG",
+      "semanticPayload": {
+        "schemaVersion": "history-compiler-shadow-intent.v1",
+        "compilerVersion": "history-compiler-shadow.v3.6.0",
+        "compilerIntentId": "history-compiler-intent-31d4b728f1699da6ff42b6b3",
+        "compilerRule": "diagram-dependency.v1",
+        "episodeId": "history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion",
+        "relationId": "relation-dependency-57731a6a0b69d018f5dc8d82",
+        "provenance": {
+          "relationId": "relation-dependency-57731a6a0b69d018f5dc8d82",
+          "evidenceFingerprint": "evidence-a5d20b0ea39cd549192d865b",
+          "supportClaimIds": [
+            "claim-d8057107608ffb331ce37c1e"
+          ],
+          "structuredPropositionIds": [],
+          "atomicGroundingIds": []
+        },
+        "shadowOnly": true,
+        "disposition": "DIAGRAM",
+        "relationKind": "dependency",
+        "diagramSemanticType": "dependency",
+        "dependency": {
+          "canonicalLabel": "resistance networks and local knowledge"
+        },
+        "dependent": {
+          "canonicalLabel": "The invasion"
+        }
+      },
+      "points": [
+        {
+          "id": "node-0-resistance-networks-and-local-knowledge",
+          "label": "resistance networks and local knowledge",
+          "x": 150,
+          "y": 340,
+          "role": "dependency"
+        },
+        {
+          "id": "node-1-the-invasion",
+          "label": "The invasion",
+          "x": 1050,
+          "y": 340,
+          "role": "dependent"
+        }
+      ],
+      "edges": [
+        {
+          "from": "node-0-resistance-networks-and-local-knowledge",
+          "to": "node-1-the-invasion",
+          "semanticType": "depends-on-requirement",
+          "directed": true,
+          "label": "requires · not causality"
+        }
+      ],
+      "legend": [
+        "dependency → dependent",
+        "not causality"
+      ]
+    },
+    {
+      "schemaVersion": "history-renderer-shadow-spec.v1",
+      "rendererVersion": "history-renderer-shadow.v3.6.0",
+      "disposition": "RENDER_SPEC",
+      "renderSpecId": "history-render-spec-49798765a1da93f47ecf198a",
+      "compilerIntentId": "history-compiler-intent-65a630e5bddfda051d3c16ca",
+      "relationId": "relation-event-location-599d22c6090059e3768981f7",
+      "relationKind": "event-location",
+      "episodeId": "history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion",
+      "rendererRule": "map-event-location-svg.v1",
+      "shadowOnly": true,
+      "provenance": {
+        "relationId": "relation-event-location-599d22c6090059e3768981f7",
+        "evidenceFingerprint": "evidence-bd6386a3f5233fa829691cf2",
+        "supportClaimIds": [
+          "claim-7552fcb5134857307769fa18"
+        ],
+        "structuredPropositionIds": [
+          "structured-proposition-b6188c3dd446cee65d2f7407"
+        ],
+        "atomicGroundingIds": [
+          "grounding-e0af3cdde991db62127f6ab2"
+        ]
+      },
+      "width": 1200,
+      "height": 675,
+      "renderTarget": "MAP_SVG",
+      "semanticPayload": {
+        "schemaVersion": "history-compiler-shadow-intent.v1",
+        "compilerVersion": "history-compiler-shadow.v3.6.0",
+        "compilerIntentId": "history-compiler-intent-65a630e5bddfda051d3c16ca",
+        "compilerRule": "map-event-location.v1",
+        "episodeId": "history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion",
+        "relationId": "relation-event-location-599d22c6090059e3768981f7",
+        "provenance": {
+          "relationId": "relation-event-location-599d22c6090059e3768981f7",
+          "evidenceFingerprint": "evidence-bd6386a3f5233fa829691cf2",
+          "supportClaimIds": [
+            "claim-7552fcb5134857307769fa18"
+          ],
+          "structuredPropositionIds": [
+            "structured-proposition-b6188c3dd446cee65d2f7407"
+          ],
+          "atomicGroundingIds": [
+            "grounding-e0af3cdde991db62127f6ab2"
+          ]
+        },
+        "shadowOnly": true,
+        "disposition": "MAP",
+        "relationKind": "event-location",
+        "mapSemanticType": "event-location",
+        "event": {
+          "canonicalLabel": "main invasion",
+          "eventType": "event"
+        },
+        "location": {
+          "entityId": "entity-4361e741ab5cf8f9151d8ca9",
+          "canonicalLabel": "Calais"
+        },
+        "assertionStatus": "intended"
+      },
+      "points": [
+        {
+          "id": "entity-4361e741ab5cf8f9151d8ca9",
+          "label": "main invasion @ Calais",
+          "x": 600,
+          "y": 337.5,
+          "role": "event-location",
+          "placeKind": "point",
+          "status": "intended"
+        }
+      ],
+      "edges": [],
+      "viewport": {
+        "minLatitude": 50.7113,
+        "maxLatitude": 51.191300000000005,
+        "minLongitude": 1.6187,
+        "maxLongitude": 2.0987,
+        "paddingRatio": 0.12
+      }
+    },
+    {
+      "schemaVersion": "history-renderer-shadow-spec.v1",
+      "rendererVersion": "history-renderer-shadow.v3.6.0",
+      "disposition": "RENDER_SPEC",
+      "renderSpecId": "history-render-spec-cbcd1a3200511565467b536b",
+      "compilerIntentId": "history-compiler-intent-97674ca2593338cfb9575dc4",
+      "relationId": "relation-spatial-comparison-63a438adf1bcce39953cbf87",
+      "relationKind": "spatial-comparison",
+      "episodeId": "history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion",
+      "rendererRule": "map-spatial-comparison-svg.v1",
+      "shadowOnly": true,
+      "provenance": {
+        "relationId": "relation-spatial-comparison-63a438adf1bcce39953cbf87",
+        "evidenceFingerprint": "evidence-8e2059e0aee718b0e3ef4e34",
+        "supportClaimIds": [
+          "claim-79ee6a5eb840e7a02f99642b"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      },
+      "width": 1200,
+      "height": 675,
+      "renderTarget": "MAP_SVG",
+      "semanticPayload": {
+        "schemaVersion": "history-compiler-shadow-intent.v1",
+        "compilerVersion": "history-compiler-shadow.v3.6.0",
+        "compilerIntentId": "history-compiler-intent-97674ca2593338cfb9575dc4",
+        "compilerRule": "map-spatial-comparison.v1",
+        "episodeId": "history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion",
+        "relationId": "relation-spatial-comparison-63a438adf1bcce39953cbf87",
+        "provenance": {
+          "relationId": "relation-spatial-comparison-63a438adf1bcce39953cbf87",
+          "evidenceFingerprint": "evidence-8e2059e0aee718b0e3ef4e34",
+          "supportClaimIds": [
+            "claim-79ee6a5eb840e7a02f99642b"
+          ],
+          "structuredPropositionIds": [],
+          "atomicGroundingIds": []
+        },
+        "shadowOnly": true,
+        "disposition": "MAP",
+        "relationKind": "spatial-comparison",
+        "mapSemanticType": "comparison",
+        "places": [
+          {
+            "entityId": "entity-0913aa503e79149bb3248b18",
+            "canonicalLabel": "Pas-de-Calais"
+          },
+          {
+            "entityId": "entity-70efcb5fe46e13c64d80fdfe",
+            "canonicalLabel": "Normandy"
+          }
+        ],
+        "unorderedSemanticSet": true
+      },
+      "points": [
+        {
+          "id": "entity-0913aa503e79149bb3248b18",
+          "label": "Pas-de-Calais",
+          "x": 1005.6521739130434,
+          "y": 142.64571718195674,
+          "role": "comparison-area-member",
+          "placeKind": "area",
+          "renderAnchorPresentationOnly": true
+        },
+        {
+          "id": "entity-70efcb5fe46e13c64d80fdfe",
+          "label": "Normandy",
+          "x": 194.3478260869565,
+          "y": 532.3542828180432,
+          "role": "comparison-member",
+          "placeKind": "point"
+        }
+      ],
+      "edges": [
+        {
+          "from": "entity-0913aa503e79149bb3248b18",
+          "to": "entity-70efcb5fe46e13c64d80fdfe",
+          "semanticType": "comparison-connector-not-route",
+          "directed": false
+        }
+      ],
+      "viewport": {
+        "minLatitude": 48.76,
+        "maxLatitude": 50.733000000000004,
+        "minLongitude": 0.26,
+        "maxLongitude": 2.606,
+        "paddingRatio": 0.12
+      }
+    }
+  ],
+  "placements": [
+    {
+      "disposition": "PLACED",
+      "placementId": "history-visual-placement-936c1e7e907e67b7024007d6",
+      "renderSpecId": "history-render-spec-49bcc518fddbaf1ed030ce14",
+      "compilerIntentId": "history-compiler-intent-89a546dfc1f7fc15e0504860",
+      "relationId": "relation-causal-9212db8b3d0745922bcbab98",
+      "relationKind": "causal",
+      "renderTarget": "DIAGRAM_SVG",
+      "operation": "ATTACH_SEMANTIC_OVERLAY",
+      "placementRule": "SUPPORT_COMPLETION_BEAT_V1",
+      "supportClaimIds": [
+        "claim-740238dabd4df86a4147d566"
+      ],
+      "supportBeatIds": [
+        "beat-0036"
+      ],
+      "anchor": {
+        "beatId": "beat-0036",
+        "startMs": 321958,
+        "endMs": 325672,
+        "narrationSpan": {
+          "startUtf16": 5960,
+          "endUtf16Exclusive": 6027
+        }
+      },
+      "preservedBaseShotIds": [
+        "shot-0036-01"
+      ],
+      "preservesBaseShots": true,
+      "timingBasis": "measured-tts"
+    },
+    {
+      "disposition": "PLACED",
+      "placementId": "history-visual-placement-357b80eeed6cd9e4e5b3b6fa",
+      "renderSpecId": "history-render-spec-354747e0183545775a7551b6",
+      "compilerIntentId": "history-compiler-intent-a2944a6a508ade41c347ee50",
+      "relationId": "relation-causal-d3ddad29050a3467f1c3fabc",
+      "relationKind": "causal",
+      "renderTarget": "DIAGRAM_SVG",
+      "operation": "ATTACH_SEMANTIC_OVERLAY",
+      "placementRule": "SUPPORT_COMPLETION_BEAT_V1",
+      "supportClaimIds": [
+        "claim-c78ea865fc76302c115e400f"
+      ],
+      "supportBeatIds": [
+        "beat-0018"
+      ],
+      "anchor": {
+        "beatId": "beat-0018",
+        "startMs": 144084,
+        "endMs": 159681,
+        "narrationSpan": {
+          "startUtf16": 2624,
+          "endUtf16Exclusive": 2930
+        }
+      },
+      "preservedBaseShotIds": [
+        "shot-0018-01",
+        "shot-0018-02"
+      ],
+      "preservesBaseShots": true,
+      "timingBasis": "measured-tts"
+    },
+    {
+      "disposition": "PLACED",
+      "placementId": "history-visual-placement-f89f2866991fb7674dfa0f02",
+      "renderSpecId": "history-render-spec-641cd45a17abd8640080a983",
+      "compilerIntentId": "history-compiler-intent-31d4b728f1699da6ff42b6b3",
+      "relationId": "relation-dependency-57731a6a0b69d018f5dc8d82",
+      "relationKind": "dependency",
+      "renderTarget": "DIAGRAM_SVG",
+      "operation": "ATTACH_SEMANTIC_OVERLAY",
+      "placementRule": "SUPPORT_COMPLETION_BEAT_V1",
+      "supportClaimIds": [
+        "claim-d8057107608ffb331ce37c1e"
+      ],
+      "supportBeatIds": [
+        "beat-0037"
+      ],
+      "anchor": {
+        "beatId": "beat-0037",
+        "startMs": 325672,
+        "endMs": 342754,
+        "narrationSpan": {
+          "startUtf16": 6029,
+          "endUtf16Exclusive": 6368
+        }
+      },
+      "preservedBaseShotIds": [
+        "shot-0037-01",
+        "shot-0037-02",
+        "shot-0037-03"
+      ],
+      "preservesBaseShots": true,
+      "timingBasis": "measured-tts"
+    },
+    {
+      "disposition": "PLACED",
+      "placementId": "history-visual-placement-6fae55c05436be19b5a1b556",
+      "renderSpecId": "history-render-spec-49798765a1da93f47ecf198a",
+      "compilerIntentId": "history-compiler-intent-65a630e5bddfda051d3c16ca",
+      "relationId": "relation-event-location-599d22c6090059e3768981f7",
+      "relationKind": "event-location",
+      "renderTarget": "MAP_SVG",
+      "operation": "ATTACH_SEMANTIC_OVERLAY",
+      "placementRule": "SUPPORT_COMPLETION_BEAT_V1",
+      "supportClaimIds": [
+        "claim-7552fcb5134857307769fa18"
+      ],
+      "supportBeatIds": [
+        "beat-0015"
+      ],
+      "anchor": {
+        "beatId": "beat-0015",
+        "startMs": 104350,
+        "endMs": 121432,
+        "narrationSpan": {
+          "startUtf16": 1920,
+          "endUtf16Exclusive": 2233
+        }
+      },
+      "preservedBaseShotIds": [
+        "shot-0015-01",
+        "shot-0015-02",
+        "shot-0015-03"
+      ],
+      "preservesBaseShots": true,
+      "timingBasis": "measured-tts"
+    },
+    {
+      "disposition": "PLACED",
+      "placementId": "history-visual-placement-a3e3a817faa2f2e3e3afb5d9",
+      "renderSpecId": "history-render-spec-cbcd1a3200511565467b536b",
+      "compilerIntentId": "history-compiler-intent-97674ca2593338cfb9575dc4",
+      "relationId": "relation-spatial-comparison-63a438adf1bcce39953cbf87",
+      "relationKind": "spatial-comparison",
+      "renderTarget": "MAP_SVG",
+      "operation": "ATTACH_SEMANTIC_OVERLAY",
+      "placementRule": "SUPPORT_COMPLETION_BEAT_V1",
+      "supportClaimIds": [
+        "claim-79ee6a5eb840e7a02f99642b"
+      ],
+      "supportBeatIds": [
+        "beat-0009"
+      ],
+      "anchor": {
+        "beatId": "beat-0009",
+        "startMs": 69443,
+        "endMs": 74642,
+        "narrationSpan": {
+          "startUtf16": 1271,
+          "endUtf16Exclusive": 1351
+        }
+      },
+      "preservedBaseShotIds": [
+        "shot-0009-01"
+      ],
+      "preservesBaseShots": true,
+      "timingBasis": "measured-tts"
+    }
+  ],
+  "safePlacementAbstentions": [],
+  "summary": {
+    "renderSpecs": 5,
+    "placed": 5,
+    "safePlacementAbstentions": 0,
+    "mapPlacements": 2,
+    "diagramPlacements": 3,
+    "duplicatePlacements": 0,
+    "orphanRenderSpecs": 0,
+    "replacementCount": 0
+  },
+  "planHash": "dc11aa15c426c7533d790d31a22b87b331a43b3f5d1ff6e3a26946bb4cdcbf72"
+}

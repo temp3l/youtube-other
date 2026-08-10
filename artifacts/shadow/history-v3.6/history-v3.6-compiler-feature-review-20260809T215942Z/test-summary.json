@@ -1,0 +1,11 @@
+{
+  "sameEightRun1": "PASS",
+  "sameEightRun2": "PASS",
+  "deterministic": "PASS",
+  "compilerFocusedTests": "PASS (15)",
+  "historyTypecheck": "PASS",
+  "targetedEslint": "PASS",
+  "providerCalls": 0,
+  "llmSemanticCalls": 0,
+  "imageProviderCalls": 0
+}

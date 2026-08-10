@@ -1,0 +1,11 @@
+{
+  "v35Aggregate": {
+    "mapStates": 56,
+    "diagramStates": 19
+  },
+  "v36CompilerDispositions": {
+    "DIAGRAM": 101,
+    "MAP": 2
+  },
+  "comparisonScope": "Aggregate characterization only; V3.6 relations are not required to reproduce V3.5 heuristic plans."
+}

@@ -221,7 +221,7 @@ export function applyCanonicalScriptGate(input: {
         workflowInstanceId: input.expected.workflowInstanceId,
         taskId: input.expected.taskId,
         unitId: input.expected.unitId,
-        profileId: "strategic-reinvention",
+        profileId: "veronicabenini",
         locale: input.candidate.identity.locale,
         variant: "full",
         workflowRevision: input.expected.workflowRevision,

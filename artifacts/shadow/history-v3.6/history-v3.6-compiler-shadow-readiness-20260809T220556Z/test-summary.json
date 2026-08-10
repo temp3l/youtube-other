@@ -1,0 +1,15 @@
+{
+  "historyTypecheck": "PASS",
+  "targetedEslint": "PASS",
+  "v36FocusedSuite": "PASS (208 tests)",
+  "goldenSemanticFixtures": "PASS (46; included in focused suite)",
+  "sameEightCompilerLaneRun1": "PASS",
+  "sameEightCompilerLaneRun2": "PASS",
+  "all40CompilerLaneRun1": "PASS",
+  "all40CompilerLaneRun2": "PASS",
+  "checksumVerification": "PASS",
+  "zipIntegrity": "PASS",
+  "providerCalls": 0,
+  "llmSemanticCalls": 0,
+  "imageProviderCalls": 0
+}

@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "History V3.6 atomic claim grounding IR",
+  "schemaVersion": "history-atomic-claim-grounding.v2",
+  "generatedFrom": "packages/history/src/v36/atomic-claim-grounding-v36.ts#atomicGroundingContractDocumentV36",
+  "predicates": [
+    "causes",
+    "contributes-to",
+    "depends-on",
+    "compares-with",
+    "contains-evidence-of",
+    "moves-from",
+    "moves-through",
+    "search-object",
+    "located-in",
+    "transforms",
+    "demands",
+    "restricts",
+    "process-sequence",
+    "precedes"
+  ],
+  "assertionStatuses": [
+    "asserted",
+    "intended",
+    "attempted",
+    "uncertain",
+    "counterfactual",
+    "reported"
+  ],
+  "groundingRuleIds": [
+    "explicit-structured-proposition-v1",
+    "bounded-causal-clause-v1",
+    "bounded-dependency-clause-v1",
+    "bounded-comparison-clause-v1",
+    "bounded-evidence-enumeration-v1",
+    "bounded-movement-clause-v1",
+    "bounded-policy-action-v1",
+    "bounded-claim-state-v1"
+  ],
+  "identity": {
+    "algorithm": "grounding-{first 24 hex chars of sha256(canonical episode, claim, participants, predicate, qualifiers, assertion status, exact span/hash, rule, schema version)}",
+    "excludes": [
+      "timestamps",
+      "Git SHA",
+      "render IDs",
+      "random UUIDs"
+    ]
+  },
+  "provenance": [
+    "episodeId",
+    "claimId",
+    "exact source span coordinates",
+    "exact source text and SHA-256",
+    "resolved participant IDs",
+    "native structured proposition ID when projected",
+    "grounding rule ID",
+    "grounding schema version"
+  ],
+  "boundary": "Atomic grounding supplies evidence. It does not create or approve ExplanatoryRelationV36.",
+  "processProjection": "process-sequence preserves the native ordered-step participants and one-based order without parsing prose.",
+  "temporalProjection": "precedes preserves native direction and never upgrades chronology to causality."
+}

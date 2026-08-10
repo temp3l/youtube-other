@@ -5,6 +5,7 @@ export * from "./production-state-contracts.js";
 export * from "./episode-production-state-projector.js";
 export * from "./content-policy-contracts.js";
 export * from "./genre-production-intelligence.js";
+export * from "./revision-analytics-comparison.js";
 export * from "./capability-configuration-contracts.js";
 export * from "./platform-capability-defaults.js";
 export * from "./capability-configuration-resolver.js";
@@ -42,8 +43,7 @@ const artifactIdPattern = /^artifact-[a-z0-9][a-z0-9-]*$/;
 const pipelineRunIdPattern = /^run-[a-z0-9][a-z0-9-]*$/;
 const sha256Pattern = /^[a-f0-9]{64}$/;
 const shotIdPattern = /^scene-[0-9]{3}-shot-[0-9]{3}$/;
-const visualRetentionIdPattern =
-  /^[a-z0-9][a-z0-9-]*$/;
+const visualRetentionIdPattern = /^[a-z0-9][a-z0-9-]*$/;
 
 export const episodeIdSchema = z
   .string()
@@ -53,7 +53,10 @@ export const episodeIdSchema = z
   .brand<"EpisodeId">();
 export type EpisodeId = z.infer<typeof episodeIdSchema>;
 
-export const sceneIdSchema = z.string().regex(sceneIdPattern).brand<"SceneId">();
+export const sceneIdSchema = z
+  .string()
+  .regex(sceneIdPattern)
+  .brand<"SceneId">();
 export type SceneId = z.infer<typeof sceneIdSchema>;
 
 export const artifactIdSchema = z
@@ -78,7 +81,14 @@ const positiveFiniteNumberSchema = z.number().finite().positive();
 const nonNegativeIntegerSchema = z.number().int().nonnegative();
 const positiveIntegerSchema = z.number().int().positive();
 export const aspectRatioSchema = z.enum(["16:9", "9:16"]);
-export const SUPPORTED_LANGUAGE_CODES = ["en", "de", "es", "fr", "pt", "it"] as const;
+export const SUPPORTED_LANGUAGE_CODES = [
+  "en",
+  "de",
+  "es",
+  "fr",
+  "pt",
+  "it",
+] as const;
 export type SupportedLanguageCode = (typeof SUPPORTED_LANGUAGE_CODES)[number];
 export type LanguageCode = SupportedLanguageCode;
 export const supportedLanguageCodeSchema = z.enum(SUPPORTED_LANGUAGE_CODES);
@@ -165,7 +175,7 @@ export const acquisitionStrategySchema = z.enum([
   "platform-subtitle",
   "authorized-transcription",
   "sidecar-subtitle",
-  "mock"
+  "mock",
 ]);
 export type AcquisitionStrategy = z.infer<typeof acquisitionStrategySchema>;
 
@@ -179,7 +189,7 @@ export const sourceMetadataSchema = z.object({
   localPath: z.string().optional(),
   subtitleLanguage: z.string().optional(),
   transcriptUrl: z.string().optional(),
-  notes: z.string().optional()
+  notes: z.string().optional(),
 });
 export type SourceMetadata = z.infer<typeof sourceMetadataSchema>;
 
@@ -188,7 +198,7 @@ export const sourceMediaSchema = z.object({
   mimeType: z.string(),
   sizeBytes: z.number().int().nonnegative(),
   durationSeconds: z.number().nonnegative(),
-  checksumSha256: z.string().optional()
+  checksumSha256: z.string().optional(),
 });
 export type SourceMedia = z.infer<typeof sourceMediaSchema>;
 
@@ -196,7 +206,7 @@ export const rawTimedWordSchema = z.object({
   text: z.string(),
   startSeconds: z.number().nonnegative(),
   endSeconds: z.number().nonnegative(),
-  probability: z.number().min(0).max(1).optional()
+  probability: z.number().min(0).max(1).optional(),
 });
 export type RawTimedWord = z.infer<typeof rawTimedWordSchema>;
 
@@ -204,7 +214,7 @@ export const timestampedWordSchema = z.object({
   text: z.string(),
   startSeconds: z.number().nonnegative(),
   endSeconds: z.number().nonnegative(),
-  probability: z.number().min(0).max(1).optional()
+  probability: z.number().min(0).max(1).optional(),
 });
 export type TimestampedWord = z.infer<typeof timestampedWordSchema>;
 
@@ -213,11 +223,16 @@ export const transcriptWordSchema = z.object({
   text: z.string(),
   startSeconds: z.number().nonnegative(),
   endSeconds: z.number().nonnegative(),
-  confidence: z.number().min(0).max(1).optional()
+  confidence: z.number().min(0).max(1).optional(),
 });
 export type TranscriptWord = z.infer<typeof transcriptWordSchema>;
 
-export const segmentBoundaryReasonSchema = z.enum(["sentence", "silence", "max-duration", "end-of-transcript"]);
+export const segmentBoundaryReasonSchema = z.enum([
+  "sentence",
+  "silence",
+  "max-duration",
+  "end-of-transcript",
+]);
 export type SegmentBoundaryReason = z.infer<typeof segmentBoundaryReasonSchema>;
 
 const transcriptSegmentIdSchema = z
@@ -233,9 +248,11 @@ export const sentenceSegmentationOptionsSchema = z.object({
   maxSilenceSeconds: z.number().nonnegative(),
   timestampPrecision: z.number().int().min(0).max(6),
   maxSingleWordDurationSeconds: z.number().positive(),
-  boundaryLookbackWords: z.number().int().nonnegative()
+  boundaryLookbackWords: z.number().int().nonnegative(),
 });
-export type SentenceSegmentationOptions = z.infer<typeof sentenceSegmentationOptionsSchema>;
+export type SentenceSegmentationOptions = z.infer<
+  typeof sentenceSegmentationOptionsSchema
+>;
 
 export const transcriptSegmentSchema = z.object({
   id: transcriptSegmentIdSchema,
@@ -243,7 +260,7 @@ export const transcriptSegmentSchema = z.object({
   endSeconds: z.number().nonnegative(),
   text: z.string(),
   words: z.array(timestampedWordSchema).default([]),
-  boundaryReason: segmentBoundaryReasonSchema.optional()
+  boundaryReason: segmentBoundaryReasonSchema.optional(),
 });
 export type TranscriptSegment = z.infer<typeof transcriptSegmentSchema>;
 
@@ -255,7 +272,7 @@ export const transcriptSchema = z.object({
   language: z.string().min(1),
   text: z.string(),
   segments: z.array(transcriptSegmentSchema),
-  words: z.array(timestampedWordSchema).default([])
+  words: z.array(timestampedWordSchema).default([]),
 });
 export type Transcript = z.infer<typeof transcriptSchema>;
 
@@ -270,8 +287,8 @@ export const normalizedTranscriptSchema = z.object({
     provider: z.string(),
     model: z.string(),
     generatedAt: z.string(),
-    wordTimestamps: z.literal(true)
-  })
+    wordTimestamps: z.literal(true),
+  }),
 });
 export type NormalizedTranscript = z.infer<typeof normalizedTranscriptSchema>;
 
@@ -279,16 +296,23 @@ export const transcriptCorrectionSchema = z.object({
   originalText: z.string(),
   correctedText: z.string(),
   confidence: z.number().min(0).max(1),
-  category: z.enum(["spelling", "punctuation", "grammar", "repetition", "filler-word", "other"]),
+  category: z.enum([
+    "spelling",
+    "punctuation",
+    "grammar",
+    "repetition",
+    "filler-word",
+    "other",
+  ]),
   reason: z.string(),
-  humanReviewRecommended: z.boolean()
+  humanReviewRecommended: z.boolean(),
 });
 export type TranscriptCorrection = z.infer<typeof transcriptCorrectionSchema>;
 
 export const uncertainTermSchema = z.object({
   originalText: z.string(),
   suggestedText: z.string().optional(),
-  reason: z.string()
+  reason: z.string(),
 });
 export type UncertainTerm = z.infer<typeof uncertainTermSchema>;
 
@@ -299,7 +323,7 @@ export const cleanedTranscriptSchema = z.object({
   cleanedText: z.string(),
   segments: z.array(transcriptSegmentSchema),
   corrections: z.array(transcriptCorrectionSchema),
-  uncertainTerms: z.array(uncertainTermSchema)
+  uncertainTerms: z.array(uncertainTermSchema),
 });
 export type CleanedTranscript = z.infer<typeof cleanedTranscriptSchema>;
 
@@ -307,9 +331,11 @@ export const rewrittenScriptSectionSchema = z.object({
   sectionId: z.string(),
   transcriptSegmentIds: z.array(transcriptSegmentIdSchema),
   text: z.string(),
-  claims: z.array(z.string()).default([])
+  claims: z.array(z.string()).default([]),
 });
-export type RewrittenScriptSection = z.infer<typeof rewrittenScriptSectionSchema>;
+export type RewrittenScriptSection = z.infer<
+  typeof rewrittenScriptSectionSchema
+>;
 
 export const rewrittenScriptSchema = z.object({
   sourceId: episodeIdSchema,
@@ -320,9 +346,9 @@ export const rewrittenScriptSchema = z.object({
     z.object({
       text: z.string(),
       reviewRequired: z.boolean(),
-      reason: z.string().optional()
+      reason: z.string().optional(),
     })
-  )
+  ),
 });
 export type RewrittenScript = z.infer<typeof rewrittenScriptSchema>;
 
@@ -330,13 +356,13 @@ export const claimSchema = z.object({
   text: z.string(),
   sourceSegmentIds: z.array(transcriptSegmentIdSchema),
   reviewRequired: z.boolean(),
-  reason: z.string().optional()
+  reason: z.string().optional(),
 });
 export type Claim = z.infer<typeof claimSchema>;
 
 export const sceneTimingSchema = z.object({
   startSeconds: z.number().nonnegative(),
-  endSeconds: z.number().nonnegative()
+  endSeconds: z.number().nonnegative(),
 });
 export type SceneTiming = z.infer<typeof sceneTimingSchema>;
 
@@ -349,62 +375,71 @@ const sceneTextRequirementDisabledSchema = z.object({
   reason: z.string().optional(),
 });
 
-const sceneTextRequirementEnabledSchema = z.object({
-  required: z.literal(true),
-  text: z.string().min(1),
-  placement: z.string().min(1).optional(),
-  reason: z.string().min(1),
-}).superRefine((value, ctx) => {
-  const text = normalizeSceneText(value.text);
-  const placement = value.placement ? normalizeSceneText(value.placement) : undefined;
-  const reason = normalizeSceneText(value.reason);
-  const wordCount = text.length === 0 ? 0 : text.split(/\s+/u).length;
-  if (text.length === 0) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["text"],
-      message: "Required scene text must not be empty.",
-    });
-  }
-  if (reason.length === 0) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["reason"],
-      message: "Required scene text must include a reason.",
-    });
-  }
-  if (text.length > 40) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["text"],
-      message: "Required scene text must be 40 characters or fewer.",
-    });
-  }
-  if (wordCount > 5) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["text"],
-      message: "Required scene text must be 5 words or fewer.",
-    });
-  }
-  if (placement !== undefined && placement.length === 0) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["placement"],
-      message: "Required scene text placement must not be empty when provided.",
-    });
-  }
-});
+const sceneTextRequirementEnabledSchema = z
+  .object({
+    required: z.literal(true),
+    text: z.string().min(1),
+    placement: z.string().min(1).optional(),
+    reason: z.string().min(1),
+  })
+  .superRefine((value, ctx) => {
+    const text = normalizeSceneText(value.text);
+    const placement = value.placement
+      ? normalizeSceneText(value.placement)
+      : undefined;
+    const reason = normalizeSceneText(value.reason);
+    const wordCount = text.length === 0 ? 0 : text.split(/\s+/u).length;
+    if (text.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["text"],
+        message: "Required scene text must not be empty.",
+      });
+    }
+    if (reason.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["reason"],
+        message: "Required scene text must include a reason.",
+      });
+    }
+    if (text.length > 40) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["text"],
+        message: "Required scene text must be 40 characters or fewer.",
+      });
+    }
+    if (wordCount > 5) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["text"],
+        message: "Required scene text must be 5 words or fewer.",
+      });
+    }
+    if (placement !== undefined && placement.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["placement"],
+        message:
+          "Required scene text placement must not be empty when provided.",
+      });
+    }
+  });
 
-export const sceneTextRequirementSchema = z.union([
-  sceneTextRequirementDisabledSchema,
-  sceneTextRequirementEnabledSchema.transform((value) => ({
-    required: true as const,
-    text: normalizeSceneText(value.text),
-    ...(value.placement ? { placement: normalizeSceneText(value.placement) } : {}),
-    reason: normalizeSceneText(value.reason),
-  })),
-]).default({ required: false });
+export const sceneTextRequirementSchema = z
+  .union([
+    sceneTextRequirementDisabledSchema,
+    sceneTextRequirementEnabledSchema.transform((value) => ({
+      required: true as const,
+      text: normalizeSceneText(value.text),
+      ...(value.placement
+        ? { placement: normalizeSceneText(value.placement) }
+        : {}),
+      reason: normalizeSceneText(value.reason),
+    })),
+  ])
+  .default({ required: false });
 export type SceneTextRequirement = z.infer<typeof sceneTextRequirementSchema>;
 
 export function requiresSceneText(
@@ -415,8 +450,7 @@ export function requiresSceneText(
 
 const sceneTextContextPattern =
   /\b(badge|id card|mailbox|door|room|sign|warning sign|storefront|headline|newspaper|screen|monitor|document|file|record|label|number|code|date|message|note|handwritten|placard|nameplate|ticket|board|email)\b/u;
-const quotedSceneTextPattern =
-  /(?:["“])([^"\n“”]{1,40})(?:["”])/u;
+const quotedSceneTextPattern = /(?:["“])([^"\n“”]{1,40})(?:["”])/u;
 const explicitSceneTextPattern =
   /\b(?:reads?|says?|shows?|states?|marks?|labels?|labels?|bears?|displays?|displaying|written|writing)\s+([A-Z0-9][A-Z0-9 .,'’()\-/:]{0,39})/u;
 const roomNumberTextPattern =
@@ -465,7 +499,8 @@ export function inferSceneTextRequirement(
   return {
     required: true,
     text,
-    reason: "The narration depends on a short piece of visible written information.",
+    reason:
+      "The narration depends on a short piece of visible written information.",
   };
 }
 
@@ -479,7 +514,7 @@ export const imagePromptSchema = z.object({
   prompt: z.string(),
   negativePrompt: z.string(),
   continuity: z.string().default(""),
-  expectedFilename: z.string()
+  expectedFilename: z.string(),
 });
 export type ImagePrompt = z.infer<typeof imagePromptSchema>;
 
@@ -505,13 +540,13 @@ export const sceneSchema = z.object({
   aspectRatios: z.array(z.enum(["16:9", "9:16"])),
   imagePrompt: z.string(),
   expectedImageFilenames: z.array(z.string()),
-  qualityStatus: z.enum(["draft", "approved", "rejected"])
+  qualityStatus: z.enum(["draft", "approved", "rejected"]),
 });
 export type Scene = z.infer<typeof sceneSchema>;
 
 export const scenePlanSchema = z.object({
   sourceId: episodeIdSchema,
-  scenes: z.array(sceneSchema)
+  scenes: z.array(sceneSchema),
 });
 export type ScenePlan = z.infer<typeof scenePlanSchema>;
 
@@ -553,7 +588,9 @@ export const canonicalVisualManifestSchema = z.object({
   updatedAt: z.string().datetime().optional(),
   schemaVersion: z.literal(1),
 });
-export type CanonicalVisualManifest = z.infer<typeof canonicalVisualManifestSchema>;
+export type CanonicalVisualManifest = z.infer<
+  typeof canonicalVisualManifestSchema
+>;
 
 export const localizedSceneAlignmentSchema = z
   .object({
@@ -574,7 +611,9 @@ export const localizedSceneAlignmentSchema = z
       });
     }
   });
-export type LocalizedSceneAlignment = z.infer<typeof localizedSceneAlignmentSchema>;
+export type LocalizedSceneAlignment = z.infer<
+  typeof localizedSceneAlignmentSchema
+>;
 
 export const localizedAlignmentManifestSchema = z.object({
   episodeSlug: episodeIdSchema,
@@ -586,7 +625,9 @@ export const localizedAlignmentManifestSchema = z.object({
   updatedAt: z.string().datetime().optional(),
   schemaVersion: z.literal(1),
 });
-export type LocalizedAlignmentManifest = z.infer<typeof localizedAlignmentManifestSchema>;
+export type LocalizedAlignmentManifest = z.infer<
+  typeof localizedAlignmentManifestSchema
+>;
 
 export const localizedVisualValidationStatusSchema = z.enum([
   "safe",
@@ -649,9 +690,7 @@ export const visualPacingProfileIdSchema = z.enum([
   "high-retention",
   "shorts-aggressive",
 ]);
-export type VisualPacingProfileId = z.infer<
-  typeof visualPacingProfileIdSchema
->;
+export type VisualPacingProfileId = z.infer<typeof visualPacingProfileIdSchema>;
 
 export const normalizedCropSchema = z
   .object({
@@ -798,7 +837,8 @@ export const cameraMotionSchema = z.discriminatedUnion("kind", [
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["endScale"],
-          message: "Pull-out motion must end at a smaller scale than it starts.",
+          message:
+            "Pull-out motion must end at a smaller scale than it starts.",
         });
       }
     }),
@@ -1068,9 +1108,7 @@ export const visualBudgetSchema = z
     effectCaps: z.array(visualEffectCapSchema),
   })
   .superRefine((value, ctx) => {
-    if (
-      value.maxConsecutiveSourceImageUses > value.maxTotalSourceImageUses
-    ) {
+    if (value.maxConsecutiveSourceImageUses > value.maxTotalSourceImageUses) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["maxConsecutiveSourceImageUses"],
@@ -1194,7 +1232,7 @@ const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
     z.null(),
     z.array(jsonValueSchema),
     z.record(z.string(), jsonValueSchema),
-  ]),
+  ])
 );
 
 export const shotPlanValidationIssueSchema = z.object({
@@ -1218,8 +1256,7 @@ export const evidenceInsertIdSchema = z
   .brand<"EvidenceInsertId">();
 export type EvidenceInsertId = z.infer<typeof evidenceInsertIdSchema>;
 
-export const sourceFactIdSchema =
-  createVisualRetentionIdSchema("SourceFactId");
+export const sourceFactIdSchema = createVisualRetentionIdSchema("SourceFactId");
 export type SourceFactId = z.infer<typeof sourceFactIdSchema>;
 
 export const evidenceInsertLocaleSchema = z
@@ -1348,15 +1385,16 @@ export const recordingEvidenceInsertSchema = evidenceInsertBaseSchema.extend({
     })
     .strict(),
 });
-export const audioWaveformEvidenceInsertSchema = evidenceInsertBaseSchema.extend({
-  kind: z.literal("audio-waveform"),
-  content: z
-    .object({
-      label: z.string().trim().min(1),
-      sampleBuckets: z.array(normalizedUnitIntervalSchema).min(4).max(64),
-    })
-    .strict(),
-});
+export const audioWaveformEvidenceInsertSchema =
+  evidenceInsertBaseSchema.extend({
+    kind: z.literal("audio-waveform"),
+    content: z
+      .object({
+        label: z.string().trim().min(1),
+        sampleBuckets: z.array(normalizedUnitIntervalSchema).min(4).max(64),
+      })
+      .strict(),
+  });
 export const messageEvidenceInsertSchema = evidenceInsertBaseSchema.extend({
   kind: z.literal("message"),
   content: z
@@ -1376,15 +1414,16 @@ export const timestampEvidenceInsertSchema = evidenceInsertBaseSchema.extend({
     })
     .strict(),
 });
-export const locationLabelEvidenceInsertSchema = evidenceInsertBaseSchema.extend({
-  kind: z.literal("location-label"),
-  content: z
-    .object({
-      label: z.string().trim().min(1),
-      coordinatesText: z.string().trim().min(1).optional(),
-    })
-    .strict(),
-});
+export const locationLabelEvidenceInsertSchema =
+  evidenceInsertBaseSchema.extend({
+    kind: z.literal("location-label"),
+    content: z
+      .object({
+        label: z.string().trim().min(1),
+        coordinatesText: z.string().trim().min(1).optional(),
+      })
+      .strict(),
+  });
 export const roomNumberEvidenceInsertSchema = evidenceInsertBaseSchema.extend({
   kind: z.literal("room-number"),
   content: z
@@ -1403,25 +1442,27 @@ export const terminalLogEvidenceInsertSchema = evidenceInsertBaseSchema.extend({
     })
     .strict(),
 });
-export const medicalReadingEvidenceInsertSchema = evidenceInsertBaseSchema.extend({
-  kind: z.literal("medical-reading"),
-  content: z
-    .object({
-      metric: z.string().trim().min(1),
-      value: z.string().trim().min(1),
-      unit: z.string().trim().min(1).optional(),
-    })
-    .strict(),
-});
-export const handwrittenNoteEvidenceInsertSchema = evidenceInsertBaseSchema.extend({
-  kind: z.literal("handwritten-note"),
-  content: z
-    .object({
-      noteText: z.string().trim().min(1),
-      attribution: z.string().trim().min(1).optional(),
-    })
-    .strict(),
-});
+export const medicalReadingEvidenceInsertSchema =
+  evidenceInsertBaseSchema.extend({
+    kind: z.literal("medical-reading"),
+    content: z
+      .object({
+        metric: z.string().trim().min(1),
+        value: z.string().trim().min(1),
+        unit: z.string().trim().min(1).optional(),
+      })
+      .strict(),
+  });
+export const handwrittenNoteEvidenceInsertSchema =
+  evidenceInsertBaseSchema.extend({
+    kind: z.literal("handwritten-note"),
+    content: z
+      .object({
+        noteText: z.string().trim().min(1),
+        attribution: z.string().trim().min(1).optional(),
+      })
+      .strict(),
+  });
 export const newspaperHeadingEvidenceInsertSchema =
   evidenceInsertBaseSchema.extend({
     kind: z.literal("newspaper-heading"),
@@ -1475,7 +1516,9 @@ export const shotPlanSourceIdentitySchema = z
     cacheIdentity: z.string().trim().min(1),
   })
   .strict();
-export type ShotPlanSourceIdentity = z.infer<typeof shotPlanSourceIdentitySchema>;
+export type ShotPlanSourceIdentity = z.infer<
+  typeof shotPlanSourceIdentitySchema
+>;
 
 export const shotPlanSchema = z
   .object({
@@ -1508,7 +1551,7 @@ export const shotPlanSchema = z
       value.sourceScenes.map((sourceScene) => [
         sourceScene.sourceSceneId,
         sourceScene,
-      ]),
+      ])
     );
 
     const shotIds = new Set<string>();
@@ -1578,7 +1621,7 @@ export const visualSceneSchema = z.object({
   startSeconds: z.number().nonnegative(),
   endSeconds: z.number().nonnegative(),
   narration: z.string(),
-  sourceSegmentIds: z.array(transcriptSegmentIdSchema)
+  sourceSegmentIds: z.array(transcriptSegmentIdSchema),
 });
 export type VisualScene = z.infer<typeof visualSceneSchema>;
 
@@ -1588,14 +1631,14 @@ export const voiceProfileSchema = z.object({
   gender: z.enum(["male", "female", "neutral"]),
   style: z.string(),
   paceWpm: z.number().positive(),
-  providerVoiceId: z.string().optional()
+  providerVoiceId: z.string().optional(),
 });
 export type VoiceProfile = z.infer<typeof voiceProfileSchema>;
 
 export const audioSegmentSchema = z.object({
   sceneId: sceneIdSchema,
   filePath: z.string(),
-  durationSeconds: z.number().nonnegative()
+  durationSeconds: z.number().nonnegative(),
 });
 export type AudioSegment = z.infer<typeof audioSegmentSchema>;
 
@@ -1603,7 +1646,7 @@ export const wordTimingSchema = z.object({
   word: z.string(),
   startSeconds: z.number().nonnegative(),
   endSeconds: z.number().nonnegative(),
-  confidence: z.number().min(0).max(1).optional()
+  confidence: z.number().min(0).max(1).optional(),
 });
 export type WordTiming = z.infer<typeof wordTimingSchema>;
 
@@ -1614,16 +1657,16 @@ export const alignmentResultSchema = z.object({
     z.object({
       startSeconds: z.number().nonnegative(),
       endSeconds: z.number().nonnegative(),
-      reason: z.string()
+      reason: z.string(),
     })
-  )
+  ),
 });
 export type AlignmentResult = z.infer<typeof alignmentResultSchema>;
 
 export const captionSegmentSchema = z.object({
   startSeconds: z.number().nonnegative(),
   endSeconds: z.number().nonnegative(),
-  text: z.string()
+  text: z.string(),
 });
 export type CaptionSegment = z.infer<typeof captionSegmentSchema>;
 
@@ -1688,7 +1731,10 @@ export const captionPlanSegmentSchema = z
         message: "Caption plan segment must end after it starts.",
       });
     }
-    if (value.lines.join(" ").replace(/\s+/gu, " ").trim() !== value.text.replace(/\s+/gu, " ").trim()) {
+    if (
+      value.lines.join(" ").replace(/\s+/gu, " ").trim() !==
+      value.text.replace(/\s+/gu, " ").trim()
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["lines"],
@@ -1727,7 +1773,15 @@ export const imageAssetSchema = z.object({
   optimizedImagePromptPath: z.string().optional(),
   optimizedImagePromptHash: z.string().optional(),
   generationStatus: z
-    .enum(["pending", "prompt-optimized", "generating", "generated", "validated", "failed", "skipped-cache-hit"])
+    .enum([
+      "pending",
+      "prompt-optimized",
+      "generating",
+      "generated",
+      "validated",
+      "failed",
+      "skipped-cache-hit",
+    ])
     .optional(),
   provenance: z
     .object({
@@ -1747,7 +1801,7 @@ export const imageAssetSchema = z.object({
         reductionCharacters: z.number().int().nonnegative(),
         reductionPercent: z.number().nonnegative(),
         originalEstimatedTokens: z.number().int().nonnegative(),
-        optimizedEstimatedTokens: z.number().int().nonnegative()
+        optimizedEstimatedTokens: z.number().int().nonnegative(),
       }),
       preservedRequirements: z.array(z.string()),
       omittedNonVisualContent: z.array(z.string()),
@@ -1756,7 +1810,9 @@ export const imageAssetSchema = z.object({
       referenceMode: z.enum(["none", "canonical", "previous"]).optional(),
       referenceImagePath: z.string().optional(),
       referenceImageHash: z.string().optional(),
-      referenceImageSource: z.enum(["canonical", "previous", "none", "fallback"]).optional(),
+      referenceImageSource: z
+        .enum(["canonical", "previous", "none", "fallback"])
+        .optional(),
       size: z.string(),
       quality: z.string(),
       outputFormat: z.enum(["png", "webp", "jpeg"]),
@@ -1771,19 +1827,26 @@ export const imageAssetSchema = z.object({
           width: z.number().int().positive().optional(),
           height: z.number().int().positive().optional(),
           checksumSha256: z.string().optional(),
-          warnings: z.array(z.string()).default([])
+          warnings: z.array(z.string()).default([]),
         })
         .optional(),
       failure: z
         .object({
-          failedStage: z.enum(["load", "optimize", "prompt-validation", "generate", "image-validation", "write"]),
+          failedStage: z.enum([
+            "load",
+            "optimize",
+            "prompt-validation",
+            "generate",
+            "image-validation",
+            "write",
+          ]),
           retryable: z.boolean(),
           errorCode: z.string(),
-          errorMessage: z.string()
+          errorMessage: z.string(),
         })
-        .optional()
+        .optional(),
     })
-    .optional()
+    .optional(),
 });
 export type ImageAsset = z.infer<typeof imageAssetSchema>;
 
@@ -1794,7 +1857,7 @@ export const renderProfileSchema = z.object({
   height: z.number().int().positive(),
   fps: z.number().positive(),
   aspectRatio: z.enum(["16:9", "9:16"]),
-  burnCaptions: z.boolean()
+  burnCaptions: z.boolean(),
 });
 export type RenderProfile = z.infer<typeof renderProfileSchema>;
 
@@ -1811,7 +1874,7 @@ export const publishingMetadataSchema = z.object({
   chapters: z.array(
     z.object({
       timestampSeconds: z.number().nonnegative(),
-      title: z.string()
+      title: z.string(),
     })
   ),
   thumbnailTextCandidates: z.array(z.string()),
@@ -1820,7 +1883,7 @@ export const publishingMetadataSchema = z.object({
   summary: z.string(),
   primaryKeyword: z.string(),
   secondaryKeywords: z.array(z.string()),
-  warnings: z.array(z.string())
+  warnings: z.array(z.string()),
 });
 export type PublishingMetadata = z.infer<typeof publishingMetadataSchema>;
 
@@ -1831,7 +1894,7 @@ export const artifactReferenceSchema = z.object({
   mimeType: z.string(),
   sizeBytes: z.number().int().nonnegative(),
   checksumSha256: z.string(),
-  createdAt: z.string()
+  createdAt: z.string(),
 });
 export type ArtifactReference = z.infer<typeof artifactReferenceSchema>;
 
@@ -1840,7 +1903,7 @@ export const providerUsageSchema = z.object({
   model: z.string().optional(),
   inputTokens: z.number().int().nonnegative().default(0),
   outputTokens: z.number().int().nonnegative().default(0),
-  creditsUsed: z.number().nonnegative().default(0)
+  creditsUsed: z.number().nonnegative().default(0),
 });
 export type ProviderUsage = z.infer<typeof providerUsageSchema>;
 
@@ -1851,7 +1914,7 @@ export const pipelineErrorSchema = z.object({
   step: z.string().optional(),
   episodeId: episodeIdSchema.optional(),
   sceneId: sceneIdSchema.optional(),
-  remediation: z.string().optional()
+  remediation: z.string().optional(),
 });
 export type PipelineError = z.infer<typeof pipelineErrorSchema>;
 
@@ -1865,7 +1928,7 @@ export const pipelineStepRunSchema = z.object({
   status: z.enum(["running", "succeeded", "failed", "skipped"]),
   outputArtifactIds: z.array(artifactIdSchema).default([]),
   providerUsage: providerUsageSchema.optional(),
-  error: pipelineErrorSchema.optional()
+  error: pipelineErrorSchema.optional(),
 });
 export type PipelineStepRun = z.infer<typeof pipelineStepRunSchema>;
 
@@ -1875,7 +1938,7 @@ export const pipelineRunSchema = z.object({
   startedAt: z.string(),
   completedAt: z.string().optional(),
   status: z.enum(["running", "succeeded", "failed", "cancelled"]),
-  steps: z.array(pipelineStepRunSchema).default([])
+  steps: z.array(pipelineStepRunSchema).default([]),
 });
 export type PipelineRun = z.infer<typeof pipelineRunSchema>;
 
@@ -1887,7 +1950,7 @@ export const episodeManifestSchema = z.object({
     url: z.string().optional(),
     filePath: z.string().optional(),
     transcriptPath: z.string().optional(),
-    mediaPath: z.string().optional()
+    mediaPath: z.string().optional(),
   }),
   sourceMetadata: z.unknown().optional(),
   sourceMedia: z.unknown().optional(),
@@ -1896,17 +1959,19 @@ export const episodeManifestSchema = z.object({
   rewrittenScript: rewrittenScriptSchema.optional(),
   scenePlan: scenePlanSchema.optional(),
   alignment: alignmentResultSchema.optional(),
-  captions: z.object({
-    srtPath: z.string().optional(),
-    vttPath: z.string().optional(),
-    assPath: z.string().optional()
-  }).optional(),
+  captions: z
+    .object({
+      srtPath: z.string().optional(),
+      vttPath: z.string().optional(),
+      assPath: z.string().optional(),
+    })
+    .optional(),
   images: z.array(imageAssetSchema).default([]),
   publishingMetadata: publishingMetadataSchema.optional(),
   artifacts: z.array(artifactReferenceSchema).default([]),
   pipelineRuns: z.array(pipelineRunSchema).default([]),
   createdAt: z.string(),
-  updatedAt: z.string()
+  updatedAt: z.string(),
 });
 export type EpisodeManifest = z.infer<typeof episodeManifestSchema>;
 
@@ -1956,7 +2021,10 @@ export class ValidationError extends Error {
 export class ConfigurationError extends Error {
   public readonly retryable = false;
 
-  public constructor(message: string, public readonly remediation = "Review configuration and environment variables.") {
+  public constructor(
+    message: string,
+    public readonly remediation = "Review configuration and environment variables."
+  ) {
     super(message);
     this.name = "ConfigurationError";
   }
@@ -1965,7 +2033,10 @@ export class ConfigurationError extends Error {
 export class UnsupportedSourceError extends Error {
   public readonly retryable = false;
 
-  public constructor(message: string, public readonly remediation = "Use a supported local file or authorized source.") {
+  public constructor(
+    message: string,
+    public readonly remediation = "Use a supported local file or authorized source."
+  ) {
     super(message);
     this.name = "UnsupportedSourceError";
   }
@@ -1974,7 +2045,10 @@ export class UnsupportedSourceError extends Error {
 export class SourceAcquisitionError extends Error {
   public readonly retryable = false;
 
-  public constructor(message: string, public readonly remediation = "Verify the source file or transcript and try again.") {
+  public constructor(
+    message: string,
+    public readonly remediation = "Verify the source file or transcript and try again."
+  ) {
     super(message);
     this.name = "SourceAcquisitionError";
   }
@@ -1982,7 +2056,10 @@ export class SourceAcquisitionError extends Error {
 
 export class ProviderAuthenticationError extends Error {
   public readonly retryable = false;
-  public constructor(message: string, public readonly remediation = "Add the required provider credentials.") {
+  public constructor(
+    message: string,
+    public readonly remediation = "Add the required provider credentials."
+  ) {
     super(message);
     this.name = "ProviderAuthenticationError";
   }
@@ -1990,7 +2067,10 @@ export class ProviderAuthenticationError extends Error {
 
 export class ProviderRateLimitError extends Error {
   public readonly retryable = true;
-  public constructor(message: string, public readonly remediation = "Retry later or reduce request volume.") {
+  public constructor(
+    message: string,
+    public readonly remediation = "Retry later or reduce request volume."
+  ) {
     super(message);
     this.name = "ProviderRateLimitError";
   }
@@ -1998,7 +2078,10 @@ export class ProviderRateLimitError extends Error {
 
 export class ProviderResponseError extends Error {
   public readonly retryable = false;
-  public constructor(message: string, public readonly remediation = "Inspect the provider response and adjust the request.") {
+  public constructor(
+    message: string,
+    public readonly remediation = "Inspect the provider response and adjust the request."
+  ) {
     super(message);
     this.name = "ProviderResponseError";
   }
@@ -2006,7 +2089,10 @@ export class ProviderResponseError extends Error {
 
 export class ProcessExecutionError extends Error {
   public readonly retryable = true;
-  public constructor(message: string, public readonly remediation = "Inspect the command output and rerun if the failure was transient.") {
+  public constructor(
+    message: string,
+    public readonly remediation = "Inspect the command output and rerun if the failure was transient."
+  ) {
     super(message);
     this.name = "ProcessExecutionError";
   }
@@ -2014,7 +2100,10 @@ export class ProcessExecutionError extends Error {
 
 export class MediaValidationError extends Error {
   public readonly retryable = false;
-  public constructor(message: string, public readonly remediation = "Replace or repair the media artifact.") {
+  public constructor(
+    message: string,
+    public readonly remediation = "Replace or repair the media artifact."
+  ) {
     super(message);
     this.name = "MediaValidationError";
   }
@@ -2022,7 +2111,10 @@ export class MediaValidationError extends Error {
 
 export class ArtifactNotFoundError extends Error {
   public readonly retryable = false;
-  public constructor(message: string, public readonly remediation = "Regenerate the missing artifact or re-import it.") {
+  public constructor(
+    message: string,
+    public readonly remediation = "Regenerate the missing artifact or re-import it."
+  ) {
     super(message);
     this.name = "ArtifactNotFoundError";
   }
@@ -2030,7 +2122,10 @@ export class ArtifactNotFoundError extends Error {
 
 export class PipelineInvariantError extends Error {
   public readonly retryable = false;
-  public constructor(message: string, public readonly remediation = "Review the manifest and pipeline step sequencing.") {
+  public constructor(
+    message: string,
+    public readonly remediation = "Review the manifest and pipeline step sequencing."
+  ) {
     super(message);
     this.name = "PipelineInvariantError";
   }
@@ -2038,7 +2133,10 @@ export class PipelineInvariantError extends Error {
 
 export class HumanActionRequiredError extends Error {
   public readonly retryable = false;
-  public constructor(message: string, public readonly remediation = "Complete the required human action and rerun the command.") {
+  public constructor(
+    message: string,
+    public readonly remediation = "Complete the required human action and rerun the command."
+  ) {
     super(message);
     this.name = "HumanActionRequiredError";
   }

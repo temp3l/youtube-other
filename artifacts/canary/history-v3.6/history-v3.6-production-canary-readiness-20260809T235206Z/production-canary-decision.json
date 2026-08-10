@@ -1,0 +1,6 @@
+{
+  "verdict": "BLOCKED_BY_MEASURED_TIMING",
+  "humanDecisionRequired": true,
+  "exactGate": "Gate B — the existing configured TTS path produced authoritative timing, but neither canary satisfies the configured production duration policy.",
+  "productionActivated": false
+}

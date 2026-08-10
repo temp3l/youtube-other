@@ -10,6 +10,10 @@ import {
 } from "./index.js";
 
 const useCases: ApiUseCases = {
+  ingestRevisionAnalytics: async (observation) => ({
+    observation: { ...observation, regenerationRationale: "new-observation" },
+    replayed: false,
+  }),
   getQuota: async () => ({
     workspaceId: "ws-1",
     budgetLimitMinor: "100",
@@ -26,11 +30,37 @@ const useCases: ApiUseCases = {
     id: "episode-1",
     revision: 2,
     content: { type: "dark_truth", version: "1" },
+    lifecycleState: "active",
+    sourceEpisodeId: null,
+    sourceEpisodeRevision: null,
   }),
   replaceEpisodeContent: async (id, input) => ({
     id,
     revision: 3,
     content: input.content,
+  }),
+  archiveEpisode: async (id) => ({
+    id,
+    revision: 3,
+    lifecycleState: "archived",
+    replayed: false,
+  }),
+  cloneEpisode: async (sourceEpisodeId) => ({
+    id: "episode-clone-1",
+    revision: 0,
+    lifecycleState: "active",
+    sourceEpisodeId,
+    sourceEpisodeRevision: 2,
+    replayed: false,
+  }),
+  forkEpisodeFromPattern: async (sourceEpisodeId, input) => ({
+    id: "episode-fork-1",
+    revision: 0,
+    lifecycleState: "active",
+    sourceEpisodeId,
+    sourceEpisodeRevision: input.expectedSourceRevision,
+    patternLineage: input.patternLineage,
+    replayed: false,
   }),
   admitWorkflow: async () => ({
     workflowRunId: "run-1",
@@ -727,6 +757,9 @@ describe("HTTP API contract", () => {
               id,
               revision: 5,
               content: { type: "dark_truth", version: "1" },
+              lifecycleState: "active",
+              sourceEpisodeId: null,
+              sourceEpisodeRevision: null,
             };
           },
           getJob: async (id, context) => {
@@ -806,6 +839,234 @@ describe("HTTP API contract", () => {
         operation: "steps",
         id: "run-read",
         context: expect.objectContaining({ projectId: "project-1" }),
+      }),
+    ]);
+  });
+
+  it("archives and clones episodes through authorized idempotent lifecycle commands", async () => {
+    const calls: unknown[] = [];
+    const running = await serve(
+      createApiServer({
+        useCases: {
+          ...useCases,
+          archiveEpisode: async (id, input, context) => {
+            calls.push({ operation: "archive", id, input, context });
+            return { id, revision: 4, lifecycleState: "archived", replayed: false };
+          },
+          cloneEpisode: async (id, input, context) => {
+            calls.push({ operation: "clone", id, input, context });
+            return {
+              id: "episode-clone-1", revision: 0, lifecycleState: "active",
+              sourceEpisodeId: id, sourceEpisodeRevision: input.expectedSourceRevision,
+              replayed: true,
+            };
+          },
+        },
+        authenticate,
+        requestId: () => "request-lifecycle",
+      })
+    );
+    closers.push(running.close);
+
+    const archivePath = `${running.baseUrl}/v1/workspaces/ws-1/projects/project-1/episodes/episode-1:archive`;
+    const missing = await request({ url: archivePath, method: "POST" });
+    expect(missing.status).toBe(428);
+
+    const archived = await request({
+      url: archivePath,
+      method: "POST",
+      headers: { "if-match": '"2"', "idempotency-key": "archive-key", "content-type": "application/json" },
+      body: JSON.stringify({ expectedRevision: 2, reason: "Superseded by approved revision." }),
+    });
+    const cloned = await request({
+      url: `${running.baseUrl}/v1/workspaces/ws-1/projects/project-1/episodes/episode-1:clone`,
+      method: "POST",
+      headers: { "idempotency-key": "clone-key", "content-type": "application/json" },
+      body: JSON.stringify({ expectedSourceRevision: 2 }),
+    });
+    expect(archived.status).toBe(200);
+    expect(archived.headers.etag).toBe('"4"');
+    expect(cloned.status).toBe(201);
+    expect(cloned.headers.location).toContain("episodes/episode-clone-1");
+    expect(cloned.headers["idempotency-replayed"]).toBe("true");
+    expect(calls).toEqual([
+      expect.objectContaining({ operation: "archive", id: "episode-1", context: expect.objectContaining({ ifMatch: '"2"', idempotencyKey: "archive-key" }) }),
+      expect.objectContaining({ operation: "clone", id: "episode-1", context: expect.objectContaining({ idempotencyKey: "clone-key" }) }),
+    ]);
+  });
+
+  it("ingests revision-bound analytics with authorization and idempotency", async () => {
+    const calls: unknown[] = [];
+    const running = await serve(
+      createApiServer({
+        useCases: {
+          ...useCases,
+          ingestRevisionAnalytics: async (observation, context) => {
+            calls.push({ observation, context });
+            return {
+              observation: {
+                ...observation,
+                regenerationRationale: "new-observation",
+              },
+              replayed: true,
+            };
+          },
+        },
+        authenticate,
+        requestId: () => "request-analytics",
+      }),
+    );
+    closers.push(running.close);
+    const url = `${running.baseUrl}/v1/workspaces/ws-1/projects/project-1/analytics-observations`;
+    const payload = JSON.stringify({
+      observation: {
+        schemaVersion: "revision-analytics-observation.v1",
+        observationId: "observation-1",
+        contentProfileId: "strategic-reinvention",
+        episodeId: "episode-1",
+        editionRevisionId: "edition-1",
+        publicationId: "publication-1",
+        publicationRevision: 2,
+        locale: "it",
+        observedAt: "2026-08-09T00:00:00.000Z",
+        configurationRevision: "config-1",
+        dependencyIdentity: { delivery: "a".repeat(64) },
+        provenanceSha256: "b".repeat(64),
+        metrics: { views: 12 },
+        providerDispatchEnabled: false,
+      },
+    });
+    expect((await request({ url, method: "POST", body: payload })).status).toBe(428);
+    const response = await request({
+      url,
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "idempotency-key": "analytics-key",
+      },
+      body: payload,
+    });
+    expect(response.status).toBe(201);
+    expect(response.headers["idempotency-replayed"]).toBe("true");
+    expect(calls).toEqual([
+      expect.objectContaining({
+        observation: expect.objectContaining({
+          contentProfileId: "veronicabenini",
+        }),
+        context: expect.objectContaining({ idempotencyKey: "analytics-key" }),
+      }),
+    ]);
+  });
+
+  it("creates observational comparisons without profile mutation or provider dispatch", async () => {
+    const calls: unknown[] = [];
+    const hash = "a".repeat(64);
+    const running = await serve(
+      createApiServer({
+        useCases: {
+          ...useCases,
+          compareRevisionAnalytics: async (comparison, context) => {
+            calls.push({ comparison, context });
+            return {
+              comparison: {
+                schemaVersion: "revision-analytics-comparison.v1",
+                comparisonId: "analytics-comparison-0123456789abcdef",
+                contentProfileId: "veronicabenini",
+                episodeId: "episode-1",
+                metric: "views",
+                comparisonDimensions: ["locale", "format"],
+                interpretation: "observational-non-causal",
+                immutableObservationBindings: [
+                  {
+                    observationId: "observation-it",
+                    publicationId: "publication-it",
+                    publicationRevision: 2,
+                    editionRevisionId: "edition-it",
+                    locale: "it",
+                    format: "full",
+                    observedAt: "2026-08-09T00:00:00.000Z",
+                    configurationRevision: "config-1",
+                    dependencyIdentity: { delivery: hash },
+                    provenanceSha256: hash,
+                    observationFingerprint: hash,
+                  },
+                  {
+                    observationId: "observation-en",
+                    publicationId: "publication-en",
+                    publicationRevision: 3,
+                    editionRevisionId: "edition-en",
+                    locale: "en",
+                    format: "short",
+                    observedAt: "2026-08-09T00:00:00.000Z",
+                    configurationRevision: "config-1",
+                    dependencyIdentity: { delivery: hash },
+                    provenanceSha256: hash,
+                    observationFingerprint: hash,
+                  },
+                ],
+                cohorts: [
+                  { locale: "it", format: "full", observationId: "observation-it", value: 12 },
+                  { locale: "en", format: "short", observationId: "observation-en", value: 8 },
+                ],
+                effectiveConfigurationHash: hash,
+                dependencyIdentity: { analytics: hash },
+                provenance: {
+                  source: "immutable-revision-analytics-observations",
+                  observationSetHash: hash,
+                },
+                reuseRationale: "content-hash-match",
+                regenerationRationale: "new-comparison",
+                profileMutationEnabled: false,
+                providerDispatchEnabled: false,
+                fingerprint: hash,
+              },
+              replayed: true,
+              reused: true,
+            };
+          },
+        },
+        authenticate,
+        requestId: () => "request-comparison",
+      }),
+    );
+    closers.push(running.close);
+    const url = `${running.baseUrl}/v1/workspaces/ws-1/projects/project-1/analytics-comparisons`;
+    const payload = JSON.stringify({
+      schemaVersion: "revision-analytics-comparison-request.v1",
+      contentProfileId: "strategic-reinvention",
+      episodeId: "episode-1",
+      metric: "views",
+      comparisonDimensions: ["locale", "format"],
+      cohorts: [
+        { observationId: "observation-it", format: "full" },
+        { observationId: "observation-en", format: "short" },
+      ],
+      effectiveConfigurationHash: hash,
+      dependencyIdentity: { analytics: hash },
+    });
+    expect((await request({ url, method: "POST", body: payload })).status).toBe(428);
+    const response = await request({
+      url,
+      method: "POST",
+      headers: { "content-type": "application/json", "idempotency-key": "comparison-key" },
+      body: payload,
+    });
+    expect(response.status).toBe(201);
+    expect(response.headers["idempotency-replayed"]).toBe("true");
+    expect(JSON.parse(response.body) as unknown).toMatchObject({
+      comparison: {
+        contentProfileId: "veronicabenini",
+        interpretation: "observational-non-causal",
+        profileMutationEnabled: false,
+        providerDispatchEnabled: false,
+      },
+      replayed: true,
+      reused: true,
+    });
+    expect(calls).toEqual([
+      expect.objectContaining({
+        comparison: expect.objectContaining({ contentProfileId: "veronicabenini" }),
+        context: expect.objectContaining({ idempotencyKey: "comparison-key" }),
       }),
     ]);
   });

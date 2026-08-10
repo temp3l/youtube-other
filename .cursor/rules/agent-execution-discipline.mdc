@@ -1,0 +1,69 @@
+---
+description: Bounded agent execution and anti-stall policy
+alwaysApply: true
+---
+
+# Execution discipline
+
+- Keep implementation work bounded to the current task.
+- Do not perform unbounded repository exploration.
+
+## Discovery
+
+- Identify likely files before editing.
+- Use targeted `rg` searches against the narrowest relevant directory.
+- Do not repeatedly grep the repository for the same concept.
+- After two useful search/read passes, begin implementation unless a concrete
+  unresolved dependency prevents it.
+- Do not read entire large generated or canonical files when a targeted range
+  or exact search is sufficient.
+
+## Editing
+
+- Prefer small atomic edits.
+- Apply edits incrementally rather than accumulating a large batch of pending
+  mutations.
+- After editing a high-contention/shared file, continue from its new state.
+- If an edit fails or cannot be applied:
+  1. re-read only the relevant section;
+  2. retry using a smaller patch;
+  3. do not repeat the identical edit operation more than once.
+- If the smaller retry also fails, record the blocker and continue with
+  independent work instead of looping.
+
+## Shared files
+
+Treat canonical schemas, OpenAPI specifications, Prisma schemas, package
+manifests, shared registries, migrations, and generated contracts as
+single-writer resources.
+
+Do not modify a shared resource concurrently with another task or agent.
+
+## Parallelism
+
+Parallelize only independent tasks with disjoint write ownership.
+
+If parallel agents require the same repository, use isolated git worktrees.
+Never allow multiple agents to concurrently mutate the same working tree.
+
+## Validation
+
+Run focused validation for the files/packages changed.
+
+Do not run repository-wide tests, builds, lint, typecheck, migrations, or
+generation after every edit.
+
+Run broad validation only when explicitly required by the task or during final
+acceptance/release validation.
+
+## Progress
+
+Do not spend an extended agent loop only searching or reading.
+
+When enough evidence exists to implement safely, implement.
+
+Prefer:
+search -> read -> edit -> focused validation -> next change
+
+over:
+search -> search -> read -> search -> read -> reason -> search -> batch edits

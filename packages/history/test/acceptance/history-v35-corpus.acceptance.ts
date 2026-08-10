@@ -2,12 +2,15 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { discoverHistoryStoryPackEpisodeIds } from "../../src/history-episode-discovery.js";
+import { findSurvivingGeographicEntitiesMissingQualifiersV35 } from "../../src/history-claims-v34.js";
+import { resolveHistoryPlaceV34 } from "../../src/history-geo-v34.js";
 import { planHistoryVisualsV35 } from "../../src/history-workflow-v35.js";
 import { assessPlanningAcceptanceV35 } from "../../src/history-planning-acceptance-v35.js";
 import {
   deriveCoreSubjectsV35,
   assessCoreSubjectCompletenessV35,
 } from "../../src/history-core-subject-v35.js";
+import { assessDiagramProvenanceForPlanV35 } from "../../src/history-diagram-provenance-v35.js";
 import {
   isCinematicCameraMovementV35,
   isTemplatedArchivalPurposeV35,
@@ -16,6 +19,11 @@ import {
 } from "../../src/history-visual-semantics-v35.js";
 import { validatePlanStateEvidenceClosureV35 } from "../../src/history-state-evidence-closure-v35.js";
 import { compareTemporalBoundsV35 } from "../../src/history-temporal-v35.js";
+import {
+  canonicalMapExplanationIdentityV35,
+  semanticMapStateIdentityV35,
+} from "../../src/history-map-semantic-dedup-v35.js";
+import { validateCompiledMapStateV35 } from "../../src/history-map-compiler-v35.js";
 
 const repoRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -26,7 +34,7 @@ const episodesDirectory = path.join(repoRoot, "episodes");
 const EPISODES = discoverHistoryStoryPackEpisodeIds({
   episodesDirectory,
   from: 1,
-  to: 30,
+  to: 40,
 });
 
 const CORPUS_TESTS = [
@@ -36,7 +44,7 @@ const CORPUS_TESTS = [
 
 describe("History V3.5 corpus acceptance", () => {
   it("satisfies cross-episode semantic invariants", async () => {
-    expect(EPISODES.length).toBe(30);
+    expect(EPISODES.length).toBe(40);
     for (const episodeId of EPISODES) {
       const { plan } = await planHistoryVisualsV35({
         episodeId,
@@ -68,10 +76,43 @@ describe("History V3.5 corpus acceptance", () => {
       ).toEqual([]);
       expect(plan.approval.contentApprovalEligible, episodeId).toBe(true);
       expect(plan.approval.editoriallyReviewable, episodeId).toBe(true);
+      const missingGeographicQualifiers = findSurvivingGeographicEntitiesMissingQualifiersV35({
+        entities: plan.entities,
+        claims: plan.claims,
+        geographicQualifiers: plan.geographicQualifiers,
+      });
+      expect(
+        missingGeographicQualifiers,
+        `${episodeId} credible geography missing qualifiers: ${missingGeographicQualifiers.join(", ")}`
+      ).toEqual([]);
       for (const state of plan.diagramStates) {
         if (state.blockerCodes.length) {
           expect(state.semanticStatus, `${episodeId} ${state.id}`).toBe("blocked");
         }
+      }
+      const diagramProvenance = assessDiagramProvenanceForPlanV35(plan);
+      expect(diagramProvenance.violations).toEqual([]);
+      expect(diagramProvenance.crossEpisodeClaimReferences).toBe(0);
+      expect(diagramProvenance.ungroundedValidNodes).toBe(0);
+      expect(diagramProvenance.ungroundedValidRelationships).toBe(0);
+      expect(diagramProvenance.ungroundedValidQuestions).toBe(0);
+      expect(diagramProvenance.properNameFragmentationViolations).toBe(0);
+      const exactMapIdentities = plan.mapStates.map(semanticMapStateIdentityV35);
+      expect(new Set(exactMapIdentities).size, `${episodeId} exact duplicate maps`).toBe(
+        exactMapIdentities.length
+      );
+      const explanationMapIdentities = plan.mapStates.map((state) =>
+        canonicalMapExplanationIdentityV35({ episodeId, state })
+      );
+      expect(
+        new Set(explanationMapIdentities).size,
+        `${episodeId} same-explanation duplicate maps`
+      ).toBe(explanationMapIdentities.length);
+      for (const state of plan.mapStates) {
+        expect(
+          validateCompiledMapStateV35(state),
+          `${episodeId} ${state.id} map semantic completeness`
+        ).toEqual([]);
       }
       expect(
         plan.mediaDecisions.every(
@@ -105,6 +146,7 @@ describe("History V3.5 corpus acceptance", () => {
           const qualifier = plan.geographicQualifiers.find((item) => item.id === qualifierId);
           const entity = plan.entities.find((item) => item.id === qualifier?.entityMentionId);
           if (!entity) continue;
+          if (!resolveHistoryPlaceV34(entity.normalizedLabel)) continue;
           expect(
             mapRepresentsGeographicLabelV35(mapState, entity.normalizedLabel),
             `${episodeId} ${beat.id} missing ${entity.normalizedLabel}`
@@ -142,6 +184,20 @@ describe("History V3.5 corpus acceptance", () => {
             plan.entities.some((entity) => entity.normalizedLabel === "United States"),
             `${episodeId} pronoun us must not resolve to United States`
           ).toBe(false);
+        }
+        if (episodeId.includes("bronze-age-collapse")) {
+          const selectedDiagramIds = new Set(
+            plan.beats.map((beat) => beat.diagramStateId).filter(Boolean)
+          );
+          expect(
+            plan.diagramStates.some(
+              (state) =>
+                state.semanticStatus === "valid" &&
+                state.masterId.includes("bronze-age") &&
+                selectedDiagramIds.has(state.id)
+            ),
+            `${episodeId} selected Bronze Age diagram`
+          ).toBe(true);
         }
       }
 
@@ -186,6 +242,16 @@ describe("History V3.5 corpus acceptance", () => {
         expect(plan.narration.normalizedText).toMatch(
           /wreck of Terror, with hatches closed and much of its interior preserved/iu
         );
+        const movement = plan.mapStates.find(
+          (state) =>
+            state.compilerResolution?.resolvedMapType === "movement" &&
+            state.routes.some(
+              (route) =>
+                route.origin.label === "Britain" &&
+                route.destination.label === "Northwest Passage"
+            )
+        );
+        expect(movement, `${episodeId} Franklin movement map`).toBeDefined();
       }
 
       if (episodeId.includes("roman-empire")) {
@@ -202,6 +268,18 @@ describe("History V3.5 corpus acceptance", () => {
             route.destination.label === "Europe"
         );
         expect(inventedRoute).toBeUndefined();
+        expect(
+          plan.diagramStates.some((state) => {
+            if (state.semanticStatus !== "valid") return false;
+            const nodes = new Map(state.nodes.map((node) => [node.id, node.label] as const));
+            return state.edges.some(
+              (edge) =>
+                nodes.get(edge.fromNodeId) === "tax revenue" &&
+                nodes.get(edge.toNodeId) === "armies and administration"
+            );
+          }),
+          `${episodeId} Roman resource relation`
+        ).toBe(true);
       }
 
       if (episodeId.includes("mongol-war-machine")) {
@@ -247,6 +325,34 @@ describe("History V3.5 corpus acceptance", () => {
             expect(state.semanticStatus, state.id).toBe("blocked");
           }
         }
+        expect(
+          plan.diagramStates.some((state) => {
+            if (state.semanticStatus !== "valid") return false;
+            const nodes = new Map(state.nodes.map((node) => [node.id, node.label] as const));
+            return state.edges.some(
+              (edge) =>
+                nodes.get(edge.fromNodeId) === "labour scarcity" &&
+                nodes.get(edge.toNodeId) === "wage pressure"
+            );
+          }),
+          `${episodeId} Black Death normalized labour relation`
+        ).toBe(true);
+      }
+
+      if (episodeId.includes("tutankhamun")) {
+        expect(
+          plan.diagramStates.some((state) => {
+            if (state.semanticStatus !== "valid") return false;
+            const nodes = new Map(state.nodes.map((node) => [node.id, node.label] as const));
+            return state.edges.some(
+              (edge) =>
+                nodes.get(edge.fromNodeId) === "Tutankhamun" &&
+                nodes.get(edge.toNodeId) === "Egypt" &&
+                edge.relationship === "leads-to"
+            );
+          }),
+          `${episodeId} unsupported Tutankhamun leads-to Egypt edge`
+        ).toBe(false);
       }
 
       const planEvidenceFailures = validatePlanStateEvidenceClosureV35({

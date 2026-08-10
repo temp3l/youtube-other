@@ -1,0 +1,6 @@
+{
+  "verdict": "READY_FOR_BOUNDED_PRODUCTION_ROLLOUT",
+  "humanDecisionRequired": false,
+  "productionActivated": false,
+  "reason": "Both measured-timing canaries passed. The general production composer remains V3.5, so only the explicit isolated canary runner is ready for bounded rollout."
+}

@@ -1,0 +1,44 @@
+{
+  "rules": [
+    {
+      "relationKind": "causal",
+      "disposition": "DIAGRAM",
+      "compilerRule": "diagram-causal.v1",
+      "semanticGuard": "cause→effect with exact modality"
+    },
+    {
+      "relationKind": "dependency",
+      "disposition": "DIAGRAM",
+      "compilerRule": "diagram-dependency.v1",
+      "semanticGuard": "dependency→dependent; never causal"
+    },
+    {
+      "relationKind": "process",
+      "disposition": "DIAGRAM",
+      "compilerRule": "diagram-process.v1",
+      "semanticGuard": "ordered process; not causality"
+    },
+    {
+      "relationKind": "temporal-sequence",
+      "disposition": "DIAGRAM",
+      "compilerRule": "diagram-temporal-sequence.v1",
+      "semanticGuard": "chronology; not causality"
+    },
+    {
+      "relationKind": "policy-response",
+      "disposition": "DIAGRAM",
+      "compilerRule": "diagram-policy-response.v1",
+      "semanticGuard": "condition→response with both modalities and proof"
+    },
+    {
+      "relationKind": "evidence-set",
+      "disposition": "DIAGRAM",
+      "compilerRule": "diagram-evidence-set.v1",
+      "semanticGuard": "edge-free unordered semantic set"
+    }
+  ],
+  "sameEightDiagram": 31,
+  "all40Diagram": 101,
+  "evidenceSetSemanticEdges": 0,
+  "inferenceInputs": []
+}

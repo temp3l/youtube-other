@@ -1,0 +1,529 @@
+{
+  "schemaVersion": "history-visual-plan-shadow.v1",
+  "plannerVersion": "history-visual-plan-shadow.v3.6.0",
+  "episodeId": "history-youtube-history-30-video-story-pack-36-spanish-armada-why-it-failed",
+  "shadowOnly": true,
+  "basePlan": {
+    "schemaVersion": "history-visual-plan.v3.5",
+    "plannerVersion": "history-visual-planner.v3.5.0",
+    "planHash": "72ad977a4e857713ceeaf61c9bf63ad776eb92f32917995ce24a8a91cd73c39c",
+    "timingSource": "provisional-text-estimate",
+    "totalDurationMs": 553925,
+    "productionBlockerCodes": [
+      "TIMING_MEASUREMENT_REQUIRED"
+    ],
+    "beatIds": [
+      "beat-0001",
+      "beat-0002",
+      "beat-0003",
+      "beat-0004",
+      "beat-0005",
+      "beat-0006",
+      "beat-0007",
+      "beat-0008",
+      "beat-0009",
+      "beat-0010",
+      "beat-0011",
+      "beat-0012",
+      "beat-0013",
+      "beat-0014",
+      "beat-0015",
+      "beat-0016",
+      "beat-0017",
+      "beat-0018",
+      "beat-0019",
+      "beat-0020",
+      "beat-0021",
+      "beat-0022",
+      "beat-0023",
+      "beat-0024",
+      "beat-0025",
+      "beat-0026",
+      "beat-0027",
+      "beat-0028",
+      "beat-0029",
+      "beat-0030",
+      "beat-0031",
+      "beat-0032",
+      "beat-0033",
+      "beat-0034",
+      "beat-0035",
+      "beat-0036",
+      "beat-0037",
+      "beat-0038",
+      "beat-0039",
+      "beat-0040",
+      "beat-0041",
+      "beat-0042",
+      "beat-0043",
+      "beat-0044",
+      "beat-0045",
+      "beat-0046",
+      "beat-0047",
+      "beat-0048",
+      "beat-0049",
+      "beat-0050",
+      "beat-0051",
+      "beat-0052"
+    ],
+    "shotIds": [
+      "shot-0001-01",
+      "shot-0002-01",
+      "shot-0002-02",
+      "shot-0003-01",
+      "shot-0003-02",
+      "shot-0004-01",
+      "shot-0005-01",
+      "shot-0005-02",
+      "shot-0006-01",
+      "shot-0006-02",
+      "shot-0007-01",
+      "shot-0008-01",
+      "shot-0009-01",
+      "shot-0009-02",
+      "shot-0009-03",
+      "shot-0010-01",
+      "shot-0010-01-b",
+      "shot-0010-02",
+      "shot-0010-03",
+      "shot-0011-01",
+      "shot-0011-02",
+      "shot-0011-03",
+      "shot-0012-01",
+      "shot-0012-01-b",
+      "shot-0012-02",
+      "shot-0012-03",
+      "shot-0013-01",
+      "shot-0013-02",
+      "shot-0013-03",
+      "shot-0014-01",
+      "shot-0014-02",
+      "shot-0014-03",
+      "shot-0015-01",
+      "shot-0015-02",
+      "shot-0015-03",
+      "shot-0016-01",
+      "shot-0017-01",
+      "shot-0018-01",
+      "shot-0019-01",
+      "shot-0019-01-b",
+      "shot-0019-02",
+      "shot-0019-03",
+      "shot-0020-01",
+      "shot-0020-02",
+      "shot-0020-03",
+      "shot-0021-01",
+      "shot-0021-02",
+      "shot-0022-01",
+      "shot-0022-02",
+      "shot-0023-01",
+      "shot-0023-02",
+      "shot-0024-01",
+      "shot-0025-01",
+      "shot-0025-02",
+      "shot-0025-03",
+      "shot-0026-01",
+      "shot-0026-02",
+      "shot-0027-01",
+      "shot-0027-02",
+      "shot-0028-01",
+      "shot-0029-01",
+      "shot-0030-01",
+      "shot-0031-01",
+      "shot-0032-01",
+      "shot-0032-02",
+      "shot-0033-01",
+      "shot-0034-01",
+      "shot-0035-01",
+      "shot-0036-01",
+      "shot-0037-01",
+      "shot-0037-02",
+      "shot-0038-01",
+      "shot-0039-01",
+      "shot-0039-02",
+      "shot-0040-01",
+      "shot-0040-02",
+      "shot-0040-03",
+      "shot-0041-01",
+      "shot-0041-02",
+      "shot-0042-01",
+      "shot-0043-01",
+      "shot-0044-01",
+      "shot-0045-01",
+      "shot-0045-02",
+      "shot-0046-01",
+      "shot-0046-02",
+      "shot-0047-01",
+      "shot-0048-01",
+      "shot-0049-01",
+      "shot-0049-02",
+      "shot-0050-01",
+      "shot-0051-01",
+      "shot-0052-01",
+      "shot-0052-02"
+    ]
+  },
+  "coexistence": {
+    "mode": "ADDITIVE_SEMANTIC_OVERLAY",
+    "baseBeatsPreserved": true,
+    "baseShotsPreserved": true,
+    "replacementCount": 0
+  },
+  "renderSpecs": [
+    {
+      "schemaVersion": "history-renderer-shadow-spec.v1",
+      "rendererVersion": "history-renderer-shadow.v3.6.0",
+      "disposition": "RENDER_SPEC",
+      "renderSpecId": "history-render-spec-3b178ba19d49e95a3f642b96",
+      "compilerIntentId": "history-compiler-intent-18479cff6852d7fbe1640eea",
+      "relationId": "relation-causal-6f940067404404c131f6cad5",
+      "relationKind": "causal",
+      "episodeId": "history-youtube-history-30-video-story-pack-36-spanish-armada-why-it-failed",
+      "rendererRule": "diagram-causal-svg.v1",
+      "shadowOnly": true,
+      "provenance": {
+        "relationId": "relation-causal-6f940067404404c131f6cad5",
+        "evidenceFingerprint": "evidence-e6d598deadda2ba1e24838b0",
+        "supportClaimIds": [
+          "claim-a76b4fa0b56f683bf2400b80"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      },
+      "width": 1200,
+      "height": 675,
+      "renderTarget": "DIAGRAM_SVG",
+      "semanticPayload": {
+        "schemaVersion": "history-compiler-shadow-intent.v1",
+        "compilerVersion": "history-compiler-shadow.v3.6.0",
+        "compilerIntentId": "history-compiler-intent-18479cff6852d7fbe1640eea",
+        "compilerRule": "diagram-causal.v1",
+        "episodeId": "history-youtube-history-30-video-story-pack-36-spanish-armada-why-it-failed",
+        "relationId": "relation-causal-6f940067404404c131f6cad5",
+        "provenance": {
+          "relationId": "relation-causal-6f940067404404c131f6cad5",
+          "evidenceFingerprint": "evidence-e6d598deadda2ba1e24838b0",
+          "supportClaimIds": [
+            "claim-a76b4fa0b56f683bf2400b80"
+          ],
+          "structuredPropositionIds": [],
+          "atomicGroundingIds": []
+        },
+        "shadowOnly": true,
+        "disposition": "DIAGRAM",
+        "relationKind": "causal",
+        "diagramSemanticType": "causal-chain",
+        "cause": {
+          "canonicalLabel": "the Channel behind it remained dangerous"
+        },
+        "effect": {
+          "canonicalLabel": "The fleet chose a route home around Scotland and Ireland"
+        },
+        "causalAssertionStatus": "asserted"
+      },
+      "points": [
+        {
+          "id": "node-0-the-channel-behind-it-remained-dangerous",
+          "label": "the Channel behind it remained dangerous",
+          "x": 150,
+          "y": 340,
+          "role": "cause"
+        },
+        {
+          "id": "node-1-the-fleet-chose-a-route-home-around-scotland-and-ireland",
+          "label": "The fleet chose a route home around Scotland and Ireland",
+          "x": 1050,
+          "y": 340,
+          "role": "effect",
+          "status": "asserted"
+        }
+      ],
+      "edges": [
+        {
+          "from": "node-0-the-channel-behind-it-remained-dangerous",
+          "to": "node-1-the-fleet-chose-a-route-home-around-scotland-and-ireland",
+          "semanticType": "causes",
+          "directed": true,
+          "label": "causal · asserted"
+        }
+      ],
+      "legend": [
+        "cause → effect",
+        "assertion: asserted"
+      ]
+    },
+    {
+      "schemaVersion": "history-renderer-shadow-spec.v1",
+      "rendererVersion": "history-renderer-shadow.v3.6.0",
+      "disposition": "RENDER_SPEC",
+      "renderSpecId": "history-render-spec-b31cc10a135f3051f271c4e2",
+      "compilerIntentId": "history-compiler-intent-fc88e77b7ee840ecef1193d3",
+      "relationId": "relation-causal-86d2451fc0270290745654ba",
+      "relationKind": "causal",
+      "episodeId": "history-youtube-history-30-video-story-pack-36-spanish-armada-why-it-failed",
+      "rendererRule": "diagram-causal-svg.v1",
+      "shadowOnly": true,
+      "provenance": {
+        "relationId": "relation-causal-86d2451fc0270290745654ba",
+        "evidenceFingerprint": "evidence-9d729c22bd3539220c500d82",
+        "supportClaimIds": [
+          "claim-be7255357533271755d5dc0e"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      },
+      "width": 1200,
+      "height": 675,
+      "renderTarget": "DIAGRAM_SVG",
+      "semanticPayload": {
+        "schemaVersion": "history-compiler-shadow-intent.v1",
+        "compilerVersion": "history-compiler-shadow.v3.6.0",
+        "compilerIntentId": "history-compiler-intent-fc88e77b7ee840ecef1193d3",
+        "compilerRule": "diagram-causal.v1",
+        "episodeId": "history-youtube-history-30-video-story-pack-36-spanish-armada-why-it-failed",
+        "relationId": "relation-causal-86d2451fc0270290745654ba",
+        "provenance": {
+          "relationId": "relation-causal-86d2451fc0270290745654ba",
+          "evidenceFingerprint": "evidence-9d729c22bd3539220c500d82",
+          "supportClaimIds": [
+            "claim-be7255357533271755d5dc0e"
+          ],
+          "structuredPropositionIds": [],
+          "atomicGroundingIds": []
+        },
+        "shadowOnly": true,
+        "disposition": "DIAGRAM",
+        "relationKind": "causal",
+        "diagramSemanticType": "causal-chain",
+        "cause": {
+          "canonicalLabel": "storms, navigation, hunger, disease, and shipwreck"
+        },
+        "effect": {
+          "canonicalLabel": "further losses"
+        },
+        "causalAssertionStatus": "asserted"
+      },
+      "points": [
+        {
+          "id": "node-0-storms-navigation-hunger-disease-and-shipwreck",
+          "label": "storms, navigation, hunger, disease, and shipwreck",
+          "x": 150,
+          "y": 340,
+          "role": "cause"
+        },
+        {
+          "id": "node-1-further-losses",
+          "label": "further losses",
+          "x": 1050,
+          "y": 340,
+          "role": "effect",
+          "status": "asserted"
+        }
+      ],
+      "edges": [
+        {
+          "from": "node-0-storms-navigation-hunger-disease-and-shipwreck",
+          "to": "node-1-further-losses",
+          "semanticType": "causes",
+          "directed": true,
+          "label": "causal · asserted"
+        }
+      ],
+      "legend": [
+        "cause → effect",
+        "assertion: asserted"
+      ]
+    },
+    {
+      "schemaVersion": "history-renderer-shadow-spec.v1",
+      "rendererVersion": "history-renderer-shadow.v3.6.0",
+      "disposition": "RENDER_SPEC",
+      "renderSpecId": "history-render-spec-4a0d663e403fd66754710def",
+      "compilerIntentId": "history-compiler-intent-bfde0766fda990bd833535bf",
+      "relationId": "relation-causal-a3461b6f58853b5638446f75",
+      "relationKind": "causal",
+      "episodeId": "history-youtube-history-30-video-story-pack-36-spanish-armada-why-it-failed",
+      "rendererRule": "diagram-causal-svg.v1",
+      "shadowOnly": true,
+      "provenance": {
+        "relationId": "relation-causal-a3461b6f58853b5638446f75",
+        "evidenceFingerprint": "evidence-9bb0e59dd1f75eaf7d37e863",
+        "supportClaimIds": [
+          "claim-b2f82e0298d00711627b6262"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      },
+      "width": 1200,
+      "height": 675,
+      "renderTarget": "DIAGRAM_SVG",
+      "semanticPayload": {
+        "schemaVersion": "history-compiler-shadow-intent.v1",
+        "compilerVersion": "history-compiler-shadow.v3.6.0",
+        "compilerIntentId": "history-compiler-intent-bfde0766fda990bd833535bf",
+        "compilerRule": "diagram-causal.v1",
+        "episodeId": "history-youtube-history-30-video-story-pack-36-spanish-armada-why-it-failed",
+        "relationId": "relation-causal-a3461b6f58853b5638446f75",
+        "provenance": {
+          "relationId": "relation-causal-a3461b6f58853b5638446f75",
+          "evidenceFingerprint": "evidence-9bb0e59dd1f75eaf7d37e863",
+          "supportClaimIds": [
+            "claim-b2f82e0298d00711627b6262"
+          ],
+          "structuredPropositionIds": [],
+          "atomicGroundingIds": []
+        },
+        "shadowOnly": true,
+        "disposition": "DIAGRAM",
+        "relationKind": "causal",
+        "diagramSemanticType": "causal-chain",
+        "cause": {
+          "canonicalLabel": "requirements never aligned"
+        },
+        "effect": {
+          "canonicalLabel": "the invasion failed"
+        },
+        "causalAssertionStatus": "asserted"
+      },
+      "points": [
+        {
+          "id": "node-0-requirements-never-aligned",
+          "label": "requirements never aligned",
+          "x": 150,
+          "y": 340,
+          "role": "cause"
+        },
+        {
+          "id": "node-1-the-invasion-failed",
+          "label": "the invasion failed",
+          "x": 1050,
+          "y": 340,
+          "role": "effect",
+          "status": "asserted"
+        }
+      ],
+      "edges": [
+        {
+          "from": "node-0-requirements-never-aligned",
+          "to": "node-1-the-invasion-failed",
+          "semanticType": "causes",
+          "directed": true,
+          "label": "causal · asserted"
+        }
+      ],
+      "legend": [
+        "cause → effect",
+        "assertion: asserted"
+      ]
+    }
+  ],
+  "placements": [
+    {
+      "disposition": "PLACED",
+      "placementId": "history-visual-placement-f182a5c2dc7320cc9d4595d9",
+      "renderSpecId": "history-render-spec-3b178ba19d49e95a3f642b96",
+      "compilerIntentId": "history-compiler-intent-18479cff6852d7fbe1640eea",
+      "relationId": "relation-causal-6f940067404404c131f6cad5",
+      "relationKind": "causal",
+      "renderTarget": "DIAGRAM_SVG",
+      "operation": "ATTACH_SEMANTIC_OVERLAY",
+      "placementRule": "SUPPORT_COMPLETION_BEAT_V1",
+      "supportClaimIds": [
+        "claim-a76b4fa0b56f683bf2400b80"
+      ],
+      "supportBeatIds": [
+        "beat-0032"
+      ],
+      "anchor": {
+        "beatId": "beat-0032",
+        "startMs": 390767,
+        "endMs": 400638,
+        "narrationSpan": {
+          "endUtf16Exclusive": 4493,
+          "startUtf16": 4387
+        }
+      },
+      "preservedBaseShotIds": [
+        "shot-0032-01",
+        "shot-0032-02"
+      ],
+      "preservesBaseShots": true,
+      "timingBasis": "provisional-text-estimate"
+    },
+    {
+      "disposition": "PLACED",
+      "placementId": "history-visual-placement-d90df81c82df3d2f5de4e8d4",
+      "renderSpecId": "history-render-spec-b31cc10a135f3051f271c4e2",
+      "compilerIntentId": "history-compiler-intent-fc88e77b7ee840ecef1193d3",
+      "relationId": "relation-causal-86d2451fc0270290745654ba",
+      "relationKind": "causal",
+      "renderTarget": "DIAGRAM_SVG",
+      "operation": "ATTACH_SEMANTIC_OVERLAY",
+      "placementRule": "SUPPORT_COMPLETION_BEAT_V1",
+      "supportClaimIds": [
+        "claim-be7255357533271755d5dc0e"
+      ],
+      "supportBeatIds": [
+        "beat-0005"
+      ],
+      "anchor": {
+        "beatId": "beat-0005",
+        "startMs": 39483,
+        "endMs": 50515,
+        "narrationSpan": {
+          "endUtf16Exclusive": 557,
+          "startUtf16": 420
+        }
+      },
+      "preservedBaseShotIds": [
+        "shot-0005-01",
+        "shot-0005-02"
+      ],
+      "preservesBaseShots": true,
+      "timingBasis": "provisional-text-estimate"
+    },
+    {
+      "disposition": "PLACED",
+      "placementId": "history-visual-placement-b847ada35de41d9f283d3d72",
+      "renderSpecId": "history-render-spec-4a0d663e403fd66754710def",
+      "compilerIntentId": "history-compiler-intent-bfde0766fda990bd833535bf",
+      "relationId": "relation-causal-a3461b6f58853b5638446f75",
+      "relationKind": "causal",
+      "renderTarget": "DIAGRAM_SVG",
+      "operation": "ATTACH_SEMANTIC_OVERLAY",
+      "placementRule": "SUPPORT_COMPLETION_BEAT_V1",
+      "supportClaimIds": [
+        "claim-b2f82e0298d00711627b6262"
+      ],
+      "supportBeatIds": [
+        "beat-0051"
+      ],
+      "anchor": {
+        "beatId": "beat-0051",
+        "startMs": 536506,
+        "endMs": 541151,
+        "narrationSpan": {
+          "endUtf16Exclusive": 6101,
+          "startUtf16": 6040
+        }
+      },
+      "preservedBaseShotIds": [
+        "shot-0051-01"
+      ],
+      "preservesBaseShots": true,
+      "timingBasis": "provisional-text-estimate"
+    }
+  ],
+  "safePlacementAbstentions": [],
+  "summary": {
+    "renderSpecs": 3,
+    "placed": 3,
+    "safePlacementAbstentions": 0,
+    "mapPlacements": 0,
+    "diagramPlacements": 3,
+    "duplicatePlacements": 0,
+    "orphanRenderSpecs": 0,
+    "replacementCount": 0
+  },
+  "planHash": "f33d638c1043a116a1b0e8f4fe98f3842edec3f1656e471bf72f9e53b2cacec4"
+}

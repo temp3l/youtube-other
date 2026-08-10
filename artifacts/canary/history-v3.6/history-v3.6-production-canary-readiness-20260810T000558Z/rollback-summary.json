@@ -1,0 +1,14 @@
+{
+  "result": "PASS",
+  "disabledRoute": {
+    "route": "V3_5_PRODUCTION",
+    "activationFlag": "MEDIAFORGE_HISTORY_V36_VISUAL_PLAN",
+    "canaryEpisodesEnv": "MEDIAFORGE_HISTORY_V36_CANARY_EPISODES",
+    "episodeId": "history-youtube-history-10-video-story-pack-04-black-death",
+    "productionActivated": false,
+    "reason": "V3_6_DISABLED_BY_DEFAULT"
+  },
+  "V3_5_hashesChanged": 0,
+  "V3_6_candidateArtifactsConsumedByV35": 0,
+  "staleStateLeaks": 0
+}

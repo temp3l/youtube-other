@@ -1,0 +1,32 @@
+[
+  {
+    "category": "source-incomplete movement",
+    "episode": "franklin-expedition",
+    "status": "terminal",
+    "reason": "Northwest Passage remains an objective, not a destination."
+  },
+  {
+    "category": "source-incomplete movement",
+    "episode": "spanish-armada",
+    "status": "terminal",
+    "reason": "Origin-only/intended-route semantics remain insufficient."
+  },
+  {
+    "category": "architecture-blocked movement",
+    "episode": "1066-battle",
+    "status": "terminal",
+    "reason": "The source does not establish the accepted movement relation shape."
+  },
+  {
+    "category": "intentionally non-relational",
+    "episode": "d-day-normandy",
+    "status": "terminal",
+    "reason": "Generic locators remain non-relational."
+  },
+  {
+    "category": "intentionally non-relational",
+    "episode": "1066-battle",
+    "status": "terminal",
+    "reason": "Descriptive locators remain non-relational."
+  }
+]

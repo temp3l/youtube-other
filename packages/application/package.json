@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./errors.js": {
+      "types": "./src/errors.ts",
+      "default": "./src/errors.ts"
     }
   },
   "scripts": {
@@ -16,6 +20,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@mediaforge/config": "workspace:*",
     "@mediaforge/dark-truth": "workspace:*",
     "@mediaforge/domain": "workspace:*",
     "@mediaforge/history": "workspace:*",

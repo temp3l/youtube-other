@@ -35,7 +35,11 @@ import {
   type PostgresPool,
 } from "@mediaforge/persistence";
 
-import type { ApiJobFailure, ApiJobStatus, ApiUseCases } from "./http-server.js";
+import type {
+  ApiJobFailure,
+  ApiJobStatus,
+  ApiUseCases,
+} from "./http-server.js";
 import {
   parseEpisodeInput,
   bulkProductionPreflightInputSchema,
@@ -76,20 +80,44 @@ function id(prefix: string): string {
   return `${prefix}-${crypto.randomUUID()}`;
 }
 
-function capabilityProfile(profile: string): "dark-truth" | "mathematics-education" | "strategic-reinvention" | "history" {
-  const profiles = { dark_truth: "dark-truth", mathematics_education: "mathematics-education", strategic_reinvention: "strategic-reinvention", history: "history" } as const;
+function capabilityProfile(
+  profile: string
+):
+  | "dark-truth"
+  | "mathematics-education"
+  | "strategic-reinvention"
+  | "history" {
+  const profiles = {
+    dark_truth: "dark-truth",
+    mathematics_education: "mathematics-education",
+    veronicabenini: "strategic-reinvention",
+    history: "history",
+  } as const;
   const resolved = profiles[profile as keyof typeof profiles];
-  if (!resolved) throw new ApplicationError("state_transition_rejected", "Project profile configuration is invalid.", false);
+  if (!resolved)
+    throw new ApplicationError(
+      "state_transition_rejected",
+      "Project profile configuration is invalid.",
+      false
+    );
   return resolved;
 }
 
 function digest(value: unknown): string {
-  return crypto.createHash("sha256").update(JSON.stringify(value)).digest("hex");
+  return crypto
+    .createHash("sha256")
+    .update(JSON.stringify(value))
+    .digest("hex");
 }
 
 function encodeCursor(value: CursorValue, secret: string): string {
-  const payload = Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
-  const signature = crypto.createHmac("sha256", secret).update(payload).digest("base64url");
+  const payload = Buffer.from(JSON.stringify(value), "utf8").toString(
+    "base64url"
+  );
+  const signature = crypto
+    .createHmac("sha256", secret)
+    .update(payload)
+    .digest("base64url");
   return `${payload}.${signature}`;
 }
 
@@ -101,34 +129,67 @@ function decodeCursor(
   if (value === undefined) return undefined;
   const [payload, signature, extra] = value.split(".");
   if (!payload || !signature || extra !== undefined)
-    throw new ApplicationError("invalid_request", "The validation cursor is invalid.", false);
-  const expectedSignature = crypto.createHmac("sha256", secret).update(payload).digest();
+    throw new ApplicationError(
+      "invalid_request",
+      "The validation cursor is invalid.",
+      false
+    );
+  const expectedSignature = crypto
+    .createHmac("sha256", secret)
+    .update(payload)
+    .digest();
   let supplied: Buffer;
   try {
     supplied = Buffer.from(signature, "base64url");
   } catch {
-    throw new ApplicationError("invalid_request", "The validation cursor is invalid.", false);
+    throw new ApplicationError(
+      "invalid_request",
+      "The validation cursor is invalid.",
+      false
+    );
   }
-  if (supplied.length !== expectedSignature.length || !crypto.timingSafeEqual(supplied, expectedSignature))
-    throw new ApplicationError("invalid_request", "The validation cursor is invalid.", false);
+  if (
+    supplied.length !== expectedSignature.length ||
+    !crypto.timingSafeEqual(supplied, expectedSignature)
+  )
+    throw new ApplicationError(
+      "invalid_request",
+      "The validation cursor is invalid.",
+      false
+    );
   try {
-    const parsed = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as Partial<CursorValue>;
+    const parsed = JSON.parse(
+      Buffer.from(payload, "base64url").toString("utf8")
+    ) as Partial<CursorValue>;
     if (
       parsed.workspaceId !== expected.workspaceId ||
       parsed.projectId !== expected.projectId ||
       typeof parsed.createdAt !== "string" ||
       !Number.isFinite(Date.parse(parsed.createdAt)) ||
       typeof parsed.validationId !== "string"
-    ) throw new Error("invalid");
+    )
+      throw new Error("invalid");
     return parsed as CursorValue;
   } catch {
-    throw new ApplicationError("invalid_request", "The validation cursor is invalid.", false);
+    throw new ApplicationError(
+      "invalid_request",
+      "The validation cursor is invalid.",
+      false
+    );
   }
 }
 
-function encodeWorkspaceCursor(value: WorkspaceCursorValue, secret: string): string {
-  const payload = Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
-  const signature = crypto.createHmac("sha256", secret).update(payload).digest("base64url");
+function encodeWorkspaceCursor(
+  value: WorkspaceCursorValue,
+  secret: string
+): string {
+  const payload = Buffer.from(JSON.stringify(value), "utf8").toString(
+    "base64url"
+  );
+  const signature = crypto
+    .createHmac("sha256", secret)
+    .update(payload)
+    .digest("base64url");
   return `${payload}.${signature}`;
 }
 
@@ -139,16 +200,36 @@ function decodeWorkspaceCursor(
 ): WorkspaceCursorValue | undefined {
   if (value === undefined) return undefined;
   if (value.length > 4_096)
-    throw new ApplicationError("invalid_request", "The page cursor is invalid.", false);
+    throw new ApplicationError(
+      "invalid_request",
+      "The page cursor is invalid.",
+      false
+    );
   const [payload, signature, extra] = value.split(".");
   if (!payload || !signature || extra !== undefined)
-    throw new ApplicationError("invalid_request", "The page cursor is invalid.", false);
-  const expectedSignature = crypto.createHmac("sha256", secret).update(payload).digest();
+    throw new ApplicationError(
+      "invalid_request",
+      "The page cursor is invalid.",
+      false
+    );
+  const expectedSignature = crypto
+    .createHmac("sha256", secret)
+    .update(payload)
+    .digest();
   const supplied = Buffer.from(signature, "base64url");
-  if (supplied.length !== expectedSignature.length || !crypto.timingSafeEqual(supplied, expectedSignature))
-    throw new ApplicationError("invalid_request", "The page cursor is invalid.", false);
+  if (
+    supplied.length !== expectedSignature.length ||
+    !crypto.timingSafeEqual(supplied, expectedSignature)
+  )
+    throw new ApplicationError(
+      "invalid_request",
+      "The page cursor is invalid.",
+      false
+    );
   try {
-    const parsed = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as Partial<WorkspaceCursorValue>;
+    const parsed = JSON.parse(
+      Buffer.from(payload, "base64url").toString("utf8")
+    ) as Partial<WorkspaceCursorValue>;
     if (
       parsed.workspaceId !== expected.workspaceId ||
       parsed.collection !== expected.collection ||
@@ -157,15 +238,22 @@ function decodeWorkspaceCursor(
       typeof parsed.id !== "string" ||
       parsed.id.length < 1 ||
       parsed.id.length > 160
-    ) throw new Error("invalid");
+    )
+      throw new Error("invalid");
     return parsed as WorkspaceCursorValue;
   } catch {
-    throw new ApplicationError("invalid_request", "The page cursor is invalid.", false);
+    throw new ApplicationError(
+      "invalid_request",
+      "The page cursor is invalid.",
+      false
+    );
   }
 }
 
 function encodeReadCursor(value: ReadCursorValue, secret: string): string {
-  const payload = Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
+  const payload = Buffer.from(JSON.stringify(value), "utf8").toString(
+    "base64url"
+  );
   return `${payload}.${crypto.createHmac("sha256", secret).update(payload).digest("base64url")}`;
 }
 
@@ -175,36 +263,83 @@ function decodeReadCursor(
   secret: string
 ): ReadCursorValue | undefined {
   if (value === undefined) return undefined;
-  if (value.length > 4_096) throw new ApplicationError("invalid_request", "The page cursor is invalid.", false);
+  if (value.length > 4_096)
+    throw new ApplicationError(
+      "invalid_request",
+      "The page cursor is invalid.",
+      false
+    );
   const [payload, signature, extra] = value.split(".");
-  if (!payload || !signature || extra !== undefined) throw new ApplicationError("invalid_request", "The page cursor is invalid.", false);
-  const expectedSignature = crypto.createHmac("sha256", secret).update(payload).digest();
+  if (!payload || !signature || extra !== undefined)
+    throw new ApplicationError(
+      "invalid_request",
+      "The page cursor is invalid.",
+      false
+    );
+  const expectedSignature = crypto
+    .createHmac("sha256", secret)
+    .update(payload)
+    .digest();
   const supplied = Buffer.from(signature, "base64url");
-  if (supplied.length !== expectedSignature.length || !crypto.timingSafeEqual(supplied, expectedSignature))
-    throw new ApplicationError("invalid_request", "The page cursor is invalid.", false);
+  if (
+    supplied.length !== expectedSignature.length ||
+    !crypto.timingSafeEqual(supplied, expectedSignature)
+  )
+    throw new ApplicationError(
+      "invalid_request",
+      "The page cursor is invalid.",
+      false
+    );
   try {
-    const parsed = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as Partial<ReadCursorValue>;
+    const parsed = JSON.parse(
+      Buffer.from(payload, "base64url").toString("utf8")
+    ) as Partial<ReadCursorValue>;
     if (
-      parsed.workspaceId !== expected.workspaceId || parsed.projectId !== expected.projectId ||
-      parsed.collection !== expected.collection || typeof parsed.id !== "string" || parsed.id.length < 1 || parsed.id.length > 160 ||
-      (parsed.collection !== "assets" && (typeof parsed.createdAt !== "string" || !Number.isFinite(Date.parse(parsed.createdAt))))
-    ) throw new Error("invalid");
+      parsed.workspaceId !== expected.workspaceId ||
+      parsed.projectId !== expected.projectId ||
+      parsed.collection !== expected.collection ||
+      typeof parsed.id !== "string" ||
+      parsed.id.length < 1 ||
+      parsed.id.length > 160 ||
+      (parsed.collection !== "assets" &&
+        (typeof parsed.createdAt !== "string" ||
+          !Number.isFinite(Date.parse(parsed.createdAt))))
+    )
+      throw new Error("invalid");
     return parsed as ReadCursorValue;
   } catch {
-    throw new ApplicationError("invalid_request", "The page cursor is invalid.", false);
+    throw new ApplicationError(
+      "invalid_request",
+      "The page cursor is invalid.",
+      false
+    );
   }
 }
 
 function parseEtag(value: string): number {
   const match = value.match(/^"(0|[1-9][0-9]*)"$/u);
-  if (!match) throw new ApplicationError("precondition_failed", "If-Match must contain one strong numeric ETag.", false);
+  if (!match)
+    throw new ApplicationError(
+      "precondition_failed",
+      "If-Match must contain one strong numeric ETag.",
+      false
+    );
   return Number(match[1]);
 }
 
 function translatePersistence(error: unknown): never {
   if (error instanceof ApplicationError) throw error;
-  if (error instanceof WorkspaceQuotaExceededError || error instanceof WorkspaceQuotaPolicyMissingError)
-    throw new ApplicationError(error instanceof WorkspaceQuotaExceededError ? "quota_exceeded" : "state_transition_rejected", error.message, false);
+  if (
+    error instanceof WorkspaceQuotaExceededError ||
+    error instanceof WorkspaceQuotaPolicyMissingError
+  )
+    throw new ApplicationError(
+      error instanceof WorkspaceQuotaExceededError
+        ? "quota_exceeded"
+        : "state_transition_rejected",
+      error.message,
+      false
+    );
   if (error instanceof WorkflowStateTransitionError) {
     const conflict = error.message.toLowerCase().includes("already");
     throw new ApplicationError(
@@ -232,27 +367,34 @@ const publicJobStatuses = new Set<string>([
 
 function publicJobStatus(status: string): ApiJobStatus {
   if (!publicJobStatuses.has(status))
-    throw new ApplicationError("upstream_unavailable", "Stored job status is invalid.", false);
+    throw new ApplicationError(
+      "upstream_unavailable",
+      "Stored job status is invalid.",
+      false
+    );
   return status as ApiJobStatus;
 }
 
 function publicJobFailure(status: ApiJobStatus): ApiJobFailure | undefined {
-  if (status === "failed") return {
-    type: "https://mediaforge.invalid/problems/job-failed",
-    title: "Job failed",
-    detail: "The job did not complete successfully.",
-    code: "job_failed",
-    retryable: false,
-    errors: [],
-  };
-  if (status === "dead_lettered") return {
-    type: "https://mediaforge.invalid/problems/job-dead-lettered",
-    title: "Job dead lettered",
-    detail: "The job exhausted its retry policy and requires operator review.",
-    code: "job_dead_lettered",
-    retryable: false,
-    errors: [],
-  };
+  if (status === "failed")
+    return {
+      type: "https://mediaforge.invalid/problems/job-failed",
+      title: "Job failed",
+      detail: "The job did not complete successfully.",
+      code: "job_failed",
+      retryable: false,
+      errors: [],
+    };
+  if (status === "dead_lettered")
+    return {
+      type: "https://mediaforge.invalid/problems/job-dead-lettered",
+      title: "Job dead lettered",
+      detail:
+        "The job exhausted its retry policy and requires operator review.",
+      code: "job_dead_lettered",
+      retryable: false,
+      errors: [],
+    };
   return undefined;
 }
 
@@ -265,14 +407,18 @@ export function createPostgresApiUseCases(input: {
   readonly createId?: (prefix: string) => string;
 }): ApiUseCases {
   if (Buffer.byteLength(input.cursorSecret, "utf8") < 32)
-    throw new Error("API cursor signing secret must contain at least 32 bytes.");
+    throw new Error(
+      "API cursor signing secret must contain at least 32 bytes."
+    );
   const repository = new PostgresWorkflowRepository(input.pool);
   const usageAudit = new PostgresUsageAuditRepository(input.pool);
   const bulkProduction = new PostgresBulkProductionRepository(input.pool);
   const publications = new PostgresPublicationIntentRepository(repository);
   const now = input.now ?? (() => new Date());
   const createId = input.createId ?? id;
-  const admit = createApiWorkflowAdmissionUseCase(input.workflowAdmissionHandler);
+  const admit = createApiWorkflowAdmissionUseCase(
+    input.workflowAdmissionHandler
+  );
   const {
     issueApiCredential,
     listApiCredentials,
@@ -312,24 +458,57 @@ export function createPostgresApiUseCases(input: {
     now,
     createId,
   });
-  const publicationPreparationUseCases = createApiPublicationPreparationUseCases({
-    pool: input.pool,
-    now,
-    createId,
-  });
+  const publicationPreparationUseCases =
+    createApiPublicationPreparationUseCases({
+      pool: input.pool,
+      now,
+      createId,
+    });
 
   return {
     listProjects: async (after, size, context) => {
-      const cursor = decodeReadCursor(after, { workspaceId: context.workspaceId, collection: "projects" }, input.cursorSecret);
-      const records = await repository.withWorkspaceTransaction(context.workspaceId, (transaction) => transaction.listProjects({
-        workspaceId: context.workspaceId,
-        ...(cursor ? { after: { createdAt: cursor.createdAt!, projectId: cursor.id } } : {}),
-        size: size + 1,
-      }));
-      const page = records.slice(0, size); const last = page.at(-1);
+      const cursor = decodeReadCursor(
+        after,
+        { workspaceId: context.workspaceId, collection: "projects" },
+        input.cursorSecret
+      );
+      const records = await repository.withWorkspaceTransaction(
+        context.workspaceId,
+        (transaction) =>
+          transaction.listProjects({
+            workspaceId: context.workspaceId,
+            ...(cursor
+              ? {
+                  after: { createdAt: cursor.createdAt!, projectId: cursor.id },
+                }
+              : {}),
+            size: size + 1,
+          })
+      );
+      const page = records.slice(0, size);
+      const last = page.at(-1);
       return {
-        items: page.map((record) => ({ id: record.projectId, name: record.name, profile: record.profile, revision: record.revision, createdAt: record.createdAt, updatedAt: record.updatedAt })),
-        ...(records.length > size && last ? { nextAfter: encodeReadCursor({ workspaceId: context.workspaceId, collection: "projects", createdAt: last.createdAt, id: last.projectId }, input.cursorSecret) } : {}),
+        items: page.map((record) => ({
+          id: record.projectId,
+          name: record.name,
+          profile: record.profile,
+          revision: record.revision,
+          createdAt: record.createdAt,
+          updatedAt: record.updatedAt,
+        })),
+        ...(records.length > size && last
+          ? {
+              nextAfter: encodeReadCursor(
+                {
+                  workspaceId: context.workspaceId,
+                  collection: "projects",
+                  createdAt: last.createdAt,
+                  id: last.projectId,
+                },
+                input.cursorSecret
+              ),
+            }
+          : {}),
       };
     },
     getQuota: async (context) => {
@@ -337,27 +516,29 @@ export function createPostgresApiUseCases(input: {
       const dimensions = await usageAudit.listWorkspaceQuotaDimensionSummaries(
         context.workspaceId
       );
-      return record ? {
-        workspaceId: record.workspaceId,
-        budgetLimitMinor: record.budgetLimitMinor.toString(),
-        reservedMinor: record.reservedMinor.toString(),
-        settledMinor: record.settledMinor.toString(),
-        availableMinor: record.availableMinor.toString(),
-        revision: record.revision,
-        ...(dimensions.length > 0
-          ? {
-              dimensions: dimensions.map((dimension) =>
-                projectQuotaDimensionStatus({
-                  dimension: dimension.dimension as UsageDimension,
-                  limitUnits: Number(dimension.limitUnits),
-                  reservedUnits: Number(dimension.reservedUnits),
-                  settledUnits: Number(dimension.settledUnits),
-                  enforcement: "hard",
-                })
-              ),
-            }
-          : {}),
-      } : null;
+      return record
+        ? {
+            workspaceId: record.workspaceId,
+            budgetLimitMinor: record.budgetLimitMinor.toString(),
+            reservedMinor: record.reservedMinor.toString(),
+            settledMinor: record.settledMinor.toString(),
+            availableMinor: record.availableMinor.toString(),
+            revision: record.revision,
+            ...(dimensions.length > 0
+              ? {
+                  dimensions: dimensions.map((dimension) =>
+                    projectQuotaDimensionStatus({
+                      dimension: dimension.dimension as UsageDimension,
+                      limitUnits: Number(dimension.limitUnits),
+                      reservedUnits: Number(dimension.reservedUnits),
+                      settledUnits: Number(dimension.settledUnits),
+                      enforcement: "hard",
+                    })
+                  ),
+                }
+              : {}),
+          }
+        : null;
     },
     listProviderHealth: async (context) => {
       const projectedAt = now().toISOString();
@@ -398,30 +579,43 @@ export function createPostgresApiUseCases(input: {
       };
     },
     listUsageRecords: async (after, size, filters, context) => {
-      const cursor = decodeWorkspaceCursor(after, {
-        workspaceId: context.workspaceId,
-        collection: "usage-records",
-      }, input.cursorSecret);
+      const cursor = decodeWorkspaceCursor(
+        after,
+        {
+          workspaceId: context.workspaceId,
+          collection: "usage-records",
+        },
+        input.cursorSecret
+      );
       const records = await usageAudit.listUsage({
         workspaceId: context.workspaceId,
-        ...(cursor ? { after: { occurredAt: cursor.occurredAt, usageId: cursor.id } } : {}),
+        ...(cursor
+          ? { after: { occurredAt: cursor.occurredAt, usageId: cursor.id } }
+          : {}),
         size: size < 100 ? size + 1 : size,
         ...(filters.subjectId ? { subjectId: filters.subjectId } : {}),
         ...(filters.operation ? { operation: filters.operation } : {}),
         ...(filters.unit ? { unit: filters.unit } : {}),
         ...(filters.attemptId ? { attemptId: filters.attemptId } : {}),
-        ...(filters.occurredAfter ? { occurredAfter: filters.occurredAfter } : {}),
-        ...(filters.occurredBefore ? { occurredBefore: filters.occurredBefore } : {}),
+        ...(filters.occurredAfter
+          ? { occurredAfter: filters.occurredAfter }
+          : {}),
+        ...(filters.occurredBefore
+          ? { occurredBefore: filters.occurredBefore }
+          : {}),
       });
       const page = records.slice(0, size);
       let hasMore = records.length > size;
       if (!hasMore && size === 100 && page.length === 100) {
         const last = page.at(-1)!;
-        hasMore = (await usageAudit.listUsage({
-          workspaceId: context.workspaceId,
-          after: { occurredAt: last.occurredAt, usageId: last.usageId },
-          size: 1,
-        })).length > 0;
+        hasMore =
+          (
+            await usageAudit.listUsage({
+              workspaceId: context.workspaceId,
+              after: { occurredAt: last.occurredAt, usageId: last.usageId },
+              size: 1,
+            })
+          ).length > 0;
       }
       const last = page.at(-1);
       return {
@@ -438,33 +632,49 @@ export function createPostgresApiUseCases(input: {
           data: record.data,
           occurredAt: record.occurredAt,
         })),
-        ...(hasMore && last ? { nextAfter: encodeWorkspaceCursor({
-          workspaceId: context.workspaceId,
-          collection: "usage-records",
-          occurredAt: last.occurredAt,
-          id: last.usageId,
-        }, input.cursorSecret) } : {}),
+        ...(hasMore && last
+          ? {
+              nextAfter: encodeWorkspaceCursor(
+                {
+                  workspaceId: context.workspaceId,
+                  collection: "usage-records",
+                  occurredAt: last.occurredAt,
+                  id: last.usageId,
+                },
+                input.cursorSecret
+              ),
+            }
+          : {}),
       };
     },
     listAuditEvents: async (after, size, context) => {
-      const cursor = decodeWorkspaceCursor(after, {
-        workspaceId: context.workspaceId,
-        collection: "audit-events",
-      }, input.cursorSecret);
+      const cursor = decodeWorkspaceCursor(
+        after,
+        {
+          workspaceId: context.workspaceId,
+          collection: "audit-events",
+        },
+        input.cursorSecret
+      );
       const records = await usageAudit.listAuditFacts({
         workspaceId: context.workspaceId,
-        ...(cursor ? { after: { occurredAt: cursor.occurredAt, auditId: cursor.id } } : {}),
+        ...(cursor
+          ? { after: { occurredAt: cursor.occurredAt, auditId: cursor.id } }
+          : {}),
         size: size < 100 ? size + 1 : size,
       });
       const page = records.slice(0, size);
       let hasMore = records.length > size;
       if (!hasMore && size === 100 && page.length === 100) {
         const last = page.at(-1)!;
-        hasMore = (await usageAudit.listAuditFacts({
-          workspaceId: context.workspaceId,
-          after: { occurredAt: last.occurredAt, auditId: last.auditId },
-          size: 1,
-        })).length > 0;
+        hasMore =
+          (
+            await usageAudit.listAuditFacts({
+              workspaceId: context.workspaceId,
+              after: { occurredAt: last.occurredAt, auditId: last.auditId },
+              size: 1,
+            })
+          ).length > 0;
       }
       const last = page.at(-1);
       return {
@@ -478,25 +688,33 @@ export function createPostgresApiUseCases(input: {
           data: record.data,
           occurredAt: record.occurredAt,
         })),
-        ...(hasMore && last ? { nextAfter: encodeWorkspaceCursor({
-          workspaceId: context.workspaceId,
-          collection: "audit-events",
-          occurredAt: last.occurredAt,
-          id: last.auditId,
-        }, input.cursorSecret) } : {}),
+        ...(hasMore && last
+          ? {
+              nextAfter: encodeWorkspaceCursor(
+                {
+                  workspaceId: context.workspaceId,
+                  collection: "audit-events",
+                  occurredAt: last.occurredAt,
+                  id: last.auditId,
+                },
+                input.cursorSecret
+              ),
+            }
+          : {}),
       };
     },
     createProject: async (project, context) => {
       try {
         const record = await repository.withWorkspaceTransaction(
           context.workspaceId,
-          (transaction) => transaction.createProject({
-            workspaceId: context.workspaceId,
-            projectId: createId("project"),
-            name: project.name,
-            profile: project.profile,
-            now: now().toISOString(),
-          })
+          (transaction) =>
+            transaction.createProject({
+              workspaceId: context.workspaceId,
+              projectId: createId("project"),
+              name: project.name,
+              profile: project.profile,
+              now: now().toISOString(),
+            })
         );
         return { id: record.projectId, revision: record.revision };
       } catch (error) {
@@ -504,17 +722,36 @@ export function createPostgresApiUseCases(input: {
       }
     },
     listEpisodes: async (after, size, filters, context) => {
-      const cursor = decodeReadCursor(after, { workspaceId: context.workspaceId, projectId: context.projectId, collection: "episodes" }, input.cursorSecret);
-      const visibilityFilter = filters.visibility ?? "active";
-      const visibilityMap = await contentLifecycleUseCases.listEpisodeVisibilityMap(
-        context.workspaceId,
-        context.projectId,
-        visibilityFilter === "all" ? "all" : visibilityFilter
+      const cursor = decodeReadCursor(
+        after,
+        {
+          workspaceId: context.workspaceId,
+          projectId: context.projectId,
+          collection: "episodes",
+        },
+        input.cursorSecret
       );
-      const records = await repository.withWorkspaceTransaction(context.workspaceId, (transaction) => transaction.listEpisodes({
-        workspaceId: context.workspaceId, projectId: context.projectId,
-        ...(cursor ? { after: { createdAt: cursor.createdAt!, episodeId: cursor.id } } : {}), size: size + 1,
-      }));
+      const visibilityFilter = filters.visibility ?? "active";
+      const visibilityMap =
+        await contentLifecycleUseCases.listEpisodeVisibilityMap(
+          context.workspaceId,
+          context.projectId,
+          visibilityFilter === "all" ? "all" : visibilityFilter
+        );
+      const records = await repository.withWorkspaceTransaction(
+        context.workspaceId,
+        (transaction) =>
+          transaction.listEpisodes({
+            workspaceId: context.workspaceId,
+            projectId: context.projectId,
+            ...(cursor
+              ? {
+                  after: { createdAt: cursor.createdAt!, episodeId: cursor.id },
+                }
+              : {}),
+            size: size + 1,
+          })
+      );
       const filtered = records.filter((record) => {
         const visibility = visibilityMap[record.episodeId] ?? "active";
         if (visibility === "tombstoned") return false;
@@ -522,10 +759,30 @@ export function createPostgresApiUseCases(input: {
         if (visibilityFilter === "all") return true;
         return visibility === "active";
       });
-      const page = filtered.slice(0, size); const last = page.at(-1);
+      const page = filtered.slice(0, size);
+      const last = page.at(-1);
       return {
-        items: page.map((record) => ({ id: record.episodeId, revision: record.revision, content: record.content, createdAt: record.createdAt, updatedAt: record.updatedAt })),
-        ...(filtered.length > size && last ? { nextAfter: encodeReadCursor({ workspaceId: context.workspaceId, projectId: context.projectId, collection: "episodes", createdAt: last.createdAt, id: last.episodeId }, input.cursorSecret) } : {}),
+        items: page.map((record) => ({
+          id: record.episodeId,
+          revision: record.revision,
+          content: record.content,
+          createdAt: record.createdAt,
+          updatedAt: record.updatedAt,
+        })),
+        ...(filtered.length > size && last
+          ? {
+              nextAfter: encodeReadCursor(
+                {
+                  workspaceId: context.workspaceId,
+                  projectId: context.projectId,
+                  collection: "episodes",
+                  createdAt: last.createdAt,
+                  id: last.episodeId,
+                },
+                input.cursorSecret
+              ),
+            }
+          : {}),
       };
     },
     createEpisode: async (episode, context) => {
@@ -534,10 +791,17 @@ export function createPostgresApiUseCases(input: {
         const record = await repository.withWorkspaceTransaction(
           context.workspaceId,
           async (transaction) => {
-            const project = await transaction.getProject(context.workspaceId, context.projectId);
+            const project = await transaction.getProject(
+              context.workspaceId,
+              context.projectId
+            );
             if (!project) return null;
             if (project.profile !== canonicalEpisode.content.type)
-              throw new ApplicationError("profile_input_invalid", "Episode content does not match the project profile.", false);
+              throw new ApplicationError(
+                "profile_input_invalid",
+                "Episode content does not match the project profile.",
+                false
+              );
             return transaction.createEpisode({
               workspaceId: context.workspaceId,
               projectId: context.projectId,
@@ -547,7 +811,8 @@ export function createPostgresApiUseCases(input: {
             });
           }
         );
-        if (!record) throw new ApplicationError("not_found", "Resource not found.", false);
+        if (!record)
+          throw new ApplicationError("not_found", "Resource not found.", false);
         return { id: record.episodeId, revision: record.revision };
       } catch (error) {
         return translatePersistence(error);
@@ -556,17 +821,20 @@ export function createPostgresApiUseCases(input: {
     getEpisode: async (episodeId, context) => {
       const record = await repository.withWorkspaceTransaction(
         context.workspaceId,
-        (transaction) => transaction.getEpisode(
-          context.workspaceId,
-          context.projectId,
-          episodeId
-        )
+        (transaction) =>
+          transaction.getEpisode(
+            context.workspaceId,
+            context.projectId,
+            episodeId
+          )
       );
-      return record ? {
-        id: record.episodeId,
-        revision: record.revision,
-        content: record.content,
-      } : null;
+      return record
+        ? {
+            id: record.episodeId,
+            revision: record.revision,
+            content: record.content,
+          }
+        : null;
     },
     replaceEpisodeContent: async (episodeId, episode, context) => {
       const canonicalEpisode = parseEpisodeInput(episode);
@@ -575,7 +843,10 @@ export function createPostgresApiUseCases(input: {
         const replacement = await repository.withWorkspaceTransaction(
           context.workspaceId,
           async (transaction) => {
-            const project = await transaction.getProject(context.workspaceId, context.projectId);
+            const project = await transaction.getProject(
+              context.workspaceId,
+              context.projectId
+            );
             if (!project) return null;
             const current = await transaction.getEpisode(
               context.workspaceId,
@@ -584,9 +855,17 @@ export function createPostgresApiUseCases(input: {
             );
             if (!current) return null;
             if (current.revision !== expectedRevision)
-              throw new ApplicationError("precondition_failed", "If-Match does not match the current episode revision.", false);
+              throw new ApplicationError(
+                "precondition_failed",
+                "If-Match does not match the current episode revision.",
+                false
+              );
             if (project.profile !== canonicalEpisode.content.type)
-              throw new ApplicationError("profile_input_invalid", "Episode content does not match the project profile.", false);
+              throw new ApplicationError(
+                "profile_input_invalid",
+                "Episode content does not match the project profile.",
+                false
+              );
             return transaction.replaceEpisodeContent({
               workspaceId: context.workspaceId,
               projectId: context.projectId,
@@ -604,7 +883,8 @@ export function createPostgresApiUseCases(input: {
             });
           }
         );
-        if (!replacement) throw new ApplicationError("not_found", "Resource not found.", false);
+        if (!replacement)
+          throw new ApplicationError("not_found", "Resource not found.", false);
         return {
           id: replacement.episode.episodeId,
           revision: replacement.episode.revision,
@@ -612,7 +892,11 @@ export function createPostgresApiUseCases(input: {
         };
       } catch (error) {
         if (error instanceof WorkflowStateTransitionError)
-          throw new ApplicationError("precondition_failed", "If-Match does not match the current episode revision.", false);
+          throw new ApplicationError(
+            "precondition_failed",
+            "If-Match does not match the current episode revision.",
+            false
+          );
         return translatePersistence(error);
       }
     },
@@ -626,13 +910,16 @@ export function createPostgresApiUseCases(input: {
     getWorkflow: async (runId, context) => {
       const record = await repository.withWorkspaceTransaction(
         context.workspaceId,
-        (transaction) => transaction.getBoundWorkflow({
-          workspaceId: context.workspaceId,
-          projectId: context.projectId,
-          runId,
-        })
+        (transaction) =>
+          transaction.getBoundWorkflow({
+            workspaceId: context.workspaceId,
+            projectId: context.projectId,
+            runId,
+          })
       );
-      return record ? { id: record.runId, revision: record.revision, status: record.status } : null;
+      return record
+        ? { id: record.runId, revision: record.revision, status: record.status }
+        : null;
     },
     getEpisodeProductionState: async (episodeId, context) => {
       const record = await repository.withWorkspaceTransaction(
@@ -647,36 +934,121 @@ export function createPostgresApiUseCases(input: {
       return record?.state ?? null;
     },
     getWorkspaceCapabilities: async (context) => {
-      const tenant = await repository.withWorkspaceTransaction(context.workspaceId, (transaction) => transaction.getTenantSettings(context.workspaceId));
-      return tenant ? buildCapabilityRegistry(tenant, now().toISOString()) : null;
+      const tenant = await repository.withWorkspaceTransaction(
+        context.workspaceId,
+        (transaction) => transaction.getTenantSettings(context.workspaceId)
+      );
+      return tenant
+        ? buildCapabilityRegistry(tenant, now().toISOString())
+        : null;
     },
     getEpisodeResolvedConfiguration: async (episodeId, context) => {
-      const resolved = await repository.withWorkspaceTransaction(context.workspaceId, async (transaction) => {
-        const episode = await transaction.getEpisode(context.workspaceId, context.projectId, episodeId);
-        if (!episode) return null;
-        const project = await transaction.getProject(context.workspaceId, context.projectId);
-        const tenant = await transaction.getTenantSettings(context.workspaceId);
-        if (!project || !tenant) return null;
-        const profileId = capabilityProfile(project.profile);
-        const [genre, episodeOverride] = await Promise.all([
-          transaction.getGenreConfiguration(context.workspaceId, profileId),
-          transaction.getEpisodeConfigurationOverride({ workspaceId: context.workspaceId, projectId: context.projectId, episodeId }),
-        ]);
-        return resolveProductionConfiguration({ profileId, tenant, ...(genre ? { genre } : {}), ...(episodeOverride ? { episode: episodeOverride } : {}), resolvedAt: now().toISOString() });
-      });
+      const resolved = await repository.withWorkspaceTransaction(
+        context.workspaceId,
+        async (transaction) => {
+          const episode = await transaction.getEpisode(
+            context.workspaceId,
+            context.projectId,
+            episodeId
+          );
+          if (!episode) return null;
+          const project = await transaction.getProject(
+            context.workspaceId,
+            context.projectId
+          );
+          const tenant = await transaction.getTenantSettings(
+            context.workspaceId
+          );
+          if (!project || !tenant) return null;
+          const profileId = capabilityProfile(project.profile);
+          const [genre, episodeOverride] = await Promise.all([
+            transaction.getGenreConfiguration(context.workspaceId, profileId),
+            transaction.getEpisodeConfigurationOverride({
+              workspaceId: context.workspaceId,
+              projectId: context.projectId,
+              episodeId,
+            }),
+          ]);
+          return resolveProductionConfiguration({
+            profileId,
+            tenant,
+            ...(genre ? { genre } : {}),
+            ...(episodeOverride ? { episode: episodeOverride } : {}),
+            resolvedAt: now().toISOString(),
+          });
+        }
+      );
       return resolved;
     },
     listProductionUnitSnapshots: async (episodeId, context) => {
-      const episode = await repository.withWorkspaceTransaction(context.workspaceId, (transaction) => transaction.getEpisode(context.workspaceId, context.projectId, episodeId));
-      if (!episode) throw new ApplicationError("not_found", "Resource not found.", false);
-      const records = await repository.withWorkspaceTransaction(context.workspaceId, (transaction) => transaction.listCurrentProductionUnitSnapshots({ workspaceId: context.workspaceId, projectId: context.projectId, episodeId }));
-      return { items: records.map((record) => ({ snapshotId: record.snapshotId, snapshot: record.snapshot, createdAt: record.createdAt })) };
+      const episode = await repository.withWorkspaceTransaction(
+        context.workspaceId,
+        (transaction) =>
+          transaction.getEpisode(
+            context.workspaceId,
+            context.projectId,
+            episodeId
+          )
+      );
+      if (!episode)
+        throw new ApplicationError("not_found", "Resource not found.", false);
+      const records = await repository.withWorkspaceTransaction(
+        context.workspaceId,
+        (transaction) =>
+          transaction.listCurrentProductionUnitSnapshots({
+            workspaceId: context.workspaceId,
+            projectId: context.projectId,
+            episodeId,
+          })
+      );
+      return {
+        items: records.map((record) => ({
+          snapshotId: record.snapshotId,
+          snapshot: record.snapshot,
+          createdAt: record.createdAt,
+        })),
+      };
     },
     compareProductionUnitSnapshots: async (episodeId, context) => {
-      const episode = await repository.withWorkspaceTransaction(context.workspaceId, (transaction) => transaction.getEpisode(context.workspaceId, context.projectId, episodeId));
-      if (!episode) throw new ApplicationError("not_found", "Resource not found.", false);
-      const records = await repository.withWorkspaceTransaction(context.workspaceId, (transaction) => transaction.compareCurrentProductionUnitSnapshots({ workspaceId: context.workspaceId, projectId: context.projectId, episodeId }));
-      return { items: records.map((record) => ({ current: { snapshotId: record.current.snapshotId, snapshot: record.current.snapshot, createdAt: record.current.createdAt }, ...(record.previous ? { previous: { snapshotId: record.previous.snapshotId, snapshot: record.previous.snapshot, createdAt: record.previous.createdAt } } : {}), ...(record.comparison ? { comparison: record.comparison } : {}) })) };
+      const episode = await repository.withWorkspaceTransaction(
+        context.workspaceId,
+        (transaction) =>
+          transaction.getEpisode(
+            context.workspaceId,
+            context.projectId,
+            episodeId
+          )
+      );
+      if (!episode)
+        throw new ApplicationError("not_found", "Resource not found.", false);
+      const records = await repository.withWorkspaceTransaction(
+        context.workspaceId,
+        (transaction) =>
+          transaction.compareCurrentProductionUnitSnapshots({
+            workspaceId: context.workspaceId,
+            projectId: context.projectId,
+            episodeId,
+          })
+      );
+      return {
+        items: records.map((record) => ({
+          current: {
+            snapshotId: record.current.snapshotId,
+            snapshot: record.current.snapshot,
+            createdAt: record.current.createdAt,
+          },
+          ...(record.previous
+            ? {
+                previous: {
+                  snapshotId: record.previous.snapshotId,
+                  snapshot: record.previous.snapshot,
+                  createdAt: record.previous.createdAt,
+                },
+              }
+            : {}),
+          ...(record.comparison ? { comparison: record.comparison } : {}),
+        })),
+      };
     },
     listWorkflowPortfolio: async (query, context) => {
       const filter = workflowPortfolioFilterSchema.parse({
@@ -732,98 +1104,247 @@ export function createPostgresApiUseCases(input: {
       };
     },
     getBulkProductionBatch: async (batchId, context) => {
-      const batch = await bulkProduction.getBatch({ workspaceId: context.workspaceId, batchId });
+      const batch = await bulkProduction.getBatch({
+        workspaceId: context.workspaceId,
+        batchId,
+      });
       if (!batch) return null;
-      const items = await bulkProduction.listItems({ workspaceId: context.workspaceId, batchId });
+      const items = await bulkProduction.listItems({
+        workspaceId: context.workspaceId,
+        batchId,
+      });
       return {
         id: batch.batchId,
         status: batch.status,
         selectionFingerprint: batch.selectionFingerprint,
         createdAt: batch.createdAt,
         updatedAt: batch.updatedAt,
-        items: items.map((item) => ({ id: item.itemId, eligible: item.eligible, status: item.status, reasons: item.reasons })),
+        items: items.map((item) => ({
+          id: item.itemId,
+          eligible: item.eligible,
+          status: item.status,
+          reasons: item.reasons,
+        })),
       };
     },
     preflightBulkProduction: async (body, context) => {
       const input = bulkProductionPreflightInputSchema.parse(body);
       const quota = await usageAudit.getQuotaStatus(context.workspaceId);
-      const probes = await Promise.all(input.items.map(async (item) => {
-        const state = await repository.withWorkspaceTransaction(context.workspaceId, async (transaction) => {
-          const [project, episode, tenant] = await Promise.all([
-            transaction.getProject(context.workspaceId, item.projectId),
-            transaction.getEpisode(context.workspaceId, item.projectId, item.episodeId),
-            transaction.getTenantSettings(context.workspaceId),
-          ]);
-          return { project, episode, tenant };
-        });
-        return {
-          item,
-          authorized: true,
-          ...(state.episode ? { currentRevision: state.episode.revision } : {}),
-          configurationAvailable: state.project !== null && state.tenant !== null,
-          quotaAvailable: quota !== null,
-        };
-      }));
-      const preflight = preflightBulkProduction({ workspaceId: context.workspaceId, probes });
+      const probes = await Promise.all(
+        input.items.map(async (item) => {
+          const state = await repository.withWorkspaceTransaction(
+            context.workspaceId,
+            async (transaction) => {
+              const [project, episode, tenant] = await Promise.all([
+                transaction.getProject(context.workspaceId, item.projectId),
+                transaction.getEpisode(
+                  context.workspaceId,
+                  item.projectId,
+                  item.episodeId
+                ),
+                transaction.getTenantSettings(context.workspaceId),
+              ]);
+              return { project, episode, tenant };
+            }
+          );
+          return {
+            item,
+            authorized: true,
+            ...(state.episode
+              ? { currentRevision: state.episode.revision }
+              : {}),
+            configurationAvailable:
+              state.project !== null && state.tenant !== null,
+            quotaAvailable: quota !== null,
+          };
+        })
+      );
+      const preflight = preflightBulkProduction({
+        workspaceId: context.workspaceId,
+        probes,
+      });
       const stored = await bulkProduction.createFromPreflight({
         batchId: createId("bulk-batch"),
         idempotencyKey: context.idempotencyKey,
-        requestFingerprint: computeRequestFingerprint({ body: input, workspaceId: context.workspaceId, principalId: context.principal.principalId }),
+        requestFingerprint: computeRequestFingerprint({
+          body: input,
+          workspaceId: context.workspaceId,
+          principalId: context.principal.principalId,
+        }),
         principalId: context.principal.principalId,
         preflight,
         now: now().toISOString(),
       });
-      const items = await bulkProduction.listItems({ workspaceId: context.workspaceId, batchId: stored.batch.batchId });
+      const items = await bulkProduction.listItems({
+        workspaceId: context.workspaceId,
+        batchId: stored.batch.batchId,
+      });
       return {
         id: stored.batch.batchId,
         replayed: stored.kind === "replayed",
         status: stored.batch.status,
         selectionFingerprint: stored.batch.selectionFingerprint,
-        items: items.map((item) => ({ id: item.itemId, eligible: item.eligible, status: item.status, reasons: item.reasons })),
+        items: items.map((item) => ({
+          id: item.itemId,
+          eligible: item.eligible,
+          status: item.status,
+          reasons: item.reasons,
+        })),
       };
     },
     launchBulkProduction: async (batchId, context) => {
       try {
-        const batch = await bulkProduction.getBatch({ workspaceId: context.workspaceId, batchId });
-        if (!batch) throw new ApplicationError("not_found", "Resource not found.", false);
+        const batch = await bulkProduction.getBatch({
+          workspaceId: context.workspaceId,
+          batchId,
+        });
+        if (!batch)
+          throw new ApplicationError("not_found", "Resource not found.", false);
         if (batch.status !== "planned" && batch.status !== "running")
-          throw new ApplicationError("state_transition_rejected", "This batch cannot be launched in its current state.", false);
+          throw new ApplicationError(
+            "state_transition_rejected",
+            "This batch cannot be launched in its current state.",
+            false
+          );
         const nowValue = now().toISOString();
-        const itemCount = await bulkProduction.countEligibleItems({ workspaceId: context.workspaceId, batchId });
-        if (itemCount === 0) throw new ApplicationError("state_transition_rejected", "This batch has no eligible items to launch.", false);
+        const itemCount = await bulkProduction.countEligibleItems({
+          workspaceId: context.workspaceId,
+          batchId,
+        });
+        if (itemCount === 0)
+          throw new ApplicationError(
+            "state_transition_rejected",
+            "This batch has no eligible items to launch.",
+            false
+          );
         const reservationPrefix = `bulk-batch:${batchId}:attempt:${batch.launchAttempt}`;
-        await usageAudit.reserveQuotaDimension({ workspaceId: context.workspaceId, reservationId: `${reservationPrefix}:active`, dimension: "active_batches", attributionKey: `${reservationPrefix}:active`, subjectId: batchId, units: 1n, now: nowValue });
-        await usageAudit.reserveQuotaDimension({ workspaceId: context.workspaceId, reservationId: `${reservationPrefix}:items`, dimension: "batch_items", attributionKey: `${reservationPrefix}:items`, subjectId: batchId, units: BigInt(itemCount), now: nowValue });
-        const accepted: Array<{ readonly itemId: string; readonly workflowRunId: string; readonly jobId: string }> = [];
-        const rejected: Array<{ readonly itemId: string; readonly code: string }> = [];
+        await usageAudit.reserveQuotaDimension({
+          workspaceId: context.workspaceId,
+          reservationId: `${reservationPrefix}:active`,
+          dimension: "active_batches",
+          attributionKey: `${reservationPrefix}:active`,
+          subjectId: batchId,
+          units: 1n,
+          now: nowValue,
+        });
+        await usageAudit.reserveQuotaDimension({
+          workspaceId: context.workspaceId,
+          reservationId: `${reservationPrefix}:items`,
+          dimension: "batch_items",
+          attributionKey: `${reservationPrefix}:items`,
+          subjectId: batchId,
+          units: BigInt(itemCount),
+          now: nowValue,
+        });
+        const accepted: Array<{
+          readonly itemId: string;
+          readonly workflowRunId: string;
+          readonly jobId: string;
+        }> = [];
+        const rejected: Array<{
+          readonly itemId: string;
+          readonly code: string;
+        }> = [];
         for (;;) {
-          const item = await bulkProduction.claimNextRunnableItem({ workspaceId: context.workspaceId, batchId, now: now().toISOString() });
-          if (!item) break;
-          const configured = await repository.withWorkspaceTransaction(context.workspaceId, async (transaction) => {
-            const [episode, tenant] = await Promise.all([
-              transaction.getEpisode(context.workspaceId, item.projectId, item.episodeId),
-              transaction.getTenantSettings(context.workspaceId),
-            ]);
-            return episode?.revision === item.expectedRevision && tenant !== null;
+          const item = await bulkProduction.claimNextRunnableItem({
+            workspaceId: context.workspaceId,
+            batchId,
+            now: now().toISOString(),
           });
+          if (!item) break;
+          const configured = await repository.withWorkspaceTransaction(
+            context.workspaceId,
+            async (transaction) => {
+              const [episode, tenant] = await Promise.all([
+                transaction.getEpisode(
+                  context.workspaceId,
+                  item.projectId,
+                  item.episodeId
+                ),
+                transaction.getTenantSettings(context.workspaceId),
+              ]);
+              return (
+                episode?.revision === item.expectedRevision && tenant !== null
+              );
+            }
+          );
           if (!configured) {
-            await bulkProduction.completeClaimedItem({ workspaceId: context.workspaceId, batchId, itemId: item.itemId, status: "failed-permanent", errorCode: "stale_or_unconfigured", errorMessage: "The item no longer has current revision and configuration evidence.", now: now().toISOString() });
-            rejected.push({ itemId: item.itemId, code: "stale_or_unconfigured" });
+            await bulkProduction.completeClaimedItem({
+              workspaceId: context.workspaceId,
+              batchId,
+              itemId: item.itemId,
+              status: "failed-permanent",
+              errorCode: "stale_or_unconfigured",
+              errorMessage:
+                "The item no longer has current revision and configuration evidence.",
+              now: now().toISOString(),
+            });
+            rejected.push({
+              itemId: item.itemId,
+              code: "stale_or_unconfigured",
+            });
             continue;
           }
           try {
-            const child = await admit({ template: "episode-production", episodeRevision: item.expectedRevision, locales: [item.locale], variants: [item.variant as "full" | "short"], approvalMode: "required", publicationMode: "none" }, { ...context, projectId: item.projectId, episodeId: item.episodeId, idempotencyKey: `${context.idempotencyKey}:item:${item.itemId}` });
-            const recorded = await bulkProduction.recordClaimedAdmission({ workspaceId: context.workspaceId, batchId, itemId: item.itemId, workflowRunId: child.workflowRunId, jobId: child.jobId, now: now().toISOString() });
-            if (!recorded) throw new ApplicationError("state_transition_rejected", "The batch item admission changed concurrently.", false);
-            accepted.push({ itemId: item.itemId, workflowRunId: child.workflowRunId, jobId: child.jobId });
+            const child = await admit(
+              {
+                template: "episode-production",
+                episodeRevision: item.expectedRevision,
+                locales: [item.locale],
+                variants: [item.variant as "full" | "short"],
+                approvalMode: "required",
+                publicationMode: "none",
+              },
+              {
+                ...context,
+                projectId: item.projectId,
+                episodeId: item.episodeId,
+                idempotencyKey: `${context.idempotencyKey}:item:${item.itemId}`,
+              }
+            );
+            const recorded = await bulkProduction.recordClaimedAdmission({
+              workspaceId: context.workspaceId,
+              batchId,
+              itemId: item.itemId,
+              workflowRunId: child.workflowRunId,
+              jobId: child.jobId,
+              now: now().toISOString(),
+            });
+            if (!recorded)
+              throw new ApplicationError(
+                "state_transition_rejected",
+                "The batch item admission changed concurrently.",
+                false
+              );
+            accepted.push({
+              itemId: item.itemId,
+              workflowRunId: child.workflowRunId,
+              jobId: child.jobId,
+            });
           } catch (error) {
-            const application = error instanceof ApplicationError ? error : null;
-            await bulkProduction.completeClaimedItem({ workspaceId: context.workspaceId, batchId, itemId: item.itemId, status: application?.retryable ? "failed-retryable" : "failed-permanent", errorCode: application?.code ?? "workflow_admission_failed", errorMessage: "Child workflow admission did not complete.", now: now().toISOString() });
-            rejected.push({ itemId: item.itemId, code: application?.code ?? "workflow_admission_failed" });
+            const application =
+              error instanceof ApplicationError ? error : null;
+            await bulkProduction.completeClaimedItem({
+              workspaceId: context.workspaceId,
+              batchId,
+              itemId: item.itemId,
+              status: application?.retryable
+                ? "failed-retryable"
+                : "failed-permanent",
+              errorCode: application?.code ?? "workflow_admission_failed",
+              errorMessage: "Child workflow admission did not complete.",
+              now: now().toISOString(),
+            });
+            rejected.push({
+              itemId: item.itemId,
+              code: application?.code ?? "workflow_admission_failed",
+            });
           }
         }
         return { id: batchId, accepted, rejected };
-      } catch (error) { return translatePersistence(error); }
+      } catch (error) {
+        return translatePersistence(error);
+      }
     },
     retryBulkProduction: async (batchId, context) => {
       try {
@@ -833,25 +1354,50 @@ export function createPostgresApiUseCases(input: {
           now: now().toISOString(),
         });
         if (retriedItems === 0)
-          throw new ApplicationError("state_transition_rejected", "This batch has no retryable items.", false);
+          throw new ApplicationError(
+            "state_transition_rejected",
+            "This batch has no retryable items.",
+            false
+          );
         return { id: batchId, retriedItems };
-      } catch (error) { return translatePersistence(error); }
+      } catch (error) {
+        return translatePersistence(error);
+      }
     },
     cancelBulkProduction: async (batchId, context) => {
       try {
-        const childJobIds = await bulkProduction.listAdmittedChildJobs({ workspaceId: context.workspaceId, batchId });
-        const status = await bulkProduction.requestCancellation({ workspaceId: context.workspaceId, batchId, now: now().toISOString() });
+        const childJobIds = await bulkProduction.listAdmittedChildJobs({
+          workspaceId: context.workspaceId,
+          batchId,
+        });
+        const status = await bulkProduction.requestCancellation({
+          workspaceId: context.workspaceId,
+          batchId,
+          now: now().toISOString(),
+        });
         if (status === "not_cancellable")
-          throw new ApplicationError("state_transition_rejected", "This batch cannot be cancelled in its current state.", false);
+          throw new ApplicationError(
+            "state_transition_rejected",
+            "This batch cannot be cancelled in its current state.",
+            false
+          );
         const requested: string[] = [];
         for (const jobId of childJobIds) {
-          const outcome = await repository.withWorkspaceTransaction(context.workspaceId, (transaction) =>
-            transaction.requestDurableJobCancellation({ workspaceId: context.workspaceId, jobId, now: now().toISOString() })
+          const outcome = await repository.withWorkspaceTransaction(
+            context.workspaceId,
+            (transaction) =>
+              transaction.requestDurableJobCancellation({
+                workspaceId: context.workspaceId,
+                jobId,
+                now: now().toISOString(),
+              })
           );
           if (outcome !== "not_cancellable") requested.push(jobId);
         }
         return { id: batchId, status, cancellationRequestedJobIds: requested };
-      } catch (error) { return translatePersistence(error); }
+      } catch (error) {
+        return translatePersistence(error);
+      }
     },
     previewArtifactInvalidation: async (episodeId, input, context) => {
       const episode = await repository.withWorkspaceTransaction(
@@ -866,15 +1412,25 @@ export function createPostgresApiUseCases(input: {
       if (!episode) {
         throw new ApplicationError("not_found", "Resource not found.", false);
       }
-      const changes = z.array(productionUnitChangeSchema).min(1).parse(
-        input.changes
-      );
+      const changes = z
+        .array(productionUnitChangeSchema)
+        .min(1)
+        .parse(input.changes);
       const records = await repository.withWorkspaceTransaction(
         context.workspaceId,
-        (transaction) => transaction.listCurrentProductionUnitSnapshots({ workspaceId: context.workspaceId, projectId: context.projectId, episodeId })
+        (transaction) =>
+          transaction.listCurrentProductionUnitSnapshots({
+            workspaceId: context.workspaceId,
+            projectId: context.projectId,
+            episodeId,
+          })
       );
       if (records.length === 0) {
-        throw new ApplicationError("state_transition_rejected", "Production-unit snapshots are not available yet.", false);
+        throw new ApplicationError(
+          "state_transition_rejected",
+          "Production-unit snapshots are not available yet.",
+          false
+        );
       }
       const preview = previewProductionUnitInvalidation({
         units: records.map((record) => record.snapshot),
@@ -906,9 +1462,10 @@ export function createPostgresApiUseCases(input: {
       if (!episode) {
         throw new ApplicationError("not_found", "Resource not found.", false);
       }
-      const targets = z.array(productionUnitAddressSchema).min(1).parse(
-        input.targets
-      );
+      const targets = z
+        .array(productionUnitAddressSchema)
+        .min(1)
+        .parse(input.targets);
       if (
         targets.some(
           (target) =>
@@ -941,13 +1498,15 @@ export function createPostgresApiUseCases(input: {
     listWorkflowSteps: async (runId, context) => {
       const records = await repository.withWorkspaceTransaction(
         context.workspaceId,
-        (transaction) => transaction.listBoundWorkflowSteps({
-          workspaceId: context.workspaceId,
-          projectId: context.projectId,
-          runId,
-        })
+        (transaction) =>
+          transaction.listBoundWorkflowSteps({
+            workspaceId: context.workspaceId,
+            projectId: context.projectId,
+            runId,
+          })
       );
-      if (!records) throw new ApplicationError("not_found", "Resource not found.", false);
+      if (!records)
+        throw new ApplicationError("not_found", "Resource not found.", false);
       return {
         items: records.map((record) => ({
           id: record.stepId,
@@ -961,15 +1520,17 @@ export function createPostgresApiUseCases(input: {
       try {
         const result = await repository.withWorkspaceTransaction(
           context.workspaceId,
-          (transaction) => transaction.cancelBoundWorkflow({
-            workspaceId: context.workspaceId,
-            projectId: context.projectId,
-            runId,
-            expectedRevision,
-            now: now().toISOString(),
-          })
+          (transaction) =>
+            transaction.cancelBoundWorkflow({
+              workspaceId: context.workspaceId,
+              projectId: context.projectId,
+              runId,
+              expectedRevision,
+              now: now().toISOString(),
+            })
         );
-        if (!result) throw new ApplicationError("not_found", "Resource not found.", false);
+        if (!result)
+          throw new ApplicationError("not_found", "Resource not found.", false);
         return {
           workflowRunId: result.run.runId,
           jobId: result.jobId,
@@ -977,7 +1538,11 @@ export function createPostgresApiUseCases(input: {
         };
       } catch (error) {
         if (error instanceof WorkflowStateTransitionError)
-          throw new ApplicationError("precondition_failed", error.message, false);
+          throw new ApplicationError(
+            "precondition_failed",
+            error.message,
+            false
+          );
         return translatePersistence(error);
       }
     },
@@ -987,43 +1552,70 @@ export function createPostgresApiUseCases(input: {
       try {
         const result = await repository.withWorkspaceTransaction(
           context.workspaceId,
-          (transaction) => transaction.resumeBoundWorkflow({
-            workspaceId: context.workspaceId,
-            projectId: context.projectId,
-            runId,
-            expectedRevision,
-            idempotencyKey: `v1:${digest({
-              principalId: context.principal.principalId,
-              method: "POST",
-              route: `/v1/workspaces/${context.workspaceId}/projects/${context.projectId}/workflow-runs/${runId}:resume`,
-              key: context.idempotencyKey,
-            })}`,
-            requestFingerprint: digest({ contractVersion: "v1", runId, expectedRevision }),
-            commandId: createId("command"),
-            jobId,
-            outboxId: createId("outbox"),
-            now: now().toISOString(),
-          })
+          (transaction) =>
+            transaction.resumeBoundWorkflow({
+              workspaceId: context.workspaceId,
+              projectId: context.projectId,
+              runId,
+              expectedRevision,
+              idempotencyKey: `v1:${digest({
+                principalId: context.principal.principalId,
+                method: "POST",
+                route: `/v1/workspaces/${context.workspaceId}/projects/${context.projectId}/workflow-runs/${runId}:resume`,
+                key: context.idempotencyKey,
+              })}`,
+              requestFingerprint: digest({
+                contractVersion: "v1",
+                runId,
+                expectedRevision,
+              }),
+              commandId: createId("command"),
+              jobId,
+              outboxId: createId("outbox"),
+              now: now().toISOString(),
+            })
         );
-        if (!result) throw new ApplicationError("not_found", "Resource not found.", false);
-        const response = result.response as { readonly workflowRunId?: unknown; readonly jobId?: unknown; readonly revision?: unknown };
-        if (typeof response.workflowRunId !== "string" || typeof response.jobId !== "string" || typeof response.revision !== "number")
-          throw new ApplicationError("upstream_unavailable", "Stored workflow resume response is invalid.", false);
-        return { workflowRunId: response.workflowRunId, jobId: response.jobId, revision: response.revision };
+        if (!result)
+          throw new ApplicationError("not_found", "Resource not found.", false);
+        const response = result.response as {
+          readonly workflowRunId?: unknown;
+          readonly jobId?: unknown;
+          readonly revision?: unknown;
+        };
+        if (
+          typeof response.workflowRunId !== "string" ||
+          typeof response.jobId !== "string" ||
+          typeof response.revision !== "number"
+        )
+          throw new ApplicationError(
+            "upstream_unavailable",
+            "Stored workflow resume response is invalid.",
+            false
+          );
+        return {
+          workflowRunId: response.workflowRunId,
+          jobId: response.jobId,
+          revision: response.revision,
+        };
       } catch (error) {
         if (error instanceof WorkflowStateTransitionError)
-          throw new ApplicationError("precondition_failed", error.message, false);
+          throw new ApplicationError(
+            "precondition_failed",
+            error.message,
+            false
+          );
         return translatePersistence(error);
       }
     },
     getJob: async (jobId, context) => {
       const record = await repository.withWorkspaceTransaction(
         context.workspaceId,
-        (transaction) => transaction.getBoundJob({
-          workspaceId: context.workspaceId,
-          projectId: context.projectId,
-          jobId,
-        })
+        (transaction) =>
+          transaction.getBoundJob({
+            workspaceId: context.workspaceId,
+            projectId: context.projectId,
+            jobId,
+          })
       );
       if (!record) return null;
       const status = publicJobStatus(record.status);
@@ -1041,52 +1633,124 @@ export function createPostgresApiUseCases(input: {
     getAsset: async (assetId, context) => {
       const record = await repository.withWorkspaceTransaction(
         context.workspaceId,
-        (transaction) => transaction.getAssetDescriptor({
-          workspaceId: context.workspaceId,
-          projectId: context.projectId,
-          assetId,
-        })
+        (transaction) =>
+          transaction.getAssetDescriptor({
+            workspaceId: context.workspaceId,
+            projectId: context.projectId,
+            assetId,
+          })
       );
-      return record ? { id: record.assetId, mimeType: record.mimeType, bytes: record.bytes, sha256: record.sha256, lifecycle: record.lifecycle, provenance: record.provenance } : null;
+      return record
+        ? {
+            id: record.assetId,
+            mimeType: record.mimeType,
+            bytes: record.bytes,
+            sha256: record.sha256,
+            lifecycle: record.lifecycle,
+            provenance: record.provenance,
+          }
+        : null;
     },
     listAssets: async (after, size, context) => {
-      const cursor = decodeReadCursor(after, { workspaceId: context.workspaceId, projectId: context.projectId, collection: "assets" }, input.cursorSecret);
-      const records = await repository.withWorkspaceTransaction(context.workspaceId, (transaction) => transaction.listAssetDescriptors({
-        workspaceId: context.workspaceId, projectId: context.projectId, ...(cursor ? { after: cursor.id } : {}), size: size + 1,
-      }));
-      const page = records.slice(0, size); const last = page.at(-1);
+      const cursor = decodeReadCursor(
+        after,
+        {
+          workspaceId: context.workspaceId,
+          projectId: context.projectId,
+          collection: "assets",
+        },
+        input.cursorSecret
+      );
+      const records = await repository.withWorkspaceTransaction(
+        context.workspaceId,
+        (transaction) =>
+          transaction.listAssetDescriptors({
+            workspaceId: context.workspaceId,
+            projectId: context.projectId,
+            ...(cursor ? { after: cursor.id } : {}),
+            size: size + 1,
+          })
+      );
+      const page = records.slice(0, size);
+      const last = page.at(-1);
       return {
-        items: page.map((record) => ({ id: record.assetId, mimeType: record.mimeType, bytes: record.bytes, sha256: record.sha256, lifecycle: record.lifecycle, provenance: record.provenance })),
-        ...(records.length > size && last ? { nextAfter: encodeReadCursor({ workspaceId: context.workspaceId, projectId: context.projectId, collection: "assets", id: last.assetId }, input.cursorSecret) } : {}),
+        items: page.map((record) => ({
+          id: record.assetId,
+          mimeType: record.mimeType,
+          bytes: record.bytes,
+          sha256: record.sha256,
+          lifecycle: record.lifecycle,
+          provenance: record.provenance,
+        })),
+        ...(records.length > size && last
+          ? {
+              nextAfter: encodeReadCursor(
+                {
+                  workspaceId: context.workspaceId,
+                  projectId: context.projectId,
+                  collection: "assets",
+                  id: last.assetId,
+                },
+                input.cursorSecret
+              ),
+            }
+          : {}),
       };
     },
     getApprovalChallenge: async (challengeId, context) => {
-      const record = await repository.withWorkspaceTransaction(context.workspaceId, (transaction) => transaction.getApprovalChallenge({ workspaceId: context.workspaceId, projectId: context.projectId, challengeId }));
-      return record ? { id: record.challengeId, subjectId: record.subjectId, subjectRevision: record.subjectRevision, artifactHash: record.artifactHash, expiresAt: record.expiresAt, consumedAt: record.consumedAt } : null;
+      const record = await repository.withWorkspaceTransaction(
+        context.workspaceId,
+        (transaction) =>
+          transaction.getApprovalChallenge({
+            workspaceId: context.workspaceId,
+            projectId: context.projectId,
+            challengeId,
+          })
+      );
+      return record
+        ? {
+            id: record.challengeId,
+            subjectId: record.subjectId,
+            subjectRevision: record.subjectRevision,
+            artifactHash: record.artifactHash,
+            expiresAt: record.expiresAt,
+            consumedAt: record.consumedAt,
+          }
+        : null;
     },
     listValidations: async (after, size, context) => {
       const decoded = decodeCursor(after, context, input.cursorSecret);
       const records = await repository.withWorkspaceTransaction(
         context.workspaceId,
-        (transaction) => transaction.listValidations({
-          workspaceId: context.workspaceId,
-          projectId: context.projectId,
-          ...(decoded ? { after: decoded } : {}),
-          size: size + 1,
-        })
+        (transaction) =>
+          transaction.listValidations({
+            workspaceId: context.workspaceId,
+            projectId: context.projectId,
+            ...(decoded ? { after: decoded } : {}),
+            size: size + 1,
+          })
       );
       const page = records.slice(0, size);
       const last = page.at(-1);
       return {
-        items: page.map((record) => ({ id: record.validationId, ...record.result as object, createdAt: record.createdAt })),
-        ...(records.length > size && last ? {
-          nextAfter: encodeCursor({
-            workspaceId: context.workspaceId,
-            projectId: context.projectId,
-            createdAt: last.createdAt,
-            validationId: last.validationId,
-          }, input.cursorSecret),
-        } : {}),
+        items: page.map((record) => ({
+          id: record.validationId,
+          ...(record.result as object),
+          createdAt: record.createdAt,
+        })),
+        ...(records.length > size && last
+          ? {
+              nextAfter: encodeCursor(
+                {
+                  workspaceId: context.workspaceId,
+                  projectId: context.projectId,
+                  createdAt: last.createdAt,
+                  validationId: last.validationId,
+                },
+                input.cursorSecret
+              ),
+            }
+          : {}),
       };
     },
     getPublication: async (publicationId, context) => {
@@ -1095,23 +1759,25 @@ export function createPostgresApiUseCases(input: {
         projectId: context.projectId,
         publicationId,
       });
-      return record ? {
-        id: record.publicationId,
-        revision: record.revision,
-        status: record.status,
-        workflowRunId: record.runId,
-        approvalId: record.approvalId,
-        approvalRevision: record.approvalRevision,
-        approvalArtifactHash: record.approvalArtifactHash,
-        assetHash: record.assetHash,
-        artifactBindings: record.artifactBindings,
-        channelId: record.channelId,
-        visibility: record.visibility,
-        scheduledAt: record.scheduledAt,
-        playlistIds: record.playlistIds,
-        createdAt: record.createdAt,
-        updatedAt: record.updatedAt,
-      } : null;
+      return record
+        ? {
+            id: record.publicationId,
+            revision: record.revision,
+            status: record.status,
+            workflowRunId: record.runId,
+            approvalId: record.approvalId,
+            approvalRevision: record.approvalRevision,
+            approvalArtifactHash: record.approvalArtifactHash,
+            assetHash: record.assetHash,
+            artifactBindings: record.artifactBindings,
+            channelId: record.channelId,
+            visibility: record.visibility,
+            scheduledAt: record.scheduledAt,
+            playlistIds: record.playlistIds,
+            createdAt: record.createdAt,
+            updatedAt: record.updatedAt,
+          }
+        : null;
     },
     issueApiCredential,
     listApiCredentials,

@@ -1,0 +1,14 @@
+{
+  "specs": 5,
+  "rules": [
+    "map-movement-svg.v1",
+    "map-spatial-comparison-svg.v1",
+    "map-spatial-area-svg.v1",
+    "map-event-location-svg.v1"
+  ],
+  "sidecarResolutions": [
+    "Calais point",
+    "Pas-de-Calais area presentation anchor"
+  ],
+  "rawGeocoding": 0
+}

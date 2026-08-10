@@ -31,7 +31,9 @@ export interface ApiCredentialIssueInput {
   readonly expiresAt: string;
   readonly overlapMs?: number;
 }
-export interface ApiCredentialRevokeInput { readonly reason: string; }
+export interface ApiCredentialRevokeInput {
+  readonly reason: string;
+}
 export interface ApiCredentialRecord {
   readonly schemaVersion: "mediaforge.api-credential.v1";
   readonly workspaceId: string;
@@ -46,7 +48,9 @@ export interface ApiCredentialRecord {
   readonly createdAt: string;
   readonly updatedAt: string;
 }
-export interface ApiCredentialPage { readonly items: readonly ApiCredentialRecord[]; }
+export interface ApiCredentialPage {
+  readonly items: readonly ApiCredentialRecord[];
+}
 export interface ApiCredentialIssueResult {
   readonly credential: ApiCredentialRecord;
   readonly token?: string;
@@ -56,7 +60,15 @@ export interface ApiCredentialIssueResult {
 export interface DeveloperJourneyExamples {
   readonly schemaVersion: "mediaforge.api-credential.v1";
   readonly title: string;
-  readonly steps: readonly { readonly operationId: string; readonly method: string; readonly path: string; readonly requestSchema: string | null; readonly responseSchema: string; readonly requiredHeaders: readonly string[]; readonly note?: string }[];
+  readonly steps: readonly {
+    readonly operationId: string;
+    readonly method: string;
+    readonly path: string;
+    readonly requestSchema: string | null;
+    readonly responseSchema: string;
+    readonly requiredHeaders: readonly string[];
+    readonly note?: string;
+  }[];
   readonly projectedAt: string;
 }
 
@@ -73,18 +85,41 @@ export interface WebhookEndpointRecord {
   readonly createdAt: string;
   readonly updatedAt: string;
 }
-export interface WebhookEndpointPage { readonly items: readonly WebhookEndpointRecord[]; }
-export interface WebhookEndpointCreateInput { readonly url: string; readonly eventFilters: readonly string[]; }
-export interface WebhookEndpointCreateResult { readonly endpoint: WebhookEndpointRecord; readonly secret: string; readonly showOnce: true; }
-export interface WebhookSecretRotateInput { readonly overlapMs?: number; }
-export interface WebhookSecretRotateResult { readonly endpoint: WebhookEndpointRecord; readonly secret: string; readonly showOnce: true; }
-export interface WebhookTestResult { readonly delivered: boolean; readonly responseStatus?: number; readonly error?: string; }
+export interface WebhookEndpointPage {
+  readonly items: readonly WebhookEndpointRecord[];
+}
+export interface WebhookEndpointCreateInput {
+  readonly url: string;
+  readonly eventFilters: readonly string[];
+}
+export interface WebhookEndpointCreateResult {
+  readonly endpoint: WebhookEndpointRecord;
+  readonly secret: string;
+  readonly showOnce: true;
+}
+export interface WebhookSecretRotateInput {
+  readonly overlapMs?: number;
+}
+export interface WebhookSecretRotateResult {
+  readonly endpoint: WebhookEndpointRecord;
+  readonly secret: string;
+  readonly showOnce: true;
+}
+export interface WebhookTestResult {
+  readonly delivered: boolean;
+  readonly responseStatus?: number;
+  readonly error?: string;
+}
 export interface WebhookDeliveryRecord {
   readonly schemaVersion: "mediaforge.webhook-delivery.v1";
   readonly workspaceId: string;
   readonly deliveryId: string;
   readonly endpointId: string;
-  readonly event: { readonly type: string; readonly subjectId: string; readonly occurredAt: string };
+  readonly event: {
+    readonly type: string;
+    readonly subjectId: string;
+    readonly occurredAt: string;
+  };
   readonly state: "pending" | "delivered" | "dead_letter";
   readonly attemptCount: number;
   readonly lastStatus?: number;
@@ -93,30 +128,139 @@ export interface WebhookDeliveryRecord {
   readonly createdAt: string;
   readonly updatedAt: string;
 }
-export interface WebhookDeliveryPage { readonly items: readonly WebhookDeliveryRecord[]; readonly nextAfter?: string; }
+export interface WebhookDeliveryPage {
+  readonly items: readonly WebhookDeliveryRecord[];
+  readonly nextAfter?: string;
+}
 
-export interface ProductionUnitAddress { readonly kind: string; readonly unitKey?: string; }
+export interface ProductionUnitAddress {
+  readonly kind: string;
+  readonly unitKey?: string;
+}
 export interface BulkProductionBatch {
   readonly id: string;
-  readonly status: "planned" | "running" | "partial" | "succeeded" | "failed" | "cancelling" | "cancelled";
+  readonly status:
+    | "planned"
+    | "running"
+    | "partial"
+    | "succeeded"
+    | "failed"
+    | "cancelling"
+    | "cancelled";
   readonly selectionFingerprint: string;
   readonly createdAt: string;
   readonly updatedAt: string;
-  readonly items: readonly { readonly id: string; readonly eligible: boolean; readonly status: "pending" | "running" | "succeeded" | "failed-retryable" | "failed-permanent" | "cancelled" | "ineligible"; readonly reasons: readonly string[] }[];
+  readonly items: readonly {
+    readonly id: string;
+    readonly eligible: boolean;
+    readonly status:
+      | "pending"
+      | "running"
+      | "succeeded"
+      | "failed-retryable"
+      | "failed-permanent"
+      | "cancelled"
+      | "ineligible";
+    readonly reasons: readonly string[];
+  }[];
 }
-export interface BulkProductionPreflightInput { readonly items: readonly { readonly projectId: string; readonly episodeId: string; readonly expectedRevision: number; readonly locale: "en" | "de" | "es" | "fr" | "pt" | "it"; readonly variant: "full" | "short" }[]; }
-export interface BulkProductionPreflightResult { readonly id: string; readonly replayed: boolean; readonly status: "planned"; readonly selectionFingerprint: string; readonly items: BulkProductionBatch["items"]; }
-export interface BulkProductionLaunchResult { readonly id: string; readonly accepted: readonly { readonly itemId: string; readonly workflowRunId: string; readonly jobId: string }[]; readonly rejected: readonly { readonly itemId: string; readonly code: string }[]; }
-export interface BulkProductionRetryResult { readonly id: string; readonly retriedItems: number; }
-export interface BulkProductionCancellationResult { readonly id: string; readonly status: "cancelling" | "cancelled"; readonly cancellationRequestedJobIds: readonly string[]; }
-export interface ProductionUnitSnapshot { readonly address: ProductionUnitAddress; readonly inputFingerprint: string; readonly contentHash?: string; readonly status: "missing" | "valid" | "stale" | "invalidated"; readonly artifactRecordId?: string; }
-export interface ProductionUnitSnapshotRecord { readonly snapshotId: string; readonly snapshot: ProductionUnitSnapshot; readonly createdAt: string; }
-export interface ArtifactComparisonMetadata { readonly baselineKind: "previous" | "approved" | "source"; readonly baselineContentHash: string; readonly currentContentHash?: string; readonly textDiffAvailable: boolean; readonly visualDiffAvailable: boolean; readonly timestampAwareMediaDiffAvailable: boolean; }
-export interface ProductionUnitSnapshotPage { readonly items: readonly ProductionUnitSnapshotRecord[]; }
-export interface ProductionUnitComparisonPage { readonly items: readonly { readonly current: ProductionUnitSnapshotRecord; readonly previous?: ProductionUnitSnapshotRecord; readonly comparison?: ArtifactComparisonMetadata }[]; }
-export interface ProductionUnitChange { readonly address: ProductionUnitAddress; readonly nextInputFingerprint: string; readonly nextContentHash?: string; readonly reason?: string; }
-export interface ArtifactInvalidationPreview { readonly changedAddresses: readonly ProductionUnitAddress[]; readonly invalidatedUnits: readonly { readonly address: ProductionUnitAddress; readonly previousStatus: string; readonly reason: string; readonly preservedUpstream: boolean }[]; readonly preservedUnits: readonly ProductionUnitAddress[]; readonly regenerationTargets: readonly ProductionUnitAddress[]; readonly staleReviewReadiness: boolean; readonly stalePublishReadiness: boolean; readonly gateEvidenceUpdates: readonly { readonly code: string; readonly message: string }[]; readonly projectedAt: string; }
-export interface ProductionUnitRegenerationAccepted { readonly acceptedTargets: readonly ProductionUnitAddress[]; readonly workflowRunId: string; readonly jobId: string; readonly revision: number; }
+export interface BulkProductionPreflightInput {
+  readonly items: readonly {
+    readonly projectId: string;
+    readonly episodeId: string;
+    readonly expectedRevision: number;
+    readonly locale: "en" | "de" | "es" | "fr" | "pt" | "it";
+    readonly variant: "full" | "short";
+  }[];
+}
+export interface BulkProductionPreflightResult {
+  readonly id: string;
+  readonly replayed: boolean;
+  readonly status: "planned";
+  readonly selectionFingerprint: string;
+  readonly items: BulkProductionBatch["items"];
+}
+export interface BulkProductionLaunchResult {
+  readonly id: string;
+  readonly accepted: readonly {
+    readonly itemId: string;
+    readonly workflowRunId: string;
+    readonly jobId: string;
+  }[];
+  readonly rejected: readonly {
+    readonly itemId: string;
+    readonly code: string;
+  }[];
+}
+export interface BulkProductionRetryResult {
+  readonly id: string;
+  readonly retriedItems: number;
+}
+export interface BulkProductionCancellationResult {
+  readonly id: string;
+  readonly status: "cancelling" | "cancelled";
+  readonly cancellationRequestedJobIds: readonly string[];
+}
+export interface ProductionUnitSnapshot {
+  readonly address: ProductionUnitAddress;
+  readonly inputFingerprint: string;
+  readonly contentHash?: string;
+  readonly status: "missing" | "valid" | "stale" | "invalidated";
+  readonly artifactRecordId?: string;
+}
+export interface ProductionUnitSnapshotRecord {
+  readonly snapshotId: string;
+  readonly snapshot: ProductionUnitSnapshot;
+  readonly createdAt: string;
+}
+export interface ArtifactComparisonMetadata {
+  readonly baselineKind: "previous" | "approved" | "source";
+  readonly baselineContentHash: string;
+  readonly currentContentHash?: string;
+  readonly textDiffAvailable: boolean;
+  readonly visualDiffAvailable: boolean;
+  readonly timestampAwareMediaDiffAvailable: boolean;
+}
+export interface ProductionUnitSnapshotPage {
+  readonly items: readonly ProductionUnitSnapshotRecord[];
+}
+export interface ProductionUnitComparisonPage {
+  readonly items: readonly {
+    readonly current: ProductionUnitSnapshotRecord;
+    readonly previous?: ProductionUnitSnapshotRecord;
+    readonly comparison?: ArtifactComparisonMetadata;
+  }[];
+}
+export interface ProductionUnitChange {
+  readonly address: ProductionUnitAddress;
+  readonly nextInputFingerprint: string;
+  readonly nextContentHash?: string;
+  readonly reason?: string;
+}
+export interface ArtifactInvalidationPreview {
+  readonly changedAddresses: readonly ProductionUnitAddress[];
+  readonly invalidatedUnits: readonly {
+    readonly address: ProductionUnitAddress;
+    readonly previousStatus: string;
+    readonly reason: string;
+    readonly preservedUpstream: boolean;
+  }[];
+  readonly preservedUnits: readonly ProductionUnitAddress[];
+  readonly regenerationTargets: readonly ProductionUnitAddress[];
+  readonly staleReviewReadiness: boolean;
+  readonly stalePublishReadiness: boolean;
+  readonly gateEvidenceUpdates: readonly {
+    readonly code: string;
+    readonly message: string;
+  }[];
+  readonly projectedAt: string;
+}
+export interface ProductionUnitRegenerationAccepted {
+  readonly acceptedTargets: readonly ProductionUnitAddress[];
+  readonly workflowRunId: string;
+  readonly jobId: string;
+  readonly revision: number;
+}
 
 export class ApiProblemError extends Error {
   public override readonly name = "ApiProblemError";
@@ -158,8 +302,37 @@ export interface WorkspaceQuotaStatus {
   readonly availableMinor: string;
   readonly revision: number;
 }
-export interface CapabilityRegistry { readonly schemaVersion: "mediaforge.capability.v1"; readonly capabilityVersion: string; readonly entitledProfiles: readonly string[]; readonly cells: readonly { readonly profileId: string; readonly locales: readonly string[]; readonly variants: readonly string[]; readonly renderProfiles: readonly string[]; readonly publicationModes: readonly string[]; readonly approvalModes: readonly string[] }[]; readonly tenantConfigurableFields: readonly string[]; readonly generatedAt: string; }
-export interface ResolvedProductionConfiguration { readonly schemaVersion: "mediaforge.capability.v1"; readonly profileId: string; readonly supportedLocales: readonly string[]; readonly defaultLocale: string; readonly supportedVariants: readonly string[]; readonly approvalMode: string; readonly publicationMode: string; readonly renderProfile: string; readonly requiredReviewGates: readonly string[]; readonly configurationRevision: number; readonly capabilityVersion: string; readonly fingerprint: string; readonly provenance: readonly unknown[]; readonly resolvedAt: string; }
+export interface CapabilityRegistry {
+  readonly schemaVersion: "mediaforge.capability.v1";
+  readonly capabilityVersion: string;
+  readonly entitledProfiles: readonly string[];
+  readonly cells: readonly {
+    readonly profileId: string;
+    readonly locales: readonly string[];
+    readonly variants: readonly string[];
+    readonly renderProfiles: readonly string[];
+    readonly publicationModes: readonly string[];
+    readonly approvalModes: readonly string[];
+  }[];
+  readonly tenantConfigurableFields: readonly string[];
+  readonly generatedAt: string;
+}
+export interface ResolvedProductionConfiguration {
+  readonly schemaVersion: "mediaforge.capability.v1";
+  readonly profileId: string;
+  readonly supportedLocales: readonly string[];
+  readonly defaultLocale: string;
+  readonly supportedVariants: readonly string[];
+  readonly approvalMode: string;
+  readonly publicationMode: string;
+  readonly renderProfile: string;
+  readonly requiredReviewGates: readonly string[];
+  readonly configurationRevision: number;
+  readonly capabilityVersion: string;
+  readonly fingerprint: string;
+  readonly provenance: readonly unknown[];
+  readonly resolvedAt: string;
+}
 
 export interface UsageRecord {
   readonly id: string;
@@ -201,7 +374,7 @@ export type Profile =
   | "mathematics_education"
   | "dynamic_generic"
   | "history"
-  | "strategic_reinvention";
+  | "veronicabenini";
 export type Variant = "full" | "short";
 
 export interface ProjectInput {
@@ -221,7 +394,10 @@ export interface ProjectSummary extends Project {
   readonly updatedAt: string;
 }
 
-export interface ProjectPage { readonly items: readonly ProjectSummary[]; readonly nextAfter?: string; }
+export interface ProjectPage {
+  readonly items: readonly ProjectSummary[];
+  readonly nextAfter?: string;
+}
 
 export interface DarkTruthContent {
   readonly type: "dark_truth";
@@ -272,7 +448,7 @@ export interface HistoryContent {
 }
 
 export interface StrategicReinventionContent {
-  readonly type: "strategic_reinvention";
+  readonly type: "veronicabenini";
   readonly version: "1";
   readonly creatorProfileId: "veronica-benini";
   readonly episodeMode:
@@ -304,8 +480,14 @@ export interface Episode {
   readonly content: EpisodeContent;
 }
 
-export interface EpisodeSummary extends Episode { readonly createdAt: string; readonly updatedAt: string; }
-export interface EpisodePage { readonly items: readonly EpisodeSummary[]; readonly nextAfter?: string; }
+export interface EpisodeSummary extends Episode {
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+export interface EpisodePage {
+  readonly items: readonly EpisodeSummary[];
+  readonly nextAfter?: string;
+}
 
 export interface EpisodeCreated {
   readonly id: string;
@@ -353,16 +535,55 @@ export interface EpisodeProductionState {
   readonly projectId: string;
   readonly episodeId: string;
   readonly currentProductionRevision: Record<string, unknown>;
-  readonly lifecycleStage: "draft" | "producing" | "validating" | "reviewing" | "rendering" | "publish_ready" | "published" | "blocked" | "archived";
-  readonly workflow: { readonly activeRunId?: string; readonly runStatus?: WorkflowRunStatus | "none"; readonly runRevision?: number; readonly jobId?: string; readonly jobStatus?: string; readonly jobRevision?: number; readonly sanitizedFailureCode?: string };
-  readonly validation: { readonly items: readonly { readonly validationId: string; readonly status: "passed" | "failed" | "pending" | "unknown"; readonly resultFingerprint?: string }[] };
+  readonly lifecycleStage:
+    | "draft"
+    | "producing"
+    | "validating"
+    | "reviewing"
+    | "rendering"
+    | "publish_ready"
+    | "published"
+    | "blocked"
+    | "archived";
+  readonly workflow: {
+    readonly activeRunId?: string;
+    readonly runStatus?: WorkflowRunStatus | "none";
+    readonly runRevision?: number;
+    readonly jobId?: string;
+    readonly jobStatus?: string;
+    readonly jobRevision?: number;
+    readonly sanitizedFailureCode?: string;
+  };
+  readonly validation: {
+    readonly items: readonly {
+      readonly validationId: string;
+      readonly status: "passed" | "failed" | "pending" | "unknown";
+      readonly resultFingerprint?: string;
+    }[];
+  };
   readonly review: Record<string, unknown>;
   readonly render: Record<string, unknown>;
   readonly localization: Record<string, unknown>;
   readonly publication: Record<string, unknown>;
-  readonly blockers: readonly { readonly code: string; readonly message: string; readonly severity: "blocking" | "warning"; readonly evidence: readonly Record<string, unknown>[] }[];
-  readonly warnings: readonly { readonly code: string; readonly message: string; readonly severity: "blocking" | "warning"; readonly evidence: readonly Record<string, unknown>[] }[];
-  readonly actions: readonly { readonly actionId: string; readonly kind: string; readonly label: string; readonly enabled: boolean; readonly reason?: string }[];
+  readonly blockers: readonly {
+    readonly code: string;
+    readonly message: string;
+    readonly severity: "blocking" | "warning";
+    readonly evidence: readonly Record<string, unknown>[];
+  }[];
+  readonly warnings: readonly {
+    readonly code: string;
+    readonly message: string;
+    readonly severity: "blocking" | "warning";
+    readonly evidence: readonly Record<string, unknown>[];
+  }[];
+  readonly actions: readonly {
+    readonly actionId: string;
+    readonly kind: string;
+    readonly label: string;
+    readonly enabled: boolean;
+    readonly reason?: string;
+  }[];
   readonly projectedAt: string;
   readonly projectionInputFingerprint: string;
 }
@@ -419,7 +640,10 @@ export interface Asset {
   readonly provenance: string;
 }
 
-export interface AssetPage { readonly items: readonly Asset[]; readonly nextAfter?: string; }
+export interface AssetPage {
+  readonly items: readonly Asset[];
+  readonly nextAfter?: string;
+}
 
 export interface ApprovalChallenge {
   readonly id: string;
@@ -434,12 +658,16 @@ export interface ReviewQueueItem {
   readonly id: string;
   readonly [key: string]: unknown;
 }
-export interface ReviewQueuePage { readonly items: readonly ReviewQueueItem[]; }
+export interface ReviewQueuePage {
+  readonly items: readonly ReviewQueueItem[];
+}
 export interface ApprovalHistoryItem {
   readonly id: string;
   readonly [key: string]: unknown;
 }
-export interface ApprovalHistoryPage { readonly items: readonly ApprovalHistoryItem[]; }
+export interface ApprovalHistoryPage {
+  readonly items: readonly ApprovalHistoryItem[];
+}
 
 export interface ValidationResult {
   readonly id: string;
@@ -505,8 +733,14 @@ export interface PublishingChannel {
   readonly authorizationExpiresAt?: string;
   readonly updatedAt: string;
 }
-export interface PublishingChannelPage { readonly items: readonly PublishingChannel[]; }
-export interface ChannelConnectBeginResult { readonly sessionId: string; readonly authorizationUrl: string; readonly expiresAt: string; }
+export interface PublishingChannelPage {
+  readonly items: readonly PublishingChannel[];
+}
+export interface ChannelConnectBeginResult {
+  readonly sessionId: string;
+  readonly authorizationUrl: string;
+  readonly expiresAt: string;
+}
 export interface PublicationMetadataInput {
   readonly title: string;
   readonly description: string;
@@ -534,10 +768,16 @@ export interface PublicationPreflightInput {
 }
 export interface PublicationPreflightResult {
   readonly admitted: boolean;
-  readonly rejections: readonly { readonly code: string; readonly message: string; readonly field?: string }[];
+  readonly rejections: readonly {
+    readonly code: string;
+    readonly message: string;
+    readonly field?: string;
+  }[];
   readonly metadataContentHash?: string;
 }
-export interface PublicationPrepareInput extends PublicationPreflightInput { readonly idempotencyKey?: string; }
+export interface PublicationPrepareInput extends PublicationPreflightInput {
+  readonly idempotencyKey?: string;
+}
 export interface PublicationMetadataRevision {
   readonly schemaVersion: "mediaforge.publication-preparation.v1";
   readonly metadataRevisionId: string;
@@ -613,7 +853,10 @@ export interface ValidationListOptions extends RequestOptions {
   readonly after?: string;
 }
 
-export interface ReadListOptions extends RequestOptions { readonly size?: number; readonly after?: string; }
+export interface ReadListOptions extends RequestOptions {
+  readonly size?: number;
+  readonly after?: string;
+}
 
 export interface WorkspaceListOptions extends RequestOptions {
   readonly size?: number;
@@ -1012,10 +1255,14 @@ export class MediaforgeApiClient {
     options: ReadListOptions = {}
   ): Promise<ApiResponse<ProjectPage>> {
     const query = new URLSearchParams();
-    if (options.size !== undefined) query.set("page[size]", String(options.size));
+    if (options.size !== undefined)
+      query.set("page[size]", String(options.size));
     if (options.after !== undefined) query.set("page[after]", options.after);
     const suffix = query.size > 0 ? `?${query.toString()}` : "";
-    return this.execute(`${this.workspacePath(workspaceId)}/projects${suffix}`, { options });
+    return this.execute(
+      `${this.workspacePath(workspaceId)}/projects${suffix}`,
+      { options }
+    );
   }
 
   public createEpisode(
@@ -1036,10 +1283,14 @@ export class MediaforgeApiClient {
     options: ReadListOptions = {}
   ): Promise<ApiResponse<EpisodePage>> {
     const query = new URLSearchParams();
-    if (options.size !== undefined) query.set("page[size]", String(options.size));
+    if (options.size !== undefined)
+      query.set("page[size]", String(options.size));
     if (options.after !== undefined) query.set("page[after]", options.after);
     const suffix = query.size > 0 ? `?${query.toString()}` : "";
-    return this.execute(`${this.projectPath(workspaceId, projectId)}/episodes${suffix}`, { options });
+    return this.execute(
+      `${this.projectPath(workspaceId, projectId)}/episodes${suffix}`,
+      { options }
+    );
   }
 
   public getEpisode(
@@ -1072,44 +1323,113 @@ export class MediaforgeApiClient {
     );
   }
 
-  public issueApiCredential(workspaceId: string, input: ApiCredentialIssueInput, options: IdempotentRequestOptions): Promise<ApiResponse<ApiCredentialIssueResult>> {
-    return this.execute(`${this.workspacePath(workspaceId)}/api-credentials`, { method: "POST", body: input, options, idempotencyKey: options.idempotencyKey });
+  public issueApiCredential(
+    workspaceId: string,
+    input: ApiCredentialIssueInput,
+    options: IdempotentRequestOptions
+  ): Promise<ApiResponse<ApiCredentialIssueResult>> {
+    return this.execute(`${this.workspacePath(workspaceId)}/api-credentials`, {
+      method: "POST",
+      body: input,
+      options,
+      idempotencyKey: options.idempotencyKey,
+    });
   }
 
-  public listApiCredentials(workspaceId: string, options?: RequestOptions): Promise<ApiResponse<ApiCredentialPage>> {
-    return this.execute(`${this.workspacePath(workspaceId)}/api-credentials`, { ...(options ? { options } : {}) });
+  public listApiCredentials(
+    workspaceId: string,
+    options?: RequestOptions
+  ): Promise<ApiResponse<ApiCredentialPage>> {
+    return this.execute(`${this.workspacePath(workspaceId)}/api-credentials`, {
+      ...(options ? { options } : {}),
+    });
   }
 
-  public revokeApiCredential(workspaceId: string, keyId: string, input: ApiCredentialRevokeInput, options: ConditionalRequestOptions): Promise<ApiResponse<ApiCredentialRecord>> {
-    return this.execute(`${this.workspacePath(workspaceId)}/api-credentials/${encodePath(keyId)}:revoke`, { method: "POST", body: input, options, ifMatch: options.ifMatch });
+  public revokeApiCredential(
+    workspaceId: string,
+    keyId: string,
+    input: ApiCredentialRevokeInput,
+    options: ConditionalRequestOptions
+  ): Promise<ApiResponse<ApiCredentialRecord>> {
+    return this.execute(
+      `${this.workspacePath(workspaceId)}/api-credentials/${encodePath(keyId)}:revoke`,
+      { method: "POST", body: input, options, ifMatch: options.ifMatch }
+    );
   }
 
-  public getDeveloperJourneyExamples(workspaceId: string, options?: RequestOptions): Promise<ApiResponse<DeveloperJourneyExamples>> {
-    return this.execute(`${this.workspacePath(workspaceId)}/developer-journey-examples`, { ...(options ? { options } : {}) });
+  public getDeveloperJourneyExamples(
+    workspaceId: string,
+    options?: RequestOptions
+  ): Promise<ApiResponse<DeveloperJourneyExamples>> {
+    return this.execute(
+      `${this.workspacePath(workspaceId)}/developer-journey-examples`,
+      { ...(options ? { options } : {}) }
+    );
   }
 
-  public createWebhookEndpoint(workspaceId: string, input: WebhookEndpointCreateInput, options?: RequestOptions): Promise<ApiResponse<WebhookEndpointCreateResult>> {
-    return this.execute(`${this.workspacePath(workspaceId)}/webhook-endpoints`, { method: "POST", body: input, ...(options ? { options } : {}) });
+  public createWebhookEndpoint(
+    workspaceId: string,
+    input: WebhookEndpointCreateInput,
+    options?: RequestOptions
+  ): Promise<ApiResponse<WebhookEndpointCreateResult>> {
+    return this.execute(
+      `${this.workspacePath(workspaceId)}/webhook-endpoints`,
+      { method: "POST", body: input, ...(options ? { options } : {}) }
+    );
   }
 
-  public listWebhookEndpoints(workspaceId: string, options?: RequestOptions): Promise<ApiResponse<WebhookEndpointPage>> {
-    return this.execute(`${this.workspacePath(workspaceId)}/webhook-endpoints`, { ...(options ? { options } : {}) });
+  public listWebhookEndpoints(
+    workspaceId: string,
+    options?: RequestOptions
+  ): Promise<ApiResponse<WebhookEndpointPage>> {
+    return this.execute(
+      `${this.workspacePath(workspaceId)}/webhook-endpoints`,
+      { ...(options ? { options } : {}) }
+    );
   }
 
-  public rotateWebhookEndpointSecret(workspaceId: string, endpointId: string, input: WebhookSecretRotateInput, options: ConditionalRequestOptions): Promise<ApiResponse<WebhookSecretRotateResult>> {
-    return this.execute(`${this.workspacePath(workspaceId)}/webhook-endpoints/${encodePath(endpointId)}:rotate-secret`, { method: "POST", body: input, options, ifMatch: options.ifMatch });
+  public rotateWebhookEndpointSecret(
+    workspaceId: string,
+    endpointId: string,
+    input: WebhookSecretRotateInput,
+    options: ConditionalRequestOptions
+  ): Promise<ApiResponse<WebhookSecretRotateResult>> {
+    return this.execute(
+      `${this.workspacePath(workspaceId)}/webhook-endpoints/${encodePath(endpointId)}:rotate-secret`,
+      { method: "POST", body: input, options, ifMatch: options.ifMatch }
+    );
   }
 
-  public testWebhookEndpoint(workspaceId: string, endpointId: string, options?: RequestOptions): Promise<ApiResponse<WebhookTestResult>> {
-    return this.execute(`${this.workspacePath(workspaceId)}/webhook-endpoints/${encodePath(endpointId)}:test`, { method: "POST", ...(options ? { options } : {}) });
+  public testWebhookEndpoint(
+    workspaceId: string,
+    endpointId: string,
+    options?: RequestOptions
+  ): Promise<ApiResponse<WebhookTestResult>> {
+    return this.execute(
+      `${this.workspacePath(workspaceId)}/webhook-endpoints/${encodePath(endpointId)}:test`,
+      { method: "POST", ...(options ? { options } : {}) }
+    );
   }
 
-  public listWebhookDeliveries(workspaceId: string, options?: RequestOptions): Promise<ApiResponse<WebhookDeliveryPage>> {
-    return this.execute(`${this.workspacePath(workspaceId)}/webhook-deliveries`, { ...(options ? { options } : {}) });
+  public listWebhookDeliveries(
+    workspaceId: string,
+    options?: RequestOptions
+  ): Promise<ApiResponse<WebhookDeliveryPage>> {
+    return this.execute(
+      `${this.workspacePath(workspaceId)}/webhook-deliveries`,
+      { ...(options ? { options } : {}) }
+    );
   }
 
-  public resendWebhookDelivery(workspaceId: string, deliveryId: string, options: ConditionalRequestOptions): Promise<ApiResponse<WebhookDeliveryRecord>> {
-    return this.execute(`${this.workspacePath(workspaceId)}/webhook-deliveries/${encodePath(deliveryId)}:resend`, { method: "POST", options, ifMatch: options.ifMatch });
+  public resendWebhookDelivery(
+    workspaceId: string,
+    deliveryId: string,
+    options: ConditionalRequestOptions
+  ): Promise<ApiResponse<WebhookDeliveryRecord>> {
+    return this.execute(
+      `${this.workspacePath(workspaceId)}/webhook-deliveries/${encodePath(deliveryId)}:resend`,
+      { method: "POST", options, ifMatch: options.ifMatch }
+    );
   }
 
   public getEpisodeProductionState(
@@ -1124,43 +1444,141 @@ export class MediaforgeApiClient {
     );
   }
 
-  public getBulkProductionBatch(workspaceId: string, batchId: string, options?: RequestOptions): Promise<ApiResponse<BulkProductionBatch>> {
-    return this.execute(`${this.workspacePath(workspaceId)}/bulk-production-batches/${encodePath(batchId)}`, { ...(options ? { options } : {}) });
+  public getBulkProductionBatch(
+    workspaceId: string,
+    batchId: string,
+    options?: RequestOptions
+  ): Promise<ApiResponse<BulkProductionBatch>> {
+    return this.execute(
+      `${this.workspacePath(workspaceId)}/bulk-production-batches/${encodePath(batchId)}`,
+      { ...(options ? { options } : {}) }
+    );
   }
 
-  public preflightBulkProduction(workspaceId: string, input: BulkProductionPreflightInput, options: IdempotentRequestOptions): Promise<ApiResponse<BulkProductionPreflightResult>> {
-    return this.execute(`${this.workspacePath(workspaceId)}/bulk-production-batches:preflight`, { method: "POST", body: input, options, idempotencyKey: options.idempotencyKey });
+  public preflightBulkProduction(
+    workspaceId: string,
+    input: BulkProductionPreflightInput,
+    options: IdempotentRequestOptions
+  ): Promise<ApiResponse<BulkProductionPreflightResult>> {
+    return this.execute(
+      `${this.workspacePath(workspaceId)}/bulk-production-batches:preflight`,
+      {
+        method: "POST",
+        body: input,
+        options,
+        idempotencyKey: options.idempotencyKey,
+      }
+    );
   }
 
-  public launchBulkProduction(workspaceId: string, batchId: string, options: IdempotentRequestOptions): Promise<ApiResponse<BulkProductionLaunchResult>> {
-    return this.execute(`${this.workspacePath(workspaceId)}/bulk-production-batches/${encodePath(batchId)}:launch`, { method: "POST", options, idempotencyKey: options.idempotencyKey });
+  public launchBulkProduction(
+    workspaceId: string,
+    batchId: string,
+    options: IdempotentRequestOptions
+  ): Promise<ApiResponse<BulkProductionLaunchResult>> {
+    return this.execute(
+      `${this.workspacePath(workspaceId)}/bulk-production-batches/${encodePath(batchId)}:launch`,
+      { method: "POST", options, idempotencyKey: options.idempotencyKey }
+    );
   }
 
-  public retryBulkProduction(workspaceId: string, batchId: string, options: IdempotentRequestOptions): Promise<ApiResponse<BulkProductionRetryResult>> {
-    return this.execute(`${this.workspacePath(workspaceId)}/bulk-production-batches/${encodePath(batchId)}:retry`, { method: "POST", options, idempotencyKey: options.idempotencyKey });
+  public retryBulkProduction(
+    workspaceId: string,
+    batchId: string,
+    options: IdempotentRequestOptions
+  ): Promise<ApiResponse<BulkProductionRetryResult>> {
+    return this.execute(
+      `${this.workspacePath(workspaceId)}/bulk-production-batches/${encodePath(batchId)}:retry`,
+      { method: "POST", options, idempotencyKey: options.idempotencyKey }
+    );
   }
 
-  public cancelBulkProduction(workspaceId: string, batchId: string, options?: RequestOptions): Promise<ApiResponse<BulkProductionCancellationResult>> {
-    return this.execute(`${this.workspacePath(workspaceId)}/bulk-production-batches/${encodePath(batchId)}:cancel`, { method: "POST", ...(options ? { options } : {}) });
+  public cancelBulkProduction(
+    workspaceId: string,
+    batchId: string,
+    options?: RequestOptions
+  ): Promise<ApiResponse<BulkProductionCancellationResult>> {
+    return this.execute(
+      `${this.workspacePath(workspaceId)}/bulk-production-batches/${encodePath(batchId)}:cancel`,
+      { method: "POST", ...(options ? { options } : {}) }
+    );
   }
 
-  public getWorkspaceCapabilities(workspaceId: string, options?: RequestOptions): Promise<ApiResponse<CapabilityRegistry>> { return this.execute(`${this.workspacePath(workspaceId)}/capabilities`, { ...(options ? { options } : {}) }); }
-  public getEpisodeResolvedConfiguration(workspaceId: string, projectId: string, episodeId: string, options?: RequestOptions): Promise<ApiResponse<ResolvedProductionConfiguration>> { return this.execute(`${this.projectPath(workspaceId, projectId)}/episodes/${encodePath(episodeId)}/resolved-configuration`, { ...(options ? { options } : {}) }); }
-
-  public listProductionUnitSnapshots(workspaceId: string, projectId: string, episodeId: string, options?: RequestOptions): Promise<ApiResponse<ProductionUnitSnapshotPage>> {
-    return this.execute(`${this.projectPath(workspaceId, projectId)}/episodes/${encodePath(episodeId)}/production-units`, { ...(options ? { options } : {}) });
+  public getWorkspaceCapabilities(
+    workspaceId: string,
+    options?: RequestOptions
+  ): Promise<ApiResponse<CapabilityRegistry>> {
+    return this.execute(`${this.workspacePath(workspaceId)}/capabilities`, {
+      ...(options ? { options } : {}),
+    });
+  }
+  public getEpisodeResolvedConfiguration(
+    workspaceId: string,
+    projectId: string,
+    episodeId: string,
+    options?: RequestOptions
+  ): Promise<ApiResponse<ResolvedProductionConfiguration>> {
+    return this.execute(
+      `${this.projectPath(workspaceId, projectId)}/episodes/${encodePath(episodeId)}/resolved-configuration`,
+      { ...(options ? { options } : {}) }
+    );
   }
 
-  public compareProductionUnitSnapshots(workspaceId: string, projectId: string, episodeId: string, options?: RequestOptions): Promise<ApiResponse<ProductionUnitComparisonPage>> {
-    return this.execute(`${this.projectPath(workspaceId, projectId)}/episodes/${encodePath(episodeId)}/production-units:compare`, { ...(options ? { options } : {}) });
+  public listProductionUnitSnapshots(
+    workspaceId: string,
+    projectId: string,
+    episodeId: string,
+    options?: RequestOptions
+  ): Promise<ApiResponse<ProductionUnitSnapshotPage>> {
+    return this.execute(
+      `${this.projectPath(workspaceId, projectId)}/episodes/${encodePath(episodeId)}/production-units`,
+      { ...(options ? { options } : {}) }
+    );
   }
 
-  public previewArtifactInvalidation(workspaceId: string, projectId: string, episodeId: string, input: { readonly changes: readonly ProductionUnitChange[] }): Promise<ApiResponse<ArtifactInvalidationPreview>> {
-    return this.execute(`${this.projectPath(workspaceId, projectId)}/episodes/${encodePath(episodeId)}/artifact-invalidation-preview`, { method: "POST", body: input });
+  public compareProductionUnitSnapshots(
+    workspaceId: string,
+    projectId: string,
+    episodeId: string,
+    options?: RequestOptions
+  ): Promise<ApiResponse<ProductionUnitComparisonPage>> {
+    return this.execute(
+      `${this.projectPath(workspaceId, projectId)}/episodes/${encodePath(episodeId)}/production-units:compare`,
+      { ...(options ? { options } : {}) }
+    );
   }
 
-  public regenerateProductionUnits(workspaceId: string, projectId: string, episodeId: string, input: { readonly targets: readonly ProductionUnitAddress[]; readonly reason?: string }, options: IdempotentRequestOptions): Promise<ApiResponse<ProductionUnitRegenerationAccepted>> {
-    return this.execute(`${this.projectPath(workspaceId, projectId)}/episodes/${encodePath(episodeId)}/production-units:regenerate`, { method: "POST", body: input, options, idempotencyKey: options.idempotencyKey });
+  public previewArtifactInvalidation(
+    workspaceId: string,
+    projectId: string,
+    episodeId: string,
+    input: { readonly changes: readonly ProductionUnitChange[] }
+  ): Promise<ApiResponse<ArtifactInvalidationPreview>> {
+    return this.execute(
+      `${this.projectPath(workspaceId, projectId)}/episodes/${encodePath(episodeId)}/artifact-invalidation-preview`,
+      { method: "POST", body: input }
+    );
+  }
+
+  public regenerateProductionUnits(
+    workspaceId: string,
+    projectId: string,
+    episodeId: string,
+    input: {
+      readonly targets: readonly ProductionUnitAddress[];
+      readonly reason?: string;
+    },
+    options: IdempotentRequestOptions
+  ): Promise<ApiResponse<ProductionUnitRegenerationAccepted>> {
+    return this.execute(
+      `${this.projectPath(workspaceId, projectId)}/episodes/${encodePath(episodeId)}/production-units:regenerate`,
+      {
+        method: "POST",
+        body: input,
+        options,
+        idempotencyKey: options.idempotencyKey,
+      }
+    );
   }
 
   public replaceEpisodeContent(
@@ -1277,10 +1695,14 @@ export class MediaforgeApiClient {
     options: ReadListOptions = {}
   ): Promise<ApiResponse<AssetPage>> {
     const query = new URLSearchParams();
-    if (options.size !== undefined) query.set("page[size]", String(options.size));
+    if (options.size !== undefined)
+      query.set("page[size]", String(options.size));
     if (options.after !== undefined) query.set("page[after]", options.after);
     const suffix = query.size > 0 ? `?${query.toString()}` : "";
-    return this.execute(`${this.projectPath(workspaceId, projectId)}/assets${suffix}`, { options });
+    return this.execute(
+      `${this.projectPath(workspaceId, projectId)}/assets${suffix}`,
+      { options }
+    );
   }
 
   public getApprovalChallenge(
@@ -1289,7 +1711,10 @@ export class MediaforgeApiClient {
     challengeId: string,
     options?: RequestOptions
   ): Promise<ApiResponse<ApprovalChallenge>> {
-    return this.execute(`${this.projectPath(workspaceId, projectId)}/approval-challenges/${encodePath(challengeId)}`, { ...(options ? { options } : {}) });
+    return this.execute(
+      `${this.projectPath(workspaceId, projectId)}/approval-challenges/${encodePath(challengeId)}`,
+      { ...(options ? { options } : {}) }
+    );
   }
 
   public listValidations(
@@ -1324,18 +1749,25 @@ export class MediaforgeApiClient {
     workspaceId: string,
     options?: RequestOptions
   ): Promise<ApiResponse<PublishingChannelPage>> {
-    return this.execute(`${this.workspacePath(workspaceId)}/publishing-channels`, {
-      ...(options ? { options } : {}),
-    });
+    return this.execute(
+      `${this.workspacePath(workspaceId)}/publishing-channels`,
+      {
+        ...(options ? { options } : {}),
+      }
+    );
   }
 
   public beginPublishingChannelConnect(
     workspaceId: string,
     options?: RequestOptions
   ): Promise<ApiResponse<ChannelConnectBeginResult>> {
-    return this.execute(`${this.workspacePath(workspaceId)}/publishing-channels:connect`, {
-      method: "POST", ...(options ? { options } : {}),
-    });
+    return this.execute(
+      `${this.workspacePath(workspaceId)}/publishing-channels:connect`,
+      {
+        method: "POST",
+        ...(options ? { options } : {}),
+      }
+    );
   }
 
   public disconnectPublishingChannel(
@@ -1343,9 +1775,14 @@ export class MediaforgeApiClient {
     channelId: string,
     options: ConditionalRequestOptions
   ): Promise<ApiResponse<PublishingChannel>> {
-    return this.execute(`${this.workspacePath(workspaceId)}/publishing-channels/${encodePath(channelId)}:disconnect`, {
-      method: "POST", options, ifMatch: options.ifMatch,
-    });
+    return this.execute(
+      `${this.workspacePath(workspaceId)}/publishing-channels/${encodePath(channelId)}:disconnect`,
+      {
+        method: "POST",
+        options,
+        ifMatch: options.ifMatch,
+      }
+    );
   }
 
   public evaluatePublicationPreflight(
@@ -1355,9 +1792,14 @@ export class MediaforgeApiClient {
     input: PublicationPreflightInput,
     options?: RequestOptions
   ): Promise<ApiResponse<PublicationPreflightResult>> {
-    return this.execute(`${this.projectPath(workspaceId, projectId)}/episodes/${encodePath(episodeId)}/publication-intents:preflight`, {
-      method: "POST", body: input, ...(options ? { options } : {}),
-    });
+    return this.execute(
+      `${this.projectPath(workspaceId, projectId)}/episodes/${encodePath(episodeId)}/publication-intents:preflight`,
+      {
+        method: "POST",
+        body: input,
+        ...(options ? { options } : {}),
+      }
+    );
   }
 
   public preparePublicationIntent(
@@ -1367,9 +1809,15 @@ export class MediaforgeApiClient {
     input: PublicationPrepareInput,
     options: IdempotentRequestOptions
   ): Promise<ApiResponse<PublicationPrepareResult>> {
-    return this.execute(`${this.projectPath(workspaceId, projectId)}/episodes/${encodePath(episodeId)}/publication-intents:prepare`, {
-      method: "POST", body: input, options, idempotencyKey: options.idempotencyKey,
-    });
+    return this.execute(
+      `${this.projectPath(workspaceId, projectId)}/episodes/${encodePath(episodeId)}/publication-intents:prepare`,
+      {
+        method: "POST",
+        body: input,
+        options,
+        idempotencyKey: options.idempotencyKey,
+      }
+    );
   }
 
   public cancelPublicationIntent(
@@ -1378,9 +1826,14 @@ export class MediaforgeApiClient {
     publicationId: string,
     options: ConditionalRequestOptions
   ): Promise<ApiResponse<Publication>> {
-    return this.execute(`${this.projectPath(workspaceId, projectId)}/publications/${encodePath(publicationId)}:cancel`, {
-      method: "POST", options, ifMatch: options.ifMatch,
-    });
+    return this.execute(
+      `${this.projectPath(workspaceId, projectId)}/publications/${encodePath(publicationId)}:cancel`,
+      {
+        method: "POST",
+        options,
+        ifMatch: options.ifMatch,
+      }
+    );
   }
 
   public updatePublicationSchedule(
@@ -1390,9 +1843,15 @@ export class MediaforgeApiClient {
     input: PublicationScheduleUpdateInput,
     options: ConditionalRequestOptions
   ): Promise<ApiResponse<PublicationScheduleUpdateResult>> {
-    return this.execute(`${this.projectPath(workspaceId, projectId)}/publications/${encodePath(publicationId)}:updateSchedule`, {
-      method: "POST", body: input, options, ifMatch: options.ifMatch,
-    });
+    return this.execute(
+      `${this.projectPath(workspaceId, projectId)}/publications/${encodePath(publicationId)}:updateSchedule`,
+      {
+        method: "POST",
+        body: input,
+        options,
+        ifMatch: options.ifMatch,
+      }
+    );
   }
 
   public async *iterateValidations(
@@ -1434,9 +1893,12 @@ export class MediaforgeApiClient {
     projectId: string,
     options?: RequestOptions
   ): Promise<ApiResponse<ReviewQueuePage>> {
-    return this.execute(`${this.projectPath(workspaceId, projectId)}/review-queue`, {
-      ...(options ? { options } : {}),
-    });
+    return this.execute(
+      `${this.projectPath(workspaceId, projectId)}/review-queue`,
+      {
+        ...(options ? { options } : {}),
+      }
+    );
   }
 
   public listApprovalHistory(
@@ -1447,7 +1909,10 @@ export class MediaforgeApiClient {
     const query = options.subjectId
       ? `?${new URLSearchParams({ "filter[subjectId]": options.subjectId }).toString()}`
       : "";
-    return this.execute(`${this.projectPath(workspaceId, projectId)}/approval-history${query}`, { options });
+    return this.execute(
+      `${this.projectPath(workspaceId, projectId)}/approval-history${query}`,
+      { options }
+    );
   }
 
   public revokeApproval(

@@ -70,10 +70,28 @@ export type ArtifactManifestId = z.infer<typeof artifactManifestIdSchema>;
 export const CONTENT_PROFILE_IDS = [
   "dark-truth",
   "mathematics-education",
-  "strategic-reinvention",
+  "veronicabenini",
   "history",
 ] as const;
-export const contentProfileIdSchema = z.enum(CONTENT_PROFILE_IDS);
+export const VERONICA_CONTENT_PROFILE_ID = "veronicabenini" as const;
+export const STRATEGIC_REINVENTION_CONTENT_PROFILE_ALIAS =
+  "strategic-reinvention" as const;
+export const canonicalContentProfileIdSchema = z.enum(CONTENT_PROFILE_IDS);
+
+/**
+ * Resolve compatibility names at ingress so persisted identities, workflow keys,
+ * and fingerprints only ever contain the canonical profile id.
+ */
+export function normalizeContentProfileId(input: unknown): unknown {
+  return input === STRATEGIC_REINVENTION_CONTENT_PROFILE_ALIAS
+    ? VERONICA_CONTENT_PROFILE_ID
+    : input;
+}
+
+export const contentProfileIdSchema = z.preprocess(
+  normalizeContentProfileId,
+  canonicalContentProfileIdSchema
+);
 export type ContentProfileId = z.infer<typeof contentProfileIdSchema>;
 
 export const CONTENT_VARIANTS = ["full", "short"] as const;
@@ -157,8 +175,8 @@ export type MathematicsEducationContentProfile = z.infer<
 export const strategicReinventionContentProfileSchema = z
   .object({
     ...profileBaseShape,
-    id: z.literal("strategic-reinvention"),
-    genreId: z.literal("strategic-reinvention"),
+    id: z.literal(VERONICA_CONTENT_PROFILE_ID),
+    genreId: z.literal(VERONICA_CONTENT_PROFILE_ID),
     creatorProfileId: identifierSchema,
     canonicalLocale: z.literal("it"),
     supportedLocales: z.array(contentLocaleSchema).min(1),

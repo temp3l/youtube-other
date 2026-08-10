@@ -1,0 +1,15 @@
+{
+  "result": "PASS",
+  "sameEight": {
+    "result": "PASS",
+    "firstHash": "b327273b28b67c802b4d98576ff799372b88ec6772503835dd89359fda115da6",
+    "secondHash": "b327273b28b67c802b4d98576ff799372b88ec6772503835dd89359fda115da6"
+  },
+  "all40": {
+    "result": "PASS",
+    "firstHash": "f43fcaacb0335114d9e2693536dbaf172b948b5963251d3aaf861b7aed537bfd",
+    "secondHash": "f43fcaacb0335114d9e2693536dbaf172b948b5963251d3aaf861b7aed537bfd"
+  },
+  "shadowPlanHashesIncludeTimestamps": false,
+  "placementRandomness": 0
+}

@@ -18,9 +18,7 @@ import {
   WorkflowStateTransitionError,
 } from "./relational-workflow-state.js";
 import { applyRegisteredPostgresMigrations } from "./postgres-migration-registry.js";
-import {
-  reserveQuotaDimensionInTransaction,
-} from "./postgres-usage-audit-repository.js";
+import { reserveQuotaDimensionInTransaction } from "./postgres-usage-audit-repository.js";
 import {
   persistedWebhookSubjectType,
   type PersistedWebhookEventType,
@@ -118,7 +116,7 @@ interface ProjectRow {
     | "mathematics_education"
     | "dynamic_generic"
     | "history"
-    | "strategic_reinvention";
+    | "veronicabenini";
   readonly revision: string | number;
   readonly created_at: Date | string;
   readonly updated_at: Date | string;
@@ -161,7 +159,7 @@ export interface ApiProjectRecord {
     | "mathematics_education"
     | "dynamic_generic"
     | "history"
-    | "strategic_reinvention";
+    | "veronicabenini";
   readonly revision: number;
   readonly createdAt: string;
   readonly updatedAt: string;
@@ -705,9 +703,19 @@ function translate(error: unknown): never {
 export class WorkspaceTransactionRepository {
   public constructor(private readonly connection: Queryable) {}
 
-  public getTenantSettings(workspaceId: string) { return getTenantSettings(this.connection, workspaceId); }
-  public getGenreConfiguration(workspaceId: string, profileId: string) { return getGenreConfiguration(this.connection, workspaceId, profileId); }
-  public getEpisodeConfigurationOverride(input: { readonly workspaceId: string; readonly projectId: string; readonly episodeId: string }) { return getEpisodeConfigurationOverride(this.connection, input); }
+  public getTenantSettings(workspaceId: string) {
+    return getTenantSettings(this.connection, workspaceId);
+  }
+  public getGenreConfiguration(workspaceId: string, profileId: string) {
+    return getGenreConfiguration(this.connection, workspaceId, profileId);
+  }
+  public getEpisodeConfigurationOverride(input: {
+    readonly workspaceId: string;
+    readonly projectId: string;
+    readonly episodeId: string;
+  }) {
+    return getEpisodeConfigurationOverride(this.connection, input);
+  }
 
   public listCurrentProductionUnitSnapshots(input: {
     readonly workspaceId: string;
@@ -726,7 +734,9 @@ export class WorkspaceTransactionRepository {
   }
 
   /** Internal worker-only append seam; HTTP request use cases expose no writer. */
-  public appendWorkerProductionUnitSnapshots(input: Parameters<typeof appendProductionUnitSnapshots>[1]) {
+  public appendWorkerProductionUnitSnapshots(
+    input: Parameters<typeof appendProductionUnitSnapshots>[1]
+  ) {
     return appendProductionUnitSnapshots(this.connection, input);
   }
 
@@ -799,7 +809,7 @@ export class WorkspaceTransactionRepository {
       | "mathematics_education"
       | "dynamic_generic"
       | "history"
-      | "strategic_reinvention";
+      | "veronicabenini";
     readonly now: string;
   }): Promise<ApiProjectRecord> {
     try {
@@ -842,7 +852,12 @@ export class WorkspaceTransactionRepository {
        WHERE workspace_id = $1
          AND ($2::timestamptz IS NULL OR (created_at, project_id) > ($2::timestamptz, $3::text))
        ORDER BY created_at, project_id LIMIT $4`,
-      [input.workspaceId, input.after?.createdAt ?? null, input.after?.projectId ?? "", input.size]
+      [
+        input.workspaceId,
+        input.after?.createdAt ?? null,
+        input.after?.projectId ?? "",
+        input.size,
+      ]
     );
     return result.rows.map(mapProject);
   }
@@ -901,7 +916,13 @@ export class WorkspaceTransactionRepository {
        WHERE workspace_id = $1 AND project_id = $2
          AND ($3::timestamptz IS NULL OR (created_at, episode_id) > ($3::timestamptz, $4::text))
        ORDER BY created_at, episode_id LIMIT $5`,
-      [input.workspaceId, input.projectId, input.after?.createdAt ?? null, input.after?.episodeId ?? "", input.size]
+      [
+        input.workspaceId,
+        input.projectId,
+        input.after?.createdAt ?? null,
+        input.after?.episodeId ?? "",
+        input.size,
+      ]
     );
     return result.rows.map(mapEpisode);
   }
@@ -3462,8 +3483,12 @@ export class PostgresWorkflowRepository {
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
-      await client.query("SELECT set_config('app.workspace_id', $1, true)", [workspaceId]);
-      await client.query("SELECT set_config('app.worker_id', $1, true)", [workerId]);
+      await client.query("SELECT set_config('app.workspace_id', $1, true)", [
+        workspaceId,
+      ]);
+      await client.query("SELECT set_config('app.worker_id', $1, true)", [
+        workerId,
+      ]);
       const result = await work(new WorkspaceTransactionRepository(client));
       await client.query("COMMIT");
       return result;
@@ -3599,11 +3624,22 @@ export class PostgresProductionUnitSnapshotWorkerStore {
     private readonly workerId: string
   ) {}
 
-  public append(input: Omit<Parameters<WorkspaceTransactionRepository["appendWorkerProductionUnitSnapshots"]>[0], "workerId">) {
+  public append(
+    input: Omit<
+      Parameters<
+        WorkspaceTransactionRepository["appendWorkerProductionUnitSnapshots"]
+      >[0],
+      "workerId"
+    >
+  ) {
     return this.repository.withWorkerWorkspaceTransaction(
       input.workspaceId,
       this.workerId,
-      (transaction) => transaction.appendWorkerProductionUnitSnapshots({ ...input, workerId: this.workerId })
+      (transaction) =>
+        transaction.appendWorkerProductionUnitSnapshots({
+          ...input,
+          workerId: this.workerId,
+        })
     );
   }
 }

@@ -21,6 +21,11 @@ import {
   proposeMapIntentsV35,
 } from "./history-geo-v35.js";
 import {
+  buildCanonicalMapEvidenceScopesV35,
+  canonicalMapExplanationIdentityV35,
+  selectCanonicalMapWindowV35,
+} from "./history-map-semantic-dedup-v35.js";
+import {
   buildReviewableGeoFactsV35,
   validateGeoFactReferentialIntegrityV35,
 } from "./history-geo-facts-export-v35.js";
@@ -49,8 +54,6 @@ import {
   collectPurposeTemporals,
   isGenericVisualPurposeText,
   isRouteMapPurpose,
-  mapIntentSignature,
-  selectMapIntentForBeatV34,
   shotDurationWarningsV35,
   validateDiagramSemanticsV34,
   validateMapLabelProvenanceV34,
@@ -141,9 +144,18 @@ import {
 import {
   buildVisualOpportunitiesV35,
   detectDiagramOpportunityV35,
+  hasRelationBearingGeoFactsInScopeV35,
   reserveDiagramBeatIndexesV35,
+  scoreDiagramOpportunityV35,
+  scoreDiagramWindowOpportunityV35,
+  scoreMapOpportunityV35,
+  selectMapIntentForBeatV35,
   summarizeVisualOpportunityTotalsV35,
 } from "./history-visual-opportunity-v35.js";
+import {
+  collectResolvedEntitySpansForClaimsV35,
+  filterAtomicDiagramEntityLabelsV35,
+} from "./history-diagram-entailment-v35.js";
 import type {
   HistoryApprovalV34,
   HistoryDiagnosticV34,
@@ -605,6 +617,29 @@ type BeatCluster = {
   wordCount: number;
 };
 
+function buildModalityContextWindowV35(input: {
+  readonly clusters: readonly BeatCluster[];
+  readonly index: number;
+  readonly radius?: number;
+}): { readonly text: string; readonly claimIds: readonly string[] } {
+  const radius = input.radius ?? 1;
+  const slice = input.clusters.slice(
+    Math.max(0, input.index - radius),
+    Math.min(input.clusters.length, input.index + radius + 1)
+  );
+  return {
+    text: slice.map((cluster) => cluster.text).join(" "),
+    claimIds: [...new Set(slice.flatMap((cluster) => cluster.claimIds))],
+  };
+}
+
+export function buildSegmentationClustersV35(input: {
+  readonly narration: CanonicalNarrationV3_3;
+  readonly structured: HistoryStructuredClaimsV34;
+}): BeatCluster[] {
+  return clusterBeats(input);
+}
+
 function clusterBeats(input: {
   readonly narration: CanonicalNarrationV3_3;
   readonly structured: HistoryStructuredClaimsV34;
@@ -629,8 +664,8 @@ function clusterBeats(input: {
       current.modality === modality &&
       current.wordCount + unit.wordCount <= 90 &&
       current.unitIds.length < 3 &&
-      modality !== "map" &&
-      modality !== "timeline";
+      modality !== "timeline" &&
+      modality !== "map";
     if (canMerge && current) {
       current.unitIds.push(unit.id);
       current.claimIds.push(...claimIds);
@@ -655,11 +690,159 @@ function clusterBeats(input: {
   return clusters;
 }
 
-function scopedMapCacheKey(input: {
-  readonly intent: ReturnType<typeof proposeMapIntentsV35>[number];
-  readonly scopeClaimIds: readonly string[];
-}): string {
-  return `${mapIntentSignature(input.intent)}|${[...input.scopeClaimIds].sort().join(",")}`;
+export function computeCanonicalBeatSegmentationSignatureV35(
+  clusters: readonly Pick<BeatCluster, "unitIds" | "startUtf16" | "endUtf16Exclusive">[]
+): string {
+  return clusters
+    .map(
+      (cluster) =>
+        `${cluster.unitIds.join("+")}@${cluster.startUtf16}-${cluster.endUtf16Exclusive}`
+    )
+    .join("|");
+}
+
+function adoptCompiledMapStateV35(input: {
+  readonly episodeId: string;
+  readonly cache: Map<
+    string,
+    {
+      master: HistoryVisualPlanV35["mapMasters"][number];
+      state: HistoryVisualPlanV35["mapStates"][number];
+    }
+  >;
+  readonly compiled: {
+    readonly master: HistoryVisualPlanV35["mapMasters"][number];
+    readonly state: HistoryVisualPlanV35["mapStates"][number];
+  };
+  readonly mapMasters: HistoryVisualPlanV35["mapMasters"][number][];
+  readonly mapStates: HistoryVisualPlanV35["mapStates"][number][];
+}): {
+  readonly master: HistoryVisualPlanV35["mapMasters"][number];
+  readonly state: HistoryVisualPlanV35["mapStates"][number];
+} {
+  const semanticKey = canonicalMapExplanationIdentityV35({
+    episodeId: input.episodeId,
+    state: input.compiled.state,
+  });
+  const existing = input.cache.get(semanticKey);
+  if (existing) return existing;
+  if (!input.mapMasters.some((item) => item.id === input.compiled.master.id)) {
+    input.mapMasters.push(input.compiled.master);
+  }
+  input.mapStates.push(input.compiled.state);
+  const adopted = {
+    master: input.compiled.master,
+    state: input.compiled.state,
+  };
+  input.cache.set(semanticKey, adopted);
+  return adopted;
+}
+
+function mapSemanticConfidenceV35(
+  mapType: import("./history-v34-contracts.js").HistoryMapSemanticTypeV35
+): number {
+  switch (mapType) {
+    case "movement":
+      return 3;
+    case "sequence":
+      return 2;
+    case "territory":
+    case "battle-disposition":
+      return 2;
+    case "locator":
+      return 1;
+    case "no-map":
+      return 0;
+  }
+}
+
+function compileCanonicalMapStateForIntentV35(input: {
+  readonly beatNumber: string;
+  readonly proposal: ReturnType<typeof proposeMapIntentsV35>[number];
+  readonly requiredClaimIds: readonly string[];
+  readonly structured: HistoryStructuredClaimsV34;
+  readonly narrationText: string;
+}) {
+  const scopes = buildCanonicalMapEvidenceScopesV35({
+    orderedClaimIds: input.structured.claims.map((claim) => claim.id),
+    owningClaimIds: [...new Set([...input.proposal.claimIds, ...input.requiredClaimIds])],
+  });
+  const candidates = scopes.flatMap((scopeClaimIds, stableOrder) => {
+    const compiled = compileMapStateV35({
+      beatNumber: input.beatNumber,
+      proposal: input.proposal,
+      scopeClaimIds,
+      claims: input.structured.claims,
+      entities: input.structured.entities,
+      geographicQualifiers: input.structured.geographicQualifiers,
+      temporalQualifiers: input.structured.temporalQualifiers,
+      narrationText: input.narrationText,
+    });
+    if (!compiled) return [];
+    const resolution = compiled.state.compilerResolution;
+    return [
+      {
+        value: compiled,
+        scopeClaimIds,
+        complete:
+          Boolean(resolution) &&
+          resolution!.requestedMapType === resolution!.resolvedMapType &&
+          !resolution!.downgradeReason,
+        semanticConfidence: resolution
+          ? mapSemanticConfidenceV35(resolution.resolvedMapType)
+          : 0,
+        stableOrder,
+      },
+    ];
+  });
+  return selectCanonicalMapWindowV35(candidates)?.value ?? null;
+}
+
+function probeMapCompileForCluster(input: {
+  readonly cluster: BeatCluster;
+  readonly beatNumber: string;
+  readonly structured: HistoryStructuredClaimsV34;
+  readonly mapIntents: ReturnType<typeof proposeMapIntentsV35>;
+  readonly intentsByClaim: ReadonlyMap<string, ReturnType<typeof proposeMapIntentsV35>[number]>;
+  readonly narrationText: string;
+  readonly scopeClaimIds?: readonly string[];
+}): {
+  readonly compiles: boolean;
+  readonly resolvedMapType: import("./history-v34-contracts.js").HistoryMapSemanticTypeV35 | null;
+  readonly owningClaimIds: readonly string[];
+} {
+  const scopeClaimIds = input.scopeClaimIds ?? input.cluster.claimIds;
+  for (const claimId of scopeClaimIds) {
+    const intent =
+      selectMapIntentForBeatV35({
+        claimIds: scopeClaimIds,
+        clusterText: input.cluster.text,
+        intentsByClaim: input.intentsByClaim,
+        mapIntents: input.mapIntents,
+        claims: input.structured.claims,
+        entities: input.structured.entities,
+        geographicQualifiers: input.structured.geographicQualifiers,
+        temporalQualifiers: input.structured.temporalQualifiers,
+      }) ??
+      input.intentsByClaim.get(claimId) ??
+      input.mapIntents.find((item) => item.claimIds.includes(claimId));
+    if (!intent) continue;
+    const compiled = compileCanonicalMapStateForIntentV35({
+      beatNumber: input.beatNumber,
+      proposal: intent,
+      requiredClaimIds: input.cluster.claimIds,
+      structured: input.structured,
+      narrationText: input.narrationText,
+    });
+    if (compiled) {
+      return {
+        compiles: true,
+        resolvedMapType: compiled.state.compilerResolution?.resolvedMapType ?? null,
+        owningClaimIds: intent.claimIds,
+      };
+    }
+  }
+  return { compiles: false, resolvedMapType: null, owningClaimIds: [] };
 }
 
 function resolveClusterModality(input: {
@@ -672,35 +855,78 @@ function resolveClusterModality(input: {
   readonly narrationText: string;
   readonly diagramReserved: boolean;
   readonly diagramReservationReason?: string;
+  readonly contextWindow?: { readonly text: string; readonly claimIds: readonly string[] };
 }): HistoryVisualModalityV35 {
-  if (input.diagramReserved) return "diagram";
-  if (input.cluster.modality === "map") return "map";
-  for (const claimId of input.cluster.claimIds) {
-    const intent =
-      input.intentsByClaim.get(claimId) ??
-      input.mapIntents.find((item) => item.claimIds.includes(claimId));
-    if (!intent) continue;
-    const compiled = compileMapStateV35({
-      beatNumber: input.beatNumber,
-      proposal: intent,
-      scopeClaimIds: input.cluster.claimIds,
+  const entityLabels = input.structured.entities
+    .filter((entity) => input.cluster.claimIds.includes(entity.claimId))
+    .map((entity) => entity.normalizedLabel);
+  const windowText = input.contextWindow?.text ?? input.cluster.text;
+  const windowClaimIds = input.contextWindow?.claimIds ?? input.cluster.claimIds;
+  const mapScored = scoreMapOpportunityV35({
+    claimIds: windowClaimIds,
+    clusterText: windowText,
+    claims: input.structured.claims,
+    entities: input.structured.entities,
+    geographicQualifiers: input.structured.geographicQualifiers,
+    mapIntents: input.mapIntents,
+  });
+  const diagramScored = scoreDiagramWindowOpportunityV35({
+    claimIds: windowClaimIds,
+    clusterText: input.cluster.text,
+    windowText,
+    claims: input.structured.claims,
+    entityLabels,
+  });
+  const diagramDetected = detectDiagramOpportunityV35({
+    claimIds: input.cluster.claimIds,
+    clusterText: input.cluster.text,
+    claims: input.structured.claims,
+  });
+  const mapProbe = probeMapCompileForCluster({
+    cluster: input.cluster,
+    beatNumber: input.beatNumber,
+    structured: input.structured,
+    mapIntents: input.mapIntents,
+    intentsByClaim: input.intentsByClaim,
+    narrationText: input.narrationText,
+    scopeClaimIds: windowClaimIds,
+  });
+  const mapCompiles = mapProbe.compiles;
+  const mapOwnedByCluster = mapProbe.owningClaimIds.some((claimId) =>
+    input.cluster.claimIds.includes(claimId)
+  );
+  const explanatoryMapSelected =
+    mapCompiles &&
+    mapScored.tier === "explanatory" &&
+    mapScored.score >= mapScored.selectionThreshold;
+  const relationRichMapSelected =
+    mapCompiles &&
+    (mapProbe.resolvedMapType === "sequence" || mapProbe.resolvedMapType === "movement");
+  const segmentationMapSelected = input.cluster.modality === "map" && mapCompiles;
+  const relationGeoFactSelected =
+    mapCompiles &&
+    hasRelationBearingGeoFactsInScopeV35({
+      scopeClaimIds: windowClaimIds,
       claims: input.structured.claims,
       entities: input.structured.entities,
       geographicQualifiers: input.structured.geographicQualifiers,
       temporalQualifiers: input.structured.temporalQualifiers,
-      narrationText: input.narrationText,
-    });
-    if (compiled) return "map";
-  }
+    }) &&
+    mapProbe.resolvedMapType !== "locator";
+  const mapSelected =
+    mapOwnedByCluster &&
+    (explanatoryMapSelected ||
+      relationRichMapSelected ||
+      segmentationMapSelected ||
+      relationGeoFactSelected);
   if (
-    input.cluster.modality === "diagram" ||
-    detectDiagramOpportunityV35({
-      claimIds: input.cluster.claimIds,
-      clusterText: input.cluster.text,
-      claims: input.structured.claims,
-    }).eligible
+    input.diagramReserved &&
+    (input.cluster.modality === "diagram" || diagramDetected.eligible)
   )
     return "diagram";
+  if (mapSelected && diagramScored.score < mapScored.score + 2) return "map";
+  if (input.cluster.modality === "diagram" || diagramDetected.eligible) return "diagram";
+  if (mapSelected) return "map";
   return splitModalitiesFromLegacyV35(input.cluster.modality);
 }
 
@@ -958,18 +1184,20 @@ function compileDiagramForBeat(input: {
   readonly text: string;
   readonly claimIds: readonly string[];
   readonly entityLabels: readonly string[];
+  readonly entities: readonly HistoryStructuredClaimsV34["entities"][number][];
   readonly claims: readonly HistoryStructuredClaimsV34["claims"][number][];
-  readonly priorBeat?: {
+  readonly priorBeats?: readonly {
     readonly id: string;
     readonly claimIds: readonly string[];
     readonly diagramMasterId: string | null;
-  } | null;
+  }[];
 }) {
   const evidenceWindow = resolveDiagramEvidenceWindowV35({
     beatId: input.beatId,
     claimIds: input.claimIds,
     text: input.text,
-    ...(input.priorBeat ? { priorBeat: input.priorBeat } : {}),
+    claims: input.claims,
+    ...(input.priorBeats?.length ? { priorBeats: input.priorBeats } : {}),
   });
   return compileDiagram({
     beatNumber: input.beatNumber,
@@ -977,6 +1205,7 @@ function compileDiagramForBeat(input: {
     text: input.text,
     claimIds: input.claimIds,
     entityLabels: input.entityLabels,
+    entities: input.entities,
     claims: input.claims,
     ...(evidenceWindow ? { evidenceWindow } : {}),
   });
@@ -988,6 +1217,7 @@ function compileDiagram(input: {
   readonly text: string;
   readonly claimIds: readonly string[];
   readonly entityLabels: readonly string[];
+  readonly entities: readonly HistoryStructuredClaimsV34["entities"][number][];
   readonly claims: readonly HistoryStructuredClaimsV34["claims"][number][];
   readonly evidenceWindow?: {
     readonly beatIds: readonly string[];
@@ -1038,9 +1268,17 @@ function compileDiagram(input: {
     return null;
   }
 
-  const evidencePatterns: ReadonlyArray<{ readonly label: string; readonly pattern: RegExp }> = [
+  const evidencePatterns: ReadonlyArray<{
+    readonly label: string;
+    readonly pattern: RegExp;
+    readonly sourceConcepts?: readonly string[];
+  }> = [
     { label: "Victory Point note", pattern: /Victory Point(?: note)?/iu },
-    { label: "graves/remains", pattern: /graves?|human remains/iu },
+    {
+      label: "graves/remains",
+      pattern: /graves?|human remains/iu,
+      sourceConcepts: ["graves", "human remains"],
+    },
     { label: "abandoned equipment", pattern: /abandoned equipment|\bequipment\b/iu },
     { label: "written message", pattern: /written message/iu },
     { label: "Inuit testimony", pattern: /Inuit (?:oral histories|testimony|witnesses)/iu },
@@ -1049,9 +1287,7 @@ function compileDiagram(input: {
       pattern: /(?:2014.*Erebus|Erebus.*2014|2016.*Terror|Terror.*2016)/iu,
     },
   ];
-  const evidenceCategories = evidencePatterns
-    .filter((item) => item.pattern.test(text))
-    .map((item) => item.label);
+  const evidenceCategories = evidencePatterns.filter((item) => item.pattern.test(text));
   if (
     /\b(?:Grande Armée|Napoleon(?:'s)? army|\barmy\b)\b/iu.test(text) &&
     /\b(?:supplies?|distance|logistics|fodder|horses?|disease|hunger|attrition|cold|desertion|weather)\b/iu.test(
@@ -1100,24 +1336,34 @@ function compileDiagram(input: {
   }
 
   if (
-    /\b(?:trade routes?|interdependence|palace|bronze|copper|tin|collapse)\b/iu.test(text) &&
-    (/\b(?:Mediterranean|Aegean|Anatolia|Cyprus|Egypt|Hittite|Mycenae|Pylos|Levant|political boundaries)\b/iu.test(
-      text
-    ) ||
-      input.entityLabels.length >= 2)
+    /\b(?:bronze|copper|tin)\b/iu.test(text) &&
+    /\b(?:Cyprus|bronze age|trade network|palace)\b/iu.test(text)
   ) {
     const tradeCompiled = compileBronzeTradeDiagramV35({
       beatNumber: input.beatNumber,
       text,
       claimIds: input.claimIds,
+      claims: input.claims,
     });
-    if (tradeCompiled) return tradeCompiled;
+    if (tradeCompiled?.state.semanticStatus === "valid" && !tradeCompiled.state.blockerCodes.length)
+      return tradeCompiled;
+  }
+  if (
+    /\b(?:systems? collapse|Bronze Age(?:\s+Collapse)?|collapse more likely)\b/iu.test(text) ||
+    (/\bcollapse\b/iu.test(text) &&
+      /\b(?:drought|migration|trade disruption|political instability)\b/iu.test(text))
+  ) {
     const collapseCompiled = compileBronzeSystemsCollapseDiagramV35({
       beatNumber: input.beatNumber,
       text,
       claimIds: input.claimIds,
+      claims: input.claims,
     });
-    if (collapseCompiled) return collapseCompiled;
+    if (
+      collapseCompiled?.state.semanticStatus === "valid" &&
+      !collapseCompiled.state.blockerCodes.length
+    )
+      return collapseCompiled;
   }
 
   if (isBlackDeathTransmissionTextV35(text)) {
@@ -1137,11 +1383,31 @@ function compileDiagram(input: {
   ) {
     const masterId = `diagram-master-${input.beatNumber}`;
     const stateId = `diagram-state-${input.beatNumber}`;
-    const nodeRecords = evidenceCategories.map((label, index) => ({
+    const nodeRecords = evidenceCategories.map((category, index) => ({
       id: `node-${input.beatNumber}-${index + 1}`,
-      label,
-      linkedClaimIds: input.claimIds,
+      label: category.label,
+      linkedClaimIds: evidenceClaimIds,
       entityMentionIds: [] as string[],
+      ...(category.sourceConcepts
+        ? {
+            normalizedSupport: {
+              normalizedLabel: category.label,
+              sourceConcepts: category.sourceConcepts,
+              supportClaimIds: evidenceClaimIds.filter((claimId) => {
+                const claim = input.claims.find((item) => item.id === claimId);
+                return (
+                  claim &&
+                  category.sourceConcepts!.some((concept) =>
+                    new RegExp(
+                      `\\b${concept.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&").replace(/\\s+/gu, "\\s+")}\\b`,
+                      "iu"
+                    ).test(claim.normalizedProposition)
+                  )
+                );
+              }),
+            },
+          }
+        : {}),
     }));
     return {
       master: {
@@ -1160,15 +1426,25 @@ function compileDiagram(input: {
         semanticStatus: "valid",
         blockerCodes: [],
         fallbackDecision: null,
+        evidenceBeatIds,
+        evidenceClaimIds,
       },
     };
   }
   // Reject sentence-start fragments and ordinary nouns as nodes.
-  const cleanLabels = [...new Set(input.entityLabels)].filter(
-    (label) =>
-      !/^(?:Exact|Taxes|People|Trade|Disease|Fleas|Survivors)$/iu.test(label) &&
-      label.length > 2
-  );
+  const entitySpans = collectResolvedEntitySpansForClaimsV35({
+    entities: input.entities,
+    claimIds: evidenceClaimIds,
+  });
+  const cleanLabels = filterAtomicDiagramEntityLabelsV35({
+    labels: [...new Set(input.entityLabels)].filter(
+      (label) =>
+        !/^(?:Exact|Taxes|People|Trade|Disease|Fleas|Survivors)$/iu.test(label) &&
+        label.length > 2
+    ),
+    entitySpans,
+    evidenceClaimText: text,
+  });
 
   // Napoleon army-size variation: require Napoleonic campaign context or reject.
   if (
@@ -1585,11 +1861,11 @@ export function buildHistoryVisualPlanV35(input: {
   const visualOpportunities: HistoryVisualPlanV35["visualOpportunities"][number][] = [];
   const opportunitySummaries: HistoryVisualOpportunitySummaryV35[] = [];
   let priorShotSignature: VisualSemanticSignature | null = null;
-  let priorBeatContext: {
+  const priorBeatContexts: Array<{
     readonly id: string;
     readonly claimIds: readonly string[];
     readonly diagramMasterId: string | null;
-  } | null = null;
+  }> = [];
 
   let cursor = 0;
   clusters.forEach((cluster, index) => {
@@ -1603,6 +1879,7 @@ export function buildHistoryVisualPlanV35(input: {
     const materialClaims = structured.claims.filter(
       (claim) => claimIds.includes(claim.id) && claim.materiality === "material"
     );
+    const contextWindow = buildModalityContextWindowV35({ clusters, index });
     let modality = resolveClusterModality({
       cluster,
       beatNumber,
@@ -1615,6 +1892,7 @@ export function buildHistoryVisualPlanV35(input: {
       ...(diagramReservations.get(index)
         ? { diagramReservationReason: diagramReservations.get(index)! }
         : {}),
+      contextWindow,
     });
     if (
       modality === "text-only transition" &&
@@ -1647,40 +1925,37 @@ export function buildHistoryVisualPlanV35(input: {
 
     if (modality === "map") {
       const intent =
-        selectMapIntentForBeatV34({
+        selectMapIntentForBeatV35({
           claimIds,
           clusterText: cluster.text,
           intentsByClaim,
           mapIntents,
+          claims: structured.claims,
+          entities: structured.entities,
+          geographicQualifiers: structured.geographicQualifiers,
+          temporalQualifiers: structured.temporalQualifiers,
         }) ??
         mapIntents.find((item) => item.claimIds.some((id) => claimIds.includes(id)));
       const compiled = intent
-        ? compileMapStateV35({
+        ? compileCanonicalMapStateForIntentV35({
             beatNumber,
             proposal: intent,
-            scopeClaimIds: claimIds,
-            claims: structured.claims,
-            entities: structured.entities,
-            geographicQualifiers: structured.geographicQualifiers,
-            temporalQualifiers: structured.temporalQualifiers,
+            requiredClaimIds: claimIds,
+            structured,
             narrationText: input.narration.normalizedText,
           })
         : null;
       if (compiled && intent) {
-        const cacheKey = scopedMapCacheKey({ intent, scopeClaimIds: claimIds });
-        const cached = mapStateCache.get(cacheKey);
-        if (cached) {
-          mapMasterId = cached.master.id;
-          mapStateId = cached.state.id;
-          mapState = cached.state;
-        } else {
-          mapMasters.push(compiled.master);
-          mapStates.push(compiled.state);
-          mapStateCache.set(cacheKey, compiled);
-          mapMasterId = compiled.master.id;
-          mapStateId = compiled.state.id;
-          mapState = compiled.state;
-        }
+        const adopted = adoptCompiledMapStateV35({
+          episodeId: input.episodeId,
+          cache: mapStateCache,
+          compiled,
+          mapMasters,
+          mapStates,
+        });
+        mapMasterId = adopted.master.id;
+        mapStateId = adopted.state.id;
+        mapState = adopted.state;
       } else {
         const entityLabels = structured.entities
           .filter((entity) => claimIds.includes(entity.claimId))
@@ -1697,8 +1972,9 @@ export function buildHistoryVisualPlanV35(input: {
               text: cluster.text,
               claimIds,
               entityLabels,
+              entities: structured.entities,
               claims: structured.claims,
-              priorBeat: priorBeatContext,
+              priorBeats: priorBeatContexts.slice(-2),
             })
           : null;
         if (diagramCompiled) {
@@ -1733,8 +2009,9 @@ export function buildHistoryVisualPlanV35(input: {
         text: cluster.text,
         claimIds,
         entityLabels,
+        entities: structured.entities,
         claims: structured.claims,
-        priorBeat: priorBeatContext,
+        priorBeats: priorBeatContexts.slice(-2),
       });
       if (compiled) {
         const registered = adoptDiagramCompilation(diagramRegistry, compiled);
@@ -1866,40 +2143,37 @@ export function buildHistoryVisualPlanV35(input: {
           }
         } else if (remediated === "map") {
           const intent =
-            selectMapIntentForBeatV34({
+            selectMapIntentForBeatV35({
               claimIds,
               clusterText: cluster.text,
               intentsByClaim,
               mapIntents,
+              claims: structured.claims,
+              entities: structured.entities,
+              geographicQualifiers: structured.geographicQualifiers,
+              temporalQualifiers: structured.temporalQualifiers,
             }) ??
             mapIntents.find((item) => item.claimIds.some((id) => claimIds.includes(id)));
           const compiled = intent
-            ? compileMapStateV35({
+            ? compileCanonicalMapStateForIntentV35({
                 beatNumber,
                 proposal: intent,
-                scopeClaimIds: claimIds,
-                claims: structured.claims,
-                entities: structured.entities,
-                geographicQualifiers: structured.geographicQualifiers,
-                temporalQualifiers: structured.temporalQualifiers,
+                requiredClaimIds: claimIds,
+                structured,
                 narrationText: input.narration.normalizedText,
               })
             : null;
           if (compiled && intent) {
-            const cacheKey = scopedMapCacheKey({ intent, scopeClaimIds: claimIds });
-            const cached = mapStateCache.get(cacheKey);
-            if (cached) {
-              mapMasterId = cached.master.id;
-              mapStateId = cached.state.id;
-              mapState = cached.state;
-            } else {
-              mapMasters.push(compiled.master);
-              mapStates.push(compiled.state);
-              mapStateCache.set(cacheKey, compiled);
-              mapMasterId = compiled.master.id;
-              mapStateId = compiled.state.id;
-              mapState = compiled.state;
-            }
+            const adopted = adoptCompiledMapStateV35({
+              episodeId: input.episodeId,
+              cache: mapStateCache,
+              compiled,
+              mapMasters,
+              mapStates,
+            });
+            mapMasterId = adopted.master.id;
+            mapStateId = adopted.state.id;
+            mapState = adopted.state;
             fallback = {
               rejectedModality: rejectedPrior,
               reasonForRejection:
@@ -1930,8 +2204,9 @@ export function buildHistoryVisualPlanV35(input: {
             text: cluster.text,
             claimIds,
             entityLabels,
+            entities: structured.entities,
             claims: structured.claims,
-            priorBeat: priorBeatContext,
+            priorBeats: priorBeatContexts.slice(-2),
           });
           if (compiled) {
             const registered = adoptDiagramCompilation(diagramRegistry, compiled);
@@ -1962,9 +2237,22 @@ export function buildHistoryVisualPlanV35(input: {
       temporals: structured.temporalQualifiers,
       claimIds,
     });
-    const requiredGeographicQualifierIds = structured.geographicQualifiers
+    const beatGeographicQualifierIds = structured.geographicQualifiers
       .filter((item) => claimIds.includes(item.claimId))
       .map((item) => item.id);
+    const representedMapLabels = new Set(mapState?.labels.map((label) => label.text) ?? []);
+    const requiredGeographicQualifierIds =
+      modality === "map" && mapState
+        ? beatGeographicQualifierIds.filter((qualifierId) => {
+            const qualifier = structured.geographicQualifiers.find(
+              (item) => item.id === qualifierId
+            );
+            const entity = structured.entities.find(
+              (item) => item.id === qualifier?.entityMentionId
+            );
+            return Boolean(entity && representedMapLabels.has(entity.normalizedLabel));
+          })
+        : beatGeographicQualifierIds;
     const protectedGeographyLabels = requiredGeographicQualifierIds
       .map(
         (qualifierId) =>
@@ -2192,11 +2480,11 @@ export function buildHistoryVisualPlanV35(input: {
           [beatId]
         )
       );
-    priorBeatContext = {
+    priorBeatContexts.push({
       id: beatId,
       claimIds,
       diagramMasterId,
-    };
+    });
     cursor = endMs;
   });
 
@@ -2209,7 +2497,25 @@ export function buildHistoryVisualPlanV35(input: {
     diagramStates[diagramIndex] = finalizeDiagramSemanticStateV35({
       state,
       evidenceClaimText,
+      claims: structured.claims,
+      entities: structured.entities,
     });
+  }
+
+  const blockedDiagramIds = new Set(
+    diagramStates
+      .filter((state) => state.semanticStatus === "blocked")
+      .map((state) => state.id)
+  );
+  for (let beatIndex = 0; beatIndex < beats.length; beatIndex += 1) {
+    const beat = beats[beatIndex]!;
+    if (!beat.diagramStateId || !blockedDiagramIds.has(beat.diagramStateId)) continue;
+    beats[beatIndex] = {
+      ...beat,
+      modality: "archival image",
+      diagramMasterId: null,
+      diagramStateId: null,
+    };
   }
 
   const beatTimelineUsage = beats.some((beat) => beat.modality === "timeline");
@@ -2586,6 +2892,7 @@ export function buildHistoryVisualPlanV35(input: {
       );
   }
   for (const state of diagramStates) {
+    if (state.semanticStatus === "blocked") continue;
     for (const code of state.blockerCodes) {
       diagnostics.push(
         diagnostic(
@@ -2604,13 +2911,7 @@ export function buildHistoryVisualPlanV35(input: {
         )
       );
     }
-    if (state.semanticStatus === "blocked")
-      diagnostics.push(
-        diagnostic("DIAGRAM_EMPTY_OR_BLOCKED", "editorial", "Diagram state is empty or blocked.", [
-          state.id,
-        ])
-      );
-    else if (state.diagramType === "evidence-set") {
+    if (state.diagramType === "evidence-set") {
       if (!state.nodes.length)
         diagnostics.push(
           diagnostic("DIAGRAM_EMPTY_OR_BLOCKED", "editorial", "Evidence-set diagram has no nodes.", [
@@ -2737,7 +3038,7 @@ export function buildHistoryVisualPlanV35(input: {
       diagnostic(
         "TIMING_OUTSIDE_ALLOWED_RANGE",
         "production",
-        `Narration duration ${timing.totalDurationMs}ms is outside allowed History range.`
+        `Narration duration ${timing.totalDurationMs}ms is outside allowed History range ${durationPolicy.allowedMinDurationMs}-${durationPolicy.allowedMaxDurationMs}ms.`
       )
     );
   if (

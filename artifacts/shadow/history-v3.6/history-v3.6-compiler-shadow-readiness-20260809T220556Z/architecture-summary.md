@@ -1,0 +1,3 @@
+# Architecture summary
+
+Validated `ExplanatoryRelationV36` enters strict relation-kind dispatch and receives exactly one typed shadow disposition. The compiler API has no narration, adjacent-claim, or raw-geography input. Map intents preserve route/comparison/area/event-location semantics; diagram intents preserve causal/dependency/process/chronology/policy/evidence-set semantics. Evidence sets are edge-free. Compiler identity is separate from relation identity. V3.5 planners, approvals, render adapters, and production artifacts remain untouched. Renderer lowering is a later human-approved shadow stage.

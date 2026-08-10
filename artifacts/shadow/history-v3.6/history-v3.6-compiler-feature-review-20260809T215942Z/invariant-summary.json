@@ -1,0 +1,33 @@
+{
+  "total": 0,
+  "invariants": {
+    "compilerReadsNarrationForSemantics": 0,
+    "compilerReadsAdjacentClaimsForSemantics": 0,
+    "missingDisposition": 0,
+    "duplicateDisposition": 0,
+    "semanticRelationIdMutation": 0,
+    "evidenceFingerprintMutation": 0,
+    "crossEpisodeCompilerSupport": 0,
+    "purposeAsDestination": 0,
+    "objectiveAsDestination": 0,
+    "intentAsCompletedMovement": 0,
+    "eventLocationAsMovement": 0,
+    "spatialComparisonAsMovement": 0,
+    "chronologyAsCausality": 0,
+    "processAsCausality": 0,
+    "dependencyAsCausality": 0,
+    "causalModalityLoss": 0,
+    "policyResponseModalityLoss": 0,
+    "eventLocationModalityLoss": 0,
+    "directionReversal": 0,
+    "processOrderCorruption": 0,
+    "temporalOrderCorruption": 0,
+    "evidenceSetFalseChronology": 0,
+    "evidenceMemberLoss": 0,
+    "proofSupportLoss": 0,
+    "unresolvedParticipantCompilation": 0,
+    "unresolvedGeographicCompilation": 0,
+    "nonDeterministicCompilerIntentId": 0,
+    "v35ProductionOutputChange": 0
+  }
+}

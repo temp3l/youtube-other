@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "run1Hash": "e3eaabfa34da8d3ed2f90be52bba80159524b605109911881d70168b182728e4",
+  "run2Hash": "e3eaabfa34da8d3ed2f90be52bba80159524b605109911881d70168b182728e4",
+  "compared": [
+    "episodeInventory",
+    "claimIds",
+    "structuredPropositionIds",
+    "atomicGroundingIds",
+    "candidateSemanticContent",
+    "validatedRelationIds",
+    "proofIds",
+    "relationCounts",
+    "diagnosticCounts",
+    "terminals"
+  ]
+}

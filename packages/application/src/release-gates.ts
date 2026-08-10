@@ -1,3 +1,12 @@
+import {
+  redactPolicyEvidence,
+  resolveExecutionPolicy,
+  executionPolicyFingerprint,
+  runPolicyArtifactSchema,
+  type ExecutionPolicy,
+  type RunPolicyArtifact,
+} from "@mediaforge/config";
+
 export interface ReleaseGateEvidence {
   readonly educationProviderFree: boolean;
   readonly controlledProviderSmoke: boolean;
@@ -131,4 +140,52 @@ export function advertisedCapabilityCells(input: {
       cell.evidenceIds.length > 0 &&
       cell.evidenceIds.every((evidenceId) => currentPasses.has(evidenceId))
   );
+}
+
+/**
+ * Final shared admission seam before a provider reservation or irreversible
+ * operation. It returns persisted-safe evidence and never enables a provider.
+ */
+export function assessExecutionReleasePolicy(input: {
+  readonly runId: string;
+  readonly revisionId: string;
+  readonly policy: unknown;
+  readonly provenanceSha256: string;
+  readonly approvals: readonly string[];
+  readonly preflightPassed: boolean;
+  readonly budget: {
+    readonly estimatedMinor: bigint;
+    readonly reservedMinor: bigint;
+    readonly reservationId?: string;
+  };
+  readonly previousArtifact?: RunPolicyArtifact;
+}): { readonly eligible: boolean; readonly reasons: readonly string[]; readonly artifact: RunPolicyArtifact } {
+  const policy: ExecutionPolicy = resolveExecutionPolicy(input.policy);
+  const validReservation =
+    typeof input.budget.reservationId === "string" &&
+    input.budget.reservationId.trim().length > 0 &&
+    input.budget.reservedMinor >= input.budget.estimatedMinor;
+  const reasons = [
+    ...(input.preflightPassed ? [] : ["PREFLIGHT_REQUIRED"]),
+    ...policy.requiredApprovalGates.filter((gate) => !input.approvals.includes(gate)).map((gate) => `APPROVAL_REQUIRED:${gate}`),
+    ...(input.budget.estimatedMinor > policy.budget.maximumMinor ? ["BUDGET_LIMIT_EXCEEDED"] : []),
+    ...(policy.budget.reservationRequired && !validReservation ? ["BUDGET_RESERVATION_REQUIRED"] : []),
+    ...(!/^[a-f0-9]{64}$/u.test(input.provenanceSha256) ? ["INVALID_PROVENANCE"] : []),
+  ];
+  const artifact: RunPolicyArtifact = Object.freeze(runPolicyArtifactSchema.parse({
+    schemaVersion: "run-policy-artifact.v1",
+    contentProfileId: policy.contentProfileId,
+    runId: input.runId,
+    revisionId: input.revisionId,
+    policy: redactPolicyEvidence(policy) as ExecutionPolicy,
+    policyFingerprint: executionPolicyFingerprint(policy),
+    provenanceSha256: input.provenanceSha256,
+    budget: {
+      reservationId: input.budget.reservationId?.trim() || null,
+      estimatedMinor: input.budget.estimatedMinor,
+      reservedMinor: input.budget.reservedMinor,
+    },
+    regenerationRationale: input.previousArtifact?.policyFingerprint === executionPolicyFingerprint(policy) && input.previousArtifact.provenanceSha256 === input.provenanceSha256 ? "cache-compatible" : input.previousArtifact ? "policy-changed" : "new-policy",
+  }));
+  return { eligible: reasons.length === 0, reasons, artifact };
 }

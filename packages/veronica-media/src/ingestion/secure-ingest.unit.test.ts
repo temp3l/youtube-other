@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   assertSafeFilename,
   ingestSupplementalMediaAsset,
+  ingestSupplementalMediaBatch,
 } from "./secure-ingest.js";
 import { createFixturePdf, createFixturePng, createFixturePptx, createFixtureSvg } from "../fixtures/pilot.js";
 
@@ -75,5 +76,18 @@ describe("veronica secure ingestion", () => {
     });
     expect(asset.mediaKind).toBe("svg");
     expect(asset.extractedCandidates[0]?.textPreview).toContain("Reinvention");
+  });
+
+  it("deduplicates matching immutable originals and isolates malformed inputs", () => {
+    const png = createFixturePng("shared");
+    const result = ingestSupplementalMediaBatch([
+      { assetId: "first", filename: "first.png", bytes: png, sourceKind: "screenshot" },
+      { assetId: "duplicate", filename: "duplicate.png", bytes: png },
+      { assetId: "bad", filename: "bad.bin", bytes: Buffer.from("not-media") },
+    ]);
+    expect(result.assets).toHaveLength(1);
+    expect(result.assets[0]).toMatchObject({ immutableOriginal: true, sourceKind: "screenshot" });
+    expect(result.reusedAssetIds).toEqual({ duplicate: "first" });
+    expect(result.failures).toEqual([{ assetId: "bad", code: "UNSUPPORTED_MEDIA", message: "Unsupported media: bad.bin" }]);
   });
 });

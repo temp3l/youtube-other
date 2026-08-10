@@ -1,0 +1,35 @@
+{
+  "flag": "MEDIAFORGE_HISTORY_V36_VISUAL_PLAN",
+  "enabledValue": "canary",
+  "allowlist": [
+    "history-youtube-history-10-video-story-pack-04-black-death",
+    "history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion"
+  ],
+  "defaultRoute": "V3_5_PRODUCTION",
+  "routes": {
+    "history-youtube-history-10-video-story-pack-04-black-death": {
+      "route": "V3_6_PRODUCTION_CANDIDATE",
+      "activationFlag": "MEDIAFORGE_HISTORY_V36_VISUAL_PLAN",
+      "canaryEpisodesEnv": "MEDIAFORGE_HISTORY_V36_CANARY_EPISODES",
+      "episodeId": "history-youtube-history-10-video-story-pack-04-black-death",
+      "productionActivated": false,
+      "reason": "V3_6_CANARY_EXPLICITLY_ENABLED"
+    },
+    "history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion": {
+      "route": "V3_6_PRODUCTION_CANDIDATE",
+      "activationFlag": "MEDIAFORGE_HISTORY_V36_VISUAL_PLAN",
+      "canaryEpisodesEnv": "MEDIAFORGE_HISTORY_V36_CANARY_EPISODES",
+      "episodeId": "history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion",
+      "productionActivated": false,
+      "reason": "V3_6_CANARY_EXPLICITLY_ENABLED"
+    },
+    "not-a-canary": {
+      "route": "V3_5_PRODUCTION",
+      "activationFlag": "MEDIAFORGE_HISTORY_V36_VISUAL_PLAN",
+      "canaryEpisodesEnv": "MEDIAFORGE_HISTORY_V36_CANARY_EPISODES",
+      "episodeId": "not-a-canary",
+      "productionActivated": false,
+      "reason": "EPISODE_NOT_IN_CANARY_ALLOWLIST"
+    }
+  }
+}

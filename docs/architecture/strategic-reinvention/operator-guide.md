@@ -2,9 +2,11 @@
 
 ## Scope
 
-This guide covers the Veronica Benini (`veronica-benini`) creator profile on the
-`strategic-reinvention` genre. Production remains **blocked by default** until
-written activation and rights evidence are recorded.
+This guide covers the canonical `veronicabenini` content profile. The source
+configuration identifiers `veronica-benini` and `strategic-reinvention` are
+compatibility aliases only and must not be persisted as workflow or artifact
+identity. Production remains **blocked by default** until written activation,
+rights, supplied-human voice, and revision-scoped approval evidence are recorded.
 
 ## Package ownership
 
@@ -30,13 +32,17 @@ episodes/<episode-id>/
   languages/script-en.md
   languages/script-es.md
   languages/short/script-it.md
-  sources/content/*
+  sources/content/<source-id>/*
+  sources/manifests/*
+  sources/approvals/source-evidence.json
+  state/veronicabenini/acceptance-evidence.json
   state/veronica-media/
   locales/<locale>/<variant>/...
 ```
 
-Paths are resolved through `createEpisodePathResolver`. Legacy story paths are
-read-compatible only; strategic write targets use the layout above.
+Paths are resolved through the shared artifact resolver. Flat strategic source
+paths are read-only compatibility candidates and require a valid manifest;
+operators must write new source originals to the nested canonical layout.
 
 ## Operator commands
 
@@ -79,6 +85,11 @@ Programmatic pilot:
 pnpm test:focused -- packages/strategic-reinvention/src/pilot.integration.test.ts
 ```
 
+The pilot writes `state/veronicabenini/acceptance-evidence.json`. Verify its
+canonical profile, production/workflow revisions, configuration and dependency
+hashes, source provenance, locale-neutral visual reuse, source invalidation,
+preserved approval-history hash, and redacted fail-closed release evidence.
+
 ## Approvals and invalidation
 
 - Required gates: `source`, `canonical-script`, `localization`, `voice`,
@@ -107,14 +118,29 @@ separate public videos is forbidden.
   fingerprints. Missing evidence returns `dry-run-blocked` with stable blocker
   codes.
 - Ambiguous provider outcomes require reconciliation before retry.
+- Pattern forks require a persisted analytics observation whose configuration,
+  dependency, and provenance identities exactly match the fork request.
+- Analytics comparisons are explicitly `observational-non-causal`; they cannot
+  mutate profile policy or dispatch a provider.
+
+## Recovery and handoff
+
+1. Keep the original episode revision and approval history immutable.
+2. Resume with the same idempotency key only for the same request identity.
+3. On source changes, expect downstream visual-plan invalidation while unrelated
+   approved/cache-compatible artifacts remain available.
+4. For ambiguous publication outcomes, run read-only reconciliation; never issue
+   a second provider mutation until the stored intent is resolved.
+5. Treat redacted failure codes as operator routing evidence. Inspect referenced
+   revision and artifact IDs, not raw source text or credentials.
 
 ## Limitations (explicit)
 
 - Creator profile status is `discovery`; live production is blocked.
 - Synthetic narration, generated likeness, and voice cloning are disabled.
 - YouTube alternate-audio API behavior is not claimed without measured evidence.
-- Full strategic DAG beyond supplemental media remains staged; other genre
-  workflows are unchanged.
+- Production task bindings remain fail-closed until each shared capability is
+  explicitly composed and its external activation evidence is approved.
 
 ## Mocked operator dry run
 

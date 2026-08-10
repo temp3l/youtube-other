@@ -1,0 +1,153 @@
+{
+  "comparisonPolicy": "aggregate semantic comparison; V3.6 is not required to reproduce V3.5 heuristic visuals",
+  "v35": {
+    "mapBeats": 15,
+    "diagramBeats": 4
+  },
+  "v36Shadow": {
+    "mapPlacements": 3,
+    "diagramPlacements": 31,
+    "insertions": 34,
+    "replacements": 0,
+    "unplacedSemanticVisuals": 0,
+    "planDensity": 0.08333333333333333
+  },
+  "episodeDeltas": [
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-01-bronze-age-collapse",
+      "v35": {
+        "mapBeats": 2,
+        "diagramBeats": 1,
+        "beats": 56,
+        "shots": 106
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 4,
+        "insertions": 4,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.07142857142857142
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-04-black-death",
+      "v35": {
+        "mapBeats": 3,
+        "diagramBeats": 2,
+        "beats": 55,
+        "shots": 103
+      },
+      "v36Shadow": {
+        "mapPlacements": 1,
+        "diagramPlacements": 4,
+        "insertions": 5,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.09090909090909091
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-05-franklin-expedition",
+      "v35": {
+        "mapBeats": 8,
+        "diagramBeats": 1,
+        "beats": 67,
+        "shots": 112
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 6,
+        "insertions": 6,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.08955223880597014
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-10-titanic-decisions-disaster",
+      "v35": {
+        "mapBeats": 1,
+        "diagramBeats": 0,
+        "beats": 47,
+        "shots": 108
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 4,
+        "insertions": 4,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.0851063829787234
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-20-1066-battle-that-changed-england",
+      "v35": {
+        "mapBeats": 0,
+        "diagramBeats": 0,
+        "beats": 45,
+        "shots": 94
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 2,
+        "insertions": 2,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.044444444444444446
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion",
+      "v35": {
+        "mapBeats": 0,
+        "diagramBeats": 0,
+        "beats": 41,
+        "shots": 92
+      },
+      "v36Shadow": {
+        "mapPlacements": 2,
+        "diagramPlacements": 3,
+        "insertions": 5,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.12195121951219512
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-35-chernobyl-night-reactor-exploded",
+      "v35": {
+        "mapBeats": 1,
+        "diagramBeats": 0,
+        "beats": 45,
+        "shots": 95
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 5,
+        "insertions": 5,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.1111111111111111
+      }
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-36-spanish-armada-why-it-failed",
+      "v35": {
+        "mapBeats": 0,
+        "diagramBeats": 0,
+        "beats": 52,
+        "shots": 94
+      },
+      "v36Shadow": {
+        "mapPlacements": 0,
+        "diagramPlacements": 3,
+        "insertions": 3,
+        "replacements": 0,
+        "unplacedSemanticVisuals": 0,
+        "planDensity": 0.057692307692307696
+      }
+    }
+  ]
+}

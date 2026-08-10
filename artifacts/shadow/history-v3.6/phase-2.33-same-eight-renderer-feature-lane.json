@@ -1,0 +1,14 @@
+{
+  "phase": "2.33",
+  "target": "same-eight renderer specs and local previews",
+  "result": "PASS",
+  "shadowOnly": true,
+  "compilerIntents": 34,
+  "renderSpecs": 34,
+  "previews": 9,
+  "map": 3,
+  "diagram": 31,
+  "safeAbstentions": 0,
+  "deterministic": true,
+  "sidecar": "canonical-geography-sidecar.v1"
+}

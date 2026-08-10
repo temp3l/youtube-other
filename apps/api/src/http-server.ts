@@ -202,7 +202,17 @@ export interface ApiUseCases {
     after: string | undefined,
     size: number,
     context: Required<Pick<ApiRequestContext, "workspaceId" | "requestId">>
-  ): Promise<{ readonly items: readonly { readonly id: string; readonly name: string; readonly profile: string; readonly revision: number; readonly createdAt: string; readonly updatedAt: string }[]; readonly nextAfter?: string }>;
+  ): Promise<{
+    readonly items: readonly {
+      readonly id: string;
+      readonly name: string;
+      readonly profile: string;
+      readonly revision: number;
+      readonly createdAt: string;
+      readonly updatedAt: string;
+    }[];
+    readonly nextAfter?: string;
+  }>;
   getQuota(
     context: Required<Pick<ApiRequestContext, "workspaceId" | "requestId">>
   ): Promise<ApiWorkspaceQuotaStatus | null>;
@@ -367,12 +377,16 @@ export interface ApiUseCases {
   attachEpisodeAssetReference(
     episodeId: string,
     body: unknown,
-    context: Required<Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal">>
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal">
+    >
   ): Promise<Record<string, unknown>>;
   applyProductionTemplate(
     episodeId: string,
     body: unknown,
-    context: Required<Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal">>
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal">
+    >
   ): Promise<Record<string, unknown>>;
   getEpisodeProductionTemplateBinding(
     episodeId: string,
@@ -386,7 +400,9 @@ export interface ApiUseCases {
   ): Promise<{ readonly id: string; readonly revision: number }>;
   getEpisodeContentLifecycle(
     episodeId: string,
-    context: Required<Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal">>
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal">
+    >
   ): Promise<Record<string, unknown>>;
   getRetentionPolicy(
     context: Required<Pick<ApiRequestContext, "workspaceId" | "principal">>
@@ -395,19 +411,27 @@ export interface ApiUseCases {
     episodeId: string,
     body: unknown,
     context: Required<
-      Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal" | "ifMatch">
+      Pick<
+        ApiRequestContext,
+        "workspaceId" | "projectId" | "principal" | "ifMatch"
+      >
     >
   ): Promise<Record<string, unknown>>;
   restoreEpisode(
     episodeId: string,
     body: unknown,
     context: Required<
-      Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal" | "ifMatch">
+      Pick<
+        ApiRequestContext,
+        "workspaceId" | "projectId" | "principal" | "ifMatch"
+      >
     >
   ): Promise<Record<string, unknown>>;
   evaluateEpisodeDeletion(
     episodeId: string,
-    context: Required<Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal">>
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal">
+    >
   ): Promise<Record<string, unknown>>;
   deleteEpisode(
     episodeId: string,
@@ -423,8 +447,19 @@ export interface ApiUseCases {
     after: string | undefined,
     size: number,
     filters: { readonly visibility?: "active" | "archived" | "all" },
-    context: Required<Pick<ApiRequestContext, "workspaceId" | "projectId" | "requestId">>
-  ): Promise<{ readonly items: readonly { readonly id: string; readonly revision: number; readonly content: unknown; readonly createdAt: string; readonly updatedAt: string }[]; readonly nextAfter?: string }>;
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "projectId" | "requestId">
+    >
+  ): Promise<{
+    readonly items: readonly {
+      readonly id: string;
+      readonly revision: number;
+      readonly content: unknown;
+      readonly createdAt: string;
+      readonly updatedAt: string;
+    }[];
+    readonly nextAfter?: string;
+  }>;
   createEpisode(
     input: EpisodeInput,
     context: Required<
@@ -501,19 +536,87 @@ export interface ApiUseCases {
   getBulkProductionBatch?(
     batchId: string,
     context: Required<Pick<ApiRequestContext, "workspaceId" | "requestId">>
-  ): Promise<{ readonly id: string; readonly status: string; readonly selectionFingerprint: string; readonly createdAt: string; readonly updatedAt: string; readonly items: readonly { readonly id: string; readonly eligible: boolean; readonly status: string; readonly reasons: readonly string[] }[] } | null>;
+  ): Promise<{
+    readonly id: string;
+    readonly status: string;
+    readonly selectionFingerprint: string;
+    readonly createdAt: string;
+    readonly updatedAt: string;
+    readonly items: readonly {
+      readonly id: string;
+      readonly eligible: boolean;
+      readonly status: string;
+      readonly reasons: readonly string[];
+    }[];
+  } | null>;
   preflightBulkProduction?(
     body: unknown,
-    context: Required<Pick<ApiRequestContext, "workspaceId" | "principal" | "requestId" | "idempotencyKey">>
-  ): Promise<{ readonly id: string; readonly replayed: boolean; readonly status: string; readonly selectionFingerprint: string; readonly items: readonly { readonly id: string; readonly eligible: boolean; readonly status: string; readonly reasons: readonly string[] }[] }>;
+    context: Required<
+      Pick<
+        ApiRequestContext,
+        "workspaceId" | "principal" | "requestId" | "idempotencyKey"
+      >
+    >
+  ): Promise<{
+    readonly id: string;
+    readonly replayed: boolean;
+    readonly status: string;
+    readonly selectionFingerprint: string;
+    readonly items: readonly {
+      readonly id: string;
+      readonly eligible: boolean;
+      readonly status: string;
+      readonly reasons: readonly string[];
+    }[];
+  }>;
   launchBulkProduction?(
     batchId: string,
-    context: Required<Pick<ApiRequestContext, "workspaceId" | "principal" | "requestId" | "idempotencyKey">>
-  ): Promise<{ readonly id: string; readonly accepted: readonly { readonly itemId: string; readonly workflowRunId: string; readonly jobId: string }[]; readonly rejected: readonly { readonly itemId: string; readonly code: string }[] }>;
-  retryBulkProduction?(batchId: string, context: Required<Pick<ApiRequestContext, "workspaceId" | "principal" | "requestId" | "idempotencyKey">>): Promise<{ readonly id: string; readonly retriedItems: number }>;
-  cancelBulkProduction?(batchId: string, context: Required<Pick<ApiRequestContext, "workspaceId" | "principal" | "requestId">>): Promise<{ readonly id: string; readonly status: string; readonly cancellationRequestedJobIds: readonly string[] }>;
-  getWorkspaceCapabilities(context: Required<Pick<ApiRequestContext, "workspaceId" | "requestId">>): Promise<Record<string, unknown> | null>;
-  getEpisodeResolvedConfiguration(episodeId: string, context: Required<Pick<ApiRequestContext, "workspaceId" | "projectId" | "requestId">>): Promise<Record<string, unknown> | null>;
+    context: Required<
+      Pick<
+        ApiRequestContext,
+        "workspaceId" | "principal" | "requestId" | "idempotencyKey"
+      >
+    >
+  ): Promise<{
+    readonly id: string;
+    readonly accepted: readonly {
+      readonly itemId: string;
+      readonly workflowRunId: string;
+      readonly jobId: string;
+    }[];
+    readonly rejected: readonly {
+      readonly itemId: string;
+      readonly code: string;
+    }[];
+  }>;
+  retryBulkProduction?(
+    batchId: string,
+    context: Required<
+      Pick<
+        ApiRequestContext,
+        "workspaceId" | "principal" | "requestId" | "idempotencyKey"
+      >
+    >
+  ): Promise<{ readonly id: string; readonly retriedItems: number }>;
+  cancelBulkProduction?(
+    batchId: string,
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "principal" | "requestId">
+    >
+  ): Promise<{
+    readonly id: string;
+    readonly status: string;
+    readonly cancellationRequestedJobIds: readonly string[];
+  }>;
+  getWorkspaceCapabilities(
+    context: Required<Pick<ApiRequestContext, "workspaceId" | "requestId">>
+  ): Promise<Record<string, unknown> | null>;
+  getEpisodeResolvedConfiguration(
+    episodeId: string,
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "projectId" | "requestId">
+    >
+  ): Promise<Record<string, unknown> | null>;
   previewArtifactInvalidation(
     episodeId: string,
     input: {
@@ -525,11 +628,15 @@ export interface ApiUseCases {
   ): Promise<Record<string, unknown>>;
   listProductionUnitSnapshots(
     episodeId: string,
-    context: Required<Pick<ApiRequestContext, "workspaceId" | "projectId" | "requestId">>
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "projectId" | "requestId">
+    >
   ): Promise<{ readonly items: readonly Record<string, unknown>[] }>;
   compareProductionUnitSnapshots(
     episodeId: string,
-    context: Required<Pick<ApiRequestContext, "workspaceId" | "projectId" | "requestId">>
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "projectId" | "requestId">
+    >
   ): Promise<{ readonly items: readonly Record<string, unknown>[] }>;
   regenerateProductionUnits(
     episodeId: string,
@@ -613,12 +720,33 @@ export interface ApiUseCases {
   listAssets(
     after: string | undefined,
     size: number,
-    context: Required<Pick<ApiRequestContext, "workspaceId" | "projectId" | "requestId">>
-  ): Promise<{ readonly items: readonly { readonly id: string; readonly mimeType: string; readonly bytes: number; readonly sha256: string; readonly lifecycle: string; readonly provenance: string }[]; readonly nextAfter?: string }>;
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "projectId" | "requestId">
+    >
+  ): Promise<{
+    readonly items: readonly {
+      readonly id: string;
+      readonly mimeType: string;
+      readonly bytes: number;
+      readonly sha256: string;
+      readonly lifecycle: string;
+      readonly provenance: string;
+    }[];
+    readonly nextAfter?: string;
+  }>;
   getApprovalChallenge(
     challengeId: string,
-    context: Required<Pick<ApiRequestContext, "workspaceId" | "projectId" | "requestId">>
-  ): Promise<{ readonly id: string; readonly subjectId: string; readonly subjectRevision: number; readonly artifactHash: string; readonly expiresAt: string; readonly consumedAt: string | null } | null>;
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "projectId" | "requestId">
+    >
+  ): Promise<{
+    readonly id: string;
+    readonly subjectId: string;
+    readonly subjectRevision: number;
+    readonly artifactHash: string;
+    readonly expiresAt: string;
+    readonly consumedAt: string | null;
+  } | null>;
   listValidations(
     after: string | undefined,
     size: number,
@@ -682,7 +810,10 @@ export interface ApiUseCases {
   }>;
   listReviewQueue(
     context: Required<
-      Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal" | "requestId">
+      Pick<
+        ApiRequestContext,
+        "workspaceId" | "projectId" | "principal" | "requestId"
+      >
     >
   ): Promise<{ readonly items: readonly unknown[] }>;
   submitApprovalChallenge(
@@ -690,7 +821,11 @@ export interface ApiUseCases {
     context: Required<
       Pick<
         ApiRequestContext,
-        "workspaceId" | "projectId" | "principal" | "requestId" | "idempotencyKey"
+        | "workspaceId"
+        | "projectId"
+        | "principal"
+        | "requestId"
+        | "idempotencyKey"
       >
     >
   ): Promise<{
@@ -704,32 +839,47 @@ export interface ApiUseCases {
   claimApprovalChallenge(
     challengeId: string,
     context: Required<
-      Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal" | "requestId">
+      Pick<
+        ApiRequestContext,
+        "workspaceId" | "projectId" | "principal" | "requestId"
+      >
     >
   ): Promise<unknown>;
   listApprovalHistory(
     runId: string | undefined,
     context: Required<
-      Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal" | "requestId">
+      Pick<
+        ApiRequestContext,
+        "workspaceId" | "projectId" | "principal" | "requestId"
+      >
     >
   ): Promise<{ readonly items: readonly unknown[] }>;
   getApprovalValidity(
     approvalId: string,
     context: Required<
-      Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal" | "requestId">
+      Pick<
+        ApiRequestContext,
+        "workspaceId" | "projectId" | "principal" | "requestId"
+      >
     >
   ): Promise<unknown>;
   listLocalizationDerivatives(
     rootEpisodeId: string,
     context: Required<
-      Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal" | "requestId">
+      Pick<
+        ApiRequestContext,
+        "workspaceId" | "projectId" | "principal" | "requestId"
+      >
     >
   ): Promise<{ readonly items: readonly unknown[] }>;
   evaluateLocalizationPreflight(
     rootEpisodeId: string,
     body: unknown,
     context: Required<
-      Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal" | "requestId">
+      Pick<
+        ApiRequestContext,
+        "workspaceId" | "projectId" | "principal" | "requestId"
+      >
     >
   ): Promise<unknown>;
   createLocalizationDerivative(
@@ -738,7 +888,11 @@ export interface ApiUseCases {
     context: Required<
       Pick<
         ApiRequestContext,
-        "workspaceId" | "projectId" | "principal" | "requestId" | "idempotencyKey"
+        | "workspaceId"
+        | "projectId"
+        | "principal"
+        | "requestId"
+        | "idempotencyKey"
       >
     >
   ): Promise<unknown>;
@@ -746,14 +900,20 @@ export interface ApiUseCases {
     rootEpisodeId: string,
     derivativeId: string,
     context: Required<
-      Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal" | "requestId">
+      Pick<
+        ApiRequestContext,
+        "workspaceId" | "projectId" | "principal" | "requestId"
+      >
     >
   ): Promise<unknown>;
   retryLocalizationDerivative(
     rootEpisodeId: string,
     derivativeId: string,
     context: Required<
-      Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal" | "requestId">
+      Pick<
+        ApiRequestContext,
+        "workspaceId" | "projectId" | "principal" | "requestId"
+      >
     >
   ): Promise<unknown>;
   listPublishingChannels(
@@ -785,7 +945,10 @@ export interface ApiUseCases {
     episodeId: string,
     body: unknown,
     context: Required<
-      Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal" | "requestId">
+      Pick<
+        ApiRequestContext,
+        "workspaceId" | "projectId" | "principal" | "requestId"
+      >
     >
   ): Promise<unknown>;
   preparePublicationIntent(
@@ -1332,7 +1495,9 @@ function route(pathname: string): {
   result.project = parts[4];
   result.tail = parts.slice(5).join("/");
   if (parts[5] === "episodes" && parts[6]) {
-    const episodeAction = parts[6].match(/^(.+):(clone|archive|restore|delete)$/u);
+    const episodeAction = parts[6].match(
+      /^(.+):(clone|archive|restore|delete)$/u
+    );
     if (episodeAction?.[1] && episodeAction[2]) {
       result.episode = episodeAction[1];
       result.episodeAction = episodeAction[2] as
@@ -1395,7 +1560,11 @@ function route(pathname: string): {
     result.episode = parts[6];
     result.episodePublicationPrepare = true;
   }
-  if (parts[5] === "episodes" && parts[6] && parts[7] === "localization-derivatives") {
+  if (
+    parts[5] === "episodes" &&
+    parts[6] &&
+    parts[7] === "localization-derivatives"
+  ) {
     result.episode = parts[6];
     if (parts[8]) {
       const compare = parts[8].match(/^(.+):compare$/u);
@@ -1457,20 +1626,49 @@ function requiredPermission(
     return "usage.read";
   if (method === "GET" && !matched.project && matched.tail === "audit-events")
     return "audit.read";
-  if (method === "GET" && !matched.project && matched.tail === "workflow-portfolio")
+  if (
+    method === "GET" &&
+    !matched.project &&
+    matched.tail === "workflow-portfolio"
+  )
     return "content.read";
-  if (method === "GET" && !matched.project && /^bulk-production-batches\/[^/]+$/u.test(matched.tail ?? ""))
+  if (
+    method === "GET" &&
+    !matched.project &&
+    /^bulk-production-batches\/[^/]+$/u.test(matched.tail ?? "")
+  )
     return "content.read";
-  if (method === "POST" && !matched.project && matched.tail === "bulk-production-batches:preflight")
+  if (
+    method === "POST" &&
+    !matched.project &&
+    matched.tail === "bulk-production-batches:preflight"
+  )
     return "workflow.start";
-  if (method === "POST" && !matched.project && /^bulk-production-batches\/[^/]+:launch$/u.test(matched.tail ?? ""))
+  if (
+    method === "POST" &&
+    !matched.project &&
+    /^bulk-production-batches\/[^/]+:launch$/u.test(matched.tail ?? "")
+  )
     return "workflow.start";
-  if (method === "POST" && !matched.project && /^bulk-production-batches\/[^/]+:retry$/u.test(matched.tail ?? ""))
+  if (
+    method === "POST" &&
+    !matched.project &&
+    /^bulk-production-batches\/[^/]+:retry$/u.test(matched.tail ?? "")
+  )
     return "workflow.start";
-  if (method === "POST" && !matched.project && /^bulk-production-batches\/[^/]+:cancel$/u.test(matched.tail ?? ""))
+  if (
+    method === "POST" &&
+    !matched.project &&
+    /^bulk-production-batches\/[^/]+:cancel$/u.test(matched.tail ?? "")
+  )
     return "workflow.cancel";
-  if (method === "GET" && !matched.project && matched.tail === "capabilities") return "content.read";
-  if (method === "GET" && !matched.project && matched.tail === "provider-health")
+  if (method === "GET" && !matched.project && matched.tail === "capabilities")
+    return "content.read";
+  if (
+    method === "GET" &&
+    !matched.project &&
+    matched.tail === "provider-health"
+  )
     return "usage.read";
   if (
     method === "GET" &&
@@ -1639,11 +1837,7 @@ function requiredPermission(
     return "content.read";
   if (method === "GET" && matched.tail === "reusable-assets")
     return "content.read";
-  if (
-    method === "POST" &&
-    matched.episode &&
-    matched.episodeAction === "clone"
-  )
+  if (method === "POST" && matched.episode && matched.episodeAction === "clone")
     return "content.write";
   if (
     method === "POST" &&
@@ -1682,8 +1876,14 @@ function requiredPermission(
     matched.episode &&
     (matched.tail === `episodes/${matched.episode}/production-units` ||
       matched.tail === `episodes/${matched.episode}/production-units:compare`)
-  ) return "content.read";
-  if (method === "GET" && matched.episode && matched.tail === `episodes/${matched.episode}/resolved-configuration`) return "content.read";
+  )
+    return "content.read";
+  if (
+    method === "GET" &&
+    matched.episode &&
+    matched.tail === `episodes/${matched.episode}/resolved-configuration`
+  )
+    return "content.read";
   if (
     method === "POST" &&
     matched.episode &&
@@ -1701,7 +1901,8 @@ function requiredPermission(
     method === "GET" &&
     matched.approvalChallenge &&
     matched.tail === `approval-challenges/${matched.approvalChallenge}`
-  ) return "approval.decide";
+  )
+    return "approval.decide";
   if (
     method === "PATCH" &&
     matched.episode &&
@@ -1821,8 +2022,7 @@ function requiredPermission(
     method === "POST" &&
     matched.episode &&
     matched.episodePublicationPreflight &&
-    matched.tail ===
-      `episodes/${matched.episode}/publication-intents:preflight`
+    matched.tail === `episodes/${matched.episode}/publication-intents:preflight`
   )
     return "publication.schedule";
   if (
@@ -1932,9 +2132,17 @@ export function createApiServer(
           "x-request-id": requestIdValue,
         });
       }
-      if (request.method === "GET" && !matched.project && matched.tail === "capabilities") {
-        const result = await useCases.getWorkspaceCapabilities({ workspaceId: matched.workspace, requestId: requestIdValue });
-        if (!result) throw new ApplicationError("not_found", "Resource not found.", false);
+      if (
+        request.method === "GET" &&
+        !matched.project &&
+        matched.tail === "capabilities"
+      ) {
+        const result = await useCases.getWorkspaceCapabilities({
+          workspaceId: matched.workspace,
+          requestId: requestIdValue,
+        });
+        if (!result)
+          throw new ApplicationError("not_found", "Resource not found.", false);
         return json(response, 200, result, { "x-request-id": requestIdValue });
       }
       if (
@@ -1986,10 +2194,16 @@ export function createApiServer(
               ? { attemptId: url.searchParams.get("filter[attemptId]")! }
               : {}),
             ...(url.searchParams.get("filter[occurredAfter]")
-              ? { occurredAfter: url.searchParams.get("filter[occurredAfter]")! }
+              ? {
+                  occurredAfter: url.searchParams.get("filter[occurredAfter]")!,
+                }
               : {}),
             ...(url.searchParams.get("filter[occurredBefore]")
-              ? { occurredBefore: url.searchParams.get("filter[occurredBefore]")! }
+              ? {
+                  occurredBefore: url.searchParams.get(
+                    "filter[occurredBefore]"
+                  )!,
+                }
               : {}),
           },
           context
@@ -2239,11 +2453,7 @@ export function createApiServer(
           { etag: etag(result.revision), "x-request-id": requestIdValue }
         );
       }
-      if (
-        request.method === "GET" &&
-        !matched.project &&
-        matched.tail === ""
-      ) {
+      if (request.method === "GET" && !matched.project && matched.tail === "") {
         const result = await useCases.listProjects(
           url.searchParams.get("page[after]") ?? undefined,
           pageSize(url),
@@ -2282,9 +2492,10 @@ export function createApiServer(
         );
         return json(response, 200, result, { "x-request-id": requestIdValue });
       }
-      const bulkBatch = !matched.project && request.method === "GET"
-        ? matched.tail?.match(/^bulk-production-batches\/([^/]+)$/u)
-        : null;
+      const bulkBatch =
+        !matched.project && request.method === "GET"
+          ? matched.tail?.match(/^bulk-production-batches\/([^/]+)$/u)
+          : null;
       if (bulkBatch) {
         if (!useCases.getBulkProductionBatch)
           throw new ApplicationError("not_found", "Resource not found.", false);
@@ -2292,46 +2503,84 @@ export function createApiServer(
           decodeURIComponent(bulkBatch[1]!),
           context
         );
-        if (!result) throw new ApplicationError("not_found", "Resource not found.", false);
+        if (!result)
+          throw new ApplicationError("not_found", "Resource not found.", false);
         return json(response, 200, result, { "x-request-id": requestIdValue });
       }
-      if (request.method === "POST" && !matched.project && matched.tail === "bulk-production-batches:preflight") {
+      if (
+        request.method === "POST" &&
+        !matched.project &&
+        matched.tail === "bulk-production-batches:preflight"
+      ) {
         if (!useCases.preflightBulkProduction)
           throw new ApplicationError("not_found", "Resource not found.", false);
         const key = idempotencyKey(request);
-        if (!key) throw new ApplicationError("idempotency_required", "Idempotency-Key is required.", false);
-        const result = await useCases.preflightBulkProduction(await body(request), { ...context, idempotencyKey: key });
-        return json(response, result.replayed ? 200 : 201, result, { "x-request-id": requestIdValue, ...(result.replayed ? { "idempotency-replayed": "true" } : {}) });
+        if (!key)
+          throw new ApplicationError(
+            "idempotency_required",
+            "Idempotency-Key is required.",
+            false
+          );
+        const result = await useCases.preflightBulkProduction(
+          await body(request),
+          { ...context, idempotencyKey: key }
+        );
+        return json(response, result.replayed ? 200 : 201, result, {
+          "x-request-id": requestIdValue,
+          ...(result.replayed ? { "idempotency-replayed": "true" } : {}),
+        });
       }
-      const bulkLaunch = !matched.project && request.method === "POST"
-        ? matched.tail?.match(/^bulk-production-batches\/([^/]+):launch$/u)
-        : null;
+      const bulkLaunch =
+        !matched.project && request.method === "POST"
+          ? matched.tail?.match(/^bulk-production-batches\/([^/]+):launch$/u)
+          : null;
       if (bulkLaunch) {
         if (!useCases.launchBulkProduction)
           throw new ApplicationError("not_found", "Resource not found.", false);
         const key = idempotencyKey(request);
-        if (!key) throw new ApplicationError("precondition_required", "Idempotency-Key is required.", false);
-        const result = await useCases.launchBulkProduction(decodeURIComponent(bulkLaunch[1]!), { ...context, idempotencyKey: key });
+        if (!key)
+          throw new ApplicationError(
+            "precondition_required",
+            "Idempotency-Key is required.",
+            false
+          );
+        const result = await useCases.launchBulkProduction(
+          decodeURIComponent(bulkLaunch[1]!),
+          { ...context, idempotencyKey: key }
+        );
         return json(response, 202, result, { "x-request-id": requestIdValue });
       }
-      const bulkRetry = !matched.project && request.method === "POST"
-        ? matched.tail?.match(/^bulk-production-batches\/([^/]+):retry$/u)
-        : null;
+      const bulkRetry =
+        !matched.project && request.method === "POST"
+          ? matched.tail?.match(/^bulk-production-batches\/([^/]+):retry$/u)
+          : null;
       if (bulkRetry) {
         if (!useCases.retryBulkProduction)
           throw new ApplicationError("not_found", "Resource not found.", false);
         const key = idempotencyKey(request);
-        if (!key) throw new ApplicationError("precondition_required", "Idempotency-Key is required.", false);
-        const result = await useCases.retryBulkProduction(decodeURIComponent(bulkRetry[1]!), { ...context, idempotencyKey: key });
+        if (!key)
+          throw new ApplicationError(
+            "precondition_required",
+            "Idempotency-Key is required.",
+            false
+          );
+        const result = await useCases.retryBulkProduction(
+          decodeURIComponent(bulkRetry[1]!),
+          { ...context, idempotencyKey: key }
+        );
         return json(response, 202, result, { "x-request-id": requestIdValue });
       }
-      const bulkCancel = !matched.project && request.method === "POST"
-        ? matched.tail?.match(/^bulk-production-batches\/([^/]+):cancel$/u)
-        : null;
+      const bulkCancel =
+        !matched.project && request.method === "POST"
+          ? matched.tail?.match(/^bulk-production-batches\/([^/]+):cancel$/u)
+          : null;
       if (bulkCancel) {
         if (!useCases.cancelBulkProduction)
           throw new ApplicationError("not_found", "Resource not found.", false);
-        const result = await useCases.cancelBulkProduction(decodeURIComponent(bulkCancel[1]!), context);
+        const result = await useCases.cancelBulkProduction(
+          decodeURIComponent(bulkCancel[1]!),
+          context
+        );
         return json(response, 202, result, { "x-request-id": requestIdValue });
       }
       if (
@@ -2608,7 +2857,9 @@ export function createApiServer(
           url.searchParams.get("page[after]") ?? undefined,
           pageSize(url),
           {
-            ...(visibility === "active" || visibility === "archived" || visibility === "all"
+            ...(visibility === "active" ||
+            visibility === "archived" ||
+            visibility === "all"
               ? { visibility }
               : {}),
           },
@@ -2782,7 +3033,8 @@ export function createApiServer(
       if (
         request.method === "GET" &&
         matched.episode &&
-        matched.tail === `episodes/${matched.episode}/production-template-binding`
+        matched.tail ===
+          `episodes/${matched.episode}/production-template-binding`
       ) {
         const result = await useCases.getEpisodeProductionTemplateBinding(
           matched.episode,
@@ -2808,16 +3060,21 @@ export function createApiServer(
         );
         if (!result)
           throw new ApplicationError("not_found", "Resource not found.", false);
-        return json(
-          response,
-          200,
-          episodeProductionStateSchema.parse(result),
-          { "x-request-id": requestIdValue }
-        );
+        return json(response, 200, episodeProductionStateSchema.parse(result), {
+          "x-request-id": requestIdValue,
+        });
       }
-      if (request.method === "GET" && matched.episode && matched.tail === `episodes/${matched.episode}/resolved-configuration`) {
-        const result = await useCases.getEpisodeResolvedConfiguration(matched.episode, projectContext);
-        if (!result) throw new ApplicationError("not_found", "Resource not found.", false);
+      if (
+        request.method === "GET" &&
+        matched.episode &&
+        matched.tail === `episodes/${matched.episode}/resolved-configuration`
+      ) {
+        const result = await useCases.getEpisodeResolvedConfiguration(
+          matched.episode,
+          projectContext
+        );
+        if (!result)
+          throw new ApplicationError("not_found", "Resource not found.", false);
         return json(response, 200, result, { "x-request-id": requestIdValue });
       }
       if (
@@ -2825,14 +3082,30 @@ export function createApiServer(
         matched.episode &&
         matched.tail === `episodes/${matched.episode}/production-units`
       ) {
-        return json(response, 200, await useCases.listProductionUnitSnapshots(matched.episode, projectContext), { "x-request-id": requestIdValue });
+        return json(
+          response,
+          200,
+          await useCases.listProductionUnitSnapshots(
+            matched.episode,
+            projectContext
+          ),
+          { "x-request-id": requestIdValue }
+        );
       }
       if (
         request.method === "GET" &&
         matched.episode &&
         matched.tail === `episodes/${matched.episode}/production-units:compare`
       ) {
-        return json(response, 200, await useCases.compareProductionUnitSnapshots(matched.episode, projectContext), { "x-request-id": requestIdValue });
+        return json(
+          response,
+          200,
+          await useCases.compareProductionUnitSnapshots(
+            matched.episode,
+            projectContext
+          ),
+          { "x-request-id": requestIdValue }
+        );
       }
       if (
         request.method === "GET" &&
@@ -2869,7 +3142,8 @@ export function createApiServer(
       if (
         request.method === "POST" &&
         matched.episode &&
-        matched.tail === `episodes/${matched.episode}/artifact-invalidation-preview`
+        matched.tail ===
+          `episodes/${matched.episode}/artifact-invalidation-preview`
       ) {
         const result = await useCases.previewArtifactInvalidation(
           matched.episode,
@@ -2883,7 +3157,8 @@ export function createApiServer(
       if (
         request.method === "POST" &&
         matched.episode &&
-        matched.tail === `episodes/${matched.episode}/production-units:regenerate`
+        matched.tail ===
+          `episodes/${matched.episode}/production-units:regenerate`
       ) {
         const key = idempotencyKey(request);
         if (!key)
@@ -2904,17 +3179,12 @@ export function createApiServer(
             idempotencyKey: key,
           }
         );
-        return json(
-          response,
-          202,
-          result,
-          {
-            location: `/v1/workspaces/${matched.workspace}/projects/${matched.project}/jobs/${result.jobId}`,
-            "retry-after": "3",
-            etag: etag(result.revision),
-            "x-request-id": requestIdValue,
-          }
-        );
+        return json(response, 202, result, {
+          location: `/v1/workspaces/${matched.workspace}/projects/${matched.project}/jobs/${result.jobId}`,
+          "retry-after": "3",
+          etag: etag(result.revision),
+          "x-request-id": requestIdValue,
+        });
       }
       if (
         request.method === "POST" &&
@@ -3138,7 +3408,8 @@ export function createApiServer(
         request.method === "POST" &&
         matched.approvalChallenge &&
         matched.approvalChallengeAction === "claim" &&
-        matched.tail === `approval-challenges/${matched.approvalChallenge}:claim`
+        matched.tail ===
+          `approval-challenges/${matched.approvalChallenge}:claim`
       ) {
         const result = await useCases.claimApprovalChallenge(
           matched.approvalChallenge,
@@ -3301,7 +3572,8 @@ export function createApiServer(
         request.method === "POST" &&
         matched.episode &&
         matched.episodePublicationPrepare &&
-        matched.tail === `episodes/${matched.episode}/publication-intents:prepare`
+        matched.tail ===
+          `episodes/${matched.episode}/publication-intents:prepare`
       ) {
         const key = idempotencyKey(request);
         if (!key)

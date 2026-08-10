@@ -594,6 +594,87 @@ export function isSafeCanonicalEntityAliasMatchV35(input: {
   return true;
 }
 
+export const GENERIC_GEOGRAPHIC_HEAD_NOUNS_V35 = new Set([
+  "bay",
+  "sea",
+  "gulf",
+  "lake",
+  "river",
+  "ocean",
+  "strait",
+  "channel",
+  "sound",
+  "horn",
+  "passage",
+  "coast",
+]);
+
+export const GEOGRAPHIC_OF_PHRASE_PATTERN_V35 =
+  /\b(?:Bay|Sea|Gulf|Lake|River|Ocean|Strait|Channel|Sound|Horn|Passage)\s+of\s+(?:the\s+)?[A-Z][\p{Ll}'-]+(?:\s+(?:and\s+)?[A-Z][\p{Ll}'-]+)?\b/gu;
+
+export const INSTITUTIONAL_TITLE_PATTERN_V35 =
+  /\b(?:(?:International|National|United|Royal|Supreme)\s+)?(?:(?:[A-Z][\p{L}'-]+\s+){0,2})?(?:Convention|Treaty|Act|Law|Agreement|Protocol|Charter|Accords|Assembly|Council|Commission|Organization|Institution|Declaration|Statute|Regulation|Directive|Pact|Court|League|Project|Operation)(?:\s+(?:(?:of|for|the|at|in|on|and|&)\s+)?[A-Za-z][\p{L}'-]+){0,15}\b/giu;
+
+const INSTITUTIONAL_TITLE_MARKERS_V35 =
+  /\b(?:Convention|Treaty|Act|Law|Agreement|Protocol|Charter|Accords|Assembly|Council|Project|Operation|Commission|Organization|Institution|Declaration|Statute|Regulation|Directive|Pact|Court|League)\b/iu;
+
+export function isGenericGeographicHeadNounV35(surface: string): boolean {
+  const trimmed = surface.trim();
+  const tokens = trimmed.split(/\s+/u);
+  if (tokens.length !== 1) return false;
+  return GENERIC_GEOGRAPHIC_HEAD_NOUNS_V35.has(trimmed.toLocaleLowerCase());
+}
+
+export function isNamedGeographicOfPhraseV35(surface: string): boolean {
+  return /^(?:Bay|Sea|Gulf|Lake|River|Ocean|Strait|Channel|Sound|Horn|Passage)\s+of\s+/iu.test(
+    surface.trim()
+  );
+}
+
+export function isInstitutionalTitleSurfaceV35(surface: string): boolean {
+  return INSTITUTIONAL_TITLE_MARKERS_V35.test(surface.trim());
+}
+
+export function isSpanFullyContainedV35(
+  inner: { readonly start: number; readonly end: number },
+  outer: { readonly start: number; readonly end: number }
+): boolean {
+  return (
+    inner.start >= outer.start &&
+    inner.end <= outer.end &&
+    (inner.start > outer.start || inner.end < outer.end)
+  );
+}
+
+export function shouldSuppressGenericGeographicSubspanV35(input: {
+  readonly surface: string;
+  readonly spanStart: number;
+  readonly spanEnd: number;
+  readonly enclosingCandidates: readonly {
+    readonly surface: string;
+    readonly spanStart: number;
+    readonly spanEnd: number;
+    readonly geographic: boolean;
+    readonly institutional: boolean;
+  }[];
+}): boolean {
+  if (!isGenericGeographicHeadNounV35(input.surface)) return false;
+  for (const enclosing of input.enclosingCandidates) {
+    if (enclosing.surface.toLocaleLowerCase() === input.surface.toLocaleLowerCase()) continue;
+    if (
+      !isSpanFullyContainedV35(
+        { start: input.spanStart, end: input.spanEnd },
+        { start: enclosing.spanStart, end: enclosing.spanEnd }
+      )
+    )
+      continue;
+    if (enclosing.institutional) return true;
+    if (enclosing.geographic && enclosing.surface.length > input.surface.length) return true;
+    if (isNamedGeographicOfPhraseV35(enclosing.surface)) return true;
+  }
+  return false;
+}
+
 export function isEntityTypeCompatibleWithSurfaceV35(input: {
   readonly surface: string;
   readonly entityType: HistoryEntityTypeV34;

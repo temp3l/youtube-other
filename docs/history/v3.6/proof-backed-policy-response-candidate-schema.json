@@ -1,0 +1,384 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "candidateId": {
+      "type": "string",
+      "pattern": "^proof-backed-policy-response-candidate-[a-f0-9]{24}$"
+    },
+    "candidateVersion": {
+      "type": "string",
+      "const": "history-proof-backed-policy-response-candidate.v1"
+    },
+    "source": {
+      "type": "string",
+      "const": "validated-cross-claim-proof"
+    },
+    "projectionRule": {
+      "type": "string",
+      "const": "cross-claim-uncertain-demand-attempted-restriction-policy-response-candidate.v1"
+    },
+    "episodeId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "targetRelationKind": {
+      "type": "string",
+      "const": "policy-response"
+    },
+    "crossClaimProofId": {
+      "type": "string",
+      "pattern": "^cross-claim-proof-[a-f0-9]{24}$"
+    },
+    "proofPattern": {
+      "type": "string",
+      "enum": [
+        "uncertain-demand-attempted-restriction-policy-response"
+      ]
+    },
+    "proofValidatorVersion": {
+      "type": "string",
+      "const": "history-cross-claim-proof-validator.v1"
+    },
+    "proofEvidenceFingerprint": {
+      "type": "string",
+      "pattern": "^cross-claim-proof-evidence-[a-f0-9]{24}$"
+    },
+    "condition": {
+      "type": "object",
+      "properties": {
+        "participantId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "assertionStatus": {
+          "type": "string",
+          "const": "uncertain"
+        },
+        "premise": {
+          "type": "object",
+          "properties": {
+            "claimId": {
+              "type": "string",
+              "pattern": "^claim-[a-f0-9]{24}$"
+            },
+            "structuredPropositionId": {
+              "type": "string",
+              "pattern": "^structured-proposition-[a-f0-9]{24}$"
+            },
+            "atomicGroundingId": {
+              "type": "string",
+              "pattern": "^grounding-[a-f0-9]{24}$"
+            },
+            "sourceSpan": {
+              "type": "object",
+              "properties": {
+                "startUtf16": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "endUtf16Exclusive": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "textHash": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "startUtf16",
+                "endUtf16Exclusive",
+                "text",
+                "textHash"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "claimId",
+            "structuredPropositionId",
+            "atomicGroundingId",
+            "sourceSpan"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "participantId",
+        "assertionStatus",
+        "premise"
+      ],
+      "additionalProperties": false
+    },
+    "response": {
+      "type": "object",
+      "properties": {
+        "participantId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "assertionStatus": {
+          "type": "string",
+          "const": "attempted"
+        },
+        "premise": {
+          "type": "object",
+          "properties": {
+            "claimId": {
+              "type": "string",
+              "pattern": "^claim-[a-f0-9]{24}$"
+            },
+            "structuredPropositionId": {
+              "type": "string",
+              "pattern": "^structured-proposition-[a-f0-9]{24}$"
+            },
+            "atomicGroundingId": {
+              "type": "string",
+              "pattern": "^grounding-[a-f0-9]{24}$"
+            },
+            "sourceSpan": {
+              "type": "object",
+              "properties": {
+                "startUtf16": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "endUtf16Exclusive": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "textHash": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "startUtf16",
+                "endUtf16Exclusive",
+                "text",
+                "textHash"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "claimId",
+            "structuredPropositionId",
+            "atomicGroundingId",
+            "sourceSpan"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "participantId",
+        "assertionStatus",
+        "premise"
+      ],
+      "additionalProperties": false
+    },
+    "direction": {
+      "type": "string",
+      "const": "condition-to-response"
+    },
+    "proofJoins": {
+      "minItems": 1,
+      "maxItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "leftPremise": {
+            "type": "string",
+            "const": "condition"
+          },
+          "leftParticipant": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "rightPremise": {
+            "type": "string",
+            "const": "response"
+          },
+          "rightParticipant": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "joinType": {
+            "type": "string",
+            "const": "EXPLICIT_TYPED_DEPENDENCY"
+          },
+          "dependencyId": {
+            "type": "string",
+            "const": "inventory-approved-wage-pressure-to-restriction.v1"
+          }
+        },
+        "required": [
+          "leftPremise",
+          "leftParticipant",
+          "rightPremise",
+          "rightParticipant",
+          "joinType",
+          "dependencyId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "proofLineage": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "object",
+          "properties": {
+            "claimId": {
+              "type": "string",
+              "pattern": "^claim-[a-f0-9]{24}$"
+            },
+            "structuredPropositionId": {
+              "type": "string",
+              "pattern": "^structured-proposition-[a-f0-9]{24}$"
+            },
+            "atomicGroundingId": {
+              "type": "string",
+              "pattern": "^grounding-[a-f0-9]{24}$"
+            },
+            "sourceSpan": {
+              "type": "object",
+              "properties": {
+                "startUtf16": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "endUtf16Exclusive": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "textHash": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "startUtf16",
+                "endUtf16Exclusive",
+                "text",
+                "textHash"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "claimId",
+            "structuredPropositionId",
+            "atomicGroundingId",
+            "sourceSpan"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "claimId": {
+              "type": "string",
+              "pattern": "^claim-[a-f0-9]{24}$"
+            },
+            "structuredPropositionId": {
+              "type": "string",
+              "pattern": "^structured-proposition-[a-f0-9]{24}$"
+            },
+            "atomicGroundingId": {
+              "type": "string",
+              "pattern": "^grounding-[a-f0-9]{24}$"
+            },
+            "sourceSpan": {
+              "type": "object",
+              "properties": {
+                "startUtf16": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "endUtf16Exclusive": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "textHash": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "startUtf16",
+                "endUtf16Exclusive",
+                "text",
+                "textHash"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "claimId",
+            "structuredPropositionId",
+            "atomicGroundingId",
+            "sourceSpan"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "candidateEvidenceFingerprint": {
+      "type": "string",
+      "pattern": "^proof-backed-policy-response-evidence-[a-f0-9]{24}$"
+    }
+  },
+  "required": [
+    "candidateId",
+    "candidateVersion",
+    "source",
+    "projectionRule",
+    "episodeId",
+    "targetRelationKind",
+    "crossClaimProofId",
+    "proofPattern",
+    "proofValidatorVersion",
+    "proofEvidenceFingerprint",
+    "condition",
+    "response",
+    "direction",
+    "proofJoins",
+    "proofLineage",
+    "candidateEvidenceFingerprint"
+  ],
+  "additionalProperties": false,
+  "$id": "https://mediaforge.local/schemas/history/v3.6/proof-backed-policy-response-candidate-schema.json",
+  "title": "History V3.6 proof-backed policy-response candidate"
+}

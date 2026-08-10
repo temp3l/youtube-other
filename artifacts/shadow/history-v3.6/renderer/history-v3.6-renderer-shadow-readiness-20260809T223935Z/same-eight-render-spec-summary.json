@@ -1,0 +1,32 @@
+{
+  "compilerIntents": 34,
+  "renderSpecs": 34,
+  "map": 3,
+  "diagram": 31,
+  "safeAbstentions": 0,
+  "countsByRelationKind": {
+    "causal": 18,
+    "dependency": 4,
+    "event-location": 1,
+    "evidence-set": 4,
+    "movement": 1,
+    "policy-response": 1,
+    "process": 2,
+    "spatial-comparison": 1,
+    "temporal-sequence": 2
+  },
+  "countsByRendererRule": {
+    "diagram-causal-svg.v1": 18,
+    "diagram-dependency-svg.v1": 4,
+    "diagram-evidence-set-svg.v1": 4,
+    "diagram-policy-response-svg.v1": 1,
+    "diagram-process-svg.v1": 2,
+    "diagram-temporal-sequence-svg.v1": 2,
+    "map-event-location-svg.v1": 1,
+    "map-movement-svg.v1": 1,
+    "map-spatial-comparison-svg.v1": 1
+  },
+  "firstHash": "cbcddf6985df634ca84e234a04c39e2e8e7c0947e7a4269808ab282ac5f2396f",
+  "secondHash": "cbcddf6985df634ca84e234a04c39e2e8e7c0947e7a4269808ab282ac5f2396f",
+  "deterministic": true
+}

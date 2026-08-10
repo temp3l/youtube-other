@@ -1,0 +1,13 @@
+{
+  "phase": "2.24",
+  "startingSha": "9a25cb94f35e557a2da43545d697a9a18638b2fb",
+  "target": "compiler boundary audit and typed shadow intent contract",
+  "schemaVersion": "history-compiler-shadow-intent.v1",
+  "compilerVersion": "history-compiler-shadow.v3.6.0",
+  "dispositions": ["MAP", "DIAGRAM", "NO_SAFE_COMPILATION"],
+  "shadowOnly": true,
+  "productionV35Touched": false,
+  "providerCalls": 0,
+  "llmSemanticCalls": 0,
+  "imageProviderCalls": 0
+}

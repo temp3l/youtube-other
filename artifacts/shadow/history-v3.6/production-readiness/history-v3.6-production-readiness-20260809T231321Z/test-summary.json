@@ -1,0 +1,20 @@
+{
+  "result": "PASS_WITH_UNRELATED_BROAD_LINT_FINDINGS",
+  "passed": [
+    "focused visual-plan unit test: 4/4",
+    "History package typecheck",
+    "direct targeted ESLint for changed TypeScript files",
+    "same-eight semantic/compiler/renderer/visual-plan lane x2",
+    "all-40 semantic/compiler/renderer/visual-plan lane x2",
+    "V3.5 plan hashes before/after",
+    "activation seam OFF/shadow/rollback dry run",
+    "artifact checksums and ZIP integrity"
+  ],
+  "notRun": [
+    "46 goldens: semantic/compiler/renderer contracts were not changed",
+    "full repository test/build/typecheck: outside focused verification scope"
+  ],
+  "unrelatedPreExisting": [
+    "repository lint wrapper ignored file filters and reported 13 errors in unrelated existing files; direct targeted ESLint passed"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "historyMinimumDurationSeconds": 300,
+  "V3_6_global_default": false,
+  "candidateOutputRoot": "artifacts/canary/history-v3.6/history-v3.6-production-canary-readiness-20260810T000558Z",
+  "allowedEpisodes": [
+    "history-youtube-history-10-video-story-pack-04-black-death",
+    "history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion"
+  ]
+}

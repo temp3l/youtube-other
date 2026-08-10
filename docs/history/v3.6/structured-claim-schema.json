@@ -1,0 +1,565 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "history-structured-claim.v2"
+    },
+    "episodeId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "envelopes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "schemaVersion": {
+            "type": "string",
+            "const": "history-structured-claim.v2"
+          },
+          "episodeId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "claimId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "source": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "existing-structured-claim",
+                  "deterministic-shadow-enrichment"
+                ]
+              },
+              "canonicalClaimSchemaVersion": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            },
+            "required": [
+              "kind",
+              "canonicalClaimSchemaVersion"
+            ],
+            "additionalProperties": false
+          },
+          "propositions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "propositionId": {
+                  "type": "string",
+                  "pattern": "^structured-proposition-[a-f0-9]{24}$"
+                },
+                "subject": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 2048
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "concept",
+                        "entity",
+                        "place"
+                      ]
+                    },
+                    "binding": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "canonical-entity",
+                            "claim-concept",
+                            "unresolved"
+                          ]
+                        },
+                        "referenceId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 256
+                        }
+                      },
+                      "required": [
+                        "kind"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "label",
+                    "kind",
+                    "binding"
+                  ],
+                  "additionalProperties": false
+                },
+                "predicate": {
+                  "type": "string",
+                  "enum": [
+                    "causes",
+                    "contributes-to",
+                    "depends-on",
+                    "compares-with",
+                    "contains-evidence-of",
+                    "moves-from",
+                    "moves-through",
+                    "search-object",
+                    "located-in",
+                    "transforms",
+                    "demands",
+                    "restricts",
+                    "process-sequence",
+                    "precedes"
+                  ]
+                },
+                "object": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 2048
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "concept",
+                        "entity",
+                        "place"
+                      ]
+                    },
+                    "binding": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "canonical-entity",
+                            "claim-concept",
+                            "unresolved"
+                          ]
+                        },
+                        "referenceId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 256
+                        }
+                      },
+                      "required": [
+                        "kind"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "label",
+                    "kind",
+                    "binding"
+                  ],
+                  "additionalProperties": false
+                },
+                "roles": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "subject",
+                          "object",
+                          "actor",
+                          "origin",
+                          "destination",
+                          "via",
+                          "objective",
+                          "location",
+                          "cause",
+                          "effect",
+                          "dependency",
+                          "dependent",
+                          "compared-place",
+                          "evidence-target",
+                          "evidence-item",
+                          "action",
+                          "target",
+                          "process",
+                          "step",
+                          "before",
+                          "after"
+                        ]
+                      },
+                      "participant": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 256
+                          },
+                          "label": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 2048
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "concept",
+                              "entity",
+                              "place"
+                            ]
+                          },
+                          "binding": {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "canonical-entity",
+                                  "claim-concept",
+                                  "unresolved"
+                                ]
+                              },
+                              "referenceId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              }
+                            },
+                            "required": [
+                              "kind"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "label",
+                          "kind",
+                          "binding"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "role",
+                      "participant"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "assertionStatus": {
+                  "type": "string",
+                  "enum": [
+                    "asserted",
+                    "uncertain",
+                    "intended",
+                    "attempted",
+                    "counterfactual",
+                    "reported"
+                  ]
+                },
+                "qualifiers": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "grouped-concept",
+                          "nested-entity",
+                          "location-context",
+                          "time-anchor",
+                          "step-order"
+                        ]
+                      },
+                      "value": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2048
+                      },
+                      "participantIds": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 256
+                        }
+                      },
+                      "stepIndex": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "processSteps": {
+                  "minItems": 2,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "participant": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 256
+                          },
+                          "label": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 2048
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "concept",
+                              "entity",
+                              "place"
+                            ]
+                          },
+                          "binding": {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "canonical-entity",
+                                  "claim-concept",
+                                  "unresolved"
+                                ]
+                              },
+                              "referenceId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              }
+                            },
+                            "required": [
+                              "kind"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "label",
+                          "kind",
+                          "binding"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "stepOrder": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "participant",
+                      "stepOrder"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "sourceSpan": {
+                  "type": "object",
+                  "properties": {
+                    "startUtf16": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "endUtf16Exclusive": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "textHash": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    }
+                  },
+                  "required": [
+                    "startUtf16",
+                    "endUtf16Exclusive",
+                    "text",
+                    "textHash"
+                  ],
+                  "additionalProperties": false
+                },
+                "provenance": {
+                  "type": "object",
+                  "properties": {
+                    "structuredSchemaVersion": {
+                      "type": "string",
+                      "const": "history-structured-claim.v2"
+                    },
+                    "episodeId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "claimId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "generationMethod": {
+                      "type": "string",
+                      "enum": [
+                        "native-structured-claim-generation",
+                        "deterministic-shadow-enrichment"
+                      ]
+                    },
+                    "generatorVersion": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "participantBindingReferences": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 256
+                      }
+                    }
+                  },
+                  "required": [
+                    "structuredSchemaVersion",
+                    "episodeId",
+                    "claimId",
+                    "generationMethod",
+                    "generatorVersion",
+                    "participantBindingReferences"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "propositionId",
+                "subject",
+                "predicate",
+                "roles",
+                "assertionStatus",
+                "sourceSpan",
+                "provenance"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "schemaVersion",
+          "episodeId",
+          "claimId",
+          "source",
+          "propositions"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "STRUCTURED_CLAIM_UNSUPPORTED_SEMANTICS",
+              "STRUCTURED_CLAIM_PARTICIPANT_UNRESOLVED",
+              "STRUCTURED_CLAIM_PREDICATE_AMBIGUOUS",
+              "STRUCTURED_CLAIM_ASSERTION_SCOPE_AMBIGUOUS",
+              "STRUCTURED_CLAIM_SOURCE_SPAN_INVALID",
+              "STRUCTURED_CLAIM_PURPOSE_NOT_DESTINATION",
+              "STRUCTURED_CLAIM_GROUPING_AMBIGUOUS",
+              "STRUCTURED_CLAIM_BACKFILL_INSUFFICIENT",
+              "STRUCTURED_PROCESS_ORDER_AMBIGUOUS",
+              "STRUCTURED_PROCESS_INSUFFICIENT_STEPS",
+              "STRUCTURED_TEMPORAL_ORDER_AMBIGUOUS"
+            ]
+          },
+          "claimId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "affectedIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        },
+        "required": [
+          "code",
+          "claimId",
+          "message",
+          "affectedIds"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "episodeId",
+    "envelopes",
+    "diagnostics"
+  ],
+  "additionalProperties": false,
+  "$id": "https://mediaforge.local/schemas/history/v3.6/structured-claim-schema.json",
+  "title": "History V3.6 structured claim envelope artifact"
+}

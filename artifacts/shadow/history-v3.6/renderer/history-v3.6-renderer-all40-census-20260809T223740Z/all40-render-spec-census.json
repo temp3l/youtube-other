@@ -1,0 +1,25 @@
+{
+  "compilerIntents": 103,
+  "renderSpecs": 103,
+  "map": 2,
+  "diagram": 101,
+  "safeAbstentions": 0,
+  "diagnostics": {},
+  "countsByRelationKind": {
+    "causal": 77,
+    "dependency": 22,
+    "evidence-set": 2,
+    "movement": 1,
+    "spatial-comparison": 1
+  },
+  "countsByRendererRule": {
+    "diagram-causal-svg.v1": 77,
+    "diagram-dependency-svg.v1": 22,
+    "diagram-evidence-set-svg.v1": 2,
+    "map-movement-svg.v1": 1,
+    "map-spatial-comparison-svg.v1": 1
+  },
+  "firstHash": "0eed243d4660c40e6f6c025dca95bca24b80ed0bf06d27f1ce170c646d5e4b7f",
+  "secondHash": "0eed243d4660c40e6f6c025dca95bca24b80ed0bf06d27f1ce170c646d5e4b7f",
+  "deterministic": true
+}

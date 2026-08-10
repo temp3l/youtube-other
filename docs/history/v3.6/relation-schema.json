@@ -1,0 +1,914 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^relation-[a-z-]+-[a-f0-9]{24}$"
+        },
+        "episodeId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "supportClaimIds": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "evidenceFingerprint": {
+          "type": "string",
+          "pattern": "^evidence-[a-f0-9]{24}$"
+        },
+        "kind": {
+          "type": "string",
+          "const": "movement"
+        },
+        "from": {
+          "type": "object",
+          "properties": {
+            "entityId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "canonicalLabel": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            }
+          },
+          "required": [
+            "entityId",
+            "canonicalLabel"
+          ],
+          "additionalProperties": false
+        },
+        "to": {
+          "type": "object",
+          "properties": {
+            "entityId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "canonicalLabel": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            }
+          },
+          "required": [
+            "entityId",
+            "canonicalLabel"
+          ],
+          "additionalProperties": false
+        },
+        "via": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "entityId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "canonicalLabel": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              }
+            },
+            "required": [
+              "entityId",
+              "canonicalLabel"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "id",
+        "episodeId",
+        "supportClaimIds",
+        "evidenceFingerprint",
+        "kind",
+        "from",
+        "to",
+        "via"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^relation-[a-z-]+-[a-f0-9]{24}$"
+        },
+        "episodeId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "supportClaimIds": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "evidenceFingerprint": {
+          "type": "string",
+          "pattern": "^evidence-[a-f0-9]{24}$"
+        },
+        "kind": {
+          "type": "string",
+          "const": "spatial-comparison"
+        },
+        "places": {
+          "minItems": 2,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "entityId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "canonicalLabel": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              }
+            },
+            "required": [
+              "entityId",
+              "canonicalLabel"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "id",
+        "episodeId",
+        "supportClaimIds",
+        "evidenceFingerprint",
+        "kind",
+        "places"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^relation-[a-z-]+-[a-f0-9]{24}$"
+        },
+        "episodeId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "supportClaimIds": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "evidenceFingerprint": {
+          "type": "string",
+          "pattern": "^evidence-[a-f0-9]{24}$"
+        },
+        "kind": {
+          "type": "string",
+          "const": "spatial-area"
+        },
+        "place": {
+          "type": "object",
+          "properties": {
+            "entityId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "canonicalLabel": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            }
+          },
+          "required": [
+            "entityId",
+            "canonicalLabel"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "id",
+        "episodeId",
+        "supportClaimIds",
+        "evidenceFingerprint",
+        "kind",
+        "place"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^relation-[a-z-]+-[a-f0-9]{24}$"
+        },
+        "episodeId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "supportClaimIds": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "evidenceFingerprint": {
+          "type": "string",
+          "pattern": "^evidence-[a-f0-9]{24}$"
+        },
+        "kind": {
+          "type": "string",
+          "const": "causal"
+        },
+        "cause": {
+          "type": "object",
+          "properties": {
+            "canonicalLabel": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "entityId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "sourceSpanIds": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          },
+          "required": [
+            "canonicalLabel"
+          ],
+          "additionalProperties": false
+        },
+        "effect": {
+          "type": "object",
+          "properties": {
+            "canonicalLabel": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "entityId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "sourceSpanIds": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          },
+          "required": [
+            "canonicalLabel"
+          ],
+          "additionalProperties": false
+        },
+        "causalAssertionStatus": {
+          "type": "string",
+          "enum": [
+            "asserted",
+            "intended",
+            "attempted",
+            "uncertain",
+            "counterfactual",
+            "reported"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "episodeId",
+        "supportClaimIds",
+        "evidenceFingerprint",
+        "kind",
+        "cause",
+        "effect"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^relation-[a-z-]+-[a-f0-9]{24}$"
+        },
+        "episodeId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "supportClaimIds": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "evidenceFingerprint": {
+          "type": "string",
+          "pattern": "^evidence-[a-f0-9]{24}$"
+        },
+        "kind": {
+          "type": "string",
+          "const": "dependency"
+        },
+        "dependency": {
+          "type": "object",
+          "properties": {
+            "canonicalLabel": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "entityId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "sourceSpanIds": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          },
+          "required": [
+            "canonicalLabel"
+          ],
+          "additionalProperties": false
+        },
+        "dependent": {
+          "type": "object",
+          "properties": {
+            "canonicalLabel": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "entityId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "sourceSpanIds": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          },
+          "required": [
+            "canonicalLabel"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "id",
+        "episodeId",
+        "supportClaimIds",
+        "evidenceFingerprint",
+        "kind",
+        "dependency",
+        "dependent"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^relation-[a-z-]+-[a-f0-9]{24}$"
+        },
+        "episodeId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "supportClaimIds": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "evidenceFingerprint": {
+          "type": "string",
+          "pattern": "^evidence-[a-f0-9]{24}$"
+        },
+        "kind": {
+          "type": "string",
+          "const": "process"
+        },
+        "steps": {
+          "minItems": 2,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "canonicalLabel": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              },
+              "entityId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "sourceSpanIds": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              }
+            },
+            "required": [
+              "canonicalLabel"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "id",
+        "episodeId",
+        "supportClaimIds",
+        "evidenceFingerprint",
+        "kind",
+        "steps"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^relation-[a-z-]+-[a-f0-9]{24}$"
+        },
+        "episodeId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "supportClaimIds": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "evidenceFingerprint": {
+          "type": "string",
+          "pattern": "^evidence-[a-f0-9]{24}$"
+        },
+        "kind": {
+          "type": "string",
+          "const": "temporal-sequence"
+        },
+        "steps": {
+          "minItems": 2,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "canonicalLabel": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              },
+              "entityId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "sourceSpanIds": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              }
+            },
+            "required": [
+              "canonicalLabel"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "id",
+        "episodeId",
+        "supportClaimIds",
+        "evidenceFingerprint",
+        "kind",
+        "steps"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^relation-[a-z-]+-[a-f0-9]{24}$"
+        },
+        "episodeId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "supportClaimIds": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "evidenceFingerprint": {
+          "type": "string",
+          "pattern": "^evidence-[a-f0-9]{24}$"
+        },
+        "kind": {
+          "type": "string",
+          "const": "policy-response"
+        },
+        "condition": {
+          "type": "object",
+          "properties": {
+            "canonicalLabel": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "entityId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "sourceSpanIds": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          },
+          "required": [
+            "canonicalLabel"
+          ],
+          "additionalProperties": false
+        },
+        "conditionAssertionStatus": {
+          "type": "string",
+          "enum": [
+            "asserted",
+            "intended",
+            "attempted",
+            "uncertain",
+            "counterfactual",
+            "reported"
+          ]
+        },
+        "response": {
+          "type": "object",
+          "properties": {
+            "canonicalLabel": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "entityId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "sourceSpanIds": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          },
+          "required": [
+            "canonicalLabel"
+          ],
+          "additionalProperties": false
+        },
+        "responseAssertionStatus": {
+          "type": "string",
+          "enum": [
+            "asserted",
+            "intended",
+            "attempted",
+            "uncertain",
+            "counterfactual",
+            "reported"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "episodeId",
+        "supportClaimIds",
+        "evidenceFingerprint",
+        "kind",
+        "condition",
+        "response"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^relation-[a-z-]+-[a-f0-9]{24}$"
+        },
+        "episodeId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "supportClaimIds": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "evidenceFingerprint": {
+          "type": "string",
+          "pattern": "^evidence-[a-f0-9]{24}$"
+        },
+        "kind": {
+          "type": "string",
+          "const": "evidence-set"
+        },
+        "subject": {
+          "type": "object",
+          "properties": {
+            "canonicalLabel": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "entityId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "sourceSpanIds": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          },
+          "required": [
+            "canonicalLabel"
+          ],
+          "additionalProperties": false
+        },
+        "evidence": {
+          "minItems": 2,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "canonicalLabel": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              },
+              "entityId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "sourceSpanIds": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              }
+            },
+            "required": [
+              "canonicalLabel"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "id",
+        "episodeId",
+        "supportClaimIds",
+        "evidenceFingerprint",
+        "kind",
+        "evidence"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^relation-[a-z-]+-[a-f0-9]{24}$"
+        },
+        "episodeId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "supportClaimIds": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "evidenceFingerprint": {
+          "type": "string",
+          "pattern": "^evidence-[a-f0-9]{24}$"
+        },
+        "kind": {
+          "type": "string",
+          "const": "event-location"
+        },
+        "event": {
+          "type": "object",
+          "properties": {
+            "canonicalLabel": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "entityId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "sourceSpanIds": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            },
+            "eventType": {
+              "type": "string",
+              "enum": [
+                "event",
+                "action",
+                "operation"
+              ]
+            }
+          },
+          "required": [
+            "canonicalLabel",
+            "eventType"
+          ],
+          "additionalProperties": false
+        },
+        "location": {
+          "type": "object",
+          "properties": {
+            "entityId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "canonicalLabel": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            }
+          },
+          "required": [
+            "entityId",
+            "canonicalLabel"
+          ],
+          "additionalProperties": false
+        },
+        "assertionStatus": {
+          "type": "string",
+          "enum": [
+            "asserted",
+            "intended",
+            "attempted",
+            "uncertain",
+            "counterfactual",
+            "reported"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "episodeId",
+        "supportClaimIds",
+        "evidenceFingerprint",
+        "kind",
+        "event",
+        "location",
+        "assertionStatus"
+      ],
+      "additionalProperties": false
+    }
+  ],
+  "$id": "https://mediaforge.local/schemas/history/v3.6/relation-schema.json",
+  "title": "History V3.6 explanatory relation"
+}

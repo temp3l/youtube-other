@@ -1,0 +1,12 @@
+{
+  "verdict": "READY_WITH_KNOWN_NONBLOCKING_TERMINAL_CASES",
+  "readyForProductionActivationApproval": true,
+  "productionActivated": false,
+  "blockingIssues": [],
+  "knownNonblockingTerminalCases": [
+    "TIMING_MEASUREMENT_REQUIRED"
+  ],
+  "reviewStatus": "COMPACT_APPROVAL_PACK_GENERATED",
+  "humanDecisionRequiredNow": false,
+  "nextAction": "production activation approval"
+}

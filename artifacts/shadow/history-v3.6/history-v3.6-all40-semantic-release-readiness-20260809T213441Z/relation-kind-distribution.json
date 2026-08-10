@@ -1,0 +1,12 @@
+{
+  "movement": 1,
+  "spatial-comparison": 1,
+  "spatial-area": 0,
+  "causal": 77,
+  "dependency": 22,
+  "process": 0,
+  "temporal-sequence": 0,
+  "policy-response": 0,
+  "evidence-set": 2,
+  "event-location": 0
+}

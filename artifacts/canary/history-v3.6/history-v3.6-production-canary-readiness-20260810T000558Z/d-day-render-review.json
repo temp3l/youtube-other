@@ -1,0 +1,53 @@
+{
+  "result": "PASS",
+  "episodeId": "history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion",
+  "renderer": "History V3.6 SVG renderer adapters",
+  "outputDimensions": "1200x675",
+  "renderedOverlays": [
+    {
+      "renderSpecId": "history-render-spec-49bcc518fddbaf1ed030ce14",
+      "renderTarget": "DIAGRAM_SVG",
+      "svg": "artifacts/canary/history-v3.6/history-v3.6-production-canary-readiness-20260810T000558Z/candidates/history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion/rendered-overlays/49bcc518fddbaf1ed030ce14.svg",
+      "png": "artifacts/canary/history-v3.6/history-v3.6-production-canary-readiness-20260810T000558Z/candidates/history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion/rendered-overlays/49bcc518fddbaf1ed030ce14.png",
+      "svgSha256": "a279827a18b1daee05381d6f97c21dd3d8df026970a894633d1659ff4b395420",
+      "pngSha256": "8fdbd2c42af97e7fabcf927764ff27487b77f6e46e092649bb89c7407f7c02c6"
+    },
+    {
+      "renderSpecId": "history-render-spec-354747e0183545775a7551b6",
+      "renderTarget": "DIAGRAM_SVG",
+      "svg": "artifacts/canary/history-v3.6/history-v3.6-production-canary-readiness-20260810T000558Z/candidates/history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion/rendered-overlays/354747e0183545775a7551b6.svg",
+      "png": "artifacts/canary/history-v3.6/history-v3.6-production-canary-readiness-20260810T000558Z/candidates/history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion/rendered-overlays/354747e0183545775a7551b6.png",
+      "svgSha256": "2fab38b60263b081266e5d0a322eff1df3896b200294eda8bf9abb9ad9d58db8",
+      "pngSha256": "bb8f0139d65534f5159f751f353f75504017e524367302d0495173cf15dfad9a"
+    },
+    {
+      "renderSpecId": "history-render-spec-641cd45a17abd8640080a983",
+      "renderTarget": "DIAGRAM_SVG",
+      "svg": "artifacts/canary/history-v3.6/history-v3.6-production-canary-readiness-20260810T000558Z/candidates/history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion/rendered-overlays/641cd45a17abd8640080a983.svg",
+      "png": "artifacts/canary/history-v3.6/history-v3.6-production-canary-readiness-20260810T000558Z/candidates/history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion/rendered-overlays/641cd45a17abd8640080a983.png",
+      "svgSha256": "8e95fb5d20e805d3ddc2eb7d651b8d720789836625b73cfd2f6f658e73c3c71c",
+      "pngSha256": "5061021707bb4c5adf40eef0da748458a35978d77e0a410d1b1ce2b4109ad3b4"
+    },
+    {
+      "renderSpecId": "history-render-spec-49798765a1da93f47ecf198a",
+      "renderTarget": "MAP_SVG",
+      "svg": "artifacts/canary/history-v3.6/history-v3.6-production-canary-readiness-20260810T000558Z/candidates/history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion/rendered-overlays/49798765a1da93f47ecf198a.svg",
+      "png": "artifacts/canary/history-v3.6/history-v3.6-production-canary-readiness-20260810T000558Z/candidates/history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion/rendered-overlays/49798765a1da93f47ecf198a.png",
+      "svgSha256": "c3a8cb1f37f6dda1780399858ad1f9e769bc573c4fb3e6b0fe6bac797bfb7b91",
+      "pngSha256": "47f2508bfce84b6824d200c6ad1157fc00fcb783802677fd8e130e1808576f41"
+    },
+    {
+      "renderSpecId": "history-render-spec-cbcd1a3200511565467b536b",
+      "renderTarget": "MAP_SVG",
+      "svg": "artifacts/canary/history-v3.6/history-v3.6-production-canary-readiness-20260810T000558Z/candidates/history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion/rendered-overlays/cbcd1a3200511565467b536b.svg",
+      "png": "artifacts/canary/history-v3.6/history-v3.6-production-canary-readiness-20260810T000558Z/candidates/history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion/rendered-overlays/cbcd1a3200511565467b536b.png",
+      "svgSha256": "5c230da81ae6a0332826389a4b6bd8f1cd28d2b2cfac7ec1b4af9fee94f6bc21",
+      "pngSha256": "00aa5b5b3d2fb6edcd98d443e496046334622002145959e01b772fa124033946"
+    }
+  ],
+  "ffmpegSmoke": {
+    "path": "artifacts/canary/history-v3.6/history-v3.6-production-canary-readiness-20260810T000558Z/candidates/history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion/renderer-smoke.mkv",
+    "sha256": "ee198d11f04c589d1e24e0ec3c016a3aad2479feb315b5d58ccc58957c1b9231"
+  },
+  "fullVideo": "NOT_RUN: the isolated workspaces contain no pre-existing V3.5 image/video composition to overlay; no ordinary image assets were regenerated."
+}

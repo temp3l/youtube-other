@@ -293,6 +293,7 @@ export interface HistoryMapCompilerResolutionV35 {
   readonly resolvedMapType: HistoryMapSemanticTypeV35;
   readonly downgradeReason?: HistoryMapDowngradeReasonV35;
   readonly resolutionNotes?: readonly string[];
+  readonly owningClaimIds?: readonly string[];
   readonly scopeClaimIds: readonly string[];
   readonly geoFactIds: readonly string[];
   readonly routeGeometrySemantics?: HistoryRouteGeometrySemanticsV35;
@@ -366,6 +367,11 @@ export interface HistoryDiagramStateV34 {
     readonly label: string;
     readonly linkedClaimIds: readonly string[];
     readonly entityMentionIds: readonly string[];
+    readonly normalizedSupport?: {
+      readonly normalizedLabel: string;
+      readonly sourceConcepts: readonly string[];
+      readonly supportClaimIds: readonly string[];
+    };
   }[];
   readonly edges: readonly {
     readonly id: string;

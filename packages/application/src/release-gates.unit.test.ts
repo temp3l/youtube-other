@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   PILOT_RELEASE_GATES,
   advertisedCapabilityCells,
+  assessExecutionReleasePolicy,
   assessPilotGateEvidence,
   type ReleaseGateEvidenceRecord,
 } from "./release-gates.js";
@@ -25,6 +26,21 @@ function evidence(
 }
 
 describe("evidence-backed API release gates", () => {
+  it("captures a revision-bound Veronica policy and fails closed before paid work", () => {
+    const policy = {
+      schemaVersion: "execution-policy.v1", contentProfileId: "strategic-reinvention", policyVersion: "veronicabenini.execution-policy.v1", configurationRevision: "config-1",
+      dependencyIdentity: { source: digest }, provider: { id: "none", configurationVersion: "human-v1", dispatchEnabled: false },
+      budget: { currency: "EUR", maximumMinor: 100n, reservationRequired: true }, requiredApprovalGates: ["source", "publish"], preflightRequired: true,
+    } as const;
+    const budget = { estimatedMinor: 50n, reservedMinor: 50n, reservationId: "reservation-1" };
+    const blocked = assessExecutionReleasePolicy({ runId: "run-1", revisionId: "revision-1", policy, provenanceSha256: digest, approvals: ["source"], preflightPassed: false, budget });
+    expect(blocked).toMatchObject({ eligible: false, reasons: ["PREFLIGHT_REQUIRED", "APPROVAL_REQUIRED:publish"], artifact: { contentProfileId: "veronicabenini", regenerationRationale: "new-policy" } });
+    const allowed = assessExecutionReleasePolicy({ runId: "run-1", revisionId: "revision-1", policy, provenanceSha256: digest, approvals: ["source", "publish"], preflightPassed: true, previousArtifact: blocked.artifact, budget });
+    expect(allowed).toMatchObject({ eligible: true, reasons: [], artifact: { regenerationRationale: "cache-compatible" } });
+    const overBudget = assessExecutionReleasePolicy({ runId: "run-2", revisionId: "revision-1", policy, provenanceSha256: digest, approvals: ["source", "publish"], preflightPassed: true, budget: { estimatedMinor: 101n, reservedMinor: 0n } });
+    expect(overBudget).toMatchObject({ eligible: false, reasons: ["BUDGET_LIMIT_EXCEEDED", "BUDGET_RESERVATION_REQUIRED"] });
+  });
+
   it("requires a current provenance-bound pass for every pilot gate", () => {
     const records = PILOT_RELEASE_GATES.map((gate) => evidence(gate));
     expect(

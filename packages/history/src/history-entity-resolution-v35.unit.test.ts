@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { normalizeHistoryNarrationV33 } from "./history-narration-v33.js";
 import {
+  findSurvivingGeographicEntitiesMissingQualifiersV35,
   isCredibleGeographicCandidateV35,
   lookupCanonicalEntitySeedV34,
   structureTrustedScriptClaimsV34,
@@ -10,12 +11,17 @@ import { buildHistoryVisualPlanV35 } from "./visual-planner-v35.js";
 import {
   adjudicateEntityResolutionV35,
   classifyEntityCandidateV35,
+  GEOGRAPHIC_OF_PHRASE_PATTERN_V35,
   isEligibleGeographicResolutionCandidateV35,
   isEntityTypeCompatibleWithSurfaceV35,
+  isGenericGeographicHeadNounV35,
   isHistoricalEventTerrorContextV35,
+  isNamedGeographicOfPhraseV35,
   isSafeCanonicalEntityAliasMatchV35,
+  isSpanFullyContainedV35,
   normalizeEntityCandidateSpanV35,
   resolveCanonicalEntityV35,
+  shouldSuppressGenericGeographicSubspanV35,
 } from "./history-entity-resolution-v35.js";
 import {
   validatePlanStateEvidenceClosureV35,
@@ -25,12 +31,16 @@ import {
 const MONGOL_EPISODE = "history-youtube-history-10-video-story-pack-06-mongol-war-machine";
 const ROME_EPISODE = "history-youtube-history-10-video-story-pack-03-fall-of-the-roman-empire";
 const TITANIC_EPISODE = "history-youtube-history-10-video-story-pack-10-titanic-decisions-disaster";
+const CUBAN_EPISODE = "history-youtube-history-10-video-story-pack-08-cuban-missile-crisis";
+const POMPEII_EPISODE = "history-youtube-history-30-video-story-pack-11-pompeii-the-last-day";
 const PEARL_HARBOR_EPISODE =
   "history-youtube-history-30-video-story-pack-33-pearl-harbor-road-to-war";
 const RAPA_NUI_EPISODE =
   "history-youtube-history-30-video-story-pack-40-rapa-nui-collapse-myth";
 const REIGN_OF_TERROR_EPISODE =
   "history-youtube-history-30-video-story-pack-37-french-revolution-reign-of-terror";
+const PELOPONNESIAN_EPISODE =
+  "history-youtube-history-30-video-story-pack-18-peloponnesian-war-athens-destroys-itself";
 
 function narrationFor(episodeId: string, rawScript: string) {
   return normalizeHistoryNarrationV33({ episodeId, rawScript });
@@ -336,6 +346,223 @@ describe("History V3.5 entity resolution architecture", () => {
       Array.isArray(item.payload.geographicCandidateKinds) ? item.payload.geographicCandidateKinds : []
     );
     expect(kinds.every((kind) => kind === "place")).toBe(true);
+  });
+
+  it("extracts only the geographic-of phrase without trailing verbs", () => {
+    const text = "The invasion at the Bay of Pigs failed.";
+    expect([...text.matchAll(GEOGRAPHIC_OF_PHRASE_PATTERN_V35)].map((match) => match[0])).toEqual([
+      "Bay of Pigs",
+    ]);
+  });
+
+  it("does not emit standalone Bay from Bay of Pigs narration", () => {
+    const structured = structureTrustedScriptClaimsV34({
+      episodeId: CUBAN_EPISODE,
+      narration: narrationFor(
+        CUBAN_EPISODE,
+        "The invasion at the Bay of Pigs failed."
+      ),
+    });
+    expect(structured.entities.map((entity) => entity.normalizedLabel)).toEqual(
+      expect.arrayContaining(["Bay of Pigs"])
+    );
+    expect(structured.entities.some((entity) => entity.normalizedLabel === "Bay")).toBe(false);
+  });
+
+  it("does not emit standalone Bay from Bay of Naples narration", () => {
+    const structured = structureTrustedScriptClaimsV34({
+      episodeId: POMPEII_EPISODE,
+      narration: narrationFor(
+        POMPEII_EPISODE,
+        "Pompeii stood near the Bay of Naples."
+      ),
+    });
+    expect(structured.entities.map((entity) => entity.normalizedLabel)).toEqual(
+      expect.arrayContaining(["Bay of Naples", "Pompeii"])
+    );
+    expect(structured.entities.some((entity) => entity.normalizedLabel === "Bay")).toBe(false);
+  });
+
+  it("does not emit standalone Sea from institutional convention title", () => {
+    const structured = structureTrustedScriptClaimsV34({
+      episodeId: TITANIC_EPISODE,
+      narration: narrationFor(
+        TITANIC_EPISODE,
+        "The International Convention for the Safety of Life at Sea required sufficient lifeboat capacity."
+      ),
+    });
+    expect(
+      structured.entities.some(
+        (entity) =>
+          entity.normalizedLabel.includes("International Convention") ||
+          entity.text.includes("International Convention")
+      )
+    ).toBe(true);
+    expect(structured.entities.some((entity) => entity.normalizedLabel === "Sea")).toBe(false);
+  });
+
+  it("still infers standalone generic geography with independent prepositional context", () => {
+    const structured = structureTrustedScriptClaimsV34({
+      episodeId: CUBAN_EPISODE,
+      narration: narrationFor(
+        CUBAN_EPISODE,
+        "Warships gathered in the Bay before dawn."
+      ),
+    });
+    expect(structured.entities.some((entity) => entity.normalizedLabel === "Bay")).toBe(true);
+  });
+
+  it("prefers the longer geographic-of phrase over the overlapping generic head noun span", () => {
+    const unitText = "Pompeii stood near the Bay of Naples.";
+    const bayStart = unitText.indexOf("Bay");
+    const bayEnd = bayStart + "Bay".length;
+    const phraseStart = unitText.indexOf("Bay of Naples");
+    const phraseEnd = phraseStart + "Bay of Naples".length;
+    expect(
+      isSpanFullyContainedV35(
+        { start: bayStart, end: bayEnd },
+        { start: phraseStart, end: phraseEnd }
+      )
+    ).toBe(true);
+    expect(isNamedGeographicOfPhraseV35("Bay of Naples")).toBe(true);
+    expect(isGenericGeographicHeadNounV35("Bay")).toBe(true);
+    expect(
+      shouldSuppressGenericGeographicSubspanV35({
+        surface: "Bay",
+        spanStart: bayStart,
+        spanEnd: bayEnd,
+        enclosingCandidates: [
+          {
+            surface: "Bay of Naples",
+            spanStart: phraseStart,
+            spanEnd: phraseEnd,
+            geographic: true,
+            institutional: false,
+          },
+        ],
+      })
+    ).toBe(true);
+  });
+});
+
+describe("History V3.5 geographic qualification propagation", () => {
+  it("qualifies Bay of Naples without restoring standalone Bay (case A)", () => {
+    const structured = structureTrustedScriptClaimsV34({
+      episodeId: POMPEII_EPISODE,
+      narration: narrationFor(
+        POMPEII_EPISODE,
+        "Pompeii stood near the Bay of Naples."
+      ),
+    });
+    const naples = structured.entities.find(
+      (entity) => entity.normalizedLabel === "Bay of Naples"
+    );
+    expect(naples).toBeDefined();
+    expect(structured.entities.some((entity) => entity.normalizedLabel === "Bay")).toBe(false);
+    expect(
+      structured.geographicQualifiers.some(
+        (qualifier) => qualifier.entityMentionId === naples!.id
+      )
+    ).toBe(true);
+    expect(
+      findSurvivingGeographicEntitiesMissingQualifiersV35({
+        entities: structured.entities,
+        claims: structured.claims,
+        geographicQualifiers: structured.geographicQualifiers,
+      })
+    ).toEqual([]);
+  });
+
+  it("qualifies Bay of Pigs for downstream map logic without standalone Bay (case B)", () => {
+    const structured = structureTrustedScriptClaimsV34({
+      episodeId: CUBAN_EPISODE,
+      narration: narrationFor(
+        CUBAN_EPISODE,
+        "The invasion at the Bay of Pigs failed."
+      ),
+    });
+    const bayOfPigs = structured.entities.find(
+      (entity) => entity.normalizedLabel === "Bay of Pigs"
+    );
+    expect(bayOfPigs).toBeDefined();
+    expect(structured.entities.some((entity) => entity.normalizedLabel === "Bay")).toBe(false);
+    expect(
+      structured.geographicQualifiers.some(
+        (qualifier) => qualifier.entityMentionId === bayOfPigs!.id
+      )
+    ).toBe(true);
+    expect(
+      findSurvivingGeographicEntitiesMissingQualifiersV35({
+        entities: structured.entities,
+        claims: structured.claims,
+        geographicQualifiers: structured.geographicQualifiers,
+      })
+    ).toEqual([]);
+  });
+
+  it("qualifies deterministic-inferred Peloponnesian geography (case C)", () => {
+    const structured = structureTrustedScriptClaimsV34({
+      episodeId: PELOPONNESIAN_EPISODE,
+      narration: narrationFor(
+        PELOPONNESIAN_EPISODE,
+        "In Greece, trade crossed the Aegean."
+      ),
+    });
+    const greece = structured.entities.find((item) => item.normalizedLabel === "Greece");
+    const aegean = structured.entities.find((item) => item.normalizedLabel === "Aegean");
+    expect(greece).toBeDefined();
+    expect(aegean).toBeDefined();
+    expect(greece!.confidenceSource).toBe("deterministic-inferred");
+    expect(aegean!.confidenceSource).toBe("deterministic");
+    for (const entity of [greece!, aegean!]) {
+      expect(
+        structured.geographicQualifiers.some(
+          (qualifier) => qualifier.entityMentionId === entity.id
+        ),
+        entity.normalizedLabel
+      ).toBe(true);
+    }
+    expect(
+      findSurvivingGeographicEntitiesMissingQualifiersV35({
+        entities: structured.entities,
+        claims: structured.claims,
+        geographicQualifiers: structured.geographicQualifiers,
+      })
+    ).toEqual([]);
+  });
+
+  it("does not qualify standalone Sea from institutional convention title (case D)", () => {
+    const structured = structureTrustedScriptClaimsV34({
+      episodeId: TITANIC_EPISODE,
+      narration: narrationFor(
+        TITANIC_EPISODE,
+        "The International Convention for the Safety of Life at Sea required sufficient lifeboat capacity."
+      ),
+    });
+    expect(structured.entities.some((entity) => entity.normalizedLabel === "Sea")).toBe(false);
+    expect(
+      structured.geographicQualifiers.some((qualifier) => {
+        const entity = structured.entities.find((item) => item.id === qualifier.entityMentionId);
+        return entity?.normalizedLabel === "Sea";
+      })
+    ).toBe(false);
+  });
+
+  it("still qualifies standalone generic geography with independent context (case E)", () => {
+    const structured = structureTrustedScriptClaimsV34({
+      episodeId: CUBAN_EPISODE,
+      narration: narrationFor(
+        CUBAN_EPISODE,
+        "Warships gathered in the Bay before dawn."
+      ),
+    });
+    const bay = structured.entities.find((entity) => entity.normalizedLabel === "Bay");
+    expect(bay).toBeDefined();
+    expect(
+      structured.geographicQualifiers.some(
+        (qualifier) => qualifier.entityMentionId === bay!.id
+      )
+    ).toBe(true);
   });
 });
 

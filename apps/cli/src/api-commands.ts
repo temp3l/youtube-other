@@ -221,6 +221,21 @@ export function registerConnectedApiCommands(program: Command, dependencies: Con
     .option("--episode-mode <mode>").option("--source-assets <ids>")
     .action((options: EpisodeCommandOptions & { episode: string; ifMatch: string }) =>
       run("replaceEpisodeContent", (client) => client.replaceEpisodeContent(options.workspace, options.project, options.episode, parsedEpisodeInput(options), { ifMatch: options.ifMatch }))());
+  episode.command("fork-pattern")
+    .requiredOption("--workspace <id>").requiredOption("--project <id>").requiredOption("--source-episode <id>")
+    .requiredOption("--source-revision <number>").requiredOption("--pattern <id>").requiredOption("--configuration-revision <id>")
+    .requiredOption("--dependency-fingerprint <sha256>").requiredOption("--provenance-hash <sha256>")
+    .requiredOption("--idempotency-key <key>")
+    .action((o: { workspace: string; project: string; sourceEpisode: string; sourceRevision: string; pattern: string; configurationRevision: string; dependencyFingerprint: string; provenanceHash: string; idempotencyKey: string }) =>
+      run("forkEpisodeFromPattern", (client) => client.forkEpisodeFromPattern(o.workspace, o.project, o.sourceEpisode, {
+        expectedSourceRevision: integer(o.sourceRevision, "--source-revision"),
+        patternLineage: {
+          patternId: o.pattern,
+          configurationRevision: o.configurationRevision,
+          dependencyFingerprint: o.dependencyFingerprint,
+          provenanceHash: o.provenanceHash,
+        },
+      }, { idempotencyKey: o.idempotencyKey }))());
 
   const workflow = api.command("workflow");
   workflow.command("start").requiredOption("--workspace <id>").requiredOption("--project <id>").requiredOption("--episode <id>")

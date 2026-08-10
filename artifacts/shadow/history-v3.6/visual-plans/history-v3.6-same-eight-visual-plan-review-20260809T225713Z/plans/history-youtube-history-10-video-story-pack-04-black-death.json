@@ -1,0 +1,845 @@
+{
+  "schemaVersion": "history-visual-plan-shadow.v1",
+  "plannerVersion": "history-visual-plan-shadow.v3.6.0",
+  "episodeId": "history-youtube-history-10-video-story-pack-04-black-death",
+  "shadowOnly": true,
+  "basePlan": {
+    "schemaVersion": "history-visual-plan.v3.5",
+    "plannerVersion": "history-visual-planner.v3.5.0",
+    "planHash": "af7a4774fe389ab1f74b98a21eb7c111a076c918ede3629fe7e32627a478ffa5",
+    "timingSource": "provisional-text-estimate",
+    "totalDurationMs": 629956,
+    "productionBlockerCodes": [
+      "TIMING_MEASUREMENT_REQUIRED"
+    ],
+    "beatIds": [
+      "beat-0001",
+      "beat-0002",
+      "beat-0003",
+      "beat-0004",
+      "beat-0005",
+      "beat-0006",
+      "beat-0007",
+      "beat-0008",
+      "beat-0009",
+      "beat-0010",
+      "beat-0011",
+      "beat-0012",
+      "beat-0013",
+      "beat-0014",
+      "beat-0015",
+      "beat-0016",
+      "beat-0017",
+      "beat-0018",
+      "beat-0019",
+      "beat-0020",
+      "beat-0021",
+      "beat-0022",
+      "beat-0023",
+      "beat-0024",
+      "beat-0025",
+      "beat-0026",
+      "beat-0027",
+      "beat-0028",
+      "beat-0029",
+      "beat-0030",
+      "beat-0031",
+      "beat-0032",
+      "beat-0033",
+      "beat-0034",
+      "beat-0035",
+      "beat-0036",
+      "beat-0037",
+      "beat-0038",
+      "beat-0039",
+      "beat-0040",
+      "beat-0041",
+      "beat-0042",
+      "beat-0043",
+      "beat-0044",
+      "beat-0045",
+      "beat-0046",
+      "beat-0047",
+      "beat-0048",
+      "beat-0049",
+      "beat-0050",
+      "beat-0051",
+      "beat-0052",
+      "beat-0053",
+      "beat-0054",
+      "beat-0055"
+    ],
+    "shotIds": [
+      "shot-0001-01",
+      "shot-0002-01",
+      "shot-0003-01",
+      "shot-0004-01",
+      "shot-0005-01",
+      "shot-0006-01",
+      "shot-0007-01",
+      "shot-0007-02",
+      "shot-0008-01",
+      "shot-0008-02",
+      "shot-0008-03",
+      "shot-0009-01",
+      "shot-0010-01",
+      "shot-0010-02",
+      "shot-0011-01",
+      "shot-0011-01-b",
+      "shot-0011-02",
+      "shot-0011-03",
+      "shot-0012-01",
+      "shot-0012-02",
+      "shot-0012-03",
+      "shot-0013-01",
+      "shot-0013-02",
+      "shot-0014-01",
+      "shot-0014-02",
+      "shot-0015-01",
+      "shot-0015-02",
+      "shot-0016-01",
+      "shot-0016-02",
+      "shot-0016-03",
+      "shot-0017-01",
+      "shot-0017-02",
+      "shot-0018-01",
+      "shot-0018-02",
+      "shot-0019-01",
+      "shot-0019-02",
+      "shot-0019-03",
+      "shot-0020-01",
+      "shot-0020-02",
+      "shot-0020-03",
+      "shot-0021-01",
+      "shot-0022-01",
+      "shot-0022-02",
+      "shot-0023-01",
+      "shot-0024-01",
+      "shot-0025-01",
+      "shot-0025-02",
+      "shot-0026-01",
+      "shot-0026-02",
+      "shot-0027-01",
+      "shot-0027-02",
+      "shot-0027-03",
+      "shot-0028-01",
+      "shot-0029-01",
+      "shot-0029-02",
+      "shot-0030-01",
+      "shot-0030-02",
+      "shot-0031-01",
+      "shot-0032-01",
+      "shot-0033-01",
+      "shot-0034-01",
+      "shot-0035-01",
+      "shot-0036-01",
+      "shot-0036-02",
+      "shot-0037-01",
+      "shot-0037-02",
+      "shot-0037-03",
+      "shot-0038-01",
+      "shot-0039-01",
+      "shot-0039-02",
+      "shot-0040-01",
+      "shot-0041-01",
+      "shot-0042-01",
+      "shot-0042-02",
+      "shot-0042-03",
+      "shot-0043-01",
+      "shot-0044-01",
+      "shot-0045-01",
+      "shot-0045-02",
+      "shot-0045-03",
+      "shot-0046-01",
+      "shot-0046-02",
+      "shot-0047-01",
+      "shot-0048-01",
+      "shot-0048-02",
+      "shot-0049-01",
+      "shot-0049-02",
+      "shot-0049-03",
+      "shot-0050-01",
+      "shot-0050-01-b",
+      "shot-0050-02",
+      "shot-0050-03",
+      "shot-0051-01",
+      "shot-0051-02",
+      "shot-0051-03",
+      "shot-0052-01",
+      "shot-0052-02",
+      "shot-0052-03",
+      "shot-0053-01",
+      "shot-0054-01",
+      "shot-0055-01",
+      "shot-0055-02",
+      "shot-0055-03"
+    ]
+  },
+  "coexistence": {
+    "mode": "ADDITIVE_SEMANTIC_OVERLAY",
+    "baseBeatsPreserved": true,
+    "baseShotsPreserved": true,
+    "replacementCount": 0
+  },
+  "renderSpecs": [
+    {
+      "schemaVersion": "history-renderer-shadow-spec.v1",
+      "rendererVersion": "history-renderer-shadow.v3.6.0",
+      "disposition": "RENDER_SPEC",
+      "renderSpecId": "history-render-spec-de3ebfbafe13497b5f451874",
+      "compilerIntentId": "history-compiler-intent-4ce51bfc8189133a59e1df94",
+      "relationId": "relation-causal-12242fe1bfc3d3da804bf371",
+      "relationKind": "causal",
+      "episodeId": "history-youtube-history-10-video-story-pack-04-black-death",
+      "rendererRule": "diagram-causal-svg.v1",
+      "shadowOnly": true,
+      "provenance": {
+        "relationId": "relation-causal-12242fe1bfc3d3da804bf371",
+        "evidenceFingerprint": "evidence-00a3b26df845ebaffcd3fbf0",
+        "supportClaimIds": [
+          "claim-e7ccf1aa69a13de61594802b"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      },
+      "width": 1200,
+      "height": 675,
+      "renderTarget": "DIAGRAM_SVG",
+      "semanticPayload": {
+        "schemaVersion": "history-compiler-shadow-intent.v1",
+        "compilerVersion": "history-compiler-shadow.v3.6.0",
+        "compilerIntentId": "history-compiler-intent-4ce51bfc8189133a59e1df94",
+        "compilerRule": "diagram-causal.v1",
+        "episodeId": "history-youtube-history-10-video-story-pack-04-black-death",
+        "relationId": "relation-causal-12242fe1bfc3d3da804bf371",
+        "provenance": {
+          "relationId": "relation-causal-12242fe1bfc3d3da804bf371",
+          "evidenceFingerprint": "evidence-00a3b26df845ebaffcd3fbf0",
+          "supportClaimIds": [
+            "claim-e7ccf1aa69a13de61594802b"
+          ],
+          "structuredPropositionIds": [],
+          "atomicGroundingIds": []
+        },
+        "shadowOnly": true,
+        "disposition": "DIAGRAM",
+        "relationKind": "causal",
+        "diagramSemanticType": "causal-chain",
+        "cause": {
+          "canonicalLabel": "medieval societies were more mobile and interconnected than the stereotype of isolated villages suggests"
+        },
+        "effect": {
+          "canonicalLabel": "The disease traveled"
+        },
+        "causalAssertionStatus": "asserted"
+      },
+      "points": [
+        {
+          "id": "node-0-medieval-societies-were-more-mobile-and-interconnected-than-the-stereotype-of-isolated-villages-suggests",
+          "label": "medieval societies were more mobile and interconnected than the stereotype of isolated villages suggests",
+          "x": 150,
+          "y": 340,
+          "role": "cause"
+        },
+        {
+          "id": "node-1-the-disease-traveled",
+          "label": "The disease traveled",
+          "x": 1050,
+          "y": 340,
+          "role": "effect",
+          "status": "asserted"
+        }
+      ],
+      "edges": [
+        {
+          "from": "node-0-medieval-societies-were-more-mobile-and-interconnected-than-the-stereotype-of-isolated-villages-suggests",
+          "to": "node-1-the-disease-traveled",
+          "semanticType": "causes",
+          "directed": true,
+          "label": "causal · asserted"
+        }
+      ],
+      "legend": [
+        "cause → effect",
+        "assertion: asserted"
+      ]
+    },
+    {
+      "schemaVersion": "history-renderer-shadow-spec.v1",
+      "rendererVersion": "history-renderer-shadow.v3.6.0",
+      "disposition": "RENDER_SPEC",
+      "renderSpecId": "history-render-spec-dfbbd8e98188b8746cce9b6b",
+      "compilerIntentId": "history-compiler-intent-cd7b9d1006c5b2a7870996e4",
+      "relationId": "relation-causal-15084cb5f069edff2edb4533",
+      "relationKind": "causal",
+      "episodeId": "history-youtube-history-10-video-story-pack-04-black-death",
+      "rendererRule": "diagram-causal-svg.v1",
+      "shadowOnly": true,
+      "provenance": {
+        "relationId": "relation-causal-15084cb5f069edff2edb4533",
+        "evidenceFingerprint": "evidence-28c5848600a737f0058070b7",
+        "supportClaimIds": [
+          "claim-8a707b4321b2663a2061939c"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      },
+      "width": 1200,
+      "height": 675,
+      "renderTarget": "DIAGRAM_SVG",
+      "semanticPayload": {
+        "schemaVersion": "history-compiler-shadow-intent.v1",
+        "compilerVersion": "history-compiler-shadow.v3.6.0",
+        "compilerIntentId": "history-compiler-intent-cd7b9d1006c5b2a7870996e4",
+        "compilerRule": "diagram-causal.v1",
+        "episodeId": "history-youtube-history-10-video-story-pack-04-black-death",
+        "relationId": "relation-causal-15084cb5f069edff2edb4533",
+        "provenance": {
+          "relationId": "relation-causal-15084cb5f069edff2edb4533",
+          "evidenceFingerprint": "evidence-28c5848600a737f0058070b7",
+          "supportClaimIds": [
+            "claim-8a707b4321b2663a2061939c"
+          ],
+          "structuredPropositionIds": [],
+          "atomicGroundingIds": []
+        },
+        "shadowOnly": true,
+        "disposition": "DIAGRAM",
+        "relationKind": "causal",
+        "diagramSemanticType": "causal-chain",
+        "cause": {
+          "canonicalLabel": "The city of Ragusa later developed formal isolation rules"
+        },
+        "effect": {
+          "canonicalLabel": "the idea of quarantine"
+        },
+        "causalAssertionStatus": "asserted"
+      },
+      "points": [
+        {
+          "id": "node-0-the-city-of-ragusa-later-developed-formal-isolation-rules",
+          "label": "The city of Ragusa later developed formal isolation rules",
+          "x": 150,
+          "y": 340,
+          "role": "cause"
+        },
+        {
+          "id": "node-1-the-idea-of-quarantine",
+          "label": "the idea of quarantine",
+          "x": 1050,
+          "y": 340,
+          "role": "effect",
+          "status": "asserted"
+        }
+      ],
+      "edges": [
+        {
+          "from": "node-0-the-city-of-ragusa-later-developed-formal-isolation-rules",
+          "to": "node-1-the-idea-of-quarantine",
+          "semanticType": "causes",
+          "directed": true,
+          "label": "causal · asserted"
+        }
+      ],
+      "legend": [
+        "cause → effect",
+        "assertion: asserted"
+      ]
+    },
+    {
+      "schemaVersion": "history-renderer-shadow-spec.v1",
+      "rendererVersion": "history-renderer-shadow.v3.6.0",
+      "disposition": "RENDER_SPEC",
+      "renderSpecId": "history-render-spec-4dd0304a6f33916ea0cf03f5",
+      "compilerIntentId": "history-compiler-intent-0ead043895be8575b9984fa0",
+      "relationId": "relation-causal-183c91cf9c32df05490dae01",
+      "relationKind": "causal",
+      "episodeId": "history-youtube-history-10-video-story-pack-04-black-death",
+      "rendererRule": "diagram-causal-svg.v1",
+      "shadowOnly": true,
+      "provenance": {
+        "relationId": "relation-causal-183c91cf9c32df05490dae01",
+        "evidenceFingerprint": "evidence-09fdcc6e1ab136afad746792",
+        "supportClaimIds": [
+          "claim-445b50b1c542e5143f87efe0"
+        ],
+        "structuredPropositionIds": [
+          "structured-proposition-c94a284dea3fd38027179971"
+        ],
+        "atomicGroundingIds": [
+          "grounding-9b108be90c3ba4812c0c5a57"
+        ]
+      },
+      "width": 1200,
+      "height": 675,
+      "renderTarget": "DIAGRAM_SVG",
+      "semanticPayload": {
+        "schemaVersion": "history-compiler-shadow-intent.v1",
+        "compilerVersion": "history-compiler-shadow.v3.6.0",
+        "compilerIntentId": "history-compiler-intent-0ead043895be8575b9984fa0",
+        "compilerRule": "diagram-causal.v1",
+        "episodeId": "history-youtube-history-10-video-story-pack-04-black-death",
+        "relationId": "relation-causal-183c91cf9c32df05490dae01",
+        "provenance": {
+          "relationId": "relation-causal-183c91cf9c32df05490dae01",
+          "evidenceFingerprint": "evidence-09fdcc6e1ab136afad746792",
+          "supportClaimIds": [
+            "claim-445b50b1c542e5143f87efe0"
+          ],
+          "structuredPropositionIds": [
+            "structured-proposition-c94a284dea3fd38027179971"
+          ],
+          "atomicGroundingIds": [
+            "grounding-9b108be90c3ba4812c0c5a57"
+          ]
+        },
+        "shadowOnly": true,
+        "disposition": "DIAGRAM",
+        "relationKind": "causal",
+        "diagramSemanticType": "causal-chain",
+        "cause": {
+          "canonicalLabel": "the silence left by the dead"
+        },
+        "effect": {
+          "canonicalLabel": "labor value"
+        },
+        "causalAssertionStatus": "asserted"
+      },
+      "points": [
+        {
+          "id": "node-0-the-silence-left-by-the-dead",
+          "label": "the silence left by the dead",
+          "x": 150,
+          "y": 340,
+          "role": "cause"
+        },
+        {
+          "id": "node-1-labor-value",
+          "label": "labor value",
+          "x": 1050,
+          "y": 340,
+          "role": "effect",
+          "status": "asserted"
+        }
+      ],
+      "edges": [
+        {
+          "from": "node-0-the-silence-left-by-the-dead",
+          "to": "node-1-labor-value",
+          "semanticType": "causes",
+          "directed": true,
+          "label": "causal · asserted"
+        }
+      ],
+      "legend": [
+        "cause → effect",
+        "assertion: asserted"
+      ]
+    },
+    {
+      "schemaVersion": "history-renderer-shadow-spec.v1",
+      "rendererVersion": "history-renderer-shadow.v3.6.0",
+      "disposition": "RENDER_SPEC",
+      "renderSpecId": "history-render-spec-518e170710488cef69613928",
+      "compilerIntentId": "history-compiler-intent-5c81d4c131c49666f0754565",
+      "relationId": "relation-movement-86967bc62f556fb8d35732c1",
+      "relationKind": "movement",
+      "episodeId": "history-youtube-history-10-video-story-pack-04-black-death",
+      "rendererRule": "map-movement-svg.v1",
+      "shadowOnly": true,
+      "provenance": {
+        "relationId": "relation-movement-86967bc62f556fb8d35732c1",
+        "evidenceFingerprint": "evidence-1e156e6b0f9df15320037f08",
+        "supportClaimIds": [
+          "claim-1d813848a4b3f483dec18f06"
+        ],
+        "structuredPropositionIds": [],
+        "atomicGroundingIds": []
+      },
+      "width": 1200,
+      "height": 675,
+      "renderTarget": "MAP_SVG",
+      "semanticPayload": {
+        "schemaVersion": "history-compiler-shadow-intent.v1",
+        "compilerVersion": "history-compiler-shadow.v3.6.0",
+        "compilerIntentId": "history-compiler-intent-5c81d4c131c49666f0754565",
+        "compilerRule": "map-movement.v1",
+        "episodeId": "history-youtube-history-10-video-story-pack-04-black-death",
+        "relationId": "relation-movement-86967bc62f556fb8d35732c1",
+        "provenance": {
+          "relationId": "relation-movement-86967bc62f556fb8d35732c1",
+          "evidenceFingerprint": "evidence-1e156e6b0f9df15320037f08",
+          "supportClaimIds": [
+            "claim-1d813848a4b3f483dec18f06"
+          ],
+          "structuredPropositionIds": [],
+          "atomicGroundingIds": []
+        },
+        "shadowOnly": true,
+        "disposition": "MAP",
+        "relationKind": "movement",
+        "mapSemanticType": "movement",
+        "from": {
+          "entityId": "entity-935c70be026d97e7cd1afe66",
+          "canonicalLabel": "Black Sea"
+        },
+        "to": {
+          "entityId": "entity-f9d4d379ce7a88fcf18561d7",
+          "canonicalLabel": "Messina"
+        },
+        "via": []
+      },
+      "points": [
+        {
+          "id": "entity-935c70be026d97e7cd1afe66",
+          "label": "Black Sea",
+          "x": 1011.2903225806452,
+          "y": 129.83870967741916,
+          "role": "origin",
+          "placeKind": "point"
+        },
+        {
+          "id": "entity-f9d4d379ce7a88fcf18561d7",
+          "label": "Messina",
+          "x": 188.70967741935485,
+          "y": 545.1612903225807,
+          "role": "destination",
+          "placeKind": "point"
+        }
+      ],
+      "edges": [
+        {
+          "from": "entity-935c70be026d97e7cd1afe66",
+          "to": "entity-f9d4d379ce7a88fcf18561d7",
+          "semanticType": "movement-route",
+          "directed": true
+        }
+      ],
+      "viewport": {
+        "minLatitude": 37.6128,
+        "maxLatitude": 43.5772,
+        "minLongitude": 13.336,
+        "maxLongitude": 36.214,
+        "paddingRatio": 0.12
+      }
+    },
+    {
+      "schemaVersion": "history-renderer-shadow-spec.v1",
+      "rendererVersion": "history-renderer-shadow.v3.6.0",
+      "disposition": "RENDER_SPEC",
+      "renderSpecId": "history-render-spec-8c2731f1786f37300c370421",
+      "compilerIntentId": "history-compiler-intent-dd476b7e9d622b8e06f27dc2",
+      "relationId": "relation-policy-response-e1e6ce807fd50368e1bc803b",
+      "relationKind": "policy-response",
+      "episodeId": "history-youtube-history-10-video-story-pack-04-black-death",
+      "rendererRule": "diagram-policy-response-svg.v1",
+      "shadowOnly": true,
+      "provenance": {
+        "relationId": "relation-policy-response-e1e6ce807fd50368e1bc803b",
+        "evidenceFingerprint": "evidence-85d61a8d5f6183864916c3cb",
+        "supportClaimIds": [
+          "claim-095a61f563fa2980b636c6cc",
+          "claim-ee76bea77004b9d801b6630b"
+        ],
+        "structuredPropositionIds": [
+          "structured-proposition-1df667e0e11400eb4dfe13fe",
+          "structured-proposition-535f3073a6991e6b2dd28f3c"
+        ],
+        "atomicGroundingIds": [
+          "grounding-708cc4b83201d0b8ca6971d0",
+          "grounding-c4182f8b9ed22ee176e88e92"
+        ],
+        "proof": {
+          "proofEvidenceId": "relation-proof-evidence-b04d4c4142d1898084e109e4",
+          "proofId": "cross-claim-proof-4c239e7f3e32aab61cc44d00",
+          "proofEvidenceFingerprint": "cross-claim-proof-evidence-931dea77b73dee5b07602905",
+          "premises": [
+            {
+              "premiseId": "condition",
+              "claimId": "claim-ee76bea77004b9d801b6630b",
+              "structuredPropositionId": "structured-proposition-1df667e0e11400eb4dfe13fe",
+              "atomicGroundingId": "grounding-c4182f8b9ed22ee176e88e92",
+              "assertionStatus": "uncertain"
+            },
+            {
+              "premiseId": "response",
+              "claimId": "claim-095a61f563fa2980b636c6cc",
+              "structuredPropositionId": "structured-proposition-535f3073a6991e6b2dd28f3c",
+              "atomicGroundingId": "grounding-708cc4b83201d0b8ca6971d0",
+              "assertionStatus": "attempted"
+            }
+          ]
+        }
+      },
+      "width": 1200,
+      "height": 675,
+      "renderTarget": "DIAGRAM_SVG",
+      "semanticPayload": {
+        "schemaVersion": "history-compiler-shadow-intent.v1",
+        "compilerVersion": "history-compiler-shadow.v3.6.0",
+        "compilerIntentId": "history-compiler-intent-dd476b7e9d622b8e06f27dc2",
+        "compilerRule": "diagram-policy-response.v1",
+        "episodeId": "history-youtube-history-10-video-story-pack-04-black-death",
+        "relationId": "relation-policy-response-e1e6ce807fd50368e1bc803b",
+        "provenance": {
+          "relationId": "relation-policy-response-e1e6ce807fd50368e1bc803b",
+          "evidenceFingerprint": "evidence-85d61a8d5f6183864916c3cb",
+          "supportClaimIds": [
+            "claim-095a61f563fa2980b636c6cc",
+            "claim-ee76bea77004b9d801b6630b"
+          ],
+          "structuredPropositionIds": [
+            "structured-proposition-1df667e0e11400eb4dfe13fe",
+            "structured-proposition-535f3073a6991e6b2dd28f3c"
+          ],
+          "atomicGroundingIds": [
+            "grounding-708cc4b83201d0b8ca6971d0",
+            "grounding-c4182f8b9ed22ee176e88e92"
+          ],
+          "proof": {
+            "proofEvidenceId": "relation-proof-evidence-b04d4c4142d1898084e109e4",
+            "proofId": "cross-claim-proof-4c239e7f3e32aab61cc44d00",
+            "proofEvidenceFingerprint": "cross-claim-proof-evidence-931dea77b73dee5b07602905",
+            "premises": [
+              {
+                "premiseId": "condition",
+                "claimId": "claim-ee76bea77004b9d801b6630b",
+                "structuredPropositionId": "structured-proposition-1df667e0e11400eb4dfe13fe",
+                "atomicGroundingId": "grounding-c4182f8b9ed22ee176e88e92",
+                "assertionStatus": "uncertain"
+              },
+              {
+                "premiseId": "response",
+                "claimId": "claim-095a61f563fa2980b636c6cc",
+                "structuredPropositionId": "structured-proposition-535f3073a6991e6b2dd28f3c",
+                "atomicGroundingId": "grounding-708cc4b83201d0b8ca6971d0",
+                "assertionStatus": "attempted"
+              }
+            ]
+          }
+        },
+        "shadowOnly": true,
+        "disposition": "DIAGRAM",
+        "relationKind": "policy-response",
+        "diagramSemanticType": "policy-response",
+        "condition": {
+          "entityId": "concept-0f5d91e2fa08e6d02fbdf9d4",
+          "canonicalLabel": "higher wages or better terms"
+        },
+        "conditionAssertionStatus": "uncertain",
+        "response": {
+          "entityId": "concept-69f059a7394f38af75273645",
+          "canonicalLabel": "wage restriction"
+        },
+        "responseAssertionStatus": "attempted"
+      },
+      "points": [
+        {
+          "id": "node-0-higher-wages-or-better-terms",
+          "label": "higher wages or better terms",
+          "x": 150,
+          "y": 340,
+          "role": "condition",
+          "status": "uncertain"
+        },
+        {
+          "id": "node-1-wage-restriction",
+          "label": "wage restriction",
+          "x": 1050,
+          "y": 340,
+          "role": "response",
+          "status": "attempted"
+        }
+      ],
+      "edges": [
+        {
+          "from": "node-0-higher-wages-or-better-terms",
+          "to": "node-1-wage-restriction",
+          "semanticType": "policy-response",
+          "directed": true,
+          "label": "response to condition"
+        }
+      ],
+      "legend": [
+        "condition: uncertain",
+        "response: attempted",
+        "proof: cross-claim-proof-4c239e7f3e32aab61cc44d00"
+      ]
+    }
+  ],
+  "placements": [
+    {
+      "disposition": "PLACED",
+      "placementId": "history-visual-placement-68ba22233d6efad57efcd985",
+      "renderSpecId": "history-render-spec-de3ebfbafe13497b5f451874",
+      "compilerIntentId": "history-compiler-intent-4ce51bfc8189133a59e1df94",
+      "relationId": "relation-causal-12242fe1bfc3d3da804bf371",
+      "relationKind": "causal",
+      "renderTarget": "DIAGRAM_SVG",
+      "operation": "ATTACH_SEMANTIC_OVERLAY",
+      "placementRule": "SUPPORT_COMPLETION_BEAT_V1",
+      "supportClaimIds": [
+        "claim-e7ccf1aa69a13de61594802b"
+      ],
+      "supportBeatIds": [
+        "beat-0014"
+      ],
+      "anchor": {
+        "beatId": "beat-0014",
+        "startMs": 140436,
+        "endMs": 150754,
+        "narrationSpan": {
+          "endUtf16Exclusive": 1775,
+          "startUtf16": 1641
+        }
+      },
+      "preservedBaseShotIds": [
+        "shot-0014-01",
+        "shot-0014-02"
+      ],
+      "preservesBaseShots": true,
+      "timingBasis": "provisional-text-estimate"
+    },
+    {
+      "disposition": "PLACED",
+      "placementId": "history-visual-placement-a5a8f8b79c6e06bca97926fb",
+      "renderSpecId": "history-render-spec-dfbbd8e98188b8746cce9b6b",
+      "compilerIntentId": "history-compiler-intent-cd7b9d1006c5b2a7870996e4",
+      "relationId": "relation-causal-15084cb5f069edff2edb4533",
+      "relationKind": "causal",
+      "renderTarget": "DIAGRAM_SVG",
+      "operation": "ATTACH_SEMANTIC_OVERLAY",
+      "placementRule": "SUPPORT_COMPLETION_BEAT_V1",
+      "supportClaimIds": [
+        "claim-8a707b4321b2663a2061939c"
+      ],
+      "supportBeatIds": [
+        "beat-0018"
+      ],
+      "anchor": {
+        "beatId": "beat-0018",
+        "startMs": 194318,
+        "endMs": 203489,
+        "narrationSpan": {
+          "endUtf16Exclusive": 2362,
+          "startUtf16": 2261
+        }
+      },
+      "preservedBaseShotIds": [
+        "shot-0018-01",
+        "shot-0018-02"
+      ],
+      "preservesBaseShots": true,
+      "timingBasis": "provisional-text-estimate"
+    },
+    {
+      "disposition": "PLACED",
+      "placementId": "history-visual-placement-eedfc047e14a3df87496cd27",
+      "renderSpecId": "history-render-spec-4dd0304a6f33916ea0cf03f5",
+      "compilerIntentId": "history-compiler-intent-0ead043895be8575b9984fa0",
+      "relationId": "relation-causal-183c91cf9c32df05490dae01",
+      "relationKind": "causal",
+      "renderTarget": "DIAGRAM_SVG",
+      "operation": "ATTACH_SEMANTIC_OVERLAY",
+      "placementRule": "SUPPORT_COMPLETION_BEAT_V1",
+      "supportClaimIds": [
+        "claim-445b50b1c542e5143f87efe0"
+      ],
+      "supportBeatIds": [
+        "beat-0055"
+      ],
+      "anchor": {
+        "beatId": "beat-0055",
+        "startMs": 611040,
+        "endMs": 629956,
+        "narrationSpan": {
+          "endUtf16Exclusive": 7609,
+          "startUtf16": 7405
+        }
+      },
+      "preservedBaseShotIds": [
+        "shot-0055-01",
+        "shot-0055-02",
+        "shot-0055-03"
+      ],
+      "preservesBaseShots": true,
+      "timingBasis": "provisional-text-estimate"
+    },
+    {
+      "disposition": "PLACED",
+      "placementId": "history-visual-placement-10ed125510d2c0d7f249f1e1",
+      "renderSpecId": "history-render-spec-518e170710488cef69613928",
+      "compilerIntentId": "history-compiler-intent-5c81d4c131c49666f0754565",
+      "relationId": "relation-movement-86967bc62f556fb8d35732c1",
+      "relationKind": "movement",
+      "renderTarget": "MAP_SVG",
+      "operation": "ATTACH_SEMANTIC_OVERLAY",
+      "placementRule": "SUPPORT_COMPLETION_BEAT_V1",
+      "supportClaimIds": [
+        "claim-1d813848a4b3f483dec18f06"
+      ],
+      "supportBeatIds": [
+        "beat-0001"
+      ],
+      "anchor": {
+        "beatId": "beat-0001",
+        "startMs": 0,
+        "endMs": 8598,
+        "narrationSpan": {
+          "endUtf16Exclusive": 82,
+          "startUtf16": 0
+        }
+      },
+      "preservedBaseShotIds": [
+        "shot-0001-01"
+      ],
+      "preservesBaseShots": true,
+      "timingBasis": "provisional-text-estimate"
+    },
+    {
+      "disposition": "PLACED",
+      "placementId": "history-visual-placement-110a645b9e14b5a5b25910e0",
+      "renderSpecId": "history-render-spec-8c2731f1786f37300c370421",
+      "compilerIntentId": "history-compiler-intent-dd476b7e9d622b8e06f27dc2",
+      "relationId": "relation-policy-response-e1e6ce807fd50368e1bc803b",
+      "relationKind": "policy-response",
+      "renderTarget": "DIAGRAM_SVG",
+      "operation": "ATTACH_SEMANTIC_OVERLAY",
+      "placementRule": "SUPPORT_COMPLETION_BEAT_V1",
+      "supportClaimIds": [
+        "claim-095a61f563fa2980b636c6cc",
+        "claim-ee76bea77004b9d801b6630b"
+      ],
+      "supportBeatIds": [
+        "beat-0033",
+        "beat-0035"
+      ],
+      "anchor": {
+        "beatId": "beat-0035",
+        "startMs": 353670,
+        "endMs": 364561,
+        "narrationSpan": {
+          "endUtf16Exclusive": 4435,
+          "startUtf16": 4320
+        }
+      },
+      "preservedBaseShotIds": [
+        "shot-0035-01"
+      ],
+      "preservesBaseShots": true,
+      "timingBasis": "provisional-text-estimate"
+    }
+  ],
+  "safePlacementAbstentions": [],
+  "summary": {
+    "renderSpecs": 5,
+    "placed": 5,
+    "safePlacementAbstentions": 0,
+    "mapPlacements": 1,
+    "diagramPlacements": 4,
+    "duplicatePlacements": 0,
+    "orphanRenderSpecs": 0,
+    "replacementCount": 0
+  },
+  "planHash": "c8d06bc522313472da345dc28809db9b677884dbec4227b16a9d1c639ca2a326"
+}

@@ -9,13 +9,12 @@ import {
 import type { AdaptationCandidate, SourceEvidenceSpan } from "./adaptation-schema.js";
 import {
   hashCanonicalSourceBytes,
-  hashEvidenceSpan,
   type EvidenceApprovalContext,
 } from "./provenance-validation.js";
 import type { StrategicReinventionProfile } from "./profile.js";
 
 const STRATEGIC_SOURCE_ADAPTATION_WORKFLOW_REVISION =
-  "strategic-reinvention.episode-pipeline.v1" as const;
+  "veronicabenini.source-adaptation.v1" as const;
 
 const sourceTextExtensions = [".md", ".txt"] as const;
 
@@ -27,8 +26,22 @@ export interface StrategicSourceAdaptationInput {
 }
 
 export interface StrategicSourceAdaptationResult {
+  readonly schemaVersion: "veronicabenini.source-led-narration.v1";
   readonly canonicalScript: string;
   readonly shortScript: string;
+  /** Structural data and provenance stay outside the clean spoken payload. */
+  readonly editorialOutline: readonly {
+    readonly beatId: string;
+    readonly lineId: string;
+    readonly evidenceSpanIds: readonly string[];
+  }[];
+  readonly narrationRevision: {
+    readonly revisionId: string;
+    readonly contentProfileId: "veronicabenini";
+    readonly effectiveConfigurationHash: string;
+    readonly dependencyIdentity: Readonly<Record<string, string>>;
+    readonly reuseOrRegenerationRationale: "new-source-led-revision";
+  };
   readonly adaptation: SourceLedAdaptationResult;
   readonly sourceId: string;
 }
@@ -38,7 +51,7 @@ function adaptationStatePath(workspaceRoot: string, episodeId: string): string {
     workspaceRoot,
     episodeId,
     "state",
-    "strategic-reinvention",
+    "veronicabenini",
     "source-adaptation.json",
   );
 }
@@ -50,6 +63,7 @@ async function loadSourceBytes(
 ): Promise<Uint8Array | null> {
   const episodeRoot = path.join(workspaceRoot, episodeId);
   const candidates = sourceTextExtensions.flatMap((extension) => [
+    path.join(episodeRoot, "sources", "content", sourceId, `${sourceId}${extension}`),
     path.join(episodeRoot, "sources", "content", `${sourceId}${extension}`),
     path.join(episodeRoot, "sources", `${sourceId}${extension}`),
   ]);
@@ -92,49 +106,10 @@ async function loadSourceManifest(input: {
       continue;
     }
   }
-  return buildSyntheticManifest(input.sourceId, input.bytes);
-}
-
-function buildSyntheticManifest(
-  sourceId: string,
-  bytes: Uint8Array,
-): ContentSourceManifest {
-  return contentSourceManifestSchema.parse({
-    schemaVersion: "1.1",
-    sourceId,
-    title: sourceId,
-    owner: "veronica-benini",
-    sourceType: "creator-written-note",
-    provenance: {
-      kind: "file",
-      location: `sources/content/${sourceId}.md`,
-      originalLanguage: "it",
-    },
-    accessLevel: "public",
-    rights: {
-      status: "creator-owned",
-      allowedUses: ["adapt", "translate"],
-      permittedLocales: ["it", "en", "es"],
-      commercialUse: true,
-    },
-    aiTransformations: {
-      structure: true,
-      summarize: true,
-      adapt: true,
-      translate: true,
-      syntheticVoice: false,
-      syntheticLikeness: false,
-    },
-    sensitivity: {
-      classification: "normal",
-      tags: ["none"],
-      manualReviewRequired: false,
-    },
-    sourceHash: hashCanonicalSourceBytes(bytes),
-    createdAt: "2026-08-07T10:00:00.000Z",
-    approvedAt: "2026-08-07T10:00:00.000Z",
-    approvedBy: "reviewer-a",
-  });
+  throw new Error(
+    `No valid approved source manifest found for ${input.sourceId}. ` +
+      "Production source adaptation requires sources/manifests/<sourceId>.json.",
+  );
 }
 
 function splitSentences(text: string): string[] {
@@ -201,48 +176,38 @@ function buildCandidateFromSource(input: {
   };
 }
 
-function buildEvidenceApprovals(input: {
+async function loadEvidenceApprovals(input: {
   readonly episodeId: string;
   readonly manifest: ContentSourceManifest;
-  readonly evidenceSpans: readonly SourceEvidenceSpan[];
-  readonly sourceBytes: Uint8Array;
-}): EvidenceApprovalContext {
+  readonly workspaceRoot: string;
+}): Promise<EvidenceApprovalContext> {
+  const ledgerPath = path.join(
+    input.workspaceRoot,
+    input.episodeId,
+    "sources",
+    "approvals",
+    "source-evidence.json",
+  );
+  let ledger: unknown;
+  try {
+    ledger = JSON.parse(await fs.readFile(ledgerPath, "utf8")) as unknown;
+  } catch {
+    throw new Error(
+      "No source evidence approval ledger found. Production source adaptation requires sources/approvals/source-evidence.json.",
+    );
+  }
+  if (!Array.isArray(ledger)) {
+    throw new Error("Source evidence approval ledger must be a JSON array.");
+  }
   const identity = {
     workflowInstanceId: `episode-${input.episodeId}`,
     taskId: "strategic.source-evidence",
     unitId: input.episodeId,
-    profileId: "strategic-reinvention" as const,
+    profileId: "veronicabenini" as const,
     locale: "it" as const,
     variant: "full" as const,
     workflowRevision: STRATEGIC_SOURCE_ADAPTATION_WORKFLOW_REVISION,
   };
-  const ledger = input.evidenceSpans.map((span, index) => {
-    const slice = input.sourceBytes.slice(span.byteStart, span.byteEnd);
-    return {
-      schemaVersion: "mediaforge.approval.v1",
-      id: `approval-span-${index + 1}`,
-      workflowInstanceId: identity.workflowInstanceId,
-      taskId: identity.taskId,
-      profileId: identity.profileId,
-      unitId: identity.unitId,
-      locale: identity.locale,
-      variant: identity.variant,
-      decision: "approved",
-      actor: "reviewer-a",
-      reason: "Fixture source evidence approval",
-      boundRevision: identity.workflowRevision,
-      artifactHashes: [hashEvidenceSpan(slice)],
-      createdAt: "2026-08-07T10:00:00.000Z",
-      scope: {
-        gate: "source",
-        locale: identity.locale,
-        variant: identity.variant,
-        inputArtifactHashes: [input.manifest.sourceHash],
-        outputArtifactHashes: [hashEvidenceSpan(slice)],
-        highRisk: false,
-      },
-    };
-  });
   return {
     ledger,
     identity,
@@ -278,25 +243,42 @@ export async function runStrategicSourceAdaptation(
     manifests: [manifest],
     sourceBytes: { [sourceId]: bytes },
     evidenceSpans,
-    evidenceApprovals: buildEvidenceApprovals({
+    evidenceApprovals: await loadEvidenceApprovals({
       episodeId: input.episodeId,
       manifest,
-      evidenceSpans,
-      sourceBytes: bytes,
+      workspaceRoot: input.workspaceRoot,
     }),
     candidate,
     genre: input.profile.genre,
     creator: input.profile.creatorProfile,
     blueprint: input.blueprint,
     effectivePolicy: input.profile.effectivePolicy,
-    now: new Date("2026-08-07T12:00:00.000Z"),
+    now: new Date(),
   });
   const canonicalScript = adaptation.candidateCanonicalScript.lines.join(" ");
-  const shortScript =
-    adaptation.candidateCanonicalScript.lines.slice(0, 2).join(" ").trim() + ".";
+  const shortBody = adaptation.candidateCanonicalScript.lines
+    .slice(0, 2)
+    .join(" ")
+    .trim();
+  const shortScript = /[.!?]$/u.test(shortBody) ? shortBody : `${shortBody}.`;
   const result: StrategicSourceAdaptationResult = {
+    schemaVersion: "veronicabenini.source-led-narration.v1",
     canonicalScript,
     shortScript,
+    editorialOutline: candidate.lines.map((line) => ({
+      beatId: line.beatId,
+      lineId: line.lineId,
+      evidenceSpanIds: line.evidenceSpanIds,
+    })),
+    narrationRevision: {
+      revisionId: candidate.revision,
+      contentProfileId: "veronicabenini",
+      effectiveConfigurationHash: adaptation.candidateCanonicalScript.fingerprint,
+      dependencyIdentity: {
+        [sourceId]: manifest.sourceHash,
+      },
+      reuseOrRegenerationRationale: "new-source-led-revision",
+    },
     adaptation,
     sourceId,
   };

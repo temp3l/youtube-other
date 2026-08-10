@@ -1,0 +1,17 @@
+{
+  "result": "PASS",
+  "checks": [
+    "History duration-policy unit test",
+    "History typecheck",
+    "targeted ESLint",
+    "measured timing checks",
+    "measured V3.5 base-plan validation",
+    "V3.6 candidate-plan validation",
+    "Black Death proof-aware semantic assertion",
+    "D-Day event-location semantic assertion",
+    "SVG/PNG renderer validation",
+    "FFmpeg smoke",
+    "rollback routing",
+    "V3.5 source isolation"
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "result": "PASS_FOR_ROUTING_SEAM",
+  "V3_6_candidateArtifactsConsumedByV35": 0,
+  "V3_5_hashesChanged": 0,
+  "note": "No V3.6 candidate plan was built because timing is blocked."
+}

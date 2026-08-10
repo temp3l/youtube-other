@@ -2,6 +2,7 @@
 
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { defaultHistoryApprovalPackRangeOutput } from "../packages/history/src/history-episode-discovery.js";
 import { createCombinedHistoryApprovalBundleV35 } from "../packages/history/src/history-workflow-v35.js";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -25,7 +26,8 @@ const reusePacksFrom = path.resolve(
 );
 const output = path.resolve(
   repoRoot,
-  process.argv[3] ?? "artifacts/chatgpt-review/history-approval-packs-v3.5-episodes-01-10"
+  process.argv[3] ??
+    defaultHistoryApprovalPackRangeOutput({ from: 1, to: 10 })
 );
 
 const regenerateOnlyEpisodeIds = [

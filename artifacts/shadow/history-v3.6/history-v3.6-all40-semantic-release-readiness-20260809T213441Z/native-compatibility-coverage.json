@@ -1,0 +1,10 @@
+{
+  "nativeAll40Available": false,
+  "reason": "Frozen historical V3.5 artifacts contain no native-generation sidecars; provider generation was forbidden.",
+  "episodesWithAnyNativeStructuredSemantics": 0,
+  "episodesWithOnlyCompatibilitySemantics": 40,
+  "claimsWithNativeStructure": 0,
+  "claimsWithCompatibilityOnlyStructure": 106,
+  "relationsSupportedByNativeSemantics": 0,
+  "relationsSupportedOnlyByCompatibilitySemantics": 103
+}

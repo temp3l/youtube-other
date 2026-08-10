@@ -1,0 +1,16 @@
+{
+  "phase": "2.36",
+  "startingSha": "75de97926ad039ee7fbbcae11023a5bc1dbabcc8",
+  "goal": "Define deterministic claim-anchored V3.6 shadow visual-plan integration and a disabled activation seam.",
+  "shadowOnly": true,
+  "coexistence": "ADDITIVE_SEMANTIC_OVERLAY",
+  "placementRule": "SUPPORT_COMPLETION_BEAT_V1",
+  "defaultRoute": "V3_5_PRODUCTION",
+  "productionActivated": false,
+  "providerCalls": {
+    "llm": 0,
+    "image": 0,
+    "web": 0,
+    "geocoding": 0
+  }
+}

@@ -1,5 +1,7 @@
 import crypto from "node:crypto";
 
+import { contentProfileIdSchema } from "@mediaforge/domain";
+
 export type PromptCacheMode = "disabled" | "implicit" | "explicit";
 
 export interface PromptCachePlan {
@@ -14,6 +16,7 @@ export interface PromptCachePlan {
 
 export interface PromptCacheKeyParts {
   readonly namespace?: string;
+  readonly profileId?: string;
   readonly family: string;
   readonly version: string;
   readonly operation: string;
@@ -22,6 +25,8 @@ export interface PromptCacheKeyParts {
   readonly modelTier: string;
   readonly aspectBucket?: string;
   readonly referenceBundleClass?: string;
+  /** Shared visual prompts must reuse across localized editions. */
+  readonly languageIndependent?: boolean;
 }
 
 export interface CacheablePrompt {
@@ -127,13 +132,17 @@ export function buildPromptCacheKey(
     ? `:${sha256(parts.referenceBundleClass).slice(0, 12)}`
     : "";
   const aspect = parts.aspectBucket ? `:${safeKeyPart(parts.aspectBucket)}` : "";
+  const profile = parts.profileId
+    ? safeKeyPart(contentProfileIdSchema.parse(parts.profileId))
+    : undefined;
   return [
     safeKeyPart(parts.namespace ?? "mediaforge"),
+    ...(profile ? [profile] : []),
     safeKeyPart(parts.family),
     safeKeyPart(parts.version),
     safeKeyPart(parts.operation),
     safeKeyPart(parts.format),
-    safeKeyPart(parts.language),
+    safeKeyPart(parts.languageIndependent ? "shared" : parts.language),
     safeKeyPart(parts.modelTier),
   ].join(":") + `${aspect}${referenceClass}:shard-${shard}`;
 }

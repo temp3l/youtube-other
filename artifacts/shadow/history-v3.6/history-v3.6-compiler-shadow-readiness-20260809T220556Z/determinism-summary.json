@@ -1,0 +1,28 @@
+{
+  "status": "PASS",
+  "sameEightFeatureLane": {
+    "status": "PASS",
+    "run1Hash": "d12489a87ce017f763d25ba525c2f398de47ac1d3e68c57676cbf7f32168a60f",
+    "run2Hash": "d12489a87ce017f763d25ba525c2f398de47ac1d3e68c57676cbf7f32168a60f",
+    "compared": [
+      "relation disposition",
+      "compilerIntentId",
+      "serialized semantic intent",
+      "diagnostic codes",
+      "aggregate counts"
+    ]
+  },
+  "all40CompatibilityLane": {
+    "status": "PASS",
+    "run1Hash": "509f95e270c4e4f2aa5ace81a7867310f49de1515754ff5a4d2986e8da1e8553",
+    "run2Hash": "509f95e270c4e4f2aa5ace81a7867310f49de1515754ff5a4d2986e8da1e8553",
+    "relationIdsMatchAcceptedCensus": true,
+    "compared": [
+      "relation disposition",
+      "compilerIntentId",
+      "serialized semantic intent",
+      "diagnostic codes",
+      "aggregate counts"
+    ]
+  }
+}

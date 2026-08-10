@@ -27,7 +27,7 @@ const THEMATIC_CAUSAL_LABELS: ReadonlyArray<{
   { label: "writing loss", pattern: /\b(?:writing|script).*(?:lost|loss|disappear)|loss of writing\b/iu },
   { label: "iron versus bronze", pattern: /\biron\b.*\bbronze\b|\bbronze\b.*\biron\b/iu },
   { label: "earthquake disruption", pattern: /\b(?:earthquake|seismic|quake)\b/iu },
-  { label: "military fragmentation", pattern: /\b(?:army|armies|military)\b/iu },
+  { label: "military fragmentation", pattern: /\b(?:military fragmentation|fragmented militarily|army fragmentation)\b/iu },
   { label: "fragmented evidence", pattern: /\b(?:fragmented evidence|evidence is fragmented)\b/iu },
   { label: "warns against dramatic explanation", pattern: /\bwarns? us against\b/iu },
   { label: "single-cause warning", pattern: /\bsingle (?:dramatic )?explanation\b/iu },
@@ -40,7 +40,7 @@ const THEMATIC_CAUSAL_LABELS: ReadonlyArray<{
   { label: "tin from distant regions", pattern: /\btin\b/iu },
   { label: "bronze production", pattern: /\bbronze\b/iu },
   { label: "palace trade networks", pattern: /\b(?:palace|trade network)\b/iu },
-  { label: "command coordination", pattern: /\b(?:command|coordination|organization)\b/iu },
+  { label: "command coordination", pattern: /\b(?:command coordination|coordinated command|coordination of command)\b/iu },
   { label: "mobility and logistics", pattern: /\b(?:mobility|logistics|engineering)\b/iu },
   { label: "intelligence and discipline", pattern: /\b(?:intelligence|discipline|diplomacy)\b/iu },
   { label: "escalation pressure", pattern: /\b(?:escalation|crisis|threat)\b/iu },
@@ -87,6 +87,12 @@ function escapeRegExp(value: string): string {
 }
 
 export function isClaimGroundedDiagramLabelV35(label: string, text: string): boolean {
+  const normalizedLabel = label.trim().toLocaleLowerCase();
+  if (normalizedLabel === "tin from distant regions")
+    return /\btin\b/iu.test(text) && /\bdistant regions?\b/iu.test(text);
+  if (normalizedLabel === "bronze production") return /\bbronze\b/iu.test(text);
+  if (normalizedLabel === "copper from cyprus")
+    return /\bcopper\b/iu.test(text) && /\bCyprus\b/iu.test(text);
   const contentTokens = label
     .toLocaleLowerCase()
     .split(/\s+/)
@@ -120,6 +126,11 @@ export function extractListedCausalFactorsV35(text: string): string[] {
   return labels;
 }
 
+function extractCombinedOutcomeV35(text: string): string | undefined {
+  const match = text.match(/\binto\s+(?:an?\s+)?([^.!?]{3,64})(?:[.!?]|$)/iu);
+  return match?.[1]?.replace(/\s+/gu, " ").trim();
+}
+
 function isCompositeOfListedFactorsV35(label: string, listedFactors: readonly string[]): boolean {
   if (listedFactors.length < 2) return false;
   const contentTokens = label
@@ -140,6 +151,83 @@ function wordSafeSlice(text: string, maxChars: number): string {
   return (boundary > 20 ? slice.slice(0, boundary) : slice).trim();
 }
 
+function exactClause(value: string): string {
+  return value.replace(/^[\s,;:]+|[\s,;:.]+$/gu, "").replace(/\s+/gu, " ").trim();
+}
+
+function compileExplicitClauseDiagramV35(input: {
+  readonly beatNumber: string;
+  readonly text: string;
+  readonly claimIds: readonly string[];
+  readonly claims: readonly HistoryClaimV34[];
+}): {
+  readonly master: HistoryVisualPlanV35["diagramMasters"][number];
+  readonly state: HistoryDiagramStateV34;
+} | null {
+  if (/\bbecause\b[^.!?]*\beven while\b/iu.test(input.text)) return null;
+  const convergence = input.text.match(
+    /(?:^|[.!?]\s*)([^.!?]{3,80}?)\s+because\s+([^.!?]{3,100}?)\s+while\s+([^.!?]{3,100})(?:[.!?]|$)/iu
+  );
+  const labels = convergence
+    ? [
+        exactClause(convergence[2]!),
+        exactClause(convergence[3]!),
+        exactClause(convergence[1]!),
+      ]
+    : null;
+  if (!labels || labels.some((label) => label.length < 3)) return null;
+
+  const masterId = `diagram-master-explicit-${input.beatNumber}`;
+  const nodes = buildDiagramNodesV35({
+    beatNumber: input.beatNumber,
+    masterId,
+    labels,
+    claimIds: input.claimIds,
+  });
+  const sink = nodes.at(-1)!;
+  const edges = nodes.slice(0, -1).map((node, index) => ({
+    id: `edge-${input.beatNumber}-${index + 1}`,
+    fromNodeId: node.id,
+    toNodeId: sink.id,
+    relationship: "contributes-to" as const,
+    linkedClaimIds: input.claimIds,
+  }));
+  const state = finalizeDiagramSemanticStateV35({
+    state: {
+      id: `diagram-state-${input.beatNumber}`,
+      masterId,
+      diagramType: "causal-chain",
+      exactQuestion: wordSafeSlice(input.text, 160),
+      nodes,
+      edges,
+      semanticStatus: "valid",
+      blockerCodes: [],
+      fallbackDecision: null,
+      evidenceClaimIds: input.claimIds,
+    },
+    evidenceClaimText: input.text,
+    claims: input.claims,
+  });
+  if (state.semanticStatus !== "valid") return null;
+  return {
+    master: {
+      id: masterId,
+      diagramType: state.diagramType,
+      exactQuestion: state.exactQuestion,
+      supportedRatios: ["16:9", "9:16"],
+    },
+    state,
+  };
+}
+
+function acceptCompiledDiagramV35(
+  compiled: ReturnType<typeof compileTopologyDiagramV35>
+): ReturnType<typeof compileTopologyDiagramV35> | null {
+  if (compiled.state.semanticStatus === "blocked" || compiled.state.blockerCodes.length > 0)
+    return null;
+  return compiled;
+}
+
 export function compileTopologyDiagramV35(input: {
   readonly beatNumber: string;
   readonly masterId: string;
@@ -148,6 +236,7 @@ export function compileTopologyDiagramV35(input: {
   readonly labels: readonly string[];
   readonly claimIds: readonly string[];
   readonly text: string;
+  readonly claims?: readonly HistoryClaimV34[];
   readonly topology?: HistoryDiagramTopologyV35;
   readonly visibleCount?: number;
 }): {
@@ -194,6 +283,7 @@ export function compileTopologyDiagramV35(input: {
     state: finalizeDiagramSemanticStateV35({
       state: baseState,
       evidenceClaimText: input.text,
+      ...(input.claims ? { claims: input.claims } : {}),
     }),
   };
 }
@@ -225,7 +315,17 @@ export function compileAbstractCausalDiagramV35(input: {
     entityLabels: [],
   });
   if (!scored.eligible || scored.score < 3) return null;
-  const labels = extractThematicCausalLabelsV35(input.text);
+  const explicit = compileExplicitClauseDiagramV35(input);
+  if (explicit) return explicit;
+  const thematicLabels = extractThematicCausalLabelsV35(input.text);
+  const listedFactors = extractListedCausalFactorsV35(input.text);
+  const combinedOutcome = extractCombinedOutcomeV35(input.text);
+  const labels =
+    listedFactors.length >= 3 && /\bcombining\b/iu.test(input.text) && combinedOutcome
+      ? [...listedFactors.slice(0, 4), combinedOutcome]
+      : thematicLabels.length >= 2
+        ? thematicLabels
+        : listedFactors;
   if (labels.length < 2) return null;
   const hasCausalLanguage =
     /\b(?:because|led to|resulted|therefore|collapse|combined|combining|coherent|interconnected|dependencies?|mechanism|warns? us against|systems?|method|escalation|flooding|evacuation)\b/iu.test(
@@ -233,9 +333,8 @@ export function compileAbstractCausalDiagramV35(input: {
     );
   if (!hasCausalLanguage) return null;
   const masterId = `diagram-master-causal-${input.beatNumber}`;
-  const listedFactors = extractListedCausalFactorsV35(input.text);
   const topology =
-    listedFactors.length >= 3 && /\bcombining\b/iu.test(input.text)
+    listedFactors.length >= 3 && /\bcombining\b/iu.test(input.text) && combinedOutcome
       ? ("parallel-contributors" as const)
       : inferDiagramTopologyV35({ labels, text: input.text });
   const diagramType =
@@ -255,57 +354,55 @@ export function compileAbstractCausalDiagramV35(input: {
     labels: labels.slice(0, 5),
     claimIds: input.claimIds,
     text: input.text,
+    claims: input.claims,
     topology,
   });
-  return compiled.state.semanticStatus === "blocked" ? null : compiled;
+  return acceptCompiledDiagramV35(compiled);
 }
 
 export function compileBronzeTradeDiagramV35(input: {
   readonly beatNumber: string;
   readonly text: string;
   readonly claimIds: readonly string[];
+  readonly claims?: readonly HistoryClaimV34[];
 }): ReturnType<typeof compileTopologyDiagramV35> | null {
+  if (!/\b(?:bronze|copper|tin)\b/iu.test(input.text)) return null;
   const labels = [
     "copper from Cyprus",
     "tin from distant regions",
     "bronze production",
     "palace trade networks",
-  ].filter(
-    (label) =>
-      new RegExp(label.split(" ")[0]!, "iu").test(input.text) ||
-      /trade|bronze|copper|tin|palace|interdependence/iu.test(input.text)
-  );
+  ].filter((label) => isClaimGroundedDiagramLabelV35(label, input.text));
   if (labels.length < 3) return null;
-  return compileTopologyDiagramV35({
-    beatNumber: input.beatNumber,
-    masterId: "diagram-master-bronze-age-trade-network",
-    diagramType: "process",
-    exactQuestion: "How did Bronze Age trade networks interconnect the eastern Mediterranean?",
-    labels,
-    claimIds: input.claimIds,
-    text: input.text,
-    topology: "parallel-contributors",
-    visibleCount: Math.min(labels.length, 4),
-  });
+  return acceptCompiledDiagramV35(
+    compileTopologyDiagramV35({
+      beatNumber: input.beatNumber,
+      masterId: "diagram-master-bronze-age-trade-network",
+      diagramType: "process",
+      exactQuestion: "How did Bronze Age trade networks interconnect the eastern Mediterranean?",
+      labels,
+      claimIds: input.claimIds,
+      text: input.text,
+      ...(input.claims ? { claims: input.claims } : {}),
+      topology: "parallel-contributors",
+      visibleCount: Math.min(labels.length, 4),
+    })
+  );
 }
 
 export function compileBronzeSystemsCollapseDiagramV35(input: {
   readonly beatNumber: string;
   readonly text: string;
   readonly claimIds: readonly string[];
+  readonly claims?: readonly HistoryClaimV34[];
 }): ReturnType<typeof compileTopologyDiagramV35> | null {
   const labels = [
     "drought pressure",
-    "trade network disruption",
-    "earthquake disruption",
-    "military fragmentation",
-    "palace administrative failure",
+    "migration pressure",
+    "trade disruption",
+    "political instability",
     "systems collapse",
-  ].filter(
-    (label) =>
-      new RegExp(label.split(" ")[0]!, "iu").test(input.text) ||
-      /collapse|interdependence|disruption|palace|drought|earthquake|military/iu.test(input.text)
-  );
+  ].filter((label) => isClaimGroundedDiagramLabelV35(label, input.text));
   if (labels.length < 3) return null;
   const contributors = labels.filter((label) => !/systems collapse/i.test(label));
   const outcomes = labels.filter((label) => /systems collapse/i.test(label));
@@ -315,15 +412,18 @@ export function compileBronzeSystemsCollapseDiagramV35(input: {
     ...contributors.slice(0, maxContributors),
     ...outcomes,
   ].slice(0, visibleCount);
-  return compileTopologyDiagramV35({
-    beatNumber: input.beatNumber,
-    masterId: "diagram-master-bronze-age-systems-collapse",
-    diagramType: "process",
-    exactQuestion: "What systemic dependencies does the narration link to collapse?",
-    labels: visibleLabels,
-    claimIds: input.claimIds,
-    text: input.text,
-    topology: "convergence",
-    visibleCount: visibleLabels.length,
-  });
+  return acceptCompiledDiagramV35(
+    compileTopologyDiagramV35({
+      beatNumber: input.beatNumber,
+      masterId: "diagram-master-bronze-age-systems-collapse",
+      diagramType: "process",
+      exactQuestion: "What systemic dependencies does the narration link to collapse?",
+      labels: visibleLabels,
+      claimIds: input.claimIds,
+      text: input.text,
+      ...(input.claims ? { claims: input.claims } : {}),
+      topology: "convergence",
+      visibleCount: visibleLabels.length,
+    })
+  );
 }

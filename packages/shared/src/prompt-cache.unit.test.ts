@@ -11,15 +11,21 @@ import {
 describe("prompt cache planning", () => {
   it("keeps dynamic content after an identical stable prefix", () => {
     const first = renderCacheablePrompt({
-      stableBlocks: [{ id: "contract", content: "Stable rules\r\nNo scaffolding" }],
+      stableBlocks: [
+        { id: "contract", content: "Stable rules\r\nNo scaffolding" },
+      ],
       dynamicBlocks: [{ id: "story", content: "Episode 30 Clara" }],
     });
     const second = renderCacheablePrompt({
-      stableBlocks: [{ id: "contract", content: "Stable rules\nNo scaffolding" }],
+      stableBlocks: [
+        { id: "contract", content: "Stable rules\nNo scaffolding" },
+      ],
       dynamicBlocks: [{ id: "story", content: "Episode 31 David" }],
     });
     expect(first.staticPrefix).toBe(second.staticPrefix);
-    expect(first.rendered.indexOf("Episode 30")).toBeGreaterThan(first.staticPrefix.length);
+    expect(first.rendered.indexOf("Episode 30")).toBeGreaterThan(
+      first.staticPrefix.length
+    );
     expect(first.breakpointAfterBlock).toBe("contract");
   });
 
@@ -37,11 +43,31 @@ describe("prompt cache planning", () => {
       },
       2
     );
-    expect(key).toMatch(/^mediaforge:image-scene:v5:scene:full:de:image-2:16x9:[a-f0-9]{12}:shard-2$/u);
+    expect(key).toMatch(
+      /^mediaforge:image-scene:v5:scene:full:de:image-2:16x9:[a-f0-9]{12}:shard-2$/u
+    );
     expect(key).not.toContain("Clara");
     expect(key).not.toContain("private");
     expect(stablePromptCacheShard("scene-03", 4)).toBe(
       stablePromptCacheShard("scene-03", 4)
+    );
+  });
+
+  it("reuses language-independent visual prompt keys across locales and aliases", () => {
+    const common = {
+      profileId: "strategic-reinvention",
+      family: "image-scene",
+      version: "v5",
+      operation: "scene",
+      format: "full",
+      modelTier: "image-2",
+      languageIndependent: true,
+    } as const;
+    expect(buildPromptCacheKey({ ...common, language: "it" }, 1)).toBe(
+      buildPromptCacheKey(
+        { ...common, profileId: "veronicabenini", language: "de" },
+        1
+      )
     );
   });
 

@@ -1,0 +1,1360 @@
+{
+  "packVersion": "1.0.0",
+  "canonicalGenre": "veronicabenini",
+  "internalAlias": "strategic-reinvention",
+  "journeyCount": 14,
+  "storyCount": 81,
+  "epicCount": 16,
+  "stories": [
+    {
+      "id": "VER-001",
+      "epic": "VER-EP-01",
+      "title": "Create an episode",
+      "actor": "Creator",
+      "story": "As a creator, I want to create a Veronica episode with a working title and production defaults so that I can start from a canonical revision.",
+      "acceptanceCriteria": [
+        "Creates exactly one canonical episode for an idempotent request.",
+        "Persists genre/version/default-language metadata.",
+        "Initial status is explicit and machine-readable."
+      ],
+      "journeys": [
+        "VJ-01",
+        "VJ-12"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-002",
+      "epic": "VER-EP-01",
+      "title": "Clone an episode safely",
+      "actor": "Creator",
+      "story": "As a creator, I want to clone a prior episode as a new draft so that I can reuse structure without mutating the original.",
+      "acceptanceCriteria": [
+        "Original revision remains immutable.",
+        "Clone records parent lineage.",
+        "Episode-specific generated assets are not reused unless dependency-compatible."
+      ],
+      "journeys": [
+        "VJ-01",
+        "VJ-08"
+      ],
+      "priority": "P1"
+    },
+    {
+      "id": "VER-003",
+      "epic": "VER-EP-01",
+      "title": "Version episode changes",
+      "actor": "Creator",
+      "story": "As a creator, I want material edits to create a new production revision so that approved history remains auditable.",
+      "acceptanceCriteria": [
+        "Approved revisions cannot be overwritten.",
+        "Revision has stable identifier and parent reference.",
+        "Changed fields are diffable."
+      ],
+      "journeys": [
+        "VJ-01",
+        "VJ-07",
+        "VJ-08"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-004",
+      "epic": "VER-EP-01",
+      "title": "Archive an episode",
+      "actor": "Creator",
+      "story": "As a creator, I want to archive an episode without deleting its lineage so that inactive work is removed from normal queues.",
+      "acceptanceCriteria": [
+        "Archive is reversible when policy allows.",
+        "Artifacts and audit history remain available.",
+        "Archived episodes cannot publish accidentally."
+      ],
+      "journeys": [
+        "VJ-01",
+        "VJ-12"
+      ],
+      "priority": "P1"
+    },
+    {
+      "id": "VER-005",
+      "epic": "VER-EP-01",
+      "title": "Apply versioned genre defaults",
+      "actor": "System",
+      "story": "As the production system, I want every run to capture the effective Veronica genre configuration so that output is reproducible.",
+      "acceptanceCriteria": [
+        "Run stores immutable effective-config identifier.",
+        "Later config changes do not alter old revisions.",
+        "Defaults can be overridden only by authorized explicit settings."
+      ],
+      "journeys": [
+        "VJ-01",
+        "VJ-14"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-010",
+      "epic": "VER-EP-02",
+      "title": "Upload mixed source assets",
+      "actor": "Creator",
+      "story": "As a creator, I want to attach PDFs, slide decks, documents, images, and screenshots so that the episode can be source-driven.",
+      "acceptanceCriteria": [
+        "Each upload receives a content fingerprint.",
+        "Source type and immutable metadata are stored.",
+        "Failure of one asset does not discard valid assets."
+      ],
+      "journeys": [
+        "VJ-02"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-011",
+      "epic": "VER-EP-02",
+      "title": "Deduplicate identical sources",
+      "actor": "System",
+      "story": "As the system, I want identical source content deduplicated so that extraction and storage are not repeated.",
+      "acceptanceCriteria": [
+        "Deduplication uses content identity, not filename alone.",
+        "References from multiple episodes remain valid.",
+        "Extraction outputs may be reused when policy/config inputs match."
+      ],
+      "journeys": [
+        "VJ-02",
+        "VJ-09"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-012",
+      "epic": "VER-EP-02",
+      "title": "Extract source structure",
+      "actor": "System",
+      "story": "As the system, I want to extract page/slide/text/media structure so that downstream agents can reason about source material.",
+      "acceptanceCriteria": [
+        "Extraction result is structured and versioned.",
+        "Page/slide coordinates are retained where relevant.",
+        "Original files are never modified."
+      ],
+      "journeys": [
+        "VJ-02"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-013",
+      "epic": "VER-EP-02",
+      "title": "Classify source usage policy",
+      "actor": "Creator",
+      "story": "As a creator, I want to mark assets as mandatory, optional, context-only, or forbidden-for-display so that the agent respects editorial constraints.",
+      "acceptanceCriteria": [
+        "Policy is stored per source or sub-resource.",
+        "Forbidden-for-display material cannot enter final visual outputs.",
+        "Context-only content may influence narration if authorized."
+      ],
+      "journeys": [
+        "VJ-02",
+        "VJ-04"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-014",
+      "epic": "VER-EP-02",
+      "title": "Reuse prior extraction",
+      "actor": "System",
+      "story": "As the system, I want unchanged source extraction reused so that repeated runs do not incur duplicate processing.",
+      "acceptanceCriteria": [
+        "Reuse is based on source hash plus extraction-version compatibility.",
+        "Reason for reuse is recorded.",
+        "Forced re-extraction is explicit."
+      ],
+      "journeys": [
+        "VJ-02",
+        "VJ-08"
+      ],
+      "priority": "P1"
+    },
+    {
+      "id": "VER-015",
+      "epic": "VER-EP-02",
+      "title": "Track source-to-output lineage",
+      "actor": "Reviewer",
+      "story": "As a reviewer, I want to see which source items influenced narration and visuals so that I can audit the episode.",
+      "acceptanceCriteria": [
+        "Lineage links support page/slide-level references when available.",
+        "Generated derivatives retain source references.",
+        "Review pack exposes lineage without leaking hidden system data."
+      ],
+      "journeys": [
+        "VJ-02",
+        "VJ-07"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-020",
+      "epic": "VER-EP-03",
+      "title": "Generate episode outline",
+      "actor": "Creator",
+      "story": "As a creator, I want an outline derived from the episode and sources so that the story has a coherent structure.",
+      "acceptanceCriteria": [
+        "Outline uses canonical source/episode revision.",
+        "Outline is independently revisioned.",
+        "Unsupported invented source assertions are not silently treated as sourced."
+      ],
+      "journeys": [
+        "VJ-01",
+        "VJ-03"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-021",
+      "epic": "VER-EP-03",
+      "title": "Generate duration-bounded narration",
+      "actor": "Creator",
+      "story": "As a creator, I want narration targeted to the requested duration so that the render fits the intended format.",
+      "acceptanceCriteria": [
+        "Narration has timing estimate.",
+        "Duration tolerance is configurable.",
+        "Material edits recalculate dependent timing."
+      ],
+      "journeys": [
+        "VJ-03"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-022",
+      "epic": "VER-EP-03",
+      "title": "Adapt source wording",
+      "actor": "Creator",
+      "story": "As a creator, I want the agent to adapt and reorganize supplied wording so that the episode is coherent rather than a verbatim slideshow.",
+      "acceptanceCriteria": [
+        "Adaptation preserves intended meaning.",
+        "Source lineage remains available internally.",
+        "Narration and on-screen copy are represented separately."
+      ],
+      "journeys": [
+        "VJ-03"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-023",
+      "epic": "VER-EP-03",
+      "title": "Produce TTS-safe narration",
+      "actor": "System",
+      "story": "As the system, I want a clean spoken script so that TTS does not read markdown headings or production metadata.",
+      "acceptanceCriteria": [
+        "Spoken payload excludes non-spoken markup.",
+        "Pronunciation annotations use supported structured fields.",
+        "Rendered captions can still retain semantic segmentation."
+      ],
+      "journeys": [
+        "VJ-03",
+        "VJ-07"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-024",
+      "epic": "VER-EP-03",
+      "title": "Edit narration manually",
+      "actor": "Editor",
+      "story": "As an editor, I want to edit narration and preserve the diff so that human corrections remain auditable.",
+      "acceptanceCriteria": [
+        "Edit creates/updates a draft revision.",
+        "Diff from previous narration is available.",
+        "Only affected downstream dependencies are invalidated."
+      ],
+      "journeys": [
+        "VJ-03",
+        "VJ-08"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-025",
+      "epic": "VER-EP-03",
+      "title": "Freeze narration for production",
+      "actor": "Editor",
+      "story": "As an editor, I want to approve/freeze narration so that expensive downstream work uses stable inputs.",
+      "acceptanceCriteria": [
+        "Frozen narration has stable hash.",
+        "Dependent jobs reference that hash.",
+        "Later edits create a new revision rather than mutating frozen input."
+      ],
+      "journeys": [
+        "VJ-03",
+        "VJ-07"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-030",
+      "epic": "VER-EP-04",
+      "title": "Derive scene visual plan",
+      "actor": "System",
+      "story": "As the production system, I want a scene-level visual plan aligned to narration so that assets and timing are coherent.",
+      "acceptanceCriteria": [
+        "Every scene maps to narration/time range.",
+        "Visual type is explicit.",
+        "Plan records source/generated/reused intent."
+      ],
+      "journeys": [
+        "VJ-04"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-031",
+      "epic": "VER-EP-04",
+      "title": "Prefer relevant source media",
+      "actor": "Creator",
+      "story": "As a creator, I want supplied media reused when it fits so that original material is preserved and generation cost is reduced.",
+      "acceptanceCriteria": [
+        "System considers source media before generated replacement.",
+        "Reuse requires semantic relevance.",
+        "Unsuitable source media can be redesigned without overwriting the original."
+      ],
+      "journeys": [
+        "VJ-02",
+        "VJ-04"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-032",
+      "epic": "VER-EP-04",
+      "title": "Redesign source slides",
+      "actor": "Creator",
+      "story": "As a creator, I want source slides to be redesigned when needed for clarity so that they work as video visuals.",
+      "acceptanceCriteria": [
+        "Meaning and required content are preserved.",
+        "Redesign is represented as a derivative with lineage.",
+        "Original source remains immutable."
+      ],
+      "journeys": [
+        "VJ-04",
+        "VJ-05",
+        "VJ-06"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-033",
+      "epic": "VER-EP-04",
+      "title": "Derive camera/image direction once",
+      "actor": "System",
+      "story": "As the system, I want episode-level camera/image direction derived from relevant context and cached so that image generation remains coherent and does not repeat expensive analysis.",
+      "acceptanceCriteria": [
+        "Direction considers relevant topic/time/place/style inputs.",
+        "Result is persisted by compatible input hash.",
+        "Regeneration reuses it unless a relevant dependency changes."
+      ],
+      "journeys": [
+        "VJ-04",
+        "VJ-08"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-034",
+      "epic": "VER-EP-04",
+      "title": "Attach reference images only when relevant",
+      "actor": "System",
+      "story": "As the system, I want reference images attached only to visual prompts that require them so that prompts remain efficient and semantically focused.",
+      "acceptanceCriteria": [
+        "Reference attachment requires explicit relevance.",
+        "Unrelated scenes receive no reference payload.",
+        "Lineage identifies reference source."
+      ],
+      "journeys": [
+        "VJ-04"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-035",
+      "epic": "VER-EP-04",
+      "title": "Support heterogeneous visual types",
+      "actor": "Creator",
+      "story": "As a creator, I want the plan to mix source visuals, generated imagery, diagrams, typography, and redesigned slides so that episodes avoid repetitive visual treatment.",
+      "acceptanceCriteria": [
+        "Visual type is scene-specific.",
+        "Plan supports at least the configured media classes.",
+        "Validation can flag excessive structural repetition."
+      ],
+      "journeys": [
+        "VJ-04"
+      ],
+      "priority": "P1"
+    },
+    {
+      "id": "VER-036",
+      "epic": "VER-EP-04",
+      "title": "Review visual plan before generation",
+      "actor": "Editor",
+      "story": "As an editor, I want to review the visual plan before expensive generation so that obvious mistakes are caught cheaply.",
+      "acceptanceCriteria": [
+        "Policy can require pre-generation approval.",
+        "Rejected scenes can be corrected independently.",
+        "Approved plan revision is captured by downstream jobs."
+      ],
+      "journeys": [
+        "VJ-04",
+        "VJ-07"
+      ],
+      "priority": "P1"
+    },
+    {
+      "id": "VER-040",
+      "epic": "VER-EP-05",
+      "title": "Create 16:9 composition",
+      "actor": "Creator",
+      "story": "As a creator, I want a 16:9 edition so that the episode is suitable for standard YouTube viewing.",
+      "acceptanceCriteria": [
+        "Uses canonical narration/content revision.",
+        "Text respects configured safe areas/readability.",
+        "Shared visual assets are reused where compatible."
+      ],
+      "journeys": [
+        "VJ-05"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-041",
+      "epic": "VER-EP-05",
+      "title": "Create 9:16 composition",
+      "actor": "Creator",
+      "story": "As a creator, I want a 9:16 edition so that the same episode can produce vertical content.",
+      "acceptanceCriteria": [
+        "Vertical layout is independently composed.",
+        "Text is not merely scaled from 16:9.",
+        "Source slides can be recomposed for mobile readability."
+      ],
+      "journeys": [
+        "VJ-05"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-042",
+      "epic": "VER-EP-05",
+      "title": "Share semantic content across formats",
+      "actor": "System",
+      "story": "As the system, I want both aspect ratios linked to the same semantic revision so that format derivatives do not diverge editorially.",
+      "acceptanceCriteria": [
+        "Both formats reference same canonical narration revision unless explicitly forked.",
+        "Layout-only changes do not alter canonical narration.",
+        "Format-specific approval status is supported."
+      ],
+      "journeys": [
+        "VJ-05",
+        "VJ-08"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-043",
+      "epic": "VER-EP-05",
+      "title": "Validate mobile readability",
+      "actor": "Reviewer",
+      "story": "As a reviewer, I want vertical text/safe-area validation so that 9:16 output is usable on phones.",
+      "acceptanceCriteria": [
+        "Checks detect clipping/unsafe margins.",
+        "Configurable minimum text readability exists.",
+        "Defects are reported per scene/frame."
+      ],
+      "journeys": [
+        "VJ-05",
+        "VJ-07"
+      ],
+      "priority": "P1"
+    },
+    {
+      "id": "VER-050",
+      "epic": "VER-EP-06",
+      "title": "Create a localized edition",
+      "actor": "Creator",
+      "story": "As a creator, I want to localize an approved episode into another language so that I can publish the same content internationally.",
+      "acceptanceCriteria": [
+        "Localized edition references canonical source revision.",
+        "Language-specific artifacts are independently versioned.",
+        "Shared language-independent assets remain reusable."
+      ],
+      "journeys": [
+        "VJ-06"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-051",
+      "epic": "VER-EP-06",
+      "title": "Translate narration contextually",
+      "actor": "Localization Reviewer",
+      "story": "As a localization reviewer, I want narration translated for natural target-language delivery so that it does not sound mechanically literal.",
+      "acceptanceCriteria": [
+        "Translation preserves meaning and genre voice.",
+        "Timing intent is retained or explicitly rebalanced.",
+        "Translation revision is auditable."
+      ],
+      "journeys": [
+        "VJ-06"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-052",
+      "epic": "VER-EP-06",
+      "title": "Translate embedded text",
+      "actor": "Viewer",
+      "story": "As a viewer, I want meaningful on-screen text in my language so that localized videos are fully understandable.",
+      "acceptanceCriteria": [
+        "All tracked localizable overlays are translated.",
+        "Language-specific text is composed separately from reusable background visual when possible.",
+        "Untranslated mandatory text is surfaced as a blocker/warning per policy."
+      ],
+      "journeys": [
+        "VJ-06"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-053",
+      "epic": "VER-EP-06",
+      "title": "Reuse language-independent images",
+      "actor": "Creator",
+      "story": "As a creator, I want language-independent images reused across locales so that localization does not pay for image regeneration.",
+      "acceptanceCriteria": [
+        "Image regeneration is not triggered solely by language change.",
+        "Shared assets retain common lineage.",
+        "Localized layout can overlay translated text separately."
+      ],
+      "journeys": [
+        "VJ-06",
+        "VJ-08"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-054",
+      "epic": "VER-EP-06",
+      "title": "Regenerate only inseparable localized visuals",
+      "actor": "System",
+      "story": "As the system, I want a visual regenerated only when language is inseparably embedded or layout cannot be safely recomposed so that cost remains bounded.",
+      "acceptanceCriteria": [
+        "Regeneration reason is explicit.",
+        "System attempts composition/redesign before generation when allowed.",
+        "Only affected localized derivatives become stale."
+      ],
+      "journeys": [
+        "VJ-06",
+        "VJ-08"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-055",
+      "epic": "VER-EP-06",
+      "title": "Localize metadata and captions",
+      "actor": "Creator",
+      "story": "As a creator, I want titles, descriptions, captions, chapters, and other publishable metadata localized with the episode.",
+      "acceptanceCriteria": [
+        "Metadata is versioned per locale.",
+        "Captions align with localized narration timing.",
+        "Publishing uses matching locale artifacts."
+      ],
+      "journeys": [
+        "VJ-06",
+        "VJ-10"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-056",
+      "epic": "VER-EP-06",
+      "title": "Review localization deltas",
+      "actor": "Localization Reviewer",
+      "story": "As a localization reviewer, I want a delta-focused review so that I do not re-review unchanged imagery.",
+      "acceptanceCriteria": [
+        "Review UI/pack distinguishes shared from localized artifacts.",
+        "Reviewer can reject language-specific artifacts independently.",
+        "Shared approved assets remain approved unless semantically invalidated."
+      ],
+      "journeys": [
+        "VJ-06",
+        "VJ-07"
+      ],
+      "priority": "P1"
+    },
+    {
+      "id": "VER-060",
+      "epic": "VER-EP-07",
+      "title": "Generate TTS audio",
+      "actor": "Creator",
+      "story": "As a creator, I want TTS generated from the approved spoken script so that narration can be rendered automatically.",
+      "acceptanceCriteria": [
+        "TTS uses configured provider and voice.",
+        "Audio records provider/model/voice/effective settings.",
+        "Identical compatible input reuses cached audio."
+      ],
+      "journeys": [
+        "VJ-03",
+        "VJ-06"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-061",
+      "epic": "VER-EP-07",
+      "title": "Configure voice per genre/language",
+      "actor": "Administrator",
+      "story": "As an administrator, I want genre and language voice defaults with overrides so that production remains consistent.",
+      "acceptanceCriteria": [
+        "Effective voice resolution is deterministic.",
+        "Missing required voice/provider fails preflight.",
+        "Run captures effective voice ID/config."
+      ],
+      "journeys": [
+        "VJ-06",
+        "VJ-14"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-062",
+      "epic": "VER-EP-07",
+      "title": "Generate synchronized captions",
+      "actor": "Viewer",
+      "story": "As a viewer, I want captions synchronized to narration so that the video is accessible and usable without audio.",
+      "acceptanceCriteria": [
+        "Caption timing derives from final audio/timing source.",
+        "Captions are localized per edition.",
+        "Caption artifact is independently downloadable/renderable."
+      ],
+      "journeys": [
+        "VJ-06",
+        "VJ-10"
+      ],
+      "priority": "P1"
+    },
+    {
+      "id": "VER-063",
+      "epic": "VER-EP-07",
+      "title": "Replace TTS without rebuilding visuals",
+      "actor": "Creator",
+      "story": "As a creator, I want to change voice/audio without regenerating unaffected images so that voice iteration is cheap.",
+      "acceptanceCriteria": [
+        "Voice-only changes invalidate audio and timing-dependent render outputs.",
+        "Language-independent visuals remain valid.",
+        "Review pack highlights audio/render delta."
+      ],
+      "journeys": [
+        "VJ-08"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-070",
+      "epic": "VER-EP-08",
+      "title": "Generate approval pack",
+      "actor": "Reviewer",
+      "story": "As a reviewer, I want a self-contained approval pack so that I can evaluate an episode without inspecting internal runtime state.",
+      "acceptanceCriteria": [
+        "Pack identifies exact production revision.",
+        "Includes narration, plan, assets, lineage, diagnostics, and previews as configured.",
+        "Pack generation itself does not alter production state."
+      ],
+      "journeys": [
+        "VJ-07",
+        "VJ-09"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-071",
+      "epic": "VER-EP-08",
+      "title": "Approve a production revision",
+      "actor": "Reviewer",
+      "story": "As a reviewer, I want to approve an exact revision so that only reviewed artifacts can progress.",
+      "acceptanceCriteria": [
+        "Approval stores actor/time/revision hashes.",
+        "Approval is invalidated only by relevant semantic change.",
+        "Publishing requires required approvals."
+      ],
+      "journeys": [
+        "VJ-07",
+        "VJ-10"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-072",
+      "epic": "VER-EP-08",
+      "title": "Reject a specific artifact",
+      "actor": "Reviewer",
+      "story": "As a reviewer, I want to reject a scene, translation, audio track, or other bounded artifact so that remediation can stay narrow.",
+      "acceptanceCriteria": [
+        "Rejection targets typed artifact/stage.",
+        "Reason is required.",
+        "Invalidation scope is computed from dependencies."
+      ],
+      "journeys": [
+        "VJ-07",
+        "VJ-08"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-073",
+      "epic": "VER-EP-08",
+      "title": "Compare revisions",
+      "actor": "Reviewer",
+      "story": "As a reviewer, I want to compare previous and remediated revisions so that I can focus on actual changes.",
+      "acceptanceCriteria": [
+        "Text and artifact changes are identifiable.",
+        "Unchanged reused artifacts are clearly marked.",
+        "Comparison references immutable revisions."
+      ],
+      "journeys": [
+        "VJ-07"
+      ],
+      "priority": "P1"
+    },
+    {
+      "id": "VER-074",
+      "epic": "VER-EP-08",
+      "title": "Audit approvals and configuration",
+      "actor": "Administrator",
+      "story": "As an administrator, I want approval/configuration history so that production decisions can be reconstructed.",
+      "acceptanceCriteria": [
+        "Audit events are append-only or equivalently tamper-evident.",
+        "Actor and effective configuration are recorded.",
+        "Sensitive secrets are never logged."
+      ],
+      "journeys": [
+        "VJ-07",
+        "VJ-14"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-080",
+      "epic": "VER-EP-09",
+      "title": "Compute typed invalidation",
+      "actor": "System",
+      "story": "As the system, I want dependency-aware invalidation so that only affected artifacts are regenerated.",
+      "acceptanceCriteria": [
+        "Dependencies are explicit and typed.",
+        "Invalidation reason is inspectable.",
+        "No unrelated artifact is invalidated by default."
+      ],
+      "journeys": [
+        "VJ-08"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-081",
+      "epic": "VER-EP-09",
+      "title": "Cache expensive provider outputs",
+      "actor": "System",
+      "story": "As the system, I want compatible LLM/image/TTS results cached so that retries and regeneration do not repeat cost-bearing work.",
+      "acceptanceCriteria": [
+        "Cache key includes semantic inputs and relevant config/model versions.",
+        "Reuse is auditable.",
+        "User can force regeneration with explicit intent/authorization."
+      ],
+      "journeys": [
+        "VJ-08",
+        "VJ-09"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-082",
+      "epic": "VER-EP-09",
+      "title": "Make mutations idempotent",
+      "actor": "API Consumer",
+      "story": "As an API consumer, I want retriable mutations to be idempotent so that network retries do not duplicate jobs or artifacts.",
+      "acceptanceCriteria": [
+        "Idempotency key semantics are documented.",
+        "Same key/same request returns same logical result.",
+        "Conflicting payload under same key returns explicit conflict."
+      ],
+      "journeys": [
+        "VJ-08",
+        "VJ-12"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-083",
+      "epic": "VER-EP-09",
+      "title": "Resume from first stale stage",
+      "actor": "Operator",
+      "story": "As an operator, I want a failed or changed run to resume from the earliest affected dependency so that prior valid work is preserved.",
+      "acceptanceCriteria": [
+        "Resume plan is visible.",
+        "Successful compatible stages are reused.",
+        "Run lineage records parent/attempt."
+      ],
+      "journeys": [
+        "VJ-08",
+        "VJ-11"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-084",
+      "epic": "VER-EP-09",
+      "title": "Explain reuse vs regeneration",
+      "actor": "Reviewer",
+      "story": "As a reviewer, I want to know why each artifact was reused or regenerated so that I can trust caching behavior.",
+      "acceptanceCriteria": [
+        "Reason codes are machine-readable.",
+        "Review pack can surface reason summaries.",
+        "Provider-cost-bearing rebuilds include triggering dependency."
+      ],
+      "journeys": [
+        "VJ-07",
+        "VJ-08"
+      ],
+      "priority": "P1"
+    },
+    {
+      "id": "VER-090",
+      "epic": "VER-EP-10",
+      "title": "Queue bulk episode production",
+      "actor": "Operator",
+      "story": "As an operator, I want to submit many episodes for production so that campaigns can be produced efficiently.",
+      "acceptanceCriteria": [
+        "Episodes are independent queue units.",
+        "Bulk request has stable identifier.",
+        "Invalid episode input does not prevent valid episodes from queuing."
+      ],
+      "journeys": [
+        "VJ-09"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-091",
+      "epic": "VER-EP-10",
+      "title": "Preflight a batch",
+      "actor": "Operator",
+      "story": "As an operator, I want credentials, quotas, policy, and source requirements checked before a batch starts so that predictable failures happen cheaply.",
+      "acceptanceCriteria": [
+        "Preflight has no unintended paid generation calls.",
+        "Blockers identify affected episodes.",
+        "Operator can proceed with valid subset when policy permits."
+      ],
+      "journeys": [
+        "VJ-09",
+        "VJ-14"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-092",
+      "epic": "VER-EP-10",
+      "title": "Bound production concurrency",
+      "actor": "Administrator",
+      "story": "As an administrator, I want stage/provider concurrency limits so that bulk production does not overload infrastructure or rate limits.",
+      "acceptanceCriteria": [
+        "Concurrency is configurable by relevant resource/provider.",
+        "Limits are enforced across workers.",
+        "Queue fairness/starvation behavior is defined."
+      ],
+      "journeys": [
+        "VJ-09",
+        "VJ-14"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-093",
+      "epic": "VER-EP-10",
+      "title": "Retry failed batch items independently",
+      "actor": "Operator",
+      "story": "As an operator, I want failed episode/stage items retried independently so that successful work is not repeated.",
+      "acceptanceCriteria": [
+        "Retry target can be episode/stage scoped.",
+        "Successful artifacts remain unchanged.",
+        "Aggregate status reflects partial success."
+      ],
+      "journeys": [
+        "VJ-09",
+        "VJ-11"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-094",
+      "epic": "VER-EP-10",
+      "title": "Generate aggregate approval pack",
+      "actor": "Reviewer",
+      "story": "As a reviewer, I want an aggregate pack across episodes so that bulk review is efficient without hiding per-episode findings.",
+      "acceptanceCriteria": [
+        "Aggregate pack preserves per-episode boundaries.",
+        "Blockers/findings can be filtered by episode/severity.",
+        "Approval remains attributable to exact revisions."
+      ],
+      "journeys": [
+        "VJ-09",
+        "VJ-07"
+      ],
+      "priority": "P1"
+    },
+    {
+      "id": "VER-100",
+      "epic": "VER-EP-11",
+      "title": "Render with FFmpeg pipeline",
+      "actor": "Operator",
+      "story": "As an operator, I want approved assets rendered through the FFmpeg-based renderer so that outputs are reproducible.",
+      "acceptanceCriteria": [
+        "Render captures inputs/config/tool version.",
+        "Render is deterministic within supported limits.",
+        "Failure leaves inspectable logs and does not corrupt source artifacts."
+      ],
+      "journeys": [
+        "VJ-05",
+        "VJ-10"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-101",
+      "epic": "VER-EP-11",
+      "title": "Render per format and locale",
+      "actor": "Operator",
+      "story": "As an operator, I want format/locale outputs rendered independently so that one failed derivative does not block all editions.",
+      "acceptanceCriteria": [
+        "Render unit includes locale and aspect ratio.",
+        "Shared upstream assets are referenced, not duplicated unnecessarily.",
+        "Status is independent per derivative."
+      ],
+      "journeys": [
+        "VJ-05",
+        "VJ-06",
+        "VJ-11"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-102",
+      "epic": "VER-EP-11",
+      "title": "Produce delivery bundle",
+      "actor": "Creator",
+      "story": "As a creator, I want a downloadable delivery bundle so that I can publish outside the automated integration if needed.",
+      "acceptanceCriteria": [
+        "Bundle includes final media and configured metadata/captions.",
+        "Manifest identifies production revision.",
+        "Sensitive internal-only artifacts are excluded."
+      ],
+      "journeys": [
+        "VJ-10"
+      ],
+      "priority": "P1"
+    },
+    {
+      "id": "VER-103",
+      "epic": "VER-EP-11",
+      "title": "Generate render previews",
+      "actor": "Reviewer",
+      "story": "As a reviewer, I want low-cost previews before final delivery so that layout/timing defects are caught earlier.",
+      "acceptanceCriteria": [
+        "Preview is linked to same composition revision.",
+        "Preview generation can use lower-cost settings.",
+        "Approval pack identifies preview vs final render."
+      ],
+      "journeys": [
+        "VJ-07"
+      ],
+      "priority": "P1"
+    },
+    {
+      "id": "VER-110",
+      "epic": "VER-EP-12",
+      "title": "Generate publishing metadata",
+      "actor": "Creator",
+      "story": "As a creator, I want titles, descriptions, tags, chapters, and related metadata generated from the approved episode so that publishing is efficient.",
+      "acceptanceCriteria": [
+        "Metadata is tied to exact locale/revision.",
+        "User can edit before publishing.",
+        "Metadata changes do not regenerate visual assets."
+      ],
+      "journeys": [
+        "VJ-10"
+      ],
+      "priority": "P1"
+    },
+    {
+      "id": "VER-111",
+      "epic": "VER-EP-12",
+      "title": "Preflight publishing",
+      "actor": "Operator",
+      "story": "As an operator, I want publishing requirements validated before upload so that incomplete/unauthorized releases fail closed.",
+      "acceptanceCriteria": [
+        "Approval status is validated.",
+        "Credentials and required platform metadata are validated.",
+        "Visibility/schedule defaults are explicit."
+      ],
+      "journeys": [
+        "VJ-10"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-112",
+      "epic": "VER-EP-12",
+      "title": "Publish an approved edition",
+      "actor": "Creator",
+      "story": "As a creator, I want to publish an exact approved edition so that released content matches review.",
+      "acceptanceCriteria": [
+        "Published platform ID is stored.",
+        "Exact production revision is recorded.",
+        "Idempotent retry avoids duplicate platform upload where supported."
+      ],
+      "journeys": [
+        "VJ-10"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-113",
+      "epic": "VER-EP-12",
+      "title": "Schedule publication",
+      "actor": "Creator",
+      "story": "As a creator, I want to schedule an approved edition so that release timing can be planned.",
+      "acceptanceCriteria": [
+        "Schedule uses target platform/timezone semantics explicitly.",
+        "Scheduled revision cannot silently change after scheduling.",
+        "Cancellation/update is auditable."
+      ],
+      "journeys": [
+        "VJ-10"
+      ],
+      "priority": "P1"
+    },
+    {
+      "id": "VER-120",
+      "epic": "VER-EP-13",
+      "title": "Create episode via API",
+      "actor": "API Consumer",
+      "story": "As an API consumer, I want to create an episode through a typed versioned contract so that workflows can be automated.",
+      "acceptanceCriteria": [
+        "Contract validates input.",
+        "Tenant context is mandatory.",
+        "Response returns canonical resource/revision IDs."
+      ],
+      "journeys": [
+        "VJ-12"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-121",
+      "epic": "VER-EP-13",
+      "title": "Start production via API",
+      "actor": "API Consumer",
+      "story": "As an API consumer, I want to start production idempotently so that orchestration is reliable.",
+      "acceptanceCriteria": [
+        "Requires authorized episode revision.",
+        "Supports idempotency key.",
+        "Returns run/status resource."
+      ],
+      "journeys": [
+        "VJ-12"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-122",
+      "epic": "VER-EP-13",
+      "title": "Observe run status via API",
+      "actor": "API Consumer",
+      "story": "As an API consumer, I want stage-level status and failure details so that external systems can react.",
+      "acceptanceCriteria": [
+        "Status model is stable and typed.",
+        "Failure reason is actionable without leaking secrets.",
+        "Resource version/change timestamp is exposed."
+      ],
+      "journeys": [
+        "VJ-12",
+        "VJ-11"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-123",
+      "epic": "VER-EP-13",
+      "title": "Approve or reject via API",
+      "actor": "API Consumer",
+      "story": "As an authorized reviewer integration, I want to approve/reject exact revisions so that governance is available without UI-only workflows.",
+      "acceptanceCriteria": [
+        "Authorization distinguishes reviewer capability.",
+        "Target revision hash/ID is mandatory.",
+        "Audit event is created."
+      ],
+      "journeys": [
+        "VJ-12",
+        "VJ-07"
+      ],
+      "priority": "P1"
+    },
+    {
+      "id": "VER-124",
+      "epic": "VER-EP-13",
+      "title": "Receive production events",
+      "actor": "API Consumer",
+      "story": "As an API consumer, I want webhook/event notifications for meaningful lifecycle changes so that polling can be minimized.",
+      "acceptanceCriteria": [
+        "Events have stable type/schema/version.",
+        "Delivery is retryable and deduplicable.",
+        "Consumer can reconcile event with authoritative resource state."
+      ],
+      "journeys": [
+        "VJ-12"
+      ],
+      "priority": "P1"
+    },
+    {
+      "id": "VER-125",
+      "epic": "VER-EP-13",
+      "title": "Enforce tenant isolation",
+      "actor": "Administrator",
+      "story": "As an administrator, I want strict tenant isolation across sources, artifacts, credentials, logs, and jobs so that SaaS data cannot cross boundaries.",
+      "acceptanceCriteria": [
+        "Every tenant-bound resource is authorized server-side.",
+        "Storage paths/queries cannot cross tenant boundaries.",
+        "Cross-tenant access tests cover critical APIs."
+      ],
+      "journeys": [
+        "VJ-12"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-130",
+      "epic": "VER-EP-14",
+      "title": "Classify operational failures",
+      "actor": "Operator",
+      "story": "As an operator, I want failures categorized so that I know whether to retry, reconfigure, or edit input.",
+      "acceptanceCriteria": [
+        "Failure categories are stable/machine-readable.",
+        "User-facing message includes next action.",
+        "Original provider error is sanitized but traceable internally."
+      ],
+      "journeys": [
+        "VJ-11"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-131",
+      "epic": "VER-EP-14",
+      "title": "Retry transient failures safely",
+      "actor": "System",
+      "story": "As the system, I want bounded retries with backoff so that transient provider faults recover without duplicate work.",
+      "acceptanceCriteria": [
+        "Retries are bounded.",
+        "Idempotency is preserved.",
+        "Retry count/outcome is observable."
+      ],
+      "journeys": [
+        "VJ-11"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-132",
+      "epic": "VER-EP-14",
+      "title": "Use configured provider fallback",
+      "actor": "Administrator",
+      "story": "As an administrator, I want compatible fallback providers so that production can continue during outages when explicitly allowed.",
+      "acceptanceCriteria": [
+        "Fallback is opt-in/configured.",
+        "Semantic capability compatibility is validated.",
+        "Fallback usage is visible in lineage/cost records."
+      ],
+      "journeys": [
+        "VJ-11",
+        "VJ-14"
+      ],
+      "priority": "P1"
+    },
+    {
+      "id": "VER-133",
+      "epic": "VER-EP-14",
+      "title": "Expose production metrics",
+      "actor": "Operator",
+      "story": "As an operator, I want stage latency, failures, queue depth, retries, cache hits, and provider usage metrics so that the pipeline can be operated reliably.",
+      "acceptanceCriteria": [
+        "Metrics have bounded cardinality.",
+        "Tenant-sensitive content is not placed in metric labels.",
+        "Key SLO indicators can be graphed/alerted."
+      ],
+      "journeys": [
+        "VJ-09",
+        "VJ-11"
+      ],
+      "priority": "P1"
+    },
+    {
+      "id": "VER-134",
+      "epic": "VER-EP-14",
+      "title": "Correlate logs across a run",
+      "actor": "Operator",
+      "story": "As an operator, I want correlation IDs across episode/run/stage/provider calls so that incidents can be traced.",
+      "acceptanceCriteria": [
+        "Structured logs include stable correlation identifiers.",
+        "Secrets/source content are redacted according to policy.",
+        "Retries/subtasks remain linked to parent run."
+      ],
+      "journeys": [
+        "VJ-11",
+        "VJ-12"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-140",
+      "epic": "VER-EP-15",
+      "title": "Link analytics to production revision",
+      "actor": "Creator",
+      "story": "As a creator, I want performance metrics linked to the exact published revision so that I know what creative produced the result.",
+      "acceptanceCriteria": [
+        "Platform metrics reference publication/revision IDs.",
+        "Historical metrics are not reassigned when a new revision is created.",
+        "Locale/format are dimensions."
+      ],
+      "journeys": [
+        "VJ-13"
+      ],
+      "priority": "P1"
+    },
+    {
+      "id": "VER-141",
+      "epic": "VER-EP-15",
+      "title": "Compare formats and locales",
+      "actor": "Creator",
+      "story": "As a creator, I want to compare 16:9/9:16 and localized editions so that I can decide where to invest production effort.",
+      "acceptanceCriteria": [
+        "Comparisons normalize/label platform and date context.",
+        "Locale/format filters are explicit.",
+        "No automatic causal claim is made from correlation alone."
+      ],
+      "journeys": [
+        "VJ-13"
+      ],
+      "priority": "P2"
+    },
+    {
+      "id": "VER-142",
+      "epic": "VER-EP-15",
+      "title": "Fork from a successful pattern",
+      "actor": "Creator",
+      "story": "As a creator, I want to create a new episode/revision from a high-performing pattern so that successful structures can be reused deliberately.",
+      "acceptanceCriteria": [
+        "Creates a new canonical resource/revision.",
+        "Inherited settings/pattern references are explicit.",
+        "Historical published artifact is unchanged."
+      ],
+      "journeys": [
+        "VJ-13",
+        "VJ-01"
+      ],
+      "priority": "P2"
+    },
+    {
+      "id": "VER-150",
+      "epic": "VER-EP-16",
+      "title": "Configure providers",
+      "actor": "Administrator",
+      "story": "As an administrator, I want provider credentials and defaults configured centrally so that production behavior is controlled.",
+      "acceptanceCriteria": [
+        "Secrets are stored securely and never returned in plaintext.",
+        "Effective provider configuration can be preflighted.",
+        "Changes are audited."
+      ],
+      "journeys": [
+        "VJ-14"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-151",
+      "epic": "VER-EP-16",
+      "title": "Configure cost budgets",
+      "actor": "Administrator",
+      "story": "As an administrator, I want cost ceilings and paid-step policies so that agentic production cannot spend without bounds.",
+      "acceptanceCriteria": [
+        "Budget can block/require approval before cost-bearing steps.",
+        "Estimated/actual usage is recorded where available.",
+        "Exceeded budget fails safely without corrupting run state."
+      ],
+      "journeys": [
+        "VJ-09",
+        "VJ-14"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-152",
+      "epic": "VER-EP-16",
+      "title": "Configure approval policies",
+      "actor": "Administrator",
+      "story": "As an administrator, I want approval gates configurable by stage/risk so that production can balance autonomy and control.",
+      "acceptanceCriteria": [
+        "Policy is versioned.",
+        "Effective policy captured by run.",
+        "Policy changes do not retroactively approve old output."
+      ],
+      "journeys": [
+        "VJ-04",
+        "VJ-07",
+        "VJ-14"
+      ],
+      "priority": "P0"
+    },
+    {
+      "id": "VER-153",
+      "epic": "VER-EP-16",
+      "title": "Configure feature flags",
+      "actor": "Administrator",
+      "story": "As an administrator, I want new production features gated so that they can be rolled out safely.",
+      "acceptanceCriteria": [
+        "Flags are evaluated in server-side policy.",
+        "Run records relevant flag state/version.",
+        "Disabling feature has defined behavior for in-flight runs."
+      ],
+      "journeys": [
+        "VJ-14"
+      ],
+      "priority": "P1"
+    },
+    {
+      "id": "VER-154",
+      "epic": "VER-EP-16",
+      "title": "Fail closed on missing required configuration",
+      "actor": "Operator",
+      "story": "As an operator, I want production preflight to fail closed when required credentials/configuration are missing so that the system does not enter a partially invalid run.",
+      "acceptanceCriteria": [
+        "Missing configuration is detected before dependent paid work.",
+        "Error names exact configuration class without exposing secret value.",
+        "Retry after correction reuses valid preflight/source work."
+      ],
+      "journeys": [
+        "VJ-09",
+        "VJ-11",
+        "VJ-14"
+      ],
+      "priority": "P0"
+    }
+  ]
+}

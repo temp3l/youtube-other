@@ -1,0 +1,11 @@
+{
+  "phase": "2.34",
+  "result": "PASS",
+  "compilerIntents": 103,
+  "renderSpecs": 103,
+  "map": 2,
+  "diagram": 101,
+  "safeAbstentions": 0,
+  "deterministic": true,
+  "shadowOnly": true
+}

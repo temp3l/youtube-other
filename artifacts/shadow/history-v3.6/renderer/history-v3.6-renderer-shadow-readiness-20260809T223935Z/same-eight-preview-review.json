@@ -1,0 +1,24 @@
+{
+  "result": "PASS",
+  "reviewedKinds": [
+    "movement",
+    "spatial-comparison",
+    "causal",
+    "dependency",
+    "process",
+    "temporal-sequence",
+    "policy-response",
+    "evidence-set",
+    "event-location"
+  ],
+  "checks": {
+    "correctTarget": true,
+    "participants": true,
+    "directionAndOrder": true,
+    "modalityAndStatus": true,
+    "noInventedParticipants": true,
+    "noSemanticEdgeInvention": true,
+    "legibleLabels": true,
+    "severeOverlapOrCropping": false
+  }
+}

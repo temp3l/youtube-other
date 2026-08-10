@@ -1,0 +1,292 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "evidenceId": {
+      "type": "string",
+      "pattern": "^relation-proof-evidence-[a-f0-9]{24}$"
+    },
+    "schemaVersion": {
+      "type": "string",
+      "const": "history-relation-proof-evidence.v1"
+    },
+    "proofId": {
+      "type": "string",
+      "pattern": "^cross-claim-proof-[a-f0-9]{24}$"
+    },
+    "proofPattern": {
+      "type": "string",
+      "const": "uncertain-demand-attempted-restriction-policy-response"
+    },
+    "proofValidatorVersion": {
+      "type": "string",
+      "const": "history-cross-claim-proof-validator.v1"
+    },
+    "proofEvidenceFingerprint": {
+      "type": "string",
+      "pattern": "^cross-claim-proof-evidence-[a-f0-9]{24}$"
+    },
+    "episodeId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "targetRelationKind": {
+      "type": "string",
+      "const": "policy-response"
+    },
+    "direction": {
+      "type": "string",
+      "const": "condition-to-response"
+    },
+    "premises": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "object",
+          "properties": {
+            "premiseId": {
+              "type": "string",
+              "enum": [
+                "condition",
+                "response"
+              ]
+            },
+            "claimId": {
+              "type": "string",
+              "pattern": "^claim-[a-f0-9]{24}$"
+            },
+            "structuredPropositionId": {
+              "type": "string",
+              "pattern": "^structured-proposition-[a-f0-9]{24}$"
+            },
+            "atomicGroundingId": {
+              "type": "string",
+              "pattern": "^grounding-[a-f0-9]{24}$"
+            },
+            "assertionStatus": {
+              "type": "string",
+              "enum": [
+                "uncertain",
+                "attempted"
+              ]
+            },
+            "participantId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "participantSemanticRole": {
+              "type": "string",
+              "enum": [
+                "target",
+                "action"
+              ]
+            },
+            "sourceSpan": {
+              "type": "object",
+              "properties": {
+                "startUtf16": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "endUtf16Exclusive": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "textHash": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "startUtf16",
+                "endUtf16Exclusive",
+                "text",
+                "textHash"
+              ],
+              "additionalProperties": false
+            },
+            "sourceHash": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "premiseId",
+            "claimId",
+            "structuredPropositionId",
+            "atomicGroundingId",
+            "assertionStatus",
+            "participantId",
+            "participantSemanticRole",
+            "sourceSpan",
+            "sourceHash"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "premiseId": {
+              "type": "string",
+              "enum": [
+                "condition",
+                "response"
+              ]
+            },
+            "claimId": {
+              "type": "string",
+              "pattern": "^claim-[a-f0-9]{24}$"
+            },
+            "structuredPropositionId": {
+              "type": "string",
+              "pattern": "^structured-proposition-[a-f0-9]{24}$"
+            },
+            "atomicGroundingId": {
+              "type": "string",
+              "pattern": "^grounding-[a-f0-9]{24}$"
+            },
+            "assertionStatus": {
+              "type": "string",
+              "enum": [
+                "uncertain",
+                "attempted"
+              ]
+            },
+            "participantId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "participantSemanticRole": {
+              "type": "string",
+              "enum": [
+                "target",
+                "action"
+              ]
+            },
+            "sourceSpan": {
+              "type": "object",
+              "properties": {
+                "startUtf16": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "endUtf16Exclusive": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "textHash": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "startUtf16",
+                "endUtf16Exclusive",
+                "text",
+                "textHash"
+              ],
+              "additionalProperties": false
+            },
+            "sourceHash": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "premiseId",
+            "claimId",
+            "structuredPropositionId",
+            "atomicGroundingId",
+            "assertionStatus",
+            "participantId",
+            "participantSemanticRole",
+            "sourceSpan",
+            "sourceHash"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "participantJoins": {
+      "minItems": 1,
+      "maxItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "leftPremise": {
+            "type": "string",
+            "const": "condition"
+          },
+          "leftParticipant": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "rightPremise": {
+            "type": "string",
+            "const": "response"
+          },
+          "rightParticipant": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "joinType": {
+            "type": "string",
+            "const": "EXPLICIT_TYPED_DEPENDENCY"
+          },
+          "dependencyId": {
+            "type": "string",
+            "const": "inventory-approved-wage-pressure-to-restriction.v1"
+          }
+        },
+        "required": [
+          "leftPremise",
+          "leftParticipant",
+          "rightPremise",
+          "rightParticipant",
+          "joinType",
+          "dependencyId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "evidenceFingerprint": {
+      "type": "string",
+      "pattern": "^relation-proof-evidence-[a-f0-9]{24}$"
+    }
+  },
+  "required": [
+    "evidenceId",
+    "schemaVersion",
+    "proofId",
+    "proofPattern",
+    "proofValidatorVersion",
+    "proofEvidenceFingerprint",
+    "episodeId",
+    "targetRelationKind",
+    "direction",
+    "premises",
+    "participantJoins",
+    "evidenceFingerprint"
+  ],
+  "additionalProperties": false,
+  "$id": "https://mediaforge.local/schemas/history/v3.6/relation-proof-evidence-schema.json",
+  "title": "History V3.6 proof-aware relation evidence"
+}

@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildTaskFingerprint,
+  buildArtifactSemanticIdentity,
   createSubsystemLegacyCacheAdapter,
   createVersionedLegacyCacheAdapter,
   evaluateTaskCache,
   normalizeFingerprintValue,
   planCachePrune,
+  planTypedDependencyInvalidation,
 } from "./cache.js";
 
 const base = {
@@ -65,6 +67,98 @@ describe("workflow cache fingerprints", () => {
     );
     expect(() => normalizeFingerprintValue(Number.NaN)).toThrow(/non-finite/u);
     expect(() => normalizeFingerprintValue(new Date())).toThrow(/plain JSON/u);
+  });
+
+  it("canonicalizes the Veronica alias before creating semantic identities", () => {
+    const shared = buildArtifactSemanticIdentity({
+      artifactId: "image.scene-01",
+      artifactKind: "image",
+      unitId: "episode-01",
+      revision: "revision-1",
+      profileId: "strategic-reinvention",
+      variant: "full",
+      locale: "it",
+      localeScope: "language-independent",
+      effectiveConfiguration: { provider: "image-v1" },
+      dependencies: [
+        { kind: "scene", id: "scene-01", fingerprint: "a".repeat(64) },
+        { kind: "provider", id: "image-v1", fingerprint: "b".repeat(64) },
+      ],
+    });
+    const localized = buildArtifactSemanticIdentity({
+      ...shared,
+      profileId: "veronicabenini",
+      locale: "de",
+      localeScope: "language-independent",
+    });
+    expect(shared.profileId).toBe("veronicabenini");
+    expect(shared.locale).toBeNull();
+    expect(shared.fingerprint).toBe(localized.fingerprint);
+  });
+
+  it("keeps shared images stable across locale and voice changes", () => {
+    const visual = (locale: string) =>
+      buildTaskFingerprint({
+        ...base,
+        profileId: "strategic-reinvention",
+        locale,
+        material: {
+          localeScope: "language-independent",
+          typedDependencies: [
+            { kind: "scene", id: "scene-01", fingerprint: "a".repeat(64) },
+            { kind: "provider", id: "image", fingerprint: "b".repeat(64) },
+          ],
+        },
+      });
+    // Voice is deliberately not part of a visual artifact's effective inputs.
+    expect(visual("it")).toBe(visual("de"));
+  });
+
+  it("targets only artifacts that name changed scene, provider, or timing dependencies", () => {
+    const image = buildArtifactSemanticIdentity({
+      artifactId: "image.scene-01",
+      artifactKind: "image",
+      unitId: "e1",
+      revision: "r1",
+      profileId: "veronicabenini",
+      variant: "full",
+      locale: "it",
+      localeScope: "language-independent",
+      dependencies: [
+        { kind: "scene", id: "scene-01", fingerprint: "a".repeat(64) },
+      ],
+    });
+    const render = buildArtifactSemanticIdentity({
+      artifactId: "render.full",
+      artifactKind: "render",
+      unitId: "e1",
+      revision: "r1",
+      profileId: "veronicabenini",
+      variant: "full",
+      locale: "it",
+      localeScope: "locale-dependent",
+      dependencies: [
+        { kind: "narration-timing", id: "full", fingerprint: "c".repeat(64) },
+      ],
+    });
+    const targets = planTypedDependencyInvalidation({
+      artifacts: [image, render],
+      changes: [
+        { kind: "scene", id: "scene-01", fingerprint: "d".repeat(64) },
+        { kind: "narration-timing", id: "full", fingerprint: "e".repeat(64) },
+        { kind: "voice", id: "italian", fingerprint: "f".repeat(64) },
+      ],
+    });
+    expect(targets).toEqual([
+      {
+        artifactId: "image.scene-01",
+        reasons: ["dependency-changed:scene:scene-01"],
+      },
+      {
+        artifactId: "render.full",
+        reasons: ["dependency-changed:narration-timing:full"],
+      },
+    ]);
   });
 });
 

@@ -1,0 +1,11 @@
+{
+  "sourceCommit": "7288ee6b7e85a2de44fed53808d188985d85e752",
+  "acceptedSemanticBaseline": "9a25cb94f35e557a2da43545d697a9a18638b2fb",
+  "acceptedCensusArtifact": "artifacts/shadow/history-v3.6/history-v3.6-all40-semantic-release-readiness-20260809T213441Z",
+  "acceptedRelationIdHash": "aaa406224520638c731c4e6a0ed52ded26baf99de55e37f71d835fb4ae3964a0",
+  "generatedAt": "2026-08-09T22:03:00.848Z",
+  "historicalNativeSidecarsAvailable": false,
+  "providerCalls": 0,
+  "llmSemanticCalls": 0,
+  "imageProviderCalls": 0
+}

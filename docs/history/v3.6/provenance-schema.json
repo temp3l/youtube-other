@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "generatedAt": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?Z$"
+    },
+    "gitCommitSha": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{40}$"
+    },
+    "gitBranch": {
+      "type": "string"
+    },
+    "v36ImplementationCommitSha": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{40}$"
+    },
+    "frozenV35ProductionCommitSha": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{40}$"
+    },
+    "frozenV35ProductionTag": {
+      "type": "string",
+      "const": "history-v3.5-frozen-before-v36"
+    },
+    "acceptedV35SemanticBaselineCommitSha": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{40}$"
+    },
+    "acceptedV35SemanticBaselineTag": {
+      "type": "string",
+      "const": "history-v3.5-semantic-baseline"
+    },
+    "contractBaselineCommitSha": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{40}$"
+    },
+    "schemaVersion": {
+      "type": "string",
+      "const": "history-v3.6-relation-ir-review-provenance.v3"
+    },
+    "artifactKind": {
+      "type": "string",
+      "const": "history-v3.6-shadow-relations-review"
+    },
+    "episodeSet": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "required": [
+    "generatedAt",
+    "gitCommitSha",
+    "gitBranch",
+    "v36ImplementationCommitSha",
+    "frozenV35ProductionCommitSha",
+    "frozenV35ProductionTag",
+    "acceptedV35SemanticBaselineCommitSha",
+    "acceptedV35SemanticBaselineTag",
+    "contractBaselineCommitSha",
+    "schemaVersion",
+    "artifactKind",
+    "episodeSet"
+  ],
+  "additionalProperties": false,
+  "$id": "https://mediaforge.local/schemas/history/v3.6/review-provenance-schema.json",
+  "title": "History V3.6 relation-IR review artifact provenance"
+}

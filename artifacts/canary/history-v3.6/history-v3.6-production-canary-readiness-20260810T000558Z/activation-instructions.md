@@ -1,0 +1,1 @@
+Do not activate globally. A bounded rollout may use only the explicit canary runner and allowlist after focused validation. Retain the V3.5 default and verify non-allowlisted episodes still resolve to V3.5. Roll back by unsetting MEDIAFORGE_HISTORY_V36_VISUAL_PLAN. General production-composer integration remains a separate approved change.

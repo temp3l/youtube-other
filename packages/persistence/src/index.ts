@@ -31,6 +31,7 @@ export * from "./postgres-asset-migration-repository.js";
 export * from "./postgres-publication-channel-lease-repository.js";
 export * from "./postgres-speech-repository.js";
 export * from "./postgres-speech-application-repository.js";
+export * from "./postgres-revision-analytics-repository.js";
 export * from "./webhook-event-catalog.js";
 export * from "./asset-payload-validation.js";
 export * from "./tenant-object-storage.js";

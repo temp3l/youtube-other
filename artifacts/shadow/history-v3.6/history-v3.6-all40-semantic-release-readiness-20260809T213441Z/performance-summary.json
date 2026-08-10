@@ -1,0 +1,9 @@
+{
+  "run1WallClockMs": 1180,
+  "run2WallClockMs": 733,
+  "peakCandidateCountPerEpisode": 13,
+  "peakProofCountPerEpisode": 0,
+  "largestRelationCountPerEpisode": 7,
+  "cacheHits": "not exposed by deterministic compatibility path",
+  "deterministicRerunReuse": "not applicable; all computation is in-memory deterministic"
+}

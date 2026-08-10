@@ -1,0 +1,16 @@
+{
+  "artifactInputHead": "8775f81b130bf6d94e4c8cac3968a8fc10734e77",
+  "startingBaseline": "history-v3.6-renderer-shadow-readiness-baseline",
+  "frozenV35": "history-v3.5-frozen-before-v36",
+  "sameEightArtifact": "artifacts/shadow/history-v3.6/visual-plans/history-v3.6-same-eight-visual-plan-review-20260809T225713Z",
+  "all40Artifact": "artifacts/shadow/history-v3.6/visual-plans/history-v3.6-all40-shadow-plan-census-20260809T230904Z",
+  "rendererArtifact": "artifacts/shadow/history-v3.6/renderer/history-v3.6-renderer-shadow-readiness-20260809T223935Z",
+  "shadowOnly": true,
+  "providerCalls": {
+    "llm": 0,
+    "image": 0,
+    "web": 0,
+    "geocoding": 0
+  },
+  "productionActivated": false
+}

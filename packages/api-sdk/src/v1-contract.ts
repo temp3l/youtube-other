@@ -222,7 +222,7 @@ export const SDK_V1_ENUMS = {
     "mathematics_education",
     "dynamic_generic",
     "history",
-    "strategic_reinvention",
+    "veronicabenini",
   ],
   "StrategicReinventionContent.episodeMode": [
     "story-to-strategy",
@@ -309,7 +309,7 @@ export const SDK_V1_CONSTS = {
   "MathematicsEducationContent.version": "1",
   "HistoryContent.type": "history",
   "HistoryContent.version": "1",
-  "StrategicReinventionContent.type": "strategic_reinvention",
+  "StrategicReinventionContent.type": "veronicabenini",
   "StrategicReinventionContent.version": "1",
   "StrategicReinventionContent.creatorProfileId": "veronica-benini",
   "StrategicReinventionContent.canonicalLocale": "it",

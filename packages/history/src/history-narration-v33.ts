@@ -244,7 +244,7 @@ export function assertCanonicalNarrationV33(input: {
 export const HISTORY_LONG_FORM_DURATION_POLICY_V33: DurationPolicyV3_3 = {
   profile: "history-long-form",
   preferredDurationMs: 600_000,
-  allowedMinDurationMs: 480_000,
+  allowedMinDurationMs: 300_000,
   allowedMaxDurationMs: 1_200_000,
   hardMaxDurationMs: 1_200_000,
   editorialTolerancePercent: 10,

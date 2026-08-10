@@ -1,4 +1,5 @@
 import type { WorkflowAdmissionHandler } from "@mediaforge/application";
+import { immutablePlanHash } from "@mediaforge/domain";
 import type {
   PostgresClient,
   PostgresPool,
@@ -314,6 +315,88 @@ describe("PostgreSQL API use cases", () => {
       .rejects.toMatchObject({ code: "precondition_failed" });
   });
 
+  it("requires authorization and idempotency for archive and clone lifecycle mutations", async () => {
+    const statements: Array<{ sql: string; values?: readonly unknown[] }> = [];
+    const query = async <T>(sql: string, values?: readonly unknown[]): Promise<PostgresQueryResult<T>> => {
+      statements.push({ sql, values });
+      if (sql.includes("INSERT INTO command_admissions"))
+        return { rows: [{ command_id: "command-1" } as unknown as T] };
+      if (sql.includes("SET lifecycle_state = 'archived'")) return { rows: [{
+        workspace_id: "ws-1", project_id: "project-1", episode_id: "episode-1",
+        content: {}, revision: 3, created_at: "2026-08-01T11:00:00.000Z", updated_at: "2026-08-01T12:00:00.000Z",
+        lifecycle_state: "archived", archived_at: "2026-08-01T12:00:00.000Z", archived_by: "user-1",
+        archive_reason: "Superseded", source_episode_id: null, source_episode_revision: null,
+      } as unknown as T] };
+      if (sql.includes("FROM revision_analytics_observations")) return { rows: [{
+        schema_version: "revision-analytics-observation.v1",
+        observation_id: "pattern-1",
+        content_profile_id: "veronicabenini",
+        episode_id: "episode-1",
+        edition_revision_id: "edition-1",
+        publication_id: "publication-1",
+        publication_revision: 2,
+        locale: "it",
+        observed_at: "2026-08-01T11:00:00.000Z",
+        configuration_revision: "config-1",
+        dependency_identity: { delivery: "c".repeat(64) },
+        provenance_sha256: "b".repeat(64),
+        metrics: { views: 12 },
+        provider_dispatch_enabled: false,
+        regeneration_rationale: "new-observation",
+        request_fingerprint: "d".repeat(64),
+      } as unknown as T] };
+      if (sql.includes("WITH source AS")) return { rows: [{
+        workspace_id: "ws-1", project_id: "project-1", episode_id: "episode-generated",
+        content: {}, revision: 0, created_at: "2026-08-01T12:00:00.000Z", updated_at: "2026-08-01T12:00:00.000Z",
+        lifecycle_state: "active", archived_at: null, archived_by: null, archive_reason: null,
+        source_episode_id: "episode-1", source_episode_revision: 3,
+      } as unknown as T] };
+      return { rows: [] };
+    };
+    const client: PostgresClient = { query, release: () => undefined };
+    const pool: PostgresPool = { query, connect: async () => client, end: async () => undefined };
+    const useCases = createPostgresApiUseCases({
+      pool,
+      workflowAdmissionHandler: { execute: async () => ({ workflowRunId: "unused", jobId: "unused", revision: 0 }) },
+      cursorSecret: "cursor-secret-that-is-longer-than-32-bytes",
+      now: () => new Date("2026-08-01T12:00:00.000Z"),
+      createId: (prefix) => `${prefix}-generated`,
+    });
+    const context = {
+      workspaceId: "ws-1", projectId: "project-1", requestId: "request-lifecycle", ifMatch: '"2"', idempotencyKey: "lifecycle-key",
+      principal: { principalId: "user-1", workspaceId: "ws-1", permissions: ["content.write"], kind: "user" as const },
+    };
+
+    await expect(useCases.archiveEpisode("episode-1", { expectedRevision: 2, reason: "Superseded" }, {
+      ...context, principal: { ...context.principal, permissions: [] },
+    })).rejects.toMatchObject({ code: "authorization_denied" });
+    expect(statements).toEqual([]);
+    await expect(useCases.archiveEpisode("episode-1", { expectedRevision: 2, reason: "Superseded" }, context))
+      .resolves.toEqual({ id: "episode-1", revision: 3, lifecycleState: "archived", replayed: false });
+    await expect(useCases.cloneEpisode("episode-1", { expectedSourceRevision: 3 }, context))
+      .resolves.toEqual({
+        id: "episode-generated", revision: 0, lifecycleState: "active",
+        sourceEpisodeId: "episode-1", sourceEpisodeRevision: 3, replayed: false,
+      });
+    await expect(useCases.forkEpisodeFromPattern("episode-1", {
+      expectedSourceRevision: 3,
+      patternLineage: {
+        patternId: "pattern-1",
+        configurationRevision: "config-1",
+        dependencyFingerprint: immutablePlanHash({ delivery: "c".repeat(64) }),
+        provenanceHash: "b".repeat(64),
+      },
+    }, context)).resolves.toEqual({
+      id: "episode-generated", revision: 0, lifecycleState: "active",
+      sourceEpisodeId: "episode-1", sourceEpisodeRevision: 3,
+      patternLineage: {
+        patternId: "pattern-1", configurationRevision: "config-1",
+        dependencyFingerprint: immutablePlanHash({ delivery: "c".repeat(64) }), provenanceHash: "b".repeat(64),
+      }, replayed: false,
+    });
+    expect(statements.some(({ sql }) => sql.includes("INSERT INTO episode_revisions"))).toBe(true);
+  });
+
   it("projects publication intent state without execution credentials or reconciliation evidence", async () => {
     const readValues: Array<readonly unknown[] | undefined> = [];
     const query = async <T>(sql: string, values?: readonly unknown[]): Promise<PostgresQueryResult<T>> => {
@@ -422,5 +505,126 @@ describe("PostgreSQL API use cases", () => {
     const admission = valuesBySql.find(({ sql }) => sql.includes("INSERT INTO command_admissions"));
     expect(admission?.values?.[0]).toBe("ws-1");
     expect(admission?.values?.[1]).toMatch(/^v1:[a-f0-9]{64}$/u);
+  });
+
+  it("binds analytics ingestion to the tenant project episode and canonical profile", async () => {
+    const query = async <T>(
+      sql: string,
+      values?: readonly unknown[],
+    ): Promise<PostgresQueryResult<T>> => {
+      if (sql.includes("FROM episodes") && sql.includes("episode_id = $3"))
+        return { rows: [{
+          workspace_id: "ws-1",
+          project_id: "project-1",
+          episode_id: "episode-1",
+          content: { type: "veronicabenini", version: "1" },
+          revision: 2,
+          created_at: "2026-08-01T00:00:00.000Z",
+          updated_at: "2026-08-01T00:00:00.000Z",
+          lifecycle_state: "active",
+          archived_at: null,
+          archived_by: null,
+          archive_reason: null,
+          source_episode_id: null,
+          source_episode_revision: null,
+        } as unknown as T] };
+      if (sql.includes("FROM publications AS publication"))
+        return { rows: [{
+          workspace_id: "ws-1",
+          publication_id: "publication-1",
+          project_id: "project-1",
+          run_id: "run-1",
+          status: "published",
+          revision: 2,
+          approval_id: "approval-1",
+          approval_revision: 1,
+          approval_artifact_hash: "approval-hash",
+          approval_policy: "scoped-v1",
+          actor_principal_id: "reviewer-1",
+          actor_principal_revision: 1,
+          credential_version: "credential-1",
+          asset_hash: "asset-hash",
+          artifact_bindings: [],
+          channel_id: "channel-1",
+          visibility: "public",
+          scheduled_at: null,
+          playlist_ids: [],
+          recovery_identity: "recovery-1",
+          active_key: null,
+          execution_fence: 1,
+          intent_lease_fence: 1,
+          channel_lease_fence: 1,
+          provider_receipt: {},
+          terminal_evidence: null,
+          created_at: "2026-08-01T00:00:00.000Z",
+          updated_at: "2026-08-09T00:00:00.000Z",
+        } as unknown as T] };
+      if (sql.includes("INSERT INTO revision_analytics_observations")) {
+        return { rows: [{
+          schema_version: "revision-analytics-observation.v1",
+          observation_id: "observation-1",
+          content_profile_id: "veronicabenini",
+          episode_id: "episode-1",
+          edition_revision_id: "edition-1",
+          publication_id: "publication-1",
+          publication_revision: 2,
+          locale: "it",
+          observed_at: "2026-08-09T00:00:00.000Z",
+          configuration_revision: "config-1",
+          dependency_identity: { delivery: "a".repeat(64) },
+          provenance_sha256: "b".repeat(64),
+          metrics: { views: 12 },
+          provider_dispatch_enabled: false,
+          regeneration_rationale: "new-observation",
+          request_fingerprint: values?.[15],
+        } as unknown as T] };
+      }
+      return { rows: [] };
+    };
+    const client: PostgresClient = { query, release: () => undefined };
+    const pool: PostgresPool = {
+      query,
+      connect: async () => client,
+      end: async () => undefined,
+    };
+    const useCases = createPostgresApiUseCases({
+      pool,
+      workflowAdmissionHandler: {
+        execute: async () => ({ workflowRunId: "unused", jobId: "unused", revision: 0 }),
+      },
+      cursorSecret: "cursor-secret-that-is-longer-than-32-bytes",
+    });
+    const ingest = useCases.ingestRevisionAnalytics;
+    expect(ingest).toBeDefined();
+    await expect(ingest!({
+      schemaVersion: "revision-analytics-observation.v1",
+      observationId: "observation-1",
+      contentProfileId: "veronicabenini",
+      episodeId: "episode-1",
+      editionRevisionId: "edition-1",
+      publicationId: "publication-1",
+      publicationRevision: 2,
+      locale: "it",
+      observedAt: "2026-08-09T00:00:00.000Z",
+      configurationRevision: "config-1",
+      dependencyIdentity: { delivery: "a".repeat(64) },
+      provenanceSha256: "b".repeat(64),
+      metrics: { views: 12 },
+      providerDispatchEnabled: false,
+    }, {
+      workspaceId: "ws-1",
+      projectId: "project-1",
+      principal: {
+        principalId: "worker-1",
+        workspaceId: "ws-1",
+        permissions: ["content.write"],
+        kind: "worker",
+      },
+      requestId: "request-analytics",
+      idempotencyKey: "caller-key",
+    })).resolves.toMatchObject({
+      replayed: false,
+      observation: { contentProfileId: "veronicabenini" },
+    });
   });
 });

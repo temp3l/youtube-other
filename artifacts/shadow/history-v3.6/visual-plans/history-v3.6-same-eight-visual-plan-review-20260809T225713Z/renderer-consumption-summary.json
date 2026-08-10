@@ -1,0 +1,14 @@
+{
+  "inputRenderSpecs": 34,
+  "placedRenderSpecs": 34,
+  "typedSafePlacementAbstentions": 0,
+  "duplicatePlacements": 0,
+  "orphanRenderSpecs": 0,
+  "silentDrops": 0,
+  "preservedIds": {
+    "relation": true,
+    "compilerIntent": true,
+    "renderSpec": true,
+    "evidenceFingerprint": true
+  }
+}

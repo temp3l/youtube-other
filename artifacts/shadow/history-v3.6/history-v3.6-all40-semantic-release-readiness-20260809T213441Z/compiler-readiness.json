@@ -1,0 +1,13 @@
+{
+  "relationContractsFrozenVersioned": true,
+  "relationIdsDeterministic": true,
+  "proofIdsDeterministic": true,
+  "modalitySemanticsExplicit": true,
+  "eventLocationStable": true,
+  "policyResponseProofPathStable": false,
+  "evidenceSetAggregationStable": true,
+  "candidateValidatorPipelineDeterministic": true,
+  "terminalMovementCasesIntentionallyExcluded": true,
+  "v35Isolated": true,
+  "recommendation": "V3.6 compiler shadow integration"
+}

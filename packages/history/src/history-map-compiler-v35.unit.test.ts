@@ -169,7 +169,7 @@ describe("History V3.5 evidence-bound map compiler", () => {
     );
   });
 
-  it("B. origin and destination without movement predicate allows sequence not movement", () => {
+  it("B. multiple places without spatial progression downgrade to a locator", () => {
     const claim = makeClaim({ id: "claim-b", text: "Moscow and Smolensk were key cities." });
     const moscow = makeEntity({
       id: "entity-moscow",
@@ -197,7 +197,7 @@ describe("History V3.5 evidence-bound map compiler", () => {
       }),
     });
     expect(capabilities.movement).toBe(false);
-    expect(capabilities.sequence).toBe(true);
+    expect(capabilities.sequence).toBe(false);
     const compiled = compileWithProposal({
       scopeClaimIds: ["claim-b"],
       proposal: {
@@ -216,7 +216,8 @@ describe("History V3.5 evidence-bound map compiler", () => {
       geographicQualifiers: geo,
     });
     expect(compiled?.state.routes).toEqual([]);
-    expect(compiled?.state.compilerResolution?.resolvedMapType).toBe("sequence");
+    expect(compiled?.state.compilerResolution?.resolvedMapType).toBe("locator");
+    expect(compiled?.state.labels.map((label) => label.text)).toEqual(["Moscow"]);
   });
 
   it("C. supported movement compiles a movement map with route", () => {
@@ -705,7 +706,7 @@ describe("History V3.5 map compiler invariants", () => {
   it("movement unsupported with sequence evidence downgrades to sequence", () => {
     const claim = makeClaim({
       id: "claim-bd",
-      text: "Messina in Sicily and the Black Sea were both affected.",
+      text: "The campaign advanced across Messina and the Black Sea.",
       entityMentionIds: ["entity-messina", "entity-black-sea"],
       geographicQualifierIds: ["geo-messina", "geo-black-sea"],
     });
@@ -755,6 +756,89 @@ describe("History V3.5 map compiler invariants", () => {
     expect(compiled?.state.compilerResolution?.resolvedMapType).toBe("sequence");
     expect(compiled?.state.compilerResolution?.downgradeReason).toBe("MOVEMENT_NOT_SUPPORTED");
     expect(compiled?.state.routes).toEqual([]);
+  });
+
+  it("downgrades a sequence to a locator when place resolution leaves one waypoint", () => {
+    const claim = makeClaim({
+      id: "claim-one-resolved",
+      text: "The campaign advanced across Moscow and the Uncharted Steppe.",
+      entityMentionIds: ["entity-moscow", "entity-uncharted"],
+      geographicQualifierIds: ["geo-moscow", "geo-uncharted"],
+    });
+    const moscow = makeEntity({
+      id: "entity-moscow",
+      claimId: claim.id,
+      label: "Moscow",
+      entityType: "place",
+    });
+    const uncharted = makeEntity({
+      id: "entity-uncharted",
+      claimId: claim.id,
+      label: "Uncharted Steppe",
+      entityType: "region",
+    });
+    const geographicQualifiers = [
+      makeGeo({ id: "geo-moscow", claimId: claim.id, entityMentionId: moscow.id, role: "location" }),
+      makeGeo({
+        id: "geo-uncharted",
+        claimId: claim.id,
+        entityMentionId: uncharted.id,
+        role: "location",
+      }),
+    ];
+    const compiled = compileWithProposal({
+      scopeClaimIds: [claim.id],
+      proposal: {
+        claimIds: [claim.id],
+        mapPurpose: "area",
+        movingActorEntityMentionIds: [],
+        originPlaceMentionIds: [moscow.id],
+        destinationPlaceMentionIds: [uncharted.id],
+        waypointPlaceMentionIds: [],
+        temporalQualifierIds: [],
+        routeType: "none",
+        uncertainty: [],
+      },
+      claims: [claim],
+      entities: [moscow, uncharted],
+      geographicQualifiers,
+    });
+    expect(compiled?.state.compilerResolution?.resolvedMapType).toBe("locator");
+    expect(compiled?.state.labels.map((label) => label.text)).toEqual(["Moscow"]);
+    expect(compiled?.state.labels[0]?.placeId).toBeTruthy();
+    expect(validateCompiledMapStateV35(compiled!.state)).toEqual([]);
+  });
+
+  it("blocks malformed semantic-valid sequence states with fewer than two resolved waypoints", () => {
+    const blockers = validateCompiledMapStateV35({
+      id: "map-state-invalid-sequence",
+      masterId: "map-master-invalid-sequence",
+      purpose: "invalid one-waypoint sequence",
+      mapPurpose: "orientation",
+      baseGeography: "Moscow",
+      timePeriod: "as narrated",
+      affectedArea: "Moscow",
+      labels: [
+        {
+          text: "Moscow",
+          placeId: "place-moscow",
+          linkedClaimIds: ["claim-sequence"],
+          provenance: "narration-claim",
+        },
+      ],
+      routes: [],
+      uncertainty: "test",
+      semanticStatus: "valid",
+      blockerCodes: [],
+      compilerResolution: {
+        requestedMapType: "sequence",
+        resolvedMapType: "sequence",
+        owningClaimIds: ["claim-sequence"],
+        scopeClaimIds: ["claim-sequence"],
+        geoFactIds: ["geo-fact-sequence"],
+      },
+    });
+    expect(blockers).toContain("MAP_SEQUENCE_INSUFFICIENT_RESOLVED_WAYPOINTS");
   });
 
   it("movement unsupported with only locator evidence downgrades to locator", () => {

@@ -46,6 +46,29 @@ export interface NarrationTimingEstimate {
   readonly totalDurationMs: number;
 }
 
+export interface NarrationTimingInvalidation {
+  readonly invalidatedArtifacts: readonly ("narration-audio" | "captions" | "timing-alignment")[];
+  readonly preservedArtifacts: readonly ("visual-plan" | "prepared-visuals")[];
+}
+
+/** Narration-only edits never invalidate language-independent visual work. */
+export function resolveNarrationTimingInvalidation(args: {
+  readonly previousNarration: string;
+  readonly nextNarration: string;
+  readonly language: LanguageCode;
+}): NarrationTimingInvalidation {
+  if (normalizeWhitespace(args.previousNarration) === normalizeWhitespace(args.nextNarration)) {
+    return { invalidatedArtifacts: [], preservedArtifacts: ["visual-plan", "prepared-visuals"] };
+  }
+  // Invoke the shared timing policy here so timing invalidation is tied to the
+  // actual spoken payload, not character counts or metadata claims.
+  resolveNarrationTimingEstimate({ language: args.language, narrationText: args.nextNarration });
+  return {
+    invalidatedArtifacts: ["narration-audio", "captions", "timing-alignment"],
+    preservedArtifacts: ["visual-plan", "prepared-visuals"],
+  };
+}
+
 export const DEFAULT_SHORT_DURATION_WINDOW: NarrationDurationWindow = {
   minSeconds: 55,
   targetSeconds: 60,

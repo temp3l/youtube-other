@@ -1,0 +1,18 @@
+{
+  "phase": "2.25",
+  "startingSha": "ec18825",
+  "target": "strict relation-only shadow map compiler",
+  "rules": [
+    "map-movement.v1",
+    "map-spatial-comparison.v1",
+    "map-spatial-area.v1",
+    "map-event-location.v1"
+  ],
+  "readsNarration": false,
+  "readsClaims": false,
+  "eventLocationAsMovement": 0,
+  "spatialComparisonAsMovement": 0,
+  "purposeAsDestination": 0,
+  "shadowOnly": true,
+  "productionV35Touched": false
+}

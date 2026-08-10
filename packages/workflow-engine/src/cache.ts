@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 
 import {
   artifactManifestSchema,
+  contentProfileIdSchema,
   taskFingerprintSchema,
   taskIdSchema,
   type ArtifactManifest,
@@ -15,6 +16,8 @@ import type { WorkflowAttemptRecord } from "./workflow-store.js";
 export const CACHE_ENGINE_VERSION = "mediaforge.cache.v1" as const;
 export const CACHE_DECISION_SCHEMA_VERSION =
   "mediaforge.cache-decision.v1" as const;
+export const ARTIFACT_IDENTITY_SCHEMA_VERSION =
+  "mediaforge.artifact-identity.v1" as const;
 
 export type CacheFamily =
   | "prompt"
@@ -57,7 +60,67 @@ export interface TaskFingerprintMaterial {
   readonly referenceSetRevision?: string;
   readonly curriculumRevision?: string;
   readonly visualStyleRevision?: string;
+  /** Shared visual artifacts intentionally omit locale from their identity. */
+  readonly localeScope?: "language-independent" | "locale-dependent";
+  /** Versioned effective configuration used to produce an artifact. */
+  readonly effectiveConfiguration?: unknown;
+  /** Explicit dependencies support targeted, auditable invalidation. */
+  readonly typedDependencies?: readonly ArtifactDependencyIdentity[];
   readonly additional?: unknown;
+}
+
+export type ArtifactDependencyKind =
+  | "source"
+  | "scene"
+  | "provider"
+  | "voice"
+  | "narration-timing"
+  | "render"
+  | "configuration";
+
+export interface ArtifactDependencyIdentity {
+  readonly kind: ArtifactDependencyKind;
+  readonly id: string;
+  readonly fingerprint: string;
+}
+
+export interface ArtifactIdentityInput {
+  readonly artifactId: string;
+  readonly artifactKind: string;
+  readonly unitId: string;
+  readonly revision: string;
+  readonly profileId: string;
+  readonly variant: string;
+  readonly locale: string;
+  readonly localeScope: "language-independent" | "locale-dependent";
+  readonly effectiveConfiguration?: unknown;
+  readonly dependencies?: readonly ArtifactDependencyIdentity[];
+}
+
+export interface ArtifactSemanticIdentity {
+  readonly schemaVersion: typeof ARTIFACT_IDENTITY_SCHEMA_VERSION;
+  readonly artifactId: string;
+  readonly artifactKind: string;
+  readonly unitId: string;
+  readonly revision: string;
+  readonly profileId: string;
+  readonly variant: string;
+  readonly locale: string | null;
+  readonly localeScope: "language-independent" | "locale-dependent";
+  readonly effectiveConfiguration: FingerprintValue;
+  readonly dependencies: readonly ArtifactDependencyIdentity[];
+  readonly fingerprint: TaskFingerprint;
+}
+
+export interface ArtifactDependencyChange {
+  readonly kind: ArtifactDependencyKind;
+  readonly id: string;
+  readonly fingerprint: string;
+}
+
+export interface ArtifactInvalidationTarget {
+  readonly artifactId: string;
+  readonly reasons: readonly string[];
 }
 
 export interface BuildTaskFingerprintInput {
@@ -203,6 +266,101 @@ function normalizedArtifact(manifest: ArtifactManifest): FingerprintValue {
   });
 }
 
+function normalizeDependencies(
+  dependencies: readonly ArtifactDependencyIdentity[]
+): readonly ArtifactDependencyIdentity[] {
+  return [...dependencies]
+    .map((dependency) => ({
+      kind: dependency.kind,
+      id: dependency.id.trim(),
+      fingerprint: dependency.fingerprint,
+    }))
+    .sort((left, right) =>
+      `${left.kind}:${left.id}:${left.fingerprint}`.localeCompare(
+        `${right.kind}:${right.id}:${right.fingerprint}`
+      )
+    )
+    .map((dependency) => {
+      if (!dependency.id || !sha256Pattern.test(dependency.fingerprint)) {
+        throw new TypeError(
+          "Artifact dependencies require a non-empty id and SHA-256 fingerprint."
+        );
+      }
+      return dependency;
+    });
+}
+
+/**
+ * Creates the revision-bound identity persisted alongside canonical artifact
+ * provenance. Compatibility aliases are normalized before any hash material is
+ * assembled, and shared visuals deliberately have no locale identity.
+ */
+export function buildArtifactSemanticIdentity(
+  input: ArtifactIdentityInput
+): ArtifactSemanticIdentity {
+  const dependencies = normalizeDependencies(input.dependencies ?? []);
+  const profileId = contentProfileIdSchema.parse(input.profileId);
+  const locale =
+    input.localeScope === "language-independent" ? null : input.locale;
+  const effectiveConfiguration = normalizeFingerprintValue(
+    input.effectiveConfiguration ?? null
+  );
+  const material = {
+    schemaVersion: ARTIFACT_IDENTITY_SCHEMA_VERSION,
+    artifactId: input.artifactId,
+    artifactKind: input.artifactKind,
+    unitId: input.unitId,
+    revision: input.revision,
+    profileId,
+    variant: input.variant,
+    locale,
+    localeScope: input.localeScope,
+    effectiveConfiguration,
+    dependencies,
+  } as const;
+  return {
+    ...material,
+    fingerprint: taskFingerprintSchema.parse(
+      crypto
+        .createHash("sha256")
+        .update(stableFingerprintJson(material))
+        .digest("hex")
+    ),
+  };
+}
+
+/** Select only artifacts that directly name a changed dependency. */
+export function planTypedDependencyInvalidation(input: {
+  readonly artifacts: readonly Pick<
+    ArtifactSemanticIdentity,
+    "artifactId" | "dependencies"
+  >[];
+  readonly changes: readonly ArtifactDependencyChange[];
+}): readonly ArtifactInvalidationTarget[] {
+  const changes = new Map(
+    input.changes.map((change) => [`${change.kind}:${change.id}`, change])
+  );
+  return input.artifacts
+    .map((artifact) => {
+      const reasons = artifact.dependencies
+        .filter((dependency) => {
+          const change = changes.get(`${dependency.kind}:${dependency.id}`);
+          return (
+            change !== undefined &&
+            change.fingerprint !== dependency.fingerprint
+          );
+        })
+        .map(
+          (dependency) =>
+            `dependency-changed:${dependency.kind}:${dependency.id}`
+        )
+        .sort();
+      return { artifactId: artifact.artifactId, reasons };
+    })
+    .filter((target) => target.reasons.length > 0)
+    .sort((left, right) => left.artifactId.localeCompare(right.artifactId));
+}
+
 export function buildTaskFingerprint(
   input: BuildTaskFingerprintInput
 ): TaskFingerprint {
@@ -220,12 +378,14 @@ export function buildTaskFingerprint(
     task: { id: taskIdSchema.parse(input.taskId), version: input.taskVersion },
     identity: {
       unitId: input.unitId,
-      profileId: input.profileId,
-      locale: input.locale,
+      profileId: contentProfileIdSchema.parse(input.profileId),
+      locale:
+        material.localeScope === "language-independent" ? null : input.locale,
       variant: input.variant,
     },
     dependencyFingerprints: [...(input.dependencyFingerprints ?? [])].sort(),
     configuration: material.configuration ?? null,
+    effectiveConfiguration: material.effectiveConfiguration ?? null,
     inputArtifacts,
     prompt: material.prompt ?? null,
     schemas: material.schemas ?? null,
@@ -241,6 +401,7 @@ export function buildTaskFingerprint(
       curriculum: material.curriculumRevision ?? null,
       visualStyle: material.visualStyleRevision ?? null,
     },
+    typedDependencies: normalizeDependencies(material.typedDependencies ?? []),
     additional: material.additional ?? null,
   });
   return taskFingerprintSchema.parse(

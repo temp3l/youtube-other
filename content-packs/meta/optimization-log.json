@@ -1,0 +1,122 @@
+[
+  {
+    "contentId": "L01",
+    "status": "edited",
+    "notes": "Long-form hook/title optimized; concrete pattern interrupt added where required; shared visual semantics preserved."
+  },
+  {
+    "contentId": "L02",
+    "status": "edited",
+    "notes": "Long-form hook/title optimized; concrete pattern interrupt added where required; shared visual semantics preserved."
+  },
+  {
+    "contentId": "L03",
+    "status": "edited",
+    "notes": "Long-form hook/title optimized; concrete pattern interrupt added where required; shared visual semantics preserved."
+  },
+  {
+    "contentId": "L04",
+    "status": "edited",
+    "notes": "Long-form hook/title optimized; concrete pattern interrupt added where required; shared visual semantics preserved."
+  },
+  {
+    "contentId": "L05",
+    "status": "edited",
+    "notes": "Long-form hook/title optimized; concrete pattern interrupt added where required; shared visual semantics preserved."
+  },
+  {
+    "contentId": "L06",
+    "status": "edited",
+    "notes": "Long-form hook/title optimized; concrete pattern interrupt added where required; shared visual semantics preserved."
+  },
+  {
+    "contentId": "L01-S01",
+    "status": "reviewed-retained",
+    "notes": "Reviewed in all five locales; narration retained because the existing version already met the production threshold. Localized title normalized where useful."
+  },
+  {
+    "contentId": "L01-S02",
+    "status": "edited",
+    "notes": "Short narration/title rewritten for stronger hook, precision, and payoff."
+  },
+  {
+    "contentId": "L01-S03",
+    "status": "reviewed-retained",
+    "notes": "Reviewed in all five locales; narration retained because the existing version already met the production threshold. Localized title normalized where useful."
+  },
+  {
+    "contentId": "L02-S01",
+    "status": "reviewed-retained",
+    "notes": "Reviewed in all five locales; narration retained because the existing version already met the production threshold. Localized title normalized where useful."
+  },
+  {
+    "contentId": "L02-S02",
+    "status": "reviewed-retained",
+    "notes": "Reviewed in all five locales; narration retained because the existing version already met the production threshold. Localized title normalized where useful."
+  },
+  {
+    "contentId": "L02-S03",
+    "status": "edited",
+    "notes": "Short narration/title rewritten for stronger hook, precision, and payoff."
+  },
+  {
+    "contentId": "L03-S01",
+    "status": "reviewed-retained",
+    "notes": "Reviewed in all five locales; narration retained because the existing version already met the production threshold. Localized title normalized where useful."
+  },
+  {
+    "contentId": "L03-S02",
+    "status": "edited",
+    "notes": "Short narration/title rewritten for stronger hook, precision, and payoff."
+  },
+  {
+    "contentId": "L03-S03",
+    "status": "reviewed-retained",
+    "notes": "Reviewed in all five locales; narration retained because the existing version already met the production threshold. Localized title normalized where useful."
+  },
+  {
+    "contentId": "L04-S01",
+    "status": "reviewed-retained",
+    "notes": "Reviewed in all five locales; narration retained because the existing version already met the production threshold. Localized title normalized where useful."
+  },
+  {
+    "contentId": "L04-S02",
+    "status": "reviewed-retained",
+    "notes": "Reviewed in all five locales; narration retained because the existing version already met the production threshold. Localized title normalized where useful."
+  },
+  {
+    "contentId": "L04-S03",
+    "status": "reviewed-retained",
+    "notes": "Reviewed in all five locales; narration retained because the existing version already met the production threshold. Localized title normalized where useful."
+  },
+  {
+    "contentId": "L05-S01",
+    "status": "edited",
+    "notes": "Short narration/title rewritten for stronger hook, precision, and payoff."
+  },
+  {
+    "contentId": "L05-S02",
+    "status": "reviewed-retained",
+    "notes": "Reviewed in all five locales; narration retained because the existing version already met the production threshold. Localized title normalized where useful."
+  },
+  {
+    "contentId": "L05-S03",
+    "status": "edited",
+    "notes": "Short narration/title rewritten for stronger hook, precision, and payoff."
+  },
+  {
+    "contentId": "L06-S01",
+    "status": "reviewed-retained",
+    "notes": "Reviewed in all five locales; narration retained because the existing version already met the production threshold. Localized title normalized where useful."
+  },
+  {
+    "contentId": "L06-S02",
+    "status": "reviewed-retained",
+    "notes": "Reviewed in all five locales; narration retained because the existing version already met the production threshold. Localized title normalized where useful."
+  },
+  {
+    "contentId": "L06-S03",
+    "status": "edited",
+    "notes": "Short narration/title rewritten for stronger hook, precision, and payoff."
+  }
+]

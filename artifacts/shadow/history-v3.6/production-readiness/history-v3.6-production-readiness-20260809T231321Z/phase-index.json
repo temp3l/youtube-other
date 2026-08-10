@@ -1,0 +1,32 @@
+{
+  "phases": [
+    {
+      "phase": "2.36",
+      "purpose": "visual-plan shadow contract and disabled activation seam",
+      "commit": "f9e714e214c086abe90ea1f880fb25a93ae3c91f",
+      "tag": "history-v3.6-visual-plan-shadow-contract-baseline",
+      "result": "PASS"
+    },
+    {
+      "phase": "2.37",
+      "purpose": "same-eight full shadow visual plans",
+      "commit": "0735691559e17e892607e27f3b6856cf4597ecd0",
+      "tag": "history-v3.6-same-eight-visual-plan-shadow-baseline",
+      "result": "PASS"
+    },
+    {
+      "phase": "2.38",
+      "purpose": "all-40 shadow-plan census and V3.5 differential",
+      "commit": "8775f81b130bf6d94e4c8cac3968a8fc10734e77",
+      "tag": "history-v3.6-all40-visual-plan-census-baseline",
+      "result": "PASS"
+    },
+    {
+      "phase": "2.39",
+      "purpose": "approval pack and production-readiness audit",
+      "artifactInputCommit": "8775f81b130bf6d94e4c8cac3968a8fc10734e77",
+      "tag": "history-v3.6-production-readiness-baseline",
+      "result": "PASS"
+    }
+  ]
+}

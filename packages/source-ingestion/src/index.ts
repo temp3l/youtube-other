@@ -29,6 +29,8 @@ import {
 import { HumanActionRequiredError, SourceAcquisitionError, UnsupportedSourceError } from "@mediaforge/domain";
 import { z } from "zod";
 
+export * from "./content-source.js";
+
 export interface TranscriptAcquisitionResult {
   readonly transcript: Transcript;
   readonly strategy: AcquisitionStrategy;

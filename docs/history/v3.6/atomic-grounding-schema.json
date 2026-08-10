@@ -1,0 +1,387 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "history-atomic-claim-grounding.v2"
+    },
+    "episodeId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "claims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "claimId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "coverage": {
+            "type": "string",
+            "enum": [
+              "existing-grounding",
+              "new-deterministic-grounding",
+              "insufficient-structure",
+              "unresolved-participant",
+              "not-explanatory",
+              "ambiguous"
+            ]
+          },
+          "propositions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "groundingId": {
+                  "type": "string",
+                  "pattern": "^grounding-[a-f0-9]{24}$"
+                },
+                "episodeId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "claimId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "subject": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1024
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "concept",
+                        "entity",
+                        "place"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "label",
+                    "kind"
+                  ],
+                  "additionalProperties": false
+                },
+                "predicate": {
+                  "type": "string",
+                  "enum": [
+                    "causes",
+                    "contributes-to",
+                    "depends-on",
+                    "compares-with",
+                    "contains-evidence-of",
+                    "moves-from",
+                    "moves-through",
+                    "search-object",
+                    "located-in",
+                    "transforms",
+                    "demands",
+                    "restricts",
+                    "process-sequence",
+                    "precedes"
+                  ]
+                },
+                "object": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1024
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "concept",
+                        "entity",
+                        "place"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "label",
+                    "kind"
+                  ],
+                  "additionalProperties": false
+                },
+                "qualifiers": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "grouped-concept",
+                          "nested-entity",
+                          "location-context",
+                          "time-anchor"
+                        ]
+                      },
+                      "value": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1024
+                      },
+                      "participantIds": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 256
+                        }
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "processSteps": {
+                  "minItems": 2,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "participant": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 256
+                          },
+                          "label": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 1024
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "concept",
+                              "entity",
+                              "place"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "label",
+                          "kind"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "stepOrder": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "participant",
+                      "stepOrder"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "assertionStatus": {
+                  "type": "string",
+                  "enum": [
+                    "asserted",
+                    "intended",
+                    "attempted",
+                    "uncertain",
+                    "counterfactual",
+                    "reported"
+                  ]
+                },
+                "sourceSpan": {
+                  "type": "object",
+                  "properties": {
+                    "startUtf16": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "endUtf16Exclusive": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "textHash": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    }
+                  },
+                  "required": [
+                    "startUtf16",
+                    "endUtf16Exclusive",
+                    "text",
+                    "textHash"
+                  ],
+                  "additionalProperties": false
+                },
+                "provenance": {
+                  "type": "object",
+                  "properties": {
+                    "sourceKind": {
+                      "type": "string",
+                      "enum": [
+                        "native-structured-proposition",
+                        "compatibility-structured-proposition",
+                        "existing-structured-proposition",
+                        "resolved-participants",
+                        "bounded-deterministic-normalization"
+                      ]
+                    },
+                    "groundingRuleId": {
+                      "type": "string",
+                      "enum": [
+                        "explicit-structured-proposition-v1",
+                        "bounded-causal-clause-v1",
+                        "bounded-dependency-clause-v1",
+                        "bounded-comparison-clause-v1",
+                        "bounded-evidence-enumeration-v1",
+                        "bounded-movement-clause-v1",
+                        "bounded-policy-action-v1",
+                        "bounded-claim-state-v1"
+                      ]
+                    },
+                    "groundingSchemaVersion": {
+                      "type": "string",
+                      "const": "history-atomic-claim-grounding.v2"
+                    },
+                    "resolvedParticipantIds": {
+                      "minItems": 1,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 256
+                      }
+                    },
+                    "structuredPropositionId": {
+                      "type": "string",
+                      "pattern": "^structured-proposition-[a-f0-9]{24}$"
+                    }
+                  },
+                  "required": [
+                    "sourceKind",
+                    "groundingRuleId",
+                    "groundingSchemaVersion",
+                    "resolvedParticipantIds"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "groundingId",
+                "episodeId",
+                "claimId",
+                "subject",
+                "predicate",
+                "assertionStatus",
+                "sourceSpan",
+                "provenance"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "diagnostics": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "GROUNDING_PARTICIPANT_UNRESOLVED",
+                    "GROUNDING_PREDICATE_AMBIGUOUS",
+                    "GROUNDING_SOURCE_SPAN_INVALID",
+                    "GROUNDING_PROPER_NAME_FRAGMENTATION",
+                    "GROUNDING_PURPOSE_NOT_DESTINATION",
+                    "GROUNDING_COMPOUND_ARGUMENT_AMBIGUOUS",
+                    "GROUNDING_UNSUPPORTED_STRUCTURE"
+                  ]
+                },
+                "claimId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "message": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                },
+                "affectedIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  }
+                }
+              },
+              "required": [
+                "code",
+                "claimId",
+                "message",
+                "affectedIds"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "claimId",
+          "coverage",
+          "propositions",
+          "diagnostics"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "episodeId",
+    "claims"
+  ],
+  "additionalProperties": false,
+  "$id": "https://mediaforge.local/schemas/history/v3.6/atomic-grounding-schema.json",
+  "title": "History V3.6 atomic claim grounding artifact"
+}

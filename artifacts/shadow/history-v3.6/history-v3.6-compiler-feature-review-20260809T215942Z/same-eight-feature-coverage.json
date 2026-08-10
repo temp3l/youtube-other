@@ -1,0 +1,79 @@
+{
+  "episodes": [
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-01-bronze-age-collapse",
+      "title": "The Bronze Age Collapse: When Civilizations Fell Together"
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-04-black-death",
+      "title": "The Black Death: The Pandemic That Remade Europe"
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-05-franklin-expedition",
+      "title": "The Mystery of the Franklin Expedition: Lost in the Arctic"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-36-spanish-armada-why-it-failed",
+      "title": "The Spanish Armada: Why the Invasion of England Failed"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion",
+      "title": "D-Day: How the Allies Broke Into Fortress Europe"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-20-1066-battle-that-changed-england",
+      "title": "1066: The Battle That Changed England"
+    },
+    {
+      "episodeId": "history-youtube-history-10-video-story-pack-10-titanic-decisions-disaster",
+      "title": "Titanic: The Decisions That Caused the Disaster"
+    },
+    {
+      "episodeId": "history-youtube-history-30-video-story-pack-35-chernobyl-night-reactor-exploded",
+      "title": "Chernobyl: The Night the Reactor Exploded"
+    }
+  ],
+  "relations": 34,
+  "relationCountsByKind": {
+    "causal": 18,
+    "dependency": 4,
+    "event-location": 1,
+    "evidence-set": 4,
+    "movement": 1,
+    "policy-response": 1,
+    "process": 2,
+    "spatial-comparison": 1,
+    "temporal-sequence": 2
+  },
+  "dispositionCounts": {
+    "DIAGRAM": 31,
+    "MAP": 3
+  },
+  "featureCoverage": {
+    "nativeStructuredClaimV36": true,
+    "process": true,
+    "temporalSequence": true,
+    "policyResponse": true,
+    "proofAwareMultiClaimEvidence": true,
+    "eventLocation": true,
+    "causalModality": true,
+    "evidenceSetAggregation": true,
+    "movement": true,
+    "spatialComparison": true,
+    "dependency": true
+  },
+  "availableRelationKinds": [
+    "movement",
+    "spatial-comparison",
+    "causal",
+    "dependency",
+    "process",
+    "temporal-sequence",
+    "policy-response",
+    "evidence-set",
+    "event-location"
+  ],
+  "unavailableRelationKinds": [
+    "spatial-area"
+  ]
+}

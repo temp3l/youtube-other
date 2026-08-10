@@ -1,0 +1,60 @@
+{
+  "claim-3b3f5f2d628d9410657dcfe8|claim-ee76bea77004b9d801b6630b": {
+    "proposals": [
+      {
+        "kind": "causal",
+        "causeParticipantId": "claim-concept:claim-3b3f5f2d628d9410657dcfe8",
+        "effectParticipantId": "claim-concept:claim-ee76bea77004b9d801b6630b",
+        "supportClaimIds": ["claim-3b3f5f2d628d9410657dcfe8", "claim-ee76bea77004b9d801b6630b"],
+        "evidenceMapping": ["demographic shock transformed labor", "survivors could demand higher wages"]
+      }
+    ]
+  },
+  "claim-ee76bea77004b9d801b6630b|claim-095a61f563fa2980b636c6cc": {
+    "proposals": [
+      {
+        "kind": "policy-response",
+        "conditionParticipantId": "claim-concept:claim-ee76bea77004b9d801b6630b",
+        "responseParticipantId": "claim-concept:claim-095a61f563fa2980b636c6cc",
+        "supportClaimIds": ["claim-ee76bea77004b9d801b6630b", "claim-095a61f563fa2980b636c6cc"],
+        "evidenceMapping": ["higher wages", "attempted wage restriction"]
+      }
+    ]
+  },
+  "claim-6102997fabdd9aa3492eccb4": {
+    "proposals": [
+      {
+        "kind": "movement",
+        "fromParticipantId": "entity-46a7fac47ed54973ae0cbd3f",
+        "toParticipantId": "entity-ac964e273d8d56019388fc87",
+        "viaParticipantIds": [],
+        "supportClaimIds": ["claim-6102997fabdd9aa3492eccb4"],
+        "evidenceMapping": ["sailed from Britain", "to search for the Northwest Passage"]
+      }
+    ]
+  },
+  "claim-a6f0630762f216aee3e63456|claim-dc974d4bfc009c22c481bf02": {
+    "proposals": [
+      {
+        "kind": "movement",
+        "fromParticipantId": "entity-5850d82436f8a4180248e3a9",
+        "toParticipantId": "entity-4a2b0a31ab4d4266f038c376",
+        "viaParticipantIds": [],
+        "supportClaimIds": ["claim-a6f0630762f216aee3e63456", "claim-dc974d4bfc009c22c481bf02"],
+        "evidenceMapping": ["departed Lisbon", "mission involved English Channel"]
+      }
+    ]
+  },
+  "claim-bfba0073ddda4cc140d4753e": {
+    "proposals": [
+      {
+        "kind": "movement",
+        "fromParticipantId": "entity-europe-not-supplied",
+        "toParticipantId": "entity-cfef20f309bc23f72d9fc111",
+        "viaParticipantIds": [],
+        "supportClaimIds": ["claim-bfba0073ddda4cc140d4753e"],
+        "evidenceMapping": ["landed at Pevensey"]
+      }
+    ]
+  }
+}

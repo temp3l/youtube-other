@@ -1,0 +1,267 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "History V3.6 explanatory relation IR",
+  "schemaVersion": "history-explanatory-relations.v4",
+  "generatedFrom": "packages/history/src/v36/explanatory-relation-v36.ts#relationContractDocumentV36",
+  "identity": {
+    "semanticRelationId": {
+      "field": "id",
+      "algorithm": "relation-{kind}-{first 24 hex chars of sha256(JSON.stringify(relation-specific canonical semantic inputs))}",
+      "excludes": [
+        "supportClaimIds",
+        "evidenceFingerprint",
+        "sourceSpanIds",
+        "context-window IDs",
+        "timestamps",
+        "candidate IDs",
+        "render IDs",
+        "random UUIDs"
+      ]
+    },
+    "evidenceFingerprint": {
+      "field": "evidenceFingerprint",
+      "algorithm": "evidence-{first 24 hex chars of sha256(JSON.stringify({supportClaimIds: sorted unique IDs}))}",
+      "ordering": "supportClaimIds is an unordered provenance set and is canonicalized sorted and unique."
+    }
+  },
+  "commonRequiredFields": [
+    "id",
+    "episodeId",
+    "kind",
+    "supportClaimIds",
+    "evidenceFingerprint"
+  ],
+  "commonFields": {
+    "id": "SemanticRelationIdV36; semantic identity only",
+    "episodeId": "EpisodeIdV36; semantic identity input",
+    "supportClaimIds": "ClaimIdV36[1..n]; canonical provenance support, excluded from semantic identity",
+    "evidenceFingerprint": "RelationEvidenceFingerprintV36; deterministic fingerprint of supportClaimIds"
+  },
+  "relationKinds": {
+    "movement": {
+      "required": [
+        "from",
+        "via",
+        "to"
+      ],
+      "participantTypes": {
+        "from": "PlaceRefV36",
+        "via": "PlaceRefV36[]",
+        "to": "PlaceRefV36"
+      },
+      "cardinality": "from and to must differ; via is ordered",
+      "direction": "from -> via[] -> to",
+      "semanticIdentityInputs": [
+        "episodeId",
+        "kind",
+        "from",
+        "ordered via[]",
+        "to"
+      ]
+    },
+    "spatial-comparison": {
+      "required": [
+        "places"
+      ],
+      "participantTypes": {
+        "places": "PlaceRefV36[]"
+      },
+      "cardinality": "at least two distinct places",
+      "ordering": "unordered set",
+      "direction": "none",
+      "semanticIdentityInputs": [
+        "episodeId",
+        "kind",
+        "canonical unordered places set"
+      ]
+    },
+    "spatial-area": {
+      "required": [
+        "place"
+      ],
+      "participantTypes": {
+        "place": "PlaceRefV36"
+      },
+      "cardinality": "exactly one place",
+      "direction": "none",
+      "semanticIdentityInputs": [
+        "episodeId",
+        "kind",
+        "place"
+      ]
+    },
+    "causal": {
+      "required": [
+        "cause",
+        "effect"
+      ],
+      "optional": [
+        "causalAssertionStatus"
+      ],
+      "participantTypes": {
+        "cause": "ConceptRefV36",
+        "effect": "ConceptRefV36"
+      },
+      "modalityTypes": {
+        "causalAssertionStatus": "AtomicAssertionStatusV36"
+      },
+      "legacyMissingModality": "asserted causal link; proven by V2 asserted-only projection guards",
+      "cardinality": "two distinct concepts",
+      "direction": "cause -> effect",
+      "semanticIdentityInputs": [
+        "episodeId",
+        "kind",
+        "cause",
+        "effect",
+        "non-default causalAssertionStatus"
+      ]
+    },
+    "dependency": {
+      "required": [
+        "dependency",
+        "dependent"
+      ],
+      "participantTypes": {
+        "dependency": "ConceptRefV36",
+        "dependent": "ConceptRefV36"
+      },
+      "cardinality": "two distinct concepts",
+      "direction": "dependency -> dependent; dependent depends on dependency",
+      "semanticIdentityInputs": [
+        "episodeId",
+        "kind",
+        "dependency",
+        "dependent"
+      ]
+    },
+    "process": {
+      "required": [
+        "steps"
+      ],
+      "participantTypes": {
+        "steps": "ConceptRefV36[]"
+      },
+      "cardinality": "at least two steps; adjacent steps must differ",
+      "ordering": "ordered",
+      "direction": "first step -> later steps",
+      "semanticIdentityInputs": [
+        "episodeId",
+        "kind",
+        "ordered steps[]"
+      ]
+    },
+    "temporal-sequence": {
+      "required": [
+        "steps"
+      ],
+      "participantTypes": {
+        "steps": "ConceptRefV36[]"
+      },
+      "cardinality": "at least two steps; adjacent steps must differ",
+      "ordering": "ordered",
+      "direction": "earlier step -> later step",
+      "semanticIdentityInputs": [
+        "episodeId",
+        "kind",
+        "ordered steps[]"
+      ]
+    },
+    "policy-response": {
+      "required": [
+        "condition",
+        "response"
+      ],
+      "optional": [
+        "conditionAssertionStatus",
+        "responseAssertionStatus"
+      ],
+      "participantTypes": {
+        "condition": "ConceptRefV36",
+        "response": "ConceptRefV36"
+      },
+      "modalityTypes": {
+        "conditionAssertionStatus": "AtomicAssertionStatusV36",
+        "responseAssertionStatus": "AtomicAssertionStatusV36"
+      },
+      "legacyMissingModality": "asserted condition and asserted response; proven by V2 asserted-only projection guards",
+      "cardinality": "two distinct concepts",
+      "direction": "condition -> response; each assertion status is attached to its named side",
+      "semanticIdentityInputs": [
+        "episodeId",
+        "kind",
+        "condition",
+        "response",
+        "non-default conditionAssertionStatus",
+        "non-default responseAssertionStatus"
+      ]
+    },
+    "evidence-set": {
+      "required": [
+        "evidence"
+      ],
+      "optional": [
+        "subject"
+      ],
+      "participantTypes": {
+        "subject": "ConceptRefV36",
+        "evidence": "ConceptRefV36[]"
+      },
+      "cardinality": "at least two distinct evidence members",
+      "ordering": "evidence is an unordered semantic set, not a presentation list",
+      "direction": "subject <- evidence set when subject is present",
+      "semanticIdentityInputs": [
+        "episodeId",
+        "kind",
+        "optional subject",
+        "canonical unordered evidence set"
+      ]
+    },
+    "event-location": {
+      "required": [
+        "event",
+        "location",
+        "assertionStatus"
+      ],
+      "participantTypes": {
+        "event": "EventSubjectRefV36",
+        "location": "PlaceRefV36"
+      },
+      "modalityTypes": {
+        "assertionStatus": "AtomicAssertionStatusV36"
+      },
+      "eventEligibility": "event.eventType must be explicit event, action, or operation metadata; labels never establish eligibility",
+      "cardinality": "one event-like concept and one distinct canonical place",
+      "direction": "event -> location",
+      "semanticIdentityInputs": [
+        "episodeId",
+        "kind",
+        "event",
+        "location",
+        "assertionStatus"
+      ]
+    }
+  },
+  "runtimeValidationInvariants": [
+    "episode-local support",
+    "canonical entity resolution",
+    "proper-name atomicity",
+    "exact grounded proposition",
+    "direction support",
+    "kind-specific cardinality",
+    "semantic ID match",
+    "evidence fingerprint match",
+    "semantic duplicate detection"
+  ],
+  "backwardCompatibility": {
+    "acceptedArtifactVersions": [
+      "history-explanatory-relations.v2",
+      "history-explanatory-relations.v3",
+      "history-explanatory-relations.v4"
+    ],
+    "legacyPolicyResponseInterpretation": "Missing policy-response modality always means asserted/asserted in every code path.",
+    "legacyCausalInterpretation": "Missing causal modality always means asserted in every code path.",
+    "legacySemanticIds": "Unchanged; explicit asserted/asserted canonicalizes to the V2 identity payload.",
+    "evidenceFingerprints": "Unchanged; premise modality never enters provenance fingerprint inputs.",
+    "eventLocation": "Absent from V2/V3 artifacts; V4 requires explicit event-location assertion modality and event-like eligibility."
+  }
+}

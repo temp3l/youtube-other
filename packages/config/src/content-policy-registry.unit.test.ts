@@ -14,6 +14,7 @@ describe("content policy registries", () => {
   it("keeps genre and creator separate and intersects every permission layer", () => {
     const genres = new GenreRegistry([genre]);
     const creators = new CreatorProfileRegistry([creator]);
+    expect(genres.get("strategic-reinvention").id).toBe("veronicabenini");
     expect(creators.list(genres.get("strategic-reinvention").id)).toHaveLength(1);
     const policy = resolveEffectiveContentPolicy({
       genre: genres.get("strategic-reinvention"), creatorProfile: creators.get("veronica-benini"),
@@ -21,6 +22,7 @@ describe("content policy registries", () => {
       episodeOverride: { supportedLocales: ["it"], permittedContentTiers: ["public"] },
     });
     expect(policy.supportedLocales).toEqual(["it"]);
+    expect(policy.genreId).toBe("veronicabenini");
     expect(policy.permittedContentTiers).toEqual(["public"]);
     expect(policy.requiredApprovalGates).toEqual(["source", "publish"]);
     const withAdditionalGate = resolveEffectiveContentPolicy({

@@ -1,0 +1,14 @@
+{
+  "previews": [
+    {
+      "kind": "map",
+      "relationKind": "movement",
+      "file": "previews/movement.png"
+    },
+    {
+      "kind": "diagram",
+      "relationKind": "causal",
+      "file": "previews/causal.png"
+    }
+  ]
+}

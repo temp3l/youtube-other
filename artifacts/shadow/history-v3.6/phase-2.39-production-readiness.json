@@ -1,0 +1,15 @@
+{
+  "phase": "2.39",
+  "startingSha": "8775f81b130bf6d94e4c8cac3968a8fc10734e77",
+  "result": "PASS",
+  "verdict": "READY_WITH_KNOWN_NONBLOCKING_TERMINAL_CASES",
+  "artifact": "artifacts/shadow/history-v3.6/production-readiness/history-v3.6-production-readiness-20260809T231321Z.zip",
+  "artifactSha256": "6b3e97450d390aa5e8e1d95310854e8685266c260e537e42fa28b59da72a24e2",
+  "productionActivated": false,
+  "providerCalls": {
+    "llm": 0,
+    "image": 0,
+    "web": 0,
+    "geocoding": 0
+  }
+}

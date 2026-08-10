@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "history-policy-response-modality-decision-matrix.v1",
+  "selectedOption": "OPTION_A_POLICY_RESPONSE_SPECIFIC_MODALITY",
+  "scale": ["excellent", "good", "mixed", "poor"],
+  "options": [
+    {
+      "option": "OPTION_A_POLICY_RESPONSE_SPECIFIC_MODALITY",
+      "selected": true,
+      "dimensions": {
+        "semanticFidelity": { "assessment": "excellent", "rationale": "Preserves uncertain condition and attempted response on their named sides." },
+        "backwardCompatibility": { "assessment": "excellent", "rationale": "Optional fields retain V2 records; missing has one proven asserted/asserted meaning." },
+        "v35Isolation": { "assessment": "excellent", "rationale": "Only the V3.6 relation module and its consumers change." },
+        "v36MigrationRisk": { "assessment": "good", "rationale": "The persisted contract advances to V3 while its parser accepts V2 artifacts." },
+        "validatorImpact": { "assessment": "good", "rationale": "Exact policy-response modality comparison is added without relaxing existing checks." },
+        "semanticIdStability": { "assessment": "excellent", "rationale": "Legacy and explicit asserted/asserted retain V2 IDs; non-default modality affects identity." },
+        "evidenceFingerprintStability": { "assessment": "excellent", "rationale": "Fingerprint inputs remain only canonical support claim IDs." },
+        "schemaComplexity": { "assessment": "good", "rationale": "Adds two optional enum fields to one existing variant." },
+        "serializationCompatibility": { "assessment": "excellent", "rationale": "V2 records round-trip unchanged and V3 records serialize explicit modality." },
+        "compilerImpact": { "assessment": "good", "rationale": "Existing consumers can ignore optional fields; no compiler is changed in this phase." },
+        "futureExtensibility": { "assessment": "good", "rationale": "The canonical assertion vocabulary supports future policy-response cases without generic redesign." },
+        "implementationScope": { "assessment": "excellent", "rationale": "Smallest contract surface satisfying losslessness and deterministic validation." }
+      }
+    },
+    {
+      "option": "OPTION_B_GENERIC_DIRECTED_PREMISE_MODALITY",
+      "selected": false,
+      "dimensions": {
+        "semanticFidelity": { "assessment": "excellent", "rationale": "A source/target premise wrapper could preserve both statuses." },
+        "backwardCompatibility": { "assessment": "mixed", "rationale": "Replacing named condition/response fields needs adapters or dual shapes." },
+        "v35Isolation": { "assessment": "excellent", "rationale": "A V3.6-only implementation could isolate V3.5." },
+        "v36MigrationRisk": { "assessment": "poor", "rationale": "Generic participant reshaping would touch more relation construction and validation paths." },
+        "validatorImpact": { "assessment": "mixed", "rationale": "Generic source/target semantics require mapping back to each relation's named direction." },
+        "semanticIdStability": { "assessment": "mixed", "rationale": "A generic wrapper increases canonicalization and migration risk for existing IDs." },
+        "evidenceFingerprintStability": { "assessment": "excellent", "rationale": "Provenance can remain separate under this option." },
+        "schemaComplexity": { "assessment": "poor", "rationale": "Introduces a reusable abstraction without evidence of a second relation family needing it." },
+        "serializationCompatibility": { "assessment": "mixed", "rationale": "Named legacy fields and generic premise wrappers would require versioned translation." },
+        "compilerImpact": { "assessment": "mixed", "rationale": "Consumers must understand generic source/target roles or an adapter." },
+        "futureExtensibility": { "assessment": "excellent", "rationale": "Potentially reusable if multiple directed relation families later prove the need." },
+        "implementationScope": { "assessment": "poor", "rationale": "Premature abstraction exceeds the one evidenced policy-response gap." }
+      }
+    },
+    {
+      "option": "OPTION_C_KEEP_RELATION_UNCHANGED",
+      "selected": false,
+      "dimensions": {
+        "semanticFidelity": { "assessment": "excellent", "rationale": "The upstream proof-backed candidate remains lossless because relation admission stays blocked." },
+        "backwardCompatibility": { "assessment": "excellent", "rationale": "No relation records or schemas change." },
+        "v35Isolation": { "assessment": "excellent", "rationale": "V3.5 remains untouched." },
+        "v36MigrationRisk": { "assessment": "excellent", "rationale": "There is no immediate migration." },
+        "validatorImpact": { "assessment": "excellent", "rationale": "The current validator remains unchanged." },
+        "semanticIdStability": { "assessment": "excellent", "rationale": "All relation IDs remain unchanged." },
+        "evidenceFingerprintStability": { "assessment": "excellent", "rationale": "All fingerprints remain unchanged." },
+        "schemaComplexity": { "assessment": "excellent", "rationale": "No schema surface is added." },
+        "serializationCompatibility": { "assessment": "excellent", "rationale": "No serialization changes." },
+        "compilerImpact": { "assessment": "poor", "rationale": "The validated semantic case remains unavailable to downstream relation consumers." },
+        "futureExtensibility": { "assessment": "mixed", "rationale": "A later extension must revisit the same contract and migration decision." },
+        "implementationScope": { "assessment": "excellent", "rationale": "Smallest immediate implementation, but it does not make the proven semantics relation-representable." }
+      }
+    }
+  ],
+  "selectionRuleResult": "A and the safety-preserving form of C avoid semantic loss. A additionally makes the proven semantics representable with a bounded policy-response-only surface. B has no repository evidence for a second reusable consumer, so the smaller semantic surface wins."
+}

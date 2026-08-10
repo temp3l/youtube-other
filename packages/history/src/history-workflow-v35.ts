@@ -43,6 +43,7 @@ import {
   buildReviewableGeoFactsV35,
   validateGeoFactReferentialIntegrityV35,
 } from "./history-geo-facts-export-v35.js";
+import { buildHistoryApprovalPackProvenanceV35 } from "./history-approval-pack-provenance-v35.js";
 import { summarizeHistoricalPersonReferenceReportV35 } from "./history-person-likeness-v35.js";
 import {
   loadPersistedHistoricalVisualDirectionV1,
@@ -899,6 +900,7 @@ export async function createCombinedHistoryApprovalBundleV35(request: {
   readonly regenerateOnlyEpisodeIds?: readonly string[];
   readonly concurrency?: number;
   readonly useWorkerThreads?: boolean;
+  readonly episodeRange?: string;
   readonly onProgress?: (event: HistoryApprovalPackProgressEventV35) => void;
 }): Promise<{
   readonly directory: string;
@@ -959,9 +961,14 @@ export async function createCombinedHistoryApprovalBundleV35(request: {
   const episodes = episodeResults.map((result) => result.pack);
   const episodeSummaries = episodeResults.map((result) => result.summary);
   const buildTimestamp = new Date().toISOString();
+  const provenance = buildHistoryApprovalPackProvenanceV35({
+    generatedAt: new Date(buildTimestamp),
+    episodeRange: request.episodeRange ?? String(request.episodeIds.length),
+  });
   const comparison = {
     schemaVersion: "history-approval-pack-combined.v3.5",
     buildEpoch: buildTimestamp,
+    provenance,
     episodes: episodes.map((episode) => ({
       episodeId: episode.episodeId,
       planHash: episode.planHash,
@@ -1056,6 +1063,7 @@ export async function createCombinedHistoryApprovalBundleV35(request: {
     testCommands: FOCUSED_HISTORY_V35_COMMANDS,
   };
   await writeStableJson(path.join(directory, "comparison-manifest.json"), comparison);
+  await writeStableJson(path.join(directory, "approval-pack-provenance.json"), provenance);
   const comparisonReportPath = path.join(directory, "comparison-quality-report.json");
   await writeStableJson(comparisonReportPath, qualityReport);
   await writeStableText(

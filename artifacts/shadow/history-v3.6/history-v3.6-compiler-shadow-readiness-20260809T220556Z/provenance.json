@@ -1,0 +1,20 @@
+{
+  "phaseStartCommit": "dff6bc7fb7d88ce5b47a24ea90bd5fcefbe87367",
+  "acceptedSemanticBaselineCommit": "9a25cb94f35e557a2da43545d697a9a18638b2fb",
+  "frozenV35Commit": "f04262c16bfd1a89d1b404b1ac291a89dc699a0d",
+  "phaseBaselines": {
+    "contract": "ec18825718a72e6ef1f995b580c68473774d8208",
+    "map": "83300d2caacbb243b1792652e6c76162d5c3af41",
+    "diagram": "3e5311a43fe98b40547f0571a89767d3844696d7",
+    "featureLane": "7288ee6b7e85a2de44fed53808d188985d85e752",
+    "all40Lane": "dff6bc7fb7d88ce5b47a24ea90bd5fcefbe87367"
+  },
+  "generatedAt": "2026-08-09T22:05:56.354Z",
+  "featureArtifact": "artifacts/shadow/history-v3.6/history-v3.6-compiler-feature-review-20260809T215942Z",
+  "all40Artifact": "artifacts/shadow/history-v3.6/history-v3.6-all40-compiler-census-20260809T220300Z",
+  "previousZipsEmbedded": false,
+  "finalCommit": "Resolve history-v3.6-compiler-shadow-readiness-baseline^{} after close.",
+  "providerCalls": 0,
+  "llmSemanticCalls": 0,
+  "imageProviderCalls": 0
+}

@@ -1,0 +1,19 @@
+{
+  "isolation": {
+    "status": "PASS",
+    "planHashesBeforeAfterEqual": true,
+    "changedV35Paths": [],
+    "frozenV35Commit": "f04262c16bfd1a89d1b404b1ac291a89dc699a0d"
+  },
+  "differential": {
+    "v35Aggregate": {
+      "mapStates": 56,
+      "diagramStates": 19
+    },
+    "v36CompilerDispositions": {
+      "DIAGRAM": 101,
+      "MAP": 2
+    },
+    "comparisonScope": "Aggregate characterization only; V3.6 relations are not required to reproduce V3.5 heuristic plans."
+  }
+}

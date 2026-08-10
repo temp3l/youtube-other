@@ -1,0 +1,15 @@
+{
+  "blockingArchitectureCases": [],
+  "nonblockingCases": [
+    {
+      "code": "TIMING_MEASUREMENT_REQUIRED",
+      "scope": "40/40 compatibility episodes",
+      "classification": "PER_EPISODE_PRODUCTION_PREREQUISITE",
+      "effect": "Does not block V3.6 architecture activation readiness; blocks final production approval for an episode until measured TTS or final-audio timing exists.",
+      "remediation": "Rebuild the episode plan with measured timing before production approval."
+    }
+  ],
+  "frozenCorpusCoverageNotes": [
+    "The accepted all-40 corpus does not contain every native/proof relation kind; this is not a failure."
+  ]
+}
