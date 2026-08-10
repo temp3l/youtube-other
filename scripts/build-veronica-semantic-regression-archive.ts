@@ -30,6 +30,10 @@ for (const episodeId of episodeNames) {
     readonly packHashValidation: "PASS";
     readonly packCrossArtifactIntegrity: { readonly status: "PASS" | "FAIL" };
     readonly semanticIntegrity: { readonly blockerCount: number };
+    readonly providerProjectionIntegrity: { readonly status: "PASS" | "FAIL"; readonly missingThesisCount: number; readonly malformedThesisCount: number; readonly blockedProjectionCount: number };
+    readonly providerPromptQuality: { readonly status: "PASS" | "FAIL"; readonly blockedMarkerCount: number; readonly internalLanguageIssueCount: number };
+    readonly semanticQuality: { readonly status: "PASS" | "FAIL"; readonly remediationTemplateReuseRate: number; readonly genericFallbackSceneRate: number; readonly repeatedActionFamilyRate: number; readonly repeatedEnvironmentFamilyRate: number; readonly intentionalMotifReuseRate: number; readonly accidentalRepetitionRate: number };
+    readonly overallPackValidity: boolean;
     readonly narrationDiagnostic: { readonly approximateWordsPerMinute: number };
     readonly sources: readonly { readonly name: string; readonly sha256: string }[];
     readonly packFileHashes: Readonly<Record<string, string>>;
@@ -61,6 +65,14 @@ for (const episodeId of episodeNames) {
     remediationRounds: semantic.remediationRounds ?? 0,
     selectedAudioHash: reviewManifest.selectedAudioHash,
     timingIntegrityStatus: reviewManifest.packCrossArtifactIntegrity.status,
+    providerProjectionStatus: reviewManifest.providerProjectionIntegrity.status,
+    providerPromptQualityStatus: reviewManifest.providerPromptQuality.status,
+    missingThesisCount: reviewManifest.providerProjectionIntegrity.missingThesisCount,
+    malformedThesisCount: reviewManifest.providerProjectionIntegrity.malformedThesisCount,
+    projectionBlockedCount: reviewManifest.providerProjectionIntegrity.blockedProjectionCount,
+    blockedMarkerCount: reviewManifest.providerPromptQuality.blockedMarkerCount,
+    semanticQuality: reviewManifest.semanticQuality,
+    overallPackValidity: reviewManifest.overallPackValidity,
     providerReadiness: reviewManifest.providerRequestsAllowed ? "ALLOWED" : "BLOCKED_PENDING_HUMAN_PRE_IMAGE_APPROVAL",
     hashStatus: reviewManifest.packHashValidation,
   });
@@ -71,7 +83,7 @@ const aggregate = {
   generatedAt: new Date().toISOString(),
   newLiveTtsProviderCallCount: 0,
   imageProviderCallCount: 0,
-  status: packs.every((pack) => pack.blockerCount === 0 && pack.timingIntegrityStatus === "PASS" && pack.hashStatus === "PASS" && pack.providerReadiness === "BLOCKED_PENDING_HUMAN_PRE_IMAGE_APPROVAL") ? "READY_FOR_HUMAN_PRE_IMAGE_REVIEW" : "NOT_READY",
+  status: packs.every((pack) => pack.blockerCount === 0 && pack.timingIntegrityStatus === "PASS" && pack.hashStatus === "PASS" && pack.providerProjectionStatus === "PASS" && pack.providerPromptQualityStatus === "PASS" && pack.semanticQuality.status === "PASS" && pack.overallPackValidity && pack.providerReadiness === "BLOCKED_PENDING_HUMAN_PRE_IMAGE_APPROVAL") ? "READY_FOR_HUMAN_PRE_IMAGE_REVIEW" : "NOT_READY",
   packs,
 };
 await fs.writeFile(path.join(outputDir, "aggregate-manifest.json"), `${JSON.stringify(aggregate, null, 2)}\n`, "utf8");

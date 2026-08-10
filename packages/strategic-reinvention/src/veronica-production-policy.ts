@@ -14,7 +14,9 @@ export interface VeronicaProductionPolicy {
     readonly enabled: true;
     readonly maxRounds: 2;
     readonly actionableWarnings: readonly ["MULTI_STATE_STILL_AMBIGUITY"] | readonly [];
-    readonly policyVersion: "veronica-semantic-auto-remediation.v1";
+    readonly policyVersion: "veronica-semantic-auto-remediation.v2";
+    readonly maximumGenericFallbackSceneRate: 0.2;
+    readonly maximumRepeatedSemanticFamilyRate: 0.6;
   };
 }
 
@@ -28,7 +30,9 @@ const SHORT_POLICY: VeronicaProductionPolicy = {
     enabled: true,
     maxRounds: 2,
     actionableWarnings: ["MULTI_STATE_STILL_AMBIGUITY"],
-    policyVersion: "veronica-semantic-auto-remediation.v1",
+    policyVersion: "veronica-semantic-auto-remediation.v2",
+    maximumGenericFallbackSceneRate: 0.2,
+    maximumRepeatedSemanticFamilyRate: 0.6,
   },
 };
 
@@ -42,7 +46,9 @@ const FULL_POLICY: VeronicaProductionPolicy = {
     enabled: true,
     maxRounds: 2,
     actionableWarnings: [],
-    policyVersion: "veronica-semantic-auto-remediation.v1",
+    policyVersion: "veronica-semantic-auto-remediation.v2",
+    maximumGenericFallbackSceneRate: 0.2,
+    maximumRepeatedSemanticFamilyRate: 0.6,
   },
 };
 

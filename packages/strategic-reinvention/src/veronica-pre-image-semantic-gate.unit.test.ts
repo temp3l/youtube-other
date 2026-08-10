@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { PlannedScene, PositioningVisualPlanV2, PositioningVisualTreatment } from "./positioning-visual-contracts.js";
 import { stableHash } from "./positioning-visual-semantics.js";
-import { classifyVeronicaStillStateComplexity, normalizeProviderPromptSentence, normalizeVeronicaViewerVisibleFamilies, projectVeronicaProviderPrompt, reviewVeronicaPreImageTreatment, runVeronicaSemanticRemediation } from "./veronica-pre-image-semantic-gate.js";
+import { calculateVeronicaSemanticQuality, classifyVeronicaStillStateComplexity, normalizeProviderPromptSentence, normalizeVeronicaViewerVisibleFamilies, projectVeronicaProviderPrompt, reviewVeronicaPreImageTreatment, runVeronicaSemanticRemediation, validateVeronicaProviderReadiness } from "./veronica-pre-image-semantic-gate.js";
+import { deriveVeronicaSemanticProposition, providerPromptInternalLanguageReasons } from "./veronica-semantic-quality.js";
 
 function treatment(overrides: Partial<PositioningVisualTreatment> = {}): PositioningVisualTreatment {
   const base = { treatmentId: "treatment", sceneId: "scene", progressionStage: "PROOF" as const, narrativeBeat: "buyer recognition", communicationIntent: "make-proof-visible" as const, strategy: "client-decision" as const, subjectRequirement: "occupation-neutral expert and buyer", environment: "public threshold", composition: "buyer crosses a clear doorway", camera: "40mm buyer-height", lighting: "daylight", action: "a buyer hesitates, then crosses the doorway", props: ["open doorway", "visible space beyond"], motionOpportunities: ["establishing-crop", "reveal"] as const, diagram: null, grammar: { strategy: "client-decision" as const, subjectArchetype: "buyer", environment: "public threshold", composition: "buyer crosses a clear doorway", camera: "40mm", props: ["open doorway"], topology: "none" as const, semanticTokens: ["niche"], continuityIdentityId: null }, viewerVisibleFingerprint: { strategyFamily: "client-decision" as const, subjectArchetype: "buyer", environmentArchetype: "threshold", compositionArchetype: "crossing", cameraArchetype: "40mm", lightingArchetype: "daylight", actionArchetype: "crosses", dominantObjectArchetype: "doorway", motionArchetype: "reveal" }, treatmentHash: "a".repeat(64) };
@@ -122,6 +123,38 @@ describe("Veronica pre-image semantic gate", () => {
     expect(review.driftFlags).toContain("VISIBLE_THESIS_REQUIRED");
     expect(prompt).not.toContain("Visible thesis:");
     expect(prompt).not.toContain("positioning matters");
+  });
+
+  it("rejects malformed keyword soup even when it contains narration terms and buyer boilerplate", () => {
+    const review = reviewVeronicaPreImageTreatment({ contentId: "test", sceneId: "hook", plannerVersion: "test", narration: "A third relevant context shows people why positioning matters.", narrationAnchor: "relevant context", visibleThesis: "Because third relevant context show people changes the available evidence, the buyer compares what is visible and recognizes the consequence before choosing.", newInformation: "A distinct context should reveal why participation creates recognition.", treatment: treatment({ environment: "occupation-neutral evidence and comparison setting", action: "the buyer compares what is visible and recognizes the consequence before choosing" }) });
+    expect(review.status).toBe("manual-review-required");
+    expect(review.driftFlags).toContain("MALFORMED_VISIBLE_THESIS");
+  });
+
+  it("derives distinct buyer consequences from narration instead of one comparison fallback", () => {
+    const consequences = [
+      "Repeated proof helps a buyer remember the expertise.",
+      "A clear first screen helps a visitor categorize the offer.",
+      "Mixed signals make the customer hesitate.",
+      "Matching evidence lets the customer choose the option.",
+    ].map((narration) => deriveVeronicaSemanticProposition({ scene: scene(), narration }).buyerConsequenceFamily);
+    expect(consequences).toEqual(["REMEMBERS", "CATEGORIZES", "HESITATES", "CHOOSES"]);
+  });
+
+  it("detects repeated generic remediation while permitting narration-native motif continuity", () => {
+    const genericScenes = Array.from({ length: 4 }, (_, index) => scene({ sceneId: `scene-00${index + 1}`, visibleThesis: `Visible evidence gives buyer ${index + 1} a relevant choice.`, treatment: treatment({ sceneId: `scene-00${index + 1}`, environment: "occupation-neutral evidence and comparison setting", action: "the buyer compares what is visible and recognizes the consequence before choosing" }), semanticProposition: { ...deriveVeronicaSemanticProposition({ scene: scene(), narration: "A clear claim needs concrete proof so the buyer can trust it." }), propositionHash: `${index}`.padStart(64, "a") } }));
+    expect(calculateVeronicaSemanticQuality(plan(genericScenes)).status).toBe("FAIL");
+    const motifScenes = Array.from({ length: 3 }, (_, index) => scene({ sceneId: `motif-${index}`, narrationAnchor: "A specific niche doorway widens into a larger audience.", semanticProposition: deriveVeronicaSemanticProposition({ scene: scene(), narration: "A specific niche doorway widens into a larger audience and remains a foothold." }) }));
+    expect(calculateVeronicaSemanticQuality(plan(motifScenes)).findingCodes).not.toContain("REMEDIATION_TEMPLATE_COLLAPSE");
+  });
+
+  it("blocks provider internal-language leakage and semantic/provider contradictions", () => {
+    expect(providerPromptInternalLanguageReasons("At causal step 2, show evidence tied to the narrated claim.")).toContain("internal-remediation-language");
+    const missing = scene({ visibleThesis: "" });
+    const readiness = validateVeronicaProviderReadiness({ ...plan([missing]), assets: [{ assetId: "asset-001", contentId: "generic-fixture", sceneId: missing.sceneId, semanticPurpose: "missing", strategy: "client-decision", prompt: "Text-free 9:16. MISSING — PROVIDER PROJECTION BLOCKED.", textFree: true, textInGeneratedImage: false, nativeAspectRatio: "9:16", ratioAdaptations: [], subjectIdentityId: null, referenceAssetId: null, semanticFingerprint: "a".repeat(64), generatedAssetCacheKey: "b".repeat(64) }] });
+    expect(readiness.status).toBe("FAIL");
+    expect(readiness.missingThesisCount).toBe(1);
+    expect(readiness.blockedProjectionCount).toBeGreaterThan(0);
   });
 
   it("changes the provider projection hash when the final visible thesis changes", () => {

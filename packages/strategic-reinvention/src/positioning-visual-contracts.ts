@@ -55,6 +55,24 @@ export type VisualStrategy =
 
 /** The semantic owner of the scene's primary visible action. */
 export type VeronicaActionOwnerRole = "expert" | "buyer" | "shared" | "none";
+export type VeronicaSemanticConfidence = "HIGH" | "MEDIUM" | "LOW";
+
+export interface VeronicaSemanticProposition {
+  readonly schemaVersion: "veronica-semantic-proposition.v1";
+  readonly narrationClaim: string;
+  readonly cause?: string;
+  readonly actorRole: VeronicaActionOwnerRole;
+  readonly actorAction: string;
+  readonly buyerInterpretation?: string;
+  readonly consequence: string;
+  readonly contrast?: { readonly weakerCondition: string; readonly strongerCondition: string };
+  readonly narrationNativeMetaphor?: string;
+  readonly visualMechanism: "website-first-impression" | "market-problem-solution-chain" | "problem-first-sequence" | "identity-bridge" | "relevant-context-participation" | "recognition-accumulation" | "claim-to-proof" | "signal-coherence" | "audience-fit-signal" | "customer-context-interpretation" | "peer-referral" | "UNRESOLVED";
+  readonly evidenceAnchors: readonly string[];
+  readonly buyerConsequenceFamily: "REMEMBERS" | "CATEGORIZES" | "CHOOSES" | "HESITATES" | "TRUSTS" | "IGNORES" | "NOTICES" | "REFERS" | "RECOGNIZES" | "UNDERSTANDS" | "NONE";
+  readonly confidence: { readonly proposition: VeronicaSemanticConfidence; readonly actorOwnership: VeronicaSemanticConfidence; readonly consequence: VeronicaSemanticConfidence; readonly visualMechanism: VeronicaSemanticConfidence };
+  readonly propositionHash: string;
+}
 
 export type ProgressionStage =
   | "COLD_OPEN"
@@ -348,6 +366,33 @@ export interface PlannedScene {
   readonly callbackPurpose?: string;
   /** A still must show one readable state or one decisive visible transition. */
   readonly stateComplexity?: "SINGLE_STATE" | "DECISIVE_TRANSITION_MOMENT" | "MULTI_STATE_REQUIRED";
+  /** Narration-grounded meaning used by remediation and provider readiness. */
+  readonly semanticProposition?: VeronicaSemanticProposition;
+}
+
+export interface VeronicaSemanticQualityMetrics {
+  readonly schemaVersion: "veronica-semantic-quality.v1";
+  readonly remediationTemplateReuseRate: number;
+  readonly genericFallbackSceneRate: number;
+  readonly repeatedActionFamilyRate: number;
+  readonly repeatedEnvironmentFamilyRate: number;
+  readonly intentionalMotifReuseRate: number;
+  readonly accidentalRepetitionRate: number;
+  readonly status: "PASS" | "FAIL";
+  readonly findingCodes: readonly ("REMEDIATION_TEMPLATE_COLLAPSE" | "SEMANTIC_REMEDIATION_LOW_CONFIDENCE")[];
+}
+
+export interface VeronicaProviderReadinessResult {
+  readonly schemaVersion: "veronica-provider-readiness.v1";
+  readonly qualityVersion: "veronica-provider-prompt-quality.v1";
+  readonly status: "PASS" | "FAIL";
+  readonly checkedSceneCount: number;
+  readonly checkedAssetCount: number;
+  readonly missingThesisCount: number;
+  readonly malformedThesisCount: number;
+  readonly blockedProjectionCount: number;
+  readonly internalLanguageIssueCount: number;
+  readonly issues: readonly { readonly sceneId: string; readonly assetId?: string; readonly code: "VISIBLE_THESIS_REQUIRED" | "MALFORMED_VISIBLE_THESIS" | "SEMANTIC_PROVIDER_PROJECTION_INCONSISTENCY" | "PROVIDER_PROMPT_NOT_READY"; readonly reason: string }[];
 }
 
 export interface DiversityMetrics {
@@ -520,6 +565,8 @@ export interface PositioningVisualPlanV2 {
     readonly status: "pass" | "fail";
     readonly failures: readonly string[];
   };
+  readonly semanticQuality?: VeronicaSemanticQualityMetrics;
+  readonly providerReadiness?: VeronicaProviderReadinessResult;
   readonly planHash: string;
 }
 

@@ -14,11 +14,12 @@ import {
   writeTextAtomic,
 } from "@mediaforge/shared";
 import { z } from "zod";
-import { hardenVeronicaPreImagePlan, rebuildVeronicaFinalTreatmentState, VERONICA_PRE_IMAGE_SEMANTIC_GATE_VERSION } from "./veronica-pre-image-semantic-gate.js";
+import { hardenVeronicaPreImagePlan, rebuildVeronicaFinalTreatmentState, veronicaPreImageSemanticReviewSchema, VERONICA_PRE_IMAGE_SEMANTIC_GATE_VERSION } from "./veronica-pre-image-semantic-gate.js";
+import { resolveVeronicaProductionPolicy } from "./veronica-production-policy.js";
 import type { PositioningVisualPlanV2, VisualEvent } from "./positioning-visual-contracts.js";
 
 export const POSITIONING_PRODUCTION_ADAPTER_VERSION =
-  "veronicabenini-positioning-production-adapter.v2" as const;
+  "veronicabenini-positioning-production-adapter.v3" as const;
 
 const productionSceneSchema = z.object({
   sceneId: z.string().min(1),
@@ -294,6 +295,19 @@ export async function preparePositioningProductionEpisode(
     plan: hardened.plan,
     sceneTimings: scenePlan.scenes.map((scene) => ({ id: scene.id, timing: scene.timing })),
   });
+  const providerIssuesByScene = new Map(canonicalPlan.scenes.map((scene) => [scene.sceneId, canonicalPlan.providerReadiness?.issues.filter((issue) => issue.sceneId === scene.sceneId) ?? []] as const));
+  const finalReviews = hardened.reviews.map((review) => {
+    const providerIssues = providerIssuesByScene.get(review.sceneId) ?? [];
+    if (providerIssues.length === 0) return review;
+    const additions = providerIssues.map((issue) => ({ code: issue.code, severity: "blocker" as const, message: issue.reason }));
+    return veronicaPreImageSemanticReviewSchema.parse({
+      ...review,
+      status: "manual-review-required",
+      findings: [...review.findings, ...additions],
+      requiredEdits: [...review.requiredEdits, ...additions.map((finding) => finding.message)],
+      driftFlags: [...new Set([...review.driftFlags, ...additions.map((finding) => finding.code)])],
+    });
+  });
   const retimedEvents = canonicalPlan.visualEvents;
   // Scene-plan prompts are the provider-facing projection copied into the
   // review pack, so replace their provisional prompts with final state-aware
@@ -356,7 +370,7 @@ export async function preparePositioningProductionEpisode(
     writeJsonAtomic(scenePlanPath, finalScenePlan),
     writeJsonAtomic(path.join(episodeDir, "locales", input.language, input.variant, "scene-plan.json"), finalScenePlan),
     writeJsonAtomic(path.join(episodeDir, "source", "pre-image-semantic-plan.v1.json"), canonicalPlan),
-    writeJsonAtomic(path.join(episodeDir, "shared", "pre-image-semantic-reviews.v1.json"), { schemaVersion: "veronica-pre-image-semantic-reviews.v2", gateVersion: VERONICA_PRE_IMAGE_SEMANTIC_GATE_VERSION, remediationPolicyVersion: hardened.decisions[0]?.remediationPolicyVersion ?? "veronica-semantic-auto-remediation.v1", initialReviews: hardened.initialReviews, reviews: hardened.reviews, remediationRounds: hardened.rounds, convergenceStatus: hardened.convergenceStatus, decisions: hardened.decisions, unchangedSceneIds: hardened.unchangedSceneIds, semanticPlanHash: hardened.semanticPlanHash }),
+    writeJsonAtomic(path.join(episodeDir, "shared", "pre-image-semantic-reviews.v1.json"), { schemaVersion: "veronica-pre-image-semantic-reviews.v3", gateVersion: VERONICA_PRE_IMAGE_SEMANTIC_GATE_VERSION, remediationPolicyVersion: hardened.decisions[0]?.remediationPolicyVersion ?? resolveVeronicaProductionPolicy(plan.format).semanticAutoRemediation.policyVersion, initialReviews: hardened.initialReviews, reviews: finalReviews, remediationRounds: hardened.rounds, convergenceStatus: canonicalPlan.providerReadiness?.status === "PASS" && hardened.convergenceStatus !== "SEMANTIC_REMEDIATION_EXHAUSTED" ? hardened.convergenceStatus : "SEMANTIC_REMEDIATION_EXHAUSTED", decisions: hardened.decisions, unchangedSceneIds: hardened.unchangedSceneIds, semanticPlanHash: canonicalPlan.planHash, semanticQuality: canonicalPlan.semanticQuality, providerReadiness: canonicalPlan.providerReadiness }),
     writeJsonAtomic(path.join(episodeDir, "locales", input.language, input.variant, "canonical-timing.v1.json"), { schemaVersion: "veronica-canonical-locale-timing.v2", locale: input.language, variant: input.variant, timingAlgorithmVersion: "proportional-total-audio-reconciliation.v2", timingPhase: measuredNarrationDurationSeconds === null ? "pre-tts-planning" : "post-tts-reconciled", timingSource: measuredNarrationDurationSeconds === null ? "planned" : "selected-canonical-audio", narrationHash: createHash("sha256").update(narration).digest("hex"), selectedAudioHash, timingFingerprint: createHash("sha256").update(JSON.stringify({ selectedAudioHash, narrationHash: createHash("sha256").update(narration).digest("hex"), locale: input.language, variant: input.variant, timingAlgorithmVersion: "proportional-total-audio-reconciliation.v2" })).digest("hex"), narrationDurationSeconds: measuredNarrationDurationSeconds ?? finalScenePlan.scenes.at(-1)?.timing.endSeconds ?? 0, scenes: finalScenePlan.scenes.map((scene) => ({ sceneId: scene.id, plannedDurationSeconds: scene.plannedDurationSeconds ?? scene.estimatedDurationSeconds, reconciledDurationSeconds: scene.reconciledDurationSeconds ?? scene.estimatedDurationSeconds, startSeconds: scene.timing.startSeconds, endSeconds: scene.timing.endSeconds })) }),
     writeJsonAtomic(path.join(episodeDir, "locales", input.language, input.variant, "retimed-visual-events.json"), { schemaVersion: "veronica-retimed-visual-events.v2", timingSource: measuredNarrationDurationSeconds === null ? "planned" : "selected-canonical-audio", selectedAudioHash, timingFingerprint: createHash("sha256").update(JSON.stringify({ selectedAudioHash, duration: measuredNarrationDurationSeconds, semanticPlanHash: canonicalPlan.planHash })).digest("hex"), events: retimedEvents }),
     writeTextAtomic(canonicalScriptPath, narration),

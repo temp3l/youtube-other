@@ -33,3 +33,13 @@ Render + validation + approval pack
 ## Genre isolation
 
 Only explicit Veronica/strategic-reinvention workflows invoke this package. Other genres preserve existing behavior.
+
+## Pre-image semantic readiness
+
+Veronica provider-image prompts are projected only after a maximum-two-round,
+gate-driven semantic remediation pass. Repairs derive a typed, narration-grounded
+semantic proposition; missing or malformed visible theses, low-confidence generic
+fallbacks, remediation-template collapse, and provider-projection inconsistencies
+fail closed. Review-pack readiness requires semantic, provider-prompt, timing, and
+hash integrity to pass independently. Passing automation never records human
+approval or permits an image-provider request.
