@@ -1,5 +1,12 @@
+import type {
+  VeronicaChapterVisualPlan,
+  VeronicaNarrativeFunction,
+  VeronicaVisualFamily,
+  VeronicaVisualStoryBible,
+} from "./veronica-visual-language.js";
+
 export const POSITIONING_PLANNER_VERSION =
-  "veronicabenini-positioning-visual-planner.v2.1" as const;
+  "veronicabenini-positioning-visual-planner.v2.2" as const;
 export const POSITIONING_PLAN_VERSION =
   "veronicabenini-positioning-visual-plan.v2" as const;
 export const POSITIONING_REVIEW_VERSION =
@@ -325,6 +332,15 @@ export interface PlannedScene {
   readonly assetId: string;
   readonly eventIds: readonly string[];
   readonly overlayKey: string;
+  /** What remains intelligible if narration is muted. */
+  readonly visibleThesis: string;
+  /** Information this scene contributes beyond its predecessor. */
+  readonly newInformation: string;
+  readonly narrativeFunction: VeronicaNarrativeFunction;
+  readonly visualFamily: VeronicaVisualFamily;
+  readonly continuityGroup?: string;
+  readonly callbackToBeatId?: string;
+  readonly callbackPurpose?: string;
 }
 
 export interface DiversityMetrics {
@@ -408,11 +424,16 @@ export interface PositioningVisualPlanV2 {
   readonly canonicalSourceHash: string;
   readonly sourceNarrationSemanticHash: string;
   readonly semanticBeatStructureHash: string;
+  readonly sceneCountRationale: string;
   readonly semanticPlanCacheKey: string;
   readonly canonicalImagePlanHash: string;
   readonly renderEventPlanHash: string;
   readonly localizedTitleArtifact: TitleTranscreationQa;
   readonly visualVocabulary: VisualVocabulary;
+  /** Canonical short/long shared semantic visual language projection. */
+  readonly visualStoryBible: VeronicaVisualStoryBible;
+  /** Present only for 16:9 plans; short plans remain beat-driven. */
+  readonly chapters: readonly VeronicaChapterVisualPlan[];
   readonly coldOpen: PlannedScene | null;
   readonly progression: readonly ProgressionStage[];
   readonly continuity: ContinuityPlan;
@@ -477,4 +498,12 @@ export interface PositioningVisualPlanningResult {
   readonly diagramCount: number;
   readonly reusableAssetOpportunityCount: number;
   readonly reviewPackHash: string;
+}
+
+export interface PositioningVisualCalibrationResult {
+  readonly outputDir: string;
+  readonly contentIds: readonly string[];
+  readonly planPaths: readonly string[];
+  readonly previewPath: string;
+  readonly providerCalls: 0;
 }

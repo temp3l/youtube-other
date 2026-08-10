@@ -1,0 +1,89 @@
+{
+  "schemaVersion": "veronicabenini-title-transcreation-qa.v2",
+  "contentId": "L01-S01",
+  "locales": {
+    "en": {
+      "metadataTitle": "Being Good Isn’t Enough",
+      "displayTitle": "Being Good Isn’t Enough",
+      "displayLines": [
+        "Being Good Isn’t Enough"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "de": {
+      "metadataTitle": "Gut zu sein reicht nicht",
+      "displayTitle": "Gut zu sein reicht nicht",
+      "displayLines": [
+        "Gut zu sein reicht nicht"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "it": {
+      "metadataTitle": "Essere bravi non basta",
+      "displayTitle": "Essere bravi non basta",
+      "displayLines": [
+        "Essere bravi non basta"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "fr": {
+      "metadataTitle": "Être bon ne suffit pas",
+      "displayTitle": "Être bon ne suffit pas",
+      "displayLines": [
+        "Être bon ne suffit pas"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "pt": {
+      "metadataTitle": "Ser bom não basta",
+      "displayTitle": "Ser bom não basta",
+      "displayLines": [
+        "Ser bom não basta"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    }
+  },
+  "sourceTitlesHash": "314a94e31c0e7fd159a0d9e255ed533085a744324bf19099e738549af6981a4d",
+  "cacheKey": "345bd655ae1384424875baf28b66bc9fc3523b912a60d61cdd6d434cf0796ee9",
+  "artifactHash": "0a0cfdbb11d6998ba7b009478f8a0da63d698d1745aaa075fb67b619ffced08d"
+}

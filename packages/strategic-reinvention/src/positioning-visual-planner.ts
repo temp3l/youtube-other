@@ -18,6 +18,7 @@ import {
   type PositioningLocale,
   type PositioningPlannerConfiguration,
   type PositioningVisualPlanV2,
+  type PositioningVisualCalibrationResult,
   type PositioningVisualPlanningResult,
   type ProgressionStage,
   type RatioAdaptation,
@@ -42,11 +43,21 @@ import {
   viewerVisibleHookSignature,
 } from "./positioning-visual-semantics.js";
 import { resolveOpeningTreatmentProfile } from "./positioning-opening-treatments.js";
+import {
+  VERONICA_VISUAL_LANGUAGE_VERSION,
+  buildLongFormChapters,
+  buildVeronicaStoryBible,
+  narrativeFunctionForStage,
+  validateVeronicaVisualSequence,
+  visibleThesisFor,
+  visualFamilyFor,
+} from "./veronica-visual-language.js";
 
 export type {
   AssetReuseDecision,
   DiagramTopology,
   PositioningVisualPlanV2,
+  PositioningVisualCalibrationResult,
   PositioningVisualPlanningResult,
 } from "./positioning-visual-contracts.js";
 export {
@@ -475,6 +486,29 @@ function stagesForShort(count: number): readonly ProgressionStage[] {
   );
 }
 
+function durationAwareVisualBeats(input: {
+  readonly contentId: string;
+  readonly format: PositioningFormat;
+  readonly durationMs: number;
+  readonly authored: readonly SourceBeat[];
+}): readonly SourceBeat[] {
+  if (input.format !== "short") return input.authored;
+  const targetSceneCount = Math.max(6, Math.min(9, Math.round(input.durationMs / 9_000)));
+  const targetAuthoredCount = targetSceneCount - 1; // the hook is planned separately
+  if (input.authored.length >= targetAuthoredCount) return input.authored;
+  const additions = Array.from(
+    { length: targetAuthoredCount - input.authored.length },
+    (_, index): SourceBeat => ({
+      sceneId: `${input.contentId}-D${String(index + 1).padStart(2, "0")}`,
+      concept: index % 2 === 0 ? "buyer-evaluation" : "evidence-contrast",
+    }),
+  );
+  const first = input.authored[0];
+  const last = input.authored.at(-1);
+  if (!first || !last) return [...input.authored, ...additions];
+  return [first, additions[0]!, ...input.authored.slice(1, -1), ...additions.slice(1), last];
+}
+
 function timeline(input: {
   readonly format: PositioningFormat;
   readonly durationMs: number;
@@ -588,8 +622,10 @@ function buildEvents(input: {
   readonly kinds: readonly VisualEventKind[];
   readonly rendererVersion: string;
 }): readonly VisualEvent[] {
-  const targetMs = input.stage === "COLD_OPEN" || input.stage === "HOOK" ? 3_000 : 5_000;
-  const count = Math.max(2, Math.ceil(input.durationMs / targetMs));
+  // Keep each event within the three-to-seven-second cadence target. A
+  // five-to-seven-second Short beat is already a complete, legible hold;
+  // forcing it into two events would create sub-three-second cuts.
+  const count = Math.max(1, Math.ceil(input.durationMs / 7_000));
   const duration = Math.floor(input.durationMs / count);
   return Array.from({ length: count }, (_, index): VisualEvent => {
     const eventDuration = index === count - 1 ? input.durationMs - duration * (count - 1) : duration;
@@ -781,12 +817,24 @@ async function buildDraft(input: {
   await persistTitleQa(input.outputDir, titleQa);
   const continuity = continuityFor(input.content, input.parent);
   const durationMs = Math.round(input.narrationLengthMinutes * 60_000);
-  const times = timeline({ format: input.content.format, durationMs, sceneCount: input.content.visualBeats.length });
+  const visualBeats = durationAwareVisualBeats({
+    contentId: input.content.contentId,
+    format: input.content.format,
+    durationMs,
+    authored: input.content.visualBeats,
+  });
+  const visualStoryBible = buildVeronicaStoryBible({
+    format: input.content.format,
+    narration,
+    concepts: visualBeats.map((beat) => beat.concept),
+    parentLongFormId: input.parent.contentId,
+  });
+  const times = timeline({ format: input.content.format, durationMs, sceneCount: visualBeats.length });
   const normalStages =
     input.content.format === "short"
-      ? stagesForShort(input.content.visualBeats.length)
-      : input.content.visualBeats.map((beat, index) =>
-          stageForLong(index, input.content.visualBeats.length, beat.concept),
+      ? stagesForShort(visualBeats.length)
+      : visualBeats.map((beat, index) =>
+          stageForLong(index, visualBeats.length, beat.concept),
         );
   const specs: Array<{
     readonly sceneId: string;
@@ -797,7 +845,7 @@ async function buildDraft(input: {
   }> = [];
   let cursor = 0;
   if (input.content.format === "long") {
-    const firstConcept = input.content.visualBeats[0]?.concept ?? "unresolved-positioning-consequence";
+    const firstConcept = visualBeats[0]?.concept ?? "unresolved-positioning-consequence";
     specs.push({
       sceneId: `${input.content.contentId}-COLD_OPEN`,
       concept: `unresolved-contradiction-consequence-${firstConcept}`,
@@ -816,7 +864,7 @@ async function buildDraft(input: {
     });
     cursor += times.hookMs;
   }
-  input.content.visualBeats.forEach((beat, index) => {
+  visualBeats.forEach((beat, index) => {
     const duration = times.sceneMs[index] ?? 2_000;
     specs.push({
       sceneId: beat.sceneId,
@@ -864,6 +912,23 @@ async function buildDraft(input: {
       durationMs: spec.durationMs,
       treatment,
       overlayKey: `${input.content.contentId.toLowerCase()}.${spec.sceneId.toLowerCase()}`,
+      visibleThesis: visibleThesisFor({
+        stage: spec.stage,
+        concept: spec.concept,
+        family: visualFamilyFor({ stage: spec.stage, concept: spec.concept, diagram: treatment.diagram !== null }),
+      }),
+      newInformation:
+        index === 0
+          ? "Introduces the buyer consequence and unresolved positioning conflict."
+          : `Advances the visual argument with ${spec.concept.replace(/-/gu, " ")}; it is not a decorative restatement.`,
+      narrativeFunction: narrativeFunctionForStage(spec.stage),
+      visualFamily: visualFamilyFor({ stage: spec.stage, concept: spec.concept, diagram: treatment.diagram !== null }),
+      ...(continuity.mode === "persistent-protagonist"
+        ? { continuityGroup: `${input.content.contentId.toLowerCase()}-causal-arc` }
+        : {}),
+      ...(spec.stage === "PAYOFF" && scenes[0]
+        ? { callbackToBeatId: scenes[0].sceneId, callbackPurpose: "resolves the opening buyer conflict through recognition or choice" }
+        : {}),
     } as const;
     const asset = buildAsset({
       contentId: input.content.contentId,
@@ -908,15 +973,21 @@ async function buildDraft(input: {
     stages: scenes.map((scene) => scene.progressionStage),
     continuity: effectiveContinuity,
   });
-  const semanticBeatStructureHash = stableHash(input.content.visualBeats);
+  const semanticBeatStructureHash = stableHash(visualBeats);
   const sourceNarrationSemanticHash = semanticHash(narration);
   const semanticPlanCacheKey = stableHash({
     plannerVersion: POSITIONING_PLANNER_VERSION,
     contentId: input.content.contentId,
     sourceNarrationSemanticHash,
     semanticBeatStructureHash,
+    sceneCountRationale:
+      input.content.format === "short"
+        ? `duration-aware: ${Math.round(durationMs / 1_000)} seconds requires ${visualBeats.length + 1} total scenes including hook; ${input.content.visualBeats.length} authored beats were expanded with ${visualBeats.length - input.content.visualBeats.length} Buyer-evaluation/contrast beats.`
+        : `long-form chapter planning retains ${visualBeats.length} authored semantic beats plus cold open.`,
     visualAssetKey: input.content.visualAssetKey,
     vocabularyHash: vocabulary.vocabularyHash,
+    visualLanguageVersion: VERONICA_VISUAL_LANGUAGE_VERSION,
+    visualStoryBibleFingerprint: visualStoryBible.fingerprint,
   });
   const canonicalImagePlanHash = stableHash({
     semanticPlanCacheKey,
@@ -938,6 +1009,15 @@ async function buildDraft(input: {
     renderEventPlanHash: stableHash(events),
     localizedTitleArtifact: titleQa,
     visualVocabulary: vocabulary,
+    visualStoryBible,
+    chapters:
+      input.content.format === "long"
+        ? buildLongFormChapters({
+            contentId: input.content.contentId,
+            sceneIds: scenes.map((scene) => scene.sceneId),
+            concepts: scenes.map((scene) => scene.narrationAnchor),
+          })
+        : [],
     coldOpen: input.content.format === "long" ? (scenes[0] ?? null) : null,
     progression: scenes.map((scene) => scene.progressionStage),
     continuity: effectiveContinuity,
@@ -971,6 +1051,7 @@ async function buildDraft(input: {
         "canonical-narrative-semantic-change",
         "semantic-beat-structure-change",
         "visual-vocabulary-change",
+        "veronica-visual-language-version-change",
         "planner-algorithm-version-change",
       ],
       canonicalImageInvalidatesOn: ["semantic-plan-change", "image-provider-or-model-change", "prompt-contract-change"],
@@ -1088,6 +1169,11 @@ function validatePlan(plan: PlanDraft): readonly string[] {
   const failures = [
     ...plan.diagrams.flatMap(validateDiagramTopology),
     ...plan.diversityMetrics.failures,
+    ...validateVeronicaVisualSequence({
+      scenes: plan.scenes,
+      format: plan.format,
+      chapters: plan.chapters,
+    }),
   ];
   if (plan.format === "long" && plan.aspectRatio !== "16:9") failures.push("long-aspect-ratio");
   if (plan.format === "short" && plan.aspectRatio !== "9:16") failures.push("short-aspect-ratio");
@@ -1095,7 +1181,9 @@ function validatePlan(plan: PlanDraft): readonly string[] {
     failures.push("generated-image-text-prohibition");
   }
   if (plan.assets.some((asset) => !asset.prompt.startsWith("Text-free"))) failures.push("prompt-text-free-prefix");
-  if (plan.visualEvents.length <= plan.assets.length) failures.push("base-assets-not-expanded-into-events");
+  if (plan.assets.some((asset) => !plan.visualEvents.some((event) => event.assetId === asset.assetId))) {
+    failures.push("base-asset-missing-visual-event");
+  }
   if (plan.visualEvents.some((event) => !plan.assets.some((asset) => asset.assetId === event.assetId))) {
     failures.push("visual-event-missing-base-asset");
   }
@@ -1564,6 +1652,87 @@ function reviewSummary(plan: PositioningVisualPlanV2): ReviewPlanSummary {
 async function writeJson(filePath: string, value: unknown): Promise<void> {
   await fs.mkdir(path.dirname(filePath), { recursive: true });
   await fs.writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+}
+
+/**
+ * Creates only selected, provider-free plan and prompt-preview artifacts.
+ * This is deliberately separate from the full-series review, whose aggregate
+ * diversity checks require all 24 catalogue entries.
+ */
+export async function generatePositioningVisualPlanCalibration(input: {
+  readonly packDir: string;
+  readonly outputDir: string;
+  readonly contentIds: readonly string[];
+  readonly configuration?: Partial<PositioningPlannerConfiguration>;
+}): Promise<PositioningVisualCalibrationResult> {
+  const requestedIds = [...new Set(input.contentIds.map((id) => id.trim()).filter(Boolean))];
+  if (requestedIds.length === 0) throw new Error("Positioning calibration requires at least one content ID.");
+  const packDir = path.resolve(input.packDir);
+  const outputDir = path.resolve(input.outputDir);
+  const manifest = parseSourceManifest(await readContainedPackJson(packDir, "meta/visual-reuse-manifest.json"));
+  const lengths = parseNarrationLengths(await readContainedPackJson(packDir, "meta/narration-lengths.json"));
+  const contentById = new Map(manifest.contents.map((content) => [content.contentId, content] as const));
+  const parents = new Map(manifest.contents.filter((content) => content.format === "long").map((content) => [content.contentId, content] as const));
+  const selected = requestedIds.map((id) => {
+    const content = contentById.get(id);
+    if (!content) throw new Error(`Unknown Veronica calibration content ID: ${id}.`);
+    return content;
+  });
+  for (const content of selected.filter((candidate) => candidate.format === "short")) {
+    if (!requestedIds.includes(parentLongFormId(content.contentId))) {
+      throw new Error(`Calibration for ${content.contentId} requires its parent ${parentLongFormId(content.contentId)} for semantic reuse and continuity.`);
+    }
+  }
+  const configuration: PositioningPlannerConfiguration = {
+    imageProviderModel: input.configuration?.imageProviderModel ?? DEFAULT_CONFIGURATION.imageProviderModel,
+    rendererVersion: input.configuration?.rendererVersion ?? DEFAULT_CONFIGURATION.rendererVersion,
+  };
+  const drafts: PlanDraft[] = [];
+  const clusterDiagramTopologies = new Map<string, DiagramTopology["type"][]>();
+  for (const content of manifest.contents.filter((candidate) => requestedIds.includes(candidate.contentId))) {
+    const parent = parents.get(parentLongFormId(content.contentId));
+    const duration = lengths.find((entry) => entry.contentId === content.contentId && entry.locale === "en");
+    if (!parent || !duration) throw new Error(`Calibration inputs are incomplete for ${content.contentId}.`);
+    const draft = await buildDraft({
+      packDir,
+      outputDir,
+      content,
+      parent,
+      narrationLengthMinutes: duration.estimatedMinutes,
+      configuration,
+      priorClusterDiagramTopologies: clusterDiagramTopologies.get(parent.contentId) ?? [],
+    });
+    drafts.push(draft);
+    clusterDiagramTopologies.set(parent.contentId, [...(clusterDiagramTopologies.get(parent.contentId) ?? []), ...draft.diagrams.map((diagram) => diagram.type)]);
+  }
+  const plans = finalizePlans(attachReuse(drafts));
+  const failed = plans.filter((plan) => plan.validation.status === "fail");
+  if (failed.length > 0) throw new Error(`Positioning calibration failed: ${failed.map((plan) => `${plan.contentId}[${plan.validation.failures.join(",")}]`).join("; ")}`);
+  const planPaths = plans.map((plan) => path.join(outputDir, "plans", `${plan.contentId.toLowerCase()}.visual-plan.json`));
+  await Promise.all(plans.map((plan, index) => writeJson(planPaths[index]!, plan)));
+  const previewPath = path.join(outputDir, "calibration-prompt-previews.json");
+  await writeJson(previewPath, {
+    schemaVersion: "veronicabenini-positioning-calibration-preview.v1",
+    visualLanguageVersion: VERONICA_VISUAL_LANGUAGE_VERSION,
+    providerCalls: 0,
+    plans: plans.map((plan) => ({
+      contentId: plan.contentId,
+      format: plan.format,
+      visualStoryBible: plan.visualStoryBible,
+      chapters: plan.chapters,
+      beats: plan.scenes.map((scene) => ({
+        sceneId: scene.sceneId,
+        visibleThesis: scene.visibleThesis,
+        newInformation: scene.newInformation,
+        narrativeFunction: scene.narrativeFunction,
+        visualFamily: scene.visualFamily,
+        continuityGroup: scene.continuityGroup,
+        callbackToBeatId: scene.callbackToBeatId,
+        promptPreview: plan.assets.find((asset) => asset.assetId === scene.assetId)?.prompt,
+      })),
+    })),
+  });
+  return { outputDir, contentIds: plans.map((plan) => plan.contentId), planPaths, previewPath, providerCalls: 0 };
 }
 
 export async function generatePositioningVisualPlans(input: {

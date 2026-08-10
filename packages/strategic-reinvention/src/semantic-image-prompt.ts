@@ -17,9 +17,10 @@ import {
 } from "@mediaforge/shared";
 import type { PositioningVisualPlanV2 } from "./positioning-visual-contracts.js";
 import { stableHash } from "./positioning-visual-semantics.js";
+import { VERONICA_VISUAL_LANGUAGE_VERSION } from "./veronica-visual-language.js";
 
 export const VERONICA_SEMANTIC_IMAGE_PROMPT_ADAPTER_VERSION =
-  "veronica-semantic-image-prompt-adapter.v5" as const;
+  "veronica-semantic-image-prompt-adapter.v6" as const;
 export const VERONICA_SEMANTIC_IMAGE_PROMPT_PLANNER_VERSION =
   "veronica-semantic-image-prompt-v1" as const;
 export const VERONICA_VISUAL_DIRECTION_VERSION =
@@ -37,6 +38,8 @@ export const VERONICA_SEMANTIC_ANTI_DRIFT_RULES = [
   "Avoid unexplained decorative display props, prestige settings, symbolic installations, or contemplative portraits unless the beat specifically requires them.",
   "Do not use a professional looking thoughtful as a substitute for a business concept.",
   "Prefer visible decisions, comparisons, evidence, recognition, misrecognition, customer choice, communication signals, transformation, and cause-and-effect relationships.",
+  "For generic positioning lessons, keep the setting occupation-neutral; use the buyer's observable decision before an abstract prop or occupation proxy.",
+  "Reject generic business stock unless the concrete interaction makes the visible thesis understandable without narration.",
 ] as const;
 
 export const VERONICA_TEXT_FREE_CONSTRAINT =
@@ -178,6 +181,9 @@ export function buildVeronicaSemanticSourceHash(input: {
       narrationAnchor: scene.narrationAnchor,
       narrativeBeat: scene.treatment.narrativeBeat,
       communicationIntent: scene.treatment.communicationIntent,
+      visibleThesis: scene.visibleThesis ?? scene.treatment.narrativeBeat,
+      newInformation: scene.newInformation ?? scene.treatment.communicationIntent,
+      visualFamily: scene.visualFamily ?? scene.treatment.strategy,
     })),
   });
 }
@@ -190,8 +196,15 @@ export function buildVeronicaSemanticVisualPlanHash(
     format: plan.format,
     aspectRatio: plan.aspectRatio,
     continuity: plan.continuity,
+    visualLanguageVersion: VERONICA_VISUAL_LANGUAGE_VERSION,
+    visualStoryBibleFingerprint: plan.visualStoryBible?.fingerprint ?? "legacy-v2-no-story-bible",
+    chapters: plan.chapters ?? [],
     scenes: plan.scenes.map((scene) => ({
       sceneId: scene.sceneId,
+      visibleThesis: scene.visibleThesis ?? scene.treatment.narrativeBeat,
+      newInformation: scene.newInformation ?? scene.treatment.communicationIntent,
+      narrativeFunction: scene.narrativeFunction ?? purposeForStage(scene.progressionStage),
+      visualFamily: scene.visualFamily ?? scene.treatment.strategy,
       progressionStage: scene.progressionStage,
       treatment: {
         narrativeBeat: scene.treatment.narrativeBeat,
@@ -289,6 +302,10 @@ const veronicaAbstractTreatment =
   /\b(?:reflection installation|mirror installation|artifact archive(?: zone)?|mirror plane|silhouette cards?|memory tokens?|symbolic galler(?:y|ies)|material boards?|luxury object displays?)\b/iu;
 const veronicaLegacyConflict =
   /\b(?:reflection installation|artifact archive(?: zone)?|mirror plane|silhouette cards?|memory tokens?|audience-held impression|separate layers|hospitality (?:space|owner)|restaurant|boutique|gallery|generic workshop|generic shop floor)\b/iu;
+const veronicaAbstractProps =
+  /\b(?:stones?|marbles?|chess pieces?|puzzle pieces?|boxes?|doors?|masks?|strings?|floating objects?|colored cards?|labyrinths?|tokens?|geometric objects?)\b/iu;
+const veronicaGenericStock =
+  /\b(?:people around (?:a )?laptop|staring at (?:a )?screen|looking through (?:a )?window|pointing at (?:a )?tablet|generic boardroom|handshake|presenting slides)\b/iu;
 
 export function validateVeronicaSemanticImagePromptBrief(input: {
   readonly brief: SemanticImagePromptBriefV1;
@@ -360,6 +377,12 @@ export function validateVeronicaSemanticImagePromptBrief(input: {
         assetId: asset.assetId,
         message: `Asset ${asset.assetId} uses image-led creative evidence for a generic positioning beat; final projection will use neutral proof signals.`,
       });
+    }
+    if (veronicaAbstractProps.test(treatmentSemantics) && !veronicaAbstractProps.test(narrationSemantics)) {
+      findings.push({ code: "ABSTRACT_PROP_DRIFT", severity: "warning", assetId: asset.assetId, message: `Asset ${asset.assetId} asks the viewer to decode an abstract prop instead of an observable buyer event; generic positioning projection will prefer the buyer/evidence relationship.` });
+    }
+    if (veronicaGenericStock.test(treatmentSemantics) && !/buyer|client|compare|select|evidence|proof|recommend/iu.test(narrationSemantics)) {
+      findings.push({ code: "GENERIC_BUSINESS_STOCK_DRIFT", severity: "warning", assetId: asset.assetId, message: `Asset ${asset.assetId} is generic business stock without a visible buyer decision or evidence relationship; review before a new provider call.` });
     }
   }
   return findings;
@@ -469,7 +492,7 @@ function occupationNeutralEvidenceFor(semantic: SemanticAssetBriefV1): readonly 
   }
   if (/cannot directly|hidden|invisible|inaccessible/iu.test(meaning)) {
     return [
-      "two simplified text-free external proof summaries",
+      "limited visible evidence summaries and simplified text-free external proof summaries",
       "small neutral evaluation blocks without image-led evidence",
       "buyer attention restricted to the limited visible signals",
     ];
@@ -512,7 +535,7 @@ function projectVeronicaSemanticForFinalPrompt(
     objectIntent: [...occupationNeutralEvidenceFor(semantic)],
     conceptualComposition: projectOccupationNeutralText(semantic.conceptualComposition),
     generationBasePrompt: invisibleExpertiseBeat
-      ? "In an occupation-neutral professional evaluation, the viewer sees an expert engaged in substantive analysis behind a clear process barrier while the buyer in the foreground can access only two simplified, text-free external proof summaries. Make the buyer's restricted line of sight and inability to inspect the underlying skill unmistakable."
+      ? "In an occupation-neutral professional evaluation, the viewer sees an expert engaged in substantive analysis behind a clear process barrier while the buyer in the foreground can access only two simplified, text-free external proof summaries. Make it unmistakable that the buyer cannot directly inspect the skill and has a restricted line of sight."
       : `${projectOccupationNeutralText(semantic.generationBasePrompt)} Explain the beat through human action and the relationship between visible evidence and hidden competence, not specialized professional objects.`,
   };
 }
@@ -618,6 +641,7 @@ export function assembleVeronicaSemanticImagePrompts(input: {
     const continuityRequired =
       input.plan.continuity.mode === "persistent-protagonist" &&
       asset.subjectIdentityId === input.plan.continuity.identityId;
+    const scene = input.plan.scenes.find((candidate) => candidate.sceneId === asset.sceneId);
     const prompt = assembleSemanticImagePrompt({
       semantic: projectedSemantic,
       approved: resolveVeronicaPromptTreatment(projectedSemantic, approved.approved, {
@@ -631,8 +655,9 @@ export function assembleVeronicaSemanticImagePrompts(input: {
       factualContext: genericPositioningBeat
         ? [
             "Information relationship priority: explain the beat through human action and visible business-evidence relationships, not specialized professional artifacts",
+            ...(scene ? [`Visible thesis: ${scene.visibleThesis ?? scene.treatment.narrativeBeat}`, `New information: ${scene.newInformation ?? scene.treatment.communicationIntent}`, `Visual family: ${scene.visualFamily ?? scene.treatment.strategy}`] : []),
           ]
-        : [],
+        : scene ? [`Visible thesis: ${scene.visibleThesis ?? scene.treatment.narrativeBeat}`, `Narrative function: ${scene.narrativeFunction ?? purposeForStage(scene.progressionStage)}`] : [],
       projectedNegativeConstraints: negativeConstraints.constraints,
       textFreeConstraint: negativeConstraints.textFreeConstraint,
       ...(invisibleExpertiseBeat

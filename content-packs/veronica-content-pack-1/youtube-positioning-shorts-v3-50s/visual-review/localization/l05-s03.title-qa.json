@@ -1,0 +1,92 @@
+{
+  "schemaVersion": "veronicabenini-title-transcreation-qa.v2",
+  "contentId": "L05-S03",
+  "locales": {
+    "en": {
+      "metadataTitle": "One Book Can Become Months of Content",
+      "displayTitle": "One Book Can Become Months of Content",
+      "displayLines": [
+        "One Book Can Become Months of Content"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "de": {
+      "metadataTitle": "Ein Buch kann zu Monaten voller Content werden",
+      "displayTitle": "Ein Buch kann zu Monaten voller Content werden",
+      "displayLines": [
+        "Ein Buch kann zu Monaten",
+        "voller Content werden"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "it": {
+      "metadataTitle": "Un libro può diventare mesi di contenuti",
+      "displayTitle": "Un libro può diventare mesi di contenuti",
+      "displayLines": [
+        "Un libro può diventare",
+        "mesi di contenuti"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "fr": {
+      "metadataTitle": "Un livre peut devenir des mois de contenu",
+      "displayTitle": "Un livre peut devenir des mois de contenu",
+      "displayLines": [
+        "Un livre peut devenir",
+        "des mois de contenu"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "pt": {
+      "metadataTitle": "Um livro pode virar meses de conteúdo",
+      "displayTitle": "Um livro pode virar meses de conteúdo",
+      "displayLines": [
+        "Um livro pode virar meses de conteúdo"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    }
+  },
+  "sourceTitlesHash": "a672c282ecd4c0cd619352a6c4850c92f518e1213158da327911756c6c0026bf",
+  "cacheKey": "16653a61839752eb911f824545fce2cd76f59fcde62abfe5efd5e92bfd3ca0ee",
+  "artifactHash": "8c6b173c5e12b6cf420b0382233ed5d206081744dea2e44b53aae538006300af"
+}

@@ -1,0 +1,164 @@
+[
+  {
+    "contentId": "L01-S01",
+    "hook": 9.6,
+    "retentionStructure": 9.4,
+    "clarityValueDensity": 9.7,
+    "payoff": 9.5,
+    "youtubeProductionReadiness": 9.2,
+    "overall": 9.48
+  },
+  {
+    "contentId": "L01-S02",
+    "hook": 9.5,
+    "retentionStructure": 9.3,
+    "clarityValueDensity": 9.7,
+    "payoff": 9.5,
+    "youtubeProductionReadiness": 9.2,
+    "overall": 9.44
+  },
+  {
+    "contentId": "L01-S03",
+    "hook": 9.3,
+    "retentionStructure": 9.2,
+    "clarityValueDensity": 9.6,
+    "payoff": 9.5,
+    "youtubeProductionReadiness": 9.1,
+    "overall": 9.34
+  },
+  {
+    "contentId": "L02-S01",
+    "hook": 9.6,
+    "retentionStructure": 9.4,
+    "clarityValueDensity": 9.7,
+    "payoff": 9.5,
+    "youtubeProductionReadiness": 9.2,
+    "overall": 9.48
+  },
+  {
+    "contentId": "L02-S02",
+    "hook": 9.2,
+    "retentionStructure": 9.2,
+    "clarityValueDensity": 9.6,
+    "payoff": 9.4,
+    "youtubeProductionReadiness": 9.1,
+    "overall": 9.3
+  },
+  {
+    "contentId": "L02-S03",
+    "hook": 9.3,
+    "retentionStructure": 9.2,
+    "clarityValueDensity": 9.7,
+    "payoff": 9.5,
+    "youtubeProductionReadiness": 9.1,
+    "overall": 9.36
+  },
+  {
+    "contentId": "L03-S01",
+    "hook": 9.5,
+    "retentionStructure": 9.4,
+    "clarityValueDensity": 9.7,
+    "payoff": 9.5,
+    "youtubeProductionReadiness": 9.2,
+    "overall": 9.46
+  },
+  {
+    "contentId": "L03-S02",
+    "hook": 9.5,
+    "retentionStructure": 9.4,
+    "clarityValueDensity": 9.7,
+    "payoff": 9.6,
+    "youtubeProductionReadiness": 9.2,
+    "overall": 9.48
+  },
+  {
+    "contentId": "L03-S03",
+    "hook": 9.7,
+    "retentionStructure": 9.6,
+    "clarityValueDensity": 9.8,
+    "payoff": 9.7,
+    "youtubeProductionReadiness": 9.3,
+    "overall": 9.62
+  },
+  {
+    "contentId": "L04-S01",
+    "hook": 9.6,
+    "retentionStructure": 9.6,
+    "clarityValueDensity": 9.8,
+    "payoff": 9.7,
+    "youtubeProductionReadiness": 9.3,
+    "overall": 9.6
+  },
+  {
+    "contentId": "L04-S02",
+    "hook": 9.7,
+    "retentionStructure": 9.6,
+    "clarityValueDensity": 9.8,
+    "payoff": 9.6,
+    "youtubeProductionReadiness": 9.3,
+    "overall": 9.6
+  },
+  {
+    "contentId": "L04-S03",
+    "hook": 9.6,
+    "retentionStructure": 9.5,
+    "clarityValueDensity": 9.7,
+    "payoff": 9.7,
+    "youtubeProductionReadiness": 9.3,
+    "overall": 9.56
+  },
+  {
+    "contentId": "L05-S01",
+    "hook": 9.2,
+    "retentionStructure": 9.2,
+    "clarityValueDensity": 9.6,
+    "payoff": 9.4,
+    "youtubeProductionReadiness": 9.1,
+    "overall": 9.3
+  },
+  {
+    "contentId": "L05-S02",
+    "hook": 9.5,
+    "retentionStructure": 9.3,
+    "clarityValueDensity": 9.7,
+    "payoff": 9.6,
+    "youtubeProductionReadiness": 9.2,
+    "overall": 9.46
+  },
+  {
+    "contentId": "L05-S03",
+    "hook": 9.5,
+    "retentionStructure": 9.5,
+    "clarityValueDensity": 9.7,
+    "payoff": 9.7,
+    "youtubeProductionReadiness": 9.3,
+    "overall": 9.54
+  },
+  {
+    "contentId": "L06-S01",
+    "hook": 9.7,
+    "retentionStructure": 9.6,
+    "clarityValueDensity": 9.7,
+    "payoff": 9.7,
+    "youtubeProductionReadiness": 9.3,
+    "overall": 9.6
+  },
+  {
+    "contentId": "L06-S02",
+    "hook": 9.7,
+    "retentionStructure": 9.5,
+    "clarityValueDensity": 9.8,
+    "payoff": 9.7,
+    "youtubeProductionReadiness": 9.3,
+    "overall": 9.6
+  },
+  {
+    "contentId": "L06-S03",
+    "hook": 9.4,
+    "retentionStructure": 9.4,
+    "clarityValueDensity": 9.7,
+    "payoff": 9.6,
+    "youtubeProductionReadiness": 9.2,
+    "overall": 9.46
+  }
+]

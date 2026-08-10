@@ -3,6 +3,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import { loadRuntimeConfig } from "@mediaforge/config";
+import {
+  YOUTUBE_METADATA_PROMPT_VERSION,
+  type YoutubeMetadataGenerationOptions,
+} from "@mediaforge/metadata";
 import { runCommand } from "@mediaforge/process-runner";
 import {
   buildSemanticImagePromptCacheKey,
@@ -17,9 +21,11 @@ import {
   veronicaEpisodeStateDir,
   veronicaMediaPlanSchema,
   veronicaRenderManifestSchema,
+  generateVeronicaYoutubeMetadata,
 } from "@mediaforge/veronica-media";
 import {
   generatePositioningVisualPlans,
+  generatePositioningVisualPlanCalibration,
   generateVeronicaBeniniReviewPacks,
   buildVeronicaSemanticImagePromptPlanInput,
   deriveVeronicaSemanticImagePromptBrief,
@@ -38,6 +44,37 @@ const mediaforgeBinPath = fileURLToPath(
 
 type VeronicaLanguage = "en" | "de" | "es" | "fr" | "pt" | "it";
 type VeronicaVariant = "full" | "short";
+
+function parseVeronicaVariant(value: string): VeronicaVariant {
+  if (value === "full" || value === "short") return value;
+  throw new Error(`Unsupported Veronica metadata variant: ${value}. Expected full or short.`);
+}
+
+async function veronicaMetadataOptions(input: {
+  readonly workspace: string;
+  readonly force: boolean;
+  readonly dryRun: boolean;
+}): Promise<YoutubeMetadataGenerationOptions> {
+  const runtime = await loadRuntimeConfig({ workspaceDir: path.resolve(input.workspace) });
+  return {
+    apiKey: runtime.openAiCompatibleApiKey ?? process.env["OPENAI_API_KEY"] ?? "",
+    model: runtime.openAiMetadataModel ?? "gpt-5.4-mini",
+    repairModel: runtime.openAiValidatorModel ?? runtime.openAiMetadataModel ?? "gpt-5.4-mini",
+    language: "en",
+    promptText: await fs.readFile(path.resolve("prompts", "youtube-metadata.prompt.md"), "utf8"),
+    promptVersion: YOUTUBE_METADATA_PROMPT_VERSION,
+    maxRetries: runtime.openAiMetadataMaxRetries ?? 3,
+    timeoutMs: runtime.openAiMetadataTimeoutMs ?? 120000,
+    keepFile: runtime.openAiMetadataKeepFile,
+    force: input.force,
+    dryRun: input.dryRun,
+    ...(runtime.openAiMetadataReasoningEffort ? { reasoningEffort: runtime.openAiMetadataReasoningEffort } : {}),
+    ...(runtime.openAiMetadataMaxOutputTokens !== undefined ? { maxOutputTokens: runtime.openAiMetadataMaxOutputTokens } : {}),
+    ...(runtime.openAiValidatorReasoningEffort ?? runtime.openAiMetadataReasoningEffort ? { repairReasoningEffort: runtime.openAiValidatorReasoningEffort ?? runtime.openAiMetadataReasoningEffort } : {}),
+    ...(runtime.openAiValidatorMaxOutputTokens ?? runtime.openAiMetadataMaxOutputTokens ? { repairMaxOutputTokens: runtime.openAiValidatorMaxOutputTokens ?? runtime.openAiMetadataMaxOutputTokens } : {}),
+    ...(runtime.openAiCompatibleBaseUrl ?? process.env["OPENAI_BASE_URL"] ? { baseUrl: runtime.openAiCompatibleBaseUrl ?? process.env["OPENAI_BASE_URL"] } : {}),
+  };
+}
 
 async function resolveCanonicalNarrationFromManifest(input: {
   readonly workspace: string;
@@ -127,6 +164,36 @@ export function registerVeronicaMediaCommands(program: Command): void {
   const veronica = program
     .command("veronica-media")
     .description("Veronica Benini supplemental media planning and rendering");
+
+  veronica
+    .command("metadata")
+    .description("Generate or plan variant-aware YouTube metadata from the selected narration")
+    .requiredOption("--workspace <path>", "Episode workspace root")
+    .requiredOption("--episode-id <id>", "Episode identifier")
+    .option("--locale <code>", "Metadata locale", "en")
+    .option("--variant <full|short>", "Narration variant", "full")
+    .option("--force", "Bypass a valid metadata cache", false)
+    .option("--dry-run", "Resolve narration and metadata cache without provider calls", false)
+    .option("--json", "Emit machine-readable output", false)
+    .action(async (options: {
+      workspace: string;
+      episodeId: string;
+      locale: string;
+      variant: string;
+      force: boolean;
+      dryRun: boolean;
+      json: boolean;
+    }) => {
+      const dryRun = options.dryRun || program.opts<{ readonly dryRun?: boolean }>().dryRun === true;
+      const result = await generateVeronicaYoutubeMetadata({
+        workspaceRoot: options.workspace,
+        episodeId: options.episodeId,
+        locale: options.locale,
+        variant: parseVeronicaVariant(options.variant),
+        generationOptions: await veronicaMetadataOptions({ workspace: options.workspace, force: options.force, dryRun }),
+      });
+      process.stdout.write(`${JSON.stringify(result, options.json ? null : undefined, options.json ? 2 : undefined)}\n`);
+    });
 
   veronica
     .command("prepare-production")
@@ -523,6 +590,22 @@ export function registerVeronicaMediaCommands(program: Command): void {
       process.stdout.write(
         `Generated ${result.contentIds.length} canonical positioning visual plans.\nBulk review: ${result.reviewPackPath}\n`,
       );
+    });
+
+  veronica
+    .command("plan-positioning-calibration")
+    .description("Create provider-free plan and prompt previews for selected Veronica content IDs")
+    .requiredOption("--pack <path>", "Extracted optimized positioning-series content pack")
+    .requiredOption("--output <path>", "Calibration output directory")
+    .requiredOption("--content-id <id...>", "Long-form parent and/or Short content IDs to refresh")
+    .option("--json", "Emit machine-readable output", false)
+    .action(async (options: { pack: string; output: string; contentId: string[]; json: boolean }) => {
+      const result = await generatePositioningVisualPlanCalibration({
+        packDir: path.resolve(options.pack),
+        outputDir: path.resolve(options.output),
+        contentIds: options.contentId,
+      });
+      process.stdout.write(options.json ? `${JSON.stringify(result, null, 2)}\n` : `Generated ${result.contentIds.length} provider-free calibration plans.\nPrompt previews: ${result.previewPath}\n`);
     });
 
   veronica

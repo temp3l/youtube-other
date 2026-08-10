@@ -1,0 +1,1916 @@
+{
+  "schemaVersion": "veronicabenini-positioning-visual-plan.v2",
+  "plannerVersion": "veronicabenini-positioning-visual-planner.v2.2",
+  "contentId": "L02-S01",
+  "parentLongFormId": "L02",
+  "format": "short",
+  "aspectRatio": "9:16",
+  "canonicalNarrationSource": "shorts/en/l02-s01-selling-to-everyone-is-the-problem.md",
+  "canonicalSourceHash": "046ad6f4c77e1ffe99c8b6e3b528bb05236f4f06d962860e6141bb3313d648a5",
+  "sourceNarrationSemanticHash": "863975269e43efd9bde2eb071d2c4be9f1c481a5c2c0066f6e25a3086ea3cf6f",
+  "semanticBeatStructureHash": "0adfdf88d650707885a0acaf17dab35cfd24226f2bb0e688dc9a6fba80d85f31",
+  "semanticPlanCacheKey": "6dbe77ef34ab3bb942dc0480b121f2afc15b54cf3c1088ecbc37a5c8afd495d1",
+  "canonicalImagePlanHash": "4abedf3e0be3720c64c74ca26a8bb57938607d31947bdc476dd5461f1e9ae828",
+  "renderEventPlanHash": "94d1ad1f56e962ab64b88b9ede61b7018b46878282b73887a5bc2d4e7cde865f",
+  "localizedTitleArtifact": {
+    "schemaVersion": "veronicabenini-title-transcreation-qa.v2",
+    "contentId": "L02-S01",
+    "locales": {
+      "en": {
+        "metadataTitle": "Trying to Sell to Everyone Is the Problem",
+        "displayTitle": "Trying to Sell to Everyone Is the Problem",
+        "displayLines": [
+          "Trying to Sell to",
+          "Everyone Is the Problem"
+        ],
+        "displayTitleDistinctFromMetadata": false,
+        "minimumFontScale": 1,
+        "naturalness": "reviewed-source",
+        "semanticPreservation": "pass",
+        "excessiveLength": false,
+        "sourceOverlayOverflowRisk": "low",
+        "overlayOverflowRisk": "low",
+        "awkwardLiteralTranslation": false,
+        "warnings": []
+      },
+      "de": {
+        "metadataTitle": "An alle verkaufen zu wollen ist das Problem",
+        "displayTitle": "An alle verkaufen zu wollen ist das Problem",
+        "displayLines": [
+          "An alle verkaufen zu",
+          "wollen ist das Problem"
+        ],
+        "displayTitleDistinctFromMetadata": false,
+        "minimumFontScale": 1,
+        "naturalness": "reviewed-source",
+        "semanticPreservation": "pass",
+        "excessiveLength": false,
+        "sourceOverlayOverflowRisk": "low",
+        "overlayOverflowRisk": "low",
+        "awkwardLiteralTranslation": false,
+        "warnings": []
+      },
+      "it": {
+        "metadataTitle": "Cercare di vendere a tutti è il problema",
+        "displayTitle": "Cercare di vendere a tutti è il problema",
+        "displayLines": [
+          "Cercare di vendere a",
+          "tutti è il problema"
+        ],
+        "displayTitleDistinctFromMetadata": false,
+        "minimumFontScale": 1,
+        "naturalness": "reviewed-source",
+        "semanticPreservation": "pass",
+        "excessiveLength": false,
+        "sourceOverlayOverflowRisk": "low",
+        "overlayOverflowRisk": "low",
+        "awkwardLiteralTranslation": false,
+        "warnings": []
+      },
+      "fr": {
+        "metadataTitle": "Vouloir vendre à tout le monde est le problème",
+        "displayTitle": "Vouloir vendre à tout le monde est le problème",
+        "displayLines": [
+          "Vouloir vendre à tout",
+          "le monde est le problème"
+        ],
+        "displayTitleDistinctFromMetadata": false,
+        "minimumFontScale": 1,
+        "naturalness": "reviewed-source",
+        "semanticPreservation": "pass",
+        "excessiveLength": false,
+        "sourceOverlayOverflowRisk": "low",
+        "overlayOverflowRisk": "low",
+        "awkwardLiteralTranslation": false,
+        "warnings": []
+      },
+      "pt": {
+        "metadataTitle": "Tentar vender para todo mundo é o problema",
+        "displayTitle": "Tentar vender para todo mundo é o problema",
+        "displayLines": [
+          "Tentar vender para",
+          "todo mundo é o problema"
+        ],
+        "displayTitleDistinctFromMetadata": false,
+        "minimumFontScale": 1,
+        "naturalness": "reviewed-source",
+        "semanticPreservation": "pass",
+        "excessiveLength": false,
+        "sourceOverlayOverflowRisk": "low",
+        "overlayOverflowRisk": "low",
+        "awkwardLiteralTranslation": false,
+        "warnings": []
+      }
+    },
+    "sourceTitlesHash": "c3e783cb5688bf8968d739dffac4c4eea79d2e43e8d8c06d622b4be86b8aecf9",
+    "cacheKey": "05f51027341e9c79ce868b565dc24de44a391c43011b8e60e016fe5ec7ec673b",
+    "artifactHash": "5fba88eb442700410655fe7107e3439e4ee46c796b53e53e56d8f9f891296a29"
+  },
+  "visualVocabulary": {
+    "schemaVersion": "veronicabenini-positioning-visual-vocabulary.v1",
+    "episodeId": "L02",
+    "semanticDomains": [
+      "niche-positioning",
+      "authority-recognition",
+      "content-positioning",
+      "expertise-perceived-value"
+    ],
+    "recurringMotifs": [
+      "crowds resolving into selected audience clusters",
+      "knowledge moving through stages, interviews, and recommendations",
+      "one core idea propagating across a physical media ecosystem",
+      "visible evidence trails and consequential client choices"
+    ],
+    "environments": [
+      "crowded trade hall",
+      "audience concourse",
+      "specialist service context",
+      "case-study archive",
+      "client decision setting",
+      "active professional context",
+      "editorial wall",
+      "podcast booth",
+      "multi-format production table",
+      "case-study archive",
+      "client decision setting",
+      "active professional context"
+    ],
+    "materialPalette": [
+      "warm paper",
+      "coral accent",
+      "ink",
+      "glass",
+      "unfinished wood"
+    ],
+    "excludedCliches": [
+      "generic professional in office",
+      "laptop-at-desk pose",
+      "repeated notebook-and-cards staging",
+      "unmotivated business handshake"
+    ],
+    "sourceSemanticHash": "4a0c0381c74653aaed7646c8ca1ce771dc8bf17e69811736730fa2a3c9314b34",
+    "cacheKey": "e3c9dfa3d1248c9a013ed19588581c1e55a4d50271724a6291b71d44903536c0",
+    "vocabularyHash": "d9d2c3a50824b5017ede46518c442305d8557e12551a9a7e3834ffd6e4ba5a64"
+  },
+  "visualStoryBible": {
+    "version": "veronica-visual-language.v1",
+    "format": "short",
+    "thesis": "everyone message",
+    "viewerTransformation": {
+      "before": "buyer sees scattered or hidden expertise",
+      "mechanism": "clear repeated evidence and category signals",
+      "after": "buyer recognizes, recalls, and can recommend the relevant expert"
+    },
+    "visualConflict": {
+      "start": "buyers cannot explain what the expert is known for",
+      "end": "a matching problem triggers immediate recognition and choice"
+    },
+    "roles": {
+      "expert": "occupation-neutral professional-services expert",
+      "buyer": "decision-maker evaluating and later recalling evidence",
+      "market": "alternatives, proof signals, recommendations, and competing offers"
+    },
+    "semanticProgression": [
+      "everyone-message",
+      "buyer-decision-effort",
+      "different-customer-needs",
+      "niche-recognition",
+      "generic-vs-specific-offer",
+      "specificity-advantage"
+    ],
+    "preferredVisualFamilies": [
+      "human-decision",
+      "professional-evidence",
+      "social-perception",
+      "contrast"
+    ],
+    "forbiddenDrift": [
+      "VISIBLE_THESIS_REQUIRED",
+      "ABSTRACT_PROP_DRIFT",
+      "OCCUPATION_PROXY_DRIFT",
+      "GENERIC_BUSINESS_STOCK_DRIFT",
+      "SEMANTICALLY_DECORATIVE_SCENE",
+      "VISUAL_INFORMATION_GAIN",
+      "BUYER_PERSPECTIVE_REQUIRED"
+    ],
+    "continuityStrategy": "persistent causal short arc",
+    "visualMotifs": [
+      "perception-reflection",
+      "choice-comparison",
+      "recognition-eye-line",
+      "evidence-proof",
+      "confusion-competing-signals",
+      "specialization-narrowing",
+      "memory-later-recall",
+      "reputation-expert-absent",
+      "recommendation-referral"
+    ],
+    "fingerprint": "95f5a7c19753aa3932b13374bf2fc8c49911cb03aea937e066e1550c0a7078c9"
+  },
+  "chapters": [],
+  "coldOpen": null,
+  "progression": [
+    "HOOK",
+    "PROOF",
+    "MANIFESTATION",
+    "REVERSAL",
+    "METHOD",
+    "PROOF",
+    "PAYOFF"
+  ],
+  "continuity": {
+    "mode": "ensemble-independent",
+    "variationDimensions": [
+      "age",
+      "gender-presentation",
+      "profession",
+      "environment",
+      "framing"
+    ],
+    "scenesShareIdentity": false
+  },
+  "scenes": [
+    {
+      "sceneId": "L02-S01-HOOK",
+      "progressionStage": "HOOK",
+      "narrationAnchor": "provocative-tension-unresolved-Trying to Sell to Everyone Is the Problem",
+      "startMs": 0,
+      "durationMs": 6156,
+      "treatment": {
+        "treatmentId": "l02-s01-hook-treatment",
+        "sceneId": "L02-S01-HOOK",
+        "progressionStage": "HOOK",
+        "narrativeBeat": "provocative-tension-unresolved-Trying to Sell to Everyone Is the Problem",
+        "communicationIntent": "create-tension",
+        "strategy": "market-crowd",
+        "subjectRequirement": "seller addressing every passing audience at once",
+        "environment": "dense vertical market aisle with competing neutral stalls",
+        "composition": "overloaded foreground messages dissolving into an indifferent crowd",
+        "camera": "20mm handheld vertical market wide",
+        "lighting": "busy mixed market light without focal hierarchy",
+        "action": "many broad signals compete and none earns a stop",
+        "props": [
+          "fan of generic signal placards without text",
+          "repeated stall objects"
+        ],
+        "motionOpportunities": [
+          "pan",
+          "alternate-crop",
+          "transition-state"
+        ],
+        "diagram": null,
+        "grammar": {
+          "strategy": "market-crowd",
+          "subjectArchetype": "seller addressing every passing audience at once",
+          "environment": "dense vertical market aisle with competing neutral stalls",
+          "composition": "overloaded foreground messages dissolving into an indifferent crowd",
+          "camera": "20mm handheld vertical market wide",
+          "props": [
+            "fan of generic signal placards without text",
+            "repeated stall objects"
+          ],
+          "topology": "none",
+          "semanticTokens": [
+            "everyone",
+            "problem",
+            "provocative",
+            "sell",
+            "tension",
+            "trying",
+            "unresolved"
+          ],
+          "continuityIdentityId": null
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "market-crowd",
+          "subjectArchetype": "seller addressing every passing audience at once",
+          "environmentArchetype": "dense vertical market aisle with competing neutral stalls",
+          "compositionArchetype": "overloaded foreground messages dissolving into an indifferent crowd",
+          "cameraArchetype": "20mm handheld vertical market wide",
+          "lightingArchetype": "busy mixed market light without focal hierarchy",
+          "actionArchetype": "many broad signals compete and none earns a stop",
+          "dominantObjectArchetype": "fan of generic signal placards without text",
+          "motionArchetype": "rapid signal spread and crowd pass-through"
+        },
+        "treatmentHash": "387bd1c232bc54d2200bb95e9dfde5801a38cac2d062081aa72c420e1e9a03a0"
+      },
+      "overlayKey": "l02-s01.l02-s01-hook",
+      "visibleThesis": "A buyer faces the consequence of not being able to identify provocative tension unresolved Trying to Sell to Everyone Is the Problem.",
+      "newInformation": "Introduces the buyer consequence and unresolved positioning conflict.",
+      "narrativeFunction": "hook",
+      "visualFamily": "human-decision",
+      "assetId": "l02-s01-hook-base",
+      "eventIds": [
+        "l02-s01-hook-event-01"
+      ]
+    },
+    {
+      "sceneId": "L02-S01-V01",
+      "progressionStage": "PROOF",
+      "narrationAnchor": "everyone-message",
+      "startMs": 6156,
+      "durationMs": 7524,
+      "treatment": {
+        "treatmentId": "l02-s01-v01-treatment",
+        "sceneId": "L02-S01-V01",
+        "progressionStage": "PROOF",
+        "narrativeBeat": "everyone-message",
+        "communicationIntent": "make-proof-visible",
+        "strategy": "market-crowd",
+        "subjectRequirement": "many visually similar providers and one legible category owner; mid-career hospitality owner",
+        "environment": "crowded trade hall or market aisle; backstage production zone",
+        "composition": "compressed crowd field with controlled focal isolation; left-to-right reveal path",
+        "camera": "105mm elevated telephoto compression; elevated diagonal viewpoint",
+        "lighting": "natural public-space practical light",
+        "action": "observable proof accumulates toward trust",
+        "props": [
+          "repeated neutral objects",
+          "single category artifact",
+          "everyone evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "slow-push",
+          "subject-detail",
+          "transition-state"
+        ],
+        "diagram": null,
+        "grammar": {
+          "strategy": "market-crowd",
+          "subjectArchetype": "many visually similar providers and one legible category owner; mid-career hospitality owner",
+          "environment": "crowded trade hall or market aisle; backstage production zone",
+          "composition": "compressed crowd field with controlled focal isolation; left-to-right reveal path",
+          "camera": "105mm elevated telephoto compression; elevated diagonal viewpoint",
+          "props": [
+            "repeated neutral objects",
+            "single category artifact",
+            "everyone evidence artifact"
+          ],
+          "topology": "none",
+          "semanticTokens": [
+            "everyone",
+            "message"
+          ],
+          "continuityIdentityId": null
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "market-crowd",
+          "subjectArchetype": "many visually similar providers and one legible category owner; mid-career hospitality owner",
+          "environmentArchetype": "crowded trade hall or market aisle; backstage production zone",
+          "compositionArchetype": "compressed crowd field with controlled focal isolation; left-to-right reveal path",
+          "cameraArchetype": "105mm elevated telephoto compression; elevated diagonal viewpoint",
+          "lightingArchetype": "natural public-space practical light",
+          "actionArchetype": "observable proof accumulates toward trust",
+          "dominantObjectArchetype": "repeated neutral objects",
+          "motionArchetype": "establishing-crop-then-slow-push-then-subject-detail-then-transition-state"
+        },
+        "treatmentHash": "13bd8175287d85bb1aecf89570cfa870f9e4c33966abb0a2d31da2946a1037b7"
+      },
+      "overlayKey": "l02-s01.l02-s01-v01",
+      "visibleThesis": "A buyer sees a broad offer but cannot tell whether it applies to their problem.",
+      "newInformation": "Advances the visual argument with everyone message; it is not a decorative restatement.",
+      "narrativeFunction": "evidence",
+      "visualFamily": "professional-evidence",
+      "assetId": "l02-s01-v01-base",
+      "eventIds": [
+        "l02-s01-v01-event-01",
+        "l02-s01-v01-event-02"
+      ]
+    },
+    {
+      "sceneId": "L02-S01-V02",
+      "progressionStage": "MANIFESTATION",
+      "narrationAnchor": "buyer-decision-effort",
+      "startMs": 13680,
+      "durationMs": 7524,
+      "treatment": {
+        "treatmentId": "l02-s01-v02-treatment",
+        "sceneId": "L02-S01-V02",
+        "progressionStage": "MANIFESTATION",
+        "narrativeBeat": "buyer-decision-effort",
+        "communicationIntent": "show-consequence",
+        "strategy": "abstract-conceptual",
+        "subjectRequirement": "physical light, shadow, and material expressing an invisible idea; older technical consultant",
+        "environment": "architectural light laboratory; client point-of-decision zone",
+        "composition": "geometric negative-space study with one changing boundary; central void separating competing signals",
+        "camera": "90mm orthographic detail; subjective client viewpoint",
+        "lighting": "controlled graphic light with clear shape separation",
+        "action": "cause resolves into a visible consequence",
+        "props": [
+          "translucent planes",
+          "prism",
+          "shadow grid",
+          "buyer evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "slow-push",
+          "subject-detail",
+          "transition-state"
+        ],
+        "diagram": null,
+        "grammar": {
+          "strategy": "abstract-conceptual",
+          "subjectArchetype": "physical light, shadow, and material expressing an invisible idea; older technical consultant",
+          "environment": "architectural light laboratory; client point-of-decision zone",
+          "composition": "geometric negative-space study with one changing boundary; central void separating competing signals",
+          "camera": "90mm orthographic detail; subjective client viewpoint",
+          "props": [
+            "translucent planes",
+            "prism",
+            "shadow grid",
+            "buyer evidence artifact"
+          ],
+          "topology": "none",
+          "semanticTokens": [
+            "buyer",
+            "decision",
+            "effort"
+          ],
+          "continuityIdentityId": null
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "abstract-conceptual",
+          "subjectArchetype": "physical light, shadow, and material expressing an invisible idea; older technical consultant",
+          "environmentArchetype": "architectural light laboratory; client point-of-decision zone",
+          "compositionArchetype": "geometric negative-space study with one changing boundary; central void separating competing signals",
+          "cameraArchetype": "90mm orthographic detail; subjective client viewpoint",
+          "lightingArchetype": "controlled graphic light with clear shape separation",
+          "actionArchetype": "cause resolves into a visible consequence",
+          "dominantObjectArchetype": "translucent planes",
+          "motionArchetype": "establishing-crop-then-slow-push-then-subject-detail-then-transition-state"
+        },
+        "treatmentHash": "6aa025944fcb6bd84cf446f04a2a6c549c0dc506660e25ec90f335a5b48f3739"
+      },
+      "overlayKey": "l02-s01.l02-s01-v02",
+      "visibleThesis": "A buyer has to do extra interpretation work because the offer gives no clear reason to choose it.",
+      "newInformation": "Advances the visual argument with buyer decision effort; it is not a decorative restatement.",
+      "narrativeFunction": "example",
+      "visualFamily": "human-decision",
+      "assetId": "l02-s01-v02-base",
+      "eventIds": [
+        "l02-s01-v02-event-01",
+        "l02-s01-v02-event-02"
+      ]
+    },
+    {
+      "sceneId": "L02-S01-V03",
+      "progressionStage": "REVERSAL",
+      "narrationAnchor": "different-customer-needs",
+      "startMs": 21204,
+      "durationMs": 7524,
+      "treatment": {
+        "treatmentId": "l02-s01-v03-treatment",
+        "sceneId": "L02-S01-V03",
+        "progressionStage": "REVERSAL",
+        "narrativeBeat": "different-customer-needs",
+        "communicationIntent": "compare-alternatives",
+        "strategy": "client-decision",
+        "subjectRequirement": "client comparing credible options at a decision point; nonbinary creative director",
+        "environment": "procurement table or consultation waiting area; artifact archive zone",
+        "composition": "client point-of-view with alternatives receding in depth; occluded-to-visible information progression",
+        "camera": "45mm seated point-of-view; lateral profile viewpoint",
+        "lighting": "soft directional editorial daylight",
+        "action": "two alternatives reveal a meaningful contrast",
+        "props": [
+          "unlabeled portfolios",
+          "evidence samples",
+          "selection token",
+          "customer evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "slow-push",
+          "subject-detail",
+          "transition-state"
+        ],
+        "diagram": null,
+        "grammar": {
+          "strategy": "client-decision",
+          "subjectArchetype": "client comparing credible options at a decision point; nonbinary creative director",
+          "environment": "procurement table or consultation waiting area; artifact archive zone",
+          "composition": "client point-of-view with alternatives receding in depth; occluded-to-visible information progression",
+          "camera": "45mm seated point-of-view; lateral profile viewpoint",
+          "props": [
+            "unlabeled portfolios",
+            "evidence samples",
+            "selection token",
+            "customer evidence artifact"
+          ],
+          "topology": "none",
+          "semanticTokens": [
+            "customer",
+            "different",
+            "needs"
+          ],
+          "continuityIdentityId": null
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "client-decision",
+          "subjectArchetype": "client comparing credible options at a decision point; nonbinary creative director",
+          "environmentArchetype": "procurement table or consultation waiting area; artifact archive zone",
+          "compositionArchetype": "client point-of-view with alternatives receding in depth; occluded-to-visible information progression",
+          "cameraArchetype": "45mm seated point-of-view; lateral profile viewpoint",
+          "lightingArchetype": "soft directional editorial daylight",
+          "actionArchetype": "two alternatives reveal a meaningful contrast",
+          "dominantObjectArchetype": "unlabeled portfolios",
+          "motionArchetype": "establishing-crop-then-slow-push-then-subject-detail-then-transition-state"
+        },
+        "treatmentHash": "4c88759ced95e66edf07f76269da3542732f7934137ba51b3f676ad7ac88617d"
+      },
+      "overlayKey": "l02-s01.l02-s01-v03",
+      "visibleThesis": "Different buyers compare the same broad offer and each looks for a different unmet need.",
+      "newInformation": "Advances the visual argument with different customer needs; it is not a decorative restatement.",
+      "narrativeFunction": "contrast",
+      "visualFamily": "contrast",
+      "assetId": "l02-s01-v03-base",
+      "eventIds": [
+        "l02-s01-v03-event-01",
+        "l02-s01-v03-event-02"
+      ]
+    },
+    {
+      "sceneId": "L02-S01-V04",
+      "progressionStage": "METHOD",
+      "narrationAnchor": "niche-recognition",
+      "startMs": 28728,
+      "durationMs": 7524,
+      "treatment": {
+        "treatmentId": "l02-s01-v04-treatment",
+        "sceneId": "L02-S01-V04",
+        "progressionStage": "METHOD",
+        "narrativeBeat": "niche-recognition",
+        "communicationIntent": "make-proof-visible",
+        "strategy": "audience-segmentation",
+        "subjectRequirement": "distinct audience clusters separated by needs and context; woman-led retail founder",
+        "environment": "public concourse transformed into spatial audience islands; peer-referral setting",
+        "composition": "high-angle clustered field with a deliberate narrow focus; near-far contrast between choice and result",
+        "camera": "24mm elevated architectural view; compressed distant observation",
+        "lighting": "soft directional editorial daylight",
+        "action": "observable proof accumulates toward trust",
+        "props": [
+          "color-coded objects",
+          "path markers",
+          "niche evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "diagram-build",
+          "highlighted-region",
+          "punch-in"
+        ],
+        "diagram": {
+          "diagramId": "l02-s01-v04-diagram",
+          "proposition": "niche-recognition",
+          "textFreeBackground": true,
+          "type": "hierarchy",
+          "root": {
+            "id": "l02-s01-v04-diagram-broad-market",
+            "semanticRole": "broad-market",
+            "labelKey": "l02-s01-v04-diagram.broad-market"
+          },
+          "children": [
+            {
+              "id": "l02-s01-v04-diagram-qualified-segment-a",
+              "semanticRole": "qualified-segment-a",
+              "labelKey": "l02-s01-v04-diagram.qualified-segment-a"
+            },
+            {
+              "id": "l02-s01-v04-diagram-qualified-segment-b",
+              "semanticRole": "qualified-segment-b",
+              "labelKey": "l02-s01-v04-diagram.qualified-segment-b"
+            },
+            {
+              "id": "l02-s01-v04-diagram-chosen-niche",
+              "semanticRole": "chosen-niche",
+              "labelKey": "l02-s01-v04-diagram.chosen-niche"
+            }
+          ],
+          "edges": [
+            {
+              "from": "l02-s01-v04-diagram-broad-market",
+              "to": "l02-s01-v04-diagram-qualified-segment-a",
+              "semanticRole": "contains"
+            },
+            {
+              "from": "l02-s01-v04-diagram-broad-market",
+              "to": "l02-s01-v04-diagram-qualified-segment-b",
+              "semanticRole": "contains"
+            },
+            {
+              "from": "l02-s01-v04-diagram-broad-market",
+              "to": "l02-s01-v04-diagram-chosen-niche",
+              "semanticRole": "contains"
+            }
+          ],
+          "overlayLabelKeys": [
+            "l02-s01-v04-diagram.broad-market",
+            "l02-s01-v04-diagram.qualified-segment-a",
+            "l02-s01-v04-diagram.qualified-segment-b",
+            "l02-s01-v04-diagram.chosen-niche"
+          ]
+        },
+        "grammar": {
+          "strategy": "audience-segmentation",
+          "subjectArchetype": "distinct audience clusters separated by needs and context; woman-led retail founder",
+          "environment": "public concourse transformed into spatial audience islands; peer-referral setting",
+          "composition": "high-angle clustered field with a deliberate narrow focus; near-far contrast between choice and result",
+          "camera": "24mm elevated architectural view; compressed distant observation",
+          "props": [
+            "color-coded objects",
+            "path markers",
+            "niche evidence artifact"
+          ],
+          "topology": "hierarchy",
+          "semanticTokens": [
+            "niche",
+            "recognition"
+          ],
+          "continuityIdentityId": null
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "audience-segmentation",
+          "subjectArchetype": "distinct audience clusters separated by needs and context; woman-led retail founder",
+          "environmentArchetype": "public concourse transformed into spatial audience islands; peer-referral setting",
+          "compositionArchetype": "high-angle clustered field with a deliberate narrow focus; near-far contrast between choice and result",
+          "cameraArchetype": "24mm elevated architectural view; compressed distant observation",
+          "lightingArchetype": "soft directional editorial daylight",
+          "actionArchetype": "observable proof accumulates toward trust",
+          "dominantObjectArchetype": "color-coded objects",
+          "motionArchetype": "establishing-crop-then-diagram-build-then-highlighted-region-then-punch-in"
+        },
+        "treatmentHash": "1b964afadf3ca0c666877df055a3e541f580a772b8bf7a56f3c83366d3dab7b5"
+      },
+      "overlayKey": "l02-s01.l02-s01-v04",
+      "visibleThesis": "One defined buyer immediately recognizes that the offer is for them.",
+      "newInformation": "Advances the visual argument with niche recognition; it is not a decorative restatement.",
+      "narrativeFunction": "resolution",
+      "visualFamily": "diagram",
+      "assetId": "l02-s01-v04-base",
+      "eventIds": [
+        "l02-s01-v04-event-01",
+        "l02-s01-v04-event-02"
+      ]
+    },
+    {
+      "sceneId": "L02-S01-V05",
+      "progressionStage": "PROOF",
+      "narrationAnchor": "generic-vs-specific-offer",
+      "startMs": 36252,
+      "durationMs": 7524,
+      "treatment": {
+        "treatmentId": "l02-s01-v05-treatment",
+        "sceneId": "L02-S01-V05",
+        "progressionStage": "PROOF",
+        "narrativeBeat": "generic-vs-specific-offer",
+        "communicationIntent": "compare-alternatives",
+        "strategy": "comparison-composition",
+        "subjectRequirement": "two meaningfully different outcomes or choices; male wellness practitioner",
+        "environment": "dual-world editorial set; field-work context",
+        "composition": "asymmetric split composition with a decisive visual imbalance; layered reflection with off-axis evidence",
+        "camera": "40mm locked frontal comparison; close foreground parallax",
+        "lighting": "soft directional editorial daylight",
+        "action": "two alternatives reveal a meaningful contrast",
+        "props": [
+          "contrasting evidence sets",
+          "decision marker",
+          "generic evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "diagram-build",
+          "highlighted-region",
+          "punch-in"
+        ],
+        "diagram": {
+          "diagramId": "l02-s01-v05-diagram",
+          "proposition": "generic-vs-specific-offer",
+          "textFreeBackground": true,
+          "type": "comparison",
+          "entities": [
+            {
+              "id": "l02-s01-v05-diagram-alternative-a",
+              "semanticRole": "alternative-a",
+              "labelKey": "l02-s01-v05-diagram.alternative-a"
+            },
+            {
+              "id": "l02-s01-v05-diagram-alternative-b",
+              "semanticRole": "alternative-b",
+              "labelKey": "l02-s01-v05-diagram.alternative-b"
+            }
+          ],
+          "relation": "contrast",
+          "overlayLabelKeys": [
+            "l02-s01-v05-diagram.alternative-a",
+            "l02-s01-v05-diagram.alternative-b"
+          ]
+        },
+        "grammar": {
+          "strategy": "comparison-composition",
+          "subjectArchetype": "two meaningfully different outcomes or choices; male wellness practitioner",
+          "environment": "dual-world editorial set; field-work context",
+          "composition": "asymmetric split composition with a decisive visual imbalance; layered reflection with off-axis evidence",
+          "camera": "40mm locked frontal comparison; close foreground parallax",
+          "props": [
+            "contrasting evidence sets",
+            "decision marker",
+            "generic evidence artifact"
+          ],
+          "topology": "comparison",
+          "semanticTokens": [
+            "generic",
+            "offer",
+            "specific"
+          ],
+          "continuityIdentityId": null
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "comparison-composition",
+          "subjectArchetype": "two meaningfully different outcomes or choices; male wellness practitioner",
+          "environmentArchetype": "dual-world editorial set; field-work context",
+          "compositionArchetype": "asymmetric split composition with a decisive visual imbalance; layered reflection with off-axis evidence",
+          "cameraArchetype": "40mm locked frontal comparison; close foreground parallax",
+          "lightingArchetype": "soft directional editorial daylight",
+          "actionArchetype": "two alternatives reveal a meaningful contrast",
+          "dominantObjectArchetype": "contrasting evidence sets",
+          "motionArchetype": "establishing-crop-then-diagram-build-then-highlighted-region-then-punch-in"
+        },
+        "treatmentHash": "5158a51af5aeb96fdc2d65ff572398f3b940eadad697764ed9b1ee24bab417bc"
+      },
+      "overlayKey": "l02-s01.l02-s01-v05",
+      "visibleThesis": "A buyer compares a generic offer with a specific promise and understands the specific option faster.",
+      "newInformation": "Advances the visual argument with generic vs specific offer; it is not a decorative restatement.",
+      "narrativeFunction": "evidence",
+      "visualFamily": "diagram",
+      "assetId": "l02-s01-v05-base",
+      "eventIds": [
+        "l02-s01-v05-event-01",
+        "l02-s01-v05-event-02"
+      ]
+    },
+    {
+      "sceneId": "L02-S01-V06",
+      "progressionStage": "PAYOFF",
+      "narrationAnchor": "specificity-advantage",
+      "startMs": 43776,
+      "durationMs": 7524,
+      "treatment": {
+        "treatmentId": "l02-s01-v06-treatment",
+        "sceneId": "L02-S01-V06",
+        "progressionStage": "PAYOFF",
+        "narrativeBeat": "specificity-advantage",
+        "communicationIntent": "deliver-payoff",
+        "strategy": "comparison-composition",
+        "subjectRequirement": "two meaningfully different outcomes or choices; younger independent product designer",
+        "environment": "dual-world editorial set; street-facing public threshold",
+        "composition": "asymmetric split composition with a decisive visual imbalance; foreground consequence against background cause",
+        "camera": "40mm locked frontal comparison; low three-quarter viewpoint",
+        "lighting": "soft directional editorial daylight",
+        "action": "the final visual state resolves the proposition",
+        "props": [
+          "contrasting evidence sets",
+          "decision marker",
+          "advantage evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "diagram-build",
+          "highlighted-region",
+          "punch-in"
+        ],
+        "diagram": {
+          "diagramId": "l02-s01-v06-diagram",
+          "proposition": "specificity-advantage",
+          "textFreeBackground": true,
+          "type": "funnel",
+          "stages": [
+            {
+              "id": "l02-s01-v06-diagram-broad-market",
+              "semanticRole": "broad-market",
+              "labelKey": "l02-s01-v06-diagram.broad-market"
+            },
+            {
+              "id": "l02-s01-v06-diagram-qualified-segment",
+              "semanticRole": "qualified-segment",
+              "labelKey": "l02-s01-v06-diagram.qualified-segment"
+            },
+            {
+              "id": "l02-s01-v06-diagram-chosen-niche",
+              "semanticRole": "chosen-niche",
+              "labelKey": "l02-s01-v06-diagram.chosen-niche"
+            }
+          ],
+          "direction": "broad-to-narrow",
+          "overlayLabelKeys": [
+            "l02-s01-v06-diagram.broad-market",
+            "l02-s01-v06-diagram.qualified-segment",
+            "l02-s01-v06-diagram.chosen-niche"
+          ]
+        },
+        "grammar": {
+          "strategy": "comparison-composition",
+          "subjectArchetype": "two meaningfully different outcomes or choices; younger independent product designer",
+          "environment": "dual-world editorial set; street-facing public threshold",
+          "composition": "asymmetric split composition with a decisive visual imbalance; foreground consequence against background cause",
+          "camera": "40mm locked frontal comparison; low three-quarter viewpoint",
+          "props": [
+            "contrasting evidence sets",
+            "decision marker",
+            "advantage evidence artifact"
+          ],
+          "topology": "funnel",
+          "semanticTokens": [
+            "advantage",
+            "specificity"
+          ],
+          "continuityIdentityId": null
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "comparison-composition",
+          "subjectArchetype": "two meaningfully different outcomes or choices; younger independent product designer",
+          "environmentArchetype": "dual-world editorial set; street-facing public threshold",
+          "compositionArchetype": "asymmetric split composition with a decisive visual imbalance; foreground consequence against background cause",
+          "cameraArchetype": "40mm locked frontal comparison; low three-quarter viewpoint",
+          "lightingArchetype": "soft directional editorial daylight",
+          "actionArchetype": "the final visual state resolves the proposition",
+          "dominantObjectArchetype": "contrasting evidence sets",
+          "motionArchetype": "establishing-crop-then-diagram-build-then-highlighted-region-then-punch-in"
+        },
+        "treatmentHash": "f7b3d4636063f99600dd8d4aa1279fa1b78bfa01291a7123f99c9a6c4ab5665b"
+      },
+      "overlayKey": "l02-s01.l02-s01-v06",
+      "visibleThesis": "A qualified buyer recognizes their problem and promised direction without extra interpretation work.",
+      "newInformation": "Advances the visual argument with specificity advantage; it is not a decorative restatement.",
+      "narrativeFunction": "payoff",
+      "visualFamily": "diagram",
+      "callbackToBeatId": "L02-S01-HOOK",
+      "callbackPurpose": "resolves the opening buyer conflict through recognition or choice",
+      "assetId": "l02-s01-v06-base",
+      "eventIds": [
+        "l02-s01-v06-event-01",
+        "l02-s01-v06-event-02"
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "assetId": "l02-s01-hook-base",
+      "contentId": "L02-S01",
+      "sceneId": "L02-S01-HOOK",
+      "semanticPurpose": "provocative-tension-unresolved-Trying to Sell to Everyone Is the Problem",
+      "strategy": "market-crowd",
+      "prompt": "Text-free 9:16 market-crowd treatment for provocative tension unresolved Trying to Sell to Everyone Is the Problem. Communication intent: create-tension. Subject: seller addressing every passing audience at once. Environment: dense vertical market aisle with competing neutral stalls. Composition: overloaded foreground messages dissolving into an indifferent crowd. Camera: 20mm handheld vertical market wide. Props: fan of generic signal placards without text, repeated stall objects. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "9:16",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": false,
+          "cropMode": "not-safe",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "wide multi-subject topology loses meaning in a vertical crop"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "native composition"
+        }
+      ],
+      "subjectIdentityId": null,
+      "referenceAssetId": null,
+      "semanticFingerprint": "83b712e796a860e4ebe4b150f1d508bf559e5b35ffd11229f18f4ecadc868346",
+      "generatedAssetCacheKey": "cf71e5b16fa654ee31a3b1688917e7a0328def05badae71845244bd7a92b56c9"
+    },
+    {
+      "assetId": "l02-s01-v01-base",
+      "contentId": "L02-S01",
+      "sceneId": "L02-S01-V01",
+      "semanticPurpose": "everyone-message",
+      "strategy": "market-crowd",
+      "prompt": "Text-free 9:16 market-crowd treatment for everyone message. Communication intent: make-proof-visible. Subject: many visually similar providers and one legible category owner; mid-career hospitality owner. Environment: crowded trade hall or market aisle; backstage production zone. Composition: compressed crowd field with controlled focal isolation; left-to-right reveal path. Camera: 105mm elevated telephoto compression; elevated diagonal viewpoint. Props: repeated neutral objects, single category artifact, everyone evidence artifact. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "9:16",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": false,
+          "cropMode": "not-safe",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "wide multi-subject topology loses meaning in a vertical crop"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "native composition"
+        }
+      ],
+      "subjectIdentityId": null,
+      "referenceAssetId": null,
+      "semanticFingerprint": "96d1df2188eda4eacf3d5191a5e120be290a28707a734db26dfc191bbc2e1b04",
+      "generatedAssetCacheKey": "62402119e28d089e6d90c8bff1c37f7ba6a9930ad24800c00b157eeb1f1828e4"
+    },
+    {
+      "assetId": "l02-s01-v02-base",
+      "contentId": "L02-S01",
+      "sceneId": "L02-S01-V02",
+      "semanticPurpose": "buyer-decision-effort",
+      "strategy": "abstract-conceptual",
+      "prompt": "Text-free 9:16 abstract-conceptual treatment for buyer decision effort. Communication intent: show-consequence. Subject: physical light, shadow, and material expressing an invisible idea; older technical consultant. Environment: architectural light laboratory; client point-of-decision zone. Composition: geometric negative-space study with one changing boundary; central void separating competing signals. Camera: 90mm orthographic detail; subjective client viewpoint. Props: translucent planes, prism, shadow grid, buyer evidence artifact. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "9:16",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "subject-aware-crop",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "protected subject and overlay regions survive a subject-aware derivative"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "native composition"
+        }
+      ],
+      "subjectIdentityId": null,
+      "referenceAssetId": null,
+      "semanticFingerprint": "2750ab0b1e0cbd2a354c120bd1bbf3fcdbe192810b0a4b4e6c84734be1628411",
+      "generatedAssetCacheKey": "9ac589dad5b5b58254913738df454596bf2bc5730c32eaf62613eb43c9197508"
+    },
+    {
+      "assetId": "l02-s01-v03-base",
+      "contentId": "L02-S01",
+      "sceneId": "L02-S01-V03",
+      "semanticPurpose": "different-customer-needs",
+      "strategy": "client-decision",
+      "prompt": "Text-free 9:16 client-decision treatment for different customer needs. Communication intent: compare-alternatives. Subject: client comparing credible options at a decision point; nonbinary creative director. Environment: procurement table or consultation waiting area; artifact archive zone. Composition: client point-of-view with alternatives receding in depth; occluded-to-visible information progression. Camera: 45mm seated point-of-view; lateral profile viewpoint. Props: unlabeled portfolios, evidence samples, selection token, customer evidence artifact. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "9:16",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "subject-aware-crop",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "protected subject and overlay regions survive a subject-aware derivative"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "native composition"
+        }
+      ],
+      "subjectIdentityId": null,
+      "referenceAssetId": null,
+      "semanticFingerprint": "48e9a11a0595f4eb5aa5b4171397758f97ccd3599d3524d338f7c5a12269ffa5",
+      "generatedAssetCacheKey": "8c7af920b35bc10b83b08f0a609eade3beaf093ca150d532e6c5f5c70d105ca0"
+    },
+    {
+      "assetId": "l02-s01-v04-base",
+      "contentId": "L02-S01",
+      "sceneId": "L02-S01-V04",
+      "semanticPurpose": "niche-recognition",
+      "strategy": "audience-segmentation",
+      "prompt": "Text-free 9:16 audience-segmentation treatment for niche recognition. Communication intent: make-proof-visible. Subject: distinct audience clusters separated by needs and context; woman-led retail founder. Environment: public concourse transformed into spatial audience islands; peer-referral setting. Composition: high-angle clustered field with a deliberate narrow focus; near-far contrast between choice and result. Camera: 24mm elevated architectural view; compressed distant observation. Props: color-coded objects, path markers, niche evidence artifact. Proposition-specific hierarchy structure with 4 separately rendered label anchors. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "9:16",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "subject-aware-crop",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "protected subject and overlay regions survive a subject-aware derivative"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "native composition"
+        }
+      ],
+      "subjectIdentityId": null,
+      "referenceAssetId": null,
+      "semanticFingerprint": "66834a3765c7fb7d9411aafab88bd70c66e44c330f2f1a4be89ef2d418b753f9",
+      "generatedAssetCacheKey": "ba27cffe7e35d933337a85484195592c3e59880b4fd17838232a328eb82ca43f"
+    },
+    {
+      "assetId": "l02-s01-v05-base",
+      "contentId": "L02-S01",
+      "sceneId": "L02-S01-V05",
+      "semanticPurpose": "generic-vs-specific-offer",
+      "strategy": "comparison-composition",
+      "prompt": "Text-free 9:16 comparison-composition treatment for generic vs specific offer. Communication intent: compare-alternatives. Subject: two meaningfully different outcomes or choices; male wellness practitioner. Environment: dual-world editorial set; field-work context. Composition: asymmetric split composition with a decisive visual imbalance; layered reflection with off-axis evidence. Camera: 40mm locked frontal comparison; close foreground parallax. Props: contrasting evidence sets, decision marker, generic evidence artifact. Proposition-specific comparison structure with 2 separately rendered label anchors. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "9:16",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "subject-aware-crop",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "protected subject and overlay regions survive a subject-aware derivative"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "native composition"
+        }
+      ],
+      "subjectIdentityId": null,
+      "referenceAssetId": null,
+      "semanticFingerprint": "00163a1ccf5f3a58d150e153096bd464b38f7f7e13f3c1d5422906493bf7b6db",
+      "generatedAssetCacheKey": "cf06044e56fe5780a8946dbac15d37c5a46924e498e3fa1bd25b333ffc9f02fb"
+    },
+    {
+      "assetId": "l02-s01-v06-base",
+      "contentId": "L02-S01",
+      "sceneId": "L02-S01-V06",
+      "semanticPurpose": "specificity-advantage",
+      "strategy": "comparison-composition",
+      "prompt": "Text-free 9:16 comparison-composition treatment for specificity advantage. Communication intent: deliver-payoff. Subject: two meaningfully different outcomes or choices; younger independent product designer. Environment: dual-world editorial set; street-facing public threshold. Composition: asymmetric split composition with a decisive visual imbalance; foreground consequence against background cause. Camera: 40mm locked frontal comparison; low three-quarter viewpoint. Props: contrasting evidence sets, decision marker, advantage evidence artifact. Proposition-specific funnel structure with 3 separately rendered label anchors. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "9:16",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "subject-aware-crop",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "protected subject and overlay regions survive a subject-aware derivative"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "native composition"
+        }
+      ],
+      "subjectIdentityId": null,
+      "referenceAssetId": null,
+      "semanticFingerprint": "cc112453ec51b7356415897c61caf2bdd8c415701fcaa63ac9973be5c30c8650",
+      "generatedAssetCacheKey": "64e8dc49d69201f6c9d7b7641844506b81c46a1413fa437f36beed31e58b9267"
+    }
+  ],
+  "visualEvents": [
+    {
+      "eventId": "l02-s01-hook-event-01",
+      "sceneId": "L02-S01-HOOK",
+      "assetId": "l02-s01-hook-base",
+      "kind": "pan",
+      "startMs": 0,
+      "durationMs": 6156,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "8fe9f2a583c168e6b158fdfb1d971f7c85515d53cd7cafa7531ee6e1851277d4"
+    },
+    {
+      "eventId": "l02-s01-v01-event-01",
+      "sceneId": "L02-S01-V01",
+      "assetId": "l02-s01-v01-base",
+      "kind": "establishing-crop",
+      "startMs": 6156,
+      "durationMs": 3762,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "aafdca5aad011edee3de10f2e03cada16c9c30b947641acb5a64d11098572006"
+    },
+    {
+      "eventId": "l02-s01-v01-event-02",
+      "sceneId": "L02-S01-V01",
+      "assetId": "l02-s01-v01-base",
+      "kind": "slow-push",
+      "startMs": 9918,
+      "durationMs": 3762,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "9046512d520249970f284ae49b97bb0e21a375eec129d9e58f503fa77260bb06"
+    },
+    {
+      "eventId": "l02-s01-v02-event-01",
+      "sceneId": "L02-S01-V02",
+      "assetId": "l02-s01-v02-base",
+      "kind": "establishing-crop",
+      "startMs": 13680,
+      "durationMs": 3762,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "57e0c3e9c4a378e897d15b8fe7859eefcc8ef200236440ebf8e6795ead6689d5"
+    },
+    {
+      "eventId": "l02-s01-v02-event-02",
+      "sceneId": "L02-S01-V02",
+      "assetId": "l02-s01-v02-base",
+      "kind": "slow-push",
+      "startMs": 17442,
+      "durationMs": 3762,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "00e4fbe005dcc2f7efce8393ac95253cbc845cee0b2467c988c2abbfc547c355"
+    },
+    {
+      "eventId": "l02-s01-v03-event-01",
+      "sceneId": "L02-S01-V03",
+      "assetId": "l02-s01-v03-base",
+      "kind": "establishing-crop",
+      "startMs": 21204,
+      "durationMs": 3762,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "755bd882b823e486586810abf994e8effad2bd947ec174c7b88e7dc5ad0bc549"
+    },
+    {
+      "eventId": "l02-s01-v03-event-02",
+      "sceneId": "L02-S01-V03",
+      "assetId": "l02-s01-v03-base",
+      "kind": "slow-push",
+      "startMs": 24966,
+      "durationMs": 3762,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "11481cf6b925d95b5b2a3c12b2f9b14153996264e0056ca2d336c7c97b2e25f4"
+    },
+    {
+      "eventId": "l02-s01-v04-event-01",
+      "sceneId": "L02-S01-V04",
+      "assetId": "l02-s01-v04-base",
+      "kind": "establishing-crop",
+      "startMs": 28728,
+      "durationMs": 3762,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "72ffeb22a53fc992d324ef67cf08a628f139cff3a93c5a8fb77dfac637eaf89f"
+    },
+    {
+      "eventId": "l02-s01-v04-event-02",
+      "sceneId": "L02-S01-V04",
+      "assetId": "l02-s01-v04-base",
+      "kind": "diagram-build",
+      "startMs": 32490,
+      "durationMs": 3762,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "59e7a83d630a34986bd23b1ebc59601fcdaa34ac21482a9caa43479135d2f000"
+    },
+    {
+      "eventId": "l02-s01-v05-event-01",
+      "sceneId": "L02-S01-V05",
+      "assetId": "l02-s01-v05-base",
+      "kind": "establishing-crop",
+      "startMs": 36252,
+      "durationMs": 3762,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "61ea098ac7963e256306ab9a23369683096a3daeb490d01ccfbb462ad71f0def"
+    },
+    {
+      "eventId": "l02-s01-v05-event-02",
+      "sceneId": "L02-S01-V05",
+      "assetId": "l02-s01-v05-base",
+      "kind": "diagram-build",
+      "startMs": 40014,
+      "durationMs": 3762,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "fa361569c48da2b430a9fdd4dd1540f3e1080871d199c64bee9382f0724b1bc0"
+    },
+    {
+      "eventId": "l02-s01-v06-event-01",
+      "sceneId": "L02-S01-V06",
+      "assetId": "l02-s01-v06-base",
+      "kind": "establishing-crop",
+      "startMs": 43776,
+      "durationMs": 3762,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "6c5038b6bd0a390652e541c517c10e92a26b05370ab452ad85e3f00e1319d169"
+    },
+    {
+      "eventId": "l02-s01-v06-event-02",
+      "sceneId": "L02-S01-V06",
+      "assetId": "l02-s01-v06-base",
+      "kind": "diagram-build",
+      "startMs": 47538,
+      "durationMs": 3762,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "821e6b9bd07f65a8e44b96980f6666351b65cb83fda613d132d82094fac929c6"
+    }
+  ],
+  "diagrams": [
+    {
+      "diagramId": "l02-s01-v04-diagram",
+      "proposition": "niche-recognition",
+      "textFreeBackground": true,
+      "type": "hierarchy",
+      "root": {
+        "id": "l02-s01-v04-diagram-broad-market",
+        "semanticRole": "broad-market",
+        "labelKey": "l02-s01-v04-diagram.broad-market"
+      },
+      "children": [
+        {
+          "id": "l02-s01-v04-diagram-qualified-segment-a",
+          "semanticRole": "qualified-segment-a",
+          "labelKey": "l02-s01-v04-diagram.qualified-segment-a"
+        },
+        {
+          "id": "l02-s01-v04-diagram-qualified-segment-b",
+          "semanticRole": "qualified-segment-b",
+          "labelKey": "l02-s01-v04-diagram.qualified-segment-b"
+        },
+        {
+          "id": "l02-s01-v04-diagram-chosen-niche",
+          "semanticRole": "chosen-niche",
+          "labelKey": "l02-s01-v04-diagram.chosen-niche"
+        }
+      ],
+      "edges": [
+        {
+          "from": "l02-s01-v04-diagram-broad-market",
+          "to": "l02-s01-v04-diagram-qualified-segment-a",
+          "semanticRole": "contains"
+        },
+        {
+          "from": "l02-s01-v04-diagram-broad-market",
+          "to": "l02-s01-v04-diagram-qualified-segment-b",
+          "semanticRole": "contains"
+        },
+        {
+          "from": "l02-s01-v04-diagram-broad-market",
+          "to": "l02-s01-v04-diagram-chosen-niche",
+          "semanticRole": "contains"
+        }
+      ],
+      "overlayLabelKeys": [
+        "l02-s01-v04-diagram.broad-market",
+        "l02-s01-v04-diagram.qualified-segment-a",
+        "l02-s01-v04-diagram.qualified-segment-b",
+        "l02-s01-v04-diagram.chosen-niche"
+      ]
+    },
+    {
+      "diagramId": "l02-s01-v05-diagram",
+      "proposition": "generic-vs-specific-offer",
+      "textFreeBackground": true,
+      "type": "comparison",
+      "entities": [
+        {
+          "id": "l02-s01-v05-diagram-alternative-a",
+          "semanticRole": "alternative-a",
+          "labelKey": "l02-s01-v05-diagram.alternative-a"
+        },
+        {
+          "id": "l02-s01-v05-diagram-alternative-b",
+          "semanticRole": "alternative-b",
+          "labelKey": "l02-s01-v05-diagram.alternative-b"
+        }
+      ],
+      "relation": "contrast",
+      "overlayLabelKeys": [
+        "l02-s01-v05-diagram.alternative-a",
+        "l02-s01-v05-diagram.alternative-b"
+      ]
+    },
+    {
+      "diagramId": "l02-s01-v06-diagram",
+      "proposition": "specificity-advantage",
+      "textFreeBackground": true,
+      "type": "funnel",
+      "stages": [
+        {
+          "id": "l02-s01-v06-diagram-broad-market",
+          "semanticRole": "broad-market",
+          "labelKey": "l02-s01-v06-diagram.broad-market"
+        },
+        {
+          "id": "l02-s01-v06-diagram-qualified-segment",
+          "semanticRole": "qualified-segment",
+          "labelKey": "l02-s01-v06-diagram.qualified-segment"
+        },
+        {
+          "id": "l02-s01-v06-diagram-chosen-niche",
+          "semanticRole": "chosen-niche",
+          "labelKey": "l02-s01-v06-diagram.chosen-niche"
+        }
+      ],
+      "direction": "broad-to-narrow",
+      "overlayLabelKeys": [
+        "l02-s01-v06-diagram.broad-market",
+        "l02-s01-v06-diagram.qualified-segment",
+        "l02-s01-v06-diagram.chosen-niche"
+      ]
+    }
+  ],
+  "assetReuseDecisions": [
+    {
+      "sourceAssetId": "l02-v06-base",
+      "sourceContentId": "L02",
+      "targetContentId": "L02-S01",
+      "targetSceneId": "L02-S01-HOOK",
+      "eligible": false,
+      "reuseMode": "not-reusable",
+      "cropAdaptation": "none",
+      "semanticCompatibility": 0.4667,
+      "reason": "unsafe-aspect-ratio-adaptation"
+    },
+    {
+      "sourceAssetId": "l02-cold_open-base",
+      "sourceContentId": "L02",
+      "targetContentId": "L02-S01",
+      "targetSceneId": "L02-S01-V01",
+      "eligible": false,
+      "reuseMode": "not-reusable",
+      "cropAdaptation": "none",
+      "semanticCompatibility": 0.4,
+      "reason": "unsafe-aspect-ratio-adaptation"
+    },
+    {
+      "sourceAssetId": "l02-cold_open-base",
+      "sourceContentId": "L02",
+      "targetContentId": "L02-S01",
+      "targetSceneId": "L02-S01-V02",
+      "eligible": false,
+      "reuseMode": "not-reusable",
+      "cropAdaptation": "none",
+      "semanticCompatibility": 0,
+      "reason": "unsafe-aspect-ratio-adaptation"
+    },
+    {
+      "sourceAssetId": "l02-v02-base",
+      "sourceContentId": "L02",
+      "targetContentId": "L02-S01",
+      "targetSceneId": "L02-S01-V03",
+      "eligible": false,
+      "reuseMode": "not-reusable",
+      "cropAdaptation": "none",
+      "semanticCompatibility": 0.12,
+      "reason": "semantic-purpose-insufficiently-compatible"
+    },
+    {
+      "sourceAssetId": "l02-v03-base",
+      "sourceContentId": "L02",
+      "targetContentId": "L02-S01",
+      "targetSceneId": "L02-S01-V04",
+      "eligible": true,
+      "reuseMode": "vertical-derivative",
+      "cropAdaptation": "subject-aware-crop",
+      "semanticCompatibility": 0.6,
+      "reason": "semantic purpose, continuity, and protected crop regions are compatible"
+    },
+    {
+      "sourceAssetId": "l02-v04-base",
+      "sourceContentId": "L02",
+      "targetContentId": "L02-S01",
+      "targetSceneId": "L02-S01-V05",
+      "eligible": true,
+      "reuseMode": "vertical-derivative",
+      "cropAdaptation": "subject-aware-crop",
+      "semanticCompatibility": 0.7,
+      "reason": "semantic purpose, continuity, and protected crop regions are compatible"
+    },
+    {
+      "sourceAssetId": "l02-v08-base",
+      "sourceContentId": "L02",
+      "targetContentId": "L02-S01",
+      "targetSceneId": "L02-S01-V06",
+      "eligible": true,
+      "reuseMode": "vertical-derivative",
+      "cropAdaptation": "subject-aware-crop",
+      "semanticCompatibility": 0.6,
+      "reason": "semantic purpose, continuity, and protected crop regions are compatible"
+    }
+  ],
+  "diversityMetrics": {
+    "visualGrammarDuplicateRate": 0,
+    "subjectArchetypeDuplicateRate": 0,
+    "environmentDuplicateRate": 0,
+    "compositionDuplicateRate": 0,
+    "cameraDuplicateRate": 0,
+    "propDuplicateRate": 0,
+    "diagramTopologyDuplicateRate": 0,
+    "consecutiveSceneSimilarity": {
+      "mean": 0.1431,
+      "maximum": 0.2917,
+      "violatingPairs": []
+    },
+    "hookVsScene1Similarity": 0.2833,
+    "status": "pass",
+    "failures": []
+  },
+  "cadenceMetrics": {
+    "durationMs": 51300,
+    "baseAssetCount": 7,
+    "visualEventCount": 13,
+    "eventsPerBaseAsset": 1.8571,
+    "meanSecondsPerEvent": 3.9462,
+    "shortestEventSeconds": 3.762,
+    "longestEventSeconds": 6.156,
+    "targetRangeSeconds": [
+      3,
+      7
+    ],
+    "targetComplianceRate": 1,
+    "hookMeanSecondsPerEvent": 6.156
+  },
+  "localizationCompatibility": {
+    "locales": [
+      "en",
+      "de",
+      "it",
+      "fr",
+      "pt"
+    ],
+    "canonicalImageryLocale": "en",
+    "textInGeneratedImage": false,
+    "translationInvalidatesCanonicalImagery": false,
+    "overlaysRenderedSeparately": true
+  },
+  "productionCoverage": {
+    "ctaEndScreenPlacement": "planned",
+    "motionTreatment": "planned",
+    "overlayStrategy": "planned",
+    "musicSfx": "unsupported-not-planned",
+    "thumbnail": {
+      "concept": "crowds resolving into selected audience clusters; one legible tension, no generic portrait",
+      "titleRelationship": "thumbnail visualizes the consequence or contradiction; title supplies the claim",
+      "localeStrategy": "text-free-image-localized-overlay"
+    }
+  },
+  "cacheInvalidation": {
+    "semanticPlanInvalidatesOn": [
+      "canonical-narrative-semantic-change",
+      "semantic-beat-structure-change",
+      "visual-vocabulary-change",
+      "veronica-visual-language-version-change",
+      "planner-algorithm-version-change"
+    ],
+    "canonicalImageInvalidatesOn": [
+      "semantic-plan-change",
+      "image-provider-or-model-change",
+      "prompt-contract-change"
+    ],
+    "titleQaInvalidatesOn": [
+      "localized-title-change",
+      "title-qa-version-change"
+    ],
+    "renderEventsInvalidateOn": [
+      "semantic-plan-change",
+      "ffmpeg-renderer-version-change",
+      "timing-change"
+    ]
+  },
+  "migration": {
+    "legacyV1Plan": "inspect-only-replan-required",
+    "legacyAssetReuse": "eligible-only-after-semantic-fingerprint-match"
+  },
+  "validation": {
+    "status": "pass",
+    "failures": []
+  },
+  "planHash": "6e3a935b30f14cd32bf383162a58e55ce0afdb1784e0dd32fb94b4e439dbffe3"
+}

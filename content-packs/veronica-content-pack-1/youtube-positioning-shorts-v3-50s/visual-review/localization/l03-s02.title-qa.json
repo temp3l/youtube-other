@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "veronicabenini-title-transcreation-qa.v2",
+  "contentId": "L03-S02",
+  "locales": {
+    "en": {
+      "metadataTitle": "Starting From Zero? Build These 3 Signals",
+      "displayTitle": "Starting From Zero? Build These 3 Signals",
+      "displayLines": [
+        "Starting From Zero?",
+        "Build These 3 Signals"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "de": {
+      "metadataTitle": "Start bei null? Baue zuerst diese 3 Signale",
+      "displayTitle": "Start bei null? Baue zuerst diese 3 Signale",
+      "displayLines": [
+        "Start bei null? Baue",
+        "zuerst diese 3 Signale"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "it": {
+      "metadataTitle": "Parti da zero? Costruisci prima questi 3 segnali",
+      "displayTitle": "Parti da zero? Costruisci prima questi 3 segnali",
+      "displayLines": [
+        "Parti da zero? Costruisci",
+        "prima questi 3 segnali"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "fr": {
+      "metadataTitle": "Vous partez de zéro ? Construisez ces 3 signaux",
+      "displayTitle": "Vous partez de zéro ? Construisez ces 3 signaux",
+      "displayLines": [
+        "Vous partez de zéro ?",
+        "Construisez ces 3 signaux"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "pt": {
+      "metadataTitle": "Começando do zero? Construa estes 3 sinais",
+      "displayTitle": "Começando do zero? Construa estes 3 sinais",
+      "displayLines": [
+        "Começando do zero?",
+        "Construa estes 3 sinais"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    }
+  },
+  "sourceTitlesHash": "59f042e50e30bee10e78ddd4c61dc51ea5ed69032641752d3731fb48c5cd8341",
+  "cacheKey": "fd5cd22627e7150ac5eeb3c00544eca1bdd519bcaaf685b67b9d0e4b9d054e3e",
+  "artifactHash": "232dee1c61f868934e1c29ecd86e14ec11668c0ffd7c89c5e111f87dc07f165b"
+}

@@ -1,0 +1,1773 @@
+{
+  "schemaVersion": "veronicabenini-positioning-visual-plan.v2",
+  "plannerVersion": "veronicabenini-positioning-visual-planner.v2.2",
+  "contentId": "L02-S02",
+  "parentLongFormId": "L02",
+  "format": "short",
+  "aspectRatio": "9:16",
+  "canonicalNarrationSource": "shorts/en/l02-s02-why-smaller-niches-can-make-you-bigger.md",
+  "canonicalSourceHash": "2d819db35e44f826b795499a3f087b7206876aaa9ae19306af7ff290cc4a9791",
+  "sourceNarrationSemanticHash": "b38d9a496edb5b18f076dff4b1c6f03dad7afbc0760b490102f7e0e0111581be",
+  "semanticBeatStructureHash": "c52e9af8d9e12bde6b239bfc7c6a00737d4a9a2f450b79ab4069db7d9a369bfc",
+  "semanticPlanCacheKey": "e2b2761a8122e0cf66368c4e4e76b3e570ac54e023dd44a6e99f494f4f09dfd3",
+  "canonicalImagePlanHash": "7a130f94e0233e981b3b6942e16e23a9011fd192d3ea5e235500fc7a166f9e79",
+  "renderEventPlanHash": "ee6d2a8e6d296cf10660d948683d86968fe88857b210f7b9928bd040371ce353",
+  "localizedTitleArtifact": {
+    "schemaVersion": "veronicabenini-title-transcreation-qa.v2",
+    "contentId": "L02-S02",
+    "locales": {
+      "en": {
+        "metadataTitle": "Why a Smaller Niche Can Make You Bigger",
+        "displayTitle": "Why a Smaller Niche Can Make You Bigger",
+        "displayLines": [
+          "Why a Smaller Niche",
+          "Can Make You Bigger"
+        ],
+        "displayTitleDistinctFromMetadata": false,
+        "minimumFontScale": 1,
+        "naturalness": "reviewed-source",
+        "semanticPreservation": "pass",
+        "excessiveLength": false,
+        "sourceOverlayOverflowRisk": "low",
+        "overlayOverflowRisk": "low",
+        "awkwardLiteralTranslation": false,
+        "warnings": []
+      },
+      "de": {
+        "metadataTitle": "Warum eine kleinere Nische dich größer machen kann",
+        "displayTitle": "Warum eine kleinere Nische dich größer machen kann",
+        "displayLines": [
+          "Warum eine kleinere Nische",
+          "dich größer machen kann"
+        ],
+        "displayTitleDistinctFromMetadata": false,
+        "minimumFontScale": 1,
+        "naturalness": "reviewed-source",
+        "semanticPreservation": "pass",
+        "excessiveLength": false,
+        "sourceOverlayOverflowRisk": "low",
+        "overlayOverflowRisk": "low",
+        "awkwardLiteralTranslation": false,
+        "warnings": []
+      },
+      "it": {
+        "metadataTitle": "Perché una nicchia più piccola può farti crescere",
+        "displayTitle": "Perché una nicchia più piccola può farti crescere",
+        "displayLines": [
+          "Perché una nicchia più",
+          "piccola può farti crescere"
+        ],
+        "displayTitleDistinctFromMetadata": false,
+        "minimumFontScale": 1,
+        "naturalness": "reviewed-source",
+        "semanticPreservation": "pass",
+        "excessiveLength": false,
+        "sourceOverlayOverflowRisk": "low",
+        "overlayOverflowRisk": "low",
+        "awkwardLiteralTranslation": false,
+        "warnings": []
+      },
+      "fr": {
+        "metadataTitle": "Pourquoi une niche plus petite peut vous faire grandir",
+        "displayTitle": "Pourquoi une niche plus petite peut vous faire grandir",
+        "displayLines": [
+          "Pourquoi une niche plus",
+          "petite peut vous faire grandir"
+        ],
+        "displayTitleDistinctFromMetadata": false,
+        "minimumFontScale": 1,
+        "naturalness": "reviewed-source",
+        "semanticPreservation": "pass",
+        "excessiveLength": false,
+        "sourceOverlayOverflowRisk": "medium",
+        "overlayOverflowRisk": "low",
+        "awkwardLiteralTranslation": false,
+        "warnings": [
+          "overlay-fit-resolved-with-approved-display-layout"
+        ]
+      },
+      "pt": {
+        "metadataTitle": "Por que um nicho menor pode fazer você crescer",
+        "displayTitle": "Por que um nicho menor pode fazer você crescer",
+        "displayLines": [
+          "Por que um nicho menor",
+          "pode fazer você crescer"
+        ],
+        "displayTitleDistinctFromMetadata": false,
+        "minimumFontScale": 1,
+        "naturalness": "reviewed-source",
+        "semanticPreservation": "pass",
+        "excessiveLength": false,
+        "sourceOverlayOverflowRisk": "low",
+        "overlayOverflowRisk": "low",
+        "awkwardLiteralTranslation": false,
+        "warnings": []
+      }
+    },
+    "sourceTitlesHash": "8390c2641f49db328d47fa4ce8546c4fb1f8d1e141631e98695749c840ca7733",
+    "cacheKey": "bd7a31f584d1b790fa8351fb9da59b521754d72984a5ef31095af612f6e608b0",
+    "artifactHash": "b3caed5cb1acaa35e34ceaa16733fc2fb112ba943ae30ab754591b6e3f719dd0"
+  },
+  "visualVocabulary": {
+    "schemaVersion": "veronicabenini-positioning-visual-vocabulary.v1",
+    "episodeId": "L02",
+    "semanticDomains": [
+      "niche-positioning",
+      "authority-recognition",
+      "content-positioning",
+      "expertise-perceived-value"
+    ],
+    "recurringMotifs": [
+      "crowds resolving into selected audience clusters",
+      "knowledge moving through stages, interviews, and recommendations",
+      "one core idea propagating across a physical media ecosystem",
+      "visible evidence trails and consequential client choices"
+    ],
+    "environments": [
+      "crowded trade hall",
+      "audience concourse",
+      "specialist service context",
+      "case-study archive",
+      "client decision setting",
+      "active professional context",
+      "editorial wall",
+      "podcast booth",
+      "multi-format production table",
+      "case-study archive",
+      "client decision setting",
+      "active professional context"
+    ],
+    "materialPalette": [
+      "warm paper",
+      "coral accent",
+      "ink",
+      "glass",
+      "unfinished wood"
+    ],
+    "excludedCliches": [
+      "generic professional in office",
+      "laptop-at-desk pose",
+      "repeated notebook-and-cards staging",
+      "unmotivated business handshake"
+    ],
+    "sourceSemanticHash": "4a0c0381c74653aaed7646c8ca1ce771dc8bf17e69811736730fa2a3c9314b34",
+    "cacheKey": "e3c9dfa3d1248c9a013ed19588581c1e55a4d50271724a6291b71d44903536c0",
+    "vocabularyHash": "d9d2c3a50824b5017ede46518c442305d8557e12551a9a7e3834ffd6e4ba5a64"
+  },
+  "visualStoryBible": {
+    "version": "veronica-visual-language.v1",
+    "format": "short",
+    "thesis": "fear of small niche",
+    "viewerTransformation": {
+      "before": "buyer sees scattered or hidden expertise",
+      "mechanism": "clear repeated evidence and category signals",
+      "after": "buyer recognizes, recalls, and can recommend the relevant expert"
+    },
+    "visualConflict": {
+      "start": "buyers cannot explain what the expert is known for",
+      "end": "a matching problem triggers immediate recognition and choice"
+    },
+    "roles": {
+      "expert": "occupation-neutral professional-services expert",
+      "buyer": "decision-maker evaluating and later recalling evidence",
+      "market": "alternatives, proof signals, recommendations, and competing offers"
+    },
+    "semanticProgression": [
+      "fear-of-small-niche",
+      "buyer-evaluation",
+      "specific-niche-memory",
+      "expand-from-strong-position",
+      "niche-as-foothold"
+    ],
+    "preferredVisualFamilies": [
+      "human-decision",
+      "professional-evidence",
+      "social-perception",
+      "contrast"
+    ],
+    "forbiddenDrift": [
+      "VISIBLE_THESIS_REQUIRED",
+      "ABSTRACT_PROP_DRIFT",
+      "OCCUPATION_PROXY_DRIFT",
+      "GENERIC_BUSINESS_STOCK_DRIFT",
+      "SEMANTICALLY_DECORATIVE_SCENE",
+      "VISUAL_INFORMATION_GAIN",
+      "BUYER_PERSPECTIVE_REQUIRED"
+    ],
+    "continuityStrategy": "persistent causal short arc",
+    "visualMotifs": [
+      "perception-reflection",
+      "choice-comparison",
+      "recognition-eye-line",
+      "evidence-proof",
+      "confusion-competing-signals",
+      "specialization-narrowing",
+      "memory-later-recall",
+      "reputation-expert-absent",
+      "recommendation-referral"
+    ],
+    "fingerprint": "188f4c90a1efa5d7993223254b8d6f8e1340e4cc0898ad2fb5b6820d1996c6a4"
+  },
+  "chapters": [],
+  "coldOpen": null,
+  "progression": [
+    "HOOK",
+    "PROOF",
+    "MANIFESTATION",
+    "REVERSAL",
+    "METHOD",
+    "PAYOFF"
+  ],
+  "continuity": {
+    "mode": "ensemble-independent",
+    "variationDimensions": [
+      "age",
+      "gender-presentation",
+      "profession",
+      "environment",
+      "framing"
+    ],
+    "scenesShareIdentity": false
+  },
+  "scenes": [
+    {
+      "sceneId": "L02-S02-HOOK",
+      "progressionStage": "HOOK",
+      "narrationAnchor": "provocative-tension-unresolved-Why a Smaller Niche Can Make You Bigger",
+      "startMs": 0,
+      "durationMs": 6312,
+      "treatment": {
+        "treatmentId": "l02-s02-hook-treatment",
+        "sceneId": "L02-S02-HOOK",
+        "progressionStage": "HOOK",
+        "narrativeBeat": "provocative-tension-unresolved-Why a Smaller Niche Can Make You Bigger",
+        "communicationIntent": "create-tension",
+        "strategy": "audience-segmentation",
+        "subjectRequirement": "small specialist audience revealed as a high-value room",
+        "environment": "narrow doorway opening from crowd corridor into focused consultation space",
+        "composition": "compressed threshold expanding upward into a deep relevant niche",
+        "camera": "75mm doorway compression shifting to 32mm depth",
+        "lighting": "dim broad corridor against bright focused room",
+        "action": "subject enters the smaller opening and discovers stronger relevance beyond it",
+        "props": [
+          "narrow doorway and concentrated audience circle",
+          "specialist context objects"
+        ],
+        "motionOpportunities": [
+          "punch-in",
+          "reveal",
+          "slow-push"
+        ],
+        "diagram": null,
+        "grammar": {
+          "strategy": "audience-segmentation",
+          "subjectArchetype": "small specialist audience revealed as a high-value room",
+          "environment": "narrow doorway opening from crowd corridor into focused consultation space",
+          "composition": "compressed threshold expanding upward into a deep relevant niche",
+          "camera": "75mm doorway compression shifting to 32mm depth",
+          "props": [
+            "narrow doorway and concentrated audience circle",
+            "specialist context objects"
+          ],
+          "topology": "none",
+          "semanticTokens": [
+            "bigger",
+            "can",
+            "make",
+            "niche",
+            "provocative",
+            "smaller",
+            "tension",
+            "unresolved",
+            "why"
+          ],
+          "continuityIdentityId": null
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "audience-segmentation",
+          "subjectArchetype": "small specialist audience revealed as a high-value room",
+          "environmentArchetype": "narrow doorway opening from crowd corridor into focused consultation space",
+          "compositionArchetype": "compressed threshold expanding upward into a deep relevant niche",
+          "cameraArchetype": "75mm doorway compression shifting to 32mm depth",
+          "lightingArchetype": "dim broad corridor against bright focused room",
+          "actionArchetype": "subject enters the smaller opening and discovers stronger relevance beyond it",
+          "dominantObjectArchetype": "narrow doorway and concentrated audience circle",
+          "motionArchetype": "doorway punch-through and spatial expansion"
+        },
+        "treatmentHash": "8a7bb4bbbe46cb1aefb5d7e2ae1009c367240e72eafe92f9dccb61c82f99f107"
+      },
+      "overlayKey": "l02-s02.l02-s02-hook",
+      "visibleThesis": "A buyer faces the consequence of not being able to identify provocative tension unresolved Why a Smaller Niche Can Make You Bigger.",
+      "newInformation": "Introduces the buyer consequence and unresolved positioning conflict.",
+      "narrativeFunction": "hook",
+      "visualFamily": "human-decision",
+      "assetId": "l02-s02-hook-base",
+      "eventIds": [
+        "l02-s02-hook-event-01"
+      ]
+    },
+    {
+      "sceneId": "L02-S02-V01",
+      "progressionStage": "PROOF",
+      "narrationAnchor": "fear-of-small-niche",
+      "startMs": 6312,
+      "durationMs": 9257,
+      "treatment": {
+        "treatmentId": "l02-s02-v01-treatment",
+        "sceneId": "L02-S02-V01",
+        "progressionStage": "PROOF",
+        "narrativeBeat": "fear-of-small-niche",
+        "communicationIntent": "define-category",
+        "strategy": "audience-segmentation",
+        "subjectRequirement": "distinct audience clusters separated by needs and context; mid-career hospitality owner",
+        "environment": "public concourse transformed into spatial audience islands; backstage production zone",
+        "composition": "high-angle clustered field with a deliberate narrow focus; left-to-right reveal path",
+        "camera": "24mm elevated architectural view; elevated diagonal viewpoint",
+        "lighting": "soft directional editorial daylight",
+        "action": "a broad field resolves into a legible category",
+        "props": [
+          "color-coded objects",
+          "path markers",
+          "fear evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "diagram-build",
+          "highlighted-region",
+          "punch-in"
+        ],
+        "diagram": {
+          "diagramId": "l02-s02-v01-diagram",
+          "proposition": "fear-of-small-niche",
+          "textFreeBackground": true,
+          "type": "hierarchy",
+          "root": {
+            "id": "l02-s02-v01-diagram-broad-market",
+            "semanticRole": "broad-market",
+            "labelKey": "l02-s02-v01-diagram.broad-market"
+          },
+          "children": [
+            {
+              "id": "l02-s02-v01-diagram-qualified-segment-a",
+              "semanticRole": "qualified-segment-a",
+              "labelKey": "l02-s02-v01-diagram.qualified-segment-a"
+            },
+            {
+              "id": "l02-s02-v01-diagram-qualified-segment-b",
+              "semanticRole": "qualified-segment-b",
+              "labelKey": "l02-s02-v01-diagram.qualified-segment-b"
+            },
+            {
+              "id": "l02-s02-v01-diagram-chosen-niche",
+              "semanticRole": "chosen-niche",
+              "labelKey": "l02-s02-v01-diagram.chosen-niche"
+            }
+          ],
+          "edges": [
+            {
+              "from": "l02-s02-v01-diagram-broad-market",
+              "to": "l02-s02-v01-diagram-qualified-segment-a",
+              "semanticRole": "contains"
+            },
+            {
+              "from": "l02-s02-v01-diagram-broad-market",
+              "to": "l02-s02-v01-diagram-qualified-segment-b",
+              "semanticRole": "contains"
+            },
+            {
+              "from": "l02-s02-v01-diagram-broad-market",
+              "to": "l02-s02-v01-diagram-chosen-niche",
+              "semanticRole": "contains"
+            }
+          ],
+          "overlayLabelKeys": [
+            "l02-s02-v01-diagram.broad-market",
+            "l02-s02-v01-diagram.qualified-segment-a",
+            "l02-s02-v01-diagram.qualified-segment-b",
+            "l02-s02-v01-diagram.chosen-niche"
+          ]
+        },
+        "grammar": {
+          "strategy": "audience-segmentation",
+          "subjectArchetype": "distinct audience clusters separated by needs and context; mid-career hospitality owner",
+          "environment": "public concourse transformed into spatial audience islands; backstage production zone",
+          "composition": "high-angle clustered field with a deliberate narrow focus; left-to-right reveal path",
+          "camera": "24mm elevated architectural view; elevated diagonal viewpoint",
+          "props": [
+            "color-coded objects",
+            "path markers",
+            "fear evidence artifact"
+          ],
+          "topology": "hierarchy",
+          "semanticTokens": [
+            "fear",
+            "niche",
+            "small"
+          ],
+          "continuityIdentityId": null
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "audience-segmentation",
+          "subjectArchetype": "distinct audience clusters separated by needs and context; mid-career hospitality owner",
+          "environmentArchetype": "public concourse transformed into spatial audience islands; backstage production zone",
+          "compositionArchetype": "high-angle clustered field with a deliberate narrow focus; left-to-right reveal path",
+          "cameraArchetype": "24mm elevated architectural view; elevated diagonal viewpoint",
+          "lightingArchetype": "soft directional editorial daylight",
+          "actionArchetype": "a broad field resolves into a legible category",
+          "dominantObjectArchetype": "color-coded objects",
+          "motionArchetype": "establishing-crop-then-diagram-build-then-highlighted-region-then-punch-in"
+        },
+        "treatmentHash": "f38e63f5607b9e7486ea599428b9f293915f27e087ee1cb7ad06eba47a15d595"
+      },
+      "overlayKey": "l02-s02.l02-s02-v01",
+      "visibleThesis": "The structure of fear of small niche is understandable without narration.",
+      "newInformation": "Advances the visual argument with fear of small niche; it is not a decorative restatement.",
+      "narrativeFunction": "evidence",
+      "visualFamily": "diagram",
+      "assetId": "l02-s02-v01-base",
+      "eventIds": [
+        "l02-s02-v01-event-01",
+        "l02-s02-v01-event-02"
+      ]
+    },
+    {
+      "sceneId": "L02-S02-D01",
+      "progressionStage": "MANIFESTATION",
+      "narrationAnchor": "buyer-evaluation",
+      "startMs": 15569,
+      "durationMs": 9257,
+      "treatment": {
+        "treatmentId": "l02-s02-d01-treatment",
+        "sceneId": "L02-S02-D01",
+        "progressionStage": "MANIFESTATION",
+        "narrativeBeat": "buyer-evaluation",
+        "communicationIntent": "show-consequence",
+        "strategy": "abstract-conceptual",
+        "subjectRequirement": "physical light, shadow, and material expressing an invisible idea; older technical consultant",
+        "environment": "architectural light laboratory; client point-of-decision zone",
+        "composition": "geometric negative-space study with one changing boundary; central void separating competing signals",
+        "camera": "90mm orthographic detail; subjective client viewpoint",
+        "lighting": "controlled graphic light with clear shape separation",
+        "action": "cause resolves into a visible consequence",
+        "props": [
+          "translucent planes",
+          "prism",
+          "shadow grid",
+          "buyer evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "slow-push",
+          "subject-detail",
+          "transition-state"
+        ],
+        "diagram": null,
+        "grammar": {
+          "strategy": "abstract-conceptual",
+          "subjectArchetype": "physical light, shadow, and material expressing an invisible idea; older technical consultant",
+          "environment": "architectural light laboratory; client point-of-decision zone",
+          "composition": "geometric negative-space study with one changing boundary; central void separating competing signals",
+          "camera": "90mm orthographic detail; subjective client viewpoint",
+          "props": [
+            "translucent planes",
+            "prism",
+            "shadow grid",
+            "buyer evidence artifact"
+          ],
+          "topology": "none",
+          "semanticTokens": [
+            "buyer",
+            "evaluation"
+          ],
+          "continuityIdentityId": null
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "abstract-conceptual",
+          "subjectArchetype": "physical light, shadow, and material expressing an invisible idea; older technical consultant",
+          "environmentArchetype": "architectural light laboratory; client point-of-decision zone",
+          "compositionArchetype": "geometric negative-space study with one changing boundary; central void separating competing signals",
+          "cameraArchetype": "90mm orthographic detail; subjective client viewpoint",
+          "lightingArchetype": "controlled graphic light with clear shape separation",
+          "actionArchetype": "cause resolves into a visible consequence",
+          "dominantObjectArchetype": "translucent planes",
+          "motionArchetype": "establishing-crop-then-slow-push-then-subject-detail-then-transition-state"
+        },
+        "treatmentHash": "2fb85bc0a60414029065acc6f9c7ae53c8e2e7eb9cd45344a5b47549c1a828a0"
+      },
+      "overlayKey": "l02-s02.l02-s02-d01",
+      "visibleThesis": "A buyer tests whether the available signals make the offer relevant to their own problem.",
+      "newInformation": "Advances the visual argument with buyer evaluation; it is not a decorative restatement.",
+      "narrativeFunction": "example",
+      "visualFamily": "human-decision",
+      "assetId": "l02-s02-d01-base",
+      "eventIds": [
+        "l02-s02-d01-event-01",
+        "l02-s02-d01-event-02"
+      ]
+    },
+    {
+      "sceneId": "L02-S02-V02",
+      "progressionStage": "REVERSAL",
+      "narrationAnchor": "specific-niche-memory",
+      "startMs": 24826,
+      "durationMs": 9257,
+      "treatment": {
+        "treatmentId": "l02-s02-v02-treatment",
+        "sceneId": "L02-S02-V02",
+        "progressionStage": "REVERSAL",
+        "narrativeBeat": "specific-niche-memory",
+        "communicationIntent": "define-category",
+        "strategy": "audience-segmentation",
+        "subjectRequirement": "distinct audience clusters separated by needs and context; nonbinary creative director",
+        "environment": "public concourse transformed into spatial audience islands; artifact archive zone",
+        "composition": "high-angle clustered field with a deliberate narrow focus; occluded-to-visible information progression",
+        "camera": "24mm elevated architectural view; lateral profile viewpoint",
+        "lighting": "soft directional editorial daylight",
+        "action": "a broad field resolves into a legible category",
+        "props": [
+          "color-coded objects",
+          "path markers",
+          "memory evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "diagram-build",
+          "highlighted-region",
+          "punch-in"
+        ],
+        "diagram": {
+          "diagramId": "l02-s02-v02-diagram",
+          "proposition": "specific-niche-memory",
+          "textFreeBackground": true,
+          "type": "funnel",
+          "stages": [
+            {
+              "id": "l02-s02-v02-diagram-broad-market",
+              "semanticRole": "broad-market",
+              "labelKey": "l02-s02-v02-diagram.broad-market"
+            },
+            {
+              "id": "l02-s02-v02-diagram-qualified-segment",
+              "semanticRole": "qualified-segment",
+              "labelKey": "l02-s02-v02-diagram.qualified-segment"
+            },
+            {
+              "id": "l02-s02-v02-diagram-chosen-niche",
+              "semanticRole": "chosen-niche",
+              "labelKey": "l02-s02-v02-diagram.chosen-niche"
+            }
+          ],
+          "direction": "broad-to-narrow",
+          "overlayLabelKeys": [
+            "l02-s02-v02-diagram.broad-market",
+            "l02-s02-v02-diagram.qualified-segment",
+            "l02-s02-v02-diagram.chosen-niche"
+          ]
+        },
+        "grammar": {
+          "strategy": "audience-segmentation",
+          "subjectArchetype": "distinct audience clusters separated by needs and context; nonbinary creative director",
+          "environment": "public concourse transformed into spatial audience islands; artifact archive zone",
+          "composition": "high-angle clustered field with a deliberate narrow focus; occluded-to-visible information progression",
+          "camera": "24mm elevated architectural view; lateral profile viewpoint",
+          "props": [
+            "color-coded objects",
+            "path markers",
+            "memory evidence artifact"
+          ],
+          "topology": "funnel",
+          "semanticTokens": [
+            "memory",
+            "niche",
+            "specific"
+          ],
+          "continuityIdentityId": null
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "audience-segmentation",
+          "subjectArchetype": "distinct audience clusters separated by needs and context; nonbinary creative director",
+          "environmentArchetype": "public concourse transformed into spatial audience islands; artifact archive zone",
+          "compositionArchetype": "high-angle clustered field with a deliberate narrow focus; occluded-to-visible information progression",
+          "cameraArchetype": "24mm elevated architectural view; lateral profile viewpoint",
+          "lightingArchetype": "soft directional editorial daylight",
+          "actionArchetype": "a broad field resolves into a legible category",
+          "dominantObjectArchetype": "color-coded objects",
+          "motionArchetype": "establishing-crop-then-diagram-build-then-highlighted-region-then-punch-in"
+        },
+        "treatmentHash": "5bbe490d6c6ec198c7d47bbd8a4cc13fbbcd5321d058e628bdfb9f52d659ddf8"
+      },
+      "overlayKey": "l02-s02.l02-s02-v02",
+      "visibleThesis": "The structure of specific niche memory is understandable without narration.",
+      "newInformation": "Advances the visual argument with specific niche memory; it is not a decorative restatement.",
+      "narrativeFunction": "contrast",
+      "visualFamily": "diagram",
+      "assetId": "l02-s02-v02-base",
+      "eventIds": [
+        "l02-s02-v02-event-01",
+        "l02-s02-v02-event-02"
+      ]
+    },
+    {
+      "sceneId": "L02-S02-V03",
+      "progressionStage": "METHOD",
+      "narrationAnchor": "expand-from-strong-position",
+      "startMs": 34083,
+      "durationMs": 9257,
+      "treatment": {
+        "treatmentId": "l02-s02-v03-treatment",
+        "sceneId": "L02-S02-V03",
+        "progressionStage": "METHOD",
+        "narrativeBeat": "expand-from-strong-position",
+        "communicationIntent": "explain-causality",
+        "strategy": "human-scenario",
+        "subjectRequirement": "service professional responding to a consequential real-world moment; woman-led retail founder",
+        "environment": "active service counter or field-work setting; peer-referral setting",
+        "composition": "layered observational frame with consequence in foreground; near-far contrast between choice and result",
+        "camera": "35mm shoulder-height documentary angle; compressed distant observation",
+        "lighting": "soft directional editorial daylight",
+        "action": "multiple visible conditions produce one outcome",
+        "props": [
+          "work sample",
+          "client brief",
+          "expand evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "slow-push",
+          "subject-detail",
+          "transition-state"
+        ],
+        "diagram": null,
+        "grammar": {
+          "strategy": "human-scenario",
+          "subjectArchetype": "service professional responding to a consequential real-world moment; woman-led retail founder",
+          "environment": "active service counter or field-work setting; peer-referral setting",
+          "composition": "layered observational frame with consequence in foreground; near-far contrast between choice and result",
+          "camera": "35mm shoulder-height documentary angle; compressed distant observation",
+          "props": [
+            "work sample",
+            "client brief",
+            "expand evidence artifact"
+          ],
+          "topology": "none",
+          "semanticTokens": [
+            "expand",
+            "position",
+            "strong"
+          ],
+          "continuityIdentityId": null
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "human-scenario",
+          "subjectArchetype": "service professional responding to a consequential real-world moment; woman-led retail founder",
+          "environmentArchetype": "active service counter or field-work setting; peer-referral setting",
+          "compositionArchetype": "layered observational frame with consequence in foreground; near-far contrast between choice and result",
+          "cameraArchetype": "35mm shoulder-height documentary angle; compressed distant observation",
+          "lightingArchetype": "soft directional editorial daylight",
+          "actionArchetype": "multiple visible conditions produce one outcome",
+          "dominantObjectArchetype": "work sample",
+          "motionArchetype": "establishing-crop-then-slow-push-then-subject-detail-then-transition-state"
+        },
+        "treatmentHash": "bac6723a7d7908d10c7694c96ba6e80eadfc665439b996fe9bf93029753c9fb7"
+      },
+      "overlayKey": "l02-s02.l02-s02-v03",
+      "visibleThesis": "A buyer observes how expand from strong position changes whether an expert is understood and chosen.",
+      "newInformation": "Advances the visual argument with expand from strong position; it is not a decorative restatement.",
+      "narrativeFunction": "resolution",
+      "visualFamily": "human-decision",
+      "assetId": "l02-s02-v03-base",
+      "eventIds": [
+        "l02-s02-v03-event-01",
+        "l02-s02-v03-event-02"
+      ]
+    },
+    {
+      "sceneId": "L02-S02-V04",
+      "progressionStage": "PAYOFF",
+      "narrationAnchor": "niche-as-foothold",
+      "startMs": 43340,
+      "durationMs": 9260,
+      "treatment": {
+        "treatmentId": "l02-s02-v04-treatment",
+        "sceneId": "L02-S02-V04",
+        "progressionStage": "PAYOFF",
+        "narrativeBeat": "niche-as-foothold",
+        "communicationIntent": "deliver-payoff",
+        "strategy": "transformation",
+        "subjectRequirement": "one professional crossing between conflicting public identities; male wellness practitioner",
+        "environment": "transitional corridor linking old and new work contexts; field-work context",
+        "composition": "threshold composition with subject moving across the divide; layered reflection with off-axis evidence",
+        "camera": "32mm lateral tracking perspective; close foreground parallax",
+        "lighting": "soft directional editorial daylight",
+        "action": "the final visual state resolves the proposition",
+        "props": [
+          "old portfolio",
+          "new proof object",
+          "foothold evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "diagram-build",
+          "highlighted-region",
+          "punch-in"
+        ],
+        "diagram": {
+          "diagramId": "l02-s02-v04-diagram",
+          "proposition": "niche-as-foothold",
+          "textFreeBackground": true,
+          "type": "hierarchy",
+          "root": {
+            "id": "l02-s02-v04-diagram-broad-market",
+            "semanticRole": "broad-market",
+            "labelKey": "l02-s02-v04-diagram.broad-market"
+          },
+          "children": [
+            {
+              "id": "l02-s02-v04-diagram-qualified-segment-a",
+              "semanticRole": "qualified-segment-a",
+              "labelKey": "l02-s02-v04-diagram.qualified-segment-a"
+            },
+            {
+              "id": "l02-s02-v04-diagram-qualified-segment-b",
+              "semanticRole": "qualified-segment-b",
+              "labelKey": "l02-s02-v04-diagram.qualified-segment-b"
+            },
+            {
+              "id": "l02-s02-v04-diagram-chosen-niche",
+              "semanticRole": "chosen-niche",
+              "labelKey": "l02-s02-v04-diagram.chosen-niche"
+            }
+          ],
+          "edges": [
+            {
+              "from": "l02-s02-v04-diagram-broad-market",
+              "to": "l02-s02-v04-diagram-qualified-segment-a",
+              "semanticRole": "contains"
+            },
+            {
+              "from": "l02-s02-v04-diagram-broad-market",
+              "to": "l02-s02-v04-diagram-qualified-segment-b",
+              "semanticRole": "contains"
+            },
+            {
+              "from": "l02-s02-v04-diagram-broad-market",
+              "to": "l02-s02-v04-diagram-chosen-niche",
+              "semanticRole": "contains"
+            }
+          ],
+          "overlayLabelKeys": [
+            "l02-s02-v04-diagram.broad-market",
+            "l02-s02-v04-diagram.qualified-segment-a",
+            "l02-s02-v04-diagram.qualified-segment-b",
+            "l02-s02-v04-diagram.chosen-niche"
+          ]
+        },
+        "grammar": {
+          "strategy": "transformation",
+          "subjectArchetype": "one professional crossing between conflicting public identities; male wellness practitioner",
+          "environment": "transitional corridor linking old and new work contexts; field-work context",
+          "composition": "threshold composition with subject moving across the divide; layered reflection with off-axis evidence",
+          "camera": "32mm lateral tracking perspective; close foreground parallax",
+          "props": [
+            "old portfolio",
+            "new proof object",
+            "foothold evidence artifact"
+          ],
+          "topology": "hierarchy",
+          "semanticTokens": [
+            "foothold",
+            "niche"
+          ],
+          "continuityIdentityId": null
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "transformation",
+          "subjectArchetype": "one professional crossing between conflicting public identities; male wellness practitioner",
+          "environmentArchetype": "transitional corridor linking old and new work contexts; field-work context",
+          "compositionArchetype": "threshold composition with subject moving across the divide; layered reflection with off-axis evidence",
+          "cameraArchetype": "32mm lateral tracking perspective; close foreground parallax",
+          "lightingArchetype": "soft directional editorial daylight",
+          "actionArchetype": "the final visual state resolves the proposition",
+          "dominantObjectArchetype": "old portfolio",
+          "motionArchetype": "establishing-crop-then-diagram-build-then-highlighted-region-then-punch-in"
+        },
+        "treatmentHash": "2db3dc39ecd1ad688f66d368922dc0b4ec461f637397c40ae2bce19e0a8c16d7"
+      },
+      "overlayKey": "l02-s02.l02-s02-v04",
+      "visibleThesis": "The structure of niche as foothold is understandable without narration.",
+      "newInformation": "Advances the visual argument with niche as foothold; it is not a decorative restatement.",
+      "narrativeFunction": "payoff",
+      "visualFamily": "diagram",
+      "callbackToBeatId": "L02-S02-HOOK",
+      "callbackPurpose": "resolves the opening buyer conflict through recognition or choice",
+      "assetId": "l02-s02-v04-base",
+      "eventIds": [
+        "l02-s02-v04-event-01",
+        "l02-s02-v04-event-02"
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "assetId": "l02-s02-hook-base",
+      "contentId": "L02-S02",
+      "sceneId": "L02-S02-HOOK",
+      "semanticPurpose": "provocative-tension-unresolved-Why a Smaller Niche Can Make You Bigger",
+      "strategy": "audience-segmentation",
+      "prompt": "Text-free 9:16 audience-segmentation treatment for provocative tension unresolved Why a Smaller Niche Can Make You Bigger. Communication intent: create-tension. Subject: small specialist audience revealed as a high-value room. Environment: narrow doorway opening from crowd corridor into focused consultation space. Composition: compressed threshold expanding upward into a deep relevant niche. Camera: 75mm doorway compression shifting to 32mm depth. Props: narrow doorway and concentrated audience circle, specialist context objects. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "9:16",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "subject-aware-crop",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "protected subject and overlay regions survive a subject-aware derivative"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "native composition"
+        }
+      ],
+      "subjectIdentityId": null,
+      "referenceAssetId": null,
+      "semanticFingerprint": "927739df9b5c4112856bb3480d884e74bcca690d33799e40f3db6659715324ab",
+      "generatedAssetCacheKey": "2f686f5ac83c0a6bc0aa4cb0797c0a6b5ae99f80fbf8845418667d79643b7e6b"
+    },
+    {
+      "assetId": "l02-s02-v01-base",
+      "contentId": "L02-S02",
+      "sceneId": "L02-S02-V01",
+      "semanticPurpose": "fear-of-small-niche",
+      "strategy": "audience-segmentation",
+      "prompt": "Text-free 9:16 audience-segmentation treatment for fear of small niche. Communication intent: define-category. Subject: distinct audience clusters separated by needs and context; mid-career hospitality owner. Environment: public concourse transformed into spatial audience islands; backstage production zone. Composition: high-angle clustered field with a deliberate narrow focus; left-to-right reveal path. Camera: 24mm elevated architectural view; elevated diagonal viewpoint. Props: color-coded objects, path markers, fear evidence artifact. Proposition-specific hierarchy structure with 4 separately rendered label anchors. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "9:16",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "subject-aware-crop",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "protected subject and overlay regions survive a subject-aware derivative"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "native composition"
+        }
+      ],
+      "subjectIdentityId": null,
+      "referenceAssetId": null,
+      "semanticFingerprint": "097758e01283263d222aa56693d8161e3b7dedfeb316e62249fda764e930c22a",
+      "generatedAssetCacheKey": "3b4b34c84fc31a0a24c5989f505b96e11029b57a00e62b49e4757b73a4d2a3b9"
+    },
+    {
+      "assetId": "l02-s02-d01-base",
+      "contentId": "L02-S02",
+      "sceneId": "L02-S02-D01",
+      "semanticPurpose": "buyer-evaluation",
+      "strategy": "abstract-conceptual",
+      "prompt": "Text-free 9:16 abstract-conceptual treatment for buyer evaluation. Communication intent: show-consequence. Subject: physical light, shadow, and material expressing an invisible idea; older technical consultant. Environment: architectural light laboratory; client point-of-decision zone. Composition: geometric negative-space study with one changing boundary; central void separating competing signals. Camera: 90mm orthographic detail; subjective client viewpoint. Props: translucent planes, prism, shadow grid, buyer evidence artifact. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "9:16",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "subject-aware-crop",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "protected subject and overlay regions survive a subject-aware derivative"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "native composition"
+        }
+      ],
+      "subjectIdentityId": null,
+      "referenceAssetId": null,
+      "semanticFingerprint": "56d6117f85886126e5be9758e00b5055d6cbe985e7610d1adcb55c3eff77ae15",
+      "generatedAssetCacheKey": "4b5e379458b834306ec191a6002c4e623ad5393475652a2d3da83406707389cf"
+    },
+    {
+      "assetId": "l02-s02-v02-base",
+      "contentId": "L02-S02",
+      "sceneId": "L02-S02-V02",
+      "semanticPurpose": "specific-niche-memory",
+      "strategy": "audience-segmentation",
+      "prompt": "Text-free 9:16 audience-segmentation treatment for specific niche memory. Communication intent: define-category. Subject: distinct audience clusters separated by needs and context; nonbinary creative director. Environment: public concourse transformed into spatial audience islands; artifact archive zone. Composition: high-angle clustered field with a deliberate narrow focus; occluded-to-visible information progression. Camera: 24mm elevated architectural view; lateral profile viewpoint. Props: color-coded objects, path markers, memory evidence artifact. Proposition-specific funnel structure with 3 separately rendered label anchors. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "9:16",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "subject-aware-crop",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "protected subject and overlay regions survive a subject-aware derivative"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "native composition"
+        }
+      ],
+      "subjectIdentityId": null,
+      "referenceAssetId": null,
+      "semanticFingerprint": "4282d572634e277a54dce4d2dacb71702ac79dd8989097f6a7711043a351c923",
+      "generatedAssetCacheKey": "2be7860297b88167c70143dc068e3b00a22ae58302f897f6f565c05240472fc7"
+    },
+    {
+      "assetId": "l02-s02-v03-base",
+      "contentId": "L02-S02",
+      "sceneId": "L02-S02-V03",
+      "semanticPurpose": "expand-from-strong-position",
+      "strategy": "human-scenario",
+      "prompt": "Text-free 9:16 human-scenario treatment for expand from strong position. Communication intent: explain-causality. Subject: service professional responding to a consequential real-world moment; woman-led retail founder. Environment: active service counter or field-work setting; peer-referral setting. Composition: layered observational frame with consequence in foreground; near-far contrast between choice and result. Camera: 35mm shoulder-height documentary angle; compressed distant observation. Props: work sample, client brief, expand evidence artifact. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "9:16",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "subject-aware-crop",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "protected subject and overlay regions survive a subject-aware derivative"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "native composition"
+        }
+      ],
+      "subjectIdentityId": null,
+      "referenceAssetId": null,
+      "semanticFingerprint": "f00cd1c2b54fd5e2d2bcd3776f229ea38c348b930d0ecab41624321b9d49337b",
+      "generatedAssetCacheKey": "c59e7cbf540df4d6051865d8fbce80efa8421705a21c441da7e301c2328282c0"
+    },
+    {
+      "assetId": "l02-s02-v04-base",
+      "contentId": "L02-S02",
+      "sceneId": "L02-S02-V04",
+      "semanticPurpose": "niche-as-foothold",
+      "strategy": "transformation",
+      "prompt": "Text-free 9:16 transformation treatment for niche as foothold. Communication intent: deliver-payoff. Subject: one professional crossing between conflicting public identities; male wellness practitioner. Environment: transitional corridor linking old and new work contexts; field-work context. Composition: threshold composition with subject moving across the divide; layered reflection with off-axis evidence. Camera: 32mm lateral tracking perspective; close foreground parallax. Props: old portfolio, new proof object, foothold evidence artifact. Proposition-specific hierarchy structure with 4 separately rendered label anchors. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "9:16",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "subject-aware-crop",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "protected subject and overlay regions survive a subject-aware derivative"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "native composition"
+        }
+      ],
+      "subjectIdentityId": null,
+      "referenceAssetId": null,
+      "semanticFingerprint": "6b19a353a68b7bc1c3019714670747efac71bce5b9945365bf5a6cd61644282f",
+      "generatedAssetCacheKey": "6d60d9bd0c89b27bd14827b1eea1689cba34b0c43cba78008e5856503711ed2f"
+    }
+  ],
+  "visualEvents": [
+    {
+      "eventId": "l02-s02-hook-event-01",
+      "sceneId": "L02-S02-HOOK",
+      "assetId": "l02-s02-hook-base",
+      "kind": "punch-in",
+      "startMs": 0,
+      "durationMs": 6312,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1.12,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "5c42eea1bd989bc442be3399ace2f4e57546df7f2d483837a0675d42fe8397a1"
+    },
+    {
+      "eventId": "l02-s02-v01-event-01",
+      "sceneId": "L02-S02-V01",
+      "assetId": "l02-s02-v01-base",
+      "kind": "establishing-crop",
+      "startMs": 6312,
+      "durationMs": 4628,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "01b89621ecd094034d29b1c18d3c9e9ebf48437b4211ed15d794c5e91eecc37a"
+    },
+    {
+      "eventId": "l02-s02-v01-event-02",
+      "sceneId": "L02-S02-V01",
+      "assetId": "l02-s02-v01-base",
+      "kind": "diagram-build",
+      "startMs": 10940,
+      "durationMs": 4629,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "e234b1674fe27e7d5fca233b312a413a789e5dc9fd8249971a902a10affb71a4"
+    },
+    {
+      "eventId": "l02-s02-d01-event-01",
+      "sceneId": "L02-S02-D01",
+      "assetId": "l02-s02-d01-base",
+      "kind": "establishing-crop",
+      "startMs": 15569,
+      "durationMs": 4628,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "bd9c9ff7d8f311500a31272b18d93fcd39fcdc204fb470190bea6e4b2719dfff"
+    },
+    {
+      "eventId": "l02-s02-d01-event-02",
+      "sceneId": "L02-S02-D01",
+      "assetId": "l02-s02-d01-base",
+      "kind": "slow-push",
+      "startMs": 20197,
+      "durationMs": 4629,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "1d8b0bc4710d4d4f5908d9d684a8984f2c09a9ade6d08bff1153f9c8a4c8c035"
+    },
+    {
+      "eventId": "l02-s02-v02-event-01",
+      "sceneId": "L02-S02-V02",
+      "assetId": "l02-s02-v02-base",
+      "kind": "establishing-crop",
+      "startMs": 24826,
+      "durationMs": 4628,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "a8e29f6059da34028bdf09701b5933b4e9a67dd9adf0b16e3bffa8f2df9eee35"
+    },
+    {
+      "eventId": "l02-s02-v02-event-02",
+      "sceneId": "L02-S02-V02",
+      "assetId": "l02-s02-v02-base",
+      "kind": "diagram-build",
+      "startMs": 29454,
+      "durationMs": 4629,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "375464d2b42ef67a67d00f35c9e7a29951921ec078ffb143aa78a4aba81b1eef"
+    },
+    {
+      "eventId": "l02-s02-v03-event-01",
+      "sceneId": "L02-S02-V03",
+      "assetId": "l02-s02-v03-base",
+      "kind": "establishing-crop",
+      "startMs": 34083,
+      "durationMs": 4628,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "81b25e260066ab3d672ffa44eb1b98c301db6e79181981692a718ffef556df3a"
+    },
+    {
+      "eventId": "l02-s02-v03-event-02",
+      "sceneId": "L02-S02-V03",
+      "assetId": "l02-s02-v03-base",
+      "kind": "slow-push",
+      "startMs": 38711,
+      "durationMs": 4629,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "b4100df261c64c7d9bd89cab893bdc51df75a790a77e7178f50ae801f55d75bc"
+    },
+    {
+      "eventId": "l02-s02-v04-event-01",
+      "sceneId": "L02-S02-V04",
+      "assetId": "l02-s02-v04-base",
+      "kind": "establishing-crop",
+      "startMs": 43340,
+      "durationMs": 4630,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "9b222cdde7daf397bcdbfb81ed55bdce27ee65ae2334d3a2537d19c2ea4e8a63"
+    },
+    {
+      "eventId": "l02-s02-v04-event-02",
+      "sceneId": "L02-S02-V04",
+      "assetId": "l02-s02-v04-base",
+      "kind": "diagram-build",
+      "startMs": 47970,
+      "durationMs": 4630,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "3228d8a1003819c7351330827e4b4b9c8be08a189b599994a15b0306aaac5a3e"
+    }
+  ],
+  "diagrams": [
+    {
+      "diagramId": "l02-s02-v01-diagram",
+      "proposition": "fear-of-small-niche",
+      "textFreeBackground": true,
+      "type": "hierarchy",
+      "root": {
+        "id": "l02-s02-v01-diagram-broad-market",
+        "semanticRole": "broad-market",
+        "labelKey": "l02-s02-v01-diagram.broad-market"
+      },
+      "children": [
+        {
+          "id": "l02-s02-v01-diagram-qualified-segment-a",
+          "semanticRole": "qualified-segment-a",
+          "labelKey": "l02-s02-v01-diagram.qualified-segment-a"
+        },
+        {
+          "id": "l02-s02-v01-diagram-qualified-segment-b",
+          "semanticRole": "qualified-segment-b",
+          "labelKey": "l02-s02-v01-diagram.qualified-segment-b"
+        },
+        {
+          "id": "l02-s02-v01-diagram-chosen-niche",
+          "semanticRole": "chosen-niche",
+          "labelKey": "l02-s02-v01-diagram.chosen-niche"
+        }
+      ],
+      "edges": [
+        {
+          "from": "l02-s02-v01-diagram-broad-market",
+          "to": "l02-s02-v01-diagram-qualified-segment-a",
+          "semanticRole": "contains"
+        },
+        {
+          "from": "l02-s02-v01-diagram-broad-market",
+          "to": "l02-s02-v01-diagram-qualified-segment-b",
+          "semanticRole": "contains"
+        },
+        {
+          "from": "l02-s02-v01-diagram-broad-market",
+          "to": "l02-s02-v01-diagram-chosen-niche",
+          "semanticRole": "contains"
+        }
+      ],
+      "overlayLabelKeys": [
+        "l02-s02-v01-diagram.broad-market",
+        "l02-s02-v01-diagram.qualified-segment-a",
+        "l02-s02-v01-diagram.qualified-segment-b",
+        "l02-s02-v01-diagram.chosen-niche"
+      ]
+    },
+    {
+      "diagramId": "l02-s02-v02-diagram",
+      "proposition": "specific-niche-memory",
+      "textFreeBackground": true,
+      "type": "funnel",
+      "stages": [
+        {
+          "id": "l02-s02-v02-diagram-broad-market",
+          "semanticRole": "broad-market",
+          "labelKey": "l02-s02-v02-diagram.broad-market"
+        },
+        {
+          "id": "l02-s02-v02-diagram-qualified-segment",
+          "semanticRole": "qualified-segment",
+          "labelKey": "l02-s02-v02-diagram.qualified-segment"
+        },
+        {
+          "id": "l02-s02-v02-diagram-chosen-niche",
+          "semanticRole": "chosen-niche",
+          "labelKey": "l02-s02-v02-diagram.chosen-niche"
+        }
+      ],
+      "direction": "broad-to-narrow",
+      "overlayLabelKeys": [
+        "l02-s02-v02-diagram.broad-market",
+        "l02-s02-v02-diagram.qualified-segment",
+        "l02-s02-v02-diagram.chosen-niche"
+      ]
+    },
+    {
+      "diagramId": "l02-s02-v04-diagram",
+      "proposition": "niche-as-foothold",
+      "textFreeBackground": true,
+      "type": "hierarchy",
+      "root": {
+        "id": "l02-s02-v04-diagram-broad-market",
+        "semanticRole": "broad-market",
+        "labelKey": "l02-s02-v04-diagram.broad-market"
+      },
+      "children": [
+        {
+          "id": "l02-s02-v04-diagram-qualified-segment-a",
+          "semanticRole": "qualified-segment-a",
+          "labelKey": "l02-s02-v04-diagram.qualified-segment-a"
+        },
+        {
+          "id": "l02-s02-v04-diagram-qualified-segment-b",
+          "semanticRole": "qualified-segment-b",
+          "labelKey": "l02-s02-v04-diagram.qualified-segment-b"
+        },
+        {
+          "id": "l02-s02-v04-diagram-chosen-niche",
+          "semanticRole": "chosen-niche",
+          "labelKey": "l02-s02-v04-diagram.chosen-niche"
+        }
+      ],
+      "edges": [
+        {
+          "from": "l02-s02-v04-diagram-broad-market",
+          "to": "l02-s02-v04-diagram-qualified-segment-a",
+          "semanticRole": "contains"
+        },
+        {
+          "from": "l02-s02-v04-diagram-broad-market",
+          "to": "l02-s02-v04-diagram-qualified-segment-b",
+          "semanticRole": "contains"
+        },
+        {
+          "from": "l02-s02-v04-diagram-broad-market",
+          "to": "l02-s02-v04-diagram-chosen-niche",
+          "semanticRole": "contains"
+        }
+      ],
+      "overlayLabelKeys": [
+        "l02-s02-v04-diagram.broad-market",
+        "l02-s02-v04-diagram.qualified-segment-a",
+        "l02-s02-v04-diagram.qualified-segment-b",
+        "l02-s02-v04-diagram.chosen-niche"
+      ]
+    }
+  ],
+  "assetReuseDecisions": [
+    {
+      "sourceAssetId": "l02-cold_open-base",
+      "sourceContentId": "L02",
+      "targetContentId": "L02-S02",
+      "targetSceneId": "L02-S02-D01",
+      "eligible": false,
+      "reuseMode": "not-reusable",
+      "cropAdaptation": "none",
+      "semanticCompatibility": 0,
+      "reason": "unsafe-aspect-ratio-adaptation"
+    },
+    {
+      "sourceAssetId": "l02-v03-base",
+      "sourceContentId": "L02",
+      "targetContentId": "L02-S02",
+      "targetSceneId": "L02-S02-HOOK",
+      "eligible": true,
+      "reuseMode": "vertical-derivative",
+      "cropAdaptation": "subject-aware-crop",
+      "semanticCompatibility": 0.46,
+      "reason": "semantic purpose, continuity, and protected crop regions are compatible"
+    },
+    {
+      "sourceAssetId": "l02-v03-base",
+      "sourceContentId": "L02",
+      "targetContentId": "L02-S02",
+      "targetSceneId": "L02-S02-V01",
+      "eligible": true,
+      "reuseMode": "vertical-derivative",
+      "cropAdaptation": "subject-aware-crop",
+      "semanticCompatibility": 0.55,
+      "reason": "semantic purpose, continuity, and protected crop regions are compatible"
+    },
+    {
+      "sourceAssetId": "l02-v03-base",
+      "sourceContentId": "L02",
+      "targetContentId": "L02-S02",
+      "targetSceneId": "L02-S02-V02",
+      "eligible": true,
+      "reuseMode": "vertical-derivative",
+      "cropAdaptation": "subject-aware-crop",
+      "semanticCompatibility": 0.55,
+      "reason": "semantic purpose, continuity, and protected crop regions are compatible"
+    },
+    {
+      "sourceAssetId": "l02-cold_open-base",
+      "sourceContentId": "L02",
+      "targetContentId": "L02-S02",
+      "targetSceneId": "L02-S02-V03",
+      "eligible": false,
+      "reuseMode": "not-reusable",
+      "cropAdaptation": "none",
+      "semanticCompatibility": 0,
+      "reason": "unsafe-aspect-ratio-adaptation"
+    },
+    {
+      "sourceAssetId": "l02-v03-base",
+      "sourceContentId": "L02",
+      "targetContentId": "L02-S02",
+      "targetSceneId": "L02-S02-V04",
+      "eligible": false,
+      "reuseMode": "not-reusable",
+      "cropAdaptation": "none",
+      "semanticCompatibility": 0.2,
+      "reason": "semantic-purpose-insufficiently-compatible"
+    }
+  ],
+  "diversityMetrics": {
+    "visualGrammarDuplicateRate": 0,
+    "subjectArchetypeDuplicateRate": 0,
+    "environmentDuplicateRate": 0,
+    "compositionDuplicateRate": 0,
+    "cameraDuplicateRate": 0,
+    "propDuplicateRate": 0,
+    "diagramTopologyDuplicateRate": 0.3333,
+    "consecutiveSceneSimilarity": {
+      "mean": 0.0283,
+      "maximum": 0.1417,
+      "violatingPairs": []
+    },
+    "hookVsScene1Similarity": 0.1417,
+    "status": "pass",
+    "failures": []
+  },
+  "cadenceMetrics": {
+    "durationMs": 52600,
+    "baseAssetCount": 6,
+    "visualEventCount": 11,
+    "eventsPerBaseAsset": 1.8333,
+    "meanSecondsPerEvent": 4.7818,
+    "shortestEventSeconds": 4.628,
+    "longestEventSeconds": 6.312,
+    "targetRangeSeconds": [
+      3,
+      7
+    ],
+    "targetComplianceRate": 1,
+    "hookMeanSecondsPerEvent": 6.312
+  },
+  "localizationCompatibility": {
+    "locales": [
+      "en",
+      "de",
+      "it",
+      "fr",
+      "pt"
+    ],
+    "canonicalImageryLocale": "en",
+    "textInGeneratedImage": false,
+    "translationInvalidatesCanonicalImagery": false,
+    "overlaysRenderedSeparately": true
+  },
+  "productionCoverage": {
+    "ctaEndScreenPlacement": "planned",
+    "motionTreatment": "planned",
+    "overlayStrategy": "planned",
+    "musicSfx": "unsupported-not-planned",
+    "thumbnail": {
+      "concept": "crowds resolving into selected audience clusters; one legible tension, no generic portrait",
+      "titleRelationship": "thumbnail visualizes the consequence or contradiction; title supplies the claim",
+      "localeStrategy": "text-free-image-localized-overlay"
+    }
+  },
+  "cacheInvalidation": {
+    "semanticPlanInvalidatesOn": [
+      "canonical-narrative-semantic-change",
+      "semantic-beat-structure-change",
+      "visual-vocabulary-change",
+      "veronica-visual-language-version-change",
+      "planner-algorithm-version-change"
+    ],
+    "canonicalImageInvalidatesOn": [
+      "semantic-plan-change",
+      "image-provider-or-model-change",
+      "prompt-contract-change"
+    ],
+    "titleQaInvalidatesOn": [
+      "localized-title-change",
+      "title-qa-version-change"
+    ],
+    "renderEventsInvalidateOn": [
+      "semantic-plan-change",
+      "ffmpeg-renderer-version-change",
+      "timing-change"
+    ]
+  },
+  "migration": {
+    "legacyV1Plan": "inspect-only-replan-required",
+    "legacyAssetReuse": "eligible-only-after-semantic-fingerprint-match"
+  },
+  "validation": {
+    "status": "pass",
+    "failures": []
+  },
+  "planHash": "a3a62c91897989eeac9a3277ba2680e96eefd8b7da9cfc50d082d1eaca48a796"
+}

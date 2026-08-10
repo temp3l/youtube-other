@@ -628,14 +628,22 @@
         },
         {
           "sceneId": "L02-S01-V02",
-          "concept": "different-customer-needs"
+          "concept": "buyer-decision-effort"
         },
         {
           "sceneId": "L02-S01-V03",
-          "concept": "niche-recognition"
+          "concept": "different-customer-needs"
         },
         {
           "sceneId": "L02-S01-V04",
+          "concept": "niche-recognition"
+        },
+        {
+          "sceneId": "L02-S01-V05",
+          "concept": "generic-vs-specific-offer"
+        },
+        {
+          "sceneId": "L02-S01-V06",
           "concept": "specificity-advantage"
         }
       ],

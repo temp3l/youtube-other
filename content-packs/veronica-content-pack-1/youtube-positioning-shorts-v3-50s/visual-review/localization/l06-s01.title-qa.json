@@ -1,0 +1,97 @@
+{
+  "schemaVersion": "veronicabenini-title-transcreation-qa.v2",
+  "contentId": "L06-S01",
+  "locales": {
+    "en": {
+      "metadataTitle": "Your Audience Remembers the Old You",
+      "displayTitle": "Your Audience Remembers the Old You",
+      "displayLines": [
+        "Your Audience Remembers the Old You"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "de": {
+      "metadataTitle": "Dein Publikum erinnert sich an dein altes Ich",
+      "displayTitle": "Dein Publikum erinnert sich an dein altes Ich",
+      "displayLines": [
+        "Dein Publikum erinnert",
+        "sich an dein altes Ich"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "it": {
+      "metadataTitle": "Il pubblico ricorda ancora la vecchia te",
+      "displayTitle": "Il pubblico ricorda ancora la vecchia te",
+      "displayLines": [
+        "Il pubblico ricorda",
+        "ancora la vecchia te"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "fr": {
+      "metadataTitle": "Votre audience se souvient encore de l’ancienne version de vous",
+      "displayTitle": "Votre audience vous voit encore comme avant",
+      "displayLines": [
+        "Votre audience vous voit encore",
+        "comme avant"
+      ],
+      "displayTitleDistinctFromMetadata": true,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": true,
+      "sourceOverlayOverflowRisk": "medium",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": [
+        "youtube-title-length",
+        "expansion-vs-canonical",
+        "overlay-fit-resolved-with-approved-display-layout"
+      ]
+    },
+    "pt": {
+      "metadataTitle": "Seu público ainda lembra da versão antiga de você",
+      "displayTitle": "Seu público ainda lembra da versão antiga de você",
+      "displayLines": [
+        "Seu público ainda lembra",
+        "da versão antiga de você"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    }
+  },
+  "sourceTitlesHash": "a40e4f04abc43583a28efd7d58e4a67474f7500432727c6a400db97aea2a9026",
+  "cacheKey": "49c64cdeb1f13610b6dcca12306705d1b034d4ee2d6210ca0bdfa4f77d5af104",
+  "artifactHash": "98eafdee5e9317c6b613298498524916273c4745cecb9a37e93ae62c98d38a29"
+}

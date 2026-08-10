@@ -1,0 +1,91 @@
+{
+  "schemaVersion": "veronicabenini-title-transcreation-qa.v2",
+  "contentId": "L02-S03",
+  "locales": {
+    "en": {
+      "metadataTitle": "The 3-Question Positioning Test",
+      "displayTitle": "The 3-Question Positioning Test",
+      "displayLines": [
+        "The 3-Question Positioning Test"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "de": {
+      "metadataTitle": "Der Positionierungs-Test mit 3 Fragen",
+      "displayTitle": "Der Positionierungs-Test mit 3 Fragen",
+      "displayLines": [
+        "Der Positionierungs-Test mit 3 Fragen"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "it": {
+      "metadataTitle": "Il test di posizionamento in 3 domande",
+      "displayTitle": "Il test di posizionamento in 3 domande",
+      "displayLines": [
+        "Il test di posizionamento in 3 domande"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "fr": {
+      "metadataTitle": "Le test de positionnement en 3 questions",
+      "displayTitle": "Le test de positionnement en 3 questions",
+      "displayLines": [
+        "Le test de positionnement",
+        "en 3 questions"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "pt": {
+      "metadataTitle": "O teste de posicionamento em 3 perguntas",
+      "displayTitle": "O teste de posicionamento em 3 perguntas",
+      "displayLines": [
+        "O teste de posicionamento",
+        "em 3 perguntas"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    }
+  },
+  "sourceTitlesHash": "2814bcaf2dd0b02a4b5ed9b12f4695978fd741ea4e4bb9151b9811cde23067b1",
+  "cacheKey": "f9e2c0380487b47ba29f9509e227df77e8c21f4cf9018345d9aa4e334cf52940",
+  "artifactHash": "677be9596e5713609c43a94161bb531230420c14fbbb51ae621d7a8724c1d94d"
+}

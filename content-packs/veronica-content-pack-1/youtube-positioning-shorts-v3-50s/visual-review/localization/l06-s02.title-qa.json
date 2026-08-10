@@ -1,0 +1,91 @@
+{
+  "schemaVersion": "veronicabenini-title-transcreation-qa.v2",
+  "contentId": "L06-S02",
+  "locales": {
+    "en": {
+      "metadataTitle": "Changing Your Bio Isn’t Repositioning",
+      "displayTitle": "Changing Your Bio Isn’t Repositioning",
+      "displayLines": [
+        "Changing Your Bio Isn’t Repositioning"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "de": {
+      "metadataTitle": "Eine neue Bio ist noch keine Repositionierung",
+      "displayTitle": "Eine neue Bio ist noch keine Repositionierung",
+      "displayLines": [
+        "Eine neue Bio ist noch",
+        "keine Repositionierung"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "it": {
+      "metadataTitle": "Cambiare la bio non è riposizionarsi",
+      "displayTitle": "Cambiare la bio non è riposizionarsi",
+      "displayLines": [
+        "Cambiare la bio non è riposizionarsi"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "fr": {
+      "metadataTitle": "Changer votre bio n’est pas vous repositionner",
+      "displayTitle": "Changer votre bio n’est pas vous repositionner",
+      "displayLines": [
+        "Changer votre bio n’est",
+        "pas vous repositionner"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "pt": {
+      "metadataTitle": "Mudar a bio não é reposicionamento",
+      "displayTitle": "Mudar a bio não é reposicionamento",
+      "displayLines": [
+        "Mudar a bio não é reposicionamento"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    }
+  },
+  "sourceTitlesHash": "83d0fccd256004ba5669702ef1be79a6a50def5b0e2ac696512cc7ae6c379d2a",
+  "cacheKey": "3547c23bbcacec73c063be9f47e28db88184858f7b3edf70f85b885973243d2b",
+  "artifactHash": "122c124011ec20bb985dd75aea7f70d448da14fc7de48f38e36bcff7985d3f63"
+}

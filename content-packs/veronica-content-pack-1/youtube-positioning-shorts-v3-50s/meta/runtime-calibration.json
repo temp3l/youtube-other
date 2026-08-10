@@ -1,0 +1,732 @@
+{
+  "basis": "Actual rendered samples supplied for EN/DE/IT; FR/PT provisional until measured TTS.",
+  "wpm": {
+    "en": 183.6,
+    "de": 210.2,
+    "it": 149.5,
+    "fr": 165.0,
+    "pt": 165.0
+  },
+  "items": [
+    {
+      "contentId": "L01-S01",
+      "locale": "en",
+      "file": "shorts/en/l01-s01-being-good-isnt-enough.md",
+      "words": 160,
+      "estimatedSecondsCalibrated": 52.3,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L01-S02",
+      "locale": "en",
+      "file": "shorts/en/l01-s02-expertise-vs-perception.md",
+      "words": 142,
+      "estimatedSecondsCalibrated": 46.4,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L01-S03",
+      "locale": "en",
+      "file": "shorts/en/l01-s03-what-do-people-remember-you-for.md",
+      "words": 159,
+      "estimatedSecondsCalibrated": 52.0,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L02-S01",
+      "locale": "en",
+      "file": "shorts/en/l02-s01-selling-to-everyone-is-the-problem.md",
+      "words": 157,
+      "estimatedSecondsCalibrated": 51.3,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L02-S02",
+      "locale": "en",
+      "file": "shorts/en/l02-s02-why-smaller-niches-can-make-you-bigger.md",
+      "words": 161,
+      "estimatedSecondsCalibrated": 52.6,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L02-S03",
+      "locale": "en",
+      "file": "shorts/en/l02-s03-market-problem-solution-test.md",
+      "words": 151,
+      "estimatedSecondsCalibrated": 49.3,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L03-S01",
+      "locale": "en",
+      "file": "shorts/en/l03-s01-you-cant-just-call-yourself-an-expert.md",
+      "words": 167,
+      "estimatedSecondsCalibrated": 54.6,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L03-S02",
+      "locale": "en",
+      "file": "shorts/en/l03-s02-three-signals-to-build-from-zero.md",
+      "words": 153,
+      "estimatedSecondsCalibrated": 50.0,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L03-S03",
+      "locale": "en",
+      "file": "shorts/en/l03-s03-your-website-has-five-seconds.md",
+      "words": 163,
+      "estimatedSecondsCalibrated": 53.3,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L04-S01",
+      "locale": "en",
+      "file": "shorts/en/l04-s01-stop-posting-random-content.md",
+      "words": 161,
+      "estimatedSecondsCalibrated": 52.6,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L04-S02",
+      "locale": "en",
+      "file": "shorts/en/l04-s02-the-goal-is-recognition-not-views.md",
+      "words": 158,
+      "estimatedSecondsCalibrated": 51.6,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L04-S03",
+      "locale": "en",
+      "file": "shorts/en/l04-s03-make-other-people-talk-about-your-expertise.md",
+      "words": 161,
+      "estimatedSecondsCalibrated": 52.6,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L05-S01",
+      "locale": "en",
+      "file": "shorts/en/l05-s01-you-dont-need-a-publisher.md",
+      "words": 149,
+      "estimatedSecondsCalibrated": 48.7,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L05-S02",
+      "locale": "en",
+      "file": "shorts/en/l05-s02-dont-write-a-book-about-everything-you-know.md",
+      "words": 166,
+      "estimatedSecondsCalibrated": 54.2,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L05-S03",
+      "locale": "en",
+      "file": "shorts/en/l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+      "words": 149,
+      "estimatedSecondsCalibrated": 48.7,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L06-S01",
+      "locale": "en",
+      "file": "shorts/en/l06-s01-your-audience-remembers-the-old-you.md",
+      "words": 164,
+      "estimatedSecondsCalibrated": 53.6,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L06-S02",
+      "locale": "en",
+      "file": "shorts/en/l06-s02-changing-your-bio-isnt-repositioning.md",
+      "words": 162,
+      "estimatedSecondsCalibrated": 52.9,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L06-S03",
+      "locale": "en",
+      "file": "shorts/en/l06-s03-change-what-people-know-you-for.md",
+      "words": 151,
+      "estimatedSecondsCalibrated": 49.3,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L01-S01",
+      "locale": "de",
+      "file": "shorts/de/l01-s01-being-good-isnt-enough.md",
+      "words": 191,
+      "estimatedSecondsCalibrated": 54.5,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L01-S02",
+      "locale": "de",
+      "file": "shorts/de/l01-s02-expertise-vs-perception.md",
+      "words": 160,
+      "estimatedSecondsCalibrated": 45.7,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L01-S03",
+      "locale": "de",
+      "file": "shorts/de/l01-s03-what-do-people-remember-you-for.md",
+      "words": 181,
+      "estimatedSecondsCalibrated": 51.7,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L02-S01",
+      "locale": "de",
+      "file": "shorts/de/l02-s01-selling-to-everyone-is-the-problem.md",
+      "words": 182,
+      "estimatedSecondsCalibrated": 52.0,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L02-S02",
+      "locale": "de",
+      "file": "shorts/de/l02-s02-why-smaller-niches-can-make-you-bigger.md",
+      "words": 190,
+      "estimatedSecondsCalibrated": 54.2,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L02-S03",
+      "locale": "de",
+      "file": "shorts/de/l02-s03-market-problem-solution-test.md",
+      "words": 168,
+      "estimatedSecondsCalibrated": 48.0,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L03-S01",
+      "locale": "de",
+      "file": "shorts/de/l03-s01-you-cant-just-call-yourself-an-expert.md",
+      "words": 186,
+      "estimatedSecondsCalibrated": 53.1,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L03-S02",
+      "locale": "de",
+      "file": "shorts/de/l03-s02-three-signals-to-build-from-zero.md",
+      "words": 168,
+      "estimatedSecondsCalibrated": 48.0,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L03-S03",
+      "locale": "de",
+      "file": "shorts/de/l03-s03-your-website-has-five-seconds.md",
+      "words": 188,
+      "estimatedSecondsCalibrated": 53.7,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L04-S01",
+      "locale": "de",
+      "file": "shorts/de/l04-s01-stop-posting-random-content.md",
+      "words": 176,
+      "estimatedSecondsCalibrated": 50.2,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L04-S02",
+      "locale": "de",
+      "file": "shorts/de/l04-s02-the-goal-is-recognition-not-views.md",
+      "words": 181,
+      "estimatedSecondsCalibrated": 51.7,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L04-S03",
+      "locale": "de",
+      "file": "shorts/de/l04-s03-make-other-people-talk-about-your-expertise.md",
+      "words": 182,
+      "estimatedSecondsCalibrated": 52.0,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L05-S01",
+      "locale": "de",
+      "file": "shorts/de/l05-s01-you-dont-need-a-publisher.md",
+      "words": 168,
+      "estimatedSecondsCalibrated": 48.0,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L05-S02",
+      "locale": "de",
+      "file": "shorts/de/l05-s02-dont-write-a-book-about-everything-you-know.md",
+      "words": 192,
+      "estimatedSecondsCalibrated": 54.8,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L05-S03",
+      "locale": "de",
+      "file": "shorts/de/l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+      "words": 161,
+      "estimatedSecondsCalibrated": 46.0,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L06-S01",
+      "locale": "de",
+      "file": "shorts/de/l06-s01-your-audience-remembers-the-old-you.md",
+      "words": 191,
+      "estimatedSecondsCalibrated": 54.5,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L06-S02",
+      "locale": "de",
+      "file": "shorts/de/l06-s02-changing-your-bio-isnt-repositioning.md",
+      "words": 185,
+      "estimatedSecondsCalibrated": 52.8,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L06-S03",
+      "locale": "de",
+      "file": "shorts/de/l06-s03-change-what-people-know-you-for.md",
+      "words": 175,
+      "estimatedSecondsCalibrated": 50.0,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L01-S01",
+      "locale": "it",
+      "file": "shorts/it/l01-s01-being-good-isnt-enough.md",
+      "words": 133,
+      "estimatedSecondsCalibrated": 53.4,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L01-S02",
+      "locale": "it",
+      "file": "shorts/it/l01-s02-expertise-vs-perception.md",
+      "words": 115,
+      "estimatedSecondsCalibrated": 46.2,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L01-S03",
+      "locale": "it",
+      "file": "shorts/it/l01-s03-what-do-people-remember-you-for.md",
+      "words": 125,
+      "estimatedSecondsCalibrated": 50.2,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L02-S01",
+      "locale": "it",
+      "file": "shorts/it/l02-s01-selling-to-everyone-is-the-problem.md",
+      "words": 137,
+      "estimatedSecondsCalibrated": 55.0,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L02-S02",
+      "locale": "it",
+      "file": "shorts/it/l02-s02-why-smaller-niches-can-make-you-bigger.md",
+      "words": 135,
+      "estimatedSecondsCalibrated": 54.2,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L02-S03",
+      "locale": "it",
+      "file": "shorts/it/l02-s03-market-problem-solution-test.md",
+      "words": 128,
+      "estimatedSecondsCalibrated": 51.4,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L03-S01",
+      "locale": "it",
+      "file": "shorts/it/l03-s01-you-cant-just-call-yourself-an-expert.md",
+      "words": 119,
+      "estimatedSecondsCalibrated": 47.8,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L03-S02",
+      "locale": "it",
+      "file": "shorts/it/l03-s02-three-signals-to-build-from-zero.md",
+      "words": 118,
+      "estimatedSecondsCalibrated": 47.4,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L03-S03",
+      "locale": "it",
+      "file": "shorts/it/l03-s03-your-website-has-five-seconds.md",
+      "words": 131,
+      "estimatedSecondsCalibrated": 52.6,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L04-S01",
+      "locale": "it",
+      "file": "shorts/it/l04-s01-stop-posting-random-content.md",
+      "words": 132,
+      "estimatedSecondsCalibrated": 53.0,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L04-S02",
+      "locale": "it",
+      "file": "shorts/it/l04-s02-the-goal-is-recognition-not-views.md",
+      "words": 132,
+      "estimatedSecondsCalibrated": 53.0,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L04-S03",
+      "locale": "it",
+      "file": "shorts/it/l04-s03-make-other-people-talk-about-your-expertise.md",
+      "words": 134,
+      "estimatedSecondsCalibrated": 53.8,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L05-S01",
+      "locale": "it",
+      "file": "shorts/it/l05-s01-you-dont-need-a-publisher.md",
+      "words": 128,
+      "estimatedSecondsCalibrated": 51.4,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L05-S02",
+      "locale": "it",
+      "file": "shorts/it/l05-s02-dont-write-a-book-about-everything-you-know.md",
+      "words": 137,
+      "estimatedSecondsCalibrated": 55.0,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L05-S03",
+      "locale": "it",
+      "file": "shorts/it/l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+      "words": 118,
+      "estimatedSecondsCalibrated": 47.4,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L06-S01",
+      "locale": "it",
+      "file": "shorts/it/l06-s01-your-audience-remembers-the-old-you.md",
+      "words": 130,
+      "estimatedSecondsCalibrated": 52.2,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L06-S02",
+      "locale": "it",
+      "file": "shorts/it/l06-s02-changing-your-bio-isnt-repositioning.md",
+      "words": 122,
+      "estimatedSecondsCalibrated": 49.0,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L06-S03",
+      "locale": "it",
+      "file": "shorts/it/l06-s03-change-what-people-know-you-for.md",
+      "words": 124,
+      "estimatedSecondsCalibrated": 49.8,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L01-S01",
+      "locale": "fr",
+      "file": "shorts/fr/l01-s01-being-good-isnt-enough.md",
+      "words": 151,
+      "estimatedSecondsCalibrated": 54.9,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L01-S02",
+      "locale": "fr",
+      "file": "shorts/fr/l01-s02-expertise-vs-perception.md",
+      "words": 147,
+      "estimatedSecondsCalibrated": 53.5,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L01-S03",
+      "locale": "fr",
+      "file": "shorts/fr/l01-s03-what-do-people-remember-you-for.md",
+      "words": 150,
+      "estimatedSecondsCalibrated": 54.5,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L02-S01",
+      "locale": "fr",
+      "file": "shorts/fr/l02-s01-selling-to-everyone-is-the-problem.md",
+      "words": 146,
+      "estimatedSecondsCalibrated": 53.1,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L02-S02",
+      "locale": "fr",
+      "file": "shorts/fr/l02-s02-why-smaller-niches-can-make-you-bigger.md",
+      "words": 148,
+      "estimatedSecondsCalibrated": 53.8,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L02-S03",
+      "locale": "fr",
+      "file": "shorts/fr/l02-s03-market-problem-solution-test.md",
+      "words": 143,
+      "estimatedSecondsCalibrated": 52.0,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L03-S01",
+      "locale": "fr",
+      "file": "shorts/fr/l03-s01-you-cant-just-call-yourself-an-expert.md",
+      "words": 153,
+      "estimatedSecondsCalibrated": 55.6,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L03-S02",
+      "locale": "fr",
+      "file": "shorts/fr/l03-s02-three-signals-to-build-from-zero.md",
+      "words": 139,
+      "estimatedSecondsCalibrated": 50.5,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L03-S03",
+      "locale": "fr",
+      "file": "shorts/fr/l03-s03-your-website-has-five-seconds.md",
+      "words": 153,
+      "estimatedSecondsCalibrated": 55.6,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L04-S01",
+      "locale": "fr",
+      "file": "shorts/fr/l04-s01-stop-posting-random-content.md",
+      "words": 147,
+      "estimatedSecondsCalibrated": 53.5,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L04-S02",
+      "locale": "fr",
+      "file": "shorts/fr/l04-s02-the-goal-is-recognition-not-views.md",
+      "words": 152,
+      "estimatedSecondsCalibrated": 55.3,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L04-S03",
+      "locale": "fr",
+      "file": "shorts/fr/l04-s03-make-other-people-talk-about-your-expertise.md",
+      "words": 151,
+      "estimatedSecondsCalibrated": 54.9,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L05-S01",
+      "locale": "fr",
+      "file": "shorts/fr/l05-s01-you-dont-need-a-publisher.md",
+      "words": 153,
+      "estimatedSecondsCalibrated": 55.6,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L05-S02",
+      "locale": "fr",
+      "file": "shorts/fr/l05-s02-dont-write-a-book-about-everything-you-know.md",
+      "words": 151,
+      "estimatedSecondsCalibrated": 54.9,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L05-S03",
+      "locale": "fr",
+      "file": "shorts/fr/l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+      "words": 146,
+      "estimatedSecondsCalibrated": 53.1,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L06-S01",
+      "locale": "fr",
+      "file": "shorts/fr/l06-s01-your-audience-remembers-the-old-you.md",
+      "words": 131,
+      "estimatedSecondsCalibrated": 47.6,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L06-S02",
+      "locale": "fr",
+      "file": "shorts/fr/l06-s02-changing-your-bio-isnt-repositioning.md",
+      "words": 136,
+      "estimatedSecondsCalibrated": 49.5,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L06-S03",
+      "locale": "fr",
+      "file": "shorts/fr/l06-s03-change-what-people-know-you-for.md",
+      "words": 132,
+      "estimatedSecondsCalibrated": 48.0,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L01-S01",
+      "locale": "pt",
+      "file": "shorts/pt/l01-s01-being-good-isnt-enough.md",
+      "words": 145,
+      "estimatedSecondsCalibrated": 52.7,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L01-S02",
+      "locale": "pt",
+      "file": "shorts/pt/l01-s02-expertise-vs-perception.md",
+      "words": 142,
+      "estimatedSecondsCalibrated": 51.6,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L01-S03",
+      "locale": "pt",
+      "file": "shorts/pt/l01-s03-what-do-people-remember-you-for.md",
+      "words": 144,
+      "estimatedSecondsCalibrated": 52.4,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L02-S01",
+      "locale": "pt",
+      "file": "shorts/pt/l02-s01-selling-to-everyone-is-the-problem.md",
+      "words": 147,
+      "estimatedSecondsCalibrated": 53.5,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L02-S02",
+      "locale": "pt",
+      "file": "shorts/pt/l02-s02-why-smaller-niches-can-make-you-bigger.md",
+      "words": 145,
+      "estimatedSecondsCalibrated": 52.7,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L02-S03",
+      "locale": "pt",
+      "file": "shorts/pt/l02-s03-market-problem-solution-test.md",
+      "words": 139,
+      "estimatedSecondsCalibrated": 50.5,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L03-S01",
+      "locale": "pt",
+      "file": "shorts/pt/l03-s01-you-cant-just-call-yourself-an-expert.md",
+      "words": 153,
+      "estimatedSecondsCalibrated": 55.6,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L03-S02",
+      "locale": "pt",
+      "file": "shorts/pt/l03-s02-three-signals-to-build-from-zero.md",
+      "words": 151,
+      "estimatedSecondsCalibrated": 54.9,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L03-S03",
+      "locale": "pt",
+      "file": "shorts/pt/l03-s03-your-website-has-five-seconds.md",
+      "words": 153,
+      "estimatedSecondsCalibrated": 55.6,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L04-S01",
+      "locale": "pt",
+      "file": "shorts/pt/l04-s01-stop-posting-random-content.md",
+      "words": 137,
+      "estimatedSecondsCalibrated": 49.8,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L04-S02",
+      "locale": "pt",
+      "file": "shorts/pt/l04-s02-the-goal-is-recognition-not-views.md",
+      "words": 140,
+      "estimatedSecondsCalibrated": 50.9,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L04-S03",
+      "locale": "pt",
+      "file": "shorts/pt/l04-s03-make-other-people-talk-about-your-expertise.md",
+      "words": 149,
+      "estimatedSecondsCalibrated": 54.2,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L05-S01",
+      "locale": "pt",
+      "file": "shorts/pt/l05-s01-you-dont-need-a-publisher.md",
+      "words": 145,
+      "estimatedSecondsCalibrated": 52.7,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L05-S02",
+      "locale": "pt",
+      "file": "shorts/pt/l05-s02-dont-write-a-book-about-everything-you-know.md",
+      "words": 145,
+      "estimatedSecondsCalibrated": 52.7,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L05-S03",
+      "locale": "pt",
+      "file": "shorts/pt/l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+      "words": 143,
+      "estimatedSecondsCalibrated": 52.0,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L06-S01",
+      "locale": "pt",
+      "file": "shorts/pt/l06-s01-your-audience-remembers-the-old-you.md",
+      "words": 128,
+      "estimatedSecondsCalibrated": 46.5,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L06-S02",
+      "locale": "pt",
+      "file": "shorts/pt/l06-s02-changing-your-bio-isnt-repositioning.md",
+      "words": 150,
+      "estimatedSecondsCalibrated": 54.5,
+      "durationStatus": "TARGET"
+    },
+    {
+      "contentId": "L06-S03",
+      "locale": "pt",
+      "file": "shorts/pt/l06-s03-change-what-people-know-you-for.md",
+      "words": 130,
+      "estimatedSecondsCalibrated": 47.3,
+      "durationStatus": "TARGET"
+    }
+  ]
+}

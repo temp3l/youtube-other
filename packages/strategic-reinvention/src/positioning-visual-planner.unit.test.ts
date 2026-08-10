@@ -11,6 +11,7 @@ import {
   calculateOpeningDiversityDiagnostics,
   calculateDiversityMetrics,
   classifyLongFormSimilarity,
+  generatePositioningVisualPlanCalibration,
   createViewerVisibleHookFingerprint,
   generatePositioningVisualPlans,
   selectDiagramTopology,
@@ -65,6 +66,23 @@ afterAll(async () => {
 });
 
 describe("Veronica positioning visual planner V2", () => {
+  it("writes only a selected parent-long and Short calibration with provider-free prompt previews", async () => {
+    const calibrationOutput = await temporaryDirectory("positioning-calibration-");
+    const result = await generatePositioningVisualPlanCalibration({
+      packDir: fixtureDir,
+      outputDir: calibrationOutput,
+      contentIds: ["L01", "L01-S03"],
+    });
+    expect(result).toMatchObject({ contentIds: ["L01", "L01-S03"], providerCalls: 0 });
+    await expect(fs.access(path.join(calibrationOutput, "plans", "l01.visual-plan.json"))).resolves.toBeUndefined();
+    await expect(fs.access(path.join(calibrationOutput, "plans", "l01-s03.visual-plan.json"))).resolves.toBeUndefined();
+    await expect(fs.access(path.join(calibrationOutput, "plans", "l02.visual-plan.json"))).rejects.toThrow();
+    const preview = JSON.parse(await fs.readFile(result.previewPath, "utf8")) as { providerCalls: number; plans: Array<{ contentId: string; beats: Array<{ visibleThesis: string; promptPreview: string }> }> };
+    expect(preview.providerCalls).toBe(0);
+    expect(preview.plans.map((plan) => plan.contentId)).toEqual(["L01", "L01-S03"]);
+    expect(preview.plans.flatMap((plan) => plan.beats).every((beat) => beat.visibleThesis.length > 20 && beat.promptPreview.length > 20)).toBe(true);
+  });
+
   it("regenerates all 24 plans with deterministic semantic hashes and millisecond timestamps", async () => {
     const repeatedOutput = await temporaryDirectory("positioning-v2-repeat-");
     const first = await generatePositioningVisualPlans({ packDir: fixtureDir, outputDir });

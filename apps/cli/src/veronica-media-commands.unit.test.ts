@@ -8,12 +8,14 @@ describe("veronica media commands", () => {
     registerVeronicaMediaCommands(program);
     const veronica = program.commands.find((command) => command.name() === "veronica-media");
     expect(veronica?.commands.map((command) => command.name())).toEqual([
+      "metadata",
       "prepare-production",
       "images",
       "speech",
       "pilot",
       "run",
       "plan-positioning-series",
+      "plan-positioning-calibration",
       "review-pack",
       "validate",
       "render",

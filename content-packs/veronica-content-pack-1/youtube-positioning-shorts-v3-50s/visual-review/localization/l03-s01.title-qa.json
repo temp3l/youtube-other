@@ -1,0 +1,91 @@
+{
+  "schemaVersion": "veronicabenini-title-transcreation-qa.v2",
+  "contentId": "L03-S01",
+  "locales": {
+    "en": {
+      "metadataTitle": "You Can’t Just Call Yourself an Expert",
+      "displayTitle": "You Can’t Just Call Yourself an Expert",
+      "displayLines": [
+        "You Can’t Just Call Yourself an Expert"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "de": {
+      "metadataTitle": "Du kannst dich nicht einfach Expertin nennen",
+      "displayTitle": "Du kannst dich nicht einfach Expertin nennen",
+      "displayLines": [
+        "Du kannst dich nicht",
+        "einfach Expertin nennen"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "it": {
+      "metadataTitle": "Non basta definirti esperta",
+      "displayTitle": "Non basta definirti esperta",
+      "displayLines": [
+        "Non basta definirti esperta"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "fr": {
+      "metadataTitle": "Il ne suffit pas de vous déclarer experte",
+      "displayTitle": "Il ne suffit pas de vous déclarer experte",
+      "displayLines": [
+        "Il ne suffit pas de",
+        "vous déclarer experte"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "pt": {
+      "metadataTitle": "Não basta se chamar de especialista",
+      "displayTitle": "Não basta se chamar de especialista",
+      "displayLines": [
+        "Não basta se chamar de especialista"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    }
+  },
+  "sourceTitlesHash": "3fbf937f10192e3cc9d91904ee2e98c006c760cbe3e999b90568a45a2d139154",
+  "cacheKey": "8dd8fe385b6b77ba1c3915b1061054e1a7712fffb2fd76373aafeceebb620ecb",
+  "artifactHash": "ad51cfd08ae17722534f66b0139a131db3c7ad5d2c70be97900bbe5c8dd56f5a"
+}
