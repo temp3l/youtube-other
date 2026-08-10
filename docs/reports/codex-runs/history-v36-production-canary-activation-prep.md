@@ -57,5 +57,5 @@
 - result: PASS; both canaries passed timing, additive planning, semantic assertions, SVG/PNG review, FFmpeg smoke, differential, and rollback routing
 - tests: 9 focused renderer/plan tests, canary runner, ffprobe, checksum/ZIP integrity, V3.5 source-isolation check
 - invariants: all hard counts zero; V3.5 default/output unchanged; no provider calls during rerun
-- commit/tag: pending bounded-rollout readiness checkpoint
+- commit/tag: `15460165464f72296557dd3879194b733485559b` / `history-v3.6-production-canary-bounded-rollout-ready`
 - next: bounded rollout only; general V3.5 production-composer integration remains unchanged

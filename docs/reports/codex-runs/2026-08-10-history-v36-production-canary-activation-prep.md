@@ -6,6 +6,6 @@ Changed paths: History duration policy/test/docs, V3.6 diagram renderer/test, is
 
 Tests: focused duration-policy and renderer/plan tests; History typecheck; targeted ESLint; ffprobe timing; renderer review; FFmpeg smoke; checksums; ZIP integrity; V3.5 isolation — passed.
 
-Commit hash: pending bounded-rollout checkpoint (policy `5dda628f37b08149c95ac83f3a19d84d29c77249`).
+Commit hash: `15460165464f72296557dd3879194b733485559b` (bounded-rollout checkpoint; policy `5dda628f37b08149c95ac83f3a19d84d29c77249`).
 
 Unresolved risks: the general V3.5 production composer remains intentionally unchanged; V3.6 is ready only through the explicit isolated canary runner and allowlist.
