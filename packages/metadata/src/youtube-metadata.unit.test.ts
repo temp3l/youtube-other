@@ -31,6 +31,10 @@ import {
   type OpenAiMetadataClient,
   type YoutubeMetadataTarget
 } from "./youtube-metadata.js";
+import {
+  MetadataNarrationResolutionError,
+  generateEpisodeYouTubeMetadata,
+} from "./youtube-metadata-orchestration.js";
 
 function createWorkspace(): string {
   return mkdtempSync(path.join(tmpdir(), "mediaforge-metadata-"));
@@ -321,6 +325,45 @@ describe("youtube metadata helpers", () => {
       promptSchemaFingerprint: "d".repeat(64),
     };
     expect(computeYoutubeMetadataCacheKey(input)).toBe(computeYoutubeMetadataCacheKey(input));
+  });
+
+  it("separates genre, episode, locale, and variant cache identities", () => {
+    const common = {
+      sourceSha256: "a".repeat(64), parentNarrationFingerprint: "b".repeat(64),
+      promptText: "prompt", promptVersion: YOUTUBE_METADATA_PROMPT_VERSION,
+      model: "gpt-4o-mini", schemaVersion: YOUTUBE_METADATA_SCHEMA_VERSION,
+      language: "en", modelConfigFingerprint: "c".repeat(64),
+      promptSchemaFingerprint: "d".repeat(64), episodeId: "episode-001", locale: "en",
+    };
+    const veronicaFull = computeYoutubeMetadataCacheKey({ ...common, genre: "veronica", variant: "full" });
+    expect(computeYoutubeMetadataCacheKey({ ...common, genre: "veronica", variant: "short" })).not.toBe(veronicaFull);
+    expect(computeYoutubeMetadataCacheKey({ ...common, genre: "history", variant: "full" })).not.toBe(veronicaFull);
+    expect(computeYoutubeMetadataCacheKey({ ...common, genre: "veronica", episodeId: "episode-002", variant: "full" })).not.toBe(veronicaFull);
+  });
+
+  it("plans a Veronica short without provider access and rejects missing narration first", async () => {
+    const episodeRoot = path.resolve("episodes", "l01-s01-being-good-isnt-enough");
+    const options = {
+      apiKey: "", model: "fixture", maxOutputTokens: 1,
+      repairModel: "fixture", repairMaxOutputTokens: 1,
+      language: "en", promptText: "fixture", maxRetries: 0,
+      timeoutMs: 1, keepFile: false, dryRun: true,
+    } as const;
+    const planned = await generateEpisodeYouTubeMetadata({
+      genre: "veronica", episodeId: "l01-s01-being-good-isnt-enough", locale: "en", variant: "short",
+      narrationPath: path.join(episodeRoot, "languages", "short", "script-en.md"),
+      scenesPath: path.join(episodeRoot, "shared", "scenes.json"),
+      artifactPath: path.join(episodeRoot, "locales", "en", "short", "metadata"),
+      generationOptions: options,
+    });
+    expect(planned).toMatchObject({ dryRun: true, generated: false, variant: "short" });
+    await expect(generateEpisodeYouTubeMetadata({
+      genre: "veronica", episodeId: "l01-s01-being-good-isnt-enough", locale: "en", variant: "short",
+      narrationPath: path.join(episodeRoot, "languages", "short", "script-zz.md"),
+      scenesPath: path.join(episodeRoot, "shared", "scenes.json"),
+      artifactPath: path.join(episodeRoot, "locales", "de", "short", "metadata"),
+      generationOptions: options,
+    })).rejects.toBeInstanceOf(MetadataNarrationResolutionError);
   });
 
   it("invalidates cache keys when the validated narration changes", () => {

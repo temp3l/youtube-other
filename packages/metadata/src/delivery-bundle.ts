@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import {
   contentProfileIdSchema,
   normalizeContentProfileId,
+  type ContentVariant,
   type ContentProfileId,
 } from "@mediaforge/domain";
 import { z } from "zod";
@@ -62,6 +63,7 @@ export const deliveryBundleSchema = z.strictObject({
   episodeId: identifierSchema,
   productionRevisionId: identifierSchema,
   locale: identifierSchema,
+  variant: z.enum(["full", "short"]).default("full"),
   metadataRevisionId: z.string().regex(/^metadata-[a-f0-9]{16}$/u),
   metadata: editableLocaleMetadataSchema,
   files: z.strictObject({
@@ -109,6 +111,8 @@ export interface PlanDeliveryBundleInput {
   readonly episodeId: string;
   readonly productionRevisionId: string;
   readonly locale: string;
+  /** Publication variant is explicit; legacy callers retain the full default. */
+  readonly variant?: ContentVariant;
   readonly metadata: EditableLocaleMetadata;
   readonly files: DeliveryBundle["files"];
   readonly effectiveConfiguration: unknown;
@@ -145,6 +149,7 @@ export function planDeliveryBundle(input: PlanDeliveryBundleInput): {
     episodeId: input.episodeId,
     productionRevisionId: input.productionRevisionId,
     locale: input.locale,
+    variant: input.variant ?? "full",
     metadataRevisionId,
     metadata,
     files,

@@ -1,0 +1,327 @@
+{
+  "schemaVersion": "veronicabenini-positioning-calibration-preview.v1",
+  "visualLanguageVersion": "veronica-visual-language.v1",
+  "providerCalls": 0,
+  "plans": [
+    {
+      "contentId": "L02",
+      "format": "long",
+      "visualStoryBible": {
+        "version": "veronica-visual-language.v1",
+        "format": "long",
+        "thesis": "broad market vs niche",
+        "viewerTransformation": {
+          "before": "buyer sees scattered or hidden expertise",
+          "mechanism": "clear repeated evidence and category signals",
+          "after": "buyer recognizes, recalls, and can recommend the relevant expert"
+        },
+        "visualConflict": {
+          "start": "buyers cannot explain what the expert is known for",
+          "end": "a matching problem triggers immediate recognition and choice"
+        },
+        "roles": {
+          "expert": "occupation-neutral professional-services expert",
+          "buyer": "decision-maker evaluating and later recalling evidence",
+          "market": "alternatives, proof signals, recommendations, and competing offers"
+        },
+        "semanticProgression": [
+          "broad-market-vs-niche",
+          "ideal-customer-context",
+          "niche-and-subniche",
+          "generic-vs-specific-message",
+          "problem-recognition",
+          "market-problem-solution",
+          "niche-content-boundaries",
+          "specificity-test"
+        ],
+        "preferredVisualFamilies": [
+          "human-decision",
+          "professional-evidence",
+          "social-perception",
+          "contrast"
+        ],
+        "forbiddenDrift": [
+          "VISIBLE_THESIS_REQUIRED",
+          "ABSTRACT_PROP_DRIFT",
+          "OCCUPATION_PROXY_DRIFT",
+          "GENERIC_BUSINESS_STOCK_DRIFT",
+          "SEMANTICALLY_DECORATIVE_SCENE",
+          "VISUAL_INFORMATION_GAIN",
+          "BUYER_PERSPECTIVE_REQUIRED"
+        ],
+        "continuityStrategy": "chapter arcs with recurring buyer/expert callbacks from L02",
+        "visualMotifs": [
+          "perception-reflection",
+          "choice-comparison",
+          "recognition-eye-line",
+          "evidence-proof",
+          "confusion-competing-signals",
+          "specialization-narrowing",
+          "memory-later-recall",
+          "reputation-expert-absent",
+          "recommendation-referral"
+        ],
+        "fingerprint": "9958e3ec598ae07203dbaaef32689cb47f5911e1988a55fc0c811b844a6f7d61"
+      },
+      "chapters": [
+        {
+          "chapterId": "l02-chapter-01",
+          "thesis": "unresolved-contradiction-consequence-broad-market-vs-niche → broad-market-vs-niche → ideal-customer-context",
+          "narrativeArc": [
+            "hook",
+            "context",
+            "conflict"
+          ],
+          "continuityGroup": "l02-buyer-arc-1",
+          "preferredVisualFamilies": [
+            "human-decision",
+            "professional-evidence",
+            "social-perception",
+            "contrast"
+          ],
+          "beatIds": [
+            "L02-COLD_OPEN",
+            "L02-V01",
+            "L02-V02"
+          ]
+        },
+        {
+          "chapterId": "l02-chapter-02",
+          "thesis": "niche-and-subniche → generic-vs-specific-message → problem-recognition",
+          "narrativeArc": [
+            "example",
+            "evidence",
+            "contrast"
+          ],
+          "continuityGroup": "l02-buyer-arc-2",
+          "preferredVisualFamilies": [
+            "human-decision",
+            "professional-evidence",
+            "social-perception",
+            "contrast"
+          ],
+          "beatIds": [
+            "L02-V03",
+            "L02-V04",
+            "L02-V05"
+          ]
+        },
+        {
+          "chapterId": "l02-chapter-03",
+          "thesis": "market-problem-solution → niche-content-boundaries → specificity-test",
+          "narrativeArc": [
+            "mechanism",
+            "payoff",
+            "recall"
+          ],
+          "continuityGroup": "l02-buyer-arc-3",
+          "preferredVisualFamilies": [
+            "human-decision",
+            "professional-evidence",
+            "social-perception",
+            "contrast"
+          ],
+          "beatIds": [
+            "L02-V06",
+            "L02-V07",
+            "L02-V08"
+          ]
+        }
+      ],
+      "beats": [
+        {
+          "sceneId": "L02-COLD_OPEN",
+          "visibleThesis": "A buyer faces the consequence of not being able to identify unresolved contradiction consequence broad market vs niche.",
+          "newInformation": "Introduces the buyer consequence and unresolved positioning conflict.",
+          "narrativeFunction": "hook",
+          "visualFamily": "human-decision",
+          "promptPreview": "Text-free 16:9 market-crowd treatment for unresolved contradiction consequence broad market vs niche. Communication intent: create-tension. Subject: undifferentiated crowd with one relevant audience cluster. Environment: large public concourse crossed by broad and precise signal paths. Composition: wide diffusion field resolving into one isolated cluster. Camera: 24mm elevated architectural wide. Props: broad glow field and focused signal beam, cluster markers. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging."
+        },
+        {
+          "sceneId": "L02-V01",
+          "visibleThesis": "The structure of broad market vs niche is understandable without narration.",
+          "newInformation": "Advances the visual argument with broad market vs niche; it is not a decorative restatement.",
+          "narrativeFunction": "example",
+          "visualFamily": "diagram",
+          "promptPreview": "Text-free 16:9 market-crowd treatment for broad market vs niche. Communication intent: compare-alternatives. Subject: many visually similar providers and one legible category owner; mid-career hospitality owner. Environment: crowded trade hall or market aisle; backstage production zone. Composition: compressed crowd field with controlled focal isolation; left-to-right reveal path. Camera: 105mm elevated telephoto compression; elevated diagonal viewpoint. Props: repeated neutral objects, single category artifact, broad evidence artifact. Proposition-specific comparison structure with 2 separately rendered label anchors. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging."
+        },
+        {
+          "sceneId": "L02-V02",
+          "visibleThesis": "A buyer observes how ideal customer context changes whether an expert is understood and chosen.",
+          "newInformation": "Advances the visual argument with ideal customer context; it is not a decorative restatement.",
+          "narrativeFunction": "mechanism",
+          "visualFamily": "human-decision",
+          "promptPreview": "Text-free 16:9 audience-segmentation treatment for ideal customer context. Communication intent: prompt-decision. Subject: distinct audience clusters separated by needs and context; older technical consultant. Environment: public concourse transformed into spatial audience islands; client point-of-decision zone. Composition: high-angle clustered field with a deliberate narrow focus; central void separating competing signals. Camera: 24mm elevated architectural view; subjective client viewpoint. Props: color-coded objects, path markers, context evidence artifact. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging."
+        },
+        {
+          "sceneId": "L02-V03",
+          "visibleThesis": "The structure of niche and subniche is understandable without narration.",
+          "newInformation": "Advances the visual argument with niche and subniche; it is not a decorative restatement.",
+          "narrativeFunction": "mechanism",
+          "visualFamily": "diagram",
+          "promptPreview": "Text-free 16:9 audience-segmentation treatment for niche and subniche. Communication intent: define-category. Subject: distinct audience clusters separated by needs and context; nonbinary creative director. Environment: public concourse transformed into spatial audience islands; artifact archive zone. Composition: high-angle clustered field with a deliberate narrow focus; occluded-to-visible information progression. Camera: 24mm elevated architectural view; lateral profile viewpoint. Props: color-coded objects, path markers, niche evidence artifact. Proposition-specific funnel structure with 3 separately rendered label anchors. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging."
+        },
+        {
+          "sceneId": "L02-V04",
+          "visibleThesis": "The structure of generic vs specific message is understandable without narration.",
+          "newInformation": "Advances the visual argument with generic vs specific message; it is not a decorative restatement.",
+          "narrativeFunction": "contrast",
+          "visualFamily": "diagram",
+          "promptPreview": "Text-free 16:9 comparison-composition treatment for generic vs specific message. Communication intent: compare-alternatives. Subject: two meaningfully different outcomes or choices; woman-led retail founder. Environment: dual-world editorial set; peer-referral setting. Composition: asymmetric split composition with a decisive visual imbalance; near-far contrast between choice and result. Camera: 40mm locked frontal comparison; compressed distant observation. Props: contrasting evidence sets, decision marker, generic evidence artifact. Proposition-specific comparison structure with 2 separately rendered label anchors. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging."
+        },
+        {
+          "sceneId": "L02-V05",
+          "visibleThesis": "The structure of problem recognition is understandable without narration.",
+          "newInformation": "Advances the visual argument with problem recognition; it is not a decorative restatement.",
+          "narrativeFunction": "mechanism",
+          "visualFamily": "diagram",
+          "promptPreview": "Text-free 16:9 evidence-proof treatment for problem recognition. Communication intent: make-proof-visible. Subject: observable work evidence accumulating into trust; male wellness practitioner. Environment: case-study archive, exhibition rail, or results wall; field-work context. Composition: progressive evidence trail leading to a decision; layered reflection with off-axis evidence. Camera: 35mm shallow diagonal dolly perspective; close foreground parallax. Props: before-after sample, prototype, testimonial portrait without text, problem evidence artifact. Proposition-specific cause-effect structure with 4 separately rendered label anchors. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging."
+        },
+        {
+          "sceneId": "L02-V06",
+          "visibleThesis": "A buyer observes how market problem solution changes whether an expert is understood and chosen.",
+          "newInformation": "Advances the visual argument with market problem solution; it is not a decorative restatement.",
+          "narrativeFunction": "mechanism",
+          "visualFamily": "human-decision",
+          "promptPreview": "Text-free 16:9 market-crowd treatment for market problem solution. Communication intent: define-category. Subject: many visually similar providers and one legible category owner; younger independent product designer. Environment: crowded trade hall or market aisle; street-facing public threshold. Composition: compressed crowd field with controlled focal isolation; foreground consequence against background cause. Camera: 105mm elevated telephoto compression; low three-quarter viewpoint. Props: repeated neutral objects, single category artifact, market evidence artifact. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging."
+        },
+        {
+          "sceneId": "L02-V07",
+          "visibleThesis": "The structure of niche content boundaries is understandable without narration.",
+          "newInformation": "Advances the visual argument with niche content boundaries; it is not a decorative restatement.",
+          "narrativeFunction": "mechanism",
+          "visualFamily": "diagram",
+          "promptPreview": "Text-free 16:9 publishing-media-authority treatment for niche content boundaries. Communication intent: define-category. Subject: expert contributing knowledge through a public medium; mid-career hospitality owner. Environment: podcast booth, small stage, interview corner, or editorial desk; backstage production zone. Composition: medium-wide frame with medium and audience both visible; left-to-right reveal path. Camera: 70mm off-axis broadcast documentary; elevated diagonal viewpoint. Props: microphone, camera tally light, printed proof, boundaries evidence artifact. Proposition-specific hierarchy structure with 4 separately rendered label anchors. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging."
+        },
+        {
+          "sceneId": "L02-V08",
+          "visibleThesis": "The structure of specificity test is understandable without narration.",
+          "newInformation": "Advances the visual argument with specificity test; it is not a decorative restatement.",
+          "narrativeFunction": "payoff",
+          "visualFamily": "diagram",
+          "callbackToBeatId": "L02-COLD_OPEN",
+          "promptPreview": "Text-free 16:9 comparison-composition treatment for specificity test. Communication intent: deliver-payoff. Subject: two meaningfully different outcomes or choices; older technical consultant. Environment: dual-world editorial set; client point-of-decision zone. Composition: asymmetric split composition with a decisive visual imbalance; central void separating competing signals. Camera: 40mm locked frontal comparison; subjective client viewpoint. Props: contrasting evidence sets, decision marker, specificity evidence artifact. Proposition-specific funnel structure with 3 separately rendered label anchors. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging."
+        }
+      ]
+    },
+    {
+      "contentId": "L02-S01",
+      "format": "short",
+      "visualStoryBible": {
+        "version": "veronica-visual-language.v1",
+        "format": "short",
+        "thesis": "everyone message",
+        "viewerTransformation": {
+          "before": "buyer sees scattered or hidden expertise",
+          "mechanism": "clear repeated evidence and category signals",
+          "after": "buyer recognizes, recalls, and can recommend the relevant expert"
+        },
+        "visualConflict": {
+          "start": "buyers cannot explain what the expert is known for",
+          "end": "a matching problem triggers immediate recognition and choice"
+        },
+        "roles": {
+          "expert": "occupation-neutral professional-services expert",
+          "buyer": "decision-maker evaluating and later recalling evidence",
+          "market": "alternatives, proof signals, recommendations, and competing offers"
+        },
+        "semanticProgression": [
+          "everyone-message",
+          "buyer-decision-effort",
+          "different-customer-needs",
+          "niche-recognition",
+          "generic-vs-specific-offer",
+          "specificity-advantage"
+        ],
+        "preferredVisualFamilies": [
+          "human-decision",
+          "professional-evidence",
+          "social-perception",
+          "contrast"
+        ],
+        "forbiddenDrift": [
+          "VISIBLE_THESIS_REQUIRED",
+          "ABSTRACT_PROP_DRIFT",
+          "OCCUPATION_PROXY_DRIFT",
+          "GENERIC_BUSINESS_STOCK_DRIFT",
+          "SEMANTICALLY_DECORATIVE_SCENE",
+          "VISUAL_INFORMATION_GAIN",
+          "BUYER_PERSPECTIVE_REQUIRED"
+        ],
+        "continuityStrategy": "persistent causal short arc",
+        "visualMotifs": [
+          "perception-reflection",
+          "choice-comparison",
+          "recognition-eye-line",
+          "evidence-proof",
+          "confusion-competing-signals",
+          "specialization-narrowing",
+          "memory-later-recall",
+          "reputation-expert-absent",
+          "recommendation-referral"
+        ],
+        "fingerprint": "95f5a7c19753aa3932b13374bf2fc8c49911cb03aea937e066e1550c0a7078c9"
+      },
+      "chapters": [],
+      "beats": [
+        {
+          "sceneId": "L02-S01-HOOK",
+          "visibleThesis": "A buyer faces the consequence of not being able to identify provocative tension unresolved Trying to Sell to Everyone Is the Problem.",
+          "newInformation": "Introduces the buyer consequence and unresolved positioning conflict.",
+          "narrativeFunction": "hook",
+          "visualFamily": "human-decision",
+          "promptPreview": "Text-free 9:16 market-crowd treatment for provocative tension unresolved Trying to Sell to Everyone Is the Problem. Communication intent: create-tension. Subject: seller addressing every passing audience at once. Environment: dense vertical market aisle with competing neutral stalls. Composition: overloaded foreground messages dissolving into an indifferent crowd. Camera: 20mm handheld vertical market wide. Props: fan of generic signal placards without text, repeated stall objects. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging."
+        },
+        {
+          "sceneId": "L02-S01-V01",
+          "visibleThesis": "A buyer sees a broad offer but cannot tell whether it applies to their problem.",
+          "newInformation": "Advances the visual argument with everyone message; it is not a decorative restatement.",
+          "narrativeFunction": "evidence",
+          "visualFamily": "professional-evidence",
+          "promptPreview": "Text-free 9:16 market-crowd treatment for everyone message. Communication intent: make-proof-visible. Subject: many visually similar providers and one legible category owner; mid-career hospitality owner. Environment: crowded trade hall or market aisle; backstage production zone. Composition: compressed crowd field with controlled focal isolation; left-to-right reveal path. Camera: 105mm elevated telephoto compression; elevated diagonal viewpoint. Props: repeated neutral objects, single category artifact, everyone evidence artifact. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging."
+        },
+        {
+          "sceneId": "L02-S01-V02",
+          "visibleThesis": "A buyer has to do extra interpretation work because the offer gives no clear reason to choose it.",
+          "newInformation": "Advances the visual argument with buyer decision effort; it is not a decorative restatement.",
+          "narrativeFunction": "example",
+          "visualFamily": "human-decision",
+          "promptPreview": "Text-free 9:16 abstract-conceptual treatment for buyer decision effort. Communication intent: show-consequence. Subject: physical light, shadow, and material expressing an invisible idea; older technical consultant. Environment: architectural light laboratory; client point-of-decision zone. Composition: geometric negative-space study with one changing boundary; central void separating competing signals. Camera: 90mm orthographic detail; subjective client viewpoint. Props: translucent planes, prism, shadow grid, buyer evidence artifact. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging."
+        },
+        {
+          "sceneId": "L02-S01-V03",
+          "visibleThesis": "Different buyers compare the same broad offer and each looks for a different unmet need.",
+          "newInformation": "Advances the visual argument with different customer needs; it is not a decorative restatement.",
+          "narrativeFunction": "contrast",
+          "visualFamily": "contrast",
+          "promptPreview": "Text-free 9:16 client-decision treatment for different customer needs. Communication intent: compare-alternatives. Subject: client comparing credible options at a decision point; nonbinary creative director. Environment: procurement table or consultation waiting area; artifact archive zone. Composition: client point-of-view with alternatives receding in depth; occluded-to-visible information progression. Camera: 45mm seated point-of-view; lateral profile viewpoint. Props: unlabeled portfolios, evidence samples, selection token, customer evidence artifact. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging."
+        },
+        {
+          "sceneId": "L02-S01-V04",
+          "visibleThesis": "One defined buyer immediately recognizes that the offer is for them.",
+          "newInformation": "Advances the visual argument with niche recognition; it is not a decorative restatement.",
+          "narrativeFunction": "resolution",
+          "visualFamily": "diagram",
+          "promptPreview": "Text-free 9:16 audience-segmentation treatment for niche recognition. Communication intent: make-proof-visible. Subject: distinct audience clusters separated by needs and context; woman-led retail founder. Environment: public concourse transformed into spatial audience islands; peer-referral setting. Composition: high-angle clustered field with a deliberate narrow focus; near-far contrast between choice and result. Camera: 24mm elevated architectural view; compressed distant observation. Props: color-coded objects, path markers, niche evidence artifact. Proposition-specific hierarchy structure with 4 separately rendered label anchors. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging."
+        },
+        {
+          "sceneId": "L02-S01-V05",
+          "visibleThesis": "A buyer compares a generic offer with a specific promise and understands the specific option faster.",
+          "newInformation": "Advances the visual argument with generic vs specific offer; it is not a decorative restatement.",
+          "narrativeFunction": "evidence",
+          "visualFamily": "diagram",
+          "promptPreview": "Text-free 9:16 comparison-composition treatment for generic vs specific offer. Communication intent: compare-alternatives. Subject: two meaningfully different outcomes or choices; male wellness practitioner. Environment: dual-world editorial set; field-work context. Composition: asymmetric split composition with a decisive visual imbalance; layered reflection with off-axis evidence. Camera: 40mm locked frontal comparison; close foreground parallax. Props: contrasting evidence sets, decision marker, generic evidence artifact. Proposition-specific comparison structure with 2 separately rendered label anchors. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging."
+        },
+        {
+          "sceneId": "L02-S01-V06",
+          "visibleThesis": "A qualified buyer recognizes their problem and promised direction without extra interpretation work.",
+          "newInformation": "Advances the visual argument with specificity advantage; it is not a decorative restatement.",
+          "narrativeFunction": "payoff",
+          "visualFamily": "diagram",
+          "callbackToBeatId": "L02-S01-HOOK",
+          "promptPreview": "Text-free 9:16 comparison-composition treatment for specificity advantage. Communication intent: deliver-payoff. Subject: two meaningfully different outcomes or choices; younger independent product designer. Environment: dual-world editorial set; street-facing public threshold. Composition: asymmetric split composition with a decisive visual imbalance; foreground consequence against background cause. Camera: 40mm locked frontal comparison; low three-quarter viewpoint. Props: contrasting evidence sets, decision marker, advantage evidence artifact. Proposition-specific funnel structure with 3 separately rendered label anchors. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging."
+        }
+      ]
+    }
+  ]
+}

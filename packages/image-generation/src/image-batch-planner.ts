@@ -7,8 +7,6 @@ import {
   fileExists,
   hashFile,
   hashText,
-  openAiPromptCacheFields,
-  planPromptCache,
   normalizeContentVariant,
   normalizeEpisodeId,
   normalizeLocaleCode,
@@ -467,48 +465,14 @@ async function withReferenceLocalCache(args: {
       identity: generationIdentity,
     });
   }
-  const promptCachePlan = planPromptCache({
-    ...(args.settings.promptCacheMode
-      ? { requestedMode: args.settings.promptCacheMode }
-      : {}),
-    modelSupportsExplicitCaching:
-      args.settings.promptCacheMode !== "disabled" &&
-      args.settings.promptCacheMode !== "implicit" &&
-      args.plan.job.identity.model === "gpt-image-2",
-    reusablePrefix: JSON.stringify({
-      family: "mediaforge-image-reference-v2",
-      role: args.plan.job.identity.assetRole,
-      visualBibleVersion: imageVisualBibleVersion,
-    }),
-    expectedReuseCount: 1,
-    itemIdentity: args.plan.manifestItem.customId,
-    shardCount: args.settings.promptCacheShardCount ?? "auto",
-    keyParts: {
-      family: "image-reference",
-      version: "v2",
-      operation: "reference",
-      format: "reference",
-      language: args.plan.job.identity.language,
-      modelTier: args.plan.job.identity.model.replace(/^gpt-/u, ""),
-    },
-    breakpointAfterBlock: "reference-contract",
-  });
   return {
     ...args.plan,
-    requestLine: {
-      ...args.plan.requestLine,
-      body: {
-        ...args.plan.requestLine.body,
-        ...openAiPromptCacheFields(promptCachePlan),
-      },
-    },
     manifestItem: {
       ...args.plan.manifestItem,
       generationIdentity,
       generationIdentityHash,
       resultCachePath,
       localCacheState: decision.state,
-      promptCachePlan,
       ...(decision.state === "hit"
         ? {
             status: "skipped-cached" as const,
@@ -516,50 +480,6 @@ async function withReferenceLocalCache(args: {
           }
         : {}),
     },
-  };
-}
-
-function withPromptCachePlan(
-  plan: PlannedImageBatchScene,
-  expectedReuseCount: number,
-  settings?: ImageBatchPlannerSettings
-): PlannedImageBatchScene {
-  const bundle = referenceBundleForPlan(plan);
-  const stablePrefix = plan.stablePromptPrefix;
-  const promptCachePlan = planPromptCache({
-    ...(settings?.promptCacheMode
-      ? { requestedMode: settings.promptCacheMode }
-      : {}),
-    modelSupportsExplicitCaching:
-      settings?.promptCacheMode !== "disabled" &&
-      settings?.promptCacheMode !== "implicit" &&
-      plan.job.identity.model === "gpt-image-2",
-    reusablePrefix: stablePrefix,
-    expectedReuseCount,
-    itemIdentity: plan.manifestItem.customId,
-    shardCount: settings?.promptCacheShardCount ?? "auto",
-    keyParts: {
-      family: "image-scene",
-      version: "v5",
-      operation: plan.job.identity.operation,
-      format: plan.job.identity.variant,
-      language: plan.job.identity.language,
-      modelTier: plan.job.identity.model.replace(/^gpt-/u, ""),
-      aspectBucket: plan.job.identity.aspectRatio.replace(":", "x"),
-      referenceBundleClass: referenceBundleHash(bundle),
-    },
-    breakpointAfterBlock: plan.cacheBreakpointAfterBlock,
-  });
-  return {
-    ...plan,
-    requestLine: {
-      ...plan.requestLine,
-      body: {
-        ...plan.requestLine.body,
-        ...openAiPromptCacheFields(promptCachePlan),
-      },
-    },
-    manifestItem: { ...plan.manifestItem, promptCachePlan },
   };
 }
 
@@ -584,7 +504,7 @@ export function imageSceneCacheCompatibilityKey(
 
 function groupScenePlansByCacheCompatibility(
   plans: readonly PlannedImageBatchScene[],
-  settings?: ImageBatchPlannerSettings
+  _settings?: ImageBatchPlannerSettings
 ): readonly (readonly PlannedImageBatchScene[])[] {
   const groups = new Map<string, PlannedImageBatchScene[]>();
   for (const plan of plans) {
@@ -594,11 +514,9 @@ function groupScenePlansByCacheCompatibility(
   return [...groups.entries()]
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([, groupedPlans]) =>
-      groupedPlans
-        .sort((left, right) =>
-          left.requestLine.custom_id.localeCompare(right.requestLine.custom_id)
-        )
-        .map((plan) => withPromptCachePlan(plan, groupedPlans.length, settings))
+      groupedPlans.sort((left, right) =>
+        left.requestLine.custom_id.localeCompare(right.requestLine.custom_id)
+      )
     );
 }
 

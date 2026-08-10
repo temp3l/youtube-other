@@ -44,6 +44,14 @@ export interface HistoryCommandDependencies {
   readonly importHistoryContentPack: (
     request: HistoryContentPackImportRequest
   ) => Promise<unknown>;
+  readonly generateHistoryYoutubeMetadata?: (request: {
+    readonly episodeId: string;
+    readonly outputRoot?: string;
+    readonly locale: string;
+    readonly variant: "full" | "short";
+    readonly force: boolean;
+    readonly dryRun: boolean;
+  }) => Promise<unknown>;
   readonly inspectHistoryWorkflow?: (request: {
     readonly episodeId: string;
     readonly outputRoot?: string;
@@ -440,6 +448,38 @@ export function registerHistoryCommands(
         options.json ?? inherited().json
       );
     });
+
+  if (dependencies.generateHistoryYoutubeMetadata) {
+    history
+      .command("metadata <episode-id>")
+      .description("Generate or plan YouTube metadata for the selected History narration")
+      .option("--output-root <path>", "History episodes root")
+      .option("--locale <code>", "Metadata locale", "en")
+      .option("--variant <full|short>", "Narration variant", "full")
+      .option("--force", "Bypass a valid metadata cache", false)
+      .option("--dry-run", "Resolve narration and metadata cache without provider calls", false)
+      .option("--json", "emit machine-readable output")
+      .action(async (episodeId: string, options: {
+        readonly outputRoot?: string;
+        readonly locale: string;
+        readonly variant: string;
+        readonly force: boolean;
+        readonly dryRun: boolean;
+        readonly json?: boolean;
+      }) => {
+        if (options.variant !== "full" && options.variant !== "short") {
+          throw new Error(`Unsupported History metadata variant: ${options.variant}. Expected full or short.`);
+        }
+        emit(await dependencies.generateHistoryYoutubeMetadata!({
+          episodeId,
+          locale: options.locale,
+          variant: options.variant,
+          force: options.force,
+          dryRun: options.dryRun || inherited().dryRun === true,
+          ...(options.outputRoot ? { outputRoot: options.outputRoot } : {}),
+        }), options.json ?? inherited().json);
+      });
+  }
 
   if (dependencies.inspectHistoryWorkflow && dependencies.getHistoryNextStep) {
     const workflow = history

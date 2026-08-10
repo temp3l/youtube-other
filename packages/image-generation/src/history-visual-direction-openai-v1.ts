@@ -1,6 +1,10 @@
 import OpenAI from "openai";
 import { z } from "zod";
 import {
+  openAiPromptCacheFields,
+  planOpenAiResponsesPromptCache,
+} from "@mediaforge/shared";
+import {
   HISTORY_VISUAL_DIRECTION_SCHEMA_V1,
   type VisualDirectionResolverInputV1,
   globalVisualDirectionSchemaV1,
@@ -66,6 +70,21 @@ export async function resolveHistoricalVisualDirectionWithOpenAiV1(input: {
   const model = input.model ?? resolveDefaultVisualDirectionModel();
   const schema = z.toJSONSchema(openAiVisualDirectionBodySchema) as Record<string, unknown>;
   delete schema["$schema"];
+  const promptCachePlan = planOpenAiResponsesPromptCache({
+    model,
+    reusablePrefix: VISUAL_DIRECTION_STABLE_PREFIX_V1,
+    expectedReuseCount: 2,
+    itemIdentity: "history-visual-direction",
+    contract: {
+      genre: "history",
+      planner: "visual-direction",
+      contractVersion: "v1",
+      schemaVersion: `v${HISTORY_VISUAL_DIRECTION_SCHEMA_V1}`,
+      modelFamily: model.replace(/-[\d.]+(?:-mini)?$/u, ""),
+      stablePrefix: VISUAL_DIRECTION_STABLE_PREFIX_V1,
+    },
+    breakpointAfterBlock: "history-visual-direction-contract",
+  });
   const response = await client.responses.create({
     model,
     max_output_tokens: 4096,
@@ -87,6 +106,7 @@ export async function resolveHistoricalVisualDirectionWithOpenAiV1(input: {
         schema,
       },
     },
+    ...openAiPromptCacheFields(promptCachePlan),
   });
   const parsed = openAiVisualDirectionBodySchema.parse(
     JSON.parse(response.output_text ?? "null") as unknown

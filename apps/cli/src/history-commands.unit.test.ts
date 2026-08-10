@@ -49,6 +49,17 @@ describe("history commands", () => {
     ).toEqual(["inspect", "validate", "import"]);
   });
 
+  it("routes typed History metadata requests through the genre-owned service", async () => {
+    const services = dependencies();
+    Object.assign(services, { generateHistoryYoutubeMetadata: vi.fn(async (request) => ({ request })) });
+    const program = new Command();
+    registerHistoryCommands(program, services);
+    await execute(program, ["history", "metadata", "episode-001", "--locale", "en", "--variant", "short", "--dry-run"]);
+    expect(services.generateHistoryYoutubeMetadata).toHaveBeenCalledWith({
+      episodeId: "episode-001", locale: "en", variant: "short", force: false, dryRun: true,
+    });
+  });
+
   it("passes strict History validation to the offline service", async () => {
     const services = dependencies();
     const program = new Command();

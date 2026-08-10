@@ -3,6 +3,7 @@ import {
   type DeliveryBundle,
   type PlanDeliveryBundleInput,
 } from "@mediaforge/metadata/delivery-bundle";
+import type { GenerateEpisodeYouTubeMetadataResult } from "@mediaforge/metadata";
 import { localeEditionArtifactSchema, type LocaleEditionArtifact } from "@mediaforge/story-localization/locale-edition";
 import { veronicaRenderDerivativeSchema, type VeronicaRenderDerivative } from "../rendering/render-derivative.js";
 
@@ -13,6 +14,9 @@ export interface PlanVeronicaDeliveryBundleInput extends Omit<
   readonly localeEdition: LocaleEditionArtifact;
   readonly renderDerivative: VeronicaRenderDerivative;
   readonly deliveryApproval: DeliveryBundle["approval"];
+  /** The metadata command's scoped result, when delivery is built from it. */
+  readonly metadataArtifact?: Pick<GenerateEpisodeYouTubeMetadataResult,
+    "episodeId" | "locale" | "variant" | "metadataPath">;
 }
 
 /** Canonical adapter from approved Veronica derivatives to the shared delivery capability. */
@@ -46,6 +50,14 @@ export function planVeronicaDeliveryBundle(input: PlanVeronicaDeliveryBundleInpu
   if (input.deliveryApproval.boundRevision !== input.productionRevisionId) {
     throw new Error("VERONICA_DELIVERY_APPROVAL_REQUIRED");
   }
+  const inferredVariant = renderDerivative.aspectRatio === "9:16" ? "short" : "full";
+  if (input.metadataArtifact && (
+    input.metadataArtifact.episodeId !== input.episodeId ||
+    input.metadataArtifact.locale !== input.locale ||
+    input.metadataArtifact.variant !== inferredVariant
+  )) {
+    throw new Error("VERONICA_DELIVERY_METADATA_VARIANT_MISMATCH");
+  }
   const captions = renderDerivative.voice.captionsPath && renderDerivative.voice.captionsFingerprint
     ? {
         artifactId: `captions-${renderDerivative.voice.captionsFingerprint.slice(0, 16)}`,
@@ -56,6 +68,7 @@ export function planVeronicaDeliveryBundle(input: PlanVeronicaDeliveryBundleInpu
   return planDeliveryBundle({
     ...input,
     contentProfileId: "veronicabenini",
+    variant: inferredVariant,
     files: {
       render: {
         artifactId: renderDerivative.renderId,

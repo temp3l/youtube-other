@@ -199,6 +199,8 @@ export interface YoutubeMetadataTarget {
   readonly language: string;
   readonly locale: string;
   readonly variant: "full" | "short";
+  /** Set by genre orchestration; generic callers intentionally remain unscoped. */
+  readonly genre?: string;
   readonly scenePlan: ScenePlan;
   readonly sourceSha256: string;
   readonly durationSeconds: number;
@@ -1174,6 +1176,10 @@ export function computeYoutubeMetadataCacheKey(input: {
   readonly language: string;
   readonly modelConfigFingerprint: string;
   readonly promptSchemaFingerprint: string;
+  readonly genre?: string;
+  readonly episodeId?: string;
+  readonly locale?: string;
+  readonly variant?: "full" | "short";
 }): string {
   return hashText([
     input.sourceSha256,
@@ -1185,6 +1191,10 @@ export function computeYoutubeMetadataCacheKey(input: {
     input.language,
     input.modelConfigFingerprint,
     input.promptSchemaFingerprint,
+    input.genre ?? "",
+    input.episodeId ?? "",
+    input.locale ?? "",
+    input.variant ?? "",
   ].join("\u0000"));
 }
 
@@ -1239,6 +1249,12 @@ export async function generateYoutubeMetadataForTarget(
     language: options.language,
     modelConfigFingerprint,
     promptSchemaFingerprint,
+    ...(target.genre ? { genre: target.genre } : {}),
+    ...(target.genre ? {
+      episodeId: target.episodeSlug,
+      locale: target.locale,
+      variant: target.variant,
+    } : {}),
   });
   const cachedGeneration = await loadCachedGeneration(outputs.generationPath);
   const cacheHit = Boolean(!options.force && cachedGeneration?.cacheKey === cacheKey && (await fileExists(outputs.jsonPath)));

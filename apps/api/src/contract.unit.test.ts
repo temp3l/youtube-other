@@ -252,9 +252,22 @@ describe("OpenAPI contract", () => {
       ...scoped,
       review: { ...scoped.review, inputArtifactHashes: ["not-a-hash"] },
     }).success).toBe(false);
+    expect(approvalInputSchema.safeParse({
+      ...scoped,
+      review: { ...scoped.review, gate: "render-qa" },
+    }).success).toBe(true);
+    expect(approvalInputSchema.safeParse({
+      ...scoped,
+      review: { ...scoped.review, gate: "final-render" },
+    }).success).toBe(false);
     expect(openApiDocument.components.schemas.ApprovalReviewScope).toMatchObject({
       additionalProperties: false,
       required: expect.arrayContaining(["gate", "inputArtifactHashes", "outputArtifactHashes"]),
+      properties: {
+        gate: {
+          enum: ["source", "canonical-script", "localization", "voice", "metadata", "render-qa", "publish"],
+        },
+      },
     });
   });
 

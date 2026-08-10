@@ -242,7 +242,8 @@ const approvalReviewScopeSchema = z
       "canonical-script",
       "localization",
       "voice",
-      "final-render",
+      "metadata",
+      "render-qa",
       "publish",
     ]),
     locale: z.enum(["en", "de", "es", "fr", "pt", "it"]),
@@ -2417,7 +2418,7 @@ export const openApiDocument = {
         additionalProperties: false,
         required: ["gate", "locale", "variant", "inputArtifactHashes", "outputArtifactHashes", "highRisk"],
         properties: {
-          gate: { type: "string", enum: ["source", "canonical-script", "localization", "voice", "final-render", "publish"] },
+          gate: { type: "string", enum: ["source", "canonical-script", "localization", "voice", "metadata", "render-qa", "publish"] },
           locale: { type: "string", enum: ["en", "de", "es", "fr", "pt", "it"] },
           variant: { type: "string", enum: ["full", "short"] },
           inputArtifactHashes: { type: "array", minItems: 1, maxItems: 100, items: { type: "string", pattern: "^[a-f0-9]{64}$" } },

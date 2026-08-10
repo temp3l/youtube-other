@@ -1,9 +1,15 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+
+import { ARTIFACT_SCHEMA_VERSION, artifactRefSchema } from "@mediaforge/domain";
+import { LEGACY_ARTIFACT_LAYOUT_VERSION } from "@mediaforge/shared";
+import { ArtifactRepository } from "@mediaforge/workflow-engine";
 import { Command } from "commander";
 import { describe, expect, it, vi } from "vitest";
+
 import {
+  EPISODE_LAYOUT_MIGRATION_VERSION,
   normalizeEpisodeScriptContent,
   planEpisodeLayoutMigration,
   registerEpisodeLayoutMigrationCommand,
@@ -28,129 +34,276 @@ async function writeEpisodeFile(
 
 describe("episode layout migration command", () => {
   it("normalizes script content with the documented policy", () => {
-    expect(normalizeEpisodeScriptContent(Buffer.from("\uFEFFLine 1  \r\nLine 2\t\r\n\r\n"))).toBe(
-      "Line 1\nLine 2\n"
-    );
+    expect(
+      normalizeEpisodeScriptContent(
+        Buffer.from("\uFEFFLine 1  \r\nLine 2\t\r\n\r\n")
+      )
+    ).toBe("Line 1\nLine 2\n");
   });
 
-  it("classifies episode 022 English and German duplicate layouts without writing", async () => {
+  it("characterizes canonical, equivalent, and divergent representative layouts", async () => {
     const episodesRoot = await createEpisodesRoot();
-    const episode = "022-the-whistler-in-the-woods";
-    await writeEpisodeFile(episodesRoot, `${episode}/languages/script-en.md`, "English\n");
-    await writeEpisodeFile(episodesRoot, `${episode}/script.md`, "English  \r\n");
-    await writeEpisodeFile(episodesRoot, `${episode}/en/full/script.md`, "Different English\n");
-    await writeEpisodeFile(episodesRoot, `${episode}/languages/script-de.md`, "Deutsch\n");
-    await writeEpisodeFile(episodesRoot, `${episode}/de/full/script.md`, "Deutsch\r\n");
-    await writeEpisodeFile(episodesRoot, `${episode}/locales/en/full/script.md`, "Generated\n");
-    await writeEpisodeFile(episodesRoot, `${episode}/state/script.md`, "Generated state\n");
+    const canonicalEpisode = "022-the-whistler-in-the-woods";
+    await writeEpisodeFile(
+      episodesRoot,
+      `${canonicalEpisode}/languages/script-en.md`,
+      "English\n"
+    );
+    await writeEpisodeFile(
+      episodesRoot,
+      `${canonicalEpisode}/script.md`,
+      "English  \r\n"
+    );
+    const divergentEpisode = "009-mary-gloria-the-christmas-doll";
+    await writeEpisodeFile(
+      episodesRoot,
+      `${divergentEpisode}/script.md`,
+      "English root\n"
+    );
+    await writeEpisodeFile(
+      episodesRoot,
+      `${divergentEpisode}/en/full/script.md`,
+      "Generated but different\n"
+    );
 
     const report = await planEpisodeLayoutMigration({
       episodesRoot,
-      now: new Date("2026-07-03T00:00:00.000Z"),
+      now: new Date("2026-08-10T00:00:00.000Z"),
     });
 
+    expect(report.schemaVersion).toBe(EPISODE_LAYOUT_MIGRATION_VERSION);
     expect(report.dryRun).toBe(true);
-    expect(report.candidates.map((candidate) => candidate.repositoryRelativePath)).toEqual([
-      `episodes/${episode}/de/full/script.md`,
-      `episodes/${episode}/en/full/script.md`,
-      `episodes/${episode}/languages/script-de.md`,
-      `episodes/${episode}/languages/script-en.md`,
-      `episodes/${episode}/script.md`,
-    ]);
+    expect(report.summary["write-manifest"]).toBe(1);
+    expect(report.summary.block).toBe(1);
     expect(
-      report.candidates.find((candidate) => candidate.relativePath === "languages/script-en.md")
-    ).toMatchObject({ classification: "already_canonical", language: "en", variant: "full" });
+      report.plans.find((plan) => plan.ref.unitId === canonicalEpisode)
+    ).toMatchObject({
+      operation: "write-manifest",
+      classification: "canonical_manifest_missing",
+      destination: { relativePath: "languages/script-en.md" },
+    });
     expect(
-      report.candidates.find((candidate) => candidate.relativePath === "script.md")
-    ).toMatchObject({ classification: "identical_duplicate" });
+      report.candidates.find(
+        (candidate) =>
+          candidate.episodeSlug === canonicalEpisode &&
+          candidate.relativePath === "script.md"
+      )
+    ).toMatchObject({
+      source: "legacy",
+      classification: "equivalent_legacy",
+      legacyLayoutVersion: LEGACY_ARTIFACT_LAYOUT_VERSION,
+      legacyProvenance: "authored-root-compatibility",
+      readOnly: true,
+    });
     expect(
-      report.candidates.find((candidate) => candidate.relativePath === "en/full/script.md")
-    ).toMatchObject({ classification: "divergent_duplicate" });
-    expect(
-      report.candidates.find((candidate) => candidate.relativePath === "de/full/script.md")
-    ).toMatchObject({ classification: "identical_duplicate", language: "de" });
-    expect(report.summary.already_canonical).toBe(2);
-    expect(report.summary.identical_duplicate).toBe(2);
-    expect(report.summary.divergent_duplicate).toBe(1);
+      report.plans.find((plan) => plan.ref.unitId === divergentEpisode)
+    ).toMatchObject({
+      operation: "block",
+      classification: "ambiguous_candidates",
+    });
   });
 
-  it("plans safe moves, invalid language, and target collisions deterministically", async () => {
+  it("dry-runs a legacy copy without filesystem writes", async () => {
+    const episodesRoot = await createEpisodesRoot();
+    const episode = "010-safe";
+    await writeEpisodeFile(
+      episodesRoot,
+      `${episode}/source/${episode}-en-full.md`,
+      "Move me\n"
+    );
+
+    const report = await planEpisodeLayoutMigration({ episodesRoot });
+    const plan = report.plans[0];
+
+    expect(plan).toMatchObject({
+      operation: "copy",
+      classification: "legacy_copy",
+      source: {
+        relativePath: `source/${episode}-en-full.md`,
+        legacyProvenance: "source-lineage",
+        readOnly: true,
+      },
+      destination: {
+        relativePath: "languages/script-en.md",
+        expectedState: "absent",
+      },
+      performed: false,
+    });
+    await expect(
+      fs.access(path.join(episodesRoot, episode, "languages", "script-en.md"))
+    ).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(
+      fs.access(path.join(episodesRoot, episode, "state"))
+    ).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("blocks a generated runtime script from becoming authored source", async () => {
     const episodesRoot = await createEpisodesRoot();
     await writeEpisodeFile(
       episodesRoot,
-      "010-safe/source/010-safe-en-full.md",
-      "Move me\n"
-    );
-    await writeEpisodeFile(
-      episodesRoot,
-      "011-invalid/languages/script-sp.md",
-      "Legacy Spanish\n"
-    );
-    await writeEpisodeFile(
-      episodesRoot,
-      "012-collision/en/full/script.md",
-      "Cannot move\n"
-    );
-    await fs.mkdir(path.join(episodesRoot, "012-collision", "languages"), {
-      recursive: true,
-    });
-    await fs.mkdir(
-      path.join(episodesRoot, "012-collision", "languages", "script-en.md"),
-      { recursive: true }
+      "010-runtime-only/locales/en/full/script.md",
+      "Generated runtime\n"
     );
 
     const report = await planEpisodeLayoutMigration({ episodesRoot });
 
-    expect(
-      report.candidates.find((candidate) => candidate.episodeSlug === "010-safe")
-    ).toMatchObject({
-      classification: "safe_move",
-      canonicalRepositoryRelativePath: "episodes/010-safe/languages/script-en.md",
-      move: { performed: false },
+    expect(report.plans[0]).toMatchObject({
+      operation: "block",
+      classification: "compatibility_only",
+      source: null,
     });
-    expect(
-      report.candidates.find((candidate) => candidate.episodeSlug === "011-invalid")
-    ).toMatchObject({ classification: "invalid_language_or_variant" });
-    expect(
-      report.candidates.find((candidate) => candidate.episodeSlug === "012-collision")
-    ).toMatchObject({ classification: "target_collision" });
   });
 
-  it("write mode performs only safe non-overwriting moves with rollback metadata", async () => {
+  it("copies atomically, writes a manifest and rollback metadata, and preserves the legacy source", async () => {
+    const episodesRoot = await createEpisodesRoot();
+    const episode = "010-safe";
+    const sourcePath = path.join(
+      episodesRoot,
+      episode,
+      "source",
+      `${episode}-en-full.md`
+    );
+    await writeEpisodeFile(
+      episodesRoot,
+      `${episode}/source/${episode}-en-full.md`,
+      "Copy me\n"
+    );
+    const dryRun = await planEpisodeLayoutMigration({ episodesRoot });
+
+    const report = await planEpisodeLayoutMigration({
+      episodesRoot,
+      write: true,
+      confirmed: true,
+      confirmationMigrationId: dryRun.migrationId,
+      now: new Date("2026-08-10T00:00:00.000Z"),
+    });
+    const plan = report.plans[0];
+    const canonical = path.join(
+      episodesRoot,
+      episode,
+      "languages",
+      "script-en.md"
+    );
+
+    expect(plan).toMatchObject({ operation: "copy", performed: true });
+    await expect(fs.readFile(canonical, "utf8")).resolves.toBe("Copy me\n");
+    await expect(fs.readFile(sourcePath, "utf8")).resolves.toBe("Copy me\n");
+    await expect(
+      fs.readFile(`${canonical}.artifact-manifest.json`, "utf8")
+    ).resolves.toContain("artifact.layout-migration");
+    await expect(
+      fs.readFile(plan?.rollbackMetadataPath as string, "utf8")
+    ).resolves.toContain("delete-canonical-artifact-and-manifest");
+  });
+
+  it("adopts an unmanifested canonical script and never overwrites a conflicting target", async () => {
     const episodesRoot = await createEpisodesRoot();
     await writeEpisodeFile(
       episodesRoot,
-      "010-safe/source/010-safe-en-full.md",
-      "Move me\n"
+      "012-adopt/languages/script-en.md",
+      "Canonical\n"
+    );
+    await writeEpisodeFile(
+      episodesRoot,
+      "013-conflict/en/full/script.md",
+      "Legacy\n"
+    );
+    await fs.mkdir(
+      path.join(episodesRoot, "013-conflict", "languages", "script-en.md"),
+      { recursive: true }
     );
 
-    const report = await planEpisodeLayoutMigration({ episodesRoot, write: true });
-    const candidate = report.candidates[0];
+    const dryRun = await planEpisodeLayoutMigration({ episodesRoot });
+    expect(
+      dryRun.plans.find((plan) => plan.ref.unitId === "012-adopt")
+    ).toMatchObject({ operation: "write-manifest" });
+    expect(
+      dryRun.plans.find((plan) => plan.ref.unitId === "013-conflict")
+    ).toMatchObject({ operation: "block", classification: "target_conflict" });
+    await expect(
+      planEpisodeLayoutMigration({
+        episodesRoot,
+        write: true,
+        confirmed: true,
+        confirmationMigrationId: dryRun.migrationId,
+      })
+    ).rejects.toMatchObject({ code: "ARTIFACT_CONFLICT" });
+    await expect(
+      fs.access(
+        path.join(
+          episodesRoot,
+          "012-adopt",
+          "languages",
+          "script-en.md.artifact-manifest.json"
+        )
+      )
+    ).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(
+      fs.stat(
+        path.join(episodesRoot, "013-conflict", "languages", "script-en.md")
+      )
+    ).resolves.toMatchObject({ isDirectory: expect.any(Function) });
+  });
 
-    expect(candidate).toMatchObject({
-      classification: "safe_move",
-      move: { performed: true },
+  it("recognizes a valid producer manifest with non-migration revisions", async () => {
+    const episodesRoot = await createEpisodesRoot();
+    const repository = new ArtifactRepository({ workspaceRoot: episodesRoot });
+    const ref = artifactRefSchema.parse({
+      schemaVersion: ARTIFACT_SCHEMA_VERSION,
+      unitId: "014-produced",
+      profileId: "dark-truth",
+      locale: "en",
+      variant: "full",
+      kind: "full-script",
+      format: "md",
+      artifactRevision: "production-revision-42",
+      workflowRevision: "darktruth-story-v7",
+      policyRevision: "editorial-v3",
     });
-    expect(candidate?.move?.rollback.command).toContain("mv ");
+    await repository.promote({
+      ref,
+      content: "Produced canonical\n",
+      mediaType: "text/markdown",
+      producerTaskId: "darktruth.rewrite-full",
+      producerTaskVersion: "7.0.0",
+      producerAttemptId: "attempt-production-42",
+      validatorId: "darktruth.story-validator",
+      validatorVersion: "3.0.0",
+      dependencyFingerprints: ["a".repeat(64)],
+      validate: () => undefined,
+    });
+
+    const report = await planEpisodeLayoutMigration({ episodesRoot });
+
+    expect(report.plans).toHaveLength(1);
+    expect(report.plans[0]).toMatchObject({
+      operation: "skip",
+      classification: "canonical_verified",
+    });
+  });
+
+  it("requires the exact dry-run migration ID and explicit confirmation", async () => {
+    const episodesRoot = await createEpisodesRoot();
+    await writeEpisodeFile(episodesRoot, "010-safe/script.md", "Legacy\n");
+
     await expect(
-      fs.readFile(path.join(episodesRoot, "010-safe/languages/script-en.md"), "utf8")
-    ).resolves.toBe("Move me\n");
-    await expect(
-      fs.access(path.join(episodesRoot, "010-safe/source/010-safe-en-full.md"))
-    ).rejects.toThrow();
+      planEpisodeLayoutMigration({
+        episodesRoot,
+        write: true,
+        confirmationMigrationId: "wrong",
+      })
+    ).rejects.toMatchObject({ code: "MIGRATION_CONFIRMATION_REQUIRED" });
   });
 
   it("registers a dry-run JSON CLI command", async () => {
     const episodesRoot = await createEpisodesRoot();
-    await writeEpisodeFile(
-      episodesRoot,
-      "010-safe/source/010-safe-en-full.md",
-      "Move me\n"
-    );
+    await writeEpisodeFile(episodesRoot, "010-safe/script.md", "Legacy\n");
     const program = new Command();
     const episode = program.command("episode");
     registerEpisodeLayoutMigrationCommand(episode);
-    const output = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const output = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(() => true);
     let stdout = "";
     try {
       await program.parseAsync([
@@ -169,9 +322,11 @@ describe("episode layout migration command", () => {
     }
     const payload = JSON.parse(stdout) as {
       readonly dryRun: boolean;
-      readonly candidates: readonly unknown[];
+      readonly migrationId: string;
+      readonly plans: readonly unknown[];
     };
     expect(payload.dryRun).toBe(true);
-    expect(payload.candidates).toHaveLength(1);
+    expect(payload.migrationId).toMatch(/^episode-layout-migration-/u);
+    expect(payload.plans).toHaveLength(1);
   });
 });

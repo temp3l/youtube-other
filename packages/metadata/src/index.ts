@@ -47,6 +47,14 @@ export {
   formatYoutubeMetadataMarkdown,
   youtubeMetadataSchema
 } from "./youtube-metadata.js";
+export {
+  MetadataNarrationResolutionError,
+  generateEpisodeYouTubeMetadata,
+  type GenerateEpisodeYouTubeMetadataInput,
+  type GenerateEpisodeYouTubeMetadataResult,
+  type SupportedMetadataGenre,
+  type YouTubeMetadataVariant,
+} from "./youtube-metadata-orchestration.js";
 
 export interface MetadataProvider {
   generate(script: RewrittenScript, scenePlan: ScenePlan, platform: "youtube" | "tiktok"): PublishingMetadata;

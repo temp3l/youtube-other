@@ -6,6 +6,7 @@ import { ARTIFACT_SCHEMA_VERSION, artifactRefSchema } from "@mediaforge/domain";
 import { describe, expect, it } from "vitest";
 
 import {
+  LEGACY_ARTIFACT_LAYOUT_VERSION,
   assertContainedRegularFile,
   assertContainedWritablePath,
   resolveArtifactPathSet,
@@ -43,9 +44,57 @@ describe("artifact path resolver", () => {
       "shared/short/images/generated/scene-001.webp",
       "images/generated/scene-001.webp",
     ]);
+    expect(paths.legacyCandidates).toEqual([
+      {
+        absolutePath:
+          "/workspace/episode-001/shared/short/images/generated/scene-001.webp",
+        relativePath: "shared/short/images/generated/scene-001.webp",
+        layoutVersion: LEGACY_ARTIFACT_LAYOUT_VERSION,
+        provenance: "shared-image-output",
+        readOnly: true,
+      },
+      {
+        absolutePath: "/workspace/episode-001/images/generated/scene-001.webp",
+        relativePath: "images/generated/scene-001.webp",
+        layoutVersion: LEGACY_ARTIFACT_LAYOUT_VERSION,
+        provenance: "shared-image-output",
+        readOnly: true,
+      },
+    ]);
     expect(
       createEpisodePathResolver("/workspace").artifact(episodeRef)
     ).toEqual(paths);
+  });
+
+  it("declares script compatibility as versioned read-only provenance", () => {
+    const paths = resolveArtifactPathSet({
+      workspaceRoot: "/workspace",
+      ref: artifactRefSchema.parse({
+        ...episodeRef,
+        locale: "en",
+        variant: "full",
+        kind: "full-script",
+        format: "md",
+        artifactKey: undefined,
+      }),
+    });
+
+    expect(paths.canonicalRelativePath).toBe("languages/script-en.md");
+    expect(paths.legacyCandidates).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          relativePath: "script.md",
+          layoutVersion: LEGACY_ARTIFACT_LAYOUT_VERSION,
+          provenance: "authored-root-compatibility",
+          readOnly: true,
+        }),
+        expect.objectContaining({
+          relativePath: "locales/en/full/script.md",
+          provenance: "generated-locale-runtime",
+          readOnly: true,
+        }),
+      ])
+    );
   });
 
   it("adapts mathematics lessons without episode layout leakage", () => {
@@ -122,7 +171,9 @@ describe("artifact path resolver", () => {
       }),
     });
 
-    expect(paths.canonicalRelativePath).toBe("sources/manifests/source-primary.json");
+    expect(paths.canonicalRelativePath).toBe(
+      "sources/manifests/source-primary.json"
+    );
     expect(paths.legacyRelativePaths).toEqual([
       "sources/source-primary.manifest.json",
     ]);

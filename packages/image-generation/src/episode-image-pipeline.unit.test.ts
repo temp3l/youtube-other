@@ -11,6 +11,7 @@ import {
 import { resolveEpisodeFocalMetadataPath } from "@mediaforge/shared";
 import {
   approveEpisodeCharacter,
+  buildEpisodeImageMediaContext,
   buildPromptFromSpec,
   buildSceneVisualSpec,
   diffSpec,
@@ -29,6 +30,10 @@ import {
   validateSceneVisualSpec,
 } from "./episode-image-pipeline.js";
 import { loadEpisodeFocalMetadata } from "./focal-metadata.js";
+import {
+  registerVeronicaReusableImage,
+  resolveVeronicaReusableImageRegistryPath,
+} from "./veronica-reusable-image-registry.js";
 
 function makeScenePlan(
   sceneOverrides: Array<Partial<ScenePlan["scenes"][number]>>
@@ -167,11 +172,15 @@ async function loadMalformedSceneRegressionFixtures(): Promise<
   ) as MalformedSceneRegressionFixture[];
 }
 
-async function createImageBuffer(color: string): Promise<string> {
+async function createImageBuffer(
+  color: string,
+  width = 1536,
+  height = 864,
+): Promise<string> {
   return sharp({
     create: {
-      width: 1536,
-      height: 864,
+      width,
+      height,
       channels: 3,
       background: color,
     },
@@ -989,6 +998,90 @@ describe("episode image pipeline helpers", () => {
     });
   });
 
+  it("materializes a compatible Veronica registry asset before provider generation", async () => {
+    const workspaceRoot = mkdtempSync(path.join(os.tmpdir(), "mediaforge-veronica-reuse-"));
+    const episodeDir = path.join(workspaceRoot, "episode-target");
+    const sourcePath = path.join(workspaceRoot, "episode-source", "source.png");
+    await fs.mkdir(path.dirname(sourcePath), { recursive: true });
+    await fs.writeFile(sourcePath, Buffer.from(await createImageBuffer("#446688"), "base64"));
+    await fs.mkdir(episodeDir, { recursive: true });
+    const plan = makeScenePlan([
+      {
+        canonicalNarration: "A professional compares two clear choices.",
+        visualPurpose: "Show a professional comparing two clear choices.",
+        subject: "professional",
+        action: "compares two clear choices",
+        setting: "neutral meeting table",
+        composition: "balanced comparison frame",
+      },
+    ]);
+    const registryPath = resolveVeronicaReusableImageRegistryPath(workspaceRoot);
+    await registerVeronicaReusableImage({
+      registryPath,
+      workspaceRoot,
+      sourcePath,
+      descriptor: {
+        assetId: "source-asset",
+        sourceEpisodeId: "episode-source",
+        sourceSceneId: "scene-source",
+        generationFingerprint: "source-generation",
+        visualIntent: "Show a professional comparing two clear choices.",
+        semanticBeat: "A differently worded source beat.",
+        subjectArchetypes: ["professional"],
+        actions: ["compares two clear choices"],
+        settingArchetype: "neutral meeting table",
+        compositionArchetype: "balanced comparison frame",
+        evidenceMode: "illustrative",
+        aspectRatio: "16:9",
+        visualContractVersion: "veronica-semantic-image.v1",
+        containsVisibleText: false,
+        containsEpisodeSpecificText: false,
+        containsNamedPerson: false,
+        containsNamedBrand: false,
+        usesReferenceImage: false,
+        localizationSensitive: false,
+        continuitySensitive: false,
+        identitySensitive: false,
+        uniqueEvidence: false,
+        uniqueProductIdentity: false,
+        materialEditingMask: false,
+        occupationNeutral: true,
+        occupationCues: [],
+        permittedOccupationCues: [],
+        reuseEligibility: "eligible",
+      },
+    });
+    const settings = loadEpisodeImageGenerationSettings({
+      OPENAI_API_KEY: "test-key",
+      OPENAI_IMAGE_MODEL: "gpt-image-2",
+      OPENAI_IMAGE_SIZE: "1536x1024",
+      OPENAI_IMAGE_QUALITY: "medium",
+      OPENAI_IMAGE_CONCURRENCY: "1",
+      OPENAI_IMAGE_MAX_RETRIES: "0",
+      OPENAI_IMAGE_TIMEOUT_MS: "1000",
+      OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES: "true",
+    });
+    const calls: Array<{ method: "generate" | "edit"; body: unknown }> = [];
+
+    const result = await generateEpisodeImages(episodeDir, "episode-target", plan, settings, {
+      client: createMockClient(calls, await createImageBuffer("#112233")),
+      context: buildEpisodeImageMediaContext({
+        episodeId: "episode-target",
+        contentGenre: "veronicabenini",
+      }),
+    });
+
+    expect(result[0]?.status).toBe("skipped");
+    expect(calls).toHaveLength(0);
+    expect(await fs.readFile(result[0]!.outputPath)).toEqual(await fs.readFile(sourcePath));
+    await expect(
+      fs.readFile(
+        path.join(episodeDir, "state", "image-generation", "reuse-provenance", "scene-001.json"),
+        "utf8",
+      ),
+    ).resolves.toContain("CROSS_EPISODE_SEMANTIC_REUSE");
+  });
+
   it("collapses near-identical exposition beats into merge-with-previous candidates", async () => {
     const dir = mkdtempSync(path.join(os.tmpdir(), "mediaforge-similarity-merge-"));
     const episodeDir = path.join(dir, "episode");
@@ -1430,7 +1523,7 @@ describe("episode image pipeline helpers", () => {
 
   it("routes text-only requests through the fallback transport and keeps reference edits on the SDK", async () => {
     const dir = mkdtempSync(path.join(os.tmpdir(), "mediaforge-routing-"));
-    const b64 = await createImageBuffer("#00ff00");
+    const b64 = await createImageBuffer("#00ff00", 1536, 1024);
     const generateCalls: Array<{ body: unknown; options?: { readonly signal?: AbortSignal } }> = [];
     const editCalls: Array<{ body: unknown; options?: { readonly signal?: AbortSignal } }> = [];
     const client = {
@@ -1487,6 +1580,12 @@ describe("episode image pipeline helpers", () => {
           outputPath: path.join(dir, "text.png"),
         }),
         referenceImages: [],
+        context: {
+          episodeId: "episode-fixture",
+          language: "en",
+          profile: "full",
+          creatorMedia: { syntheticLikeness: false },
+        },
       });
       const referenceAssistedResult = await generator.generate({
         providerRequest: makePreparedProviderRequest({
@@ -1508,6 +1607,12 @@ describe("episode image pipeline helpers", () => {
             mimeType: "image/png",
           },
         ],
+        context: {
+          episodeId: "episode-fixture",
+          language: "en",
+          profile: "full",
+          creatorMedia: { syntheticLikeness: false },
+        },
       });
       expect(fetchMock).toHaveBeenCalledTimes(1);
       expect(generateCalls).toHaveLength(1);

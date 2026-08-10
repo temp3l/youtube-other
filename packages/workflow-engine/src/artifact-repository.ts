@@ -19,6 +19,7 @@ import {
   resolveArtifactPathSet,
   type ArtifactLayoutAdapter,
   type ArtifactPathSet,
+  type LegacyArtifactProvenance,
 } from "@mediaforge/shared";
 import { z } from "zod";
 
@@ -65,6 +66,9 @@ export interface ArtifactProvenance {
   readonly manifestPath: string;
   readonly checksumSha256: string;
   readonly validation: "passed";
+  readonly legacyLayoutVersion?: string;
+  readonly legacyProvenance?: LegacyArtifactProvenance;
+  readonly readOnlyCompatibilitySource?: true;
 }
 
 export interface VerifiedArtifact {
@@ -92,6 +96,19 @@ export interface PromoteArtifactRequest {
   readonly replaceInvalidDestination?: boolean;
   readonly refreshManifestOnReuse?: boolean;
   readonly dryRun?: boolean;
+}
+
+export interface AdoptCanonicalArtifactRequest {
+  readonly ref: ArtifactRef;
+  readonly expectedChecksumSha256: string;
+  readonly mediaType: string;
+  readonly producerTaskId: string;
+  readonly producerTaskVersion: string;
+  readonly producerAttemptId: string;
+  readonly validatorId: string;
+  readonly validatorVersion: string;
+  readonly dependencyFingerprints: readonly string[];
+  readonly validate: (content: Buffer) => void | Promise<void>;
 }
 
 export interface PlannedArtifactWrite {
@@ -171,6 +188,9 @@ interface Candidate {
   readonly source: "canonical" | "legacy";
   readonly absolutePath: string;
   readonly relativePath: string;
+  readonly legacyLayoutVersion?: string;
+  readonly legacyProvenance?: LegacyArtifactProvenance;
+  readonly readOnlyCompatibilitySource?: true;
 }
 
 interface ValidCandidate extends Candidate {
@@ -231,6 +251,45 @@ async function writeFileDurably(
   }
 }
 
+function buildArtifactManifest(args: {
+  readonly ref: ArtifactRef;
+  readonly relativePath: string;
+  readonly content: Buffer;
+  readonly checksumSha256: string;
+  readonly mediaType: string;
+  readonly producerTaskId: string;
+  readonly producerTaskVersion: string;
+  readonly producerAttemptId: string;
+  readonly validatorId: string;
+  readonly validatorVersion: string;
+  readonly dependencyFingerprints: readonly string[];
+  readonly timestamp: string;
+}): ArtifactManifest {
+  return artifactManifestSchema.parse({
+    schemaVersion: ARTIFACT_SCHEMA_VERSION,
+    id: `manifest-${sha256(
+      `${stableJson(args.ref)}\u0000${args.checksumSha256}`
+    ).slice(0, 24)}`,
+    ref: args.ref,
+    relativePath: args.relativePath,
+    checksumSha256: args.checksumSha256,
+    sizeBytes: args.content.byteLength,
+    mediaType: args.mediaType,
+    producerTaskId: args.producerTaskId,
+    producerTaskVersion: args.producerTaskVersion,
+    producerAttemptId: args.producerAttemptId,
+    producerSucceeded: true,
+    validation: {
+      status: "passed",
+      validatorId: args.validatorId,
+      validatorVersion: args.validatorVersion,
+      validatedAt: args.timestamp,
+    },
+    dependencyFingerprints: args.dependencyFingerprints,
+    createdAt: args.timestamp,
+  });
+}
+
 export class ArtifactRepository {
   private readonly workspaceRoot: string;
   private readonly adapters: readonly ArtifactLayoutAdapter[] | undefined;
@@ -280,10 +339,13 @@ export class ArtifactRepository {
         absolutePath: paths.canonical,
         relativePath: paths.canonicalRelativePath,
       },
-      ...paths.legacy.map((absolutePath, index) => ({
+      ...paths.legacyCandidates.map((candidate) => ({
         source: "legacy" as const,
-        absolutePath,
-        relativePath: paths.legacyRelativePaths[index] as string,
+        absolutePath: candidate.absolutePath,
+        relativePath: candidate.relativePath,
+        legacyLayoutVersion: candidate.layoutVersion,
+        legacyProvenance: candidate.provenance,
+        readOnlyCompatibilitySource: candidate.readOnly,
       })),
     ];
     const valid: ValidCandidate[] = [];
@@ -364,6 +426,15 @@ export class ArtifactRepository {
         manifestPath: selected.manifestPath,
         checksumSha256: selected.manifest.checksumSha256,
         validation: "passed",
+        ...(selected.legacyLayoutVersion
+          ? { legacyLayoutVersion: selected.legacyLayoutVersion }
+          : {}),
+        ...(selected.legacyProvenance
+          ? { legacyProvenance: selected.legacyProvenance }
+          : {}),
+        ...(selected.readOnlyCompatibilitySource
+          ? { readOnlyCompatibilitySource: true as const }
+          : {}),
       },
       equivalentCandidates: valid
         .filter((candidate) => candidate !== selected)
@@ -485,26 +556,19 @@ export class ArtifactRepository {
     const displacedArtifact = `${temporaryArtifact}.invalid`;
     const displacedManifest = `${temporaryManifest}.invalid`;
     const timestamp = this.now().toISOString();
-    const manifest = artifactManifestSchema.parse({
-      schemaVersion: ARTIFACT_SCHEMA_VERSION,
-      id: `manifest-${sha256(`${stableJson(ref)}\u0000${checksumSha256}`).slice(0, 24)}`,
+    const manifest = buildArtifactManifest({
       ref,
       relativePath: paths.canonicalRelativePath,
+      content,
       checksumSha256,
-      sizeBytes: content.byteLength,
       mediaType: request.mediaType,
       producerTaskId: request.producerTaskId,
       producerTaskVersion: request.producerTaskVersion,
       producerAttemptId: request.producerAttemptId,
-      producerSucceeded: true,
-      validation: {
-        status: "passed",
-        validatorId: request.validatorId,
-        validatorVersion: request.validatorVersion,
-        validatedAt: timestamp,
-      },
+      validatorId: request.validatorId,
+      validatorVersion: request.validatorVersion,
       dependencyFingerprints: request.dependencyFingerprints,
-      createdAt: timestamp,
+      timestamp,
     });
     let artifactPromoted = false;
     let manifestPromoted = false;
@@ -575,9 +639,9 @@ export class ArtifactRepository {
         );
       }
       if (!refreshCanonicalManifest) {
-        await fs.rename(temporaryArtifact, paths.canonical);
+        await fs.link(temporaryArtifact, paths.canonical);
         artifactPromoted = true;
-        await fs.rename(temporaryManifest, paths.canonicalManifest);
+        await fs.link(temporaryManifest, paths.canonicalManifest);
         manifestPromoted = true;
         replacementCommitted = true;
       }
@@ -615,6 +679,103 @@ export class ArtifactRepository {
       dependencyFingerprints: request.dependencyFingerprints,
     });
     return { operation: "write", dryRun: false, artifact };
+  }
+
+  /**
+   * Adds a manifest to an existing resolver-selected canonical file without
+   * rewriting that file. This is reserved for explicit layout migration; new
+   * producers must use `promote()`.
+   */
+  public async adoptCanonical(
+    request: AdoptCanonicalArtifactRequest
+  ): Promise<VerifiedArtifact> {
+    const ref = artifactRefSchema.parse(request.ref);
+    const paths = this.resolve(ref);
+    const canonical = await assertContainedRegularFile(
+      paths.unitRoot,
+      paths.canonical
+    );
+    if (await pathExists(paths.canonicalManifest)) {
+      throw new ArtifactRepositoryError(
+        "ARTIFACT_CONFLICT",
+        "The canonical manifest already exists; adoption never overwrites it.",
+        { destination: paths.canonicalManifestRelativePath }
+      );
+    }
+    const content = await fs.readFile(canonical);
+    await request.validate(content);
+    const checksumSha256 = sha256(content);
+    if (checksumSha256 !== request.expectedChecksumSha256) {
+      throw new ArtifactRepositoryError(
+        "MIGRATION_PLAN_STALE",
+        "Canonical artifact hash changed before manifest adoption.",
+        {
+          expectedChecksum: request.expectedChecksumSha256,
+          actualChecksum: checksumSha256,
+        }
+      );
+    }
+    await assertContainedWritablePath(
+      this.workspaceRoot,
+      paths.canonicalManifest
+    );
+    const timestamp = this.now().toISOString();
+    const manifest = buildArtifactManifest({
+      ref,
+      relativePath: paths.canonicalRelativePath,
+      content,
+      checksumSha256,
+      mediaType: request.mediaType,
+      producerTaskId: request.producerTaskId,
+      producerTaskVersion: request.producerTaskVersion,
+      producerAttemptId: request.producerAttemptId,
+      validatorId: request.validatorId,
+      validatorVersion: request.validatorVersion,
+      dependencyFingerprints: request.dependencyFingerprints,
+      timestamp,
+    });
+    const temporaryManifest = `${paths.canonicalManifest}.${process.pid}.${crypto.randomUUID()}.tmp`;
+    let manifestPromoted = false;
+    try {
+      await writeFileDurably(
+        temporaryManifest,
+        Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`, "utf8")
+      );
+      if ((await hashFile(canonical)) !== checksumSha256) {
+        throw new ArtifactRepositoryError(
+          "MIGRATION_PLAN_STALE",
+          "Canonical artifact hash changed during manifest adoption."
+        );
+      }
+      await fs.link(temporaryManifest, paths.canonicalManifest);
+      manifestPromoted = true;
+      const verified = await this.verify(ref);
+      if (verified.provenance.source !== "canonical") {
+        throw new ArtifactRepositoryError(
+          "ARTIFACT_INVALID",
+          "Adopted artifact did not verify as canonical."
+        );
+      }
+      return verified;
+    } catch (error) {
+      if (manifestPromoted) {
+        await fs.unlink(paths.canonicalManifest).catch(() => undefined);
+      }
+      if (
+        (error as NodeJS.ErrnoException).code === "EEXIST" &&
+        !(error instanceof ArtifactRepositoryError)
+      ) {
+        throw new ArtifactRepositoryError(
+          "ARTIFACT_CONFLICT",
+          "The canonical manifest appeared during adoption; it was not overwritten.",
+          { destination: paths.canonicalManifestRelativePath },
+          error
+        );
+      }
+      throw error;
+    } finally {
+      await fs.unlink(temporaryManifest).catch(() => undefined);
+    }
   }
 
   public async planMigration(

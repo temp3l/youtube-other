@@ -118,6 +118,8 @@ describe("shared semantic image-prompt core", () => {
     expect(de.cacheStatus).toBe("hit");
     expect(pt.cacheStatus).toBe("hit");
     expect(create).toHaveBeenCalledTimes(1);
+    expect(create.mock.calls[0]?.[0]).not.toHaveProperty("prompt_cache_key");
+    expect(create.mock.calls[0]?.[0]).not.toHaveProperty("prompt_cache_retention");
   });
 
   it("invalidates canonical meaning and visual treatment but excludes locale/TTS data", () => {

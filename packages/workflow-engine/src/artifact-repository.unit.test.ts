@@ -377,4 +377,32 @@ describe("canonical artifact repository", () => {
       })
     ).rejects.toMatchObject({ code: "MIGRATION_PLAN_STALE" });
   });
+
+  it("atomically adopts an existing canonical artifact without overwriting a manifest", async () => {
+    const workspace = await tempWorkspace();
+    const repository = new ArtifactRepository({
+      workspaceRoot: workspace,
+      now: () => new Date(fixedNow),
+    });
+    const artifactRef = ref();
+    const paths = repository.resolve(artifactRef);
+    await fs.mkdir(path.dirname(paths.canonical), { recursive: true });
+    await fs.writeFile(paths.canonical, "existing canonical", "utf8");
+
+    const adopted = await repository.adoptCanonical({
+      ...promoteRequest(artifactRef, "existing canonical"),
+      expectedChecksumSha256: hash("existing canonical"),
+    });
+
+    expect(adopted.provenance.source).toBe("canonical");
+    await expect(
+      repository.adoptCanonical({
+        ...promoteRequest(artifactRef, "existing canonical"),
+        expectedChecksumSha256: hash("existing canonical"),
+      })
+    ).rejects.toMatchObject({ code: "ARTIFACT_CONFLICT" });
+    await expect(fs.readFile(paths.canonical, "utf8")).resolves.toBe(
+      "existing canonical"
+    );
+  });
 });

@@ -1,12 +1,12 @@
 # Codex Verification Guardrails
 
-This repository keeps Codex verification focused, bounded, and cheap by combining instruction policy, a focused test runner, and a repo-local Codex hook that blocks broad shell verification commands by default.
+This repository keeps Codex verification focused, bounded, and cheap through instruction policy and a focused test runner.
 
 Instruction hierarchy:
 
 - Root `AGENTS.md` defines the repository-wide verification budget, fixture policy, and non-convergence stop rules.
 - `packages/story-localization/AGENTS.md` adds story-localization-specific test and fixture rules.
-- `.codex/hooks.json` enforces the shell-command guard for Codex CLI `PreToolUse` Bash commands.
+- Codex follows these limits through repository instructions; no repository-local Codex hooks are installed.
 
 Focused test command:
 
@@ -20,13 +20,13 @@ Optional exact-name narrowing:
 pnpm test:focused -- packages/story-localization/src/story-artifact-model.unit.test.ts -t "normalizes full story artifacts"
 ```
 
-Allowed by default:
+Preferred commands:
 
 - `pnpm test:focused -- <test-file>`
 - `pnpm exec vitest run -c vitest.unit.config.ts --bail=1 <test-file>`
 - `pnpm --filter @mediaforge/story-localization typecheck`
 
-Blocked by default:
+Commands Codex should not run by default:
 
 - `pnpm test`
 - `pnpm test:unit` without an explicit file
@@ -41,14 +41,14 @@ Blocked by default:
 - repeated identical focused-test commands more than twice in one session
 - ad-hoc `node --input-type=module -e` debug scripts
 
-Override:
+Cursor hook override:
 
 ```bash
 ALLOW_BROAD_VERIFICATION=1 pnpm test
 ALLOW_ADHOC_DEBUG=1 node --input-type=module -e "..."
 ```
 
-Use the override only when a human intentionally requests broader verification. The hook reads that environment variable and allows the command through without changing normal human terminal behavior outside Codex hook execution.
+Use the override only when a human intentionally requests broader verification. The Cursor hook reads that environment variable and allows the command through without changing normal human terminal behavior outside Cursor hook execution.
 
 Cursor agents use the same policy through `.cursor/hooks.json`.
 
@@ -77,14 +77,8 @@ Non-convergence behavior:
 
 Hook installation status:
 
-- Repository-local hook support is available in the installed Codex CLI version used for this setup.
-- The active repository hook file is `.codex/hooks.json`.
-- The hook event used here is `PreToolUse` with the `Bash` matcher.
-
-Hook payload notes:
-
-- Current Codex `PreToolUse` Bash payloads arrive on `stdin` as JSON and include `tool_name`, `tool_input.command`, `cwd`, `session_id`, `turn_id`, `permission_mode`, and related context.
-- The guard script parses only that documented JSON input and never executes payload content.
+- No repository-local Codex hook is installed or enabled.
+- Cursor agents continue to use `.cursor/hooks.json` for the same verification policy.
 
 Examples:
 

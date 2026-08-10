@@ -90,11 +90,11 @@ External systems:
 
 ## Canonical Path Policy
 
-All future orchestration and adapters should resolve episode paths through `packages/shared/src/episode-filesystem.ts`.
+All artifact paths resolve through `packages/shared/src/artifact-path-resolver.ts`. `createEpisodePathResolver()` may expose its typed result, but it is not a second artifact path authority.
 
 Required policy:
 
-- `createEpisodePathResolver()` is the only canonical path-construction entrypoint.
+- `resolveArtifactPathSet()` is the only canonical artifact path-construction entrypoint.
 - New orchestration should accept an `EpisodePathResolver` rather than raw directory math.
 - Existing helper-specific path builders for localized audio, renders, metadata, shorts outputs, and image state should migrate behind resolver-backed compatibility methods instead of staying ad hoc.
 

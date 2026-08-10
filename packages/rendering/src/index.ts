@@ -1634,6 +1634,40 @@ export function buildFinalAudioMuxFfmpegArguments(input: {
   ];
 }
 
+export function buildVisualTailExtensionFfmpegArguments(input: {
+  readonly visualPath: string;
+  readonly outputPath: string;
+  readonly paddingSeconds: number;
+  readonly targetDurationSeconds: number;
+}): readonly string[] {
+  if (!Number.isFinite(input.paddingSeconds) || input.paddingSeconds <= 0) {
+    throw new MediaValidationError("Visual-tail extension requires positive padding.");
+  }
+  if (
+    !Number.isFinite(input.targetDurationSeconds) ||
+    input.targetDurationSeconds <= 0
+  ) {
+    throw new MediaValidationError(
+      "Visual-tail extension requires a positive target duration."
+    );
+  }
+  return [
+    "-y",
+    "-i",
+    input.visualPath,
+    "-vf",
+    `tpad=stop_mode=clone:stop_duration=${input.paddingSeconds.toFixed(3)}`,
+    "-t",
+    input.targetDurationSeconds.toFixed(3),
+    "-an",
+    "-c:v",
+    "libx264",
+    "-pix_fmt",
+    "yuv420p",
+    input.outputPath,
+  ];
+}
+
 function parseSceneImageFilename(
   filename: string
 ): {
@@ -4883,17 +4917,46 @@ export class FFmpegVideoRenderer implements VideoRenderer {
         request,
         expectedDurationSeconds
       );
-      const visualDurationSeconds = await probeDurationSeconds(
-        visualConcatPath
+      const visualDurationSeconds = await probeDurationSeconds(visualConcatPath);
+      const narrationDurationSeconds = await probeDurationSeconds(
+        narrationAudioPath
       );
-      expectedFinalDurationSeconds = Math.min(
-        visualDurationSeconds,
-        await probeDurationSeconds(narrationAudioPath)
-      );
+      expectedFinalDurationSeconds = narrationDurationSeconds;
+      const visualPathForMux =
+        visualDurationSeconds + 0.01 < narrationDurationSeconds
+          ? path.join(request.outputDir, `${baseName}-visual-extended.mp4`)
+          : visualConcatPath;
+      if (visualPathForMux !== visualConcatPath) {
+        await runCommand(
+          "ffmpeg",
+          buildVisualTailExtensionFfmpegArguments({
+            visualPath: visualConcatPath,
+            outputPath: visualPathForMux,
+            paddingSeconds: narrationDurationSeconds - visualDurationSeconds,
+            targetDurationSeconds: narrationDurationSeconds,
+          }),
+          { timeoutMs: 600000 }
+        );
+        const extendedVisualValidation = await validateRenderOutput(
+          visualPathForMux,
+          {
+            expectedDurationSeconds: narrationDurationSeconds,
+            expectedWidth: request.renderProfile.width,
+            expectedHeight: request.renderProfile.height,
+            requireAudio: false,
+            disallowAudio: true,
+          }
+        );
+        if (!extendedVisualValidation.valid) {
+          throw new MediaValidationError(
+            `Extended visual media failed validation: ${extendedVisualValidation.issues.join("; ")}`
+          );
+        }
+      }
       await runCommand(
         "ffmpeg",
         buildFinalAudioMuxFfmpegArguments({
-          visualPath: visualConcatPath,
+          visualPath: visualPathForMux,
           narrationAudioPath,
           outputPath: cleanPath,
         }),

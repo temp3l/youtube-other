@@ -225,6 +225,7 @@ import {
   loadHistoryVisualPlanV35,
   persistHistorySemanticImagePromptReview,
   resolveHistorySemanticImagePromptPaths,
+  generateHistoryYoutubeMetadata,
 } from "@mediaforge/history";
 import {
   ConnectedApiCliError,
@@ -5558,6 +5559,36 @@ registerHistoryCommands(program, {
   inspectHistoryContentPack,
   validateHistoryContentPack,
   importHistoryContentPack,
+  generateHistoryYoutubeMetadata: async (request) => {
+    const outputRoot = path.resolve(
+      request.outputRoot ?? path.join(process.cwd(), "episodes"),
+    );
+    const runtime = await loadRuntimeConfig({ workspaceDir: outputRoot });
+    return generateHistoryYoutubeMetadata({
+      outputRoot,
+      episodeId: request.episodeId,
+      locale: request.locale,
+      variant: request.variant,
+      generationOptions: {
+        apiKey: runtime.openAiCompatibleApiKey ?? process.env["OPENAI_API_KEY"] ?? "",
+        model: runtime.openAiMetadataModel ?? "gpt-5.4-mini",
+        repairModel: runtime.openAiValidatorModel ?? runtime.openAiMetadataModel ?? "gpt-5.4-mini",
+        language: request.locale,
+        promptText: await fs.readFile(path.resolve("prompts", "youtube-metadata.prompt.md"), "utf8"),
+        promptVersion: YOUTUBE_METADATA_PROMPT_VERSION,
+        maxRetries: runtime.openAiMetadataMaxRetries ?? 3,
+        timeoutMs: runtime.openAiMetadataTimeoutMs ?? 120000,
+        keepFile: runtime.openAiMetadataKeepFile,
+        force: request.force,
+        dryRun: request.dryRun,
+        ...(runtime.openAiMetadataReasoningEffort ? { reasoningEffort: runtime.openAiMetadataReasoningEffort } : {}),
+        ...(runtime.openAiMetadataMaxOutputTokens !== undefined ? { maxOutputTokens: runtime.openAiMetadataMaxOutputTokens } : {}),
+        ...(runtime.openAiValidatorReasoningEffort ?? runtime.openAiMetadataReasoningEffort ? { repairReasoningEffort: runtime.openAiValidatorReasoningEffort ?? runtime.openAiMetadataReasoningEffort } : {}),
+        ...(runtime.openAiValidatorMaxOutputTokens ?? runtime.openAiMetadataMaxOutputTokens ? { repairMaxOutputTokens: runtime.openAiValidatorMaxOutputTokens ?? runtime.openAiMetadataMaxOutputTokens } : {}),
+        ...(runtime.openAiCompatibleBaseUrl ?? process.env["OPENAI_BASE_URL"] ? { baseUrl: runtime.openAiCompatibleBaseUrl ?? process.env["OPENAI_BASE_URL"] } : {}),
+      },
+    });
+  },
   inspectHistoryWorkflow,
   getHistoryNextStep,
   validateHistoryEpisodeFactuality,

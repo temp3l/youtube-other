@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   aggregatePromptCacheUsage,
+  buildOpenAiResponsesPromptCacheKey,
   buildPromptCacheKey,
+  normalizeOpenAiResponsesPromptCacheUsage,
   openAiPromptCacheFields,
+  planOpenAiResponsesPromptCache,
   planPromptCache,
   renderCacheablePrompt,
   stablePromptCacheShard,
@@ -90,7 +93,7 @@ describe("prompt cache planning", () => {
     expect(plan.mode).toBe("explicit");
     expect(openAiPromptCacheFields(plan)).toEqual({
       prompt_cache_key: plan.cacheKey,
-      prompt_cache_retention: "30m",
+      prompt_cache_retention: "in_memory",
     });
     expect(
       planPromptCache({
@@ -110,6 +113,70 @@ describe("prompt cache planning", () => {
         repair: true,
       }).mode
     ).toBe("implicit");
+  });
+
+  it("derives Responses cache keys from the stable contract, not episode data", () => {
+    const contract = {
+      genre: "history",
+      planner: "visual-direction",
+      contractVersion: "v1",
+      schemaVersion: "v1",
+      modelFamily: "gpt",
+      stablePrefix: "Stable instructions only",
+    } as const;
+    expect(buildOpenAiResponsesPromptCacheKey(contract, 0)).toBe(
+      buildOpenAiResponsesPromptCacheKey(contract, 0)
+    );
+    expect(
+      planOpenAiResponsesPromptCache({
+        model: "gpt-4.1-mini",
+        reusablePrefix: "stable ".repeat(900),
+        expectedReuseCount: 2,
+        itemIdentity: "constant-planner-identity",
+        contract,
+        breakpointAfterBlock: "contract",
+      }).cacheKey
+    ).toBe(buildOpenAiResponsesPromptCacheKey(contract, 0));
+  });
+
+  it("fails closed for unsupported models and short stable prefixes", () => {
+    const contract = {
+      genre: "history",
+      planner: "visual-direction",
+      contractVersion: "v1",
+      schemaVersion: "v1",
+      modelFamily: "image",
+      stablePrefix: "stable ".repeat(900),
+    } as const;
+    expect(
+      planOpenAiResponsesPromptCache({
+        model: "gpt-image-2",
+        reusablePrefix: contract.stablePrefix,
+        expectedReuseCount: 2,
+        itemIdentity: "planner",
+        contract,
+        breakpointAfterBlock: "contract",
+      })
+    ).toMatchObject({ mode: "disabled", downgradeReason: "MODEL_UNSUPPORTED" });
+    expect(
+      planOpenAiResponsesPromptCache({
+        model: "gpt-4.1-mini",
+        reusablePrefix: "short",
+        expectedReuseCount: 2,
+        itemIdentity: "planner",
+        contract: { ...contract, modelFamily: "gpt", stablePrefix: "short" },
+        breakpointAfterBlock: "contract",
+      })
+    ).toMatchObject({ mode: "implicit", downgradeReason: "PREFIX_TOO_SHORT" });
+  });
+
+  it("normalizes provider cache reads without reporting writes not supplied by Responses", () => {
+    expect(
+      normalizeOpenAiResponsesPromptCacheUsage({
+        inputTokens: 2_000,
+        cachedInputTokens: 1_500,
+      })
+    ).toEqual({ inputTokens: 2_000, cachedInputTokens: 1_500, cacheRead: true });
   });
 
   it("aggregates cache reads, writes, and savings by requested dimensions", () => {

@@ -2,6 +2,10 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 import { fileExists, hashText, writeJsonAtomic } from "./index.js";
+import {
+  openAiPromptCacheFields,
+  planOpenAiResponsesPromptCache,
+} from "./prompt-cache.js";
 
 export const SEMANTIC_IMAGE_PROMPT_SCHEMA_VERSION = 1 as const;
 export const SEMANTIC_IMAGE_PROMPT_CORE_VERSION =
@@ -278,6 +282,8 @@ export interface SemanticImagePromptOpenAiClient {
         }>;
         readonly text: { readonly format: unknown };
         readonly max_output_tokens: number;
+        readonly prompt_cache_key?: string;
+        readonly prompt_cache_retention?: "in_memory" | "24h";
       },
       options?: { readonly signal?: AbortSignal },
     ): Promise<{
@@ -779,6 +785,7 @@ function omitOpenAiNullableFields(value: unknown): unknown {
 export function buildSemanticImagePromptOpenAiRequest(input: {
   readonly plan: SemanticImagePromptPlanInput;
   readonly model: string;
+  readonly plannerPromptVersion?: string;
   readonly validationFeedback?: readonly SemanticImagePromptFinding[];
 }): Parameters<SemanticImagePromptOpenAiClient["responses"]["create"]>[0] {
   const schema = makeJsonSchemaOpenAiStrict(
@@ -808,6 +815,21 @@ export function buildSemanticImagePromptOpenAiRequest(input: {
         }
       : {}),
   };
+  const promptCachePlan = planOpenAiResponsesPromptCache({
+    model: input.model,
+    reusablePrefix: SYSTEM_INSTRUCTION,
+    expectedReuseCount: 2,
+    itemIdentity: "semantic-image-prompt-preflight",
+    contract: {
+      genre: input.plan.genre,
+      planner: "semantic-image-prompt-preflight",
+      contractVersion: input.plannerPromptVersion ?? "v1",
+      schemaVersion: `v${SEMANTIC_IMAGE_PROMPT_SCHEMA_VERSION}`,
+      modelFamily: input.model.replace(/-[\d.]+(?:-mini)?$/u, ""),
+      stablePrefix: SYSTEM_INSTRUCTION,
+    },
+    breakpointAfterBlock: "semantic-image-prompt-contract",
+  });
   return {
     model: input.model,
     max_output_tokens: 16_000,
@@ -829,6 +851,7 @@ export function buildSemanticImagePromptOpenAiRequest(input: {
         schema,
       },
     },
+    ...openAiPromptCacheFields(promptCachePlan),
   };
 }
 
@@ -986,6 +1009,7 @@ export async function deriveSemanticImagePromptBrief(input: {
         buildSemanticImagePromptOpenAiRequest({
           plan: input.plan,
           model: input.model,
+          plannerPromptVersion: input.plannerPromptVersion,
           ...(feedback.length > 0 ? { validationFeedback: feedback } : {}),
         }),
         { signal: controller.signal },

@@ -4,14 +4,32 @@ import { contentProfileIdSchema } from "@mediaforge/domain";
 
 export type PromptCacheMode = "disabled" | "implicit" | "explicit";
 
+export type PromptCacheDowngradeReason =
+  | "EXPLICIT_CACHE_DISABLED"
+  | "PROVIDER_UNSUPPORTED"
+  | "MODEL_UNSUPPORTED"
+  | "PREFIX_TOO_SHORT"
+  | "INSUFFICIENT_EXPECTED_REUSE"
+  | "REPAIR_CACHE_DISABLED";
+
+/** The subset of the installed Responses request type used for prompt caching. */
+export interface OpenAiResponsesPromptCacheFields {
+  readonly prompt_cache_key: string;
+  readonly prompt_cache_retention: "in_memory" | "24h";
+}
+
 export interface PromptCachePlan {
   readonly mode: PromptCacheMode;
   readonly cacheKey?: string;
-  readonly ttl?: "30m";
+  /** `30m` is retained solely to read legacy batch manifests. New plans use SDK-supported values. */
+  readonly ttl?: "in_memory" | "24h" | "30m";
   readonly breakpointAfterBlock?: string;
   readonly estimatedReusablePrefixTokens: number;
   readonly expectedReuseCount: number;
   readonly shard: number;
+  readonly cacheSupported?: boolean;
+  readonly cacheEligible?: boolean;
+  readonly downgradeReason?: PromptCacheDowngradeReason;
 }
 
 export interface PromptCacheKeyParts {
@@ -27,6 +45,16 @@ export interface PromptCacheKeyParts {
   readonly referenceBundleClass?: string;
   /** Shared visual prompts must reuse across localized editions. */
   readonly languageIndependent?: boolean;
+}
+
+export interface OpenAiResponsesPromptCacheContract {
+  readonly namespace?: string;
+  readonly genre: string;
+  readonly planner: string;
+  readonly contractVersion: string;
+  readonly schemaVersion: string;
+  readonly modelFamily: string;
+  readonly stablePrefix: string;
 }
 
 export interface CacheablePrompt {
@@ -147,6 +175,30 @@ export function buildPromptCacheKey(
   ].join(":") + `${aspect}${referenceClass}:shard-${shard}`;
 }
 
+/**
+ * Derive a safe cache identity from the reusable planner contract only. Dynamic
+ * episode and scene payloads deliberately never participate in this key.
+ */
+export function buildOpenAiResponsesPromptCacheKey(
+  contract: OpenAiResponsesPromptCacheContract,
+  shard: number,
+): string {
+  return buildPromptCacheKey(
+    {
+      namespace: contract.namespace ?? "youtube",
+      family: contract.genre,
+      version: contract.contractVersion,
+      operation: contract.planner,
+      format: contract.schemaVersion,
+      language: "shared",
+      languageIndependent: true,
+      modelTier: contract.modelFamily,
+      referenceBundleClass: sha256(normalizePromptText(contract.stablePrefix)),
+    },
+    shard,
+  );
+}
+
 export function planPromptCache(args: {
   readonly requestedMode?: PromptCacheMode;
   readonly modelSupportsExplicitCaching: boolean;
@@ -174,38 +226,110 @@ export function planPromptCache(args: {
       estimatedReusablePrefixTokens,
       expectedReuseCount: args.expectedReuseCount,
       shard,
+      cacheSupported: args.modelSupportsExplicitCaching,
+      cacheEligible: false,
+      downgradeReason: "EXPLICIT_CACHE_DISABLED",
     };
   }
-  const eligible =
-    args.modelSupportsExplicitCaching &&
-    estimatedReusablePrefixTokens >= (args.minimumPrefixTokens ?? 1024) &&
-    args.expectedReuseCount >= (args.minimumReuseCount ?? 2) &&
-    (!args.repair || args.explicitRepairCaching === true);
-  if (!eligible) {
+  const downgradeReason = !args.modelSupportsExplicitCaching
+    ? "MODEL_UNSUPPORTED"
+    : estimatedReusablePrefixTokens < (args.minimumPrefixTokens ?? 1024)
+      ? "PREFIX_TOO_SHORT"
+      : args.expectedReuseCount < (args.minimumReuseCount ?? 2)
+        ? "INSUFFICIENT_EXPECTED_REUSE"
+        : args.repair && args.explicitRepairCaching !== true
+          ? "REPAIR_CACHE_DISABLED"
+          : undefined;
+  if (downgradeReason) {
     return {
       mode: args.modelSupportsExplicitCaching ? "implicit" : "disabled",
       estimatedReusablePrefixTokens,
       expectedReuseCount: args.expectedReuseCount,
       shard,
+      cacheSupported: args.modelSupportsExplicitCaching,
+      cacheEligible: false,
+      downgradeReason,
     };
   }
   return {
     mode: "explicit",
     cacheKey: buildPromptCacheKey(args.keyParts, shard),
-    ttl: "30m",
+    ttl: "in_memory",
     breakpointAfterBlock: args.breakpointAfterBlock,
     estimatedReusablePrefixTokens,
     expectedReuseCount: args.expectedReuseCount,
     shard,
+    cacheSupported: true,
+    cacheEligible: true,
   };
+}
+
+export function planOpenAiResponsesPromptCache(args: {
+  readonly requestedMode?: PromptCacheMode;
+  readonly model: string;
+  readonly reusablePrefix: string;
+  readonly expectedReuseCount: number;
+  readonly itemIdentity: string;
+  readonly contract: OpenAiResponsesPromptCacheContract;
+  readonly breakpointAfterBlock: string;
+  readonly minimumPrefixTokens?: number;
+  readonly minimumReuseCount?: number;
+}): PromptCachePlan {
+  const model = args.model.trim().toLowerCase();
+  const modelSupportsExplicitCaching =
+    model.length > 0 && !model.startsWith("gpt-image") && !model.startsWith("dall-e");
+  const base = planPromptCache({
+    ...(args.requestedMode ? { requestedMode: args.requestedMode } : {}),
+    modelSupportsExplicitCaching,
+    reusablePrefix: args.reusablePrefix,
+    expectedReuseCount: args.expectedReuseCount,
+    itemIdentity: args.itemIdentity,
+    keyParts: {
+      namespace: args.contract.namespace ?? "youtube",
+      family: args.contract.genre,
+      version: args.contract.contractVersion,
+      operation: args.contract.planner,
+      format: args.contract.schemaVersion,
+      language: "shared",
+      languageIndependent: true,
+      modelTier: args.contract.modelFamily,
+      referenceBundleClass: sha256(normalizePromptText(args.contract.stablePrefix)),
+    },
+    breakpointAfterBlock: args.breakpointAfterBlock,
+    ...(args.minimumPrefixTokens !== undefined
+      ? { minimumPrefixTokens: args.minimumPrefixTokens }
+      : {}),
+    ...(args.minimumReuseCount !== undefined
+      ? { minimumReuseCount: args.minimumReuseCount }
+      : {}),
+  });
+  return base.mode === "explicit"
+    ? { ...base, cacheKey: buildOpenAiResponsesPromptCacheKey(args.contract, base.shard) }
+    : base;
 }
 
 export function openAiPromptCacheFields(
   plan: PromptCachePlan
-): Readonly<Record<string, string>> {
+): Readonly<OpenAiResponsesPromptCacheFields> | Record<string, never> {
   return plan.mode === "explicit" && plan.cacheKey
-    ? { prompt_cache_key: plan.cacheKey, prompt_cache_retention: plan.ttl ?? "30m" }
+    ? {
+        prompt_cache_key: plan.cacheKey,
+        prompt_cache_retention: plan.ttl === "24h" ? "24h" : "in_memory",
+      }
     : {};
+}
+
+export function normalizeOpenAiResponsesPromptCacheUsage(input: {
+  readonly inputTokens?: number;
+  readonly cachedInputTokens?: number;
+}): {
+  readonly inputTokens: number;
+  readonly cachedInputTokens: number;
+  readonly cacheRead: boolean;
+} {
+  const inputTokens = input.inputTokens ?? 0;
+  const cachedInputTokens = input.cachedInputTokens ?? 0;
+  return { inputTokens, cachedInputTokens, cacheRead: cachedInputTokens > 0 };
 }
 
 export function aggregatePromptCacheUsage(

@@ -29,6 +29,7 @@ export const DARK_TRUTH_CANONICAL_STORY_ARTIFACT_VERSION =
 export const darkTruthCanonicalStoryArtifactLayoutAdapter: ArtifactLayoutAdapter =
   {
     profileId: "dark-truth",
+    adapterVersion: DARK_TRUTH_CANONICAL_STORY_ADAPTER_VERSION,
     canonicalRelativePath: (ref) => {
       if (!ref.artifactKey) {
         throw new Error(
@@ -43,7 +44,7 @@ export const darkTruthCanonicalStoryArtifactLayoutAdapter: ArtifactLayoutAdapter
         `${ref.artifactKey}.${ref.format ?? "json"}`
       );
     },
-    legacyRelativePaths: () => [],
+    legacyCandidates: () => [],
   };
 
 export function createDarkTruthCanonicalStoryArtifactRepository(

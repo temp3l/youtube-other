@@ -10,7 +10,32 @@ import {
 } from "@mediaforge/domain";
 
 export const ARTIFACT_PATH_RESOLVER_VERSION =
-  "mediaforge.artifact-path-resolver.v2" as const;
+  "mediaforge.artifact-path-resolver.v3" as const;
+export const LEGACY_ARTIFACT_LAYOUT_VERSION =
+  "mediaforge.legacy-artifact-layout.v1" as const;
+
+export type LegacyArtifactProvenance =
+  | "authored-root-compatibility"
+  | "authored-language-compatibility"
+  | "generated-locale-runtime"
+  | "generated-language-runtime"
+  | "source-lineage"
+  | "shared-image-output"
+  | "image-generation-state"
+  | "canonical-scene-compatibility"
+  | "strategic-source-compatibility"
+  | "mathematics-compatibility";
+
+export interface LegacyArtifactPathSpec {
+  readonly relativePath: string;
+  readonly layoutVersion: typeof LEGACY_ARTIFACT_LAYOUT_VERSION;
+  readonly provenance: LegacyArtifactProvenance;
+  readonly readOnly: true;
+}
+
+export interface ResolvedLegacyArtifactCandidate extends LegacyArtifactPathSpec {
+  readonly absolutePath: string;
+}
 
 export interface ArtifactPathSet {
   readonly resolverVersion: typeof ARTIFACT_PATH_RESOLVER_VERSION;
@@ -19,14 +44,30 @@ export interface ArtifactPathSet {
   readonly canonicalRelativePath: string;
   readonly canonicalManifest: string;
   readonly canonicalManifestRelativePath: string;
+  readonly legacyCandidates: readonly ResolvedLegacyArtifactCandidate[];
+  /** @deprecated Read `legacyCandidates`; retained until migration gates pass. */
   readonly legacy: readonly string[];
+  /** @deprecated Read `legacyCandidates`; retained until migration gates pass. */
   readonly legacyRelativePaths: readonly string[];
 }
 
 export interface ArtifactLayoutAdapter {
   readonly profileId: ContentProfileId;
+  readonly adapterVersion: string;
   canonicalRelativePath(ref: ArtifactRef): string;
-  legacyRelativePaths(ref: ArtifactRef): readonly string[];
+  legacyCandidates(ref: ArtifactRef): readonly LegacyArtifactPathSpec[];
+}
+
+function legacyCandidate(
+  relativePath: string,
+  provenance: LegacyArtifactProvenance
+): LegacyArtifactPathSpec {
+  return {
+    relativePath,
+    layoutVersion: LEGACY_ARTIFACT_LAYOUT_VERSION,
+    provenance,
+    readOnly: true,
+  };
 }
 
 function portablePath(...segments: readonly string[]): string {
@@ -203,42 +244,99 @@ function episodeCanonicalRelativePath(ref: ArtifactRef): string {
   }
 }
 
-function episodeLegacyRelativePaths(ref: ArtifactRef): readonly string[] {
+function episodeLegacyCandidates(
+  ref: ArtifactRef
+): readonly LegacyArtifactPathSpec[] {
   switch (ref.kind) {
     case "full-script":
       return [
-        portablePath("locales", ref.locale, "full", "script.md"),
-        portablePath(ref.locale, "full", "script.md"),
-        ...(ref.locale === "en" ? [portablePath("script.md")] : []),
+        legacyCandidate(
+          portablePath("locales", ref.locale, "full", "script.md"),
+          "generated-locale-runtime"
+        ),
+        legacyCandidate(
+          portablePath(ref.locale, "full", "script.md"),
+          "generated-language-runtime"
+        ),
+        legacyCandidate(
+          portablePath(ref.locale, "script.md"),
+          "authored-language-compatibility"
+        ),
+        legacyCandidate(
+          portablePath("source", `${ref.unitId}-${ref.locale}-full.md`),
+          "source-lineage"
+        ),
+        ...(ref.locale === "en"
+          ? [
+              legacyCandidate(
+                portablePath("script.md"),
+                "authored-root-compatibility"
+              ),
+            ]
+          : []),
       ];
     case "short-script":
       return [
-        portablePath("locales", ref.locale, "short", "script.md"),
-        portablePath(ref.locale, "short", "script.md"),
+        legacyCandidate(
+          portablePath("locales", ref.locale, "short", "script.md"),
+          "generated-locale-runtime"
+        ),
+        legacyCandidate(
+          portablePath(ref.locale, "short", "script.md"),
+          "generated-language-runtime"
+        ),
+        legacyCandidate(
+          portablePath("source", `${ref.unitId}-${ref.locale}-short.md`),
+          "source-lineage"
+        ),
       ];
     case "image": {
       const fileName = artifactFileName(ref, "image");
       return ref.variant === "short"
         ? [
-            portablePath("shared", "short", "images", "generated", fileName),
-            portablePath("images", "generated", fileName),
+            legacyCandidate(
+              portablePath("shared", "short", "images", "generated", fileName),
+              "shared-image-output"
+            ),
+            legacyCandidate(
+              portablePath("images", "generated", fileName),
+              "shared-image-output"
+            ),
           ]
         : [
-            portablePath("shared", "images", "generated", fileName),
-            portablePath("state", "image-generation", "images", fileName),
+            legacyCandidate(
+              portablePath("shared", "images", "generated", fileName),
+              "shared-image-output"
+            ),
+            legacyCandidate(
+              portablePath("state", "image-generation", "images", fileName),
+              "image-generation-state"
+            ),
           ];
     }
     case "narration":
       return [
-        portablePath(
-          "languages",
-          ref.locale,
-          ref.variant,
-          artifactFileName({ ...ref, format: ref.format ?? "mp3" }, "audio")
+        legacyCandidate(
+          portablePath(
+            "languages",
+            ref.locale,
+            ref.variant,
+            artifactFileName({ ...ref, format: ref.format ?? "mp3" }, "audio")
+          ),
+          "generated-language-runtime"
         ),
       ];
     case "scene-plan":
-      return [portablePath("canonical", "scenes.json")];
+      return [
+        legacyCandidate(
+          portablePath("canonical", "scenes.json"),
+          "canonical-scene-compatibility"
+        ),
+        legacyCandidate(
+          portablePath("shared", "scenes.json"),
+          "canonical-scene-compatibility"
+        ),
+      ];
     default:
       return [];
   }
@@ -320,16 +418,33 @@ function mathCanonicalRelativePath(ref: ArtifactRef): string {
   }
 }
 
-function mathLegacyRelativePaths(ref: ArtifactRef): readonly string[] {
+function mathLegacyCandidates(
+  ref: ArtifactRef
+): readonly LegacyArtifactPathSpec[] {
   switch (ref.kind) {
     case "math-verification":
-      return [portablePath("canonical", "verification.v2.json")];
+      return [
+        legacyCandidate(
+          portablePath("canonical", "verification.v2.json"),
+          "mathematics-compatibility"
+        ),
+      ];
     case "narration":
       return ref.variant === "full"
-        ? [portablePath("locales", ref.locale, "audio", "narration.wav")]
+        ? [
+            legacyCandidate(
+              portablePath("locales", ref.locale, "audio", "narration.wav"),
+              "mathematics-compatibility"
+            ),
+          ]
         : [];
     case "thumbnail":
-      return [portablePath("thumbnail.png")];
+      return [
+        legacyCandidate(
+          portablePath("thumbnail.png"),
+          "mathematics-compatibility"
+        ),
+      ];
     default:
       return [];
   }
@@ -338,22 +453,25 @@ function mathLegacyRelativePaths(ref: ArtifactRef): readonly string[] {
 export function createEpisodeArtifactLayoutAdapter(): ArtifactLayoutAdapter {
   return {
     profileId: "dark-truth",
+    adapterVersion: "mediaforge.episode-artifact-layout.v3",
     canonicalRelativePath: episodeCanonicalRelativePath,
-    legacyRelativePaths: episodeLegacyRelativePaths,
+    legacyCandidates: episodeLegacyCandidates,
   };
 }
 
 export function createMathLessonArtifactLayoutAdapter(): ArtifactLayoutAdapter {
   return {
     profileId: "mathematics-education",
+    adapterVersion: "mediaforge.math-artifact-layout.v2",
     canonicalRelativePath: mathCanonicalRelativePath,
-    legacyRelativePaths: mathLegacyRelativePaths,
+    legacyCandidates: mathLegacyCandidates,
   };
 }
 
 export function createStrategicReinventionArtifactLayoutAdapter(): ArtifactLayoutAdapter {
   return {
     profileId: "veronicabenini",
+    adapterVersion: "mediaforge.strategic-artifact-layout.v2",
     canonicalRelativePath: (ref) => {
       if (ref.kind === "source") {
         return portablePath(
@@ -365,25 +483,40 @@ export function createStrategicReinventionArtifactLayoutAdapter(): ArtifactLayou
       }
       return episodeCanonicalRelativePath(ref);
     },
-    legacyRelativePaths: (ref) => {
-      const inherited = episodeLegacyRelativePaths(ref);
+    legacyCandidates: (ref) => {
+      const inherited = episodeLegacyCandidates(ref);
       if (ref.kind === "source") {
         const sourceId = ref.artifactKey ?? "source";
         return [
           ...inherited,
           // VRI-03 writes nested, immutable source originals. These flat paths
           // were emitted by earlier strategic commands and are read-only.
-          portablePath("sources", "content", `${sourceId}.md`),
-          portablePath("sources", "content", `${sourceId}.txt`),
-          portablePath("sources", `${sourceId}.md`),
-          portablePath("sources", `${sourceId}.txt`),
+          legacyCandidate(
+            portablePath("sources", "content", `${sourceId}.md`),
+            "strategic-source-compatibility"
+          ),
+          legacyCandidate(
+            portablePath("sources", "content", `${sourceId}.txt`),
+            "strategic-source-compatibility"
+          ),
+          legacyCandidate(
+            portablePath("sources", `${sourceId}.md`),
+            "strategic-source-compatibility"
+          ),
+          legacyCandidate(
+            portablePath("sources", `${sourceId}.txt`),
+            "strategic-source-compatibility"
+          ),
         ];
       }
       if (ref.kind === "source-manifest") {
         const sourceId = ref.artifactKey ?? "source-manifest";
         return [
           ...inherited,
-          portablePath("sources", `${sourceId}.manifest.json`),
+          legacyCandidate(
+            portablePath("sources", `${sourceId}.manifest.json`),
+            "strategic-source-compatibility"
+          ),
         ];
       }
       return inherited;
@@ -414,14 +547,23 @@ export function resolveArtifactPathSet(args: {
   const canonicalRelativePath = adapter.canonicalRelativePath(ref);
   const canonical = path.resolve(unitRoot, canonicalRelativePath);
   assertLexicallyContained(unitRoot, canonical);
-  const legacyRelativePaths = [
-    ...new Set(adapter.legacyRelativePaths(ref)),
-  ].filter((candidate) => candidate !== canonicalRelativePath);
-  const legacy = legacyRelativePaths.map((candidate) => {
-    const resolved = path.resolve(unitRoot, candidate);
+  const legacySpecs = adapter
+    .legacyCandidates(ref)
+    .filter((candidate) => candidate.relativePath !== canonicalRelativePath);
+  const uniqueLegacySpecs = [
+    ...new Map(
+      legacySpecs.map((candidate) => [candidate.relativePath, candidate])
+    ).values(),
+  ];
+  const legacyCandidates = uniqueLegacySpecs.map((candidate) => {
+    const resolved = path.resolve(unitRoot, candidate.relativePath);
     assertLexicallyContained(unitRoot, resolved);
-    return resolved;
+    return { ...candidate, absolutePath: resolved };
   });
+  const legacy = legacyCandidates.map((candidate) => candidate.absolutePath);
+  const legacyRelativePaths = legacyCandidates.map(
+    (candidate) => candidate.relativePath
+  );
   const canonicalManifestRelativePath = `${canonicalRelativePath}.artifact-manifest.json`;
   return {
     resolverVersion: ARTIFACT_PATH_RESOLVER_VERSION,
@@ -430,6 +572,7 @@ export function resolveArtifactPathSet(args: {
     canonicalRelativePath,
     canonicalManifest: path.resolve(unitRoot, canonicalManifestRelativePath),
     canonicalManifestRelativePath,
+    legacyCandidates,
     legacy,
     legacyRelativePaths,
   };

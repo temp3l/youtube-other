@@ -79,6 +79,14 @@ import {
   renderHistoryImageProviderPrompt,
 } from "./history-image-prompt.js";
 import { historyCinematographySchema } from "./history-image-cinematography.js";
+import {
+  findVeronicaCrossEpisodeReuse,
+  materializeVeronicaReusableImage,
+  recordVeronicaReusableImageUse,
+  registerVeronicaReusableImage,
+  resolveVeronicaReusableImageRegistryPath,
+  type VeronicaReusableImageSemanticsV1,
+} from "./veronica-reusable-image-registry.js";
 
 const execFile = promisify(execFileCallback);
 
@@ -544,6 +552,7 @@ export interface PersistedImageGenerationCheckpoint {
     | "reused-previous"
     | "reused-next"
     | "reused-existing"
+    | "reused-cross-episode"
     | "validation-failed"
     | "provider-requested"
     | "generated"
@@ -585,12 +594,90 @@ export interface EpisodeImagePipelineSettings {
   allowUnapprovedCharacterReferences: boolean;
   force: boolean;
   debug: boolean;
+  /** Optional policy override; History never enables semantic cross-episode reuse. */
+  veronicaGeneratedImageReusePolicy?: Partial<import("./veronica-reusable-image-registry.js").VeronicaGeneratedImageReusePolicy>;
   logger?: {
     info: (obj: Record<string, unknown>, msg?: string) => void;
     warn: (obj: Record<string, unknown>, msg?: string) => void;
     error: (obj: Record<string, unknown>, msg?: string) => void;
     debug: (obj: Record<string, unknown>, msg?: string) => void;
   };
+}
+
+function buildVeronicaReusableImageSemantics(args: {
+  readonly scene: Scene;
+  readonly spec: SceneVisualSpec;
+  readonly aspectRatio: string;
+  readonly referenceCount: number;
+}): VeronicaReusableImageSemanticsV1 {
+  const semanticText = [
+    args.scene.subject,
+    args.scene.action,
+    args.scene.setting,
+    args.scene.composition,
+    args.scene.visualPurpose,
+  ].join(" ");
+  const occupationCues = [
+    "architect(?:ure)?",
+    "interior design",
+    "construction",
+    "workshop",
+    "craft",
+    "design studio",
+    "service counter",
+    "doctor",
+    "lawyer",
+    "chef",
+  ].filter((cue) => new RegExp(`\\b${cue}\\b`, "iu").test(semanticText));
+  const hasVisibleText = args.scene.onScreenText.trim().length > 0 || args.scene.textRequirement.required;
+  const hasUniqueEvidence = /\b(?:screenshot|document|report|case study|testimonial|unique evidence)\b/iu.test(semanticText);
+  const hasNamedBrand = /\b(?:logo|brand)\b/iu.test(semanticText);
+  const containsNamedPerson = args.spec.characters.length > 0 || /\bveronica benini\b/iu.test(semanticText);
+  const continuitySensitive = args.scene.continuityReferences.length > 0;
+  const usesReferenceImage = args.referenceCount > 0;
+  const eligible = !hasVisibleText && !hasNamedBrand && !containsNamedPerson && !usesReferenceImage && !continuitySensitive && !hasUniqueEvidence;
+  return {
+    visualIntent: args.scene.visualPurpose,
+    semanticBeat: args.scene.canonicalNarration,
+    subjectArchetypes: [args.scene.subject],
+    actions: [args.scene.action],
+    settingArchetype: args.scene.setting,
+    compositionArchetype: args.scene.composition,
+    evidenceMode: hasUniqueEvidence ? "unique-evidence" : "illustrative",
+    aspectRatio: args.aspectRatio,
+    visualContractVersion: "veronica-semantic-image.v1",
+    containsVisibleText: hasVisibleText,
+    containsEpisodeSpecificText: hasVisibleText,
+    containsNamedPerson,
+    containsNamedBrand: hasNamedBrand,
+    usesReferenceImage,
+    localizationSensitive: false,
+    continuitySensitive,
+    identitySensitive: containsNamedPerson,
+    uniqueEvidence: hasUniqueEvidence,
+    uniqueProductIdentity: /\b(?:product|product identity)\b/iu.test(semanticText),
+    materialEditingMask: false,
+    occupationNeutral: occupationCues.length === 0,
+    occupationCues,
+    permittedOccupationCues: occupationCues,
+    reuseEligibility: eligible ? "eligible" : "forbidden",
+  };
+}
+
+function veronicaReusableImageWorkspaceRoot(episodeDir: string): string {
+  return path.resolve(episodeDir, "..");
+}
+
+async function writeVeronicaReuseProvenance(
+  episodeDir: string,
+  sceneId: string,
+  provenance: Awaited<ReturnType<typeof materializeVeronicaReusableImage>>,
+): Promise<void> {
+  if (!provenance) return;
+  await writeJsonAtomic(
+    path.join(episodeDir, "state", "image-generation", "reuse-provenance", `${sceneId}.json`),
+    provenance,
+  );
 }
 
 const envSchema = z.object({
@@ -867,6 +954,7 @@ const persistedImageGenerationCheckpointSchema = z.object({
     "reused-previous",
     "reused-next",
     "reused-existing",
+    "reused-cross-episode",
     "validation-failed",
     "provider-requested",
     "generated",
@@ -5902,6 +5990,7 @@ export async function generateEpisodeImages(
   }
   if (
     settings.concurrency > 1 &&
+    context.contentGenre !== "veronicabenini" &&
     canGenerateScenePlansConcurrently(plans)
   ) {
     settings.logger?.info(
@@ -5933,6 +6022,13 @@ export async function generateEpisodeImages(
     });
   }
   const results: EpisodeImageGenerationResult[] = [];
+  const veronicaWorkspaceRoot = veronicaReusableImageWorkspaceRoot(episodeDir);
+  const veronicaRegistryPath = resolveVeronicaReusableImageRegistryPath(
+    veronicaWorkspaceRoot
+  );
+  const veronicaUsedAssetIds = new Set<string>();
+  const veronicaReusedSceneIndexes: number[] = [];
+  let veronicaCrossEpisodeReuseCount = 0;
   let currentImageRunLength = 0;
   let previousResolvedOutput:
     | {
@@ -6169,6 +6265,104 @@ export async function generateEpisodeImages(
       };
       currentImageRunLength = Math.max(currentImageRunLength, 1);
       continue;
+    }
+    if (
+      context.contentGenre === "veronicabenini" &&
+      validationFailures.length === 0
+    ) {
+      const reuseDecision = await findVeronicaCrossEpisodeReuse({
+        registryPath: veronicaRegistryPath,
+        workspaceRoot: veronicaWorkspaceRoot,
+        target: {
+          ...buildVeronicaReusableImageSemantics({
+            scene: plan.scene,
+            spec,
+            aspectRatio: providerRequest.aspectRatio,
+            referenceCount: referenceImagesSummary.length,
+          }),
+          episodeId,
+          sceneId: plan.scene.id,
+          sceneIndex,
+        },
+        usedAssetIds: veronicaUsedAssetIds,
+        reusedSceneIndexes: veronicaReusedSceneIndexes,
+        crossEpisodeReuseCount: veronicaCrossEpisodeReuseCount,
+        ...(settings.veronicaGeneratedImageReusePolicy
+          ? { policy: settings.veronicaGeneratedImageReusePolicy }
+          : {}),
+        force,
+      });
+      if (reuseDecision.kind === "reuse") {
+        const provenance = await materializeVeronicaReusableImage({
+          workspaceRoot: veronicaWorkspaceRoot,
+          asset: reuseDecision.asset,
+          targetPath: outputPath,
+          targetEpisodeId: episodeId,
+          targetSceneId: plan.scene.id,
+          compatibility: reuseDecision.reason,
+        });
+        if (provenance) {
+          const manifest: SceneGenerationManifest = {
+            sceneId: plan.scene.id,
+            promptVersion: providerRequest.promptVersion,
+            sceneHash: currentSceneHash,
+            visualPlanHash: currentVisualPlanHash,
+            renderability: visualPlanArtifact.renderability,
+            finalPrompt: prompt,
+            providerRequestHash: currentProviderRequestHash,
+            promptHash: currentPromptHash,
+            ...(plan.previousSceneId ? { previousSceneId: plan.previousSceneId } : {}),
+            materialDifferencesFromPrevious: plan.materialDifferencesFromPrevious,
+            characterIds: spec.characters.map((character) => character.characterId),
+            referenceImages: referenceImagesSummary,
+            model: providerRequest.model,
+            size: providerRequest.size,
+            quality: providerRequest.quality,
+            outputPath,
+            outputSha256: provenance.assetHash,
+            status: "generated",
+            attempts: 0,
+            generatedAt: new Date().toISOString(),
+          };
+          await writeManifest(manifestPath, manifest);
+          await writeVeronicaReuseProvenance(episodeDir, plan.scene.id, provenance);
+          await recordVeronicaReusableImageUse(veronicaRegistryPath, reuseDecision.asset.assetId);
+          currentExecutionTelemetry()?.recordEvent({
+            name: "crossEpisodeImageReuseHit",
+            at: new Date().toISOString(),
+            details: { genre: "veronicabenini", compatibility: reuseDecision.reason },
+          });
+          await writeGenerationCheckpoint(episodeDir, {
+            sceneId: plan.scene.id,
+            status: "reused_cached_output",
+            outputPath,
+            promptHash: currentPromptHash,
+            visualPlanHash: currentVisualPlanHash,
+            cacheDecision: "reused-cross-episode",
+            details: ["reused a compatible cross-episode Veronica asset"],
+            recordedAt: new Date().toISOString(),
+          });
+          results.push({
+            episodeId,
+            sceneId: plan.scene.id,
+            manifestPath,
+            outputPath,
+            outputSha256: provenance.assetHash,
+            status: "skipped",
+          });
+          veronicaUsedAssetIds.add(reuseDecision.asset.assetId);
+          veronicaReusedSceneIndexes.push(sceneIndex);
+          veronicaCrossEpisodeReuseCount += 1;
+          previousResolvedOutput = { sceneId: plan.scene.id, outputPath };
+          currentImageRunLength = 1;
+          continue;
+        }
+      }
+      currentExecutionTelemetry()?.recordEvent({
+        name: "crossEpisodeImageReuseMiss",
+        at: new Date().toISOString(),
+        details: { genre: "veronicabenini", reason: reuseDecision.reason },
+      });
     }
     if (validationFailures.length > 0) {
       const manifest: SceneGenerationManifest = {
@@ -6432,6 +6626,33 @@ export async function generateEpisodeImages(
         generation,
       })
     );
+    if (context.contentGenre === "veronicabenini") {
+      const outputSha256 = generation.outputSha256 ?? await hashFile(outputPath);
+      const registered = await registerVeronicaReusableImage({
+        registryPath: veronicaRegistryPath,
+        workspaceRoot: veronicaWorkspaceRoot,
+        sourcePath: outputPath,
+        descriptor: {
+          ...buildVeronicaReusableImageSemantics({
+            scene: plan.scene,
+            spec,
+            aspectRatio: providerRequest.aspectRatio,
+            referenceCount: referenceImagesSummary.length,
+          }),
+          assetId: hashText(`${episodeId}:${plan.scene.id}:${outputSha256}`),
+          sourceEpisodeId: episodeId,
+          sourceSceneId: plan.scene.id,
+          generationFingerprint: currentProviderRequestHash,
+        },
+      });
+      if (registered) {
+        currentExecutionTelemetry()?.recordEvent({
+          name: "reusableAssetRegistered",
+          at: new Date().toISOString(),
+          details: { genre: "veronicabenini" },
+        });
+      }
+    }
     await writeGenerationCheckpoint(episodeDir, {
       sceneId: plan.scene.id,
       status: "generated",

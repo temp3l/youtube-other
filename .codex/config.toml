@@ -24,9 +24,6 @@ default_subagent_reasoning_effort = "medium"
 # Preserve interruption visibility; the small context cost is useful for safety.
 interrupt_message = true
 
-[features]
-codex_hooks = true
-
 [features.network_proxy]
 enabled = true
 domains = { "api.openai.com" = "allow", "registry.npmjs.org" = "allow" }

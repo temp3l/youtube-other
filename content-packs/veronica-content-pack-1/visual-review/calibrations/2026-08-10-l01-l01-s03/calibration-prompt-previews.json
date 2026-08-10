@@ -1,0 +1,299 @@
+{
+  "schemaVersion": "veronicabenini-positioning-calibration-preview.v1",
+  "visualLanguageVersion": "veronica-visual-language.v1",
+  "providerCalls": 0,
+  "plans": [
+    {
+      "contentId": "L01",
+      "format": "long",
+      "visualStoryBible": {
+        "version": "veronica-visual-language.v1",
+        "format": "long",
+        "thesis": "real expertise invisible",
+        "viewerTransformation": {
+          "before": "buyer sees scattered or hidden expertise",
+          "mechanism": "clear repeated evidence and category signals",
+          "after": "buyer recognizes, recalls, and can recommend the relevant expert"
+        },
+        "visualConflict": {
+          "start": "buyers cannot explain what the expert is known for",
+          "end": "a matching problem triggers immediate recognition and choice"
+        },
+        "roles": {
+          "expert": "occupation-neutral professional-services expert",
+          "buyer": "decision-maker evaluating and later recalling evidence",
+          "market": "alternatives, proof signals, recommendations, and competing offers"
+        },
+        "semanticProgression": [
+          "real-expertise-invisible",
+          "customer-perception",
+          "specialist-vs-generalist",
+          "customer-mental-category",
+          "coherent-brand-signals",
+          "perceived-value",
+          "positioning-self-test"
+        ],
+        "preferredVisualFamilies": [
+          "human-decision",
+          "professional-evidence",
+          "social-perception",
+          "contrast"
+        ],
+        "forbiddenDrift": [
+          "VISIBLE_THESIS_REQUIRED",
+          "ABSTRACT_PROP_DRIFT",
+          "OCCUPATION_PROXY_DRIFT",
+          "GENERIC_BUSINESS_STOCK_DRIFT",
+          "SEMANTICALLY_DECORATIVE_SCENE",
+          "VISUAL_INFORMATION_GAIN",
+          "BUYER_PERSPECTIVE_REQUIRED"
+        ],
+        "continuityStrategy": "chapter arcs with recurring buyer/expert callbacks from L01",
+        "visualMotifs": [
+          "perception-reflection",
+          "choice-comparison",
+          "recognition-eye-line",
+          "evidence-proof",
+          "confusion-competing-signals",
+          "specialization-narrowing",
+          "memory-later-recall",
+          "reputation-expert-absent",
+          "recommendation-referral"
+        ],
+        "fingerprint": "0b9a81e245f303de48ce8f2c84a53b904fc4c7817ce0ac3e1fc601a5bbd958d4"
+      },
+      "chapters": [
+        {
+          "chapterId": "l01-chapter-01",
+          "thesis": "unresolved-contradiction-consequence-real-expertise-invisible → real-expertise-invisible → customer-perception",
+          "narrativeArc": [
+            "hook",
+            "context",
+            "conflict"
+          ],
+          "continuityGroup": "l01-buyer-arc-1",
+          "preferredVisualFamilies": [
+            "human-decision",
+            "professional-evidence",
+            "social-perception",
+            "contrast"
+          ],
+          "beatIds": [
+            "L01-COLD_OPEN",
+            "L01-V01",
+            "L01-V02"
+          ]
+        },
+        {
+          "chapterId": "l01-chapter-02",
+          "thesis": "specialist-vs-generalist → customer-mental-category → coherent-brand-signals",
+          "narrativeArc": [
+            "example",
+            "evidence",
+            "contrast"
+          ],
+          "continuityGroup": "l01-buyer-arc-2",
+          "preferredVisualFamilies": [
+            "human-decision",
+            "professional-evidence",
+            "social-perception",
+            "contrast"
+          ],
+          "beatIds": [
+            "L01-V03",
+            "L01-V04",
+            "L01-V05"
+          ]
+        },
+        {
+          "chapterId": "l01-chapter-03",
+          "thesis": "perceived-value → positioning-self-test",
+          "narrativeArc": [
+            "mechanism",
+            "payoff",
+            "recall"
+          ],
+          "continuityGroup": "l01-buyer-arc-3",
+          "preferredVisualFamilies": [
+            "human-decision",
+            "professional-evidence",
+            "social-perception",
+            "contrast"
+          ],
+          "beatIds": [
+            "L01-V06",
+            "L01-V07"
+          ]
+        }
+      ],
+      "beats": [
+        {
+          "sceneId": "L01-COLD_OPEN",
+          "visibleThesis": "A buyer faces the consequence of not being able to identify unresolved contradiction consequence real expertise invisible.",
+          "newInformation": "Introduces the buyer consequence and unresolved positioning conflict.",
+          "narrativeFunction": "hook",
+          "visualFamily": "human-decision",
+          "promptPreview": "Text-free 16:9 client-decision treatment for unresolved contradiction consequence real expertise invisible. Communication intent: create-tension. Subject: client choosing between two credible professionals. Environment: consultation decision table with both candidates visible. Composition: over-shoulder decision triangle with evidence weighted toward the winner. Camera: 50mm seated client eye-line documentary. Props: two contrasting unlabeled portfolios, selection token. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging."
+        },
+        {
+          "sceneId": "L01-V01",
+          "visibleThesis": "A buyer must choose using visible proof because the expert's underlying skill cannot be inspected directly.",
+          "newInformation": "Advances the visual argument with real expertise invisible; it is not a decorative restatement.",
+          "narrativeFunction": "example",
+          "visualFamily": "human-decision",
+          "promptPreview": "Text-free 16:9 environmental-storytelling treatment for real expertise invisible. Communication intent: make-proof-visible. Subject: independent craftsperson visible through traces of completed work; mid-career hospitality owner. Environment: workshop, shop floor, studio wall, or hospitality space; backstage production zone. Composition: wide environmental tableau with evidence trail; left-to-right reveal path. Camera: 28mm high-corner documentary wide; elevated diagonal viewpoint. Props: finished work, tools in use, expertise evidence artifact. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging."
+        },
+        {
+          "sceneId": "L01-V02",
+          "visibleThesis": "A buyer categorizes the professional from the signals that remain after the interaction ends.",
+          "newInformation": "Advances the visual argument with customer perception; it is not a decorative restatement.",
+          "narrativeFunction": "mechanism",
+          "visualFamily": "human-decision",
+          "promptPreview": "Text-free 16:9 client-decision treatment for customer perception. Communication intent: prompt-decision. Subject: client comparing credible options at a decision point; older technical consultant. Environment: procurement table or consultation waiting area; client point-of-decision zone. Composition: client point-of-view with alternatives receding in depth; central void separating competing signals. Camera: 45mm seated point-of-view; subjective client viewpoint. Props: unlabeled portfolios, evidence samples, selection token, customer evidence artifact. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging."
+        },
+        {
+          "sceneId": "L01-V03",
+          "visibleThesis": "A buyer compares alternatives and finds one clear reason to choose the specialist.",
+          "newInformation": "Advances the visual argument with specialist vs generalist; it is not a decorative restatement.",
+          "narrativeFunction": "contrast",
+          "visualFamily": "diagram",
+          "promptPreview": "Text-free 16:9 comparison-composition treatment for specialist vs generalist. Communication intent: compare-alternatives. Subject: two meaningfully different outcomes or choices; nonbinary creative director. Environment: dual-world editorial set; artifact archive zone. Composition: asymmetric split composition with a decisive visual imbalance; occluded-to-visible information progression. Camera: 40mm locked frontal comparison; lateral profile viewpoint. Props: contrasting evidence sets, decision marker, generalist evidence artifact. Proposition-specific comparison structure with 2 separately rendered label anchors. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging."
+        },
+        {
+          "sceneId": "L01-V04",
+          "visibleThesis": "The structure of customer mental category is understandable without narration.",
+          "newInformation": "Advances the visual argument with customer mental category; it is not a decorative restatement.",
+          "narrativeFunction": "mechanism",
+          "visualFamily": "diagram",
+          "promptPreview": "Text-free 16:9 client-decision treatment for customer mental category. Communication intent: define-category. Subject: client comparing credible options at a decision point; woman-led retail founder. Environment: procurement table or consultation waiting area; peer-referral setting. Composition: client point-of-view with alternatives receding in depth; near-far contrast between choice and result. Camera: 45mm seated point-of-view; compressed distant observation. Props: unlabeled portfolios, evidence samples, selection token, category evidence artifact. Proposition-specific hierarchy structure with 4 separately rendered label anchors. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging."
+        },
+        {
+          "sceneId": "L01-V05",
+          "visibleThesis": "The structure of coherent brand signals is understandable without narration.",
+          "newInformation": "Advances the visual argument with coherent brand signals; it is not a decorative restatement.",
+          "narrativeFunction": "mechanism",
+          "visualFamily": "diagram",
+          "promptPreview": "Text-free 16:9 evidence-proof treatment for coherent brand signals. Communication intent: make-proof-visible. Subject: observable work evidence accumulating into trust; male wellness practitioner. Environment: case-study archive, exhibition rail, or results wall; field-work context. Composition: progressive evidence trail leading to a decision; layered reflection with off-axis evidence. Camera: 35mm shallow diagonal dolly perspective; close foreground parallax. Props: before-after sample, prototype, testimonial portrait without text, brand evidence artifact. Proposition-specific hub-spoke structure with 5 separately rendered label anchors. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging."
+        },
+        {
+          "sceneId": "L01-V06",
+          "visibleThesis": "A buyer observes how perceived value changes whether an expert is understood and chosen.",
+          "newInformation": "Advances the visual argument with perceived value; it is not a decorative restatement.",
+          "narrativeFunction": "mechanism",
+          "visualFamily": "human-decision",
+          "promptPreview": "Text-free 16:9 evidence-proof treatment for perceived value. Communication intent: explain-causality. Subject: observable work evidence accumulating into trust; younger independent product designer. Environment: case-study archive, exhibition rail, or results wall; street-facing public threshold. Composition: progressive evidence trail leading to a decision; foreground consequence against background cause. Camera: 35mm shallow diagonal dolly perspective; low three-quarter viewpoint. Props: before-after sample, prototype, testimonial portrait without text, perceived evidence artifact. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging."
+        },
+        {
+          "sceneId": "L01-V07",
+          "visibleThesis": "A buyer observes how positioning self test changes whether an expert is understood and chosen.",
+          "newInformation": "Advances the visual argument with positioning self test; it is not a decorative restatement.",
+          "narrativeFunction": "payoff",
+          "visualFamily": "human-decision",
+          "callbackToBeatId": "L01-COLD_OPEN",
+          "promptPreview": "Text-free 16:9 process-visualization treatment for positioning self test. Communication intent: deliver-payoff. Subject: hands moving physical components through a meaningful process; mid-career hospitality owner. Environment: large planning surface with real production materials; backstage production zone. Composition: diagonal process path with readable spatial stages; left-to-right reveal path. Camera: 35mm oblique overhead; elevated diagonal viewpoint. Props: movable modules, milestone tokens, thread, positioning evidence artifact. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging."
+        }
+      ]
+    },
+    {
+      "contentId": "L01-S03",
+      "format": "short",
+      "visualStoryBible": {
+        "version": "veronica-visual-language.v1",
+        "format": "short",
+        "thesis": "desired position",
+        "viewerTransformation": {
+          "before": "buyer sees scattered or hidden expertise",
+          "mechanism": "clear repeated evidence and category signals",
+          "after": "buyer recognizes, recalls, and can recommend the relevant expert"
+        },
+        "visualConflict": {
+          "start": "buyers cannot explain what the expert is known for",
+          "end": "a matching problem triggers immediate recognition and choice"
+        },
+        "roles": {
+          "expert": "occupation-neutral professional-services expert",
+          "buyer": "decision-maker evaluating and later recalling evidence",
+          "market": "alternatives, proof signals, recommendations, and competing offers"
+        },
+        "semanticProgression": [
+          "desired-position",
+          "external-perception-test",
+          "gap-between-intent-and-memory",
+          "problem-triggers-name"
+        ],
+        "preferredVisualFamilies": [
+          "human-decision",
+          "professional-evidence",
+          "social-perception",
+          "contrast"
+        ],
+        "forbiddenDrift": [
+          "VISIBLE_THESIS_REQUIRED",
+          "ABSTRACT_PROP_DRIFT",
+          "OCCUPATION_PROXY_DRIFT",
+          "GENERIC_BUSINESS_STOCK_DRIFT",
+          "SEMANTICALLY_DECORATIVE_SCENE",
+          "VISUAL_INFORMATION_GAIN",
+          "BUYER_PERSPECTIVE_REQUIRED"
+        ],
+        "continuityStrategy": "persistent causal short arc",
+        "visualMotifs": [
+          "perception-reflection",
+          "choice-comparison",
+          "recognition-eye-line",
+          "evidence-proof",
+          "confusion-competing-signals",
+          "specialization-narrowing",
+          "memory-later-recall",
+          "reputation-expert-absent",
+          "recommendation-referral"
+        ],
+        "fingerprint": "58880489b02734d440d940268c6c3194ccafce371e3af49215e4431102958ca2"
+      },
+      "chapters": [],
+      "beats": [
+        {
+          "sceneId": "L01-S03-HOOK",
+          "visibleThesis": "After the expert is absent, a buyer can or cannot recall provocative tension unresolved What Do People Remember You For?.",
+          "newInformation": "Introduces the buyer consequence and unresolved positioning conflict.",
+          "narrativeFunction": "hook",
+          "visualFamily": "social-perception",
+          "promptPreview": "Text-free 9:16 identity-perception treatment for provocative tension unresolved What Do People Remember You For?. Communication intent: create-tension. Subject: peer sorting memory associations around an absent professional. Environment: vertical memory-test installation with physical category tokens. Composition: top-to-bottom association sort ending in one empty name position. Camera: 60mm frontal vertical observation. Props: unlabeled memory tokens and one empty slot, category trays. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging."
+        },
+        {
+          "sceneId": "L01-S03-V01",
+          "visibleThesis": "The expert states what they intend to be known for before any buyer gives an answer.",
+          "newInformation": "Advances the visual argument with desired position; it is not a decorative restatement.",
+          "narrativeFunction": "evidence",
+          "visualFamily": "professional-evidence",
+          "promptPreview": "Text-free 9:16 environmental-storytelling treatment for desired position. Communication intent: make-proof-visible. Subject: independent craftsperson visible through traces of completed work; mid-career hospitality owner. Environment: workshop, shop floor, studio wall, or hospitality space; backstage production zone. Composition: wide environmental tableau with evidence trail; left-to-right reveal path. Camera: 28mm high-corner documentary wide; elevated diagonal viewpoint. Props: finished work, tools in use, desired evidence artifact. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging."
+        },
+        {
+          "sceneId": "L01-S03-V02",
+          "visibleThesis": "Several buyers separately describe what they would recommend the expert for, without seeing the expert's own answer.",
+          "newInformation": "Advances the visual argument with external perception test; it is not a decorative restatement.",
+          "narrativeFunction": "example",
+          "visualFamily": "human-decision",
+          "promptPreview": "Text-free 9:16 identity-perception treatment for external perception test. Communication intent: explain-process. Subject: professional and audience-held impression shown as separate layers; older technical consultant. Environment: reflection installation in a public threshold space; client point-of-decision zone. Composition: foreground reflection opposed to background observation; central void separating competing signals. Camera: 58mm through-glass layered focus; subjective client viewpoint. Props: mirror plane, silhouette cards, memory tokens, external evidence artifact. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging."
+        },
+        {
+          "sceneId": "L01-S03-V03",
+          "visibleThesis": "The buyer answers reveal that intended positioning and remembered category do not match.",
+          "newInformation": "Advances the visual argument with gap between intent and memory; it is not a decorative restatement.",
+          "narrativeFunction": "contrast",
+          "visualFamily": "contrast",
+          "promptPreview": "Text-free 9:16 identity-perception treatment for gap between intent and memory. Communication intent: compare-alternatives. Subject: professional and audience-held impression shown as separate layers; nonbinary creative director. Environment: reflection installation in a public threshold space; artifact archive zone. Composition: foreground reflection opposed to background observation; occluded-to-visible information progression. Camera: 58mm through-glass layered focus; lateral profile viewpoint. Props: mirror plane, silhouette cards, memory tokens, between evidence artifact. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging."
+        },
+        {
+          "sceneId": "L01-S03-V04",
+          "visibleThesis": "When a matching problem appears later, the buyer immediately recalls and contacts the relevant specialist.",
+          "newInformation": "Advances the visual argument with problem triggers name; it is not a decorative restatement.",
+          "narrativeFunction": "payoff",
+          "visualFamily": "diagram",
+          "callbackToBeatId": "L01-S03-HOOK",
+          "promptPreview": "Text-free 9:16 human-scenario treatment for problem triggers name. Communication intent: deliver-payoff. Subject: service professional responding to a consequential real-world moment; woman-led retail founder. Environment: active service counter or field-work setting; peer-referral setting. Composition: layered observational frame with consequence in foreground; near-far contrast between choice and result. Camera: 35mm shoulder-height documentary angle; compressed distant observation. Props: work sample, client brief, name evidence artifact. Proposition-specific cause-effect structure with 4 separately rendered label anchors. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging."
+        }
+      ]
+    }
+  ]
+}

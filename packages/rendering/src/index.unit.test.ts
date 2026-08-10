@@ -10,6 +10,7 @@ import { hashFile } from "@mediaforge/shared";
 import {
   assignClipRenderers,
   buildFinalAudioMuxFfmpegArguments,
+  buildVisualTailExtensionFfmpegArguments,
   buildShotClipRenderRequest,
   buildShotRenderOperationFingerprint,
   buildSceneClipFfmpegArguments,
@@ -691,6 +692,27 @@ describe("FFmpegVideoRenderer", () => {
       ])
     );
     expect(args).not.toContain("silenceremove");
+  });
+
+  it("extends a short visual tail through the complete narration duration", () => {
+    expect(
+      buildVisualTailExtensionFfmpegArguments({
+        visualPath: "/tmp/visual.mp4",
+        outputPath: "/tmp/extended.mp4",
+        paddingSeconds: 16.839,
+        targetDurationSeconds: 55.239,
+      })
+    ).toEqual(
+      expect.arrayContaining([
+        "-vf",
+        "tpad=stop_mode=clone:stop_duration=16.839",
+        "-t",
+        "55.239",
+        "-an",
+        "-c:v",
+        "libx264",
+      ])
+    );
   });
 
   it("keeps visual concat as stream copy over pre-rendered video clips", () => {
@@ -1623,7 +1645,6 @@ describe("FFmpegVideoRenderer", () => {
       ],
       { stdio: "ignore" }
     );
-
     const renderer = new FFmpegVideoRenderer();
     const result = await renderer.render(
       {
@@ -2341,6 +2362,20 @@ describe("FFmpegVideoRenderer", () => {
       ],
       { stdio: "ignore" }
     );
+    execFileSync(
+      "ffmpeg",
+      [
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        "anullsrc=r=24000:cl=mono",
+        "-t",
+        "5",
+        path.join(path.dirname(audioDir), "narration.wav"),
+      ],
+      { stdio: "ignore" }
+    );
 
     const renderer = new FFmpegVideoRenderer();
     const result = await renderer.render(
@@ -2367,6 +2402,13 @@ describe("FFmpegVideoRenderer", () => {
     expect(path.basename(result.cleanPath)).toBe(
       "episode-fixture-en-full-clean.mp4"
     );
+    await expect(validateRenderedVideo(result.cleanPath)).resolves.toMatchObject({
+      valid: true,
+      durationSeconds: expect.closeTo(5, 0),
+    });
+    await expect(
+      fs.stat(path.join(outputDir, "episode-fixture-en-full-visual-extended.mp4"))
+    ).resolves.toBeDefined();
   }, 120000);
 
   it("validates final media against clip continuity and manifest presence", async () => {

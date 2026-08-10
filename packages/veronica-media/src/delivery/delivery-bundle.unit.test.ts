@@ -43,9 +43,23 @@ describe("Veronica delivery bundle", () => {
     const first = planVeronicaDeliveryBundle(input());
     const second = planVeronicaDeliveryBundle({ ...input(), previousBundle: first.bundle });
     expect(first.bundle.contentProfileId).toBe("veronicabenini");
+    expect(first.bundle.variant).toBe("full");
     expect(first.bundle.files.captions?.relativePath).toBe("locales/it/full/captions/narration.vtt");
     expect(first.bundle.visualsInvalidated).toBe(false);
     expect(second.reused).toBe(true);
+  });
+
+  it("fails closed when a short delivery is supplied full metadata", () => {
+    const candidate = input();
+    expect(() => planVeronicaDeliveryBundle({
+      ...candidate,
+      metadataArtifact: {
+        episodeId: candidate.episodeId,
+        locale: candidate.locale,
+        variant: "short",
+        metadataPath: "locales/it/short/metadata/youtube-metadata.json",
+      },
+    })).toThrow("VERONICA_DELIVERY_METADATA_VARIANT_MISMATCH");
   });
 
   it("fails closed when a render belongs to another revision", () => {

@@ -75,6 +75,7 @@ Full and short media stay separate. Metadata and audio remain sibling or downstr
 - YouTube metadata is generated from scenes files rather than from free-form episode notes.
 - The metadata package writes JSON, markdown, description, chapters, tags, pinned-comment, and generation-info outputs.
 - Metadata generation supports retries, fallback models, timeout control, and optional retention of uploaded source files.
+- Veronica and History use genre-owned `metadata` commands. They resolve the exact `full` or `short` narration first, write under `locales/<locale>/<variant>/metadata/`, and dry-run without provider calls. Valid scoped artifacts are reused unless `--force` is supplied.
 
 ## YouTube Upload
 

@@ -32,3 +32,4 @@ channels/mathe/tafelmathe-youtube-channel-image-pack.zip
 content-packs/**/veronica-positioning-visual-review-pack*.zip
 content-packs/**/visual-review/bulk-visual-review-[0-9]*.json
 .cursor/hooks-state/
+.mediaforge.sqlite*
