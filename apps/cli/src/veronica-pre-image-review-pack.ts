@@ -7,7 +7,7 @@ import { scenePlanSchema } from "@mediaforge/domain";
 import { veronicaShortPacingCalibrationSchema } from "@mediaforge/speech";
 import { z } from "zod";
 
-const PACK_SCHEMA_VERSION = "veronica-pre-image-review-pack.v3" as const;
+const PACK_SCHEMA_VERSION = "veronica-pre-image-review-pack.v4" as const;
 const execFileAsync = promisify(execFile);
 const reviewManifestSchema = z.strictObject({
   schemaVersion: z.literal(PACK_SCHEMA_VERSION), episodeId: z.string().min(1), language: z.string().min(1), variant: z.enum(["full", "short"]),
@@ -60,17 +60,19 @@ async function requiredFile(filePath: string, label: string): Promise<void> {
 }
 
 function promptReviewMarkdown(input: {
+  readonly variant: "full" | "short";
   readonly narration: string;
   readonly pacingSummary: string;
   readonly scenes: ReturnType<typeof scenePlanSchema.parse>["scenes"];
   readonly findingsByScene: ReadonlyMap<string, readonly string[]>;
   readonly stateByScene: ReadonlyMap<string, string>;
   readonly actorByScene: ReadonlyMap<string, string>;
+  readonly thesisByScene: ReadonlyMap<string, string>;
 }): string {
   return [
     "# ChatGPT pre-image review request",
     "",
-    "Review this Short before any image-provider request. For each scene, answer pass/edit/block for: narration alignment; visible thesis; 1–2 second muted instant-read; buyer/customer action; cause/effect; occupation-proxy drift; abstract-prop drift; generic stock drift; continuity; harmful repetition; text/logo risk; 9:16 readability; new information; and whether provider generation should proceed. Return concise numbered edits; do not rewrite narration unless visual alignment requires it.",
+    veronicaPreImageReviewInstruction(input.variant),
     "",
     "## English narration",
     "",
@@ -89,7 +91,9 @@ function promptReviewMarkdown(input: {
       "",
       `Action owner: ${input.actorByScene.get(scene.id) ?? "not applicable"}`,
       "",
-      `Prompt: ${scene.imagePrompt}`,
+      `Visible thesis: ${input.thesisByScene.get(scene.id) ?? "MISSING — BLOCK PROVIDER PROJECTION"}`,
+      "",
+      `Provider-oriented prompt: ${scene.imagePrompt}`,
       "",
       `Automated findings: ${(input.findingsByScene.get(scene.id) ?? []).join("; ") || "none"}`,
       "",
@@ -97,8 +101,33 @@ function promptReviewMarkdown(input: {
   ].join("\n");
 }
 
-function providerPromptsMarkdown(scenes: ReturnType<typeof scenePlanSchema.parse>["scenes"], stateByScene: ReadonlyMap<string, string>, actorByScene: ReadonlyMap<string, string>): string {
-  return ["# UNAPPROVED — DO NOT SUBMIT", "", "These provider-oriented prompts are intentionally blocked until human pre-image approval is recorded.", "", ...scenes.flatMap((scene) => [`## ${scene.id}`, "", `State complexity: ${stateByScene.get(scene.id) ?? "SINGLE_STATE"}`, `Action owner: ${actorByScene.get(scene.id) ?? "not applicable"}`, "", scene.imagePrompt, ""])].join("\n");
+export function veronicaPreImageReviewInstruction(variant: "full" | "short"): string {
+  return variant === "short"
+    ? "Review this Short before any image-provider request. For each scene, answer pass/edit/block for: narration alignment; visible thesis; 1–2 second muted instant-read; action-owner correctness; buyer/customer consequence where required; cause/effect; occupation-proxy drift; abstract/decorative drift; generic stock drift; continuity; harmful repetition; text/logo risk; 9:16 readability; new information; and provider readiness. Return concise numbered edits; do not rewrite narration unless visual alignment requires it."
+    : "Review this full / long-form 16:9 episode before any image-provider request. For each scene and sequence state, answer pass/edit/block for: narration alignment; visible thesis; muted instant-read where applicable; action-owner correctness; buyer/customer consequence where required; cause/effect; occupation-proxy drift; abstract/decorative drift; generic stock drift; continuity; harmful repetition; text/logo risk; 16:9 composition; multi-state representation validity; long-form scene/event sequence coherence; new information; and provider readiness. Treat valid separately prepared multi-state assets as a sequence, never as one storyboard still. Return concise numbered edits; do not rewrite narration unless visual alignment requires it.";
+}
+
+function providerPromptsMarkdown(
+  scenes: ReturnType<typeof scenePlanSchema.parse>["scenes"],
+  stateByScene: ReadonlyMap<string, string>,
+  actorByScene: ReadonlyMap<string, string>,
+  thesisByScene: ReadonlyMap<string, string>,
+  assetsByScene: ReadonlyMap<string, readonly { readonly assetId: string; readonly prompt: string }[]>,
+): string {
+  return ["# UNAPPROVED — DO NOT SUBMIT", "", "These provider-oriented prompts are intentionally blocked until human pre-image approval is recorded.", "", ...scenes.flatMap((scene) => {
+    const assets = assetsByScene.get(scene.id) ?? [];
+    return [
+      `## ${scene.id}`,
+      "",
+      `State complexity: ${stateByScene.get(scene.id) ?? "SINGLE_STATE"}`,
+      `Action owner: ${actorByScene.get(scene.id) ?? "not applicable"}`,
+      `Visible thesis: ${thesisByScene.get(scene.id) ?? "MISSING — PROVIDER PROJECTION BLOCKED"}`,
+      "",
+      ...(assets.length > 0
+        ? assets.flatMap((asset) => [`### Asset ${asset.assetId}`, "", asset.prompt, ""])
+        : [scene.imagePrompt, ""]),
+    ];
+  })].join("\n");
 }
 
 function shortNarrationDiagnostic(narrationDurationSeconds: number, timingSource: string, calibration: ReturnType<typeof veronicaShortPacingCalibrationSchema.parse>) {
@@ -142,9 +171,17 @@ export async function createVeronicaPreImageReviewPack(
   const diagnostic = input.variant === "short"
     ? shortNarrationDiagnostic(timing.narrationDurationSeconds, timing.timingSource, veronicaShortPacingCalibrationSchema.parse(JSON.parse(pacingCalibrationRaw ?? "") as unknown))
     : { mode: "full-current-policy" as const, wordCount: narration.match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)?/gu)?.length ?? 0, narrationDurationSeconds: timing.narrationDurationSeconds, approximateWordsPerMinute: Math.round((narration.match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)?/gu)?.length ?? 0) / timing.narrationDurationSeconds * 60 * 10) / 10, timingSource: timing.timingSource, pacingStatus: "not-configured" as const, durationAcceptanceStatus: "NOT_APPLICABLE" as const };
-  const finalPlan = z.object({ continuity: z.object({ mode: z.string() }).optional(), selectedRecurringMotif: z.object({ concept: z.string() }).optional(), scenes: z.array(z.object({ sceneId: z.string(), stateComplexity: z.enum(["SINGLE_STATE", "DECISIVE_TRANSITION_MOMENT", "MULTI_STATE_REQUIRED"]).optional(), treatment: z.object({ actionOwnerRole: z.enum(["expert", "buyer", "shared", "none"]).optional() }) })) }).parse(JSON.parse(await fs.readFile(sourcePlanPath, "utf8")) as unknown);
+  const finalPlan = z.object({ continuity: z.object({ mode: z.string() }).optional(), selectedRecurringMotif: z.object({ concept: z.string() }).optional(), scenes: z.array(z.object({ sceneId: z.string(), visibleThesis: z.string().optional(), stateComplexity: z.enum(["SINGLE_STATE", "DECISIVE_TRANSITION_MOMENT", "MULTI_STATE_REQUIRED"]).optional(), treatment: z.object({ actionOwnerRole: z.enum(["expert", "buyer", "shared", "none"]).optional() }) })), assets: z.array(z.object({ assetId: z.string(), sceneId: z.string(), prompt: z.string() })) }).parse(JSON.parse(await fs.readFile(sourcePlanPath, "utf8")) as unknown);
   const stateByScene = new Map(scenePlan.scenes.map((scene, index) => [scene.id, finalPlan.scenes[index]?.stateComplexity ?? "SINGLE_STATE"] as const));
   const actorByScene = new Map(scenePlan.scenes.map((scene, index) => [scene.id, finalPlan.scenes[index]?.treatment.actionOwnerRole ?? "not applicable"] as const));
+  const thesisByScene = new Map(scenePlan.scenes.flatMap((scene, index) => {
+    const thesis = finalPlan.scenes[index]?.visibleThesis?.trim();
+    return thesis ? [[scene.id, thesis] as const] : [];
+  }));
+  const assetsByScene = new Map(scenePlan.scenes.map((scene, index) => {
+    const semanticSceneId = finalPlan.scenes[index]?.sceneId;
+    return [scene.id, semanticSceneId ? finalPlan.assets.filter((asset) => asset.sceneId === semanticSceneId) : []] as const;
+  }));
   const semanticReviews = z.object({ reviews: z.array(z.object({ sceneId: z.string(), findings: z.array(z.object({ code: z.string(), severity: z.string(), message: z.string() })) })) }).parse(JSON.parse(semanticReviewRaw) as unknown);
   const findingsByScene = new Map(semanticReviews.reviews.map((review) => [review.sceneId, review.findings.map((finding) => `${finding.severity}:${finding.code} — ${finding.message}`)] as const));
   const allFindings = semanticReviews.reviews.flatMap((review) => review.findings);
@@ -170,10 +207,10 @@ export async function createVeronicaPreImageReviewPack(
   const pacingSummary = diagnostic.mode === "short-adaptive"
     ? `${diagnostic.wordCount} words; ${diagnostic.narrationDurationSeconds.toFixed(3)}s; ${diagnostic.approximateWordsPerMinute} WPM; ${diagnostic.pacingStatus}; ${diagnostic.durationAcceptanceStatus}; selected speed ${diagnostic.ttsSpeed}; calibration ${diagnostic.speedNormalizationApplied ? "applied" : "not required"}.`
     : `${diagnostic.wordCount} words; ${diagnostic.narrationDurationSeconds.toFixed(3)}s; ${diagnostic.approximateWordsPerMinute} WPM; full-form pacing policy not configured.`;
-  const promptMarkdown = promptReviewMarkdown({ narration, pacingSummary, scenes: scenePlan.scenes, findingsByScene, stateByScene, actorByScene });
+  const promptMarkdown = promptReviewMarkdown({ variant: input.variant, narration, pacingSummary, scenes: scenePlan.scenes, findingsByScene, stateByScene, actorByScene, thesisByScene });
   await Promise.all([
     fs.writeFile(promptPath, promptMarkdown, "utf8"),
-    fs.writeFile(promptsPath, providerPromptsMarkdown(scenePlan.scenes, stateByScene, actorByScene), "utf8"),
+    fs.writeFile(promptsPath, providerPromptsMarkdown(scenePlan.scenes, stateByScene, actorByScene, thesisByScene, assetsByScene), "utf8"),
   ]);
   const artifactFiles: readonly (readonly [string, string])[] = [
     ["chatgpt-pre-image-review-request.md", promptPath],

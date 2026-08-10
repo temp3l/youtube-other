@@ -295,7 +295,7 @@ export async function preparePositioningProductionEpisode(
     ...scenePlan,
     scenes: scenePlan.scenes.map((scene, index) => ({
       ...scene,
-      imagePrompt: canonicalPlan.assets[index]?.prompt ?? scene.imagePrompt,
+      imagePrompt: canonicalPlan.assets.find((asset) => asset.sceneId === canonicalPlan.scenes[index]?.sceneId)?.prompt ?? scene.imagePrompt,
     })),
   });
   const existing = (await fileExists(manifestPath))

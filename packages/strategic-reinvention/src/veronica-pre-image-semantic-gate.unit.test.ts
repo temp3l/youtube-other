@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PlannedScene, PositioningVisualTreatment } from "./positioning-visual-contracts.js";
+import { stableHash } from "./positioning-visual-semantics.js";
 import { classifyVeronicaStillStateComplexity, normalizeProviderPromptSentence, normalizeVeronicaViewerVisibleFamilies, projectVeronicaProviderPrompt, reviewVeronicaPreImageTreatment } from "./veronica-pre-image-semantic-gate.js";
 
 function treatment(overrides: Partial<PositioningVisualTreatment> = {}): PositioningVisualTreatment {
@@ -81,6 +82,48 @@ describe("Veronica pre-image semantic gate", () => {
     expect(shortPrompt).toContain("MANUAL REVIEW REQUIRED");
     expect(fullPrompt).toContain("MULTI-ASSET SEQUENCE REQUIRED");
     expect(fullPrompt).toContain("16:9 Veronica long-form editorial sequence");
+    expect(fullPrompt).toContain("Visible thesis:");
+    expect(fullPrompt).not.toContain("storyboard still as one image");
+  });
+
+  it("blocks a missing visible thesis without projecting an empty label or inventing one", () => {
+    const missingThesis = scene({ visibleThesis: "" });
+    const review = reviewVeronicaPreImageTreatment({ contentId: "test", sceneId: missingThesis.sceneId, plannerVersion: "test", narration: "A buyer chooses based on visible expertise.", narrationAnchor: "buyer expertise", visibleThesis: "", newInformation: missingThesis.newInformation, treatment: missingThesis.treatment });
+    const prompt = projectVeronicaProviderPrompt({ aspectRatio: "16:9", format: "long" }, missingThesis);
+    expect(review.status).toBe("manual-review-required");
+    expect(review.driftFlags).toContain("VISIBLE_THESIS_REQUIRED");
+    expect(prompt).not.toContain("Visible thesis:");
+    expect(prompt).not.toContain("positioning matters");
+  });
+
+  it("changes the provider projection hash when the final visible thesis changes", () => {
+    const first = projectVeronicaProviderPrompt({ aspectRatio: "16:9", format: "long" }, scene());
+    const second = projectVeronicaProviderPrompt({ aspectRatio: "16:9", format: "long" }, scene({ visibleThesis: "A buyer recognizes a different cause and consequence in the final evidence." }));
+    expect(stableHash(first)).not.toBe(stableHash(second));
+  });
+
+  it("allows profession-specific visuals only when narration centers that profession", () => {
+    const generic = reviewVeronicaPreImageTreatment({ contentId: "test", sceneId: "generic", plannerVersion: "test", narration: "A baker, hotelier, or designer may all need positioning so a customer remembers one expertise.", narrationAnchor: "generic examples", visibleThesis: "A customer remembers one focused expertise rather than a broad professional list.", newInformation: "Adds the customer's memory consequence for a generic positioning claim.", treatment: treatment({ environment: "bakery workshop", action: "a customer remembers the baker's display" }) });
+    const specific = reviewVeronicaPreImageTreatment({ contentId: "test", sceneId: "specific", plannerVersion: "test", narration: "The baker arranges bread so a customer can compare freshness.", narrationAnchor: "the bakery customer decision", visibleThesis: "Clear freshness evidence lets the bakery customer compare and choose the better loaf.", newInformation: "Shows the profession-specific product evidence that drives this purchase.", treatment: treatment({ environment: "bakery workshop", action: "a customer compares loaves and chooses the fresher one" }) });
+    expect(generic.driftFlags).toContain("OCCUPATION_PROXY_DRIFT");
+    expect(specific.driftFlags).not.toContain("OCCUPATION_PROXY_DRIFT");
+  });
+
+  it("treats a repeated causal action as decorative even when camera and environment change", () => {
+    const previous = treatment({ environment: "first neutral room", camera: "35mm wide", action: "a buyer recognizes one repeated evidence pattern" });
+    const duplicate = reviewVeronicaPreImageTreatment({ contentId: "test", sceneId: "duplicate", plannerVersion: "test", narration: "The customer remembers the expertise.", narrationAnchor: "memory", visibleThesis: "A buyer recognizes one repeated pattern and remembers the associated expertise.", newInformation: "Claims a new visual location without adding a new causal relationship.", previousTreatment: previous, treatment: treatment({ environment: "different neutral concourse", camera: "85mm close", action: "a buyer recognizes one repeated evidence pattern" }) });
+    const distinct = reviewVeronicaPreImageTreatment({ contentId: "test", sceneId: "distinct", plannerVersion: "test", narration: "The customer remembers the expertise.", narrationAnchor: "memory", visibleThesis: "Repeated encounters teach the buyer which problem belongs with the professional.", newInformation: "Adds learning across repeated exposure rather than repeating a one-time recognition.", previousTreatment: previous, treatment: treatment({ action: "the expert repeats one problem cue while the buyer remembers it across encounters", actionOwnerRole: "expert" }) });
+    expect(duplicate.driftFlags).toContain("SEMANTICALLY_DECORATIVE_SCENE");
+    expect(distinct.driftFlags).not.toContain("SEMANTICALLY_DECORATIVE_SCENE");
+    expect(distinct.treatmentHash).toBeDefined();
+  });
+
+  it("requires buyer consequence without changing expert action ownership", () => {
+    const expertOwned = treatment({ actionOwnerRole: "expert", action: "the expert repeats one evidence signal while a buyer recognizes the associated problem" });
+    const review = reviewVeronicaPreImageTreatment({ contentId: "test", sceneId: "expert-owned", plannerVersion: "test", narration: "Positioning teaches the customer which expertise to remember.", narrationAnchor: "customer recognition", visibleThesis: "Consistent expert evidence lets the customer recognize and remember the intended problem association.", newInformation: "Adds professional-owned repetition with a separate customer recognition consequence.", treatment: expertOwned });
+    const prompt = projectVeronicaProviderPrompt({ aspectRatio: "16:9", format: "long" }, scene({ stateComplexity: "DECISIVE_TRANSITION_MOMENT", treatment: expertOwned }));
+    expect(review.driftFlags).not.toContain("BUYER_PERSPECTIVE_REQUIRED");
+    expect(prompt).toContain("Primary actor: the recurring professional.");
   });
 
   it("normalizes generated prompt-boundary punctuation without rewriting ellipses", () => {

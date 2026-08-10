@@ -269,6 +269,7 @@
         "camera": "50mm seated client eye-line documentary",
         "lighting": "neutral client-room daylight with selective evidence contrast",
         "action": "client reaches toward the clearer evidence while the stronger craft remains overlooked",
+        "actionOwnerRole": "buyer",
         "props": [
           "two contrasting unlabeled portfolios",
           "selection token"
@@ -314,6 +315,8 @@
         },
         "treatmentHash": "0f1225a50b9ab680420feee4674d72e3627319444c7c381599c76519f73bc2a9"
       },
+      "visibleThesis": "When two credible professionals compete, the client chooses the clearer evidence even when the overlooked option has stronger underlying capability.",
+      "newInformation": "Establishes the opening contradiction between actual competence and evidence the client can interpret.",
       "overlayKey": "l01.l01-cold_open",
       "assetId": "l01-cold_open-base",
       "eventIds": [
@@ -335,17 +338,18 @@
         "progressionStage": "MANIFESTATION",
         "narrativeBeat": "real-expertise-invisible",
         "communicationIntent": "make-proof-visible",
-        "strategy": "environmental-storytelling",
-        "subjectRequirement": "independent craftsperson visible through traces of completed work; mid-career hospitality owner",
-        "environment": "workshop, shop floor, studio wall, or hospitality space; backstage production zone",
-        "composition": "wide environmental tableau with evidence trail; left-to-right reveal path",
-        "camera": "28mm high-corner documentary wide; elevated diagonal viewpoint",
+        "strategy": "client-decision",
+        "subjectRequirement": "occupation-neutral buyer evaluating pre-contact evidence from several credible professionals",
+        "environment": "occupation-neutral pre-contact evaluation space with separate candidate evidence surfaces",
+        "composition": "two-state sequence: equally broad signals create buyer hesitation; one focused evidence pattern creates a shortlist before any meeting",
+        "camera": "50mm buyer-eye over-shoulder comparison followed by a focused evidence detail",
         "lighting": "soft directional editorial daylight",
-        "action": "observable proof accumulates toward trust",
+        "action": "a buyer first scans many equally broad signals, then recognizes and keeps the focused candidate before direct contact",
+        "actionOwnerRole": "buyer",
         "props": [
-          "finished work",
-          "tools in use",
-          "expertise evidence artifact"
+          "unlabeled general evidence surfaces",
+          "one repeated focus pattern",
+          "buyer shortlist gesture"
         ],
         "motionOpportunities": [
           "establishing-crop",
@@ -386,6 +390,8 @@
         },
         "treatmentHash": "b9e109b6f3d7f538246ebeaaa05c1e0d1e11c7f1cfdc187e2b636959c044dc65"
       },
+      "visibleThesis": "Before direct interaction, a buyer filters broad professional options out and keeps the candidate whose visible signals show the clearest fit for the specific problem.",
+      "newInformation": "Adds pre-contact filtering: the buyer forms a shortlist from visible fit signals before meeting any professional.",
       "overlayKey": "l01.l01-v01",
       "assetId": "l01-v01-base",
       "eventIds": [
@@ -416,17 +422,17 @@
         "narrativeBeat": "customer-perception",
         "communicationIntent": "prompt-decision",
         "strategy": "client-decision",
-        "subjectRequirement": "client comparing credible options at a decision point; older technical consultant",
-        "environment": "procurement table or consultation waiting area; client point-of-decision zone",
-        "composition": "client point-of-view with alternatives receding in depth; central void separating competing signals",
-        "camera": "45mm seated point-of-view; subjective client viewpoint",
+        "subjectRequirement": "occupation-neutral buyer retrieving one recognizable association when a matching problem appears",
+        "environment": "quiet occupation-neutral recall setting with unlabeled evidence surfaces",
+        "composition": "simultaneous memory contrast: unrelated capability samples remain indistinct while one repeated evidence pattern is sharply retrieved beside the matching problem cue",
+        "camera": "65mm close buyer profile with selective evidence-plane focus",
         "lighting": "soft directional editorial daylight",
-        "action": "a decision maker selects between visible options",
+        "action": "a buyer confronted with a matching problem remembers one repeated evidence pattern while unrelated capability samples remain indistinct",
+        "actionOwnerRole": "buyer",
         "props": [
-          "unlabeled portfolios",
-          "evidence samples",
-          "selection token",
-          "customer evidence artifact"
+          "unlabeled matching problem cue",
+          "one repeated evidence pattern",
+          "indistinct unrelated capability samples"
         ],
         "motionOpportunities": [
           "establishing-crop",
@@ -467,6 +473,8 @@
         },
         "treatmentHash": "2cecaf73a1e0dbdd0bd0709480393cb7cc870f5c0a1217dd14b027763621e20e"
       },
+      "visibleThesis": "When many unrelated capabilities compete equally, a buyer cannot retrieve one clear association; one repeatedly recognizable expertise becomes memorable when the matching problem appears.",
+      "newInformation": "Adds the memory mechanism: repeated recognizable expertise is stored and retrieved more easily than a broad capability list.",
       "overlayKey": "l01.l01-v02",
       "assetId": "l01-v02-base",
       "eventIds": [
@@ -496,47 +504,26 @@
         "progressionStage": "REVERSAL",
         "narrativeBeat": "specialist-vs-generalist",
         "communicationIntent": "compare-alternatives",
-        "strategy": "comparison-composition",
-        "subjectRequirement": "two meaningfully different outcomes or choices; nonbinary creative director",
-        "environment": "dual-world editorial set; artifact archive zone",
-        "composition": "asymmetric split composition with a decisive visual imbalance; occluded-to-visible information progression",
-        "camera": "40mm locked frontal comparison; lateral profile viewpoint",
+        "strategy": "human-scenario",
+        "subjectRequirement": "occupation-neutral professional with a buyer entering through one recognizable association",
+        "environment": "real architectural threshold opening into a broad occupation-neutral expertise space",
+        "composition": "one clear doorway in the foreground reveals many connected evidence areas in the wider space beyond",
+        "camera": "38mm buyer-height threshold view with deep access into the broader space",
         "lighting": "soft directional editorial daylight",
-        "action": "two alternatives reveal a meaningful contrast",
+        "action": "a buyer crosses one recognizable doorway and sees a broad connected range of real expertise beyond it",
+        "actionOwnerRole": "buyer",
         "props": [
-          "contrasting evidence sets",
-          "decision marker",
-          "generalist evidence artifact"
+          "one recognizable doorway",
+          "broad connected evidence areas beyond",
+          "occupation-neutral expert and buyer"
         ],
         "motionOpportunities": [
           "establishing-crop",
-          "diagram-build",
-          "highlighted-region",
-          "punch-in"
+          "reveal",
+          "subject-detail",
+          "slow-push"
         ],
-        "diagram": {
-          "diagramId": "l01-v03-diagram",
-          "proposition": "specialist-vs-generalist",
-          "textFreeBackground": true,
-          "type": "comparison",
-          "entities": [
-            {
-              "id": "l01-v03-diagram-alternative-a",
-              "semanticRole": "alternative-a",
-              "labelKey": "l01-v03-diagram.alternative-a"
-            },
-            {
-              "id": "l01-v03-diagram-alternative-b",
-              "semanticRole": "alternative-b",
-              "labelKey": "l01-v03-diagram.alternative-b"
-            }
-          ],
-          "relation": "contrast",
-          "overlayLabelKeys": [
-            "l01-v03-diagram.alternative-a",
-            "l01-v03-diagram.alternative-b"
-          ]
-        },
+        "diagram": null,
         "grammar": {
           "strategy": "comparison-composition",
           "subjectArchetype": "two meaningfully different outcomes or choices; nonbinary creative director",
@@ -568,6 +555,8 @@
         },
         "treatmentHash": "8a772610492caeb728298f7b419c186ccea2f43f66eaf53d4ea1db9882a79e56"
       },
+      "visibleThesis": "One recognizable doorway gives the market immediate access to a broader range of real expertise instead of limiting the professional to one skill.",
+      "newInformation": "Adds access rather than memory: a clear entry association opens onto broader expertise beyond it.",
       "overlayKey": "l01.l01-v03",
       "assetId": "l01-v03-base",
       "eventIds": [
@@ -597,76 +586,26 @@
         "progressionStage": "EXPLANATION",
         "narrativeBeat": "customer-mental-category",
         "communicationIntent": "define-category",
-        "strategy": "client-decision",
-        "subjectRequirement": "client comparing credible options at a decision point; woman-led retail founder",
-        "environment": "procurement table or consultation waiting area; peer-referral setting",
-        "composition": "client point-of-view with alternatives receding in depth; near-far contrast between choice and result",
-        "camera": "45mm seated point-of-view; compressed distant observation",
+        "strategy": "comparison-composition",
+        "subjectRequirement": "occupation-neutral buyers comparing coherent and conflicting public signal systems",
+        "environment": "paired occupation-neutral public encounter spaces with text-free evidence categories",
+        "composition": "simultaneous split comparison: repeated matching patterns align on one side while conflicting patterns require visible decoding effort on the other",
+        "camera": "40mm locked landscape comparison at buyer eye level",
         "lighting": "soft directional editorial daylight",
-        "action": "a broad field resolves into a legible category",
+        "action": "one buyer quickly recognizes the coherent option while another buyer struggles to compare conflicting signals and leaves it",
+        "actionOwnerRole": "buyer",
         "props": [
-          "unlabeled portfolios",
-          "evidence samples",
-          "selection token",
-          "category evidence artifact"
+          "repeated matching evidence pattern",
+          "conflicting evidence patterns",
+          "buyer recognition and departure reactions"
         ],
         "motionOpportunities": [
           "establishing-crop",
-          "diagram-build",
+          "split-composition",
           "highlighted-region",
           "punch-in"
         ],
-        "diagram": {
-          "diagramId": "l01-v04-diagram",
-          "proposition": "customer-mental-category",
-          "textFreeBackground": true,
-          "type": "hierarchy",
-          "root": {
-            "id": "l01-v04-diagram-category",
-            "semanticRole": "category",
-            "labelKey": "l01-v04-diagram.category"
-          },
-          "children": [
-            {
-              "id": "l01-v04-diagram-segment-a",
-              "semanticRole": "segment-a",
-              "labelKey": "l01-v04-diagram.segment-a"
-            },
-            {
-              "id": "l01-v04-diagram-segment-b",
-              "semanticRole": "segment-b",
-              "labelKey": "l01-v04-diagram.segment-b"
-            },
-            {
-              "id": "l01-v04-diagram-segment-c",
-              "semanticRole": "segment-c",
-              "labelKey": "l01-v04-diagram.segment-c"
-            }
-          ],
-          "edges": [
-            {
-              "from": "l01-v04-diagram-category",
-              "to": "l01-v04-diagram-segment-a",
-              "semanticRole": "contains"
-            },
-            {
-              "from": "l01-v04-diagram-category",
-              "to": "l01-v04-diagram-segment-b",
-              "semanticRole": "contains"
-            },
-            {
-              "from": "l01-v04-diagram-category",
-              "to": "l01-v04-diagram-segment-c",
-              "semanticRole": "contains"
-            }
-          ],
-          "overlayLabelKeys": [
-            "l01-v04-diagram.category",
-            "l01-v04-diagram.segment-a",
-            "l01-v04-diagram.segment-b",
-            "l01-v04-diagram.segment-c"
-          ]
-        },
+        "diagram": null,
         "grammar": {
           "strategy": "client-decision",
           "subjectArchetype": "client comparing credible options at a decision point; woman-led retail founder",
@@ -700,6 +639,8 @@
         },
         "treatmentHash": "de5e4755896a6ec4ac3ceee5b776b5dec1f8e51b70978e819e9a77fcf1f363e9"
       },
+      "visibleThesis": "When public signals reinforce the same recognizable expertise, a buyer understands the professional quickly; conflicting signals force interpretation work and make the buyer leave.",
+      "newInformation": "Adds decoding cost: coherent repetition speeds buyer understanding while conflicting public signals cause abandonment.",
       "overlayKey": "l01.l01-v04",
       "assetId": "l01-v04-base",
       "eventIds": [
@@ -730,86 +671,25 @@
         "narrativeBeat": "coherent-brand-signals",
         "communicationIntent": "make-proof-visible",
         "strategy": "evidence-proof",
-        "subjectRequirement": "observable work evidence accumulating into trust; male wellness practitioner",
-        "environment": "case-study archive, exhibition rail, or results wall; field-work context",
-        "composition": "progressive evidence trail leading to a decision; layered reflection with off-axis evidence",
-        "camera": "35mm shallow diagonal dolly perspective; close foreground parallax",
+        "subjectRequirement": "occupation-neutral professional presenting genuine competence evidence to an evaluating buyer",
+        "environment": "occupation-neutral evidence evaluation space with real process and outcome proof",
+        "composition": "multi-state evidence sequence: buyer verifies actual process and outcome evidence, recognizes the repeated expertise pattern, and compares value beyond identical price cues",
+        "camera": "45mm alternating evidence-detail and buyer-reaction views",
         "lighting": "soft directional editorial daylight",
-        "action": "observable proof accumulates toward trust",
+        "action": "a buyer first verifies genuine competence evidence, then recognizes how the coherent evidence supports one expertise and chooses on visible value rather than price alone",
+        "actionOwnerRole": "buyer",
         "props": [
-          "before-after sample",
-          "prototype",
-          "testimonial portrait without text",
-          "brand evidence artifact"
+          "unlabeled process evidence",
+          "verifiable outcome evidence",
+          "equal price cues with different evidence clarity"
         ],
         "motionOpportunities": [
           "establishing-crop",
-          "diagram-build",
-          "highlighted-region",
-          "punch-in"
+          "prop-detail",
+          "subject-detail",
+          "transition-state"
         ],
-        "diagram": {
-          "diagramId": "l01-v05-diagram",
-          "proposition": "coherent-brand-signals",
-          "textFreeBackground": true,
-          "type": "hub-spoke",
-          "hub": {
-            "id": "l01-v05-diagram-core-position",
-            "semanticRole": "core-position",
-            "labelKey": "l01-v05-diagram.core-position"
-          },
-          "spokes": [
-            {
-              "id": "l01-v05-diagram-offer",
-              "semanticRole": "offer",
-              "labelKey": "l01-v05-diagram.offer"
-            },
-            {
-              "id": "l01-v05-diagram-content",
-              "semanticRole": "content",
-              "labelKey": "l01-v05-diagram.content"
-            },
-            {
-              "id": "l01-v05-diagram-reputation",
-              "semanticRole": "reputation",
-              "labelKey": "l01-v05-diagram.reputation"
-            },
-            {
-              "id": "l01-v05-diagram-context",
-              "semanticRole": "context",
-              "labelKey": "l01-v05-diagram.context"
-            }
-          ],
-          "edges": [
-            {
-              "from": "l01-v05-diagram-core-position",
-              "to": "l01-v05-diagram-offer",
-              "semanticRole": "reinforces"
-            },
-            {
-              "from": "l01-v05-diagram-core-position",
-              "to": "l01-v05-diagram-content",
-              "semanticRole": "reinforces"
-            },
-            {
-              "from": "l01-v05-diagram-core-position",
-              "to": "l01-v05-diagram-reputation",
-              "semanticRole": "reinforces"
-            },
-            {
-              "from": "l01-v05-diagram-core-position",
-              "to": "l01-v05-diagram-context",
-              "semanticRole": "reinforces"
-            }
-          ],
-          "overlayLabelKeys": [
-            "l01-v05-diagram.core-position",
-            "l01-v05-diagram.offer",
-            "l01-v05-diagram.content",
-            "l01-v05-diagram.reputation",
-            "l01-v05-diagram.context"
-          ]
-        },
+        "diagram": null,
         "grammar": {
           "strategy": "evidence-proof",
           "subjectArchetype": "observable work evidence accumulating into trust; male wellness practitioner",
@@ -843,6 +723,8 @@
         },
         "treatmentHash": "d7ee7d01a032775c73176878537f35f3c319189b99dece89bac137b014dde41d"
       },
+      "visibleThesis": "Genuine competence evidence becomes legible when it coherently supports one expertise, allowing the buyer to see a real value difference beyond price without mistaking image for substance.",
+      "newInformation": "Adds value interpretation: coherent real evidence makes actual competence legible and differentiates buyer value beyond price.",
       "overlayKey": "l01.l01-v05",
       "assetId": "l01-v05-base",
       "eventIds": [
@@ -873,17 +755,17 @@
         "narrativeBeat": "perceived-value",
         "communicationIntent": "explain-causality",
         "strategy": "evidence-proof",
-        "subjectRequirement": "observable work evidence accumulating into trust; younger independent product designer",
-        "environment": "case-study archive, exhibition rail, or results wall; street-facing public threshold",
-        "composition": "progressive evidence trail leading to a decision; foreground consequence against background cause",
-        "camera": "35mm shallow diagonal dolly perspective; low three-quarter viewpoint",
+        "subjectRequirement": "occupation-neutral professional consistently presenting one problem association while buyers encounter it repeatedly",
+        "environment": "sequence of distinct occupation-neutral public encounters linked by one repeated evidence pattern",
+        "composition": "multi-state repeated-exposure sequence: the same problem cue and evidence pattern recur across changing contexts until a buyer recognizes the association; inconsistent alternatives remain unretrievable",
+        "camera": "50mm repeated buyer-eye framing across changing encounter contexts",
         "lighting": "soft directional editorial daylight",
-        "action": "multiple visible conditions produce one outcome",
+        "action": "the professional consistently presents evidence for one problem while a buyer recognizes the association across repeated encounters and cannot retrieve the constantly changing alternative",
+        "actionOwnerRole": "expert",
         "props": [
-          "before-after sample",
-          "prototype",
-          "testimonial portrait without text",
-          "perceived evidence artifact"
+          "one recurring problem cue",
+          "consistent evidence pattern across contexts",
+          "inconsistent alternative signal set"
         ],
         "motionOpportunities": [
           "establishing-crop",
@@ -924,6 +806,8 @@
         },
         "treatmentHash": "e0aa0f1b594d7777b47dc2dc6d2ed3c56d35abfc96e43da39dcf2260eedc60b1"
       },
+      "visibleThesis": "Consistent evidence across repeated encounters teaches the market which problem to associate with the professional, while constantly changing signals prevent that association from being retrieved.",
+      "newInformation": "Adds deliberate market learning over time: the professional repeats one problem association until buyers can retrieve it reliably.",
       "overlayKey": "l01.l01-v06",
       "assetId": "l01-v06-base",
       "eventIds": [
@@ -954,17 +838,18 @@
         "narrativeBeat": "positioning-self-test",
         "communicationIntent": "deliver-payoff",
         "strategy": "process-visualization",
-        "subjectRequirement": "hands moving physical components through a meaningful process; mid-career hospitality owner",
-        "environment": "large planning surface with real production materials; backstage production zone",
-        "composition": "diagonal process path with readable spatial stages; left-to-right reveal path",
-        "camera": "35mm oblique overhead; elevated diagonal viewpoint",
+        "subjectRequirement": "occupation-neutral professional and external client independently revealing intended and perceived professional identity",
+        "environment": "quiet feedback conversation with two independent text-free evidence selections and a visible adjustment area",
+        "composition": "four-state sequence: professional selects intended evidence; client independently recognizes a different or matching pattern; both compare the sets; professional adjusts the next signal direction",
+        "camera": "50mm conversational two-shot alternating with direct evidence comparison details",
         "lighting": "soft directional editorial daylight",
-        "action": "the final visual state resolves the proposition",
+        "action": "the professional defines intended value, an external client independently recognizes the current association, both compare the match or gap, and the professional adjusts future signals",
+        "actionOwnerRole": "shared",
         "props": [
-          "movable modules",
-          "milestone tokens",
-          "thread",
-          "positioning evidence artifact"
+          "intended evidence selection",
+          "independent client evidence selection",
+          "matched and mismatched evidence pairs",
+          "revised future signal set"
         ],
         "motionOpportunities": [
           "establishing-crop",
@@ -1006,6 +891,8 @@
         },
         "treatmentHash": "118c57d74a13369bfb803f2204ddf4b89b5a93fb78bd7557b82de8ba40e23df3"
       },
+      "visibleThesis": "Comparing intended professional identity with an external client's actual association reveals a useful match or gap, which directs what the professional should reinforce or deliberately change.",
+      "newInformation": "Completes the feedback loop: external perception is compared with intent and converted into a concrete signal adjustment.",
       "overlayKey": "l01.l01-v07",
       "assetId": "l01-v07-base",
       "eventIds": [
@@ -3779,5 +3666,5 @@
     "status": "pass",
     "failures": []
   },
-  "planHash": "7f9de3827d36b8e0d1f57f42f3edf887e1a1c837b81e9c42ff1ce681c90bd452"
+  "planHash": "3d2f3b176875d42c20b376f2ceb4be7d0d80bc28bf0beeeb98473427032b602c"
 }

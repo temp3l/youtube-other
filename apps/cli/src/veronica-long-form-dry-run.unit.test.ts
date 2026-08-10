@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -13,6 +14,8 @@ const narrationPath = path.join(
   fixtureRoot,
   "long/en/02-how-to-find-your-niche-without-making-yourself-too-small.md",
 );
+const l01PlanPath = path.join(fixtureRoot, "visual-review/plans/l01.visual-plan.json");
+const l01NarrationPath = path.join(fixtureRoot, "long/en/01-why-being-good-at-your-job-isnt-enough.md");
 
 async function writeOfflineWav(target: string, durationMs: number): Promise<void> {
   const wav = Buffer.alloc(44 + durationMs);
@@ -91,5 +94,68 @@ describe("Veronica L02 full non-provider dry run", () => {
     expect(parsedPack.providerRequestsAllowed).toBe(false);
     expect(parsedPack.narrationDiagnostic.mode).toBe("full-current-policy");
     expect(parsedPack.sources.map((source) => source.name)).not.toContain("pacing-calibration.v1.json");
+  });
+});
+
+describe("Veronica L01 full semantic remediation", () => {
+  it("rebuilds a provider-blocked human review pack with zero semantic blockers", async () => {
+    const workspaceRoot = await fs.mkdtemp(path.join(os.tmpdir(), "veronica-l01-full-"));
+    const episodeDir = path.join(workspaceRoot, "l01");
+    await writeOfflineWav(path.join(episodeDir, "locales/en/full/audio/narration.wav"), 412_800);
+    await preparePositioningProductionEpisode({
+      workspaceRoot,
+      episodeId: "l01",
+      language: "en",
+      variant: "full",
+      planPath: l01PlanPath,
+      scriptPath: l01NarrationPath,
+    });
+    const reviewPack = await createVeronicaPreImageReviewPack({ episodeDir, language: "en", variant: "full" });
+    const [planRaw, reviewsRaw, timingRaw, eventsRaw, reviewRequest, providerPrompts, manifestRaw] = await Promise.all([
+      fs.readFile(path.join(episodeDir, "source/pre-image-semantic-plan.v1.json"), "utf8"),
+      fs.readFile(path.join(episodeDir, "shared/pre-image-semantic-reviews.v1.json"), "utf8"),
+      fs.readFile(path.join(episodeDir, "locales/en/full/canonical-timing.v1.json"), "utf8"),
+      fs.readFile(path.join(episodeDir, "locales/en/full/retimed-visual-events.json"), "utf8"),
+      fs.readFile(reviewPack.promptPath, "utf8"),
+      fs.readFile(path.join(reviewPack.packDir, "provider-image-prompts.md"), "utf8"),
+      fs.readFile(reviewPack.manifestPath, "utf8"),
+    ]);
+    const plan = JSON.parse(planRaw) as {
+      readonly scenes: readonly { readonly sceneId: string; readonly visibleThesis: string; readonly stateComplexity: string; readonly eventIds: readonly string[]; readonly treatment: { readonly diagram: unknown; readonly actionOwnerRole?: string; readonly treatmentHash: string } }[];
+      readonly assets: readonly { readonly assetId: string; readonly sceneId: string; readonly semanticPurpose: string; readonly prompt: string }[];
+      readonly diagrams: readonly unknown[];
+      readonly visualEvents: readonly { readonly eventId: string; readonly sceneId: string; readonly assetId: string; readonly startMs: number; readonly durationMs: number }[];
+      readonly assetReuseDecisions: readonly { readonly decision?: string }[];
+      readonly diversityMetrics: { readonly viewerVisibleFamilies: readonly unknown[] };
+    };
+    const reviews = JSON.parse(reviewsRaw) as { readonly reviews: readonly { readonly sceneId: string; readonly findings: readonly { readonly severity: string }[] }[] };
+    const timing = JSON.parse(timingRaw) as { readonly narrationDurationSeconds: number; readonly timingSource: string };
+    const events = JSON.parse(eventsRaw) as { readonly events: readonly { readonly startMs: number; readonly durationMs: number }[] };
+    const manifest = JSON.parse(manifestRaw) as { readonly providerRequestsAllowed: boolean; readonly narrationDiagnostic: { readonly mode: string; readonly wordCount: number }; readonly packFileHashes: Readonly<Record<string, string>> };
+    expect(reviews.reviews.flatMap((review) => review.findings).filter((finding) => finding.severity === "blocker" || finding.severity === "error")).toHaveLength(0);
+    expect(plan.scenes).toHaveLength(8);
+    expect(plan.scenes.every((scene) => scene.visibleThesis.trim().length >= 28)).toBe(true);
+    expect(plan.scenes.find((scene) => scene.sceneId === "L01-V03")?.visibleThesis).toMatch(/doorway.*broader/iu);
+    expect(plan.assets.length).toBeGreaterThan(plan.scenes.length);
+    expect(plan.assets.filter((asset) => plan.scenes.find((scene) => scene.sceneId === asset.sceneId)?.stateComplexity === "MULTI_STATE_REQUIRED").length).toBeGreaterThan(4);
+    expect(plan.diagrams).toHaveLength(0);
+    expect(plan.scenes.every((scene) => scene.treatment.diagram === null && scene.eventIds.every((eventId) => plan.visualEvents.some((event) => event.eventId === eventId)))).toBe(true);
+    expect(plan.assets.every((asset) => asset.semanticPurpose === plan.scenes.find((scene) => scene.sceneId === asset.sceneId)?.visibleThesis)).toBe(true);
+    expect(plan.assetReuseDecisions.some((decision) => decision.decision === "AUTO_REUSE_APPROVED")).toBe(false);
+    expect(plan.diversityMetrics.viewerVisibleFamilies).toHaveLength(8);
+    expect(timing).toEqual(expect.objectContaining({ narrationDurationSeconds: 412.8, timingSource: "proportional-total-audio-reconciliation" }));
+    const finalEvent = events.events.at(-1);
+    expect(finalEvent ? (finalEvent.startMs + finalEvent.durationMs) / 1_000 : 0).toBe(412.8);
+    expect(reviewRequest).toContain("full / long-form 16:9");
+    expect(reviewRequest).not.toContain("Review this Short");
+    expect(reviewRequest).not.toContain("9:16 readability");
+    expect(providerPrompts).not.toContain("Visible thesis:.");
+    expect(providerPrompts).toContain("UNAPPROVED — DO NOT SUBMIT");
+    expect(providerPrompts).toContain("Sequence asset 2 of 2");
+    expect(manifest).toEqual(expect.objectContaining({ providerRequestsAllowed: false, narrationDiagnostic: expect.objectContaining({ mode: "full-current-policy", wordCount: 998 }) }));
+    for (const [fileName, expectedHash] of Object.entries(manifest.packFileHashes)) {
+      const actualHash = createHash("sha256").update(await fs.readFile(path.join(reviewPack.packDir, fileName))).digest("hex");
+      expect(actualHash).toBe(expectedHash);
+    }
   });
 });

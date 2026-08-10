@@ -1,12 +1,12 @@
 import { z } from "zod";
 import type { GeneratedVisualAsset, PlannedScene, PositioningVisualPlanV2, PositioningVisualTreatment, VeronicaActionOwnerRole, VisualEvent, VisualEventKind } from "./positioning-visual-contracts.js";
-import { calculateDiversityMetrics, stableHash } from "./positioning-visual-semantics.js";
+import { calculateDiversityMetrics, semanticTokens, stableHash } from "./positioning-visual-semantics.js";
 import { resolveVeronicaProductionPolicy } from "./veronica-production-policy.js";
 
 export const VERONICA_PRE_IMAGE_SEMANTIC_REVIEW_VERSION = "veronica-pre-image-semantic-review.v2" as const;
-export const VERONICA_PRE_IMAGE_SEMANTIC_GATE_VERSION = "veronica-pre-image-semantic-gate.v3" as const;
+export const VERONICA_PRE_IMAGE_SEMANTIC_GATE_VERSION = "veronica-pre-image-semantic-gate.v4" as const;
 export const VERONICA_VIEWER_VISIBLE_FAMILY_VERSION = "veronica-viewer-visible-families.v1" as const;
-export const VERONICA_STATE_AWARE_PROVIDER_PROJECTION_VERSION = "veronica-state-aware-provider-projection.v2" as const;
+export const VERONICA_STATE_AWARE_PROVIDER_PROJECTION_VERSION = "veronica-state-aware-provider-projection.v3" as const;
 
 const findingSchema = z.strictObject({
   code: z.enum(["ABSTRACT_PROP_DRIFT", "OCCUPATION_PROXY_DRIFT", "VISIBLE_THESIS_REQUIRED", "BUYER_PERSPECTIVE_REQUIRED", "SEMANTICALLY_DECORATIVE_SCENE", "NARRATION_RELATIONSHIP_MISMATCH", "INSTANT_READ_FAILURE", "HARMFUL_REPETITION", "MULTI_STATE_STILL_AMBIGUITY", "TEXT_FREE_ABSTRACTION_RISK", "MOTIF_OVERUSE_RISK", "WEAK_BUYER_ACTION", "PROVIDER_COMPOSITION_COMPLEXITY"]),
@@ -28,7 +28,9 @@ export const veronicaPreImageSemanticReviewSchema = z.strictObject({
 export type VeronicaPreImageSemanticReview = z.infer<typeof veronicaPreImageSemanticReviewSchema>;
 
 const abstract = /\b(?:prism|translucent planes?|shadow grid|light laborator|floating glass|geometric negative-space|symbolic sculpture|abstract-conceptual)\b/iu;
-const occupation = /\b(?:hospitality|retail|wellness|pottery|mood board|designer|workshop|service counter|technical consultant|creative director)\b/iu;
+const occupationTerms = "hospitality|retail|wellness|pottery|bak(?:er|ery)|hotelier|hotel|beautician|beauty business|craftsperson|shopkeeper|shop floor|factory worker|designer|workshop|service counter|technical consultant|creative director";
+const occupation = new RegExp(`\\b(?:${occupationTerms})\\b`, "iu");
+const occupationGlobal = new RegExp(`\\b(?:${occupationTerms})\\b`, "giu");
 const buyerAction = /\b(?:hesitat\w*|scan\w*|ignor\w*|stop\w*|approach\w*|choos\w*|reject\w*|compar\w*|remember\w*|refer\w*|follow\w*|cross\w*|return\w*|commit\w*|recogniz\w*|gather\w*|arriv\w*|paus\w*|overlook\w*)\b/iu;
 const doorway = /\b(?:doorway|threshold|foothold|widen|narrow|crossing)\b/iu;
 const genericPositioning = /\b(?:niche|positioning|buyer|customer|prospect|referral|recognition|expertise|offer|remember)\b/iu;
@@ -39,6 +41,23 @@ function normalized(value: string): string { return value.toLowerCase().replace(
 export type VeronicaStillStateComplexity = "SINGLE_STATE" | "DECISIVE_TRANSITION_MOMENT" | "MULTI_STATE_REQUIRED";
 
 function family(value: string): string { return normalized(value).replace(/\b(?:the|a|an|with|and|of|to|in)\b/gu, " ").replace(/\s+/gu, " ").trim(); }
+
+function narrationCentersOneProfession(value: string): boolean {
+  const mentions = new Set((value.match(occupationGlobal) ?? []).map((match) => {
+    const term = normalized(match);
+    if (/^bak/iu.test(term)) return "baking";
+    if (/hotel|hospitality/iu.test(term)) return "hospitality";
+    if (/beaut|wellness/iu.test(term)) return "personal-care";
+    if (/design|creative director|mood board/iu.test(term)) return "design";
+    if (/shop|retail|service counter/iu.test(term)) return "retail";
+    return term;
+  }));
+  return mentions.size === 1 && !/\b(?:if you|such as|for example|including|whether|multiple professions?)\b/iu.test(value);
+}
+
+function causalActionSignature(value: string): string {
+  return normalized(value).replace(/\b(?:a|an|the|one|buyer|customer|client|professional|expert)\b/gu, " ").replace(/\s+/gu, " ").trim();
+}
 
 /** Stable, viewer-visible categories; rates below are adjacent scene-transition reuse rates. */
 export function normalizeVeronicaViewerVisibleFamilies(scene: PlannedScene, motif: string | undefined) {
@@ -96,11 +115,13 @@ export function reviewVeronicaPreImageTreatment(input: {
   const add = (code: z.infer<typeof findingSchema>["code"], severity: z.infer<typeof findingSchema>["severity"], message: string): void => { findings.push({ code, severity, message }); };
   const nativeDoorway = doorway.test(relation);
   if (abstract.test(visual) && (nativeDoorway || !/human|buyer|customer|person|expert/iu.test(visual))) add("ABSTRACT_PROP_DRIFT", "blocker", "Replace abstraction with the narration-native concrete relationship and visible human consequence.");
-  if (genericPositioning.test(relation) && occupation.test(visual)) add("OCCUPATION_PROXY_DRIFT", "blocker", "Use occupation-neutral buyer evidence; profession must not explain a generic positioning claim.");
+  if (genericPositioning.test(relation) && occupation.test(visual) && !narrationCentersOneProfession(relation)) add("OCCUPATION_PROXY_DRIFT", "blocker", "Use occupation-neutral buyer evidence; profession must not explain a generic positioning claim.");
   if (genericPositioning.test(relation) && !buyerAction.test(visual)) add("BUYER_PERSPECTIVE_REQUIRED", "blocker", "Show an observable buyer/customer action or expert-buyer interaction.");
   if (input.visibleThesis.trim().length < 28) add("VISIBLE_THESIS_REQUIRED", "blocker", "State the visible cause-and-consequence relationship, not an abstract topic label.");
   if (nativeDoorway && !doorway.test(visual)) add("NARRATION_RELATIONSHIP_MISMATCH", "blocker", "Prefer the narration-native doorway/threshold metaphor over indirect visual symbolism.");
-  if (input.newInformation.trim().length < 24) add("SEMANTICALLY_DECORATIVE_SCENE", "blocker", "Add a new causal visual fact beyond the preceding scene.");
+  const repeatsPreviousCausalAction = input.previousTreatment !== undefined
+    && causalActionSignature(input.previousTreatment.action) === causalActionSignature(input.treatment.action);
+  if (input.newInformation.trim().length < 24 || repeatsPreviousCausalAction) add("SEMANTICALLY_DECORATIVE_SCENE", "blocker", "Add a new causal visual fact beyond the preceding scene; camera, setting, and prop changes alone do not create semantic information gain.");
   if (stateComplexity === "MULTI_STATE_REQUIRED") add("MULTI_STATE_STILL_AMBIGUITY", "warning", "Project this temporal claim to one decisive transition moment, use deterministic motion, or request manual review.");
   if (input.previousTreatment && normalized(input.previousTreatment.environment) === normalized(input.treatment.environment) && normalized(input.previousTreatment.composition) === normalized(input.treatment.composition) && !nativeDoorway) add("HARMFUL_REPETITION", "warning", "Change the viewer-visible interaction grammar; intentional motif reuse is allowed.");
   const driftFlags = [...new Set(findings.map((finding) => finding.code))];
@@ -159,6 +180,42 @@ function legacyActionOwnerRole(
     default:
       return undefined;
   }
+}
+
+function refreshFinalTreatmentDerivedState(
+  treatment: PositioningVisualTreatment,
+  actionOwnerRole: VeronicaActionOwnerRole | undefined,
+): PositioningVisualTreatment {
+  const { treatmentHash: _staleTreatmentHash, ...treatmentWithoutHash } = treatment;
+  const grammar = {
+    strategy: treatment.strategy,
+    subjectArchetype: treatment.subjectRequirement,
+    environment: treatment.environment,
+    composition: treatment.composition,
+    camera: treatment.camera,
+    props: treatment.props,
+    topology: treatment.diagram?.type ?? "none" as const,
+    semanticTokens: semanticTokens(`${treatment.narrativeBeat} ${treatment.action}`),
+    continuityIdentityId: treatment.grammar?.continuityIdentityId ?? null,
+  };
+  const viewerVisibleFingerprint = {
+    strategyFamily: treatment.strategy,
+    subjectArchetype: treatment.subjectRequirement,
+    environmentArchetype: treatment.environment,
+    compositionArchetype: treatment.composition,
+    cameraArchetype: treatment.camera,
+    lightingArchetype: treatment.lighting,
+    actionArchetype: treatment.action,
+    dominantObjectArchetype: treatment.props[0] ?? "scene-object",
+    motionArchetype: (treatment.motionOpportunities ?? []).join("-then-"),
+  };
+  const finalTreatment = {
+    ...treatmentWithoutHash,
+    ...(actionOwnerRole ? { actionOwnerRole } : {}),
+    grammar,
+    viewerVisibleFingerprint,
+  };
+  return { ...finalTreatment, treatmentHash: stableHash(finalTreatment) };
 }
 
 function eventKindForFinalTreatment(treatment: PositioningVisualTreatment, ordinal: number): VisualEventKind {
@@ -222,35 +279,54 @@ function transitionContext(scene: PlannedScene): string {
   return stripSequentialLanguage(scene.treatment.composition);
 }
 
+interface VeronicaSequenceAssetProjection {
+  readonly ordinal: number;
+  readonly total: number;
+}
+
 /** Provider projection is deliberately state-aware: a transition is one frame, never a storyboard. */
-export function projectVeronicaProviderPrompt(plan: Pick<PositioningVisualPlanV2, "aspectRatio"> & { readonly format?: PositioningVisualPlanV2["format"] }, scene: PlannedScene): string {
+export function projectVeronicaProviderPrompt(
+  plan: Pick<PositioningVisualPlanV2, "aspectRatio"> & { readonly format?: PositioningVisualPlanV2["format"] },
+  scene: PlannedScene,
+  sequenceAsset?: VeronicaSequenceAssetProjection,
+): string {
   const state = scene.stateComplexity ?? classifyVeronicaStillStateComplexity(scene.narrationAnchor, scene.treatment);
   const policy = resolveVeronicaProductionPolicy(plan.format ?? "short");
   const owner = resolveActionOwner(scene);
+  const visibleThesis = stripSequentialLanguage(scene.visibleThesis);
+  const visibleThesisSentence = visibleThesis
+    ? normalizeProviderPromptSentence(`Visible thesis: ${visibleThesis}`)
+    : "";
   const base = [
     `Text-free ${plan.aspectRatio} ${policy.providerPromptLabel}`,
     `Environment: ${stripSequentialLanguage(scene.treatment.environment)}`,
     `Camera: ${stripSequentialLanguage(scene.treatment.camera)}`,
     `Must show: ${scene.treatment.props.map(stripSequentialLanguage).join(", ")}`,
   ].map(normalizeProviderPromptSentence).join(" ");
-  if (state === "SINGLE_STATE") return `${base} ${normalizeProviderPromptSentence(`Capture one stable condition: ${stripSequentialLanguage(scene.treatment.action)}`)} ${normalizeProviderPromptSentence(`Visible thesis: ${stripSequentialLanguage(scene.visibleThesis)}`)} ${normalizeProviderPromptSentence("No readable text, logos, UI, occupation proxy, generic stock pose, decorative abstraction, prism, light laboratory, or unexplained diagram")}`;
+  if (state === "SINGLE_STATE") return [base, normalizeProviderPromptSentence(`Capture one stable condition: ${stripSequentialLanguage(scene.treatment.action)}`), visibleThesisSentence, normalizeProviderPromptSentence("No readable text, logos, UI, occupation proxy, generic stock pose, decorative abstraction, prism, light laboratory, or unexplained diagram")].filter(Boolean).join(" ");
   if (state === "MULTI_STATE_REQUIRED") {
+    if (sequenceAsset) {
+      const stateInstruction = sequenceAsset.ordinal === 1
+        ? `Sequence asset ${sequenceAsset.ordinal} of ${sequenceAsset.total}: show the initial condition and causal context without the later result`
+        : `Sequence asset ${sequenceAsset.ordinal} of ${sequenceAsset.total}: show the resulting buyer-visible condition: ${stripSequentialLanguage(scene.treatment.action)}`;
+      return [base, normalizeProviderPromptSentence(stateInstruction), visibleThesisSentence, normalizeProviderPromptSentence("Render only this sequence state as one image; do not render a storyboard, panel grid, readable text, logos, UI, occupation proxy, generic stock pose, decorative abstraction, prism, light laboratory, or unexplained diagram")].filter(Boolean).join(" ");
+    }
     const requirement = policy.stateComplexityRepresentation === "multi-state-sequence"
       ? "MULTI-ASSET SEQUENCE REQUIRED: retain the semantic states as separately prepared assets or deterministic sequence events; do not submit this as one storyboard still"
       : "MANUAL REVIEW REQUIRED: this treatment asks for multiple temporal states and must be reprojected before any provider request";
-    return `${base} ${normalizeProviderPromptSentence(requirement)} ${normalizeProviderPromptSentence("No readable text, logos, UI, occupation proxy, generic stock pose, decorative abstraction, prism, light laboratory, or unexplained diagram")}`;
+    return [base, normalizeProviderPromptSentence(requirement), visibleThesisSentence, normalizeProviderPromptSentence("No readable text, logos, UI, occupation proxy, generic stock pose, decorative abstraction, prism, light laboratory, or unexplained diagram")].filter(Boolean).join(" ");
   }
   if (owner.role === "unresolved") throw new Error(`SEMANTIC_ACTOR_ROLE_MISMATCH:${scene.sceneId}:unresolved-action-owner`);
-  const prompt = `${base} ${normalizeProviderPromptSentence("Capture the instant in which the transition is already visible")} ${normalizeProviderPromptSentence(`Prior context: ${transitionContext(scene)}`)} ${normalizeProviderPromptSentence(`Primary actor: ${actorLabel(owner.role)}`)} ${normalizeProviderPromptSentence(`Current action: ${transitionAction(scene, owner.role)}`)} ${normalizeProviderPromptSentence(`Emerging consequence: ${transitionConsequence(scene)}`)} ${normalizeProviderPromptSentence("No readable text, logos, UI, occupation proxy, generic stock pose, decorative abstraction, prism, light laboratory, or unexplained diagram")}`;
+  const prompt = [base, normalizeProviderPromptSentence("Capture the instant in which the transition is already visible"), normalizeProviderPromptSentence(`Prior context: ${transitionContext(scene)}`), normalizeProviderPromptSentence(`Primary actor: ${actorLabel(owner.role)}`), normalizeProviderPromptSentence(`Current action: ${transitionAction(scene, owner.role)}`), normalizeProviderPromptSentence(`Emerging consequence: ${transitionConsequence(scene)}`), visibleThesisSentence, normalizeProviderPromptSentence("No readable text, logos, UI, occupation proxy, generic stock pose, decorative abstraction, prism, light laboratory, or unexplained diagram")].filter(Boolean).join(" ");
   if (/\b(?:first.*then|after.*then|later|eventually|and afterward|arriv\w*.*then.*widen)\b/iu.test(prompt)) throw new Error(`MULTI_STATE_PROVIDER_PROMPT_RISK:${scene.sceneId}`);
   if (owner.role === "expert" && !/Primary actor: the recurring professional/iu.test(prompt)) throw new Error(`SEMANTIC_ACTOR_ROLE_MISMATCH:${scene.sceneId}:expert`);
   if (owner.role === "buyer" && !/Primary actor: the buyer/iu.test(prompt)) throw new Error(`SEMANTIC_ACTOR_ROLE_MISMATCH:${scene.sceneId}:buyer`);
   return prompt;
 }
 
-function finalAssetForScene(plan: PositioningVisualPlanV2, scene: PlannedScene, previous: GeneratedVisualAsset | undefined): GeneratedVisualAsset {
-  const prompt = projectVeronicaProviderPrompt(plan, scene);
-  const assetId = scene.assetId;
+function finalAssetForScene(plan: PositioningVisualPlanV2, scene: PlannedScene, previous: GeneratedVisualAsset | undefined, sequenceAsset?: VeronicaSequenceAssetProjection): GeneratedVisualAsset {
+  const prompt = projectVeronicaProviderPrompt(plan, scene, sequenceAsset);
+  const assetId = sequenceAsset && sequenceAsset.ordinal > 1 ? `${scene.assetId}-state-${String(sequenceAsset.ordinal).padStart(2, "0")}` : scene.assetId;
   const base = {
     assetId, contentId: plan.contentId, sceneId: scene.sceneId, semanticPurpose: scene.visibleThesis,
     strategy: scene.treatment.strategy, prompt, textFree: true as const, textInGeneratedImage: false as const,
@@ -293,27 +369,42 @@ export function rebuildVeronicaFinalTreatmentState(input: {
     if (durationMs <= 0) throw new Error(`PRODUCTION_TIMELINE_MISMATCH: ${scene.sceneId} has non-positive duration.`);
     return { ...scene, startMs: Math.round(timing.timing.startSeconds * 1_000), durationMs, stateComplexity: classifyVeronicaStillStateComplexity(scene.narrationAnchor, scene.treatment) };
   });
-  const assets = scenes.map((scene, index) => finalAssetForScene(input.plan, scene, index === 0 ? undefined : input.plan.assets[index - 1]));
+  const assetGroups = scenes.map((scene, index) => {
+    const sequenceAssetCount = input.plan.format === "long" && scene.stateComplexity === "MULTI_STATE_REQUIRED" ? 2 : 1;
+    const previousSceneAsset = index === 0 ? undefined : input.plan.assets[index - 1];
+    return Array.from({ length: sequenceAssetCount }, (_, assetIndex) => finalAssetForScene(
+      input.plan,
+      scene,
+      assetIndex === 0 ? previousSceneAsset : undefined,
+      sequenceAssetCount > 1 ? { ordinal: assetIndex + 1, total: sequenceAssetCount } : undefined,
+    ));
+  });
+  const assets = assetGroups.flat();
   const events: VisualEvent[] = scenes.flatMap((scene, index) => {
-    const asset = assets[index]!;
+    const sceneAssets = assetGroups[index]!;
     const count = Math.max(1, Math.ceil(scene.durationMs / (policy.eventDurationRangeSeconds[1] * 1_000)));
     const interval = Math.floor(scene.durationMs / count);
     return Array.from({ length: count }, (_, ordinal) => {
+      const asset = sceneAssets[Math.min(sceneAssets.length - 1, Math.floor(ordinal * sceneAssets.length / count))]!;
       const durationMs = ordinal === count - 1 ? scene.durationMs - interval * (count - 1) : interval;
       const kind = eventKindForFinalTreatment(scene.treatment, ordinal);
       const base = { eventId: `${scene.sceneId}-event-${String(ordinal + 1).padStart(2, "0")}`.toLowerCase(), sceneId: scene.sceneId, assetId: asset.assetId, kind, startMs: scene.startMs + interval * ordinal, durationMs, aspectRatio: input.plan.aspectRatio, safeRegionIds: ["subject", "overlay", "subtitle"] as const, deterministicParameters: { startScale: kind === "punch-in" ? 1.12 : 1, endScale: kind === "slow-push" || kind === "punch-in" ? 1.16 : 1.04, anchor: kind === "subject-detail" ? "subject" as const : kind === "prop-detail" ? "prop" as const : "center" as const } };
       return { ...base, renderCacheKey: stableHash({ ...base, finalTreatmentHash: scene.treatment.treatmentHash, finalEventVersion: VERONICA_PRE_IMAGE_SEMANTIC_GATE_VERSION }) };
     });
   });
-  const diagrams = scenes.flatMap((scene) => scene.treatment.diagram ? [scene.treatment.diagram] : []);
+  const scenesWithEvents = scenes.map((scene) => ({
+    ...scene,
+    eventIds: events.filter((event) => event.sceneId === scene.sceneId).map((event) => event.eventId),
+  }));
+  const diagrams = scenesWithEvents.flatMap((scene) => scene.treatment.diagram ? [scene.treatment.diagram] : []);
   const finalEnd = events.at(-1) ? events.at(-1)!.startMs + events.at(-1)!.durationMs : 0;
   const narrationEnd = Math.round(timingByIndex.at(-1)!.timing.endSeconds * 1_000);
   if (Math.abs(finalEnd - narrationEnd) > 2) throw new Error("PRODUCTION_TIMELINE_MISMATCH: final event does not end at canonical narration duration.");
   const motif = input.plan.selectedRecurringMotif;
-  const selectedRecurringMotif = motif ? { ...motif, sceneIds: scenes.filter((scene) => /doorway|threshold|widen|foothold|access/iu.test(`${scene.visibleThesis} ${scene.treatment.action} ${scene.treatment.props.join(" ")}`)).map((scene) => scene.sceneId) } : undefined;
+  const selectedRecurringMotif = motif ? { ...motif, sceneIds: scenesWithEvents.filter((scene) => /doorway|threshold|widen|foothold|access/iu.test(`${scene.visibleThesis} ${scene.treatment.action} ${scene.treatment.props.join(" ")}`)).map((scene) => scene.sceneId) } : undefined;
   const motifScenes = selectedRecurringMotif?.sceneIds ?? [];
-  const viewerVisibleFamilies = scenes.map((scene) => normalizeVeronicaViewerVisibleFamilies(scene, selectedRecurringMotif?.concept));
-  const baseDiversity = calculateDiversityMetrics({ sceneIds: scenes.map((scene) => scene.sceneId), features: scenes.map((scene) => scene.treatment.grammar ?? { strategy: scene.treatment.strategy, subjectArchetype: scene.treatment.subjectRequirement, environment: scene.treatment.environment, composition: scene.treatment.composition, camera: scene.treatment.camera, props: scene.treatment.props, topology: scene.treatment.diagram?.type ?? "none", semanticTokens: [], continuityIdentityId: input.plan.continuity.mode === "persistent-protagonist" ? input.plan.continuity.identityId : null }), stages: scenes.map((scene) => scene.progressionStage), continuity: input.plan.continuity });
+  const viewerVisibleFamilies = scenesWithEvents.map((scene) => normalizeVeronicaViewerVisibleFamilies(scene, selectedRecurringMotif?.concept));
+  const baseDiversity = calculateDiversityMetrics({ sceneIds: scenesWithEvents.map((scene) => scene.sceneId), features: scenesWithEvents.map((scene) => scene.treatment.grammar ?? { strategy: scene.treatment.strategy, subjectArchetype: scene.treatment.subjectRequirement, environment: scene.treatment.environment, composition: scene.treatment.composition, camera: scene.treatment.camera, props: scene.treatment.props, topology: scene.treatment.diagram?.type ?? "none", semanticTokens: [], continuityIdentityId: input.plan.continuity.mode === "persistent-protagonist" ? input.plan.continuity.identityId : null }), stages: scenesWithEvents.map((scene) => scene.progressionStage), continuity: input.plan.continuity });
   const pairs = viewerVisibleFamilies.slice(1).map((current, index) => {
     const previous = viewerVisibleFamilies[index]!;
     return { pair: `${previous.sceneId}->${current.sceneId}`, sameEnvironment: previous.environmentFamily === current.environmentFamily, sameCamera: previous.cameraFamily === current.cameraFamily, sameInteraction: previous.interactionFamily === current.interactionFamily, sameComposition: previous.compositionFamily === current.compositionFamily, sameIdentity: previous.continuityIdentityFamily === current.continuityIdentityFamily };
@@ -322,23 +413,25 @@ export function rebuildVeronicaFinalTreatmentState(input: {
   // Continuity alone is desirable; repetition requires environment, camera,
   // interaction, and composition all to repeat in the same transition.
   const accidentalPairs = pairs.filter((pair) => pair.sameEnvironment && pair.sameCamera && pair.sameInteraction && pair.sameComposition).map((pair) => pair.pair);
-  const intentionalMotifReuseRate = scenes.length ? Math.round(motifScenes.length / scenes.length * 10_000) / 10_000 : 0;
-  const diversityMetrics = { ...baseDiversity, intentionalMotifReuseRate, accidentalVisualRepetitionRate: scenes.length ? Math.round(accidentalPairs.length / Math.max(1, scenes.length - 1) * 10_000) / 10_000 : 0, consecutiveViewerVisibleSimilarity: { mean: baseDiversity.consecutiveSceneSimilarity.mean, maximum: baseDiversity.consecutiveSceneSimilarity.maximum, violatingPairs: accidentalPairs }, environmentFamilyReuseRate: rate("sameEnvironment"), cameraFamilyReuseRate: rate("sameCamera"), interactionFamilyReuseRate: rate("sameInteraction"), continuityIdentityReuseRate: rate("sameIdentity"), harmfulRepetitionPairs: accidentalPairs, viewerVisibleFamilies, motifContinuityCoverage: intentionalMotifReuseRate };
-  const staleFailures = scenes.flatMap((scene) => [
+  const intentionalMotifReuseRate = scenesWithEvents.length ? Math.round(motifScenes.length / scenesWithEvents.length * 10_000) / 10_000 : 0;
+  const diversityMetrics = { ...baseDiversity, intentionalMotifReuseRate, accidentalVisualRepetitionRate: scenesWithEvents.length ? Math.round(accidentalPairs.length / Math.max(1, scenesWithEvents.length - 1) * 10_000) / 10_000 : 0, consecutiveViewerVisibleSimilarity: { mean: baseDiversity.consecutiveSceneSimilarity.mean, maximum: baseDiversity.consecutiveSceneSimilarity.maximum, violatingPairs: accidentalPairs }, environmentFamilyReuseRate: rate("sameEnvironment"), cameraFamilyReuseRate: rate("sameCamera"), interactionFamilyReuseRate: rate("sameInteraction"), continuityIdentityReuseRate: rate("sameIdentity"), harmfulRepetitionPairs: accidentalPairs, viewerVisibleFamilies, motifContinuityCoverage: intentionalMotifReuseRate };
+  const staleFailures = scenesWithEvents.flatMap((scene) => [
     ...(scene.treatment.diagram === null && diagrams.some((diagram) => diagram.diagramId.toLowerCase().startsWith(scene.sceneId.toLowerCase())) ? [`STALE_SCENE_DIAGRAM:${scene.sceneId}`] : []),
     ...(scene.treatment.diagram === null && events.some((event) => event.sceneId === scene.sceneId && event.kind === "diagram-build") ? [`DIAGRAM_EVENT_WITHOUT_DIAGRAM:${scene.sceneId}`] : []),
   ]);
   if (staleFailures.length) throw new Error(staleFailures.join(","));
   const assetReuseDecisions = (input.plan.assetReuseDecisions ?? []).map((decision) => {
-    const target = scenes.find((scene) => scene.sceneId === decision.targetSceneId);
+    const target = scenesWithEvents.find((scene) => scene.sceneId === decision.targetSceneId);
     const motifCritical = Boolean(target && selectedRecurringMotif?.sceneIds.includes(target.sceneId));
-    const source = input.plan.assets.find((asset) => asset.assetId === decision.sourceAssetId);
+    const source = assets.find((asset) => asset.assetId === decision.sourceAssetId);
+    const previousSource = input.plan.assets.find((asset) => asset.assetId === decision.sourceAssetId);
+    const finalTreatmentChanged = source?.semanticPurpose !== previousSource?.semanticPurpose || source?.prompt !== previousSource?.prompt;
     const motifCompatible = !motifCritical || /doorway|threshold|widen|foothold|access/iu.test(`${source?.semanticPurpose ?? ""} ${source?.prompt ?? ""}`);
     const continuityCompatible = input.plan.continuity.mode !== "persistent-protagonist" || source?.subjectIdentityId === input.plan.continuity.identityId;
-    const automatic = decision.semanticCompatibility >= 0.8 && decision.eligible && motifCompatible && continuityCompatible;
-    return { ...decision, eligible: automatic, reuseMode: automatic ? decision.reuseMode : "not-reusable" as const, cropAdaptation: automatic ? decision.cropAdaptation : "none" as const, decision: automatic ? "AUTO_REUSE_APPROVED" as const : decision.semanticCompatibility >= 0.4 && motifCompatible ? "REUSE_REQUIRES_SEMANTIC_REVIEW" as const : "REUSE_REJECTED" as const, reason: automatic ? decision.reason : !motifCompatible ? "recurring-motif-incompatible" : !continuityCompatible ? "subject-continuity-incompatible" : "semantic-purpose-insufficiently-compatible" };
+    const automatic = decision.semanticCompatibility >= 0.8 && decision.eligible && motifCompatible && continuityCompatible && !finalTreatmentChanged;
+    return { ...decision, eligible: automatic, reuseMode: automatic ? decision.reuseMode : "not-reusable" as const, cropAdaptation: automatic ? decision.cropAdaptation : "none" as const, decision: automatic ? "AUTO_REUSE_APPROVED" as const : decision.semanticCompatibility >= 0.4 && motifCompatible ? "REUSE_REQUIRES_SEMANTIC_REVIEW" as const : "REUSE_REJECTED" as const, reason: automatic ? decision.reason : finalTreatmentChanged ? "final-treatment-changed-recheck-semantic-compatibility" : !motifCompatible ? "recurring-motif-incompatible" : !continuityCompatible ? "subject-continuity-incompatible" : "semantic-purpose-insufficiently-compatible" };
   });
-  const canonical = { ...input.plan, scenes, assets, visualEvents: events, diagrams, assetReuseDecisions, ...(selectedRecurringMotif ? { selectedRecurringMotif } : {}), diversityMetrics, cadenceMetrics: cadenceForFinalTimeline(input.plan.format, events, assets, narrationEnd), canonicalImagePlanHash: stableHash({ assets, selectedRecurringMotif, finalTreatmentVersion: VERONICA_PRE_IMAGE_SEMANTIC_GATE_VERSION, providerProjectionVersion: VERONICA_STATE_AWARE_PROVIDER_PROJECTION_VERSION, actionOwners: scenes.map((scene) => scene.treatment.actionOwnerRole ?? null), format: input.plan.format, stateComplexityRepresentation: policy.stateComplexityRepresentation }), renderEventPlanHash: stableHash({ events, finalTiming: narrationEnd, finalTreatmentVersion: VERONICA_PRE_IMAGE_SEMANTIC_GATE_VERSION, format: input.plan.format }), cacheInvalidation: { ...input.plan.cacheInvalidation, semanticPlanInvalidatesOn: [...input.plan.cacheInvalidation.semanticPlanInvalidatesOn, "final-treatment-change", "selected-recurring-motif-change", "state-complexity-change", "viewer-visible-family-version-change", "action-owner-role-change", "veronica-production-policy-change"], canonicalImageInvalidatesOn: [...input.plan.cacheInvalidation.canonicalImageInvalidatesOn, "final-treatment-change", "motif-coverage-change", "reuse-decision-change", "state-aware-provider-projection-version-change", "action-owner-role-change", "veronica-production-policy-change"], renderEventsInvalidateOn: [...input.plan.cacheInvalidation.renderEventsInvalidateOn, "final-treatment-change", "diagram-status-change", "canonical-timing-change", "visual-event-strategy-change", "veronica-production-policy-change"] } };
+  const canonical = { ...input.plan, scenes: scenesWithEvents, assets, visualEvents: events, diagrams, assetReuseDecisions, ...(selectedRecurringMotif ? { selectedRecurringMotif } : {}), diversityMetrics, cadenceMetrics: cadenceForFinalTimeline(input.plan.format, events, assets, narrationEnd), canonicalImagePlanHash: stableHash({ assets, selectedRecurringMotif, finalTreatmentVersion: VERONICA_PRE_IMAGE_SEMANTIC_GATE_VERSION, providerProjectionVersion: VERONICA_STATE_AWARE_PROVIDER_PROJECTION_VERSION, actionOwners: scenesWithEvents.map((scene) => scene.treatment.actionOwnerRole ?? null), format: input.plan.format, stateComplexityRepresentation: policy.stateComplexityRepresentation }), renderEventPlanHash: stableHash({ events, finalTiming: narrationEnd, finalTreatmentVersion: VERONICA_PRE_IMAGE_SEMANTIC_GATE_VERSION, format: input.plan.format }), cacheInvalidation: { ...input.plan.cacheInvalidation, semanticPlanInvalidatesOn: [...input.plan.cacheInvalidation.semanticPlanInvalidatesOn, "final-treatment-change", "selected-recurring-motif-change", "state-complexity-change", "viewer-visible-family-version-change", "action-owner-role-change", "veronica-production-policy-change"], canonicalImageInvalidatesOn: [...input.plan.cacheInvalidation.canonicalImageInvalidatesOn, "final-treatment-change", "motif-coverage-change", "reuse-decision-change", "state-aware-provider-projection-version-change", "action-owner-role-change", "veronica-production-policy-change"], renderEventsInvalidateOn: [...input.plan.cacheInvalidation.renderEventsInvalidateOn, "final-treatment-change", "diagram-status-change", "canonical-timing-change", "visual-event-strategy-change", "veronica-production-policy-change"] } };
   return { ...canonical, planHash: stableHash(canonical) } as PositioningVisualPlanV2;
 }
 
@@ -356,13 +449,11 @@ export function hardenVeronicaPreImagePlan(input: { readonly plan: PositioningVi
     const proposal = proposalFor(narration, index, input.plan.scenes.length);
     if (!policy.applyShortCausalRemediation) {
       const actionOwnerRole = legacyActionOwnerRole(scene.treatment);
-      if (!actionOwnerRole || scene.treatment.actionOwnerRole) return scene;
-      const treatmentBase = { ...scene.treatment, actionOwnerRole };
-      return { ...scene, treatment: { ...treatmentBase, treatmentHash: stableHash(treatmentBase) } };
+      return { ...scene, narrationAnchor: narration, treatment: refreshFinalTreatmentDerivedState(scene.treatment, actionOwnerRole) };
     }
     if (!proposal) return scene;
     const treatmentBase = { ...scene.treatment, strategy: proposal.strategy, narrativeBeat: proposal.thesis, subjectRequirement: "recurring occupation-neutral expert and buyer", actionOwnerRole: proposal.actionOwnerRole, environment: proposal.environment, composition: proposal.composition, camera: proposal.camera, action: proposal.action, props: proposal.props, motionOpportunities: proposal.motion, diagram: null };
-    const treatment: PositioningVisualTreatment = { ...treatmentBase, grammar: { ...scene.treatment.grammar, strategy: proposal.strategy, subjectArchetype: "recurring occupation-neutral expert and buyer", environment: proposal.environment, composition: proposal.composition, camera: proposal.camera, props: proposal.props, topology: "none", continuityIdentityId: `${input.plan.contentId.toLowerCase()}-causal-arc` }, viewerVisibleFingerprint: { ...scene.treatment.viewerVisibleFingerprint, strategyFamily: proposal.strategy, subjectArchetype: "recurring expert-buyer pair", environmentArchetype: "recurring threshold environment", compositionArchetype: proposal.composition, cameraArchetype: proposal.camera, actionArchetype: proposal.action, dominantObjectArchetype: proposal.props[0] ?? "threshold", motionArchetype: proposal.motion.join("-then-") }, treatmentHash: stableHash(treatmentBase) };
+    const treatment: PositioningVisualTreatment = refreshFinalTreatmentDerivedState({ ...treatmentBase, grammar: { ...scene.treatment.grammar, continuityIdentityId: `${input.plan.contentId.toLowerCase()}-causal-arc` } } as PositioningVisualTreatment, proposal.actionOwnerRole);
     return { ...scene, narrationAnchor: narration, treatment, visibleThesis: proposal.thesis, newInformation: `Adds the next causal doorway/recognition relationship: ${proposal.thesis}`, visualFamily: "human-decision" as const, continuityGroup: `${input.plan.contentId.toLowerCase()}-causal-arc` };
   });
   const assets = input.plan.assets.map((asset, index) => {
