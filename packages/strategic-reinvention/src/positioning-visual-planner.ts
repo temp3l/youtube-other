@@ -52,6 +52,7 @@ import {
   visibleThesisFor,
   visualFamilyFor,
 } from "./veronica-visual-language.js";
+import { resolveVeronicaProductionPolicy } from "./veronica-production-policy.js";
 
 export type {
   AssetReuseDecision,
@@ -621,11 +622,10 @@ function buildEvents(input: {
   readonly aspectRatio: AspectRatio;
   readonly kinds: readonly VisualEventKind[];
   readonly rendererVersion: string;
+  readonly format: PositioningFormat;
 }): readonly VisualEvent[] {
-  // Keep each event within the three-to-seven-second cadence target. A
-  // five-to-seven-second Short beat is already a complete, legible hold;
-  // forcing it into two events would create sub-three-second cuts.
-  const count = Math.max(1, Math.ceil(input.durationMs / 7_000));
+  const [, maximumSeconds] = resolveVeronicaProductionPolicy(input.format).eventDurationRangeSeconds;
+  const count = Math.max(1, Math.ceil(input.durationMs / (maximumSeconds * 1_000)));
   const duration = Math.floor(input.durationMs / count);
   return Array.from({ length: count }, (_, index): VisualEvent => {
     const eventDuration = index === count - 1 ? input.durationMs - duration * (count - 1) : duration;
@@ -652,9 +652,10 @@ function buildEvents(input: {
   });
 }
 
-function cadenceMetrics(durationMs: number, assets: readonly GeneratedVisualAsset[], events: readonly VisualEvent[]): CadenceMetrics {
+function cadenceMetrics(format: PositioningFormat, durationMs: number, assets: readonly GeneratedVisualAsset[], events: readonly VisualEvent[]): CadenceMetrics {
   const durations = events.map((event) => event.durationMs / 1000);
-  const compliant = durations.filter((duration) => duration >= 3 && duration <= 7).length;
+  const targetRangeSeconds = resolveVeronicaProductionPolicy(format).eventDurationRangeSeconds;
+  const compliant = durations.filter((duration) => duration >= targetRangeSeconds[0] && duration <= targetRangeSeconds[1]).length;
   const hookEvents = events.filter((event) => /cold-open|hook/u.test(event.sceneId.toLowerCase()));
   const round = (value: number): number => Math.round(value * 10_000) / 10_000;
   return {
@@ -665,7 +666,7 @@ function cadenceMetrics(durationMs: number, assets: readonly GeneratedVisualAsse
     meanSecondsPerEvent: round(durationMs / Math.max(1, events.length) / 1000),
     shortestEventSeconds: round(Math.min(...durations)),
     longestEventSeconds: round(Math.max(...durations)),
-    targetRangeSeconds: [3, 7],
+    targetRangeSeconds,
     targetComplianceRate: round(compliant / Math.max(1, events.length)),
     hookMeanSecondsPerEvent:
       hookEvents.length === 0
@@ -949,6 +950,7 @@ async function buildDraft(input: {
       aspectRatio,
       kinds: treatment.motionOpportunities,
       rendererVersion: input.configuration.rendererVersion,
+      format: input.content.format,
     });
     assets.push(asset);
     events.push(...sceneEvents);
@@ -1029,7 +1031,7 @@ async function buildDraft(input: {
     diagrams: scenes.flatMap((scene) => (scene.treatment.diagram ? [scene.treatment.diagram] : [])),
     assetReuseDecisions: [],
     diversityMetrics,
-    cadenceMetrics: cadenceMetrics(durationMs, assets, events),
+    cadenceMetrics: cadenceMetrics(input.content.format, durationMs, assets, events),
     localizationCompatibility: {
       locales: POSITIONING_LOCALES,
       canonicalImageryLocale: "en",

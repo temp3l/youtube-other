@@ -408,7 +408,8 @@ export interface CadenceMetrics {
   readonly meanSecondsPerEvent: number;
   readonly shortestEventSeconds: number;
   readonly longestEventSeconds: number;
-  readonly targetRangeSeconds: readonly [3, 7];
+  /** Variant-resolved event-duration guidance; not a global Short cadence. */
+  readonly targetRangeSeconds: readonly [number, number];
   readonly targetComplianceRate: number;
   readonly hookMeanSecondsPerEvent: number | null;
 }

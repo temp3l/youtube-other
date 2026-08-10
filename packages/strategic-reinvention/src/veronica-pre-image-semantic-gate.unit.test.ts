@@ -74,6 +74,15 @@ describe("Veronica pre-image semantic gate", () => {
     expect(() => projectVeronicaProviderPrompt({ aspectRatio: "9:16" }, scene({ stateComplexity: "DECISIVE_TRANSITION_MOMENT", treatment: treatment({ action: "the threshold changes visibly" }) }))).toThrow("SEMANTIC_ACTOR_ROLE_MISMATCH");
   });
 
+  it("keeps full-form multi-state semantics as a sequence requirement, not a Short still", () => {
+    const multiState = scene({ stateComplexity: "MULTI_STATE_REQUIRED", treatment: treatment({ action: "a buyer first compares evidence and later changes their selection" }) });
+    const shortPrompt = projectVeronicaProviderPrompt({ aspectRatio: "9:16", format: "short" }, multiState);
+    const fullPrompt = projectVeronicaProviderPrompt({ aspectRatio: "16:9", format: "long" }, multiState);
+    expect(shortPrompt).toContain("MANUAL REVIEW REQUIRED");
+    expect(fullPrompt).toContain("MULTI-ASSET SEQUENCE REQUIRED");
+    expect(fullPrompt).toContain("16:9 Veronica long-form editorial sequence");
+  });
+
   it("normalizes generated prompt-boundary punctuation without rewriting ellipses", () => {
     expect(normalizeProviderPromptSentence("same pattern.")).toBe("same pattern.");
     expect(normalizeProviderPromptSentence("same pattern..")).toBe("same pattern.");

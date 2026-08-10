@@ -15,7 +15,10 @@ const reviewManifestSchema = z.strictObject({
   providerRequestsAllowed: z.literal(false), sources: z.array(z.strictObject({ name: z.string().min(1), path: z.string().min(1), sha256: z.string().regex(/^[a-f0-9]{64}$/u) })).min(1),
   artifactHashes: z.record(z.string(), z.string().regex(/^[a-f0-9]{64}$/u)),
   packFileHashes: z.record(z.string(), z.string().regex(/^[a-f0-9]{64}$/u)),
-  narrationDiagnostic: z.strictObject({ wordCount: z.number().int().nonnegative(), narrationDurationSeconds: z.number().positive(), approximateWordsPerMinute: z.number().nonnegative(), timingSource: z.string().min(1), initialTtsSpeed: z.number().positive(), ttsSpeed: z.number().positive(), calibrationAttemptCount: z.number().int().positive(), speedNormalizationApplied: z.boolean(), preferredDurationRangeSeconds: z.tuple([z.number().positive(), z.number().positive()]), preferredWpmRange: z.tuple([z.number().positive(), z.number().positive()]).optional(), pacingStatus: z.enum(["within-target", "slightly-fast", "fast", "very-fast", "slightly-slow", "slow"]), durationAcceptanceStatus: z.enum(["WITHIN_PREFERRED_RANGE", "WITHIN_ACCEPTANCE_TOLERANCE", "PACING_TARGET_MISSED"]) }),
+  narrationDiagnostic: z.discriminatedUnion("mode", [
+    z.strictObject({ mode: z.literal("short-adaptive"), wordCount: z.number().int().nonnegative(), narrationDurationSeconds: z.number().positive(), approximateWordsPerMinute: z.number().nonnegative(), timingSource: z.string().min(1), initialTtsSpeed: z.number().positive(), ttsSpeed: z.number().positive(), calibrationAttemptCount: z.number().int().positive(), speedNormalizationApplied: z.boolean(), preferredDurationRangeSeconds: z.tuple([z.number().positive(), z.number().positive()]), preferredWpmRange: z.tuple([z.number().positive(), z.number().positive()]).optional(), pacingStatus: z.enum(["within-target", "slightly-fast", "fast", "very-fast", "slightly-slow", "slow"]), durationAcceptanceStatus: z.enum(["WITHIN_PREFERRED_RANGE", "WITHIN_ACCEPTANCE_TOLERANCE", "PACING_TARGET_MISSED"]) }),
+    z.strictObject({ mode: z.literal("full-current-policy"), wordCount: z.number().int().nonnegative(), narrationDurationSeconds: z.number().positive(), approximateWordsPerMinute: z.number().nonnegative(), timingSource: z.string().min(1), pacingStatus: z.literal("not-configured"), durationAcceptanceStatus: z.literal("NOT_APPLICABLE") }),
+  ]),
 });
 
 export interface VeronicaPreImageReviewPackResult {
@@ -98,9 +101,9 @@ function providerPromptsMarkdown(scenes: ReturnType<typeof scenePlanSchema.parse
   return ["# UNAPPROVED — DO NOT SUBMIT", "", "These provider-oriented prompts are intentionally blocked until human pre-image approval is recorded.", "", ...scenes.flatMap((scene) => [`## ${scene.id}`, "", `State complexity: ${stateByScene.get(scene.id) ?? "SINGLE_STATE"}`, `Action owner: ${actorByScene.get(scene.id) ?? "not applicable"}`, "", scene.imagePrompt, ""])].join("\n");
 }
 
-function narrationDiagnostic(narrationDurationSeconds: number, timingSource: string, calibration: ReturnType<typeof veronicaShortPacingCalibrationSchema.parse>) {
+function shortNarrationDiagnostic(narrationDurationSeconds: number, timingSource: string, calibration: ReturnType<typeof veronicaShortPacingCalibrationSchema.parse>) {
   const initial = calibration.attempts[0]!;
-  return { wordCount: calibration.wordCount, narrationDurationSeconds, approximateWordsPerMinute: Math.round(calibration.wordCount / narrationDurationSeconds * 60 * 10) / 10, timingSource, initialTtsSpeed: initial.requestedSpeed, ttsSpeed: calibration.selectedSpeed, calibrationAttemptCount: calibration.attempts.length, speedNormalizationApplied: calibration.speedNormalizationApplied, preferredDurationRangeSeconds: calibration.targetDurationRange, ...(calibration.preferredWpmRange ? { preferredWpmRange: calibration.preferredWpmRange } : {}), pacingStatus: calibration.selectedPacingStatus, durationAcceptanceStatus: calibration.selectedDurationAcceptanceStatus };
+  return { mode: "short-adaptive" as const, wordCount: calibration.wordCount, narrationDurationSeconds, approximateWordsPerMinute: Math.round(calibration.wordCount / narrationDurationSeconds * 60 * 10) / 10, timingSource, initialTtsSpeed: initial.requestedSpeed, ttsSpeed: calibration.selectedSpeed, calibrationAttemptCount: calibration.attempts.length, speedNormalizationApplied: calibration.speedNormalizationApplied, preferredDurationRangeSeconds: calibration.targetDurationRange, ...(calibration.preferredWpmRange ? { preferredWpmRange: calibration.preferredWpmRange } : {}), pacingStatus: calibration.selectedPacingStatus, durationAcceptanceStatus: calibration.selectedDurationAcceptanceStatus };
 }
 
 export async function createVeronicaPreImageReviewPack(
@@ -125,19 +128,20 @@ export async function createVeronicaPreImageReviewPack(
     requiredFile(timingPath, "canonical locale timing"),
     requiredFile(eventPath, "retimed visual events"),
     requiredFile(semanticReviewPath, "semantic gate reviews"),
-    requiredFile(pacingCalibrationPath, "adaptive pacing calibration"),
+    ...(input.variant === "short" ? [requiredFile(pacingCalibrationPath, "adaptive pacing calibration")] : []),
   ]);
   const [narration, scenePlanRaw, semanticReviewRaw, pacingCalibrationRaw] = await Promise.all([
     fs.readFile(scriptPath, "utf8"),
     fs.readFile(scenePlanPath, "utf8"),
     fs.readFile(semanticReviewPath, "utf8"),
-    fs.readFile(pacingCalibrationPath, "utf8"),
+    input.variant === "short" ? fs.readFile(pacingCalibrationPath, "utf8") : Promise.resolve(null),
   ]);
   const scenePlan = scenePlanSchema.parse(JSON.parse(scenePlanRaw) as unknown);
-  const pacingCalibration = veronicaShortPacingCalibrationSchema.parse(JSON.parse(pacingCalibrationRaw) as unknown);
   const timing = JSON.parse(await fs.readFile(timingPath, "utf8")) as { readonly timingSource?: unknown; readonly narrationDurationSeconds?: unknown };
   if (typeof timing.timingSource !== "string" || typeof timing.narrationDurationSeconds !== "number") throw new Error(`Invalid canonical locale timing artifact: ${timingPath}`);
-  const diagnostic = narrationDiagnostic(timing.narrationDurationSeconds, timing.timingSource, pacingCalibration);
+  const diagnostic = input.variant === "short"
+    ? shortNarrationDiagnostic(timing.narrationDurationSeconds, timing.timingSource, veronicaShortPacingCalibrationSchema.parse(JSON.parse(pacingCalibrationRaw ?? "") as unknown))
+    : { mode: "full-current-policy" as const, wordCount: narration.match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)?/gu)?.length ?? 0, narrationDurationSeconds: timing.narrationDurationSeconds, approximateWordsPerMinute: Math.round((narration.match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)?/gu)?.length ?? 0) / timing.narrationDurationSeconds * 60 * 10) / 10, timingSource: timing.timingSource, pacingStatus: "not-configured" as const, durationAcceptanceStatus: "NOT_APPLICABLE" as const };
   const finalPlan = z.object({ continuity: z.object({ mode: z.string() }).optional(), selectedRecurringMotif: z.object({ concept: z.string() }).optional(), scenes: z.array(z.object({ sceneId: z.string(), stateComplexity: z.enum(["SINGLE_STATE", "DECISIVE_TRANSITION_MOMENT", "MULTI_STATE_REQUIRED"]).optional(), treatment: z.object({ actionOwnerRole: z.enum(["expert", "buyer", "shared", "none"]).optional() }) })) }).parse(JSON.parse(await fs.readFile(sourcePlanPath, "utf8")) as unknown);
   const stateByScene = new Map(scenePlan.scenes.map((scene, index) => [scene.id, finalPlan.scenes[index]?.stateComplexity ?? "SINGLE_STATE"] as const));
   const actorByScene = new Map(scenePlan.scenes.map((scene, index) => [scene.id, finalPlan.scenes[index]?.treatment.actionOwnerRole ?? "not applicable"] as const));
@@ -158,12 +162,15 @@ export async function createVeronicaPreImageReviewPack(
     ["visual-plan.json", sourcePlanPath],
     ["episode-manifest.json", manifestPath],
     ["pre-image-semantic-reviews.v1.json", semanticReviewPath],
-    ["pacing-calibration.v1.json", pacingCalibrationPath],
+    ...(input.variant === "short" ? [["pacing-calibration.v1.json", pacingCalibrationPath] as const] : []),
   ];
   await Promise.all(files.map(([fileName, sourcePath]) => fs.copyFile(sourcePath, path.join(outputDir, fileName))));
   const promptPath = path.join(outputDir, "chatgpt-pre-image-review-request.md");
   const promptsPath = path.join(outputDir, "provider-image-prompts.md");
-  const promptMarkdown = promptReviewMarkdown({ narration, pacingSummary: `${diagnostic.wordCount} words; ${diagnostic.narrationDurationSeconds.toFixed(3)}s; ${diagnostic.approximateWordsPerMinute} WPM; ${diagnostic.pacingStatus}; ${diagnostic.durationAcceptanceStatus}; selected speed ${diagnostic.ttsSpeed}; calibration ${diagnostic.speedNormalizationApplied ? "applied" : "not required"}.`, scenes: scenePlan.scenes, findingsByScene, stateByScene, actorByScene });
+  const pacingSummary = diagnostic.mode === "short-adaptive"
+    ? `${diagnostic.wordCount} words; ${diagnostic.narrationDurationSeconds.toFixed(3)}s; ${diagnostic.approximateWordsPerMinute} WPM; ${diagnostic.pacingStatus}; ${diagnostic.durationAcceptanceStatus}; selected speed ${diagnostic.ttsSpeed}; calibration ${diagnostic.speedNormalizationApplied ? "applied" : "not required"}.`
+    : `${diagnostic.wordCount} words; ${diagnostic.narrationDurationSeconds.toFixed(3)}s; ${diagnostic.approximateWordsPerMinute} WPM; full-form pacing policy not configured.`;
+  const promptMarkdown = promptReviewMarkdown({ narration, pacingSummary, scenes: scenePlan.scenes, findingsByScene, stateByScene, actorByScene });
   await Promise.all([
     fs.writeFile(promptPath, promptMarkdown, "utf8"),
     fs.writeFile(promptsPath, providerPromptsMarkdown(scenePlan.scenes, stateByScene, actorByScene), "utf8"),
@@ -204,8 +211,7 @@ export async function createVeronicaPreImageReviewPack(
     `# Veronica pre-image review pack\n\n- Episode: \`${path.basename(input.episodeDir)}\`
 - Locale / variant: \`${input.language}/${input.variant}\`
 - Narration duration: \`${timing.narrationDurationSeconds.toFixed(3)}s\`
-- Word count / approximate WPM: \`${diagnostic.wordCount}\` / \`${diagnostic.approximateWordsPerMinute}\` (\`${diagnostic.pacingStatus}\`; preferred duration \`${diagnostic.preferredDurationRangeSeconds.join("–")}s\`${diagnostic.preferredWpmRange ? `; WPM guidance \`${diagnostic.preferredWpmRange.join("–")}\`` : ""})
-- TTS pacing: initial \`${diagnostic.initialTtsSpeed}\`, selected \`${diagnostic.ttsSpeed}\`, \`${diagnostic.calibrationAttemptCount}\` measured attempt(s), normalization \`${diagnostic.speedNormalizationApplied}\`, acceptance \`${diagnostic.durationAcceptanceStatus}\`
+- Word count / approximate WPM: \`${diagnostic.wordCount}\` / \`${diagnostic.approximateWordsPerMinute}\`${diagnostic.mode === "short-adaptive" ? ` (\`${diagnostic.pacingStatus}\`; preferred duration \`${diagnostic.preferredDurationRangeSeconds.join("–")}s\`${diagnostic.preferredWpmRange ? `; WPM guidance \`${diagnostic.preferredWpmRange.join("–")}\`` : ""})\n- TTS pacing: initial \`${diagnostic.initialTtsSpeed}\`, selected \`${diagnostic.ttsSpeed}\`, \`${diagnostic.calibrationAttemptCount}\` measured attempt(s), normalization \`${diagnostic.speedNormalizationApplied}\`, acceptance \`${diagnostic.durationAcceptanceStatus}\`` : "\n- TTS pacing: full-form current policy preserved; no Short adaptive calibration."}
 - Canonical timing source: \`${timing.timingSource}\`
 - Scene count: \`${scenePlan.scenes.length}\`
 - Selected recurring motif: \`${finalPlan.selectedRecurringMotif?.concept ?? "none"}\`

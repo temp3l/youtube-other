@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { GeneratedVisualAsset, PlannedScene, PositioningVisualPlanV2, PositioningVisualTreatment, VeronicaActionOwnerRole, VisualEvent, VisualEventKind } from "./positioning-visual-contracts.js";
 import { calculateDiversityMetrics, stableHash } from "./positioning-visual-semantics.js";
+import { resolveVeronicaProductionPolicy } from "./veronica-production-policy.js";
 
 export const VERONICA_PRE_IMAGE_SEMANTIC_REVIEW_VERSION = "veronica-pre-image-semantic-review.v2" as const;
 export const VERONICA_PRE_IMAGE_SEMANTIC_GATE_VERSION = "veronica-pre-image-semantic-gate.v3" as const;
@@ -137,6 +138,29 @@ function proposalFor(narration: string, index: number, total: number): Proposal 
   return null;
 }
 
+/**
+ * Older persisted plans predate the explicit action-owner field. Normalize
+ * only unambiguous semantic strategies; unknown decisive actions still fail
+ * closed at provider projection.
+ */
+function legacyActionOwnerRole(
+  treatment: PositioningVisualTreatment,
+): VeronicaActionOwnerRole | undefined {
+  if (treatment.actionOwnerRole) return treatment.actionOwnerRole;
+  const text = `${treatment.subjectRequirement} ${treatment.action}`;
+  if (/\b(?:buyer|customer|prospect|decision maker)\b/iu.test(text)) return "buyer";
+  if (/\b(?:expert|professional)\b/iu.test(text)) return "expert";
+  switch (treatment.strategy) {
+    case "comparison-composition":
+    case "market-crowd":
+    case "audience-segmentation":
+    case "identity-perception":
+      return "none";
+    default:
+      return undefined;
+  }
+}
+
 function eventKindForFinalTreatment(treatment: PositioningVisualTreatment, ordinal: number): VisualEventKind {
   const opportunities = treatment.motionOpportunities ?? ["establishing-crop", "slow-push"] as const;
   const permitted = treatment.diagram === null
@@ -199,17 +223,23 @@ function transitionContext(scene: PlannedScene): string {
 }
 
 /** Provider projection is deliberately state-aware: a transition is one frame, never a storyboard. */
-export function projectVeronicaProviderPrompt(plan: Pick<PositioningVisualPlanV2, "aspectRatio">, scene: PlannedScene): string {
+export function projectVeronicaProviderPrompt(plan: Pick<PositioningVisualPlanV2, "aspectRatio"> & { readonly format?: PositioningVisualPlanV2["format"] }, scene: PlannedScene): string {
   const state = scene.stateComplexity ?? classifyVeronicaStillStateComplexity(scene.narrationAnchor, scene.treatment);
+  const policy = resolveVeronicaProductionPolicy(plan.format ?? "short");
   const owner = resolveActionOwner(scene);
   const base = [
-    `Text-free ${plan.aspectRatio} Veronica conceptual Short`,
+    `Text-free ${plan.aspectRatio} ${policy.providerPromptLabel}`,
     `Environment: ${stripSequentialLanguage(scene.treatment.environment)}`,
     `Camera: ${stripSequentialLanguage(scene.treatment.camera)}`,
     `Must show: ${scene.treatment.props.map(stripSequentialLanguage).join(", ")}`,
   ].map(normalizeProviderPromptSentence).join(" ");
   if (state === "SINGLE_STATE") return `${base} ${normalizeProviderPromptSentence(`Capture one stable condition: ${stripSequentialLanguage(scene.treatment.action)}`)} ${normalizeProviderPromptSentence(`Visible thesis: ${stripSequentialLanguage(scene.visibleThesis)}`)} ${normalizeProviderPromptSentence("No readable text, logos, UI, occupation proxy, generic stock pose, decorative abstraction, prism, light laboratory, or unexplained diagram")}`;
-  if (state === "MULTI_STATE_REQUIRED") return `${base} ${normalizeProviderPromptSentence("MANUAL REVIEW REQUIRED: this treatment asks for multiple temporal states and must be reprojected before any provider request")} ${normalizeProviderPromptSentence("No readable text, logos, UI, occupation proxy, generic stock pose, decorative abstraction, prism, light laboratory, or unexplained diagram")}`;
+  if (state === "MULTI_STATE_REQUIRED") {
+    const requirement = policy.stateComplexityRepresentation === "multi-state-sequence"
+      ? "MULTI-ASSET SEQUENCE REQUIRED: retain the semantic states as separately prepared assets or deterministic sequence events; do not submit this as one storyboard still"
+      : "MANUAL REVIEW REQUIRED: this treatment asks for multiple temporal states and must be reprojected before any provider request";
+    return `${base} ${normalizeProviderPromptSentence(requirement)} ${normalizeProviderPromptSentence("No readable text, logos, UI, occupation proxy, generic stock pose, decorative abstraction, prism, light laboratory, or unexplained diagram")}`;
+  }
   if (owner.role === "unresolved") throw new Error(`SEMANTIC_ACTOR_ROLE_MISMATCH:${scene.sceneId}:unresolved-action-owner`);
   const prompt = `${base} ${normalizeProviderPromptSentence("Capture the instant in which the transition is already visible")} ${normalizeProviderPromptSentence(`Prior context: ${transitionContext(scene)}`)} ${normalizeProviderPromptSentence(`Primary actor: ${actorLabel(owner.role)}`)} ${normalizeProviderPromptSentence(`Current action: ${transitionAction(scene, owner.role)}`)} ${normalizeProviderPromptSentence(`Emerging consequence: ${transitionConsequence(scene)}`)} ${normalizeProviderPromptSentence("No readable text, logos, UI, occupation proxy, generic stock pose, decorative abstraction, prism, light laboratory, or unexplained diagram")}`;
   if (/\b(?:first.*then|after.*then|later|eventually|and afterward|arriv\w*.*then.*widen)\b/iu.test(prompt)) throw new Error(`MULTI_STATE_PROVIDER_PROMPT_RISK:${scene.sceneId}`);
@@ -231,15 +261,16 @@ function finalAssetForScene(plan: PositioningVisualPlanV2, scene: PlannedScene, 
   return { ...base, semanticFingerprint: stableHash({ sceneId: scene.sceneId, prompt, treatmentHash: scene.treatment.treatmentHash }), generatedAssetCacheKey: stableHash({ prompt, treatmentHash: scene.treatment.treatmentHash, finalTreatmentVersion: VERONICA_PRE_IMAGE_SEMANTIC_GATE_VERSION }) };
 }
 
-function cadenceForFinalTimeline(events: readonly VisualEvent[], assets: readonly GeneratedVisualAsset[], durationMs: number) {
+function cadenceForFinalTimeline(format: PositioningVisualPlanV2["format"], events: readonly VisualEvent[], assets: readonly GeneratedVisualAsset[], durationMs: number) {
   const durations = events.map((event) => event.durationMs / 1_000);
+  const targetRangeSeconds = resolveVeronicaProductionPolicy(format).eventDurationRangeSeconds;
   const round = (value: number) => Math.round(value * 10_000) / 10_000;
   const hook = events.filter((event) => /hook|cold-open/iu.test(event.sceneId));
   return {
     durationMs, baseAssetCount: assets.length, visualEventCount: events.length,
     eventsPerBaseAsset: round(events.length / Math.max(1, assets.length)), meanSecondsPerEvent: round(durationMs / Math.max(1, events.length) / 1_000),
-    shortestEventSeconds: round(Math.min(...durations)), longestEventSeconds: round(Math.max(...durations)), targetRangeSeconds: [3, 7] as const,
-    targetComplianceRate: round(durations.filter((value) => value >= 3 && value <= 7).length / Math.max(1, durations.length)),
+    shortestEventSeconds: round(Math.min(...durations)), longestEventSeconds: round(Math.max(...durations)), targetRangeSeconds,
+    targetComplianceRate: round(durations.filter((value) => value >= targetRangeSeconds[0] && value <= targetRangeSeconds[1]).length / Math.max(1, durations.length)),
     hookMeanSecondsPerEvent: hook.length ? round(hook.reduce((sum, event) => sum + event.durationMs, 0) / hook.length / 1_000) : null,
   };
 }
@@ -253,6 +284,7 @@ export function rebuildVeronicaFinalTreatmentState(input: {
   readonly plan: PositioningVisualPlanV2;
   readonly sceneTimings: readonly { readonly id: string; readonly timing: { readonly startSeconds: number; readonly endSeconds: number } }[];
 }): PositioningVisualPlanV2 {
+  const policy = resolveVeronicaProductionPolicy(input.plan.format);
   const timingByIndex = input.sceneTimings;
   if (timingByIndex.length !== input.plan.scenes.length) throw new Error("PRODUCTION_TIMELINE_MISMATCH: scene count differs from final treatment plan.");
   const scenes = input.plan.scenes.map((scene, index) => {
@@ -264,7 +296,7 @@ export function rebuildVeronicaFinalTreatmentState(input: {
   const assets = scenes.map((scene, index) => finalAssetForScene(input.plan, scene, index === 0 ? undefined : input.plan.assets[index - 1]));
   const events: VisualEvent[] = scenes.flatMap((scene, index) => {
     const asset = assets[index]!;
-    const count = Math.max(1, Math.ceil(scene.durationMs / 7_000));
+    const count = Math.max(1, Math.ceil(scene.durationMs / (policy.eventDurationRangeSeconds[1] * 1_000)));
     const interval = Math.floor(scene.durationMs / count);
     return Array.from({ length: count }, (_, ordinal) => {
       const durationMs = ordinal === count - 1 ? scene.durationMs - interval * (count - 1) : interval;
@@ -306,16 +338,28 @@ export function rebuildVeronicaFinalTreatmentState(input: {
     const automatic = decision.semanticCompatibility >= 0.8 && decision.eligible && motifCompatible && continuityCompatible;
     return { ...decision, eligible: automatic, reuseMode: automatic ? decision.reuseMode : "not-reusable" as const, cropAdaptation: automatic ? decision.cropAdaptation : "none" as const, decision: automatic ? "AUTO_REUSE_APPROVED" as const : decision.semanticCompatibility >= 0.4 && motifCompatible ? "REUSE_REQUIRES_SEMANTIC_REVIEW" as const : "REUSE_REJECTED" as const, reason: automatic ? decision.reason : !motifCompatible ? "recurring-motif-incompatible" : !continuityCompatible ? "subject-continuity-incompatible" : "semantic-purpose-insufficiently-compatible" };
   });
-  const canonical = { ...input.plan, scenes, assets, visualEvents: events, diagrams, assetReuseDecisions, ...(selectedRecurringMotif ? { selectedRecurringMotif } : {}), diversityMetrics, cadenceMetrics: cadenceForFinalTimeline(events, assets, narrationEnd), canonicalImagePlanHash: stableHash({ assets, selectedRecurringMotif, finalTreatmentVersion: VERONICA_PRE_IMAGE_SEMANTIC_GATE_VERSION, providerProjectionVersion: VERONICA_STATE_AWARE_PROVIDER_PROJECTION_VERSION, actionOwners: scenes.map((scene) => scene.treatment.actionOwnerRole ?? null) }), renderEventPlanHash: stableHash({ events, finalTiming: narrationEnd, finalTreatmentVersion: VERONICA_PRE_IMAGE_SEMANTIC_GATE_VERSION }), cacheInvalidation: { ...input.plan.cacheInvalidation, semanticPlanInvalidatesOn: [...input.plan.cacheInvalidation.semanticPlanInvalidatesOn, "final-treatment-change", "selected-recurring-motif-change", "state-complexity-change", "viewer-visible-family-version-change", "action-owner-role-change"], canonicalImageInvalidatesOn: [...input.plan.cacheInvalidation.canonicalImageInvalidatesOn, "final-treatment-change", "motif-coverage-change", "reuse-decision-change", "state-aware-provider-projection-version-change", "action-owner-role-change"], renderEventsInvalidateOn: [...input.plan.cacheInvalidation.renderEventsInvalidateOn, "final-treatment-change", "diagram-status-change", "canonical-timing-change", "visual-event-strategy-change"] } };
+  const canonical = { ...input.plan, scenes, assets, visualEvents: events, diagrams, assetReuseDecisions, ...(selectedRecurringMotif ? { selectedRecurringMotif } : {}), diversityMetrics, cadenceMetrics: cadenceForFinalTimeline(input.plan.format, events, assets, narrationEnd), canonicalImagePlanHash: stableHash({ assets, selectedRecurringMotif, finalTreatmentVersion: VERONICA_PRE_IMAGE_SEMANTIC_GATE_VERSION, providerProjectionVersion: VERONICA_STATE_AWARE_PROVIDER_PROJECTION_VERSION, actionOwners: scenes.map((scene) => scene.treatment.actionOwnerRole ?? null), format: input.plan.format, stateComplexityRepresentation: policy.stateComplexityRepresentation }), renderEventPlanHash: stableHash({ events, finalTiming: narrationEnd, finalTreatmentVersion: VERONICA_PRE_IMAGE_SEMANTIC_GATE_VERSION, format: input.plan.format }), cacheInvalidation: { ...input.plan.cacheInvalidation, semanticPlanInvalidatesOn: [...input.plan.cacheInvalidation.semanticPlanInvalidatesOn, "final-treatment-change", "selected-recurring-motif-change", "state-complexity-change", "viewer-visible-family-version-change", "action-owner-role-change", "veronica-production-policy-change"], canonicalImageInvalidatesOn: [...input.plan.cacheInvalidation.canonicalImageInvalidatesOn, "final-treatment-change", "motif-coverage-change", "reuse-decision-change", "state-aware-provider-projection-version-change", "action-owner-role-change", "veronica-production-policy-change"], renderEventsInvalidateOn: [...input.plan.cacheInvalidation.renderEventsInvalidateOn, "final-treatment-change", "diagram-status-change", "canonical-timing-change", "visual-event-strategy-change", "veronica-production-policy-change"] } };
   return { ...canonical, planHash: stableHash(canonical) } as PositioningVisualPlanV2;
 }
 
 /** Re-projects generic positioning scenes before provider review. No scene ID is special-cased. */
 export function hardenVeronicaPreImagePlan(input: { readonly plan: PositioningVisualPlanV2; readonly narrationByScene: readonly string[] }): { readonly plan: PositioningVisualPlanV2; readonly reviews: readonly VeronicaPreImageSemanticReview[] } {
+  const policy = resolveVeronicaProductionPolicy(input.plan.format);
+  const existingContinuity = (input.plan as PositioningVisualPlanV2 & { readonly continuity?: PositioningVisualPlanV2["continuity"] }).continuity ?? {
+    mode: "ensemble-independent" as const,
+    variationDimensions: ["age", "gender-presentation", "profession", "environment", "framing"] as const,
+    scenesShareIdentity: false as const,
+  };
   const motif = /\b(?:doorway|wall|foothold|widen)\b/iu.test(input.narrationByScene.join(" ")) ? "doorway / threshold / widening access" : undefined;
   const scenes = input.plan.scenes.map((scene, index) => {
     const narration = input.narrationByScene[index] ?? scene.narrationAnchor;
     const proposal = proposalFor(narration, index, input.plan.scenes.length);
+    if (!policy.applyShortCausalRemediation) {
+      const actionOwnerRole = legacyActionOwnerRole(scene.treatment);
+      if (!actionOwnerRole || scene.treatment.actionOwnerRole) return scene;
+      const treatmentBase = { ...scene.treatment, actionOwnerRole };
+      return { ...scene, treatment: { ...treatmentBase, treatmentHash: stableHash(treatmentBase) } };
+    }
     if (!proposal) return scene;
     const treatmentBase = { ...scene.treatment, strategy: proposal.strategy, narrativeBeat: proposal.thesis, subjectRequirement: "recurring occupation-neutral expert and buyer", actionOwnerRole: proposal.actionOwnerRole, environment: proposal.environment, composition: proposal.composition, camera: proposal.camera, action: proposal.action, props: proposal.props, motionOpportunities: proposal.motion, diagram: null };
     const treatment: PositioningVisualTreatment = { ...treatmentBase, grammar: { ...scene.treatment.grammar, strategy: proposal.strategy, subjectArchetype: "recurring occupation-neutral expert and buyer", environment: proposal.environment, composition: proposal.composition, camera: proposal.camera, props: proposal.props, topology: "none", continuityIdentityId: `${input.plan.contentId.toLowerCase()}-causal-arc` }, viewerVisibleFingerprint: { ...scene.treatment.viewerVisibleFingerprint, strategyFamily: proposal.strategy, subjectArchetype: "recurring expert-buyer pair", environmentArchetype: "recurring threshold environment", compositionArchetype: proposal.composition, cameraArchetype: proposal.camera, actionArchetype: proposal.action, dominantObjectArchetype: proposal.props[0] ?? "threshold", motionArchetype: proposal.motion.join("-then-") }, treatmentHash: stableHash(treatmentBase) };
@@ -347,7 +391,8 @@ export function hardenVeronicaPreImagePlan(input: { readonly plan: PositioningVi
     semanticPlanInvalidatesOn: [], canonicalImageInvalidatesOn: [], titleQaInvalidatesOn: [], renderEventsInvalidateOn: [],
   } as PositioningVisualPlanV2["cacheInvalidation"];
   const visualEvents = legacy.visualEvents ?? [];
-  const base = { ...input.plan, continuity: { mode: "persistent-protagonist" as const, identityId: `${input.plan.contentId.toLowerCase()}-causal-arc`, identityFingerprint: stableHash({ contentId: input.plan.contentId, motif }), appearance: { ageBand: "adult", genderPresentation: "unspecified", hair: "consistent but non-identifying", wardrobeAnchor: "neutral structured outerwear" }, referencePolicy: "reuse-only-for-linked-scenes" as const, linkedSceneIds: scenes.map((scene) => scene.sceneId) }, scenes, assets, visualVocabulary: { ...visualVocabulary, recurringMotifs: motif ? [motif, ...visualVocabulary.recurringMotifs.filter((candidate) => candidate !== motif)] : visualVocabulary.recurringMotifs }, ...(motif ? { selectedRecurringMotif: { schemaVersion: "veronica-selected-recurring-motif.v1" as const, family: "threshold", concept: motif, source: "narration-native" as const, sceneIds: [] } } : {}), semanticPlanCacheKey: stableHash({ previous: input.plan.semanticPlanCacheKey, semanticGateVersion: VERONICA_PRE_IMAGE_SEMANTIC_GATE_VERSION, motif, continuity: "persistent-causal" }), canonicalImagePlanHash: stableHash(assets), validation: { status: hardFailure ? "fail" as const : "pass" as const, failures: hardFailure ? reviews.flatMap((review) => review.requiredEdits) : [] } };
+  const shortContinuity = { mode: "persistent-protagonist" as const, identityId: `${input.plan.contentId.toLowerCase()}-causal-arc`, identityFingerprint: stableHash({ contentId: input.plan.contentId, motif }), appearance: { ageBand: "adult", genderPresentation: "unspecified", hair: "consistent but non-identifying", wardrobeAnchor: "neutral structured outerwear" }, referencePolicy: "reuse-only-for-linked-scenes" as const, linkedSceneIds: scenes.map((scene) => scene.sceneId) };
+  const base = { ...input.plan, continuity: policy.applyShortCausalRemediation ? shortContinuity : existingContinuity, scenes, assets, visualVocabulary: { ...visualVocabulary, recurringMotifs: motif ? [motif, ...visualVocabulary.recurringMotifs.filter((candidate) => candidate !== motif)] : visualVocabulary.recurringMotifs }, ...(motif ? { selectedRecurringMotif: { schemaVersion: "veronica-selected-recurring-motif.v1" as const, family: "threshold", concept: motif, source: "narration-native" as const, sceneIds: [] } } : {}), semanticPlanCacheKey: stableHash({ previous: input.plan.semanticPlanCacheKey, semanticGateVersion: VERONICA_PRE_IMAGE_SEMANTIC_GATE_VERSION, motif, continuity: policy.applyShortCausalRemediation ? "persistent-causal" : existingContinuity.mode, format: input.plan.format }), canonicalImagePlanHash: stableHash(assets), validation: { status: hardFailure ? "fail" as const : "pass" as const, failures: hardFailure ? reviews.flatMap((review) => review.requiredEdits) : [] } };
   const plan = { ...base, visualEvents, renderEventPlanHash: stableHash({ events: visualEvents, canonicalTiming: "locale-timing-artifact" }), planHash: stableHash(base), cacheInvalidation: { ...cacheInvalidation, semanticPlanInvalidatesOn: [...cacheInvalidation.semanticPlanInvalidatesOn, "selected-recurring-motif-change", "continuity-strategy-change", "semantic-gate-version-change"], canonicalImageInvalidatesOn: [...cacheInvalidation.canonicalImageInvalidatesOn, "treatment-remediation-change", "anti-drift-projection-change"], renderEventsInvalidateOn: [...cacheInvalidation.renderEventsInvalidateOn, "canonical-locale-timing-change", "motion-plan-change"] } } as PositioningVisualPlanV2;
   return { plan, reviews };
 }

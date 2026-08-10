@@ -8,14 +8,15 @@ import {
   positioningProductionPlanSchema,
 } from "./positioning-production-adapter.js";
 
-function plan() {
+function plan(variant: "short" | "full" = "short") {
+  const contentId = variant === "short" ? "L01-S01" : "L02";
   return positioningProductionPlanSchema.parse({
     schemaVersion: "veronicabenini-positioning-visual-plan.v2",
-    contentId: "L01-S01",
-    format: "short",
-    aspectRatio: "9:16",
+    contentId,
+    format: variant === "short" ? "short" : "long",
+    aspectRatio: variant === "short" ? "9:16" : "16:9",
     scenes: ["HOOK", "PAYOFF"].map((stage, index) => ({
-      sceneId: `L01-S01-${stage}`,
+      sceneId: `${contentId}-${stage}`,
       progressionStage: stage,
       narrationAnchor: `${stage.toLowerCase()}-anchor`,
       startMs: index * 5_000,
@@ -25,17 +26,19 @@ function plan() {
         communicationIntent: index === 0 ? "create-tension" : "deliver-payoff",
         subjectRequirement: index === 0 ? "a client choosing visible proof" : "a clear evidence trail",
         environment: "European editorial studio",
-        composition: "vertical editorial composition",
+        composition: variant === "short" ? "vertical editorial composition" : "landscape editorial composition",
         camera: "45mm point of view",
         lighting: "clean directional daylight",
-        action: "the decision becomes visible",
+        action: index === 0 ? "two alternatives reveal a meaningful contrast" : "a decision maker selects between visible options",
+        actionOwnerRole: index === 0 ? "none" : "buyer",
+        strategy: index === 0 ? "comparison-composition" : "client-decision",
         props: ["portfolio"],
       },
     })),
     assets: ["HOOK", "PAYOFF"].map((stage) => ({
-      sceneId: `L01-S01-${stage}`,
-      prompt: `Text-free 9:16 editorial treatment for ${stage}.`,
-      nativeAspectRatio: "9:16",
+      sceneId: `${contentId}-${stage}`,
+      prompt: `Text-free ${variant === "short" ? "9:16" : "16:9"} editorial treatment for ${stage}.`,
+      nativeAspectRatio: variant === "short" ? "9:16" : "16:9",
       textFree: true,
       textInGeneratedImage: false,
     })),
@@ -92,5 +95,22 @@ describe("positioning production adapter", () => {
       positioningPlanHash: "a".repeat(64),
       syntheticCreatorLikenessAllowed: false,
     });
+  });
+
+  it("runs full-form planning through the same semantic finalizer without Short cadence", async () => {
+    const workspaceRoot = await fs.mkdtemp(path.join(os.tmpdir(), "veronica-full-production-"));
+    const episodeId = "l02-positioning-full";
+    const episodeDir = path.join(workspaceRoot, episodeId);
+    await fs.mkdir(path.join(episodeDir, "source"), { recursive: true });
+    await fs.mkdir(path.join(episodeDir, "languages"), { recursive: true });
+    await fs.writeFile(path.join(episodeDir, "source", "visual-plan.json"), `${JSON.stringify(plan("full"), null, 2)}\n`);
+    await fs.writeFile(path.join(episodeDir, "languages", "script-en.md"), "A buyer sees evidence. The expert makes a clearer choice.");
+    const result = await preparePositioningProductionEpisode({ workspaceRoot, episodeId, language: "en", variant: "full" });
+    const finalPlan = JSON.parse(await fs.readFile(path.join(episodeDir, "source", "pre-image-semantic-plan.v1.json"), "utf8")) as { format: string; cadenceMetrics: { targetRangeSeconds: readonly number[] }; scenes: readonly { stateComplexity: string; treatment: { actionOwnerRole?: string } }[] };
+    expect(result.sceneCount).toBe(2);
+    expect(finalPlan.format).toBe("long");
+    expect(finalPlan.cadenceMetrics.targetRangeSeconds).toEqual([6, 15]);
+    expect(finalPlan.scenes.map((scene) => scene.stateComplexity)).toContain("DECISIVE_TRANSITION_MOMENT");
+    expect(finalPlan.scenes.map((scene) => scene.treatment.actionOwnerRole)).toEqual(["none", "buyer"]);
   });
 });

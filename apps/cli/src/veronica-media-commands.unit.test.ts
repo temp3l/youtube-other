@@ -21,6 +21,8 @@ describe("veronica media commands", () => {
       "render",
     ]);
     const images = veronica?.commands.find((command) => command.name() === "images");
+    const preparation = veronica?.commands.find((command) => command.name() === "prepare-production");
+    expect(preparation?.options.map((option) => option.flags)).toContain("-L, --language <code>");
     expect(images?.commands.map((command) => command.name())).toEqual([
       "derive-image-prompts",
       "inspect-image-prompts",

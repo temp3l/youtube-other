@@ -13,6 +13,7 @@ import type {
   ViewerVisibleHookFingerprint,
   VisualGrammarFeatures,
   VisualStrategy,
+  VeronicaActionOwnerRole,
 } from "./positioning-visual-contracts.js";
 import type { OpeningTreatmentProfile } from "./positioning-opening-treatments.js";
 
@@ -988,6 +989,7 @@ export function buildTreatment(input: {
     camera: grammar.camera,
     lighting,
     action,
+    actionOwnerRole: actionOwnerFor(intent),
     props: grammar.props,
     motionOpportunities,
     diagram,
@@ -995,6 +997,24 @@ export function buildTreatment(input: {
     viewerVisibleFingerprint,
   } as const;
   return { ...withoutHash, treatmentHash: stableHash(withoutHash) };
+}
+
+function actionOwnerFor(intent: CommunicationIntent): VeronicaActionOwnerRole {
+  switch (intent) {
+    case "make-proof-visible":
+    case "explain-process":
+    case "show-transformation":
+      return "expert";
+    case "prompt-decision":
+      return "buyer";
+    case "compare-alternatives":
+    case "explain-causality":
+    case "define-category":
+    case "create-tension":
+    case "show-consequence":
+    case "deliver-payoff":
+      return "none";
+  }
 }
 
 function lightingFor(strategy: VisualStrategy): string {

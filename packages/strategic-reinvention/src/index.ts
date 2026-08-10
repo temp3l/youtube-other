@@ -22,3 +22,4 @@ export * from "./positioning-production-adapter.js";
 export * from "./semantic-image-prompt.js";
 export * from "./veronica-visual-language.js";
 export * from "./veronica-pre-image-semantic-gate.js";
+export * from "./veronica-production-policy.js";
