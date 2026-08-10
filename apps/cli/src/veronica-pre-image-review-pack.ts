@@ -8,7 +8,7 @@ import { assessVeronicaShortPacing, resolveVeronicaShortPacingPolicy, veronicaSh
 import { preparePositioningProductionEpisode } from "@mediaforge/strategic-reinvention";
 import { z } from "zod";
 
-const PACK_SCHEMA_VERSION = "veronica-pre-image-review-pack.v6" as const;
+const PACK_SCHEMA_VERSION = "veronica-pre-image-review-pack.v7" as const;
 export const VERONICA_TIMING_INTEGRITY_EPSILON_SECONDS = 0.02;
 const execFileAsync = promisify(execFile);
 const reviewManifestSchema = z.strictObject({
@@ -22,7 +22,8 @@ const reviewManifestSchema = z.strictObject({
   packCrossArtifactIntegrity: z.object({ status: z.enum(["PASS", "FAIL"]), errorCode: z.literal("SELECTED_AUDIO_TIMING_MISMATCH").optional(), epsilonSeconds: z.number().positive(), checks: z.record(z.string(), z.number()), mismatches: z.array(z.string()) }),
   semanticIntegrity: z.object({ status: z.enum(["PASS", "FAIL"]), blockerCount: z.number().int().nonnegative(), convergenceStatus: z.string().min(1) }),
   providerProjectionIntegrity: z.object({ status: z.enum(["PASS", "FAIL"]), missingThesisCount: z.number().int().nonnegative(), malformedThesisCount: z.number().int().nonnegative(), blockedProjectionCount: z.number().int().nonnegative(), issueCount: z.number().int().nonnegative() }),
-  providerPromptQuality: z.object({ status: z.enum(["PASS", "FAIL"]), blockedMarkerCount: z.number().int().nonnegative(), internalLanguageIssueCount: z.number().int().nonnegative() }),
+  providerPromptQuality: z.object({ status: z.enum(["PASS", "FAIL"]), blockedMarkerCount: z.number().int().nonnegative(), internalLanguageIssueCount: z.number().int().nonnegative(), lexicalCorruptionCount: z.number().int().nonnegative() }),
+  semanticCoherenceIntegrity: z.object({ status: z.enum(["PASS", "FAIL"]), incompleteClaimCount: z.number().int().nonnegative(), polarityMismatchCount: z.number().int().nonnegative(), propositionContradictionCount: z.number().int().nonnegative(), treatmentIncompatibilityCount: z.number().int().nonnegative(), projectionMismatchCount: z.number().int().nonnegative(), motifLeakageCount: z.number().int().nonnegative(), harmfulRepetitionCount: z.number().int().nonnegative() }),
   semanticQuality: z.object({ status: z.enum(["PASS", "FAIL"]), remediationTemplateReuseRate: z.number().min(0).max(1), genericFallbackSceneRate: z.number().min(0).max(1), repeatedActionFamilyRate: z.number().min(0).max(1), repeatedEnvironmentFamilyRate: z.number().min(0).max(1), intentionalMotifReuseRate: z.number().min(0).max(1), accidentalRepetitionRate: z.number().min(0).max(1) }),
   overallPackValidity: z.boolean(),
   narrationDiagnostic: z.discriminatedUnion("mode", [
@@ -199,8 +200,9 @@ function providerPromptsMarkdown(
 
 function semanticQualityReviewMarkdown(input: {
   readonly scenes: ReturnType<typeof scenePlanSchema.parse>["scenes"];
-  readonly finalScenes: readonly { readonly sceneId: string; readonly visibleThesis?: string | undefined; readonly stateComplexity?: string | undefined; readonly semanticProposition?: { readonly narrationClaim: string; readonly buyerInterpretation?: string | undefined } | undefined; readonly treatment: { readonly actionOwnerRole?: string | undefined; readonly environment: string; readonly action: string } }[];
-  readonly assetsByScene: ReadonlyMap<string, readonly { readonly assetId: string }[]>;
+  readonly finalScenes: readonly { readonly sceneId: string; readonly visibleThesis?: string | undefined; readonly stateComplexity?: string | undefined; readonly semanticProposition?: { readonly narrationClaim: string; readonly polarity: string; readonly buyerInterpretation?: string | undefined; readonly evidenceSpans: readonly { readonly sentenceId: string; readonly startOffset: number; readonly endOffset: number }[] } | undefined; readonly semanticCoherence?: { readonly claimIntegrity: string; readonly polarityCoherence: string; readonly propositionInternalCoherence: string; readonly treatmentPropositionCompatibility: string } | undefined; readonly treatment: { readonly actionOwnerRole?: string | undefined; readonly environment: string; readonly action: string } }[];
+  readonly assetsByScene: ReadonlyMap<string, readonly { readonly assetId: string; readonly projectionProvenance?: { readonly sourceTreatmentHash: string; readonly sourcePropositionHash: string | null; readonly stateProjectionPolicyVersion: string } | undefined }[]>;
+  readonly remediationRounds: number;
   readonly findingsByScene: ReadonlyMap<string, readonly string[]>;
 }): string {
   return ["# Semantic quality reviewer summary", "", ...input.scenes.flatMap((scene, index) => {
@@ -210,12 +212,17 @@ function semanticQualityReviewMarkdown(input: {
       "",
       `- Narration purpose: ${semanticScene?.semanticProposition?.narrationClaim ?? scene.canonicalNarration}`,
       `- Visible thesis: ${semanticScene?.visibleThesis ?? "MISSING"}`,
+      `- Polarity / contrast: ${semanticScene?.semanticProposition?.polarity ?? "not recorded"}`,
+      `- Evidence spans: ${semanticScene?.semanticProposition?.evidenceSpans.map((span) => `${span.sentenceId}@${span.startOffset}-${span.endOffset}`).join(", ") || "none"}`,
       `- State complexity: ${semanticScene?.stateComplexity ?? "SINGLE_STATE"}`,
       `- Action owner: ${semanticScene?.treatment.actionOwnerRole ?? "not applicable"}`,
       `- Environment: ${semanticScene?.treatment.environment ?? "missing"}`,
       `- Concrete action: ${semanticScene?.treatment.action ?? "missing"}`,
       `- Buyer consequence: ${semanticScene?.semanticProposition?.buyerInterpretation ?? "not required"}`,
       `- Provider assets: ${(input.assetsByScene.get(scene.id) ?? []).map((asset) => asset.assetId).join(", ") || "none"}`,
+      `- Remediation rounds: ${input.remediationRounds}`,
+      `- Proposition / treatment compatibility: ${semanticScene?.semanticCoherence?.treatmentPropositionCompatibility ?? "not recorded"}`,
+      `- Provider projection compatibility: ${(input.assetsByScene.get(scene.id) ?? []).every((asset) => asset.projectionProvenance?.sourcePropositionHash !== undefined) ? "PASS" : "FAIL"}`,
       `- Automated findings: ${(input.findingsByScene.get(scene.id) ?? []).join("; ") || "none"}`,
       "",
     ];
@@ -283,8 +290,10 @@ export async function createVeronicaPreImageReviewPack(
     ? shortNarrationDiagnostic(audioDurationSeconds, timing.timingSource, pacingCalibration!)
     : { mode: "full-current-policy" as const, wordCount: narration.match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)?/gu)?.length ?? 0, narrationDurationSeconds: audioDurationSeconds, approximateWordsPerMinute: Math.round((narration.match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)?/gu)?.length ?? 0) / audioDurationSeconds * 60 * 10) / 10, timingSource: timing.timingSource, pacingStatus: "not-configured" as const, durationAcceptanceStatus: "NOT_APPLICABLE" as const };
   const semanticQualitySchema = z.object({ status: z.enum(["PASS", "FAIL"]), remediationTemplateReuseRate: z.number(), genericFallbackSceneRate: z.number(), repeatedActionFamilyRate: z.number(), repeatedEnvironmentFamilyRate: z.number(), intentionalMotifReuseRate: z.number(), accidentalRepetitionRate: z.number() });
-  const providerReadinessSchema = z.object({ status: z.enum(["PASS", "FAIL"]), missingThesisCount: z.number().int().nonnegative(), malformedThesisCount: z.number().int().nonnegative(), blockedProjectionCount: z.number().int().nonnegative(), internalLanguageIssueCount: z.number().int().nonnegative(), issues: z.array(z.object({ sceneId: z.string(), code: z.string(), reason: z.string() })) });
-  const finalPlan = z.object({ continuity: z.object({ mode: z.string() }).optional(), selectedRecurringMotif: z.object({ concept: z.string() }).optional(), semanticRemediation: z.object({ convergenceStatus: z.string(), rounds: z.number().int().nonnegative() }).optional(), cadenceMetrics: z.object({ durationMs: z.number().nonnegative() }), semanticQuality: semanticQualitySchema, providerReadiness: providerReadinessSchema, scenes: z.array(z.object({ sceneId: z.string(), visibleThesis: z.string().optional(), stateComplexity: z.enum(["SINGLE_STATE", "DECISIVE_TRANSITION_MOMENT", "MULTI_STATE_REQUIRED"]).optional(), semanticProposition: z.object({ narrationClaim: z.string(), buyerInterpretation: z.string().optional() }).optional(), treatment: z.object({ actionOwnerRole: z.enum(["expert", "buyer", "shared", "none"]).optional(), environment: z.string(), action: z.string() }) })), assets: z.array(z.object({ assetId: z.string(), sceneId: z.string(), prompt: z.string() })) }).parse(JSON.parse(finalPlanRaw) as unknown);
+  const providerReadinessSchema = z.object({ status: z.enum(["PASS", "FAIL"]), missingThesisCount: z.number().int().nonnegative(), malformedThesisCount: z.number().int().nonnegative(), blockedProjectionCount: z.number().int().nonnegative(), internalLanguageIssueCount: z.number().int().nonnegative(), incompleteClaimCount: z.number().int().nonnegative(), polarityMismatchCount: z.number().int().nonnegative(), propositionContradictionCount: z.number().int().nonnegative(), treatmentIncompatibilityCount: z.number().int().nonnegative(), projectionMismatchCount: z.number().int().nonnegative(), lexicalCorruptionCount: z.number().int().nonnegative(), motifLeakageCount: z.number().int().nonnegative(), harmfulRepetitionCount: z.number().int().nonnegative(), issues: z.array(z.object({ sceneId: z.string(), code: z.string(), reason: z.string() })) });
+  const evidenceSpanSchema = z.object({ sentenceId: z.string(), startOffset: z.number().int().nonnegative(), endOffset: z.number().int().positive() });
+  const projectionSchema = z.object({ sourceTreatmentHash: z.string(), sourcePropositionHash: z.string().nullable(), stateProjectionPolicyVersion: z.string() });
+  const finalPlan = z.object({ continuity: z.object({ mode: z.string() }).optional(), selectedRecurringMotif: z.object({ concept: z.string(), motifId: z.string().optional(), episodeContentId: z.string().optional(), evidenceSpans: z.array(evidenceSpanSchema).optional() }).optional(), semanticRemediation: z.object({ convergenceStatus: z.string(), rounds: z.number().int().nonnegative() }).optional(), cadenceMetrics: z.object({ durationMs: z.number().nonnegative() }), semanticQuality: semanticQualitySchema, providerReadiness: providerReadinessSchema, scenes: z.array(z.object({ sceneId: z.string(), visibleThesis: z.string().optional(), stateComplexity: z.enum(["SINGLE_STATE", "DECISIVE_TRANSITION_MOMENT", "MULTI_STATE_REQUIRED"]).optional(), semanticProposition: z.object({ narrationClaim: z.string(), polarity: z.string(), buyerInterpretation: z.string().optional(), evidenceSpans: z.array(evidenceSpanSchema) }).optional(), semanticCoherence: z.object({ claimIntegrity: z.string(), polarityCoherence: z.string(), propositionInternalCoherence: z.string(), treatmentPropositionCompatibility: z.string() }).optional(), treatment: z.object({ actionOwnerRole: z.enum(["expert", "buyer", "shared", "none"]).optional(), environment: z.string(), action: z.string() }) })), assets: z.array(z.object({ assetId: z.string(), sceneId: z.string(), prompt: z.string(), projectionProvenance: projectionSchema.optional() })) }).parse(JSON.parse(finalPlanRaw) as unknown);
   const stateByScene = new Map(scenePlan.scenes.map((scene, index) => [scene.id, finalPlan.scenes[index]?.stateComplexity ?? "SINGLE_STATE"] as const));
   const actorByScene = new Map(scenePlan.scenes.map((scene, index) => [scene.id, finalPlan.scenes[index]?.treatment.actionOwnerRole ?? "not applicable"] as const));
   const thesisByScene = new Map(scenePlan.scenes.flatMap((scene, index) => {
@@ -340,14 +349,16 @@ export async function createVeronicaPreImageReviewPack(
   const providerMarkdown = providerPromptsMarkdown(scenePlan.scenes, stateByScene, actorByScene, thesisByScene, assetsByScene);
   const blockedMarkerCount = providerMarkdown.match(/MISSING\s+[—-]\s+PROVIDER PROJECTION BLOCKED/giu)?.length ?? 0;
   const providerPromptQuality = {
-    status: blockedMarkerCount === 0 && finalPlan.providerReadiness.internalLanguageIssueCount === 0 ? "PASS" as const : "FAIL" as const,
+    status: blockedMarkerCount === 0 && finalPlan.providerReadiness.internalLanguageIssueCount === 0 && finalPlan.providerReadiness.lexicalCorruptionCount === 0 ? "PASS" as const : "FAIL" as const,
     blockedMarkerCount,
     internalLanguageIssueCount: finalPlan.providerReadiness.internalLanguageIssueCount,
+    lexicalCorruptionCount: finalPlan.providerReadiness.lexicalCorruptionCount,
   };
+  const semanticCoherenceIntegrity = { status: finalPlan.providerReadiness.incompleteClaimCount === 0 && finalPlan.providerReadiness.polarityMismatchCount === 0 && finalPlan.providerReadiness.propositionContradictionCount === 0 && finalPlan.providerReadiness.treatmentIncompatibilityCount === 0 && finalPlan.providerReadiness.projectionMismatchCount === 0 && finalPlan.providerReadiness.motifLeakageCount === 0 && finalPlan.providerReadiness.harmfulRepetitionCount === 0 ? "PASS" as const : "FAIL" as const, incompleteClaimCount: finalPlan.providerReadiness.incompleteClaimCount, polarityMismatchCount: finalPlan.providerReadiness.polarityMismatchCount, propositionContradictionCount: finalPlan.providerReadiness.propositionContradictionCount, treatmentIncompatibilityCount: finalPlan.providerReadiness.treatmentIncompatibilityCount, projectionMismatchCount: finalPlan.providerReadiness.projectionMismatchCount, motifLeakageCount: finalPlan.providerReadiness.motifLeakageCount, harmfulRepetitionCount: finalPlan.providerReadiness.harmfulRepetitionCount };
   await Promise.all([
     fs.writeFile(promptPath, promptMarkdown, "utf8"),
     fs.writeFile(promptsPath, providerMarkdown, "utf8"),
-    fs.writeFile(qualityReviewPath, semanticQualityReviewMarkdown({ scenes: scenePlan.scenes, finalScenes: finalPlan.scenes, assetsByScene, findingsByScene }), "utf8"),
+    fs.writeFile(qualityReviewPath, semanticQualityReviewMarkdown({ scenes: scenePlan.scenes, finalScenes: finalPlan.scenes, assetsByScene, findingsByScene, remediationRounds: semanticReviews.remediationRounds ?? 0 }), "utf8"),
   ]);
   const artifactFiles: readonly (readonly [string, string])[] = [
     ["chatgpt-pre-image-review-request.md", promptPath],
@@ -383,8 +394,9 @@ export async function createVeronicaPreImageReviewPack(
       semanticIntegrity: { status: blockerCount === 0 && semanticReviews.convergenceStatus !== "SEMANTIC_REMEDIATION_EXHAUSTED" ? "PASS" : "FAIL", blockerCount, convergenceStatus: semanticReviews.convergenceStatus ?? "LEGACY_UNKNOWN" },
       providerProjectionIntegrity: { status: finalPlan.providerReadiness.status, missingThesisCount: finalPlan.providerReadiness.missingThesisCount, malformedThesisCount: finalPlan.providerReadiness.malformedThesisCount, blockedProjectionCount: finalPlan.providerReadiness.blockedProjectionCount, issueCount: finalPlan.providerReadiness.issues.length },
       providerPromptQuality,
+      semanticCoherenceIntegrity,
       semanticQuality: finalPlan.semanticQuality,
-      overallPackValidity: integrity.status === "PASS" && blockerCount === 0 && semanticReviews.convergenceStatus !== "SEMANTIC_REMEDIATION_EXHAUSTED" && finalPlan.providerReadiness.status === "PASS" && providerPromptQuality.status === "PASS" && finalPlan.semanticQuality.status === "PASS",
+      overallPackValidity: integrity.status === "PASS" && blockerCount === 0 && semanticReviews.convergenceStatus !== "SEMANTIC_REMEDIATION_EXHAUSTED" && finalPlan.providerReadiness.status === "PASS" && providerPromptQuality.status === "PASS" && semanticCoherenceIntegrity.status === "PASS" && finalPlan.semanticQuality.status === "PASS",
       narrationDiagnostic: diagnostic,
     }), null, 2)}\n`,
     "utf8",
@@ -403,7 +415,8 @@ export async function createVeronicaPreImageReviewPack(
 - Automated semantic gate: review-required (\`${warningCount}\` warnings; \`${blockerCount}\` blockers); human pre-image approval is not recorded.
 - Semantic remediation: \`${semanticReviews.convergenceStatus ?? "LEGACY_UNKNOWN"}\` after \`${semanticReviews.remediationRounds ?? 0}\` round(s).
 - Provider projection readiness: **${finalPlan.providerReadiness.status}** (missing theses \`${finalPlan.providerReadiness.missingThesisCount}\`; malformed theses \`${finalPlan.providerReadiness.malformedThesisCount}\`; blocked projections \`${finalPlan.providerReadiness.blockedProjectionCount}\`).
-- Provider prompt quality: **${providerPromptQuality.status}** (blocked markers \`${providerPromptQuality.blockedMarkerCount}\`; internal-language findings \`${providerPromptQuality.internalLanguageIssueCount}\`).
+- Provider prompt quality: **${providerPromptQuality.status}** (blocked markers \`${providerPromptQuality.blockedMarkerCount}\`; internal-language findings \`${providerPromptQuality.internalLanguageIssueCount}\`; lexical corruptions \`${providerPromptQuality.lexicalCorruptionCount}\`).
+- Semantic coherence integrity: **${semanticCoherenceIntegrity.status}** (incomplete claims \`${semanticCoherenceIntegrity.incompleteClaimCount}\`; polarity mismatches \`${semanticCoherenceIntegrity.polarityMismatchCount}\`; proposition contradictions \`${semanticCoherenceIntegrity.propositionContradictionCount}\`; treatment incompatibilities \`${semanticCoherenceIntegrity.treatmentIncompatibilityCount}\`; projection mismatches \`${semanticCoherenceIntegrity.projectionMismatchCount}\`; motif leakage \`${semanticCoherenceIntegrity.motifLeakageCount}\`; harmful repetition \`${semanticCoherenceIntegrity.harmfulRepetitionCount}\`).
 - Remediation template quality: **${finalPlan.semanticQuality.status}** (fallback \`${finalPlan.semanticQuality.genericFallbackSceneRate}\`; action-family reuse \`${finalPlan.semanticQuality.repeatedActionFamilyRate}\`; environment-family reuse \`${finalPlan.semanticQuality.repeatedEnvironmentFamilyRate}\`).
 - Provider request allowed: **false** — \`BLOCKED_PENDING_HUMAN_PRE_IMAGE_APPROVAL\`.
 - PACK_HASH_VALIDATION: **PASS**.
@@ -431,7 +444,7 @@ export async function assertVeronicaPreImageReviewPackCurrent(input: PackInput):
   } catch {
     throw new Error(`Veronica image generation requires a current pre-image review pack. Run: mediaforge veronica-media images review-pack --workspace ${path.dirname(input.episodeDir)} --episode-id ${path.basename(input.episodeDir)} --language ${input.language} --variant ${input.variant}`);
   }
-  if (!stored.overallPackValidity || stored.providerProjectionIntegrity.status !== "PASS" || stored.providerPromptQuality.status !== "PASS" || stored.semanticQuality.status !== "PASS") {
+  if (!stored.overallPackValidity || stored.providerProjectionIntegrity.status !== "PASS" || stored.providerPromptQuality.status !== "PASS" || stored.semanticCoherenceIntegrity.status !== "PASS" || stored.semanticQuality.status !== "PASS") {
     throw new Error("Veronica image generation is blocked: semantic/provider prompt readiness integrity failed; regenerate and review the pack.");
   }
   if (!stored.providerRequestsAllowed) {

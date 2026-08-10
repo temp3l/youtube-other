@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { PlannedScene, PositioningVisualPlanV2, PositioningVisualTreatment } from "./positioning-visual-contracts.js";
 import { stableHash } from "./positioning-visual-semantics.js";
 import { calculateVeronicaSemanticQuality, classifyVeronicaStillStateComplexity, normalizeProviderPromptSentence, normalizeVeronicaViewerVisibleFamilies, projectVeronicaProviderPrompt, reviewVeronicaPreImageTreatment, runVeronicaSemanticRemediation, validateVeronicaProviderReadiness } from "./veronica-pre-image-semantic-gate.js";
-import { deriveVeronicaSemanticProposition, providerPromptInternalLanguageReasons } from "./veronica-semantic-quality.js";
+import { assessVeronicaNarrationClaimIntegrity, assessVeronicaPropositionInternalCoherence, assessVeronicaTreatmentPropositionCompatibility, classifyVeronicaSemanticPolarity, deriveVeronicaSemanticProposition, providerPromptInternalLanguageReasons, providerPromptLexicalIntegrityReasons, visualTreatmentFromProposition } from "./veronica-semantic-quality.js";
 
 function treatment(overrides: Partial<PositioningVisualTreatment> = {}): PositioningVisualTreatment {
   const base = { treatmentId: "treatment", sceneId: "scene", progressionStage: "PROOF" as const, narrativeBeat: "buyer recognition", communicationIntent: "make-proof-visible" as const, strategy: "client-decision" as const, subjectRequirement: "occupation-neutral expert and buyer", environment: "public threshold", composition: "buyer crosses a clear doorway", camera: "40mm buyer-height", lighting: "daylight", action: "a buyer hesitates, then crosses the doorway", props: ["open doorway", "visible space beyond"], motionOpportunities: ["establishing-crop", "reveal"] as const, diagram: null, grammar: { strategy: "client-decision" as const, subjectArchetype: "buyer", environment: "public threshold", composition: "buyer crosses a clear doorway", camera: "40mm", props: ["open doorway"], topology: "none" as const, semanticTokens: ["niche"], continuityIdentityId: null }, viewerVisibleFingerprint: { strategyFamily: "client-decision" as const, subjectArchetype: "buyer", environmentArchetype: "threshold", compositionArchetype: "crossing", cameraArchetype: "40mm", lightingArchetype: "daylight", actionArchetype: "crosses", dominantObjectArchetype: "doorway", motionArchetype: "reveal" }, treatmentHash: "a".repeat(64) };
@@ -193,5 +193,50 @@ describe("Veronica pre-image semantic gate", () => {
     expect(normalizeProviderPromptSentence("really!")).toBe("really!");
     expect(normalizeProviderPromptSentence("question?")).toBe("question?");
     expect(normalizeProviderPromptSentence("wait...")).toBe("wait...");
+  });
+
+  it("extracts a complete narration claim with source offsets instead of word truncation", () => {
+    const narration = "The setup is brief. Identity can change in a sentence, but recognition has to be earned through repeated evidence before the market believes the role.";
+    const proposition = deriveVeronicaSemanticProposition({ scene: scene(), narration });
+    expect(proposition.narrationClaim).toBe("Identity can change in a sentence, but recognition has to be earned through repeated evidence before the market believes the role.");
+    expect(assessVeronicaNarrationClaimIntegrity(proposition.narrationClaim).status).toBe("PASS");
+    expect(narration.slice(proposition.evidenceSpans[0].startOffset, proposition.evidenceSpans[0].endOffset)).toBe(proposition.narrationClaim);
+  });
+
+  it("rejects obvious incomplete claim endings", () => {
+    expect(assessVeronicaNarrationClaimIntegrity("Recognition has to be").status).toBe("FAIL");
+    expect(assessVeronicaNarrationClaimIntegrity("Regular participation in two").status).toBe("FAIL");
+    expect(assessVeronicaNarrationClaimIntegrity("A teardown that shows what").status).toBe("FAIL");
+  });
+
+  it("preserves negative and corrective polarity instead of projecting a positive default", () => {
+    const conflict = deriveVeronicaSemanticProposition({ scene: scene(), narration: "The profile, website, and offer present conflicting identities, so the visitor cannot categorize the expertise." });
+    expect(conflict.polarity).toBe("NEGATIVE_STATE");
+    expect(conflict.buyerConsequenceFamily).toBe("HESITATES");
+    expect(visualTreatmentFromProposition({ scene: scene(), proposition: conflict, preserveEnvironment: false }).action).toMatch(/conflicting|without finding/iu);
+    expect(classifyVeronicaSemanticPolarity("The signals conflict at first, but after alignment the visitor understands one coherent category.")).toBe("TRANSITION_NEGATIVE_TO_POSITIVE");
+  });
+
+  it("keeps motion-without-accumulation as a failure state", () => {
+    const proposition = deriveVeronicaSemanticProposition({ scene: scene(), narration: "The professional changes theme repeatedly. The result is motion without accumulation." });
+    expect(proposition.polarity).toBe("NEGATIVE_STATE");
+    expect(proposition.buyerConsequenceFamily).toBe("FAILS_TO_ACCUMULATE");
+    expect(proposition.consequence).toMatch(/resets|instead/iu);
+  });
+
+  it("blocks proposition contradictions and stale treatment environments", () => {
+    const negative = deriveVeronicaSemanticProposition({ scene: scene(), narration: "Conflicting website identities make the visitor hesitate because no category is clear." });
+    const contradictory = { ...negative, buyerConsequenceFamily: "RECOGNIZES" as const, buyerInterpretation: "the visitor recognizes a clear fit" };
+    expect(assessVeronicaPropositionInternalCoherence(contradictory).status).toBe("FAIL");
+    expect(assessVeronicaTreatmentPropositionCompatibility({ treatment: treatment({ environment: "podcast booth with microphone and backstage camera rig" }), proposition: negative, narration: negative.narrationClaim }).status).toBe("FAIL");
+  });
+
+  it("preserves ordinary first/first-time prose and rejects lexical corruption", () => {
+    const firstTime = scene({ stateComplexity: "DECISIVE_TRANSITION_MOMENT", visibleThesis: "The first screen gives a first-time visitor one clear category.", treatment: treatment({ action: "a first-time visitor scans the first screen", actionOwnerRole: "buyer" }) });
+    const prompt = projectVeronicaProviderPrompt({ aspectRatio: "9:16", format: "short" }, firstTime);
+    expect(prompt).toContain("first-time visitor");
+    expect(prompt).toContain("first screen");
+    expect(prompt).not.toContain("a -time visitor");
+    expect(providerPromptLexicalIntegrityReasons("Visible thesis: : a clear offer. a -time visitor.." )).toEqual(expect.arrayContaining(["orphaned-hyphen", "malformed-visible-thesis-colon", "duplicated-punctuation"]));
   });
 });

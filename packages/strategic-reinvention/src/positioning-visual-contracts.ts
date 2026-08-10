@@ -56,20 +56,31 @@ export type VisualStrategy =
 /** The semantic owner of the scene's primary visible action. */
 export type VeronicaActionOwnerRole = "expert" | "buyer" | "shared" | "none";
 export type VeronicaSemanticConfidence = "HIGH" | "MEDIUM" | "LOW";
+export type VeronicaSemanticPolarity = "POSITIVE_STATE" | "NEGATIVE_STATE" | "CONTRAST" | "TRANSITION_NEGATIVE_TO_POSITIVE" | "TRANSITION_POSITIVE_TO_NEGATIVE" | "NEUTRAL";
+
+export interface VeronicaNarrationEvidenceSpan {
+  readonly sentenceId: string;
+  readonly startOffset: number;
+  readonly endOffset: number;
+  readonly text: string;
+  readonly spanHash: string;
+}
 
 export interface VeronicaSemanticProposition {
-  readonly schemaVersion: "veronica-semantic-proposition.v1";
+  readonly schemaVersion: "veronica-semantic-proposition.v2";
   readonly narrationClaim: string;
+  readonly evidenceSpans: readonly [VeronicaNarrationEvidenceSpan, ...VeronicaNarrationEvidenceSpan[]];
+  readonly polarity: VeronicaSemanticPolarity;
   readonly cause?: string;
   readonly actorRole: VeronicaActionOwnerRole;
   readonly actorAction: string;
   readonly buyerInterpretation?: string;
   readonly consequence: string;
-  readonly contrast?: { readonly weakerCondition: string; readonly strongerCondition: string };
+  readonly contrast?: { readonly initialState?: string; readonly desiredState?: string; readonly failureState?: string; readonly consequence?: string };
   readonly narrationNativeMetaphor?: string;
   readonly visualMechanism: "website-first-impression" | "market-problem-solution-chain" | "problem-first-sequence" | "identity-bridge" | "relevant-context-participation" | "recognition-accumulation" | "claim-to-proof" | "signal-coherence" | "audience-fit-signal" | "customer-context-interpretation" | "peer-referral" | "UNRESOLVED";
   readonly evidenceAnchors: readonly string[];
-  readonly buyerConsequenceFamily: "REMEMBERS" | "CATEGORIZES" | "CHOOSES" | "HESITATES" | "TRUSTS" | "IGNORES" | "NOTICES" | "REFERS" | "RECOGNIZES" | "UNDERSTANDS" | "NONE";
+  readonly buyerConsequenceFamily: "REMEMBERS" | "CATEGORIZES" | "CHOOSES" | "HESITATES" | "TRUSTS" | "IGNORES" | "NOTICES" | "REFERS" | "RECOGNIZES" | "UNDERSTANDS" | "CONNECTS" | "FAILS_TO_ACCUMULATE" | "REJECTS" | "NONE";
   readonly confidence: { readonly proposition: VeronicaSemanticConfidence; readonly actorOwnership: VeronicaSemanticConfidence; readonly consequence: VeronicaSemanticConfidence; readonly visualMechanism: VeronicaSemanticConfidence };
   readonly propositionHash: string;
 }
@@ -278,6 +289,7 @@ export interface PositioningVisualTreatment {
   readonly grammar: VisualGrammarFeatures;
   readonly viewerVisibleFingerprint: ViewerVisibleHookFingerprint;
   readonly treatmentHash: string;
+  readonly sourcePropositionHash?: string;
 }
 
 export interface SafeRegion {
@@ -311,6 +323,14 @@ export interface GeneratedVisualAsset {
   readonly referenceAssetId: string | null;
   readonly semanticFingerprint: string;
   readonly generatedAssetCacheKey: string;
+  readonly projectionProvenance?: {
+    readonly sourceTreatmentHash: string;
+    readonly sourcePropositionHash: string | null;
+    readonly stateProjectionPolicyVersion: string;
+    readonly motifId: string | null;
+    readonly projectionStrategy: "SINGLE_STATE" | "DECISIVE_TRANSITION" | "MULTI_STATE_SEQUENCE";
+    readonly providerPromptHash: string;
+  };
 }
 
 export type VisualEventKind =
@@ -368,6 +388,12 @@ export interface PlannedScene {
   readonly stateComplexity?: "SINGLE_STATE" | "DECISIVE_TRANSITION_MOMENT" | "MULTI_STATE_REQUIRED";
   /** Narration-grounded meaning used by remediation and provider readiness. */
   readonly semanticProposition?: VeronicaSemanticProposition;
+  readonly semanticCoherence?: {
+    readonly claimIntegrity: "PASS" | "FAIL";
+    readonly polarityCoherence: "PASS" | "FAIL";
+    readonly propositionInternalCoherence: "PASS" | "FAIL";
+    readonly treatmentPropositionCompatibility: "PASS" | "FAIL";
+  };
 }
 
 export interface VeronicaSemanticQualityMetrics {
@@ -383,8 +409,8 @@ export interface VeronicaSemanticQualityMetrics {
 }
 
 export interface VeronicaProviderReadinessResult {
-  readonly schemaVersion: "veronica-provider-readiness.v1";
-  readonly qualityVersion: "veronica-provider-prompt-quality.v1";
+  readonly schemaVersion: "veronica-provider-readiness.v2";
+  readonly qualityVersion: "veronica-provider-prompt-quality.v2";
   readonly status: "PASS" | "FAIL";
   readonly checkedSceneCount: number;
   readonly checkedAssetCount: number;
@@ -392,7 +418,15 @@ export interface VeronicaProviderReadinessResult {
   readonly malformedThesisCount: number;
   readonly blockedProjectionCount: number;
   readonly internalLanguageIssueCount: number;
-  readonly issues: readonly { readonly sceneId: string; readonly assetId?: string; readonly code: "VISIBLE_THESIS_REQUIRED" | "MALFORMED_VISIBLE_THESIS" | "SEMANTIC_PROVIDER_PROJECTION_INCONSISTENCY" | "PROVIDER_PROMPT_NOT_READY"; readonly reason: string }[];
+  readonly incompleteClaimCount: number;
+  readonly polarityMismatchCount: number;
+  readonly propositionContradictionCount: number;
+  readonly treatmentIncompatibilityCount: number;
+  readonly projectionMismatchCount: number;
+  readonly lexicalCorruptionCount: number;
+  readonly motifLeakageCount: number;
+  readonly harmfulRepetitionCount: number;
+  readonly issues: readonly { readonly sceneId: string; readonly assetId?: string; readonly code: "VISIBLE_THESIS_REQUIRED" | "MALFORMED_VISIBLE_THESIS" | "SEMANTIC_PROVIDER_PROJECTION_INCONSISTENCY" | "PROVIDER_PROMPT_NOT_READY" | "INCOMPLETE_NARRATION_CLAIM" | "SEMANTIC_POLARITY_MISMATCH" | "SEMANTIC_PROPOSITION_INTERNAL_CONTRADICTION" | "TREATMENT_PROPOSITION_COMPATIBILITY" | "PROVIDER_PROJECTION_SEMANTIC_MISMATCH" | "PROVIDER_PROMPT_LEXICAL_CORRUPTION" | "CROSS_EPISODE_MOTIF_LEAKAGE" | "HARMFUL_REPETITION"; readonly reason: string }[];
 }
 
 export interface DiversityMetrics {
@@ -443,6 +477,11 @@ export interface SelectedRecurringMotif {
   readonly concept: string;
   readonly source: "narration-native" | "visual-vocabulary";
   readonly sceneIds: readonly string[];
+  readonly motifId?: string;
+  readonly episodeContentId?: string;
+  readonly semanticMeaning?: string;
+  readonly evidenceSpans?: readonly VeronicaNarrationEvidenceSpan[];
+  readonly selectionVersion?: string;
 }
 
 export interface CadenceMetrics {
