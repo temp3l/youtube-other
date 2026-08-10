@@ -27,3 +27,17 @@ comma-separated `MEDIAFORGE_HISTORY_V36_CANARY_EPISODES` allowlist. Only a
 named episode may select `V3_6_PRODUCTION_CANDIDATE`; all other episodes stay
 on V3.5. This route writes only isolated canary artifacts and never changes the
 global production default.
+
+## Production routing activation
+
+The production composer now reads the same typed setting as
+`off | canary | global`. `off` routes every History episode through V3.5;
+`canary` retains the exact allowlist; and the activated `global` default routes
+every eligible History episode through the V3.6 production composer. `shadow`
+continues to mean production OFF.
+
+GLOBAL fails closed unless the hashed V3.5 base plan is valid, measured TTS or
+final-audio timing is at least 300 seconds, all production blockers are clear,
+and the accepted V3.6 semantic/compiler/renderer/placement contracts validate.
+There is no GLOBAL-to-V3.5 fallback. Rollback is one configuration change:
+`MEDIAFORGE_HISTORY_V36_VISUAL_PLAN=off`.

@@ -14,7 +14,7 @@ export type HistoryProductionModeV36 =
 
 /** Activation changes this single default; the environment remains the rollback seam. */
 export const DEFAULT_HISTORY_PRODUCTION_MODE_V36: HistoryProductionModeV36 =
-  "off";
+  "global";
 
 export type HistoryProductionRouteV36 =
   | "V3_5_PRODUCTION"

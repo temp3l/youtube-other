@@ -10,6 +10,8 @@ import {
 
 const blackDeath = "history-youtube-history-10-video-story-pack-04-black-death";
 const dDay = "history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion";
+const nonCanary =
+  "history-youtube-history-10-video-story-pack-02-napoleons-invasion-of-russia";
 const allowlist = `${blackDeath},${dDay}`;
 
 describe("V3.6 production canary routing", () => {
@@ -63,8 +65,15 @@ describe("V3.6 production canary routing", () => {
   });
 
   it("models OFF, CANARY, and GLOBAL as explicit production states", () => {
-    expect(parseHistoryProductionModeV36(undefined)).toBe("off");
+    expect(parseHistoryProductionModeV36(undefined)).toBe("global");
     expect(parseHistoryProductionModeV36("shadow")).toBe("off");
+    expect(
+      resolveHistoryProductionRouteV36({ episodeId: nonCanary })
+    ).toMatchObject({
+      route: "V3_6_PRODUCTION",
+      mode: "global",
+      productionActivated: true,
+    });
     expect(
       resolveHistoryProductionRouteV36({
         episodeId: blackDeath,
