@@ -11,6 +11,7 @@ import type { ContentProfileId } from "@mediaforge/domain";
  */
 export const HISTORY_DEFAULT_ELEVENLABS_VOICE_ID = "9Ft9sm9dzvprPILZmLJl";
 export const DEFAULT_ELEVENLABS_MODEL_ID = "eleven_flash_v2_5";
+export const VERONICA_DEFAULT_OPENAI_TTS_VOICE = "shimmer";
 
 export type RuntimeTtsProvider = "mock" | "openai-compatible" | "elevenlabs";
 
@@ -160,7 +161,10 @@ export function resolveTtsConfig(input: ResolveTtsConfigInput): ResolvedTtsConfi
   }
   if (input.provider === "openai-compatible") {
     const model = input.openAi?.model ?? "gpt-4o-mini-tts";
-    const voice = input.openAi?.voice ?? "onyx";
+    const voice = input.openAi?.voice ??
+      (input.genre === "veronicabenini" || input.genre === "strategic-reinvention"
+        ? VERONICA_DEFAULT_OPENAI_TTS_VOICE
+        : "onyx");
     return { provider: "openai-compatible", model, voice };
   }
   const voiceId = resolveElevenLabsVoiceId({

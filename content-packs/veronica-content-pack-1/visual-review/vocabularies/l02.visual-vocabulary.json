@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "veronicabenini-positioning-visual-vocabulary.v1",
+  "episodeId": "L02",
+  "semanticDomains": [
+    "niche-positioning",
+    "authority-recognition",
+    "content-positioning",
+    "expertise-perceived-value"
+  ],
+  "recurringMotifs": [
+    "crowds resolving into selected audience clusters",
+    "knowledge moving through stages, interviews, and recommendations",
+    "one core idea propagating across a physical media ecosystem",
+    "visible evidence trails and consequential client choices"
+  ],
+  "environments": [
+    "crowded trade hall",
+    "audience concourse",
+    "specialist service context",
+    "case-study archive",
+    "client decision setting",
+    "active professional context",
+    "editorial wall",
+    "podcast booth",
+    "multi-format production table",
+    "case-study archive",
+    "client decision setting",
+    "active professional context"
+  ],
+  "materialPalette": [
+    "warm paper",
+    "coral accent",
+    "ink",
+    "glass",
+    "unfinished wood"
+  ],
+  "excludedCliches": [
+    "generic professional in office",
+    "laptop-at-desk pose",
+    "repeated notebook-and-cards staging",
+    "unmotivated business handshake"
+  ],
+  "sourceSemanticHash": "4a0c0381c74653aaed7646c8ca1ce771dc8bf17e69811736730fa2a3c9314b34",
+  "cacheKey": "e3c9dfa3d1248c9a013ed19588581c1e55a4d50271724a6291b71d44903536c0",
+  "vocabularyHash": "d9d2c3a50824b5017ede46518c442305d8557e12551a9a7e3834ffd6e4ba5a64"
+}

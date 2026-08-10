@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "veronicabenini-title-transcreation-qa.v2",
+  "contentId": "L05-S02",
+  "locales": {
+    "en": {
+      "metadataTitle": "Don’t Write a Book About Everything You Know",
+      "displayTitle": "Don’t Write a Book About Everything You Know",
+      "displayLines": [
+        "Don’t Write a Book About",
+        "Everything You Know"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "de": {
+      "metadataTitle": "Schreib kein Buch über alles, was du weißt",
+      "displayTitle": "Schreib kein Buch über alles, was du weißt",
+      "displayLines": [
+        "Schreib kein Buch über",
+        "alles, was du weißt"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "it": {
+      "metadataTitle": "Non scrivere un libro su tutto ciò che sai",
+      "displayTitle": "Non scrivere un libro su tutto ciò che sai",
+      "displayLines": [
+        "Non scrivere un libro",
+        "su tutto ciò che sai"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "fr": {
+      "metadataTitle": "N’écrivez pas un livre sur tout ce que vous savez",
+      "displayTitle": "N’écrivez pas un livre sur tout ce que vous savez",
+      "displayLines": [
+        "N’écrivez pas un livre",
+        "sur tout ce que vous savez"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "pt": {
+      "metadataTitle": "Não escreva um livro sobre tudo o que você sabe",
+      "displayTitle": "Não escreva um livro sobre tudo o que você sabe",
+      "displayLines": [
+        "Não escreva um livro",
+        "sobre tudo o que você sabe"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    }
+  },
+  "sourceTitlesHash": "0ac718c93afd383de92982f600955c1278da3849006b2c00fc49deea9df0cb81",
+  "cacheKey": "c7a73eb51ce601ac9d32903a0dfa197007fd0eb465d966fbf5fa9e2f44bc43ad",
+  "artifactHash": "0500302418e0a2fe2271864620897c8945daf7b4f33a90be8fe4ff30f94da897"
+}

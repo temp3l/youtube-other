@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "veronicabenini-title-transcreation-qa.v2",
+  "contentId": "L02-S01",
+  "locales": {
+    "en": {
+      "metadataTitle": "Trying to Sell to Everyone Is the Problem",
+      "displayTitle": "Trying to Sell to Everyone Is the Problem",
+      "displayLines": [
+        "Trying to Sell to",
+        "Everyone Is the Problem"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "de": {
+      "metadataTitle": "An alle verkaufen zu wollen ist das Problem",
+      "displayTitle": "An alle verkaufen zu wollen ist das Problem",
+      "displayLines": [
+        "An alle verkaufen zu",
+        "wollen ist das Problem"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "it": {
+      "metadataTitle": "Cercare di vendere a tutti è il problema",
+      "displayTitle": "Cercare di vendere a tutti è il problema",
+      "displayLines": [
+        "Cercare di vendere a",
+        "tutti è il problema"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "fr": {
+      "metadataTitle": "Vouloir vendre à tout le monde est le problème",
+      "displayTitle": "Vouloir vendre à tout le monde est le problème",
+      "displayLines": [
+        "Vouloir vendre à tout",
+        "le monde est le problème"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "pt": {
+      "metadataTitle": "Tentar vender para todo mundo é o problema",
+      "displayTitle": "Tentar vender para todo mundo é o problema",
+      "displayLines": [
+        "Tentar vender para",
+        "todo mundo é o problema"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    }
+  },
+  "sourceTitlesHash": "c3e783cb5688bf8968d739dffac4c4eea79d2e43e8d8c06d622b4be86b8aecf9",
+  "cacheKey": "05f51027341e9c79ce868b565dc24de44a391c43011b8e60e016fe5ec7ec673b",
+  "artifactHash": "5fba88eb442700410655fe7107e3439e4ee46c796b53e53e56d8f9f891296a29"
+}

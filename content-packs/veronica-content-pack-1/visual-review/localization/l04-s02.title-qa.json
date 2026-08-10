@@ -1,0 +1,95 @@
+{
+  "schemaVersion": "veronicabenini-title-transcreation-qa.v2",
+  "contentId": "L04-S02",
+  "locales": {
+    "en": {
+      "metadataTitle": "The Goal Is Recognition, Not Views",
+      "displayTitle": "The Goal Is Recognition, Not Views",
+      "displayLines": [
+        "The Goal Is Recognition, Not Views"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "de": {
+      "metadataTitle": "Das Ziel ist Wiedererkennung, nicht Views",
+      "displayTitle": "Das Ziel ist Wiedererkennung, nicht Views",
+      "displayLines": [
+        "Das Ziel ist",
+        "Wiedererkennung, nicht Views"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "it": {
+      "metadataTitle": "L’obiettivo è il riconoscimento, non le visualizzazioni",
+      "displayTitle": "L’obiettivo è il riconoscimento, non le visualizzazioni",
+      "displayLines": [
+        "L’obiettivo è il riconoscimento,",
+        "non le visualizzazioni"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "medium",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": [
+        "overlay-fit-resolved-with-approved-display-layout"
+      ]
+    },
+    "fr": {
+      "metadataTitle": "Le but, c’est la reconnaissance, pas les vues",
+      "displayTitle": "Le but, c’est la reconnaissance, pas les vues",
+      "displayLines": [
+        "Le but, c’est la",
+        "reconnaissance, pas les vues"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "pt": {
+      "metadataTitle": "O objetivo é reconhecimento, não visualizações",
+      "displayTitle": "O objetivo é reconhecimento, não visualizações",
+      "displayLines": [
+        "O objetivo é reconhecimento,",
+        "não visualizações"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    }
+  },
+  "sourceTitlesHash": "8aa074b3ff02bef6b5c48e985f7fa29933edd1715e920c7e42c1544424578233",
+  "cacheKey": "37f47fd1ae6c8a28b6cf9316e407a261944d76900b1061f6279559fd0fb7aaca",
+  "artifactHash": "55d48804efe6d6d4fd3105fc3016946f60b3a315473260acd200e4101768912b"
+}

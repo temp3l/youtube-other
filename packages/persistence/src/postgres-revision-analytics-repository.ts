@@ -84,21 +84,21 @@ function fingerprint(observation: RevisionAnalyticsObservation): string {
 
 function mapObservation(row: AnalyticsRow): RevisionAnalyticsObservation {
   return normalizeRevisionAnalyticsObservation({
-    schemaVersion: row.schema_version,
-    contentProfileId: row.content_profile_id,
-    observationId: row.observation_id,
-    episodeId: row.episode_id,
-    editionRevisionId: row.edition_revision_id,
-    publicationId: row.publication_id,
-    publicationRevision: Number(row.publication_revision),
-    locale: row.locale,
-    observedAt: new Date(String(row.observed_at)).toISOString(),
-    configurationRevision: row.configuration_revision,
-    dependencyIdentity: row.dependency_identity,
-    provenanceSha256: row.provenance_sha256,
-    metrics: row.metrics,
-    providerDispatchEnabled: row.provider_dispatch_enabled,
-    regenerationRationale: row.regeneration_rationale,
+    schemaVersion: row["schema_version"],
+    contentProfileId: row["content_profile_id"],
+    observationId: row["observation_id"],
+    episodeId: row["episode_id"],
+    editionRevisionId: row["edition_revision_id"],
+    publicationId: row["publication_id"],
+    publicationRevision: Number(row["publication_revision"]),
+    locale: row["locale"],
+    observedAt: new Date(String(row["observed_at"])).toISOString(),
+    configurationRevision: row["configuration_revision"],
+    dependencyIdentity: row["dependency_identity"],
+    provenanceSha256: row["provenance_sha256"],
+    metrics: row["metrics"],
+    providerDispatchEnabled: row["provider_dispatch_enabled"],
+    regenerationRationale: row["regeneration_rationale"],
   });
 }
 
@@ -198,7 +198,7 @@ export class PostgresRevisionAnalyticsRepository {
         throw new RevisionAnalyticsConflictError(
           "Revision analytics observation identity already exists.",
         );
-      if (String(storedRow.request_fingerprint) !== requestFingerprint)
+      if (String(storedRow["request_fingerprint"]) !== requestFingerprint)
         throw new RevisionAnalyticsConflictError(
           "Revision analytics idempotency key conflicts with another request.",
         );

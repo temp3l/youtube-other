@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "veronicabenini-title-transcreation-qa.v2",
+  "contentId": "L04-S01",
+  "locales": {
+    "en": {
+      "metadataTitle": "Stop Posting Random Content",
+      "displayTitle": "Stop Posting Random Content",
+      "displayLines": [
+        "Stop Posting Random Content"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "de": {
+      "metadataTitle": "Hör auf, wahllos Content zu posten",
+      "displayTitle": "Hör auf, wahllos Content zu posten",
+      "displayLines": [
+        "Hör auf, wahllos Content zu posten"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "it": {
+      "metadataTitle": "Smetti di pubblicare contenuti a caso",
+      "displayTitle": "Smetti di pubblicare contenuti a caso",
+      "displayLines": [
+        "Smetti di pubblicare contenuti a caso"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "fr": {
+      "metadataTitle": "Arrêtez de publier du contenu au hasard",
+      "displayTitle": "Arrêtez de publier du contenu au hasard",
+      "displayLines": [
+        "Arrêtez de publier",
+        "du contenu au hasard"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "pt": {
+      "metadataTitle": "Pare de postar conteúdo sem direção",
+      "displayTitle": "Pare de postar conteúdo sem direção",
+      "displayLines": [
+        "Pare de postar conteúdo sem direção"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    }
+  },
+  "sourceTitlesHash": "3ab8a5cf487d7369f104bb8da4246f82ca6d7f34017b7b54fa00a29d6adf8f61",
+  "cacheKey": "761c7636c998254eed031567f81a6b80a6c75d62b6017580938aa9f5709f907c",
+  "artifactHash": "ff1d7f12c8b12149cc7e0f6f490c8027c84c021be65915538934ea11977346ea"
+}

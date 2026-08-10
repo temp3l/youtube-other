@@ -1,0 +1,3638 @@
+{
+  "schemaVersion": "veronicabenini-positioning-visual-comparison.v2",
+  "methodology": "V1 baseline was measured from the reviewed 24-plan fixture using normalized viewer-visible grammar fields; V2 uses the same duplicate/similarity feature families plus explicit event and reuse contracts.",
+  "before": {
+    "source": "veronicabenini-positioning-visual-plan.v1 fixture review",
+    "visualGrammarDuplicateRate": 0.984,
+    "subjectArchetypeDuplicateRate": 0.9894,
+    "environmentDuplicateRate": 0.9894,
+    "compositionDuplicateRate": 0.9894,
+    "cameraDuplicateRate": 0.984,
+    "propDuplicateRate": 0.9894,
+    "diagramTopologyDuplicateRate": 0.898,
+    "consecutiveSceneSimilarity": 0.8462,
+    "shortsHookProgressionPassRate": 0,
+    "meanSecondsPerVisualEvent": 23.2144,
+    "reusableAssetOpportunities": 0,
+    "hookExactDuplicateRate": 0.9583,
+    "maxHookSignatureFrequency": 24,
+    "localizedTitleOverlayRiskCount": 26,
+    "diagramTopologyDistribution": {
+      "hub-spoke": 13,
+      "funnel": 11,
+      "comparison": 8,
+      "before-after": 6,
+      "sequence": 5,
+      "cause-effect": 4,
+      "intersection": 4,
+      "hierarchy": 3,
+      "matrix": 1
+    }
+  },
+  "after": {
+    "visualGrammarDuplicateRate": 0.0414,
+    "environmentDuplicateRate": 0.4759,
+    "compositionDuplicateRate": 0.4759,
+    "diagramTopologyDuplicateRate": 0.8163,
+    "consecutiveSceneSimilarity": 0.1223,
+    "shortsHookProgressionPassRate": 1,
+    "meanSecondsPerVisualEvent": 3.9373,
+    "reusableAssetOpportunities": 55,
+    "openingDiversity": {
+      "entries": [
+        {
+          "contentId": "L01",
+          "parentLongFormId": "L01",
+          "fingerprint": {
+            "strategyFamily": "client-decision",
+            "subjectArchetype": "client choosing between two credible professionals",
+            "environmentArchetype": "consultation decision table with both candidates visible",
+            "compositionArchetype": "over-shoulder decision triangle with evidence weighted toward the winner",
+            "cameraArchetype": "50mm seated client eye-line documentary",
+            "lightingArchetype": "neutral client-room daylight with selective evidence contrast",
+            "actionArchetype": "client reaches toward the clearer evidence while the stronger craft remains overlooked",
+            "dominantObjectArchetype": "two contrasting unlabeled portfolios",
+            "motionArchetype": "choice-reveal then evidence punch-in"
+          },
+          "signature": "afc3bee15f9ea3b9205c11f9624149421d10dbcf0525f7174f5829e834c26668"
+        },
+        {
+          "contentId": "L01-S01",
+          "parentLongFormId": "L01",
+          "fingerprint": {
+            "strategyFamily": "client-decision",
+            "subjectArchetype": "client hand choosing between visible proof and hidden skill",
+            "environmentArchetype": "vertical consultation table at the instant of selection",
+            "compositionArchetype": "portrait point-of-view with losing work the chosen portfolio",
+            "cameraArchetype": "45mm vertical client point-of-view",
+            "lightingArchetype": "hard decision-line daylight across the two options",
+            "actionArchetype": "selection moves to the clearer candidate before hidden craft can be inspected",
+            "dominantObjectArchetype": "chosen portfolio beside sealed work sample",
+            "motionArchetype": "decision snap and losing-detail reveal"
+          },
+          "signature": "c41163d6194f3d749331111b485a21a6a43c010a1acd24565f0e882017aa2ebc"
+        },
+        {
+          "contentId": "L01-S02",
+          "parentLongFormId": "L01",
+          "fingerprint": {
+            "strategyFamily": "evidence-proof",
+            "subjectArchetype": "highly skilled craftsperson obscured by an empty proof display",
+            "environmentArchetype": "vertical workshop opening onto a sparse results wall",
+            "compositionArchetype": "deep split-focus between active skill and absent visible evidence",
+            "cameraArchetype": "35mm vertical rack-focus documentary",
+            "lightingArchetype": "rich task light fading into flat evidence-wall light",
+            "actionArchetype": "excellent work continues while the customer sees only an empty evidence plane",
+            "dominantObjectArchetype": "finished craft empty display rail",
+            "motionArchetype": "skill-detail rack focus to missing proof"
+          },
+          "signature": "5fd7fb069beed3372546d0ae5f03fb7c99dfb7e192b8a7c3954226e027045247"
+        },
+        {
+          "contentId": "L01-S03",
+          "parentLongFormId": "L01",
+          "fingerprint": {
+            "strategyFamily": "identity-perception",
+            "subjectArchetype": "peer sorting memory associations around an absent professional",
+            "environmentArchetype": "vertical memory-test installation with physical category tokens",
+            "compositionArchetype": "top-to-bottom association sort ending in one empty name position",
+            "cameraArchetype": "60mm frontal vertical observation",
+            "lightingArchetype": "soft gallery light with one unfilled shadow",
+            "actionArchetype": "peer groups remembered associations and exposes the missing intended one",
+            "dominantObjectArchetype": "unlabeled memory tokens and one empty slot",
+            "motionArchetype": "association sorting then empty-slot hold"
+          },
+          "signature": "bc09ae21946901639dd3fc666eb5e6543ec31e811edd7cdcce32cb5d64302a20"
+        },
+        {
+          "contentId": "L02",
+          "parentLongFormId": "L02",
+          "fingerprint": {
+            "strategyFamily": "market-crowd",
+            "subjectArchetype": "undifferentiated crowd with one relevant audience cluster",
+            "environmentArchetype": "large public concourse crossed by broad and precise signal paths",
+            "compositionArchetype": "wide diffusion field resolving into one isolated cluster",
+            "cameraArchetype": "24mm elevated architectural wide",
+            "lightingArchetype": "high-key concourse light with one precise colored beam",
+            "actionArchetype": "broad signal disperses while a narrow beam reaches its intended group",
+            "dominantObjectArchetype": "broad glow field and focused signal beam",
+            "motionArchetype": "diffusion sweep into focal isolation"
+          },
+          "signature": "192651b929e8cf2f5863ba7c195028b079e8c629d26a8b0eb77917371004ba76"
+        },
+        {
+          "contentId": "L02-S01",
+          "parentLongFormId": "L02",
+          "fingerprint": {
+            "strategyFamily": "market-crowd",
+            "subjectArchetype": "seller addressing every passing audience at once",
+            "environmentArchetype": "dense vertical market aisle with competing neutral stalls",
+            "compositionArchetype": "overloaded foreground messages dissolving into an indifferent crowd",
+            "cameraArchetype": "20mm handheld vertical market wide",
+            "lightingArchetype": "busy mixed market light without focal hierarchy",
+            "actionArchetype": "many broad signals compete and none earns a stop",
+            "dominantObjectArchetype": "fan of generic signal placards without text",
+            "motionArchetype": "rapid signal spread and crowd pass-through"
+          },
+          "signature": "a12b3897c799df407cc24f1d6bda81e5c5ff301b079164a8a6b58089f25d5689"
+        },
+        {
+          "contentId": "L02-S02",
+          "parentLongFormId": "L02",
+          "fingerprint": {
+            "strategyFamily": "audience-segmentation",
+            "subjectArchetype": "small specialist audience revealed as a high-value room",
+            "environmentArchetype": "narrow doorway opening from crowd corridor into focused consultation space",
+            "compositionArchetype": "compressed threshold expanding upward into a deep relevant niche",
+            "cameraArchetype": "75mm doorway compression shifting to 32mm depth",
+            "lightingArchetype": "dim broad corridor against bright focused room",
+            "actionArchetype": "subject enters the smaller opening and discovers stronger relevance beyond it",
+            "dominantObjectArchetype": "narrow doorway and concentrated audience circle",
+            "motionArchetype": "doorway punch-through and spatial expansion"
+          },
+          "signature": "ef6697c148fb2b43f9efac1c7eec14f510563b00f00c6bec884208c38435c28d"
+        },
+        {
+          "contentId": "L02-S03",
+          "parentLongFormId": "L02",
+          "fingerprint": {
+            "strategyFamily": "process-visualization",
+            "subjectArchetype": "hands testing market problem and solution alignment",
+            "environmentArchetype": "vertical diagnostic surface with three physical gates",
+            "compositionArchetype": "stacked three-stage route where only one aligned path survives",
+            "cameraArchetype": "40mm oblique vertical tabletop",
+            "lightingArchetype": "precise top light activating each gate in order",
+            "actionArchetype": "three components align sequentially to open a single route",
+            "dominantObjectArchetype": "three unlabeled physical gates and route token",
+            "motionArchetype": "three-step lock and route reveal"
+          },
+          "signature": "71f282a5d1d15c53329a57226b2c3dbaa2f0cce0b28049bdd5ca764781469437"
+        },
+        {
+          "contentId": "L03",
+          "parentLongFormId": "L03",
+          "fingerprint": {
+            "strategyFamily": "transformation",
+            "subjectArchetype": "professional entering a new role while observers retain the prior identity",
+            "environmentArchetype": "threshold connecting former workplace and unfamiliar expert stage",
+            "compositionArchetype": "lateral threshold frame with subject ahead and recognition lagging behind",
+            "cameraArchetype": "32mm lateral tracking profile",
+            "lightingArchetype": "cool former-role light transitioning to warm stage light",
+            "actionArchetype": "professional crosses the role threshold while audience gaze stays on the old position",
+            "dominantObjectArchetype": "old-role silhouette and empty expert podium",
+            "motionArchetype": "threshold crossing with delayed background reveal"
+          },
+          "signature": "539024c3c4ae2402c9bf06634826ce88c4db4a25801b5521626cf414805f8ab0"
+        },
+        {
+          "contentId": "L03-S01",
+          "parentLongFormId": "L03",
+          "fingerprint": {
+            "strategyFamily": "social-interaction",
+            "subjectArchetype": "self-declared expert awaiting external recognition",
+            "environmentArchetype": "vertical industry-event entrance with peer conversation beyond",
+            "compositionArchetype": "foreground self-label separated from background peer acknowledgement",
+            "cameraArchetype": "70mm candid vertical eye-line compression",
+            "lightingArchetype": "event practicals with focus shifting from badge to peers",
+            "actionArchetype": "subject presents a blank badge while peers respond only to demonstrated evidence",
+            "dominantObjectArchetype": "unlabeled badge and peer-shared work sample",
+            "motionArchetype": "badge reveal followed by peer-evidence reaction"
+          },
+          "signature": "5caf29d92cd4ef53deaaeeeedf616d7d7cb4a8d2c611d7c8687bd4c9b2989e54"
+        },
+        {
+          "contentId": "L03-S02",
+          "parentLongFormId": "L03",
+          "fingerprint": {
+            "strategyFamily": "process-visualization",
+            "subjectArchetype": "professional constructing three coherent recognition signals",
+            "environmentArchetype": "vertical proof-building bench with three illuminated levels",
+            "compositionArchetype": "bottom-up stack of offer context components",
+            "cameraArchetype": "38mm low vertical build angle",
+            "lightingArchetype": "each proof block activates a higher light level",
+            "actionArchetype": "three signals lock into one stable expert structure",
+            "dominantObjectArchetype": "three distinct proof blocks",
+            "motionArchetype": "sequential three-block construction"
+          },
+          "signature": "21b3f2af5be5dbf6b6bbaab0162d231783205dd3764e71eedcb68d39e8f16771"
+        },
+        {
+          "contentId": "L03-S03",
+          "parentLongFormId": "L03",
+          "fingerprint": {
+            "strategyFamily": "client-decision",
+            "subjectArchetype": "website visitor making a five-second category decision",
+            "environmentArchetype": "vertical transit pause with a text-free mobile page frame",
+            "compositionArchetype": "countdown-like visual pressure above a single first-impression frame",
+            "cameraArchetype": "50mm close vertical over-thumb view",
+            "lightingArchetype": "cool screen glow against moving ambient background",
+            "actionArchetype": "visitor pauses briefly then exits when the category remains unclear",
+            "dominantObjectArchetype": "blank mobile page frame and disappearing attention marker",
+            "motionArchetype": "five-beat hold then exit snap"
+          },
+          "signature": "2f11440209caea6bc241625bd84ce7a91b2d52c5b17a0f018009c0c979708523"
+        },
+        {
+          "contentId": "L04",
+          "parentLongFormId": "L04",
+          "fingerprint": {
+            "strategyFamily": "content-ecosystem",
+            "subjectArchetype": "disconnected media fragments resolving around one recognizable source",
+            "environmentArchetype": "editorial production wall spanning recording publishing and social formats",
+            "compositionArchetype": "fragmented collage reorganizing into a coherent radial topic cluster",
+            "cameraArchetype": "30mm overhead-to-oblique editorial move",
+            "lightingArchetype": "even editorial work light with central-source emphasis",
+            "actionArchetype": "scattered media pieces lock into one recurring knowledge system",
+            "dominantObjectArchetype": "mixed media fragments around a central source artifact",
+            "motionArchetype": "collage assembly into radial system"
+          },
+          "signature": "9aee2958c8913bd5b7bff5ba557b921f9667df69dd35c1e78909eb916630f057"
+        },
+        {
+          "contentId": "L04-S01",
+          "parentLongFormId": "L04",
+          "fingerprint": {
+            "strategyFamily": "abstract-conceptual",
+            "subjectArchetype": "unconnected media fragments moving without a shared center",
+            "environmentArchetype": "vertical studio void filled with drifting format fragments",
+            "compositionArchetype": "chaotic vortex that fails to form a stable topic shape",
+            "cameraArchetype": "26mm top-down vertical rotation",
+            "lightingArchetype": "uneven moving light stabilizing over the grid",
+            "actionArchetype": "fragments scatter until a latent grid begins to catch them",
+            "dominantObjectArchetype": "mixed blank media fragments",
+            "motionArchetype": "fragment vortex into partial snap-to-grid"
+          },
+          "signature": "956d7df8e21bba676aaa359db6b0f66a42cd9e61b7092d7186ffe28d2c0456af"
+        },
+        {
+          "contentId": "L04-S02",
+          "parentLongFormId": "L04",
+          "fingerprint": {
+            "strategyFamily": "comparison-composition",
+            "subjectArchetype": "attention spike contrasted with durable topic recognition",
+            "environmentArchetype": "vertical dual-metric editorial stage without readable counters",
+            "compositionArchetype": "brief bright upper burst opposed to a persistent lower memory trail",
+            "cameraArchetype": "42mm locked vertical split field",
+            "lightingArchetype": "strobe-like attention burst against steady recognition glow",
+            "actionArchetype": "attention flares and disappears while recognition continues accumulating",
+            "dominantObjectArchetype": "flash field and persistent association trail",
+            "motionArchetype": "attention flash versus slow memory build"
+          },
+          "signature": "9816ae1b21704a634928f84a1367a44c6694df3a8265d7f3445b939b54637d1a"
+        },
+        {
+          "contentId": "L04-S03",
+          "parentLongFormId": "L04",
+          "fingerprint": {
+            "strategyFamily": "social-interaction",
+            "subjectArchetype": "peer recommendation traveling through a three-person chain",
+            "environmentArchetype": "vertical event foyer with separated conversational layers",
+            "compositionArchetype": "bottom-to-top relay triangle carrying one recognizable artifact",
+            "cameraArchetype": "65mm vertical conversational relay",
+            "lightingArchetype": "warm social practicals following the moving artifact",
+            "actionArchetype": "one peer passes the expert association to another without the expert present",
+            "dominantObjectArchetype": "shared expertise artifact moving through the chain",
+            "motionArchetype": "three-step referral relay pan"
+          },
+          "signature": "ad85689db6196b43d811df205b85ddcd1866a5bfa50956d3d6d827c37310e575"
+        },
+        {
+          "contentId": "L05",
+          "parentLongFormId": "L05",
+          "fingerprint": {
+            "strategyFamily": "product-object-still-life",
+            "subjectArchetype": "scattered expertise consolidating into a durable authority artifact",
+            "environmentArchetype": "working bindery table with manuscript and finished volume states",
+            "compositionArchetype": "exploded knowledge field converging diagonally into one bound object",
+            "cameraArchetype": "55mm overhead copy-stand with shallow object relief",
+            "lightingArchetype": "warm raking bindery light emphasizing paper depth",
+            "actionArchetype": "loose pages assemble into a bound book then feed derivative media",
+            "dominantObjectArchetype": "text-free manuscript pages becoming a bound book",
+            "motionArchetype": "material consolidation followed by derivative reveal"
+          },
+          "signature": "7adc81f2cac82f7d4d2ac4e48edb0c6e774b42b84f51c9c49e023bc1801589ff"
+        },
+        {
+          "contentId": "L05-S01",
+          "parentLongFormId": "L05",
+          "fingerprint": {
+            "strategyFamily": "publishing-media-authority",
+            "subjectArchetype": "independent creator producing and handing a book to a reader",
+            "environmentArchetype": "vertical small-run print workshop opening to a reader encounter",
+            "compositionArchetype": "hands-on production foreground rising to reader exchange above",
+            "cameraArchetype": "48mm vertical workshop documentary",
+            "lightingArchetype": "warm workshop task light opening into daylight",
+            "actionArchetype": "creator binds a text-free volume and delivers it directly to a reader",
+            "dominantObjectArchetype": "independently bound text-free book",
+            "motionArchetype": "binding detail to reader handoff"
+          },
+          "signature": "ecf0cbbec2f17d859e3432bc10828671a24c06fb4b59570abddc6ca9fb06c99b"
+        },
+        {
+          "contentId": "L05-S02",
+          "parentLongFormId": "L05",
+          "fingerprint": {
+            "strategyFamily": "product-object-still-life",
+            "subjectArchetype": "overbroad manuscript collapsing under accumulated topics",
+            "environmentArchetype": "vertical editorial table overloaded by incompatible page stacks",
+            "compositionArchetype": "top-heavy page tower compressing toward one viable focused spine",
+            "cameraArchetype": "57mm oblique vertical still-life",
+            "lightingArchetype": "raking paper light with deep load-bearing shadows",
+            "actionArchetype": "excess page stacks buckle until one focused volume remains",
+            "dominantObjectArchetype": "overloaded manuscript tower and focused book block",
+            "motionArchetype": "page-stack collapse into focused consolidation"
+          },
+          "signature": "da1a749a4d6007ba776866ebcb31e45dc878a98e1a3809b673f93027837f4de9"
+        },
+        {
+          "contentId": "L05-S03",
+          "parentLongFormId": "L05",
+          "fingerprint": {
+            "strategyFamily": "content-ecosystem",
+            "subjectArchetype": "single book feeding multiple coherent media outputs",
+            "environmentArchetype": "vertical distribution table extending upward into media channels",
+            "compositionArchetype": "book-rooted branching tree optimized for portrait space",
+            "cameraArchetype": "34mm low-to-high vertical system view",
+            "lightingArchetype": "base light propagating upward through each branch",
+            "actionArchetype": "chapters branch upward into audio video article and short artifacts",
+            "dominantObjectArchetype": "text-free book root with branching media objects",
+            "motionArchetype": "source-to-branches diagram build"
+          },
+          "signature": "d14e8524cd856ddec9445157d51c050ea6ef5da601c20f124400a36dec5ed370"
+        },
+        {
+          "contentId": "L06",
+          "parentLongFormId": "L06",
+          "fingerprint": {
+            "strategyFamily": "identity-perception",
+            "subjectArchetype": "evolved professional seen through an audience-held legacy image",
+            "environmentArchetype": "street-facing reflection installation joining old category and changed business",
+            "compositionArchetype": "split-time reflection with current person offset from persistent public image",
+            "cameraArchetype": "58mm through-glass parallax view",
+            "lightingArchetype": "mixed old cool reflection and current warm practical light",
+            "actionArchetype": "professional presents changed work while audience reflection remains attached to old category",
+            "dominantObjectArchetype": "legacy silhouette reflected over new work evidence",
+            "motionArchetype": "parallax identity mismatch then association replacement"
+          },
+          "signature": "ef30dc106f3cc8e7ff6c0c1a14ab3cb3251bf5506844099949707d8ef0123a6d"
+        },
+        {
+          "contentId": "L06-S01",
+          "parentLongFormId": "L06",
+          "fingerprint": {
+            "strategyFamily": "before-after",
+            "subjectArchetype": "changed professional separated from audience-held former identity",
+            "environmentArchetype": "vertical street window showing old portrait foreground and new work beyond",
+            "compositionArchetype": "foreground legacy image occluding the evolved person in depth",
+            "cameraArchetype": "72mm vertical depth compression through window",
+            "lightingArchetype": "cool legacy foreground against warm current-work depth",
+            "actionArchetype": "audience attends to the old image while current work happens behind it",
+            "dominantObjectArchetype": "legacy portrait silhouette and changed-work",
+            "motionArchetype": "depth reveal from old image to current person"
+          },
+          "signature": "5e2f581cd6344f0a4991b3bc9e2b443281bee0b4252d6e1221e3ae324b28b991"
+        },
+        {
+          "contentId": "L06-S02",
+          "parentLongFormId": "L06",
+          "fingerprint": {
+            "strategyFamily": "comparison-composition",
+            "subjectArchetype": "professional changing a profile marker while surrounding perception stays fixed",
+            "environmentArchetype": "vertical public profile installation encircled by unchanged audience tokens",
+            "compositionArchetype": "small changed foreground panel against dominant static memory field",
+            "cameraArchetype": "46mm vertical frontal mismatch frame",
+            "lightingArchetype": "brief panel change light against unchanged ambient field",
+            "actionArchetype": "profile marker flips but audience-held associations do not move",
+            "dominantObjectArchetype": "blank bio panel and fixed memory tokens",
+            "motionArchetype": "panel flip followed by static-field hold"
+          },
+          "signature": "1474370bc0156d5b35d869ba5050a71bafdadcc7776a72dabc2798b53c9be728"
+        },
+        {
+          "contentId": "L06-S03",
+          "parentLongFormId": "L06",
+          "fingerprint": {
+            "strategyFamily": "transformation",
+            "subjectArchetype": "professional deliberately migrating an audience association",
+            "environmentArchetype": "vertical evidence bridge between legacy and target category walls",
+            "compositionArchetype": "ascending bridge of proof carrying the subject toward a new association",
+            "cameraArchetype": "36mm lateral-to-upward vertical tracking",
+            "lightingArchetype": "progressive light shift activated by each moved proof object",
+            "actionArchetype": "subject relocates proof objects from the old category to the new one",
+            "dominantObjectArchetype": "bridge of prior proof and new category artifacts",
+            "motionArchetype": "staged association migration across bridge"
+          },
+          "signature": "c33c908c5bcde712fbfb8d7628e84b0927666ff4bfd899f4d1ee243653c51c2c"
+        }
+      ],
+      "exactDuplicateGroups": [],
+      "exactDuplicateRate": 0,
+      "maxExactSignatureFrequency": 1,
+      "primaryStrategyDistribution": {
+        "client-decision": 3,
+        "market-crowd": 2,
+        "transformation": 2,
+        "content-ecosystem": 2,
+        "product-object-still-life": 2,
+        "identity-perception": 2,
+        "evidence-proof": 1,
+        "audience-segmentation": 1,
+        "process-visualization": 2,
+        "social-interaction": 2,
+        "abstract-conceptual": 1,
+        "comparison-composition": 2,
+        "publishing-media-authority": 1,
+        "before-after": 1
+      },
+      "cameraCompositionDistribution": [
+        {
+          "cameraComposition": "20mm handheld vertical market wide | overloaded foreground messages dissolving into an indifferent crowd",
+          "count": 1
+        },
+        {
+          "cameraComposition": "24mm elevated architectural wide | wide diffusion field resolving into one isolated cluster",
+          "count": 1
+        },
+        {
+          "cameraComposition": "26mm top-down vertical rotation | chaotic vortex that fails to form a stable topic shape",
+          "count": 1
+        },
+        {
+          "cameraComposition": "30mm overhead-to-oblique editorial move | fragmented collage reorganizing into a coherent radial topic cluster",
+          "count": 1
+        },
+        {
+          "cameraComposition": "32mm lateral tracking profile | lateral threshold frame with subject ahead and recognition lagging behind",
+          "count": 1
+        },
+        {
+          "cameraComposition": "34mm low-to-high vertical system view | book-rooted branching tree optimized for portrait space",
+          "count": 1
+        },
+        {
+          "cameraComposition": "35mm vertical rack-focus documentary | deep split-focus between active skill and absent visible evidence",
+          "count": 1
+        },
+        {
+          "cameraComposition": "36mm lateral-to-upward vertical tracking | ascending bridge of proof carrying the subject toward a new association",
+          "count": 1
+        },
+        {
+          "cameraComposition": "38mm low vertical build angle | bottom-up stack of offer context components",
+          "count": 1
+        },
+        {
+          "cameraComposition": "40mm oblique vertical tabletop | stacked three-stage route where only one aligned path survives",
+          "count": 1
+        },
+        {
+          "cameraComposition": "42mm locked vertical split field | brief bright upper burst opposed to a persistent lower memory trail",
+          "count": 1
+        },
+        {
+          "cameraComposition": "45mm vertical client point-of-view | portrait point-of-view with losing work the chosen portfolio",
+          "count": 1
+        },
+        {
+          "cameraComposition": "46mm vertical frontal mismatch frame | small changed foreground panel against dominant static memory field",
+          "count": 1
+        },
+        {
+          "cameraComposition": "48mm vertical workshop documentary | hands-on production foreground rising to reader exchange above",
+          "count": 1
+        },
+        {
+          "cameraComposition": "50mm close vertical over-thumb view | countdown-like visual pressure above a single first-impression frame",
+          "count": 1
+        },
+        {
+          "cameraComposition": "50mm seated client eye-line documentary | over-shoulder decision triangle with evidence weighted toward the winner",
+          "count": 1
+        },
+        {
+          "cameraComposition": "55mm overhead copy-stand with shallow object relief | exploded knowledge field converging diagonally into one bound object",
+          "count": 1
+        },
+        {
+          "cameraComposition": "57mm oblique vertical still-life | top-heavy page tower compressing toward one viable focused spine",
+          "count": 1
+        },
+        {
+          "cameraComposition": "58mm through-glass parallax view | split-time reflection with current person offset from persistent public image",
+          "count": 1
+        },
+        {
+          "cameraComposition": "60mm frontal vertical observation | top-to-bottom association sort ending in one empty name position",
+          "count": 1
+        },
+        {
+          "cameraComposition": "65mm vertical conversational relay | bottom-to-top relay triangle carrying one recognizable artifact",
+          "count": 1
+        },
+        {
+          "cameraComposition": "70mm candid vertical eye-line compression | foreground self-label separated from background peer acknowledgement",
+          "count": 1
+        },
+        {
+          "cameraComposition": "72mm vertical depth compression through window | foreground legacy image occluding the evolved person in depth",
+          "count": 1
+        },
+        {
+          "cameraComposition": "75mm doorway compression shifting to 32mm depth | compressed threshold expanding upward into a deep relevant niche",
+          "count": 1
+        }
+      ],
+      "clusters": [
+        {
+          "parentLongFormId": "L01",
+          "contentIds": [
+            "L01",
+            "L01-S01",
+            "L01-S02",
+            "L01-S03"
+          ],
+          "exactDuplicateCount": 0,
+          "materiallyDifferentGrammarCount": 4,
+          "strategyConcentration": 0.5,
+          "maxCameraCompositionFrequency": 1,
+          "status": "pass",
+          "failures": []
+        },
+        {
+          "parentLongFormId": "L02",
+          "contentIds": [
+            "L02",
+            "L02-S01",
+            "L02-S02",
+            "L02-S03"
+          ],
+          "exactDuplicateCount": 0,
+          "materiallyDifferentGrammarCount": 4,
+          "strategyConcentration": 0.5,
+          "maxCameraCompositionFrequency": 1,
+          "status": "pass",
+          "failures": []
+        },
+        {
+          "parentLongFormId": "L03",
+          "contentIds": [
+            "L03",
+            "L03-S01",
+            "L03-S02",
+            "L03-S03"
+          ],
+          "exactDuplicateCount": 0,
+          "materiallyDifferentGrammarCount": 4,
+          "strategyConcentration": 0.25,
+          "maxCameraCompositionFrequency": 1,
+          "status": "pass",
+          "failures": []
+        },
+        {
+          "parentLongFormId": "L04",
+          "contentIds": [
+            "L04",
+            "L04-S01",
+            "L04-S02",
+            "L04-S03"
+          ],
+          "exactDuplicateCount": 0,
+          "materiallyDifferentGrammarCount": 4,
+          "strategyConcentration": 0.25,
+          "maxCameraCompositionFrequency": 1,
+          "status": "pass",
+          "failures": []
+        },
+        {
+          "parentLongFormId": "L05",
+          "contentIds": [
+            "L05",
+            "L05-S01",
+            "L05-S02",
+            "L05-S03"
+          ],
+          "exactDuplicateCount": 0,
+          "materiallyDifferentGrammarCount": 4,
+          "strategyConcentration": 0.5,
+          "maxCameraCompositionFrequency": 1,
+          "status": "pass",
+          "failures": []
+        },
+        {
+          "parentLongFormId": "L06",
+          "contentIds": [
+            "L06",
+            "L06-S01",
+            "L06-S02",
+            "L06-S03"
+          ],
+          "exactDuplicateCount": 0,
+          "materiallyDifferentGrammarCount": 4,
+          "strategyConcentration": 0.25,
+          "maxCameraCompositionFrequency": 1,
+          "status": "pass",
+          "failures": []
+        }
+      ],
+      "status": "pass",
+      "failures": []
+    },
+    "localizationOverlayFit": {
+      "beforeRiskCount": 26,
+      "afterRiskCount": 0,
+      "beforeRiskByLocale": [
+        {
+          "locale": "en",
+          "count": 1
+        },
+        {
+          "locale": "de",
+          "count": 5
+        },
+        {
+          "locale": "it",
+          "count": 6
+        },
+        {
+          "locale": "fr",
+          "count": 9
+        },
+        {
+          "locale": "pt",
+          "count": 5
+        }
+      ],
+      "afterRiskByLocale": [
+        {
+          "locale": "en",
+          "count": 0
+        },
+        {
+          "locale": "de",
+          "count": 0
+        },
+        {
+          "locale": "it",
+          "count": 0
+        },
+        {
+          "locale": "fr",
+          "count": 0
+        },
+        {
+          "locale": "pt",
+          "count": 0
+        }
+      ],
+      "compactDisplayTitles": [
+        {
+          "contentId": "L03",
+          "locale": "fr",
+          "metadataTitle": "Comment devenir reconnue comme experte quand personne ne vous connaît encore",
+          "displayTitle": "Devenir experte reconnue quand personne ne vous connaît",
+          "displayLines": [
+            "Devenir experte reconnue",
+            "quand personne ne vous connaît"
+          ]
+        },
+        {
+          "contentId": "L03",
+          "locale": "pt",
+          "metadataTitle": "Como se tornar conhecida como especialista quando ninguém conhece você ainda",
+          "displayTitle": "Ser reconhecida como especialista sem ninguém conhecer você",
+          "displayLines": [
+            "Ser reconhecida como especialista",
+            "sem ninguém conhecer você"
+          ]
+        },
+        {
+          "contentId": "L01-S02",
+          "locale": "fr",
+          "metadataTitle": "Plus de compétence ne résout pas ce problème de positionnement",
+          "displayTitle": "La compétence ne suffit pas pour vous positionner",
+          "displayLines": [
+            "La compétence ne suffit pas",
+            "pour vous positionner"
+          ]
+        },
+        {
+          "contentId": "L01-S02",
+          "locale": "pt",
+          "metadataTitle": "Mais habilidade não resolve este problema de posicionamento",
+          "displayTitle": "Mais habilidade não resolve seu posicionamento",
+          "displayLines": [
+            "Mais habilidade não resolve",
+            "seu posicionamento"
+          ]
+        },
+        {
+          "contentId": "L05-S01",
+          "locale": "fr",
+          "metadataTitle": "Vous n’avez pas besoin d’un éditeur pour construire votre autorité",
+          "displayTitle": "Pas besoin d’éditeur pour bâtir votre autorité",
+          "displayLines": [
+            "Pas besoin d’éditeur",
+            "pour bâtir votre autorité"
+          ]
+        },
+        {
+          "contentId": "L06-S01",
+          "locale": "fr",
+          "metadataTitle": "Votre audience se souvient encore de l’ancienne version de vous",
+          "displayTitle": "Votre audience vous voit encore comme avant",
+          "displayLines": [
+            "Votre audience vous voit encore",
+            "comme avant"
+          ]
+        }
+      ],
+      "lineBreakLayouts": [
+        {
+          "contentId": "L01",
+          "locale": "de",
+          "displayLines": [
+            "Warum bessere Fachleute",
+            "trotzdem Kunden verlieren"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L01",
+          "locale": "it",
+          "displayLines": [
+            "Perché anche i professionisti",
+            "migliori perdono clienti"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L01",
+          "locale": "fr",
+          "displayLines": [
+            "Pourquoi les meilleurs experts",
+            "perdent quand même des clients"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L01",
+          "locale": "pt",
+          "displayLines": [
+            "Por que até bons",
+            "especialistas perdem clientes"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L02",
+          "locale": "en",
+          "displayLines": [
+            "Why Trying to Sell to",
+            "Everyone Makes You Invisible"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L02",
+          "locale": "de",
+          "displayLines": [
+            "Warum du unsichtbar wirst, wenn",
+            "du an alle verkaufen willst"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L02",
+          "locale": "it",
+          "displayLines": [
+            "Perché cercare di vendere",
+            "a tutti ti rende invisibile"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L02",
+          "locale": "fr",
+          "displayLines": [
+            "Pourquoi vouloir vendre à tout",
+            "le monde vous rend invisible"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L02",
+          "locale": "pt",
+          "displayLines": [
+            "Por que tentar vender para",
+            "todo mundo torna você invisível"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L03",
+          "locale": "en",
+          "displayLines": [
+            "How to Become Known as an",
+            "Expert When Nobody Knows You Yet"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L03",
+          "locale": "de",
+          "displayLines": [
+            "Wie du als Expertin bekannt wirst,",
+            "wenn dich noch niemand kennt"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L03",
+          "locale": "it",
+          "displayLines": [
+            "Come farti conoscere come esperta",
+            "quando nessuno ti conosce ancora"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L03",
+          "locale": "fr",
+          "displayLines": [
+            "Devenir experte reconnue",
+            "quand personne ne vous connaît"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L03",
+          "locale": "pt",
+          "displayLines": [
+            "Ser reconhecida como especialista",
+            "sem ninguém conhecer você"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L04",
+          "locale": "en",
+          "displayLines": [
+            "Stop Posting Randomly: Build",
+            "Content People Remember"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L04",
+          "locale": "de",
+          "displayLines": [
+            "Hör auf, wahllos zu posten:",
+            "Erstelle Content, den man sich merkt"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L04",
+          "locale": "it",
+          "displayLines": [
+            "Smetti di pubblicare a caso: crea",
+            "contenuti che restano impressi"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L04",
+          "locale": "fr",
+          "displayLines": [
+            "Arrêtez de publier au hasard :",
+            "créez du contenu qu’on retient"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L04",
+          "locale": "pt",
+          "displayLines": [
+            "Pare de postar sem direção: crie",
+            "conteúdo que as pessoas lembram"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L05",
+          "locale": "en",
+          "displayLines": [
+            "How a Book Can Position",
+            "You as an Expert"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L05",
+          "locale": "de",
+          "displayLines": [
+            "Wie ein Buch dich als",
+            "Expertin positionieren kann"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L05",
+          "locale": "it",
+          "displayLines": [
+            "Come un libro può",
+            "posizionarti come esperta"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L05",
+          "locale": "fr",
+          "displayLines": [
+            "Comment un livre peut vous",
+            "positionner comme experte"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L05",
+          "locale": "pt",
+          "displayLines": [
+            "Como um livro pode posicionar",
+            "você como especialista"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L06",
+          "locale": "en",
+          "displayLines": [
+            "Your Business Changed.",
+            "Your Audience Didn't."
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L06",
+          "locale": "de",
+          "displayLines": [
+            "Dein Business hat sich verändert.",
+            "Dein Publikum noch nicht."
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L06",
+          "locale": "it",
+          "displayLines": [
+            "Il tuo business è cambiato.",
+            "Il pubblico non ancora."
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L06",
+          "locale": "fr",
+          "displayLines": [
+            "Votre activité a changé.",
+            "Votre audience, pas encore."
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L06",
+          "locale": "pt",
+          "displayLines": [
+            "Seu negócio mudou.",
+            "Seu público ainda não."
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L01-S02",
+          "locale": "en",
+          "displayLines": [
+            "Skill Won’t Fix This",
+            "Positioning Problem"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L01-S02",
+          "locale": "de",
+          "displayLines": [
+            "Mehr Können löst dieses",
+            "Positionierungsproblem nicht"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L01-S02",
+          "locale": "it",
+          "displayLines": [
+            "Più competenza non risolve",
+            "questo problema di posizionamento"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L01-S02",
+          "locale": "fr",
+          "displayLines": [
+            "La compétence ne suffit pas",
+            "pour vous positionner"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L01-S02",
+          "locale": "pt",
+          "displayLines": [
+            "Mais habilidade não resolve",
+            "seu posicionamento"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L01-S03",
+          "locale": "fr",
+          "displayLines": [
+            "Pour quoi les gens se",
+            "souviennent-ils de vous ?"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L02-S01",
+          "locale": "en",
+          "displayLines": [
+            "Trying to Sell to",
+            "Everyone Is the Problem"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L02-S01",
+          "locale": "de",
+          "displayLines": [
+            "An alle verkaufen zu",
+            "wollen ist das Problem"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L02-S01",
+          "locale": "it",
+          "displayLines": [
+            "Cercare di vendere a",
+            "tutti è il problema"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L02-S01",
+          "locale": "fr",
+          "displayLines": [
+            "Vouloir vendre à tout",
+            "le monde est le problème"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L02-S01",
+          "locale": "pt",
+          "displayLines": [
+            "Tentar vender para",
+            "todo mundo é o problema"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L02-S02",
+          "locale": "en",
+          "displayLines": [
+            "Why a Smaller Niche",
+            "Can Make You Bigger"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L02-S02",
+          "locale": "de",
+          "displayLines": [
+            "Warum eine kleinere Nische",
+            "dich größer machen kann"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L02-S02",
+          "locale": "it",
+          "displayLines": [
+            "Perché una nicchia più",
+            "piccola può farti crescere"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L02-S02",
+          "locale": "fr",
+          "displayLines": [
+            "Pourquoi une niche plus",
+            "petite peut vous faire grandir"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L02-S02",
+          "locale": "pt",
+          "displayLines": [
+            "Por que um nicho menor",
+            "pode fazer você crescer"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L02-S03",
+          "locale": "fr",
+          "displayLines": [
+            "Le test de positionnement",
+            "en 3 questions"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L02-S03",
+          "locale": "pt",
+          "displayLines": [
+            "O teste de posicionamento",
+            "em 3 perguntas"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L03-S01",
+          "locale": "de",
+          "displayLines": [
+            "Du kannst dich nicht",
+            "einfach Expertin nennen"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L03-S01",
+          "locale": "fr",
+          "displayLines": [
+            "Il ne suffit pas de",
+            "vous déclarer experte"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L03-S02",
+          "locale": "en",
+          "displayLines": [
+            "Starting From Zero?",
+            "Build These 3 Signals"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L03-S02",
+          "locale": "de",
+          "displayLines": [
+            "Start bei null? Baue",
+            "zuerst diese 3 Signale"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L03-S02",
+          "locale": "it",
+          "displayLines": [
+            "Parti da zero? Costruisci",
+            "prima questi 3 segnali"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L03-S02",
+          "locale": "fr",
+          "displayLines": [
+            "Vous partez de zéro ?",
+            "Construisez ces 3 signaux"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L03-S02",
+          "locale": "pt",
+          "displayLines": [
+            "Começando do zero?",
+            "Construa estes 3 sinais"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L04-S01",
+          "locale": "fr",
+          "displayLines": [
+            "Arrêtez de publier",
+            "du contenu au hasard"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L04-S02",
+          "locale": "de",
+          "displayLines": [
+            "Das Ziel ist",
+            "Wiedererkennung, nicht Views"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L04-S02",
+          "locale": "it",
+          "displayLines": [
+            "L’obiettivo è il riconoscimento,",
+            "non le visualizzazioni"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L04-S02",
+          "locale": "fr",
+          "displayLines": [
+            "Le but, c’est la",
+            "reconnaissance, pas les vues"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L04-S02",
+          "locale": "pt",
+          "displayLines": [
+            "O objetivo é reconhecimento,",
+            "não visualizações"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L04-S03",
+          "locale": "en",
+          "displayLines": [
+            "Make Other People Talk",
+            "About Your Expertise"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L04-S03",
+          "locale": "de",
+          "displayLines": [
+            "Sorge dafür, dass andere",
+            "über deine Expertise sprechen"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L04-S03",
+          "locale": "it",
+          "displayLines": [
+            "Fai parlare gli altri",
+            "della tua competenza"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L04-S03",
+          "locale": "fr",
+          "displayLines": [
+            "Faites parler les autres",
+            "de votre expertise"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L04-S03",
+          "locale": "pt",
+          "displayLines": [
+            "Faça outras pessoas",
+            "falarem da sua competência"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L05-S01",
+          "locale": "en",
+          "displayLines": [
+            "You Don’t Need a Publisher",
+            "to Build Authority"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L05-S01",
+          "locale": "de",
+          "displayLines": [
+            "Du brauchst keinen Verlag,",
+            "um Autorität aufzubauen"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L05-S01",
+          "locale": "it",
+          "displayLines": [
+            "Non ti serve un editore",
+            "per costruire autorevolezza"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L05-S01",
+          "locale": "fr",
+          "displayLines": [
+            "Pas besoin d’éditeur",
+            "pour bâtir votre autorité"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L05-S01",
+          "locale": "pt",
+          "displayLines": [
+            "Você não precisa de editora",
+            "para construir autoridade"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L05-S02",
+          "locale": "en",
+          "displayLines": [
+            "Don’t Write a Book About",
+            "Everything You Know"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L05-S02",
+          "locale": "de",
+          "displayLines": [
+            "Schreib kein Buch über",
+            "alles, was du weißt"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L05-S02",
+          "locale": "it",
+          "displayLines": [
+            "Non scrivere un libro",
+            "su tutto ciò che sai"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L05-S02",
+          "locale": "fr",
+          "displayLines": [
+            "N’écrivez pas un livre",
+            "sur tout ce que vous savez"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L05-S02",
+          "locale": "pt",
+          "displayLines": [
+            "Não escreva um livro",
+            "sobre tudo o que você sabe"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L05-S03",
+          "locale": "de",
+          "displayLines": [
+            "Ein Buch kann zu Monaten",
+            "voller Content werden"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L05-S03",
+          "locale": "it",
+          "displayLines": [
+            "Un libro può diventare",
+            "mesi di contenuti"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L05-S03",
+          "locale": "fr",
+          "displayLines": [
+            "Un livre peut devenir",
+            "des mois de contenu"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L06-S01",
+          "locale": "de",
+          "displayLines": [
+            "Dein Publikum erinnert",
+            "sich an dein altes Ich"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L06-S01",
+          "locale": "it",
+          "displayLines": [
+            "Il pubblico ricorda",
+            "ancora la vecchia te"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L06-S01",
+          "locale": "fr",
+          "displayLines": [
+            "Votre audience vous voit encore",
+            "comme avant"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L06-S01",
+          "locale": "pt",
+          "displayLines": [
+            "Seu público ainda lembra",
+            "da versão antiga de você"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L06-S02",
+          "locale": "de",
+          "displayLines": [
+            "Eine neue Bio ist noch",
+            "keine Repositionierung"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L06-S02",
+          "locale": "fr",
+          "displayLines": [
+            "Changer votre bio n’est",
+            "pas vous repositionner"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L06-S03",
+          "locale": "de",
+          "displayLines": [
+            "So änderst du, wofür",
+            "Menschen dich kennen"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L06-S03",
+          "locale": "it",
+          "displayLines": [
+            "Come cambiare ciò per cui",
+            "le persone ti conoscono"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L06-S03",
+          "locale": "fr",
+          "displayLines": [
+            "Comment changer ce pour quoi",
+            "les gens vous connaissent"
+          ],
+          "minimumFontScale": 1
+        },
+        {
+          "contentId": "L06-S03",
+          "locale": "pt",
+          "displayLines": [
+            "Como mudar aquilo pelo que",
+            "as pessoas conhecem você"
+          ],
+          "minimumFontScale": 1
+        }
+      ]
+    },
+    "treatmentFamilyDiagnostics": {
+      "countByPrimaryStrategy": [
+        {
+          "archetype": "transformation",
+          "count": 14
+        },
+        {
+          "archetype": "human-scenario",
+          "count": 12
+        },
+        {
+          "archetype": "abstract-conceptual",
+          "count": 10
+        },
+        {
+          "archetype": "environmental-storytelling",
+          "count": 10
+        },
+        {
+          "archetype": "evidence-proof",
+          "count": 10
+        },
+        {
+          "archetype": "market-crowd",
+          "count": 10
+        },
+        {
+          "archetype": "publishing-media-authority",
+          "count": 10
+        },
+        {
+          "archetype": "semantic-diagram",
+          "count": 10
+        },
+        {
+          "archetype": "identity-perception",
+          "count": 9
+        },
+        {
+          "archetype": "product-object-still-life",
+          "count": 9
+        },
+        {
+          "archetype": "client-decision",
+          "count": 8
+        },
+        {
+          "archetype": "content-ecosystem",
+          "count": 7
+        },
+        {
+          "archetype": "audience-segmentation",
+          "count": 6
+        },
+        {
+          "archetype": "comparison-composition",
+          "count": 6
+        },
+        {
+          "archetype": "before-after",
+          "count": 5
+        },
+        {
+          "archetype": "social-interaction",
+          "count": 5
+        },
+        {
+          "archetype": "process-visualization",
+          "count": 4
+        }
+      ],
+      "countBySubjectArchetype": [
+        {
+          "archetype": "persistent-protagonist",
+          "count": 34
+        },
+        {
+          "archetype": "unlabeled shapes with proposition-specific relationships; nonbinary creative director",
+          "count": 10
+        },
+        {
+          "archetype": "physical light, shadow, and material expressing an invisible idea; older technical consultant",
+          "count": 8
+        },
+        {
+          "archetype": "service professional responding to a consequential real-world moment; woman-led retail founder",
+          "count": 8
+        },
+        {
+          "archetype": "independent craftsperson visible through traces of completed work; mid-career hospitality owner",
+          "count": 5
+        },
+        {
+          "archetype": "client comparing credible options at a decision point; older technical consultant",
+          "count": 4
+        },
+        {
+          "archetype": "authority artifact with visible physical history; mid-career hospitality owner",
+          "count": 3
+        },
+        {
+          "archetype": "expert contributing knowledge through a public medium; mid-career hospitality owner",
+          "count": 3
+        },
+        {
+          "archetype": "many visually similar providers and one legible category owner; mid-career hospitality owner",
+          "count": 3
+        },
+        {
+          "archetype": "professional and audience-held impression shown as separate layers; nonbinary creative director",
+          "count": 3
+        },
+        {
+          "archetype": "authority artifact with visible physical history; older technical consultant",
+          "count": 2
+        },
+        {
+          "archetype": "distinct audience clusters separated by needs and context; nonbinary creative director",
+          "count": 2
+        },
+        {
+          "archetype": "distinct audience clusters separated by needs and context; older technical consultant",
+          "count": 2
+        },
+        {
+          "archetype": "observable work evidence accumulating into trust; male wellness practitioner",
+          "count": 2
+        },
+        {
+          "archetype": "observable work evidence accumulating into trust; nonbinary creative director",
+          "count": 2
+        },
+        {
+          "archetype": "observable work evidence accumulating into trust; younger independent product designer",
+          "count": 2
+        },
+        {
+          "archetype": "one core idea propagating into distinct media artifacts; mid-career hospitality owner",
+          "count": 2
+        },
+        {
+          "archetype": "peer recommending a specialist to another decision maker; mid-career hospitality owner",
+          "count": 2
+        },
+        {
+          "archetype": "two meaningfully different outcomes or choices; woman-led retail founder",
+          "count": 2
+        },
+        {
+          "archetype": "attention spike contrasted with durable topic recognition",
+          "count": 1
+        },
+        {
+          "archetype": "authority artifact with visible physical history; nonbinary creative director",
+          "count": 1
+        },
+        {
+          "archetype": "authority artifact with visible physical history; younger independent product designer",
+          "count": 1
+        },
+        {
+          "archetype": "changed professional separated from audience-held former identity",
+          "count": 1
+        },
+        {
+          "archetype": "client choosing between two credible professionals",
+          "count": 1
+        },
+        {
+          "archetype": "client comparing credible options at a decision point; woman-led retail founder",
+          "count": 1
+        },
+        {
+          "archetype": "client hand choosing between visible proof and hidden skill",
+          "count": 1
+        },
+        {
+          "archetype": "disconnected media fragments resolving around one recognizable source",
+          "count": 1
+        },
+        {
+          "archetype": "distinct audience clusters separated by needs and context; mid-career hospitality owner",
+          "count": 1
+        },
+        {
+          "archetype": "evolved professional seen through an audience-held legacy image",
+          "count": 1
+        },
+        {
+          "archetype": "expert contributing knowledge through a public medium; nonbinary creative director",
+          "count": 1
+        },
+        {
+          "archetype": "expert contributing knowledge through a public medium; woman-led retail founder",
+          "count": 1
+        },
+        {
+          "archetype": "hands moving physical components through a meaningful process; mid-career hospitality owner",
+          "count": 1
+        },
+        {
+          "archetype": "hands moving physical components through a meaningful process; nonbinary creative director",
+          "count": 1
+        },
+        {
+          "archetype": "hands testing market problem and solution alignment",
+          "count": 1
+        },
+        {
+          "archetype": "highly skilled craftsperson obscured by an empty proof display",
+          "count": 1
+        },
+        {
+          "archetype": "independent craftsperson visible through traces of completed work; male wellness practitioner",
+          "count": 1
+        },
+        {
+          "archetype": "independent creator producing and handing a book to a reader",
+          "count": 1
+        },
+        {
+          "archetype": "many visually similar providers and one legible category owner; woman-led retail founder",
+          "count": 1
+        },
+        {
+          "archetype": "many visually similar providers and one legible category owner; younger independent product designer",
+          "count": 1
+        },
+        {
+          "archetype": "one core idea propagating into distinct media artifacts; male wellness practitioner",
+          "count": 1
+        },
+        {
+          "archetype": "one core idea propagating into distinct media artifacts; nonbinary creative director",
+          "count": 1
+        },
+        {
+          "archetype": "one core idea propagating into distinct media artifacts; older technical consultant",
+          "count": 1
+        },
+        {
+          "archetype": "one professional crossing between conflicting public identities; woman-led retail founder",
+          "count": 1
+        },
+        {
+          "archetype": "overbroad manuscript collapsing under accumulated topics",
+          "count": 1
+        },
+        {
+          "archetype": "peer recommendation traveling through a three-person chain",
+          "count": 1
+        },
+        {
+          "archetype": "peer recommending a specialist to another decision maker; woman-led retail founder",
+          "count": 1
+        },
+        {
+          "archetype": "peer sorting memory associations around an absent professional",
+          "count": 1
+        },
+        {
+          "archetype": "physical light, shadow, and material expressing an invisible idea; younger independent product designer",
+          "count": 1
+        },
+        {
+          "archetype": "professional and audience-held impression shown as separate layers; older technical consultant",
+          "count": 1
+        },
+        {
+          "archetype": "professional and audience-held impression shown as separate layers; woman-led retail founder",
+          "count": 1
+        },
+        {
+          "archetype": "professional changing a profile marker while surrounding perception stays fixed",
+          "count": 1
+        },
+        {
+          "archetype": "professional constructing three coherent recognition signals",
+          "count": 1
+        },
+        {
+          "archetype": "professional deliberately migrating an audience association",
+          "count": 1
+        },
+        {
+          "archetype": "professional entering a new role while observers retain the prior identity",
+          "count": 1
+        },
+        {
+          "archetype": "scattered expertise consolidating into a durable authority artifact",
+          "count": 1
+        },
+        {
+          "archetype": "self-declared expert awaiting external recognition",
+          "count": 1
+        },
+        {
+          "archetype": "seller addressing every passing audience at once",
+          "count": 1
+        },
+        {
+          "archetype": "service professional responding to a consequential real-world moment; older technical consultant",
+          "count": 1
+        },
+        {
+          "archetype": "single book feeding multiple coherent media outputs",
+          "count": 1
+        },
+        {
+          "archetype": "small specialist audience revealed as a high-value room",
+          "count": 1
+        },
+        {
+          "archetype": "two meaningfully different outcomes or choices; nonbinary creative director",
+          "count": 1
+        },
+        {
+          "archetype": "two meaningfully different outcomes or choices; older technical consultant",
+          "count": 1
+        },
+        {
+          "archetype": "unconnected media fragments moving without a shared center",
+          "count": 1
+        },
+        {
+          "archetype": "undifferentiated crowd with one relevant audience cluster",
+          "count": 1
+        },
+        {
+          "archetype": "website visitor making a five-second category decision",
+          "count": 1
+        }
+      ],
+      "countByEnvironmentArchetype": [
+        {
+          "archetype": "active service counter or field-work setting; peer-referral setting",
+          "count": 11
+        },
+        {
+          "archetype": "warm-paper editorial diagram field; artifact archive zone",
+          "count": 10
+        },
+        {
+          "archetype": "architectural light laboratory; client point-of-decision zone",
+          "count": 8
+        },
+        {
+          "archetype": "workshop, shop floor, studio wall, or hospitality space; backstage production zone",
+          "count": 8
+        },
+        {
+          "archetype": "podcast booth, small stage, interview corner, or editorial desk; backstage production zone",
+          "count": 4
+        },
+        {
+          "archetype": "procurement table or consultation waiting area; client point-of-decision zone",
+          "count": 4
+        },
+        {
+          "archetype": "transitional corridor linking old and new work contexts; backstage production zone",
+          "count": 4
+        },
+        {
+          "archetype": "case-study archive, exhibition rail, or results wall; client point-of-decision zone",
+          "count": 3
+        },
+        {
+          "archetype": "crowded trade hall or market aisle; backstage production zone",
+          "count": 3
+        },
+        {
+          "archetype": "editorial tabletop beside production materials; backstage production zone",
+          "count": 3
+        },
+        {
+          "archetype": "reflection installation in a public threshold space; artifact archive zone",
+          "count": 3
+        },
+        {
+          "archetype": "transitional corridor linking old and new work contexts; artifact archive zone",
+          "count": 3
+        },
+        {
+          "archetype": "transitional corridor linking old and new work contexts; peer-referral setting",
+          "count": 3
+        },
+        {
+          "archetype": "case-study archive, exhibition rail, or results wall; artifact archive zone",
+          "count": 2
+        },
+        {
+          "archetype": "case-study archive, exhibition rail, or results wall; field-work context",
+          "count": 2
+        },
+        {
+          "archetype": "case-study archive, exhibition rail, or results wall; street-facing public threshold",
+          "count": 2
+        },
+        {
+          "archetype": "crowded trade hall or market aisle; client point-of-decision zone",
+          "count": 2
+        },
+        {
+          "archetype": "crowded trade hall or market aisle; peer-referral setting",
+          "count": 2
+        },
+        {
+          "archetype": "dual-world editorial set; peer-referral setting",
+          "count": 2
+        },
+        {
+          "archetype": "editorial tabletop beside production materials; client point-of-decision zone",
+          "count": 2
+        },
+        {
+          "archetype": "event foyer, café queue, or backstage conversation; backstage production zone",
+          "count": 2
+        },
+        {
+          "archetype": "physical editorial production wall and distribution table; backstage production zone",
+          "count": 2
+        },
+        {
+          "archetype": "podcast booth, small stage, interview corner, or editorial desk; peer-referral setting",
+          "count": 2
+        },
+        {
+          "archetype": "public concourse transformed into spatial audience islands; artifact archive zone",
+          "count": 2
+        },
+        {
+          "archetype": "public concourse transformed into spatial audience islands; client point-of-decision zone",
+          "count": 2
+        },
+        {
+          "archetype": "reflection installation in a public threshold space; client point-of-decision zone",
+          "count": 2
+        },
+        {
+          "archetype": "transitional corridor linking old and new work contexts; client point-of-decision zone",
+          "count": 2
+        },
+        {
+          "archetype": "workshop, shop floor, studio wall, or hospitality space; field-work context",
+          "count": 2
+        },
+        {
+          "archetype": "active service counter or field-work setting; client point-of-decision zone",
+          "count": 1
+        },
+        {
+          "archetype": "architectural light laboratory; street-facing public threshold",
+          "count": 1
+        },
+        {
+          "archetype": "consultation decision table with both candidates visible",
+          "count": 1
+        },
+        {
+          "archetype": "crowded trade hall or market aisle; street-facing public threshold",
+          "count": 1
+        },
+        {
+          "archetype": "dense vertical market aisle with competing neutral stalls",
+          "count": 1
+        },
+        {
+          "archetype": "dual-world editorial set; artifact archive zone",
+          "count": 1
+        },
+        {
+          "archetype": "dual-world editorial set; client point-of-decision zone",
+          "count": 1
+        },
+        {
+          "archetype": "editorial production wall spanning recording publishing and social formats",
+          "count": 1
+        },
+        {
+          "archetype": "editorial tabletop beside production materials; artifact archive zone",
+          "count": 1
+        },
+        {
+          "archetype": "editorial tabletop beside production materials; street-facing public threshold",
+          "count": 1
+        },
+        {
+          "archetype": "event foyer, café queue, or backstage conversation; peer-referral setting",
+          "count": 1
+        },
+        {
+          "archetype": "large planning surface with real production materials; artifact archive zone",
+          "count": 1
+        },
+        {
+          "archetype": "large planning surface with real production materials; backstage production zone",
+          "count": 1
+        },
+        {
+          "archetype": "large public concourse crossed by broad and precise signal paths",
+          "count": 1
+        },
+        {
+          "archetype": "matched triptych across evolving business contexts; artifact archive zone",
+          "count": 1
+        },
+        {
+          "archetype": "matched triptych across evolving business contexts; backstage production zone",
+          "count": 1
+        },
+        {
+          "archetype": "matched triptych across evolving business contexts; peer-referral setting",
+          "count": 1
+        },
+        {
+          "archetype": "matched triptych across evolving business contexts; street-facing public threshold",
+          "count": 1
+        },
+        {
+          "archetype": "narrow doorway opening from crowd corridor into focused consultation space",
+          "count": 1
+        },
+        {
+          "archetype": "physical editorial production wall and distribution table; artifact archive zone",
+          "count": 1
+        },
+        {
+          "archetype": "physical editorial production wall and distribution table; client point-of-decision zone",
+          "count": 1
+        },
+        {
+          "archetype": "physical editorial production wall and distribution table; field-work context",
+          "count": 1
+        },
+        {
+          "archetype": "podcast booth, small stage, interview corner, or editorial desk; artifact archive zone",
+          "count": 1
+        },
+        {
+          "archetype": "podcast booth, small stage, interview corner, or editorial desk; client point-of-decision zone",
+          "count": 1
+        },
+        {
+          "archetype": "podcast booth, small stage, interview corner, or editorial desk; field-work context",
+          "count": 1
+        },
+        {
+          "archetype": "procurement table or consultation waiting area; peer-referral setting",
+          "count": 1
+        },
+        {
+          "archetype": "public concourse transformed into spatial audience islands; backstage production zone",
+          "count": 1
+        },
+        {
+          "archetype": "reflection installation in a public threshold space; backstage production zone",
+          "count": 1
+        },
+        {
+          "archetype": "reflection installation in a public threshold space; peer-referral setting",
+          "count": 1
+        },
+        {
+          "archetype": "street-facing reflection installation joining old category and changed business",
+          "count": 1
+        },
+        {
+          "archetype": "threshold connecting former workplace and unfamiliar expert stage",
+          "count": 1
+        },
+        {
+          "archetype": "vertical consultation table at the instant of selection",
+          "count": 1
+        },
+        {
+          "archetype": "vertical diagnostic surface with three physical gates",
+          "count": 1
+        },
+        {
+          "archetype": "vertical distribution table extending upward into media channels",
+          "count": 1
+        },
+        {
+          "archetype": "vertical dual-metric editorial stage without readable counters",
+          "count": 1
+        },
+        {
+          "archetype": "vertical editorial table overloaded by incompatible page stacks",
+          "count": 1
+        },
+        {
+          "archetype": "vertical event foyer with separated conversational layers",
+          "count": 1
+        },
+        {
+          "archetype": "vertical evidence bridge between legacy and target category walls",
+          "count": 1
+        },
+        {
+          "archetype": "vertical industry-event entrance with peer conversation beyond",
+          "count": 1
+        },
+        {
+          "archetype": "vertical memory-test installation with physical category tokens",
+          "count": 1
+        },
+        {
+          "archetype": "vertical proof-building bench with three illuminated levels",
+          "count": 1
+        },
+        {
+          "archetype": "vertical public profile installation encircled by unchanged audience tokens",
+          "count": 1
+        },
+        {
+          "archetype": "vertical small-run print workshop opening to a reader encounter",
+          "count": 1
+        },
+        {
+          "archetype": "vertical street window showing old portrait foreground and new work beyond",
+          "count": 1
+        },
+        {
+          "archetype": "vertical studio void filled with drifting format fragments",
+          "count": 1
+        },
+        {
+          "archetype": "vertical transit pause with a text-free mobile page frame",
+          "count": 1
+        },
+        {
+          "archetype": "vertical workshop opening onto a sparse results wall",
+          "count": 1
+        },
+        {
+          "archetype": "working bindery table with manuscript and finished volume states",
+          "count": 1
+        }
+      ],
+      "countByCompositionArchetype": [
+        {
+          "archetype": "layered observational frame with consequence in foreground; near-far contrast between choice and result",
+          "count": 11
+        },
+        {
+          "archetype": "topology-led orthographic composition; occluded-to-visible information progression",
+          "count": 10
+        },
+        {
+          "archetype": "geometric negative-space study with one changing boundary; central void separating competing signals",
+          "count": 8
+        },
+        {
+          "archetype": "wide environmental tableau with evidence trail; left-to-right reveal path",
+          "count": 8
+        },
+        {
+          "archetype": "client point-of-view with alternatives receding in depth; central void separating competing signals",
+          "count": 4
+        },
+        {
+          "archetype": "medium-wide frame with medium and audience both visible; left-to-right reveal path",
+          "count": 4
+        },
+        {
+          "archetype": "threshold composition with subject moving across the divide; left-to-right reveal path",
+          "count": 4
+        },
+        {
+          "archetype": "compressed crowd field with controlled focal isolation; left-to-right reveal path",
+          "count": 3
+        },
+        {
+          "archetype": "foreground reflection opposed to background observation; occluded-to-visible information progression",
+          "count": 3
+        },
+        {
+          "archetype": "progressive evidence trail leading to a decision; central void separating competing signals",
+          "count": 3
+        },
+        {
+          "archetype": "threshold composition with subject moving across the divide; near-far contrast between choice and result",
+          "count": 3
+        },
+        {
+          "archetype": "threshold composition with subject moving across the divide; occluded-to-visible information progression",
+          "count": 3
+        },
+        {
+          "archetype": "top-down still life with diagonal artifact progression; left-to-right reveal path",
+          "count": 3
+        },
+        {
+          "archetype": "asymmetric split composition with a decisive visual imbalance; near-far contrast between choice and result",
+          "count": 2
+        },
+        {
+          "archetype": "compressed crowd field with controlled focal isolation; central void separating competing signals",
+          "count": 2
+        },
+        {
+          "archetype": "compressed crowd field with controlled focal isolation; near-far contrast between choice and result",
+          "count": 2
+        },
+        {
+          "archetype": "foreground reflection opposed to background observation; central void separating competing signals",
+          "count": 2
+        },
+        {
+          "archetype": "high-angle clustered field with a deliberate narrow focus; central void separating competing signals",
+          "count": 2
+        },
+        {
+          "archetype": "high-angle clustered field with a deliberate narrow focus; occluded-to-visible information progression",
+          "count": 2
+        },
+        {
+          "archetype": "medium-wide frame with medium and audience both visible; near-far contrast between choice and result",
+          "count": 2
+        },
+        {
+          "archetype": "over-shoulder conversational triangle; left-to-right reveal path",
+          "count": 2
+        },
+        {
+          "archetype": "progressive evidence trail leading to a decision; foreground consequence against background cause",
+          "count": 2
+        },
+        {
+          "archetype": "progressive evidence trail leading to a decision; layered reflection with off-axis evidence",
+          "count": 2
+        },
+        {
+          "archetype": "progressive evidence trail leading to a decision; occluded-to-visible information progression",
+          "count": 2
+        },
+        {
+          "archetype": "radial system with varied artifacts orbiting a source object; left-to-right reveal path",
+          "count": 2
+        },
+        {
+          "archetype": "threshold composition with subject moving across the divide; central void separating competing signals",
+          "count": 2
+        },
+        {
+          "archetype": "top-down still life with diagonal artifact progression; central void separating competing signals",
+          "count": 2
+        },
+        {
+          "archetype": "wide environmental tableau with evidence trail; layered reflection with off-axis evidence",
+          "count": 2
+        },
+        {
+          "archetype": "ascending bridge of proof carrying the subject toward a new association",
+          "count": 1
+        },
+        {
+          "archetype": "asymmetric split composition with a decisive visual imbalance; central void separating competing signals",
+          "count": 1
+        },
+        {
+          "archetype": "asymmetric split composition with a decisive visual imbalance; occluded-to-visible information progression",
+          "count": 1
+        },
+        {
+          "archetype": "book-rooted branching tree optimized for portrait space",
+          "count": 1
+        },
+        {
+          "archetype": "bottom-to-top relay triangle carrying one recognizable artifact",
+          "count": 1
+        },
+        {
+          "archetype": "bottom-up stack of offer context components",
+          "count": 1
+        },
+        {
+          "archetype": "brief bright upper burst opposed to a persistent lower memory trail",
+          "count": 1
+        },
+        {
+          "archetype": "chaotic vortex that fails to form a stable topic shape",
+          "count": 1
+        },
+        {
+          "archetype": "client point-of-view with alternatives receding in depth; near-far contrast between choice and result",
+          "count": 1
+        },
+        {
+          "archetype": "compressed crowd field with controlled focal isolation; foreground consequence against background cause",
+          "count": 1
+        },
+        {
+          "archetype": "compressed threshold expanding upward into a deep relevant niche",
+          "count": 1
+        },
+        {
+          "archetype": "countdown-like visual pressure above a single first-impression frame",
+          "count": 1
+        },
+        {
+          "archetype": "deep split-focus between active skill and absent visible evidence",
+          "count": 1
+        },
+        {
+          "archetype": "diagonal process path with readable spatial stages; left-to-right reveal path",
+          "count": 1
+        },
+        {
+          "archetype": "diagonal process path with readable spatial stages; occluded-to-visible information progression",
+          "count": 1
+        },
+        {
+          "archetype": "exploded knowledge field converging diagonally into one bound object",
+          "count": 1
+        },
+        {
+          "archetype": "foreground legacy image occluding the evolved person in depth",
+          "count": 1
+        },
+        {
+          "archetype": "foreground reflection opposed to background observation; left-to-right reveal path",
+          "count": 1
+        },
+        {
+          "archetype": "foreground reflection opposed to background observation; near-far contrast between choice and result",
+          "count": 1
+        },
+        {
+          "archetype": "foreground self-label separated from background peer acknowledgement",
+          "count": 1
+        },
+        {
+          "archetype": "fragmented collage reorganizing into a coherent radial topic cluster",
+          "count": 1
+        },
+        {
+          "archetype": "geometric negative-space study with one changing boundary; foreground consequence against background cause",
+          "count": 1
+        },
+        {
+          "archetype": "hands-on production foreground rising to reader exchange above",
+          "count": 1
+        },
+        {
+          "archetype": "high-angle clustered field with a deliberate narrow focus; left-to-right reveal path",
+          "count": 1
+        },
+        {
+          "archetype": "lateral threshold frame with subject ahead and recognition lagging behind",
+          "count": 1
+        },
+        {
+          "archetype": "layered observational frame with consequence in foreground; central void separating competing signals",
+          "count": 1
+        },
+        {
+          "archetype": "medium-wide frame with medium and audience both visible; central void separating competing signals",
+          "count": 1
+        },
+        {
+          "archetype": "medium-wide frame with medium and audience both visible; layered reflection with off-axis evidence",
+          "count": 1
+        },
+        {
+          "archetype": "medium-wide frame with medium and audience both visible; occluded-to-visible information progression",
+          "count": 1
+        },
+        {
+          "archetype": "over-shoulder conversational triangle; near-far contrast between choice and result",
+          "count": 1
+        },
+        {
+          "archetype": "over-shoulder decision triangle with evidence weighted toward the winner",
+          "count": 1
+        },
+        {
+          "archetype": "overloaded foreground messages dissolving into an indifferent crowd",
+          "count": 1
+        },
+        {
+          "archetype": "portrait point-of-view with losing work the chosen portfolio",
+          "count": 1
+        },
+        {
+          "archetype": "radial system with varied artifacts orbiting a source object; central void separating competing signals",
+          "count": 1
+        },
+        {
+          "archetype": "radial system with varied artifacts orbiting a source object; layered reflection with off-axis evidence",
+          "count": 1
+        },
+        {
+          "archetype": "radial system with varied artifacts orbiting a source object; occluded-to-visible information progression",
+          "count": 1
+        },
+        {
+          "archetype": "small changed foreground panel against dominant static memory field",
+          "count": 1
+        },
+        {
+          "archetype": "split-time reflection with current person offset from persistent public image",
+          "count": 1
+        },
+        {
+          "archetype": "stacked three-stage route where only one aligned path survives",
+          "count": 1
+        },
+        {
+          "archetype": "three-state panoramic progression; foreground consequence against background cause",
+          "count": 1
+        },
+        {
+          "archetype": "three-state panoramic progression; left-to-right reveal path",
+          "count": 1
+        },
+        {
+          "archetype": "three-state panoramic progression; near-far contrast between choice and result",
+          "count": 1
+        },
+        {
+          "archetype": "three-state panoramic progression; occluded-to-visible information progression",
+          "count": 1
+        },
+        {
+          "archetype": "top-down still life with diagonal artifact progression; foreground consequence against background cause",
+          "count": 1
+        },
+        {
+          "archetype": "top-down still life with diagonal artifact progression; occluded-to-visible information progression",
+          "count": 1
+        },
+        {
+          "archetype": "top-heavy page tower compressing toward one viable focused spine",
+          "count": 1
+        },
+        {
+          "archetype": "top-to-bottom association sort ending in one empty name position",
+          "count": 1
+        },
+        {
+          "archetype": "wide diffusion field resolving into one isolated cluster",
+          "count": 1
+        }
+      ],
+      "countByCameraArchetype": [
+        {
+          "archetype": "35mm shoulder-height documentary angle; compressed distant observation",
+          "count": 11
+        },
+        {
+          "archetype": "orthographic graphic plane; lateral profile viewpoint",
+          "count": 10
+        },
+        {
+          "archetype": "28mm high-corner documentary wide; elevated diagonal viewpoint",
+          "count": 8
+        },
+        {
+          "archetype": "90mm orthographic detail; subjective client viewpoint",
+          "count": 8
+        },
+        {
+          "archetype": "32mm lateral tracking perspective; elevated diagonal viewpoint",
+          "count": 4
+        },
+        {
+          "archetype": "45mm seated point-of-view; subjective client viewpoint",
+          "count": 4
+        },
+        {
+          "archetype": "70mm off-axis broadcast documentary; elevated diagonal viewpoint",
+          "count": 4
+        },
+        {
+          "archetype": "105mm elevated telephoto compression; elevated diagonal viewpoint",
+          "count": 3
+        },
+        {
+          "archetype": "32mm lateral tracking perspective; compressed distant observation",
+          "count": 3
+        },
+        {
+          "archetype": "32mm lateral tracking perspective; lateral profile viewpoint",
+          "count": 3
+        },
+        {
+          "archetype": "35mm shallow diagonal dolly perspective; subjective client viewpoint",
+          "count": 3
+        },
+        {
+          "archetype": "50mm overhead copy-stand; elevated diagonal viewpoint",
+          "count": 3
+        },
+        {
+          "archetype": "58mm through-glass layered focus; lateral profile viewpoint",
+          "count": 3
+        },
+        {
+          "archetype": "105mm elevated telephoto compression; compressed distant observation",
+          "count": 2
+        },
+        {
+          "archetype": "105mm elevated telephoto compression; subjective client viewpoint",
+          "count": 2
+        },
+        {
+          "archetype": "24mm elevated architectural view; lateral profile viewpoint",
+          "count": 2
+        },
+        {
+          "archetype": "24mm elevated architectural view; subjective client viewpoint",
+          "count": 2
+        },
+        {
+          "archetype": "28mm high-corner documentary wide; close foreground parallax",
+          "count": 2
+        },
+        {
+          "archetype": "30mm top-down-to-oblique hybrid; elevated diagonal viewpoint",
+          "count": 2
+        },
+        {
+          "archetype": "32mm lateral tracking perspective; subjective client viewpoint",
+          "count": 2
+        },
+        {
+          "archetype": "35mm shallow diagonal dolly perspective; close foreground parallax",
+          "count": 2
+        },
+        {
+          "archetype": "35mm shallow diagonal dolly perspective; lateral profile viewpoint",
+          "count": 2
+        },
+        {
+          "archetype": "35mm shallow diagonal dolly perspective; low three-quarter viewpoint",
+          "count": 2
+        },
+        {
+          "archetype": "40mm locked frontal comparison; compressed distant observation",
+          "count": 2
+        },
+        {
+          "archetype": "50mm overhead copy-stand; subjective client viewpoint",
+          "count": 2
+        },
+        {
+          "archetype": "58mm through-glass layered focus; subjective client viewpoint",
+          "count": 2
+        },
+        {
+          "archetype": "65mm candid eye-line compression; elevated diagonal viewpoint",
+          "count": 2
+        },
+        {
+          "archetype": "70mm off-axis broadcast documentary; compressed distant observation",
+          "count": 2
+        },
+        {
+          "archetype": "105mm elevated telephoto compression; low three-quarter viewpoint",
+          "count": 1
+        },
+        {
+          "archetype": "20mm handheld vertical market wide",
+          "count": 1
+        },
+        {
+          "archetype": "24mm elevated architectural view; elevated diagonal viewpoint",
+          "count": 1
+        },
+        {
+          "archetype": "24mm elevated architectural wide",
+          "count": 1
+        },
+        {
+          "archetype": "26mm top-down vertical rotation",
+          "count": 1
+        },
+        {
+          "archetype": "30mm overhead-to-oblique editorial move",
+          "count": 1
+        },
+        {
+          "archetype": "30mm top-down-to-oblique hybrid; close foreground parallax",
+          "count": 1
+        },
+        {
+          "archetype": "30mm top-down-to-oblique hybrid; lateral profile viewpoint",
+          "count": 1
+        },
+        {
+          "archetype": "30mm top-down-to-oblique hybrid; subjective client viewpoint",
+          "count": 1
+        },
+        {
+          "archetype": "32mm lateral tracking profile",
+          "count": 1
+        },
+        {
+          "archetype": "34mm low-to-high vertical system view",
+          "count": 1
+        },
+        {
+          "archetype": "35mm oblique overhead; elevated diagonal viewpoint",
+          "count": 1
+        },
+        {
+          "archetype": "35mm oblique overhead; lateral profile viewpoint",
+          "count": 1
+        },
+        {
+          "archetype": "35mm shoulder-height documentary angle; subjective client viewpoint",
+          "count": 1
+        },
+        {
+          "archetype": "35mm vertical rack-focus documentary",
+          "count": 1
+        },
+        {
+          "archetype": "36mm lateral-to-upward vertical tracking",
+          "count": 1
+        },
+        {
+          "archetype": "38mm low vertical build angle",
+          "count": 1
+        },
+        {
+          "archetype": "40mm locked frontal comparison; lateral profile viewpoint",
+          "count": 1
+        },
+        {
+          "archetype": "40mm locked frontal comparison; subjective client viewpoint",
+          "count": 1
+        },
+        {
+          "archetype": "40mm oblique vertical tabletop",
+          "count": 1
+        },
+        {
+          "archetype": "42mm locked vertical split field",
+          "count": 1
+        },
+        {
+          "archetype": "45mm seated point-of-view; compressed distant observation",
+          "count": 1
+        },
+        {
+          "archetype": "45mm vertical client point-of-view",
+          "count": 1
+        },
+        {
+          "archetype": "46mm vertical frontal mismatch frame",
+          "count": 1
+        },
+        {
+          "archetype": "48mm vertical workshop documentary",
+          "count": 1
+        },
+        {
+          "archetype": "50mm close vertical over-thumb view",
+          "count": 1
+        },
+        {
+          "archetype": "50mm matched locked frames; compressed distant observation",
+          "count": 1
+        },
+        {
+          "archetype": "50mm matched locked frames; elevated diagonal viewpoint",
+          "count": 1
+        },
+        {
+          "archetype": "50mm matched locked frames; lateral profile viewpoint",
+          "count": 1
+        },
+        {
+          "archetype": "50mm matched locked frames; low three-quarter viewpoint",
+          "count": 1
+        },
+        {
+          "archetype": "50mm overhead copy-stand; lateral profile viewpoint",
+          "count": 1
+        },
+        {
+          "archetype": "50mm overhead copy-stand; low three-quarter viewpoint",
+          "count": 1
+        },
+        {
+          "archetype": "50mm seated client eye-line documentary",
+          "count": 1
+        },
+        {
+          "archetype": "55mm overhead copy-stand with shallow object relief",
+          "count": 1
+        },
+        {
+          "archetype": "57mm oblique vertical still-life",
+          "count": 1
+        },
+        {
+          "archetype": "58mm through-glass layered focus; compressed distant observation",
+          "count": 1
+        },
+        {
+          "archetype": "58mm through-glass layered focus; elevated diagonal viewpoint",
+          "count": 1
+        },
+        {
+          "archetype": "58mm through-glass parallax view",
+          "count": 1
+        },
+        {
+          "archetype": "60mm frontal vertical observation",
+          "count": 1
+        },
+        {
+          "archetype": "65mm candid eye-line compression; compressed distant observation",
+          "count": 1
+        },
+        {
+          "archetype": "65mm vertical conversational relay",
+          "count": 1
+        },
+        {
+          "archetype": "70mm candid vertical eye-line compression",
+          "count": 1
+        },
+        {
+          "archetype": "70mm off-axis broadcast documentary; close foreground parallax",
+          "count": 1
+        },
+        {
+          "archetype": "70mm off-axis broadcast documentary; lateral profile viewpoint",
+          "count": 1
+        },
+        {
+          "archetype": "70mm off-axis broadcast documentary; subjective client viewpoint",
+          "count": 1
+        },
+        {
+          "archetype": "72mm vertical depth compression through window",
+          "count": 1
+        },
+        {
+          "archetype": "75mm doorway compression shifting to 32mm depth",
+          "count": 1
+        },
+        {
+          "archetype": "90mm orthographic detail; low three-quarter viewpoint",
+          "count": 1
+        }
+      ],
+      "topExactViewerVisibleSignatures": [
+        {
+          "archetype": "122de979bd681203eb2fff3541d7c7398baad1391dede3987c09d861bb88b8a4",
+          "count": 6
+        },
+        {
+          "archetype": "0766695f2d2d6960a6a9ff41d1744313f0dd8bf4dbcc02352c6b7ea6bb62d71e",
+          "count": 5
+        },
+        {
+          "archetype": "b2bff770f4cde24a6df3c23afa3df9edd7a5ac38f17a54fb16c7dc204fbf397a",
+          "count": 5
+        },
+        {
+          "archetype": "0fdf0a477b5fa9ddb00709ec7ab93cf3a59403b274b7517344755213f1f5616b",
+          "count": 4
+        },
+        {
+          "archetype": "84dfa74a66a32bb88dc6c4e3fed52c9b5a2fa4d4fdcef3362252510445232778",
+          "count": 4
+        },
+        {
+          "archetype": "0771289b20a75dd462f34d587f0ae61affdaa1b79c6ad51afab0b2f81ed294d1",
+          "count": 2
+        },
+        {
+          "archetype": "1df4f0940759fb319d0ac199eece4a9c59259683aa7e6970c4c2c3e42d69580a",
+          "count": 2
+        },
+        {
+          "archetype": "7fb27c0fc5cc0b0193aecd6be586671a532ff0f9aa6f44b2f8c9ecd7d86b041a",
+          "count": 2
+        },
+        {
+          "archetype": "812bf5ed8c80c45f94770ae220937fcae8c14732befdb6f48445a74af1fb20a6",
+          "count": 2
+        },
+        {
+          "archetype": "983d27339a1216a5d525edc1a039d69f28115800779d930605247f79fca1f16b",
+          "count": 2
+        },
+        {
+          "archetype": "a0685e389764e9a658f02c8c8ed8aa22264d34dcedc44be9b464685856d38ad0",
+          "count": 2
+        },
+        {
+          "archetype": "fa08ad941db07f816653434d03033d13bf60bf66e27eaeea37554dd7086af05b",
+          "count": 2
+        }
+      ],
+      "longestConsecutiveRepetition": 1,
+      "clusterTreatmentConcentration": [
+        {
+          "parentLongFormId": "L01",
+          "strategyConcentration": 0.5,
+          "exactSignatureConcentration": 0.25
+        },
+        {
+          "parentLongFormId": "L02",
+          "strategyConcentration": 0.5,
+          "exactSignatureConcentration": 0.25
+        },
+        {
+          "parentLongFormId": "L03",
+          "strategyConcentration": 0.25,
+          "exactSignatureConcentration": 0.25
+        },
+        {
+          "parentLongFormId": "L04",
+          "strategyConcentration": 0.25,
+          "exactSignatureConcentration": 0.25
+        },
+        {
+          "parentLongFormId": "L05",
+          "strategyConcentration": 0.5,
+          "exactSignatureConcentration": 0.25
+        },
+        {
+          "parentLongFormId": "L06",
+          "strategyConcentration": 0.25,
+          "exactSignatureConcentration": 0.25
+        }
+      ]
+    },
+    "diagramDiversity": {
+      "topologyDistribution": [
+        {
+          "archetype": "hierarchy",
+          "count": 10
+        },
+        {
+          "archetype": "hub-spoke",
+          "count": 8
+        },
+        {
+          "archetype": "comparison",
+          "count": 7
+        },
+        {
+          "archetype": "funnel",
+          "count": 6
+        },
+        {
+          "archetype": "sequence",
+          "count": 6
+        },
+        {
+          "archetype": "cause-effect",
+          "count": 4
+        },
+        {
+          "archetype": "intersection",
+          "count": 4
+        },
+        {
+          "archetype": "before-after",
+          "count": 3
+        },
+        {
+          "archetype": "matrix",
+          "count": 1
+        }
+      ],
+      "consecutiveTopologyRepeats": [
+        {
+          "contentId": "L03",
+          "previousDiagramId": "l03-v07-diagram",
+          "diagramId": "l03-v09-diagram",
+          "topology": "sequence",
+          "semanticallyJustified": true
+        }
+      ],
+      "clusterConcentration": [
+        {
+          "parentLongFormId": "L01",
+          "diagramCount": 7,
+          "dominantTopology": "comparison",
+          "dominance": 0.2857,
+          "warning": false,
+          "allDominantUsesSemanticallyJustified": true
+        },
+        {
+          "parentLongFormId": "L02",
+          "diagramCount": 12,
+          "dominantTopology": "funnel",
+          "dominance": 0.3333,
+          "warning": false,
+          "allDominantUsesSemanticallyJustified": true
+        },
+        {
+          "parentLongFormId": "L03",
+          "diagramCount": 8,
+          "dominantTopology": "hierarchy",
+          "dominance": 0.25,
+          "warning": false,
+          "allDominantUsesSemanticallyJustified": true
+        },
+        {
+          "parentLongFormId": "L04",
+          "diagramCount": 7,
+          "dominantTopology": "comparison",
+          "dominance": 0.2857,
+          "warning": false,
+          "allDominantUsesSemanticallyJustified": true
+        },
+        {
+          "parentLongFormId": "L05",
+          "diagramCount": 6,
+          "dominantTopology": "cause-effect",
+          "dominance": 0.1667,
+          "warning": false,
+          "allDominantUsesSemanticallyJustified": true
+        },
+        {
+          "parentLongFormId": "L06",
+          "diagramCount": 9,
+          "dominantTopology": "before-after",
+          "dominance": 0.3333,
+          "warning": false,
+          "allDominantUsesSemanticallyJustified": true
+        }
+      ],
+      "fallbackSelections": [],
+      "semanticJustificationFailures": [],
+      "contextAwareAlternativeSelections": [
+        {
+          "contentId": "L02",
+          "diagramId": "l02-v07-diagram",
+          "selectedTopology": "hierarchy",
+          "validAlternatives": [
+            "funnel",
+            "hierarchy"
+          ],
+          "selectedForLocalDiversity": true,
+          "semanticJustification": "pass",
+          "fallbackSelected": false
+        },
+        {
+          "contentId": "L04",
+          "diagramId": "l04-v04-diagram",
+          "selectedTopology": "hierarchy",
+          "validAlternatives": [
+            "hub-spoke",
+            "hierarchy"
+          ],
+          "selectedForLocalDiversity": true,
+          "semanticJustification": "pass",
+          "fallbackSelected": false
+        },
+        {
+          "contentId": "L01-S01",
+          "diagramId": "l01-s01-v02-diagram",
+          "selectedTopology": "hierarchy",
+          "validAlternatives": [
+            "hub-spoke",
+            "hierarchy"
+          ],
+          "selectedForLocalDiversity": true,
+          "semanticJustification": "pass",
+          "fallbackSelected": false
+        },
+        {
+          "contentId": "L02-S01",
+          "diagramId": "l02-s01-v03-diagram",
+          "selectedTopology": "hierarchy",
+          "validAlternatives": [
+            "funnel",
+            "hierarchy"
+          ],
+          "selectedForLocalDiversity": true,
+          "semanticJustification": "pass",
+          "fallbackSelected": false
+        },
+        {
+          "contentId": "L02-S02",
+          "diagramId": "l02-s02-v01-diagram",
+          "selectedTopology": "hierarchy",
+          "validAlternatives": [
+            "funnel",
+            "hierarchy"
+          ],
+          "selectedForLocalDiversity": true,
+          "semanticJustification": "pass",
+          "fallbackSelected": false
+        },
+        {
+          "contentId": "L02-S02",
+          "diagramId": "l02-s02-v04-diagram",
+          "selectedTopology": "hierarchy",
+          "validAlternatives": [
+            "funnel",
+            "hierarchy"
+          ],
+          "selectedForLocalDiversity": true,
+          "semanticJustification": "pass",
+          "fallbackSelected": false
+        },
+        {
+          "contentId": "L03-S01",
+          "diagramId": "l03-s01-v02-diagram",
+          "selectedTopology": "hierarchy",
+          "validAlternatives": [
+            "hub-spoke",
+            "hierarchy"
+          ],
+          "selectedForLocalDiversity": true,
+          "semanticJustification": "pass",
+          "fallbackSelected": false
+        },
+        {
+          "contentId": "L06-S01",
+          "diagramId": "l06-s01-v01-diagram",
+          "selectedTopology": "sequence",
+          "validAlternatives": [
+            "before-after",
+            "sequence"
+          ],
+          "selectedForLocalDiversity": true,
+          "semanticJustification": "pass",
+          "fallbackSelected": false
+        }
+      ]
+    },
+    "crossEpisodeVisualSimilarity": {
+      "mean": 0.4222,
+      "maximum": 0.7222,
+      "pairs": [
+        {
+          "pair": "L01<->L02",
+          "similarity": 0.6111,
+          "status": "pass",
+          "matchingWindow": {
+            "leftSceneIds": [
+              "L01-V04",
+              "L01-V05"
+            ],
+            "rightSceneIds": [
+              "L02-V04",
+              "L02-V05"
+            ],
+            "sceneSimilarities": [
+              0.2222,
+              1
+            ],
+            "exposureWeightsMs": [
+              51626,
+              51626
+            ]
+          }
+        },
+        {
+          "pair": "L01<->L03",
+          "similarity": 0.4444,
+          "status": "pass",
+          "matchingWindow": {
+            "leftSceneIds": [
+              "L01-V06",
+              "L01-V07"
+            ],
+            "rightSceneIds": [
+              "L03-V08",
+              "L03-V09"
+            ],
+            "sceneSimilarities": [
+              0.4444,
+              0.4444
+            ],
+            "exposureWeightsMs": [
+              46280,
+              46280
+            ]
+          }
+        },
+        {
+          "pair": "L01<->L04",
+          "similarity": 0.4445,
+          "status": "pass",
+          "matchingWindow": {
+            "leftSceneIds": [
+              "L01-V05",
+              "L01-V06"
+            ],
+            "rightSceneIds": [
+              "L04-V05",
+              "L04-V06"
+            ],
+            "sceneSimilarities": [
+              0.1111,
+              0.7778
+            ],
+            "exposureWeightsMs": [
+              46085,
+              46085
+            ]
+          }
+        },
+        {
+          "pair": "L01<->L05",
+          "similarity": 0.2222,
+          "status": "pass",
+          "matchingWindow": {
+            "leftSceneIds": [
+              "L01-V02",
+              "L01-V03"
+            ],
+            "rightSceneIds": [
+              "L05-V04",
+              "L05-V05"
+            ],
+            "sceneSimilarities": [
+              0.2222,
+              0.2222
+            ],
+            "exposureWeightsMs": [
+              54551,
+              54551
+            ]
+          }
+        },
+        {
+          "pair": "L01<->L06",
+          "similarity": 0.2778,
+          "status": "pass",
+          "matchingWindow": {
+            "leftSceneIds": [
+              "L01-COLD_OPEN",
+              "L01-V01"
+            ],
+            "rightSceneIds": [
+              "L06-V04",
+              "L06-V05"
+            ],
+            "sceneSimilarities": [
+              0,
+              0.3333
+            ],
+            "exposureWeightsMs": [
+              10320,
+              51626
+            ]
+          }
+        },
+        {
+          "pair": "L02<->L03",
+          "similarity": 0.3333,
+          "status": "pass",
+          "matchingWindow": {
+            "leftSceneIds": [
+              "L02-V04",
+              "L02-V05"
+            ],
+            "rightSceneIds": [
+              "L03-V07",
+              "L03-V08"
+            ],
+            "sceneSimilarities": [
+              0.2222,
+              0.4444
+            ],
+            "exposureWeightsMs": [
+              46280,
+              46280
+            ]
+          }
+        },
+        {
+          "pair": "L02<->L04",
+          "similarity": 0.5,
+          "status": "pass",
+          "matchingWindow": {
+            "leftSceneIds": [
+              "L02-V07",
+              "L02-V08"
+            ],
+            "rightSceneIds": [
+              "L04-V07",
+              "L04-V08"
+            ],
+            "sceneSimilarities": [
+              0.8889,
+              0.1111
+            ],
+            "exposureWeightsMs": [
+              46085,
+              46085
+            ]
+          }
+        },
+        {
+          "pair": "L02<->L05",
+          "similarity": 0.2222,
+          "status": "pass",
+          "matchingWindow": {
+            "leftSceneIds": [
+              "L02-V02",
+              "L02-V03"
+            ],
+            "rightSceneIds": [
+              "L05-V04",
+              "L05-V05"
+            ],
+            "sceneSimilarities": [
+              0.2222,
+              0.2222
+            ],
+            "exposureWeightsMs": [
+              51626,
+              51626
+            ]
+          }
+        },
+        {
+          "pair": "L02<->L06",
+          "similarity": 0.3889,
+          "status": "pass",
+          "matchingWindow": {
+            "leftSceneIds": [
+              "L02-V05",
+              "L02-V06"
+            ],
+            "rightSceneIds": [
+              "L06-V01",
+              "L06-V02"
+            ],
+            "sceneSimilarities": [
+              0.2222,
+              0.5556
+            ],
+            "exposureWeightsMs": [
+              51626,
+              51626
+            ]
+          }
+        },
+        {
+          "pair": "L03<->L04",
+          "similarity": 0.5,
+          "status": "pass",
+          "matchingWindow": {
+            "leftSceneIds": [
+              "L03-V04",
+              "L03-V05"
+            ],
+            "rightSceneIds": [
+              "L04-V04",
+              "L04-V05"
+            ],
+            "sceneSimilarities": [
+              0.1111,
+              0.8889
+            ],
+            "exposureWeightsMs": [
+              46085,
+              46085
+            ]
+          }
+        },
+        {
+          "pair": "L03<->L05",
+          "similarity": 0.6111,
+          "status": "pass",
+          "matchingWindow": {
+            "leftSceneIds": [
+              "L03-V03",
+              "L03-V04"
+            ],
+            "rightSceneIds": [
+              "L05-V03",
+              "L05-V04"
+            ],
+            "sceneSimilarities": [
+              1,
+              0.2222
+            ],
+            "exposureWeightsMs": [
+              46280,
+              46280
+            ]
+          }
+        },
+        {
+          "pair": "L03<->L06",
+          "similarity": 0.7222,
+          "status": "pass",
+          "matchingWindow": {
+            "leftSceneIds": [
+              "L03-COLD_OPEN",
+              "L03-V01"
+            ],
+            "rightSceneIds": [
+              "L06-V06",
+              "L06-V07"
+            ],
+            "sceneSimilarities": [
+              0,
+              0.8889
+            ],
+            "exposureWeightsMs": [
+              10680,
+              46280
+            ]
+          }
+        },
+        {
+          "pair": "L04<->L05",
+          "similarity": 0.5,
+          "status": "pass",
+          "matchingWindow": {
+            "leftSceneIds": [
+              "L04-V04",
+              "L04-V05"
+            ],
+            "rightSceneIds": [
+              "L05-V04",
+              "L05-V05"
+            ],
+            "sceneSimilarities": [
+              0.8889,
+              0.1111
+            ],
+            "exposureWeightsMs": [
+              46085,
+              46085
+            ]
+          }
+        },
+        {
+          "pair": "L04<->L06",
+          "similarity": 0.3333,
+          "status": "pass",
+          "matchingWindow": {
+            "leftSceneIds": [
+              "L04-V03",
+              "L04-V04"
+            ],
+            "rightSceneIds": [
+              "L06-V05",
+              "L06-V06"
+            ],
+            "sceneSimilarities": [
+              0.4444,
+              0.2222
+            ],
+            "exposureWeightsMs": [
+              46085,
+              46085
+            ]
+          }
+        },
+        {
+          "pair": "L05<->L06",
+          "similarity": 0.2222,
+          "status": "pass",
+          "matchingWindow": {
+            "leftSceneIds": [
+              "L05-V04",
+              "L05-V05"
+            ],
+            "rightSceneIds": [
+              "L06-V03",
+              "L06-V04"
+            ],
+            "sceneSimilarities": [
+              0.2222,
+              0.2222
+            ],
+            "exposureWeightsMs": [
+              51626,
+              51626
+            ]
+          }
+        }
+      ],
+      "matrix": {
+        "contentIds": [
+          "L01",
+          "L02",
+          "L03",
+          "L04",
+          "L05",
+          "L06"
+        ],
+        "rows": [
+          [
+            1,
+            0.6111,
+            0.4444,
+            0.4445,
+            0.2222,
+            0.2778
+          ],
+          [
+            0.6111,
+            1,
+            0.3333,
+            0.5,
+            0.2222,
+            0.3889
+          ],
+          [
+            0.4444,
+            0.3333,
+            1,
+            0.5,
+            0.6111,
+            0.7222
+          ],
+          [
+            0.4445,
+            0.5,
+            0.5,
+            1,
+            0.5,
+            0.3333
+          ],
+          [
+            0.2222,
+            0.2222,
+            0.6111,
+            0.5,
+            1,
+            0.2222
+          ],
+          [
+            0.2778,
+            0.3889,
+            0.7222,
+            0.3333,
+            0.2222,
+            1
+          ]
+        ]
+      },
+      "warningCount": 0,
+      "blockerCount": 0,
+      "hotspots": [
+        {
+          "pair": "L01<->L03",
+          "before": 0.9,
+          "after": 0.4444,
+          "status": "pass",
+          "matchingWindow": {
+            "leftSceneIds": [
+              "L01-V06",
+              "L01-V07"
+            ],
+            "rightSceneIds": [
+              "L03-V08",
+              "L03-V09"
+            ],
+            "sceneSimilarities": [
+              0.4444,
+              0.4444
+            ],
+            "exposureWeightsMs": [
+              46280,
+              46280
+            ]
+          }
+        },
+        {
+          "pair": "L01<->L05",
+          "before": 0.825,
+          "after": 0.2222,
+          "status": "pass",
+          "matchingWindow": {
+            "leftSceneIds": [
+              "L01-V02",
+              "L01-V03"
+            ],
+            "rightSceneIds": [
+              "L05-V04",
+              "L05-V05"
+            ],
+            "sceneSimilarities": [
+              0.2222,
+              0.2222
+            ],
+            "exposureWeightsMs": [
+              54551,
+              54551
+            ]
+          }
+        },
+        {
+          "pair": "L03<->L05",
+          "before": 0.825,
+          "after": 0.6111,
+          "status": "pass",
+          "matchingWindow": {
+            "leftSceneIds": [
+              "L03-V03",
+              "L03-V04"
+            ],
+            "rightSceneIds": [
+              "L05-V03",
+              "L05-V04"
+            ],
+            "sceneSimilarities": [
+              1,
+              0.2222
+            ],
+            "exposureWeightsMs": [
+              46280,
+              46280
+            ]
+          }
+        }
+      ]
+    },
+    "clusterMetrics": [
+      {
+        "parentLongFormId": "L01",
+        "contentIds": [
+          "L01",
+          "L01-S01",
+          "L01-S02",
+          "L01-S03"
+        ],
+        "meanConsecutiveSimilarity": 0.097,
+        "eligibleReuseOpportunities": 8
+      },
+      {
+        "parentLongFormId": "L02",
+        "contentIds": [
+          "L02",
+          "L02-S01",
+          "L02-S02",
+          "L02-S03"
+        ],
+        "meanConsecutiveSimilarity": 0.0938,
+        "eligibleReuseOpportunities": 6
+      },
+      {
+        "parentLongFormId": "L03",
+        "contentIds": [
+          "L03",
+          "L03-S01",
+          "L03-S02",
+          "L03-S03"
+        ],
+        "meanConsecutiveSimilarity": 0.0984,
+        "eligibleReuseOpportunities": 10
+      },
+      {
+        "parentLongFormId": "L04",
+        "contentIds": [
+          "L04",
+          "L04-S01",
+          "L04-S02",
+          "L04-S03"
+        ],
+        "meanConsecutiveSimilarity": 0.0876,
+        "eligibleReuseOpportunities": 9
+      },
+      {
+        "parentLongFormId": "L05",
+        "contentIds": [
+          "L05",
+          "L05-S01",
+          "L05-S02",
+          "L05-S03"
+        ],
+        "meanConsecutiveSimilarity": 0.1248,
+        "eligibleReuseOpportunities": 12
+      },
+      {
+        "parentLongFormId": "L06",
+        "contentIds": [
+          "L06",
+          "L06-S01",
+          "L06-S02",
+          "L06-S03"
+        ],
+        "meanConsecutiveSimilarity": 0.2323,
+        "eligibleReuseOpportunities": 10
+      }
+    ]
+  },
+  "improvements": {
+    "visualGrammarDiversity": 0.9426,
+    "environmentDiversity": 0.5135,
+    "compositionDiversity": 0.5135,
+    "diagramTopologyDiversity": 0.0817,
+    "consecutiveSceneSimilarity": 0.7239,
+    "shortsHookProgression": 1,
+    "visualEventCadence": 19.2771,
+    "crossContentReuseOpportunities": 55,
+    "hookExactDuplicateRate": 0.9583,
+    "maxHookSignatureFrequency": 23,
+    "localizedTitleOverlayRiskCount": 26
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "veronicabenini-title-transcreation-qa.v2",
+  "contentId": "L01-S03",
+  "locales": {
+    "en": {
+      "metadataTitle": "What Do People Remember You For?",
+      "displayTitle": "What Do People Remember You For?",
+      "displayLines": [
+        "What Do People Remember You For?"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "de": {
+      "metadataTitle": "Wofür erinnern sich Menschen an dich?",
+      "displayTitle": "Wofür erinnern sich Menschen an dich?",
+      "displayLines": [
+        "Wofür erinnern sich Menschen an dich?"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "it": {
+      "metadataTitle": "Per cosa ti ricordano le persone?",
+      "displayTitle": "Per cosa ti ricordano le persone?",
+      "displayLines": [
+        "Per cosa ti ricordano le persone?"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "fr": {
+      "metadataTitle": "Pour quoi les gens se souviennent-ils de vous ?",
+      "displayTitle": "Pour quoi les gens se souviennent-ils de vous ?",
+      "displayLines": [
+        "Pour quoi les gens se",
+        "souviennent-ils de vous ?"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "pt": {
+      "metadataTitle": "Pelo que as pessoas lembram de você?",
+      "displayTitle": "Pelo que as pessoas lembram de você?",
+      "displayLines": [
+        "Pelo que as pessoas lembram de você?"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    }
+  },
+  "sourceTitlesHash": "20d02ce7d159b14832a3f11b02f39f202ef6266b2420d324f5e46573b9ea157f",
+  "cacheKey": "5b8dded820eb48f9e976f723b661222ad565e362c658bf45c92867f3cf673592",
+  "artifactHash": "991e84d5441ab7a27630edb004ff2192d728e5804b1ed9a8f6ab63954ba88d8d"
+}

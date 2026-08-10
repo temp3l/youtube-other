@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_ELEVENLABS_MODEL_ID,
   HISTORY_DEFAULT_ELEVENLABS_VOICE_ID,
+  VERONICA_DEFAULT_OPENAI_TTS_VOICE,
   assertElevenLabsApiKeyConfigured,
   describeElevenLabsApiKeyConfiguration,
   resolveElevenLabsVoiceId,
@@ -23,6 +24,16 @@ describe("resolveTtsConfig", () => {
       provider: "openai-compatible",
       model: "gpt-4o-mini-tts",
       voice: "onyx",
+    });
+  });
+
+  it("uses the Veronica OpenAI voice default when no voice is overridden", () => {
+    expect(
+      resolveTtsConfig({ genre: "veronicabenini", provider: "openai-compatible" }),
+    ).toEqual({
+      provider: "openai-compatible",
+      model: "gpt-4o-mini-tts",
+      voice: VERONICA_DEFAULT_OPENAI_TTS_VOICE,
     });
   });
 

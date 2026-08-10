@@ -54,6 +54,7 @@ pnpm mediaforge -- veronica-media run --workspace /tmp/episodes --episode-id epi
 pnpm mediaforge -- veronica-media render --workspace /tmp/episodes --episode-id episode-001 --aspect 16:9
 pnpm mediaforge -- veronica-media render --workspace /tmp/episodes --episode-id episode-001 --aspect 9:16 --execute
 pnpm mediaforge -- veronica-media validate --plan state/veronica-media/veronica-media-plan.json
+pnpm mediaforge -- veronica-media plan-positioning-series --pack content-packs/veronica-content-pack-1 --output content-packs/veronica-content-pack-1/visual-review --json
 pnpm mediaforge -- veronica-media review-pack --workspace episodes/veronica-benini --scaffold-missing --content-matrix docs/discovery-packs/veronica-benini-youtube-genre-discovery-pack/06-samples/content-matrix.csv --bulk-dir artifacts/veronica-benini/approval-packs --json
 ```
 
@@ -65,6 +66,10 @@ pnpm veronica:review-packs
 
 `--execute` is required for host FFmpeg rendering. Default render mode compiles
 commands only.
+
+The positioning-series command is a planning-only V2 path. Its cache graph,
+diversity calibration, migration behavior, and review artifacts are documented
+in [positioning visual planning V2](positioning-visual-planning-v2.md).
 
 ### Workflow
 

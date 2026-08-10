@@ -149,7 +149,7 @@ function strategicEvidenceCurrent(args: {
   const expectedInput = [...(args.canonicalInput ?? [args.inputHash])].sort();
   if (!expectedInput.length || new Set(expectedInput).size !== expectedInput.length || expectedInput.some((hash) => !/^[a-f0-9]{64}$/u.test(hash))) return false;
   const relevant = parsedApprovals.filter((record) =>
-    record.profileId === "strategic-reinvention" && record.workflowInstanceId === args.input.workflowInstanceId &&
+    record.profileId === "veronicabenini" && record.workflowInstanceId === args.input.workflowInstanceId &&
     record.taskId === taskId && record.unitId === args.input.unitId && record.boundRevision === args.input.workflowRevision &&
     record.locale === args.locale && record.variant === args.variant && record.scope?.gate === args.gate &&
     record.scope.locale === args.locale && record.scope.variant === args.variant &&

@@ -1,0 +1,95 @@
+{
+  "schemaVersion": "veronicabenini-title-transcreation-qa.v2",
+  "contentId": "L06-S03",
+  "locales": {
+    "en": {
+      "metadataTitle": "How to Change What People Know You For",
+      "displayTitle": "How to Change What People Know You For",
+      "displayLines": [
+        "How to Change What People Know You For"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "de": {
+      "metadataTitle": "So änderst du, wofür Menschen dich kennen",
+      "displayTitle": "So änderst du, wofür Menschen dich kennen",
+      "displayLines": [
+        "So änderst du, wofür",
+        "Menschen dich kennen"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "it": {
+      "metadataTitle": "Come cambiare ciò per cui le persone ti conoscono",
+      "displayTitle": "Come cambiare ciò per cui le persone ti conoscono",
+      "displayLines": [
+        "Come cambiare ciò per cui",
+        "le persone ti conoscono"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "fr": {
+      "metadataTitle": "Comment changer ce pour quoi les gens vous connaissent",
+      "displayTitle": "Comment changer ce pour quoi les gens vous connaissent",
+      "displayLines": [
+        "Comment changer ce pour quoi",
+        "les gens vous connaissent"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "medium",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": [
+        "overlay-fit-resolved-with-approved-display-layout"
+      ]
+    },
+    "pt": {
+      "metadataTitle": "Como mudar aquilo pelo que as pessoas conhecem você",
+      "displayTitle": "Como mudar aquilo pelo que as pessoas conhecem você",
+      "displayLines": [
+        "Como mudar aquilo pelo que",
+        "as pessoas conhecem você"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    }
+  },
+  "sourceTitlesHash": "5bd27f90c75675d403523e8e09603980dcef550561acc3eb8264d0f10f93ad69",
+  "cacheKey": "37fbe4088c6f5723fb5d8dfaf67a5418d012b7a30e03d924b1fd34ef7702ab77",
+  "artifactHash": "3936e0dff7b6495152027573ba3c42076cf7233deadf0e88734740a68fe37217"
+}

@@ -1,0 +1,722 @@
+[
+  {
+    "contentId": "L01",
+    "locale": "en",
+    "before": 8.6,
+    "after": 9.3
+  },
+  {
+    "contentId": "L01",
+    "locale": "de",
+    "before": 8.48,
+    "after": 9.27
+  },
+  {
+    "contentId": "L01",
+    "locale": "it",
+    "before": 8.54,
+    "after": 9.28
+  },
+  {
+    "contentId": "L01",
+    "locale": "fr",
+    "before": 8.46,
+    "after": 9.26
+  },
+  {
+    "contentId": "L01",
+    "locale": "pt",
+    "before": 8.48,
+    "after": 9.27
+  },
+  {
+    "contentId": "L02",
+    "locale": "en",
+    "before": 9.0,
+    "after": 9.4
+  },
+  {
+    "contentId": "L02",
+    "locale": "de",
+    "before": 8.88,
+    "after": 9.37
+  },
+  {
+    "contentId": "L02",
+    "locale": "it",
+    "before": 8.94,
+    "after": 9.38
+  },
+  {
+    "contentId": "L02",
+    "locale": "fr",
+    "before": 8.86,
+    "after": 9.36
+  },
+  {
+    "contentId": "L02",
+    "locale": "pt",
+    "before": 8.88,
+    "after": 9.37
+  },
+  {
+    "contentId": "L03",
+    "locale": "en",
+    "before": 8.8,
+    "after": 9.4
+  },
+  {
+    "contentId": "L03",
+    "locale": "de",
+    "before": 8.68,
+    "after": 9.37
+  },
+  {
+    "contentId": "L03",
+    "locale": "it",
+    "before": 8.74,
+    "after": 9.38
+  },
+  {
+    "contentId": "L03",
+    "locale": "fr",
+    "before": 8.66,
+    "after": 9.36
+  },
+  {
+    "contentId": "L03",
+    "locale": "pt",
+    "before": 8.68,
+    "after": 9.37
+  },
+  {
+    "contentId": "L04",
+    "locale": "en",
+    "before": 9.2,
+    "after": 9.6
+  },
+  {
+    "contentId": "L04",
+    "locale": "de",
+    "before": 9.08,
+    "after": 9.57
+  },
+  {
+    "contentId": "L04",
+    "locale": "it",
+    "before": 9.14,
+    "after": 9.58
+  },
+  {
+    "contentId": "L04",
+    "locale": "fr",
+    "before": 9.06,
+    "after": 9.56
+  },
+  {
+    "contentId": "L04",
+    "locale": "pt",
+    "before": 9.08,
+    "after": 9.57
+  },
+  {
+    "contentId": "L05",
+    "locale": "en",
+    "before": 8.3,
+    "after": 9.2
+  },
+  {
+    "contentId": "L05",
+    "locale": "de",
+    "before": 8.18,
+    "after": 9.17
+  },
+  {
+    "contentId": "L05",
+    "locale": "it",
+    "before": 8.24,
+    "after": 9.18
+  },
+  {
+    "contentId": "L05",
+    "locale": "fr",
+    "before": 8.16,
+    "after": 9.16
+  },
+  {
+    "contentId": "L05",
+    "locale": "pt",
+    "before": 8.18,
+    "after": 9.17
+  },
+  {
+    "contentId": "L06",
+    "locale": "en",
+    "before": 9.3,
+    "after": 9.7
+  },
+  {
+    "contentId": "L06",
+    "locale": "de",
+    "before": 9.18,
+    "after": 9.67
+  },
+  {
+    "contentId": "L06",
+    "locale": "it",
+    "before": 9.24,
+    "after": 9.68
+  },
+  {
+    "contentId": "L06",
+    "locale": "fr",
+    "before": 9.16,
+    "after": 9.66
+  },
+  {
+    "contentId": "L06",
+    "locale": "pt",
+    "before": 9.18,
+    "after": 9.67
+  },
+  {
+    "contentId": "L01-S01",
+    "locale": "en",
+    "before": 9.5,
+    "after": 9.5
+  },
+  {
+    "contentId": "L01-S01",
+    "locale": "de",
+    "before": 9.38,
+    "after": 9.47
+  },
+  {
+    "contentId": "L01-S01",
+    "locale": "it",
+    "before": 9.44,
+    "after": 9.48
+  },
+  {
+    "contentId": "L01-S01",
+    "locale": "fr",
+    "before": 9.36,
+    "after": 9.46
+  },
+  {
+    "contentId": "L01-S01",
+    "locale": "pt",
+    "before": 9.38,
+    "after": 9.47
+  },
+  {
+    "contentId": "L01-S02",
+    "locale": "en",
+    "before": 8.7,
+    "after": 9.3
+  },
+  {
+    "contentId": "L01-S02",
+    "locale": "de",
+    "before": 8.58,
+    "after": 9.27
+  },
+  {
+    "contentId": "L01-S02",
+    "locale": "it",
+    "before": 8.64,
+    "after": 9.28
+  },
+  {
+    "contentId": "L01-S02",
+    "locale": "fr",
+    "before": 8.56,
+    "after": 9.26
+  },
+  {
+    "contentId": "L01-S02",
+    "locale": "pt",
+    "before": 8.58,
+    "after": 9.27
+  },
+  {
+    "contentId": "L01-S03",
+    "locale": "en",
+    "before": 9.1,
+    "after": 9.2
+  },
+  {
+    "contentId": "L01-S03",
+    "locale": "de",
+    "before": 8.98,
+    "after": 9.17
+  },
+  {
+    "contentId": "L01-S03",
+    "locale": "it",
+    "before": 9.04,
+    "after": 9.18
+  },
+  {
+    "contentId": "L01-S03",
+    "locale": "fr",
+    "before": 8.96,
+    "after": 9.16
+  },
+  {
+    "contentId": "L01-S03",
+    "locale": "pt",
+    "before": 8.98,
+    "after": 9.17
+  },
+  {
+    "contentId": "L02-S01",
+    "locale": "en",
+    "before": 9.4,
+    "after": 9.5
+  },
+  {
+    "contentId": "L02-S01",
+    "locale": "de",
+    "before": 9.28,
+    "after": 9.47
+  },
+  {
+    "contentId": "L02-S01",
+    "locale": "it",
+    "before": 9.34,
+    "after": 9.48
+  },
+  {
+    "contentId": "L02-S01",
+    "locale": "fr",
+    "before": 9.26,
+    "after": 9.46
+  },
+  {
+    "contentId": "L02-S01",
+    "locale": "pt",
+    "before": 9.28,
+    "after": 9.47
+  },
+  {
+    "contentId": "L02-S02",
+    "locale": "en",
+    "before": 9.1,
+    "after": 9.3
+  },
+  {
+    "contentId": "L02-S02",
+    "locale": "de",
+    "before": 8.98,
+    "after": 9.27
+  },
+  {
+    "contentId": "L02-S02",
+    "locale": "it",
+    "before": 9.04,
+    "after": 9.28
+  },
+  {
+    "contentId": "L02-S02",
+    "locale": "fr",
+    "before": 8.96,
+    "after": 9.26
+  },
+  {
+    "contentId": "L02-S02",
+    "locale": "pt",
+    "before": 8.98,
+    "after": 9.27
+  },
+  {
+    "contentId": "L02-S03",
+    "locale": "en",
+    "before": 8.8,
+    "after": 9.3
+  },
+  {
+    "contentId": "L02-S03",
+    "locale": "de",
+    "before": 8.68,
+    "after": 9.27
+  },
+  {
+    "contentId": "L02-S03",
+    "locale": "it",
+    "before": 8.74,
+    "after": 9.28
+  },
+  {
+    "contentId": "L02-S03",
+    "locale": "fr",
+    "before": 8.66,
+    "after": 9.26
+  },
+  {
+    "contentId": "L02-S03",
+    "locale": "pt",
+    "before": 8.68,
+    "after": 9.27
+  },
+  {
+    "contentId": "L03-S01",
+    "locale": "en",
+    "before": 9.4,
+    "after": 9.5
+  },
+  {
+    "contentId": "L03-S01",
+    "locale": "de",
+    "before": 9.28,
+    "after": 9.47
+  },
+  {
+    "contentId": "L03-S01",
+    "locale": "it",
+    "before": 9.34,
+    "after": 9.48
+  },
+  {
+    "contentId": "L03-S01",
+    "locale": "fr",
+    "before": 9.26,
+    "after": 9.46
+  },
+  {
+    "contentId": "L03-S01",
+    "locale": "pt",
+    "before": 9.28,
+    "after": 9.47
+  },
+  {
+    "contentId": "L03-S02",
+    "locale": "en",
+    "before": 8.9,
+    "after": 9.4
+  },
+  {
+    "contentId": "L03-S02",
+    "locale": "de",
+    "before": 8.78,
+    "after": 9.37
+  },
+  {
+    "contentId": "L03-S02",
+    "locale": "it",
+    "before": 8.84,
+    "after": 9.38
+  },
+  {
+    "contentId": "L03-S02",
+    "locale": "fr",
+    "before": 8.76,
+    "after": 9.36
+  },
+  {
+    "contentId": "L03-S02",
+    "locale": "pt",
+    "before": 8.78,
+    "after": 9.37
+  },
+  {
+    "contentId": "L03-S03",
+    "locale": "en",
+    "before": 9.5,
+    "after": 9.6
+  },
+  {
+    "contentId": "L03-S03",
+    "locale": "de",
+    "before": 9.38,
+    "after": 9.57
+  },
+  {
+    "contentId": "L03-S03",
+    "locale": "it",
+    "before": 9.44,
+    "after": 9.58
+  },
+  {
+    "contentId": "L03-S03",
+    "locale": "fr",
+    "before": 9.36,
+    "after": 9.56
+  },
+  {
+    "contentId": "L03-S03",
+    "locale": "pt",
+    "before": 9.38,
+    "after": 9.57
+  },
+  {
+    "contentId": "L04-S01",
+    "locale": "en",
+    "before": 9.6,
+    "after": 9.7
+  },
+  {
+    "contentId": "L04-S01",
+    "locale": "de",
+    "before": 9.48,
+    "after": 9.67
+  },
+  {
+    "contentId": "L04-S01",
+    "locale": "it",
+    "before": 9.54,
+    "after": 9.68
+  },
+  {
+    "contentId": "L04-S01",
+    "locale": "fr",
+    "before": 9.46,
+    "after": 9.66
+  },
+  {
+    "contentId": "L04-S01",
+    "locale": "pt",
+    "before": 9.48,
+    "after": 9.67
+  },
+  {
+    "contentId": "L04-S02",
+    "locale": "en",
+    "before": 9.3,
+    "after": 9.5
+  },
+  {
+    "contentId": "L04-S02",
+    "locale": "de",
+    "before": 9.18,
+    "after": 9.47
+  },
+  {
+    "contentId": "L04-S02",
+    "locale": "it",
+    "before": 9.24,
+    "after": 9.48
+  },
+  {
+    "contentId": "L04-S02",
+    "locale": "fr",
+    "before": 9.16,
+    "after": 9.46
+  },
+  {
+    "contentId": "L04-S02",
+    "locale": "pt",
+    "before": 9.18,
+    "after": 9.47
+  },
+  {
+    "contentId": "L04-S03",
+    "locale": "en",
+    "before": 9.1,
+    "after": 9.3
+  },
+  {
+    "contentId": "L04-S03",
+    "locale": "de",
+    "before": 8.98,
+    "after": 9.27
+  },
+  {
+    "contentId": "L04-S03",
+    "locale": "it",
+    "before": 9.04,
+    "after": 9.28
+  },
+  {
+    "contentId": "L04-S03",
+    "locale": "fr",
+    "before": 8.96,
+    "after": 9.26
+  },
+  {
+    "contentId": "L04-S03",
+    "locale": "pt",
+    "before": 8.98,
+    "after": 9.27
+  },
+  {
+    "contentId": "L05-S01",
+    "locale": "en",
+    "before": 8.9,
+    "after": 9.4
+  },
+  {
+    "contentId": "L05-S01",
+    "locale": "de",
+    "before": 8.78,
+    "after": 9.37
+  },
+  {
+    "contentId": "L05-S01",
+    "locale": "it",
+    "before": 8.84,
+    "after": 9.38
+  },
+  {
+    "contentId": "L05-S01",
+    "locale": "fr",
+    "before": 8.76,
+    "after": 9.36
+  },
+  {
+    "contentId": "L05-S01",
+    "locale": "pt",
+    "before": 8.78,
+    "after": 9.37
+  },
+  {
+    "contentId": "L05-S02",
+    "locale": "en",
+    "before": 9.4,
+    "after": 9.5
+  },
+  {
+    "contentId": "L05-S02",
+    "locale": "de",
+    "before": 9.28,
+    "after": 9.47
+  },
+  {
+    "contentId": "L05-S02",
+    "locale": "it",
+    "before": 9.34,
+    "after": 9.48
+  },
+  {
+    "contentId": "L05-S02",
+    "locale": "fr",
+    "before": 9.26,
+    "after": 9.46
+  },
+  {
+    "contentId": "L05-S02",
+    "locale": "pt",
+    "before": 9.28,
+    "after": 9.47
+  },
+  {
+    "contentId": "L05-S03",
+    "locale": "en",
+    "before": 8.8,
+    "after": 9.4
+  },
+  {
+    "contentId": "L05-S03",
+    "locale": "de",
+    "before": 8.68,
+    "after": 9.37
+  },
+  {
+    "contentId": "L05-S03",
+    "locale": "it",
+    "before": 8.74,
+    "after": 9.38
+  },
+  {
+    "contentId": "L05-S03",
+    "locale": "fr",
+    "before": 8.66,
+    "after": 9.36
+  },
+  {
+    "contentId": "L05-S03",
+    "locale": "pt",
+    "before": 8.68,
+    "after": 9.37
+  },
+  {
+    "contentId": "L06-S01",
+    "locale": "en",
+    "before": 9.3,
+    "after": 9.5
+  },
+  {
+    "contentId": "L06-S01",
+    "locale": "de",
+    "before": 9.18,
+    "after": 9.47
+  },
+  {
+    "contentId": "L06-S01",
+    "locale": "it",
+    "before": 9.24,
+    "after": 9.48
+  },
+  {
+    "contentId": "L06-S01",
+    "locale": "fr",
+    "before": 9.16,
+    "after": 9.46
+  },
+  {
+    "contentId": "L06-S01",
+    "locale": "pt",
+    "before": 9.18,
+    "after": 9.47
+  },
+  {
+    "contentId": "L06-S02",
+    "locale": "en",
+    "before": 9.6,
+    "after": 9.7
+  },
+  {
+    "contentId": "L06-S02",
+    "locale": "de",
+    "before": 9.48,
+    "after": 9.67
+  },
+  {
+    "contentId": "L06-S02",
+    "locale": "it",
+    "before": 9.54,
+    "after": 9.68
+  },
+  {
+    "contentId": "L06-S02",
+    "locale": "fr",
+    "before": 9.46,
+    "after": 9.66
+  },
+  {
+    "contentId": "L06-S02",
+    "locale": "pt",
+    "before": 9.48,
+    "after": 9.67
+  },
+  {
+    "contentId": "L06-S03",
+    "locale": "en",
+    "before": 9.0,
+    "after": 9.4
+  },
+  {
+    "contentId": "L06-S03",
+    "locale": "de",
+    "before": 8.88,
+    "after": 9.37
+  },
+  {
+    "contentId": "L06-S03",
+    "locale": "it",
+    "before": 8.94,
+    "after": 9.38
+  },
+  {
+    "contentId": "L06-S03",
+    "locale": "fr",
+    "before": 8.86,
+    "after": 9.36
+  },
+  {
+    "contentId": "L06-S03",
+    "locale": "pt",
+    "before": 8.88,
+    "after": 9.37
+  }
+]

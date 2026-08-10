@@ -76,6 +76,7 @@ export * from "./history-person-reference-v35.js";
 export * from "./history-person-likeness-v35.js";
 export * from "./history-visual-direction-v1.js";
 export * from "./history-visual-direction-resolver-v1.js";
+export * from "./history-semantic-image-prompt-v1.js";
 export * from "./history-episode-discovery.js";
 export * from "./history-approval-pack-range.js";
 export * from "./history-approval-pack-concurrency.js";

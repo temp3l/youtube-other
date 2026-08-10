@@ -16,9 +16,10 @@ import {
   sceneIdSchema,
   scenePlanSchema,
   type ArtifactReference,
+  type EpisodeManifest,
   type NormalizedTranscript,
 } from "@mediaforge/domain";
-import { sliceSceneAudioFiles } from "@mediaforge/dark-truth";
+import { retimeScenePlan, sliceSceneAudioFiles } from "@mediaforge/dark-truth";
 import {
   approveEpisodeCharacter,
   buildEpisodeImageMediaContext,
@@ -90,6 +91,7 @@ import {
   normalizeContentVariant,
   normalizeEpisodeId,
   normalizeLocaleCode,
+  inspectSemanticImagePromptCache,
   safeBasename,
   slugify,
   resolveEpisodeNarrationAudioPath,
@@ -130,6 +132,7 @@ import {
   loadEpisodeScriptMarkdown,
   listEpisodeScriptLanguages,
   DEFAULT_SPEECH_VOICE,
+  VERONICA_DEFAULT_OPENAI_TTS_VOICE,
   loadSpeechVoiceSettings,
   splitEpisodeScriptMarkdown,
   probeAudioWithFfprobe,
@@ -218,6 +221,10 @@ import {
   diffHistoryTrustedScriptV33,
   reattestHistoryTrustDeltasV33,
   regenerateHistoryTrustedVisualsV33,
+  deriveHistorySemanticImagePromptBrief,
+  loadHistoryVisualPlanV35,
+  persistHistorySemanticImagePromptReview,
+  resolveHistorySemanticImagePromptPaths,
 } from "@mediaforge/history";
 import {
   ConnectedApiCliError,
@@ -650,24 +657,65 @@ function isEnglishLanguage(language: string): boolean {
   return language.toLowerCase() === "en";
 }
 
-function episodePathContext(episodeDir: string, language: string) {
+function episodePathContext(
+  episodeDir: string,
+  language: string,
+  variant: "full" | "short" = "full",
+) {
   const episodeRoot = path.resolve(episodeDir);
   const resolver = createEpisodePathResolver(path.dirname(episodeRoot));
   const context = {
     episodeId: normalizeEpisodeId(path.basename(episodeRoot)),
     locale: normalizeLocaleCode(language),
-    variant: normalizeContentVariant("full"),
+    variant: normalizeContentVariant(variant),
   };
   return { resolver, context };
 }
 
-function localizedAudioBaseDir(episodeDir: string, language: string): string {
-  const { resolver, context } = episodePathContext(episodeDir, language);
+function localizedAudioBaseDir(
+  episodeDir: string,
+  language: string,
+  variant: "full" | "short" = "full",
+): string {
+  const { resolver, context } = episodePathContext(episodeDir, language, variant);
   return resolver.localeVariantRoot(context);
 }
 
 function localizedSegmentsDirFromBase(audioBaseDir: string): string {
   return path.join(audioBaseDir, "audio", "segments");
+}
+
+function localizedScenePlanPath(audioBaseDir: string): string {
+  return path.join(audioBaseDir, "scene-plan.json");
+}
+
+async function loadLocalizedScenePlan(
+  audioBaseDir: string,
+  fallback: NonNullable<EpisodeManifest["scenePlan"]>
+): Promise<NonNullable<EpisodeManifest["scenePlan"]>> {
+  const scenePlanPath = localizedScenePlanPath(audioBaseDir);
+  if (!(await fileExists(scenePlanPath))) {
+    return fallback;
+  }
+  return scenePlanSchema.parse(
+    JSON.parse(await fs.readFile(scenePlanPath, "utf8")) as unknown
+  );
+}
+
+function retimeLocalizedScenePlan(
+  scenePlan: NonNullable<EpisodeManifest["scenePlan"]>,
+  narrationDurationSeconds: number
+): NonNullable<EpisodeManifest["scenePlan"]> {
+  const retimed = retimeScenePlan(scenePlan, narrationDurationSeconds);
+  return scenePlanSchema.parse({
+    ...retimed,
+    scenes: retimed.scenes.map((scene, index) => ({
+      ...scene,
+      expectedImageFilenames:
+        scenePlan.scenes[index]?.expectedImageFilenames ??
+        scene.expectedImageFilenames,
+    })),
+  });
 }
 
 function localizedNarrationPathFromBase(audioBaseDir: string): string {
@@ -820,9 +868,10 @@ async function localizedSceneAudioIsComplete(
 
 async function loadNarrationScriptMarkdown(
   episodeDir: string,
-  language: string
+  language: string,
+  variant: "full" | "short" = "full",
 ): Promise<{ readonly filePath: string; readonly text: string }> {
-  return loadEpisodeScriptMarkdown(episodeDir, language, "Narration Script");
+  return loadEpisodeScriptMarkdown(episodeDir, language, "Narration Script", variant);
 }
 
 function localeForLanguage(language: string): string {
@@ -872,7 +921,7 @@ async function loadValidatedNarrationDependency(
     readonly filePath: string;
   }
 > {
-  const script = await loadNarrationScriptMarkdown(episodeDir, language);
+  const script = await loadNarrationScriptMarkdown(episodeDir, language, variant);
   const narrationText = normalizeWhitespace(script.text);
   const episodeSlug = path.basename(episodeDir);
   const episodeNumber = episodeSlug.split("-")[0] ?? episodeSlug;
@@ -1236,6 +1285,7 @@ async function readManifestForEpisode(options: CliOptions, episodeId: string) {
           createEpisodePathResolver(
             path.dirname(episodeDir)
           ).canonicalScenesPath(normalizeEpisodeId(path.basename(episodeDir))),
+          path.join(episodeDir, "shared", "scenes.json"),
           path.join(episodeDir, "scenes.json"),
           path.join(episodeDir, "output", "scenes.json"),
         ];
@@ -2362,7 +2412,9 @@ async function commandAudioGenerate(
 async function commandAudioResliceSegments(
   options: CliOptions,
   episodeId: string,
-  narrationPathOverride?: string
+  narrationPathOverride?: string,
+  variant: "full" | "short" = "full",
+  retime = false
 ): Promise<void> {
   markEpisodeTelemetry(episodeId);
   const { manifest, episodeDir } = await readManifestForEpisode(options, episodeId);
@@ -2376,7 +2428,7 @@ async function commandAudioResliceSegments(
   );
   const language =
     config.scriptLanguage ?? episodeConfig?.scriptLanguage ?? "en";
-  const audioBaseDir = localizedAudioBaseDir(episodeDir, language);
+  const audioBaseDir = localizedAudioBaseDir(episodeDir, language, variant);
   const audioDir = path.join(audioBaseDir, "audio");
   const narrationPath = narrationPathOverride
     ? path.resolve(narrationPathOverride)
@@ -2391,33 +2443,50 @@ async function commandAudioResliceSegments(
       `No narration audio found under ${audioDir}. Expected narration_elevenlabs.mp3 or narration.wav.`
     );
   }
+  const durationSeconds = retime
+    ? await inspectAudioDurationSeconds(narrationPath)
+    : undefined;
+  const scenePlan =
+    durationSeconds === undefined
+      ? manifest.scenePlan
+      : retimeLocalizedScenePlan(manifest.scenePlan, durationSeconds);
+  const scenePlanPath = localizedScenePlanPath(audioBaseDir);
   if (options.dryRun) {
     printJson({
       episodeId,
       language,
+      variant,
       narrationPath,
       segmentsDir: localizedSegmentsDirFromBase(audioBaseDir),
-      sceneCount: manifest.scenePlan.scenes.length,
+      scenePlanPath,
+      retime,
+      ...(durationSeconds !== undefined ? { durationSeconds } : {}),
+      sceneCount: scenePlan.scenes.length,
       dryRun: true,
     });
     return;
   }
-  await sliceSceneAudioFiles(narrationPath, manifest.scenePlan, audioBaseDir);
-  const durationSeconds = await inspectAudioDurationSeconds(narrationPath);
+  if (retime) {
+    await writeJsonAtomic(scenePlanPath, scenePlan);
+  }
+  await sliceSceneAudioFiles(narrationPath, scenePlan, audioBaseDir);
   const result = {
     episodeId,
     language,
+    variant,
     narrationPath,
-    durationSeconds,
+    ...(durationSeconds !== undefined ? { durationSeconds } : {}),
     segmentsDir: localizedSegmentsDirFromBase(audioBaseDir),
-    sceneCount: manifest.scenePlan.scenes.length,
+    ...(retime ? { scenePlanPath } : {}),
+    retime,
+    sceneCount: scenePlan.scenes.length,
   };
   if (options.json) {
     printJson(result);
     return;
   }
   process.stdout.write(
-    `Resliced ${manifest.scenePlan.scenes.length} scene segments from ${narrationPath}\n`
+    `Resliced ${scenePlan.scenes.length} scene segments from ${narrationPath}\n`
   );
 }
 
@@ -3121,10 +3190,14 @@ async function commandRender(
   );
   const language =
     config.scriptLanguage ?? episodeConfig?.scriptLanguage ?? "en";
-  const audioBaseDir = localizedAudioBaseDir(episodeDir, language);
+  const variant: "full" | "short" = profile === "vertical" ? "short" : "full";
+  const audioBaseDir = localizedAudioBaseDir(episodeDir, language, variant);
+  const scenePlan = await loadLocalizedScenePlan(
+    audioBaseDir,
+    manifest.scenePlan
+  );
   const motion = buildMotionRenderConfigFromCli(renderOptions);
   if (options.dryRun) {
-    const variant = profile === "vertical" ? "short" : "full";
     printJson({
       episodeId,
       language,
@@ -3180,7 +3253,6 @@ async function commandRender(
     burnCaptions: Boolean(captionsPath),
   } as const;
   const runtime = await loadCliRuntime(options, episodeDir);
-  const variant: "full" | "short" = profile === "vertical" ? "short" : "full";
   const mediaContext: NonNullable<VideoRenderRequest["mediaContext"]> = {
     identity: {
       episodeId,
@@ -3203,7 +3275,7 @@ async function commandRender(
           shortMediaRequirements: {
             aspectRatio: "9:16" as const,
             durationSeconds:
-              manifest.scenePlan.scenes[manifest.scenePlan.scenes.length - 1]
+              scenePlan.scenes[scenePlan.scenes.length - 1]
                 ?.timing.endSeconds,
             safeVerticalComposition: true,
             focalSubjectPlacement: "center third",
@@ -3214,7 +3286,7 @@ async function commandRender(
   };
   const renderRequest: VideoRenderRequest = {
     episodeDir,
-    scenePlan: manifest.scenePlan,
+    scenePlan,
     outputDir: path.join(audioBaseDir, "renders", profile),
     clipsOutputDir: path.join(audioBaseDir, "renders"),
     renderProfile,
@@ -3349,6 +3421,9 @@ async function runAudioNarrationPipeline(
   markEpisodeTelemetry(episodeId);
   const resolved = await readEpisodeWorkspaceForAudio(options, episodeId);
   const { episodeDir } = resolved;
+  const episodeGenre = resolveEpisodeGenre(resolved.manifest?.sourceMetadata);
+  const isVeronica =
+    episodeGenre === "veronicabenini" || episodeGenre === "strategic-reinvention";
   const episodeConfig = await loadEpisodeConfig(episodeDir);
   const config = await loadRuntimeConfig(
     configOverridesFromCli(options),
@@ -3393,7 +3468,7 @@ async function runAudioNarrationPipeline(
   const voice =
     config.openAiSpeechVoice ??
     config.openAiCompatibleTtsVoice ??
-    DEFAULT_SPEECH_VOICE;
+    (isVeronica ? VERONICA_DEFAULT_OPENAI_TTS_VOICE : DEFAULT_SPEECH_VOICE);
   let loadedRuntime: CliRuntime | null = null;
   const loadTargetRuntime = async () => {
     loadedRuntime ??= await loadCliRuntime(options, episodeDir);
@@ -3418,7 +3493,7 @@ async function runAudioNarrationPipeline(
         artifactType: variant,
       });
       try {
-        if (narrationStageRequiresTts(stage)) {
+        if (narrationStageRequiresTts(stage) && !isVeronica) {
           await assertScriptScoreGate({
             outputRoot: path.dirname(episodeDir),
             episode: episodeId,
@@ -3459,12 +3534,15 @@ async function runAudioNarrationPipeline(
             const sceneNumber = idMatch?.[1] ?? "001";
             await runtime.speech.synthesize(
               {
-                contentProfileId: "dark-truth",
+                contentProfileId: isVeronica ? "veronicabenini" : "dark-truth",
                 sceneId: sceneIdSchema.parse(
                   `scene-${sceneNumber.padStart(3, "0")}`
                 ),
                 text: request.text,
-                voiceProfile: speechSettings.profile,
+                voiceProfile: {
+                  ...speechSettings.profile,
+                  providerVoiceId: voice,
+                },
                 outputPath: request.outputPath,
                 ...(request.targetDurationSeconds !== undefined
                   ? { targetDurationSeconds: request.targetDurationSeconds }
@@ -4943,12 +5021,23 @@ audioCommand
     "--narration-path <path>",
     "override narration source (mp3 or wav)"
   )
+  .option("--variant <full|short>", "target variant", "full")
+  .option(
+    "--retime",
+    "write a variant-local scene plan scaled to the narration duration"
+  )
   .option("--dry-run", "preview without writing segment files")
   .option("--json", "emit machine-readable output")
   .action(
     async (
       episodeId: string,
-      opts: { narrationPath?: string; dryRun?: boolean; json?: boolean }
+      opts: {
+        narrationPath?: string;
+        variant?: "full" | "short";
+        retime?: boolean;
+        dryRun?: boolean;
+        json?: boolean;
+      }
     ) => {
       await commandAudioResliceSegments(
         {
@@ -4957,7 +5046,9 @@ audioCommand
           ...(opts.json !== undefined ? { json: opts.json } : {}),
         },
         episodeId,
-        opts.narrationPath
+        opts.narrationPath,
+        parseNarrationVariant(opts.variant),
+        Boolean(opts.retime)
       );
     }
   );
@@ -5518,6 +5609,81 @@ registerHistoryCommands(program, {
   planHistoryVisualsV35,
   inspectHistoryVisualsV34,
   inspectHistoryVisualsV35,
+  deriveHistorySemanticImagePrompts: async (request) => {
+    const outputRoot = path.resolve(
+      request.outputRoot ?? path.join(process.cwd(), "episodes"),
+    );
+    const episodeDir = path.join(outputRoot, normalizeEpisodeId(request.episodeId));
+    const plan = await loadHistoryVisualPlanV35(episodeDir);
+    if (!plan) {
+      throw new Error(
+        `History V3.5 visual plan is required before semantic prompt derivation for ${request.episodeId}.`,
+      );
+    }
+    const runtime = await loadRuntimeConfig({ workspaceDir: outputRoot });
+    const fixtureValue = request.fixtureResponse
+      ? (JSON.parse(
+          await fs.readFile(path.resolve(request.fixtureResponse), "utf8"),
+        ) as unknown)
+      : undefined;
+    const client = request.fixtureResponse
+      ? {
+          responses: {
+            create: async () => ({
+              id: "history-semantic-fixture",
+              status: "completed",
+              output_text: JSON.stringify(fixtureValue),
+            }),
+          },
+        }
+      : createOpenAiStoryClientWithOptions({
+          apiKey: runtime.openAiCompatibleApiKey ?? undefined,
+          baseUrl: runtime.openAiCompatibleBaseUrl ?? undefined,
+          maxRetries: 0,
+        });
+    const derived = await deriveHistorySemanticImagePromptBrief({
+      episodeDir,
+      plan,
+      client,
+      model: request.fixtureResponse
+        ? "history-semantic-fixture-v1"
+        : process.env["HISTORY_IMAGE_PROMPT_PLANNER_MODEL"] ??
+          runtime.openAiStoryModel ??
+          "",
+      ...(request.refresh ? { refresh: true } : {}),
+    });
+    const persisted = await persistHistorySemanticImagePromptReview({
+      episodeDir,
+      plan,
+      artifact: derived.artifact,
+      cacheStatus: derived.cacheStatus,
+      previousArtifact: derived.previousArtifact,
+      findings: derived.findings,
+    });
+    return {
+      episodeId: plan.episodeId,
+      cacheStatus: derived.cacheStatus,
+      cachePath: resolveHistorySemanticImagePromptPaths(episodeDir).cachePath,
+      reviewPath: persisted.reviewPath,
+      semanticBriefHash: derived.artifact.briefHash,
+      finalPromptSetHash: persisted.finalPromptSetHash,
+      staleAssetIds: persisted.staleAssetIds,
+      imageGenerationCalls: 0,
+      researchCalls: 0,
+      claimExtractionCalls: 0,
+      webCalls: 0,
+    };
+  },
+  inspectHistorySemanticImagePrompts: async (request) => {
+    const episodeDir = path.join(
+      path.resolve(request.outputRoot ?? path.join(process.cwd(), "episodes")),
+      normalizeEpisodeId(request.episodeId),
+    );
+    const paths = resolveHistorySemanticImagePromptPaths(episodeDir);
+    const artifact = await inspectSemanticImagePromptCache(paths.cachePath);
+    const review = JSON.parse(await fs.readFile(paths.reviewPath, "utf8")) as unknown;
+    return { cachePath: paths.cachePath, reviewPath: paths.reviewPath, artifact, review };
+  },
   validateHistoryVisualPlanV34Command: async (request) => {
     const planned = await planHistoryVisualsV34(request);
     return planned.validation;

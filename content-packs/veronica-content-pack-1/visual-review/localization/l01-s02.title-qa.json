@@ -1,0 +1,103 @@
+{
+  "schemaVersion": "veronicabenini-title-transcreation-qa.v2",
+  "contentId": "L01-S02",
+  "locales": {
+    "en": {
+      "metadataTitle": "Skill Won’t Fix This Positioning Problem",
+      "displayTitle": "Skill Won’t Fix This Positioning Problem",
+      "displayLines": [
+        "Skill Won’t Fix This",
+        "Positioning Problem"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "de": {
+      "metadataTitle": "Mehr Können löst dieses Positionierungsproblem nicht",
+      "displayTitle": "Mehr Können löst dieses Positionierungsproblem nicht",
+      "displayLines": [
+        "Mehr Können löst dieses",
+        "Positionierungsproblem nicht"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "it": {
+      "metadataTitle": "Più competenza non risolve questo problema di posizionamento",
+      "displayTitle": "Più competenza non risolve questo problema di posizionamento",
+      "displayLines": [
+        "Più competenza non risolve",
+        "questo problema di posizionamento"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": true,
+      "sourceOverlayOverflowRisk": "medium",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": [
+        "youtube-title-length",
+        "overlay-fit-resolved-with-approved-display-layout"
+      ]
+    },
+    "fr": {
+      "metadataTitle": "Plus de compétence ne résout pas ce problème de positionnement",
+      "displayTitle": "La compétence ne suffit pas pour vous positionner",
+      "displayLines": [
+        "La compétence ne suffit pas",
+        "pour vous positionner"
+      ],
+      "displayTitleDistinctFromMetadata": true,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": true,
+      "sourceOverlayOverflowRisk": "medium",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": [
+        "youtube-title-length",
+        "overlay-fit-resolved-with-approved-display-layout"
+      ]
+    },
+    "pt": {
+      "metadataTitle": "Mais habilidade não resolve este problema de posicionamento",
+      "displayTitle": "Mais habilidade não resolve seu posicionamento",
+      "displayLines": [
+        "Mais habilidade não resolve",
+        "seu posicionamento"
+      ],
+      "displayTitleDistinctFromMetadata": true,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": true,
+      "sourceOverlayOverflowRisk": "medium",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": [
+        "youtube-title-length",
+        "overlay-fit-resolved-with-approved-display-layout"
+      ]
+    }
+  },
+  "sourceTitlesHash": "01ac5b213c8b8e585e35826a19b5b0251f354625165f3e10bbf138f75b7e931c",
+  "cacheKey": "bee05500e461535fc1665302668d782e46f3ec9f2155ce98b485704cd4548164",
+  "artifactHash": "47274868e7596ace06f0763855cf941406848e182220cf69246df9671572e96b"
+}

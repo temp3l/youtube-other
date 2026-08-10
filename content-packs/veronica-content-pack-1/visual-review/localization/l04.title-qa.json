@@ -1,0 +1,102 @@
+{
+  "schemaVersion": "veronicabenini-title-transcreation-qa.v2",
+  "contentId": "L04",
+  "locales": {
+    "en": {
+      "metadataTitle": "Stop Posting Randomly: Build Content People Remember",
+      "displayTitle": "Stop Posting Randomly: Build Content People Remember",
+      "displayLines": [
+        "Stop Posting Randomly: Build",
+        "Content People Remember"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "de": {
+      "metadataTitle": "Hör auf, wahllos zu posten: Erstelle Content, den man sich merkt",
+      "displayTitle": "Hör auf, wahllos zu posten: Erstelle Content, den man sich merkt",
+      "displayLines": [
+        "Hör auf, wahllos zu posten:",
+        "Erstelle Content, den man sich merkt"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "medium",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": [
+        "overlay-fit-resolved-with-approved-display-layout"
+      ]
+    },
+    "it": {
+      "metadataTitle": "Smetti di pubblicare a caso: crea contenuti che restano impressi",
+      "displayTitle": "Smetti di pubblicare a caso: crea contenuti che restano impressi",
+      "displayLines": [
+        "Smetti di pubblicare a caso: crea",
+        "contenuti che restano impressi"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "medium",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": [
+        "overlay-fit-resolved-with-approved-display-layout"
+      ]
+    },
+    "fr": {
+      "metadataTitle": "Arrêtez de publier au hasard : créez du contenu qu’on retient",
+      "displayTitle": "Arrêtez de publier au hasard : créez du contenu qu’on retient",
+      "displayLines": [
+        "Arrêtez de publier au hasard :",
+        "créez du contenu qu’on retient"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "medium",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": [
+        "overlay-fit-resolved-with-approved-display-layout"
+      ]
+    },
+    "pt": {
+      "metadataTitle": "Pare de postar sem direção: crie conteúdo que as pessoas lembram",
+      "displayTitle": "Pare de postar sem direção: crie conteúdo que as pessoas lembram",
+      "displayLines": [
+        "Pare de postar sem direção: crie",
+        "conteúdo que as pessoas lembram"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "medium",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": [
+        "overlay-fit-resolved-with-approved-display-layout"
+      ]
+    }
+  },
+  "sourceTitlesHash": "5e562d61c6f29f7b31bbcbd9086694d5e4c0c42836de5e8e996409d262c790b1",
+  "cacheKey": "287a02b1f3c0d0b52f96be3b2b80896c778198456fbbcad5f54ab9c5b706532c",
+  "artifactHash": "4ba805fa5d327fb292af2256a9bb270d349516dc87929b6da45dc5e39a456cc6"
+}

@@ -1,0 +1,97 @@
+{
+  "schemaVersion": "veronicabenini-title-transcreation-qa.v2",
+  "contentId": "L01",
+  "locales": {
+    "en": {
+      "metadataTitle": "Why Better Experts Still Lose Clients",
+      "displayTitle": "Why Better Experts Still Lose Clients",
+      "displayLines": [
+        "Why Better Experts Still Lose Clients"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "de": {
+      "metadataTitle": "Warum bessere Fachleute trotzdem Kunden verlieren",
+      "displayTitle": "Warum bessere Fachleute trotzdem Kunden verlieren",
+      "displayLines": [
+        "Warum bessere Fachleute",
+        "trotzdem Kunden verlieren"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "it": {
+      "metadataTitle": "Perché anche i professionisti migliori perdono clienti",
+      "displayTitle": "Perché anche i professionisti migliori perdono clienti",
+      "displayLines": [
+        "Perché anche i professionisti",
+        "migliori perdono clienti"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "medium",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": [
+        "overlay-fit-resolved-with-approved-display-layout"
+      ]
+    },
+    "fr": {
+      "metadataTitle": "Pourquoi les meilleurs experts perdent quand même des clients",
+      "displayTitle": "Pourquoi les meilleurs experts perdent quand même des clients",
+      "displayLines": [
+        "Pourquoi les meilleurs experts",
+        "perdent quand même des clients"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "medium",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": [
+        "overlay-fit-resolved-with-approved-display-layout"
+      ]
+    },
+    "pt": {
+      "metadataTitle": "Por que até bons especialistas perdem clientes",
+      "displayTitle": "Por que até bons especialistas perdem clientes",
+      "displayLines": [
+        "Por que até bons",
+        "especialistas perdem clientes"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    }
+  },
+  "sourceTitlesHash": "3fa1e77317ac55f0f715ae5599fb15030760cb5b1df7786975cdc19fed6d92c9",
+  "cacheKey": "cd026639f756b1fd0deeb7f7056efc261ee8c03eb565906e0b49efdfc8b4b8b1",
+  "artifactHash": "5974843a680d4fba63348a79f344c54aedad37f3f9715465bfbf7effc2c505fd"
+}

@@ -342,3 +342,4 @@ export function tempDir(): string {
 export * from "./episode-filesystem.js";
 export * from "./artifact-path-resolver.js";
 export * from "./prompt-cache.js";
+export * from "./semantic-image-prompt.js";

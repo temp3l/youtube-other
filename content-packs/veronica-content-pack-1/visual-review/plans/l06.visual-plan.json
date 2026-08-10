@@ -1,0 +1,4034 @@
+{
+  "schemaVersion": "veronicabenini-positioning-visual-plan.v2",
+  "plannerVersion": "veronicabenini-positioning-visual-planner.v2.1",
+  "contentId": "L06",
+  "parentLongFormId": "L06",
+  "format": "long",
+  "aspectRatio": "16:9",
+  "canonicalNarrationSource": "long/en/06-how-to-reposition-yourself-when-your-business-changes.md",
+  "canonicalSourceHash": "abfd07a915558b9607a8065aef158fb9c7eab58288d80f022169f775f2d9a3e6",
+  "sourceNarrationSemanticHash": "f57f3f0035eb84d5347d17e4f0a26024fb5e01c8fc5924f924875272f65c2b98",
+  "semanticBeatStructureHash": "b1b8cf5ec335dc2907ea59ca76631b3e593feaa330bd9f16470ebb04b3f62394",
+  "semanticPlanCacheKey": "364cb00ec4319f5411fc7a8749a03de498fb6fb8fdda6870d6b79df3aa221f36",
+  "canonicalImagePlanHash": "304a607a807f57855f787937198de05927446bcf8652d3587b0951e40faf8d02",
+  "renderEventPlanHash": "985aa971de612036b28ad904b1f6cace0f9735104b427ec52c8d6ef236f147c1",
+  "localizedTitleArtifact": {
+    "schemaVersion": "veronicabenini-title-transcreation-qa.v2",
+    "contentId": "L06",
+    "locales": {
+      "en": {
+        "metadataTitle": "Your Business Changed. Your Audience Didn't.",
+        "displayTitle": "Your Business Changed. Your Audience Didn't.",
+        "displayLines": [
+          "Your Business Changed.",
+          "Your Audience Didn't."
+        ],
+        "displayTitleDistinctFromMetadata": false,
+        "minimumFontScale": 1,
+        "naturalness": "reviewed-source",
+        "semanticPreservation": "pass",
+        "excessiveLength": false,
+        "sourceOverlayOverflowRisk": "low",
+        "overlayOverflowRisk": "low",
+        "awkwardLiteralTranslation": false,
+        "warnings": []
+      },
+      "de": {
+        "metadataTitle": "Dein Business hat sich verändert. Dein Publikum noch nicht.",
+        "displayTitle": "Dein Business hat sich verändert. Dein Publikum noch nicht.",
+        "displayLines": [
+          "Dein Business hat sich verändert.",
+          "Dein Publikum noch nicht."
+        ],
+        "displayTitleDistinctFromMetadata": false,
+        "minimumFontScale": 1,
+        "naturalness": "reviewed-source",
+        "semanticPreservation": "pass",
+        "excessiveLength": false,
+        "sourceOverlayOverflowRisk": "medium",
+        "overlayOverflowRisk": "low",
+        "awkwardLiteralTranslation": false,
+        "warnings": [
+          "overlay-fit-resolved-with-approved-display-layout"
+        ]
+      },
+      "it": {
+        "metadataTitle": "Il tuo business è cambiato. Il pubblico non ancora.",
+        "displayTitle": "Il tuo business è cambiato. Il pubblico non ancora.",
+        "displayLines": [
+          "Il tuo business è cambiato.",
+          "Il pubblico non ancora."
+        ],
+        "displayTitleDistinctFromMetadata": false,
+        "minimumFontScale": 1,
+        "naturalness": "reviewed-source",
+        "semanticPreservation": "pass",
+        "excessiveLength": false,
+        "sourceOverlayOverflowRisk": "low",
+        "overlayOverflowRisk": "low",
+        "awkwardLiteralTranslation": false,
+        "warnings": []
+      },
+      "fr": {
+        "metadataTitle": "Votre activité a changé. Votre audience, pas encore.",
+        "displayTitle": "Votre activité a changé. Votre audience, pas encore.",
+        "displayLines": [
+          "Votre activité a changé.",
+          "Votre audience, pas encore."
+        ],
+        "displayTitleDistinctFromMetadata": false,
+        "minimumFontScale": 1,
+        "naturalness": "reviewed-source",
+        "semanticPreservation": "pass",
+        "excessiveLength": false,
+        "sourceOverlayOverflowRisk": "low",
+        "overlayOverflowRisk": "low",
+        "awkwardLiteralTranslation": false,
+        "warnings": []
+      },
+      "pt": {
+        "metadataTitle": "Seu negócio mudou. Seu público ainda não.",
+        "displayTitle": "Seu negócio mudou. Seu público ainda não.",
+        "displayLines": [
+          "Seu negócio mudou.",
+          "Seu público ainda não."
+        ],
+        "displayTitleDistinctFromMetadata": false,
+        "minimumFontScale": 1,
+        "naturalness": "reviewed-source",
+        "semanticPreservation": "pass",
+        "excessiveLength": false,
+        "sourceOverlayOverflowRisk": "low",
+        "overlayOverflowRisk": "low",
+        "awkwardLiteralTranslation": false,
+        "warnings": []
+      }
+    },
+    "sourceTitlesHash": "d0354c102085c9b79ea4f6e0d3560822faac9f14ffb5ef45a01d46226aefecef",
+    "cacheKey": "4241781aaf93b92e932cb2db7d1403e9be24dace270bb1536e147a97c08c9d4f",
+    "artifactHash": "fedc187612ab2b2acf63c252f046baa5435bacd6ba30a504513149c185a463b6"
+  },
+  "visualVocabulary": {
+    "schemaVersion": "veronicabenini-positioning-visual-vocabulary.v1",
+    "episodeId": "L06",
+    "semanticDomains": [
+      "content-positioning",
+      "repositioning",
+      "authority-recognition",
+      "expertise-perceived-value"
+    ],
+    "recurringMotifs": [
+      "one core idea propagating across a physical media ecosystem",
+      "thresholds, bridges, and matched old/new identity states",
+      "knowledge moving through stages, interviews, and recommendations",
+      "visible evidence trails and consequential client choices"
+    ],
+    "environments": [
+      "editorial wall",
+      "podcast booth",
+      "multi-format production table",
+      "identity threshold corridor",
+      "old workplace",
+      "new client context",
+      "case-study archive",
+      "client decision setting",
+      "active professional context",
+      "case-study archive",
+      "client decision setting",
+      "active professional context"
+    ],
+    "materialPalette": [
+      "warm paper",
+      "coral accent",
+      "ink",
+      "glass",
+      "unfinished wood"
+    ],
+    "excludedCliches": [
+      "generic professional in office",
+      "laptop-at-desk pose",
+      "repeated notebook-and-cards staging",
+      "unmotivated business handshake"
+    ],
+    "sourceSemanticHash": "5227f3f9098f109870f31e2c68b108552e2654f4549eb2644b79f7a4b5805134",
+    "cacheKey": "40fcfd3a8ed912d90bd8e4a4eab95176ad16bd0b3a02915fac2f5ec5444fa989",
+    "vocabularyHash": "5806441110f15fdefcb2491e3d4205178d915801e8a5a4ac8404ee583a46f748"
+  },
+  "coldOpen": {
+    "sceneId": "L06-COLD_OPEN",
+    "progressionStage": "COLD_OPEN",
+    "narrationAnchor": "unresolved-contradiction-consequence-old-position-new-offer-conflict",
+    "startMs": 0,
+    "durationMs": 10590,
+    "treatment": {
+      "treatmentId": "l06-cold_open-treatment",
+      "sceneId": "L06-COLD_OPEN",
+      "progressionStage": "COLD_OPEN",
+      "narrativeBeat": "unresolved-contradiction-consequence-old-position-new-offer-conflict",
+      "communicationIntent": "create-tension",
+      "strategy": "identity-perception",
+      "subjectRequirement": "evolved professional seen through an audience-held legacy image",
+      "environment": "street-facing reflection installation joining old category and changed business",
+      "composition": "split-time reflection with current person offset from persistent public image",
+      "camera": "58mm through-glass parallax view",
+      "lighting": "mixed old cool reflection and current warm practical light",
+      "action": "professional presents changed work while audience reflection remains attached to old category",
+      "props": [
+        "legacy silhouette reflected over new work evidence",
+        "new offer artifact"
+      ],
+      "motionOpportunities": [
+        "slow-push",
+        "masked-overlay",
+        "subject-detail",
+        "transition-state"
+      ],
+      "diagram": null,
+      "grammar": {
+        "strategy": "identity-perception",
+        "subjectArchetype": "evolved professional seen through an audience-held legacy image",
+        "environment": "street-facing reflection installation joining old category and changed business",
+        "composition": "split-time reflection with current person offset from persistent public image",
+        "camera": "58mm through-glass parallax view",
+        "props": [
+          "legacy silhouette reflected over new work evidence",
+          "new offer artifact"
+        ],
+        "topology": "none",
+        "semanticTokens": [
+          "conflict",
+          "consequence",
+          "contradiction",
+          "new",
+          "offer",
+          "old",
+          "position",
+          "unresolved"
+        ],
+        "continuityIdentityId": "l06-protagonist"
+      },
+      "viewerVisibleFingerprint": {
+        "strategyFamily": "identity-perception",
+        "subjectArchetype": "evolved professional seen through an audience-held legacy image",
+        "environmentArchetype": "street-facing reflection installation joining old category and changed business",
+        "compositionArchetype": "split-time reflection with current person offset from persistent public image",
+        "cameraArchetype": "58mm through-glass parallax view",
+        "lightingArchetype": "mixed old cool reflection and current warm practical light",
+        "actionArchetype": "professional presents changed work while audience reflection remains attached to old category",
+        "dominantObjectArchetype": "legacy silhouette reflected over new work evidence",
+        "motionArchetype": "parallax identity mismatch then association replacement"
+      },
+      "treatmentHash": "4d64f40e03a90e2be2e6d0bf8eb35c892c0df8167d814fecead4627234d0d017"
+    },
+    "overlayKey": "l06.l06-cold_open",
+    "assetId": "l06-cold_open-base",
+    "eventIds": [
+      "l06-cold_open-event-01",
+      "l06-cold_open-event-02",
+      "l06-cold_open-event-03",
+      "l06-cold_open-event-04"
+    ]
+  },
+  "progression": [
+    "COLD_OPEN",
+    "MANIFESTATION",
+    "EXPLANATION",
+    "EXPLANATION",
+    "METHOD",
+    "EXPLANATION",
+    "EXPLANATION",
+    "EXPLANATION",
+    "PAYOFF"
+  ],
+  "continuity": {
+    "mode": "persistent-protagonist",
+    "identityId": "l06-protagonist",
+    "identityFingerprint": "b288f607d1e124ba3146c2887f120941f3dc0bfcdf8e3ab2e54e6eabee395fb0",
+    "appearance": {
+      "ageBand": "38-45",
+      "genderPresentation": "feminine",
+      "hair": "dark shoulder-length wavy hair",
+      "wardrobeAnchor": "rust jacket with charcoal workwear separates"
+    },
+    "referencePolicy": "reuse-only-for-linked-scenes",
+    "linkedSceneIds": [
+      "L06-COLD_OPEN",
+      "L06-V01",
+      "L06-V02",
+      "L06-V03",
+      "L06-V04",
+      "L06-V05",
+      "L06-V06",
+      "L06-V07",
+      "L06-V08"
+    ]
+  },
+  "scenes": [
+    {
+      "sceneId": "L06-COLD_OPEN",
+      "progressionStage": "COLD_OPEN",
+      "narrationAnchor": "unresolved-contradiction-consequence-old-position-new-offer-conflict",
+      "startMs": 0,
+      "durationMs": 10590,
+      "treatment": {
+        "treatmentId": "l06-cold_open-treatment",
+        "sceneId": "L06-COLD_OPEN",
+        "progressionStage": "COLD_OPEN",
+        "narrativeBeat": "unresolved-contradiction-consequence-old-position-new-offer-conflict",
+        "communicationIntent": "create-tension",
+        "strategy": "identity-perception",
+        "subjectRequirement": "evolved professional seen through an audience-held legacy image",
+        "environment": "street-facing reflection installation joining old category and changed business",
+        "composition": "split-time reflection with current person offset from persistent public image",
+        "camera": "58mm through-glass parallax view",
+        "lighting": "mixed old cool reflection and current warm practical light",
+        "action": "professional presents changed work while audience reflection remains attached to old category",
+        "props": [
+          "legacy silhouette reflected over new work evidence",
+          "new offer artifact"
+        ],
+        "motionOpportunities": [
+          "slow-push",
+          "masked-overlay",
+          "subject-detail",
+          "transition-state"
+        ],
+        "diagram": null,
+        "grammar": {
+          "strategy": "identity-perception",
+          "subjectArchetype": "evolved professional seen through an audience-held legacy image",
+          "environment": "street-facing reflection installation joining old category and changed business",
+          "composition": "split-time reflection with current person offset from persistent public image",
+          "camera": "58mm through-glass parallax view",
+          "props": [
+            "legacy silhouette reflected over new work evidence",
+            "new offer artifact"
+          ],
+          "topology": "none",
+          "semanticTokens": [
+            "conflict",
+            "consequence",
+            "contradiction",
+            "new",
+            "offer",
+            "old",
+            "position",
+            "unresolved"
+          ],
+          "continuityIdentityId": "l06-protagonist"
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "identity-perception",
+          "subjectArchetype": "evolved professional seen through an audience-held legacy image",
+          "environmentArchetype": "street-facing reflection installation joining old category and changed business",
+          "compositionArchetype": "split-time reflection with current person offset from persistent public image",
+          "cameraArchetype": "58mm through-glass parallax view",
+          "lightingArchetype": "mixed old cool reflection and current warm practical light",
+          "actionArchetype": "professional presents changed work while audience reflection remains attached to old category",
+          "dominantObjectArchetype": "legacy silhouette reflected over new work evidence",
+          "motionArchetype": "parallax identity mismatch then association replacement"
+        },
+        "treatmentHash": "4d64f40e03a90e2be2e6d0bf8eb35c892c0df8167d814fecead4627234d0d017"
+      },
+      "overlayKey": "l06.l06-cold_open",
+      "assetId": "l06-cold_open-base",
+      "eventIds": [
+        "l06-cold_open-event-01",
+        "l06-cold_open-event-02",
+        "l06-cold_open-event-03",
+        "l06-cold_open-event-04"
+      ]
+    },
+    {
+      "sceneId": "L06-V01",
+      "progressionStage": "MANIFESTATION",
+      "narrationAnchor": "old-position-new-offer-conflict",
+      "startMs": 10590,
+      "durationMs": 51626,
+      "treatment": {
+        "treatmentId": "l06-v01-treatment",
+        "sceneId": "L06-V01",
+        "progressionStage": "MANIFESTATION",
+        "narrativeBeat": "old-position-new-offer-conflict",
+        "communicationIntent": "compare-alternatives",
+        "strategy": "transformation",
+        "subjectRequirement": "one professional crossing between conflicting public identities; same protagonist l06-protagonist",
+        "environment": "transitional corridor linking old and new work contexts; backstage production zone",
+        "composition": "threshold composition with subject moving across the divide; left-to-right reveal path",
+        "camera": "32mm lateral tracking perspective; elevated diagonal viewpoint",
+        "lighting": "soft directional editorial daylight",
+        "action": "two alternatives reveal a meaningful contrast",
+        "props": [
+          "old portfolio",
+          "new proof object",
+          "conflict evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "diagram-build",
+          "highlighted-region",
+          "punch-in"
+        ],
+        "diagram": {
+          "diagramId": "l06-v01-diagram",
+          "proposition": "old-position-new-offer-conflict",
+          "textFreeBackground": true,
+          "type": "before-after",
+          "before": {
+            "id": "l06-v01-diagram-before-state",
+            "semanticRole": "before-state",
+            "labelKey": "l06-v01-diagram.before-state"
+          },
+          "transformation": {
+            "id": "l06-v01-diagram-transformation",
+            "semanticRole": "transformation",
+            "labelKey": "l06-v01-diagram.transformation"
+          },
+          "after": {
+            "id": "l06-v01-diagram-after-state",
+            "semanticRole": "after-state",
+            "labelKey": "l06-v01-diagram.after-state"
+          },
+          "edges": [
+            {
+              "from": "l06-v01-diagram-before-state",
+              "to": "l06-v01-diagram-transformation",
+              "semanticRole": "changes-through"
+            },
+            {
+              "from": "l06-v01-diagram-transformation",
+              "to": "l06-v01-diagram-after-state",
+              "semanticRole": "becomes"
+            }
+          ],
+          "overlayLabelKeys": [
+            "l06-v01-diagram.before-state",
+            "l06-v01-diagram.transformation",
+            "l06-v01-diagram.after-state"
+          ]
+        },
+        "grammar": {
+          "strategy": "transformation",
+          "subjectArchetype": "persistent-protagonist",
+          "environment": "transitional corridor linking old and new work contexts; backstage production zone",
+          "composition": "threshold composition with subject moving across the divide; left-to-right reveal path",
+          "camera": "32mm lateral tracking perspective; elevated diagonal viewpoint",
+          "props": [
+            "old portfolio",
+            "new proof object",
+            "conflict evidence artifact"
+          ],
+          "topology": "before-after",
+          "semanticTokens": [
+            "conflict",
+            "new",
+            "offer",
+            "old",
+            "position"
+          ],
+          "continuityIdentityId": "l06-protagonist"
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "transformation",
+          "subjectArchetype": "persistent-protagonist",
+          "environmentArchetype": "transitional corridor linking old and new work contexts; backstage production zone",
+          "compositionArchetype": "threshold composition with subject moving across the divide; left-to-right reveal path",
+          "cameraArchetype": "32mm lateral tracking perspective; elevated diagonal viewpoint",
+          "lightingArchetype": "soft directional editorial daylight",
+          "actionArchetype": "two alternatives reveal a meaningful contrast",
+          "dominantObjectArchetype": "old portfolio",
+          "motionArchetype": "establishing-crop-then-diagram-build-then-highlighted-region-then-punch-in"
+        },
+        "treatmentHash": "9373a48b1fe65006b5038b6d6a2776e68bea3dc60079b1666da768fd126f54a3"
+      },
+      "overlayKey": "l06.l06-v01",
+      "assetId": "l06-v01-base",
+      "eventIds": [
+        "l06-v01-event-01",
+        "l06-v01-event-02",
+        "l06-v01-event-03",
+        "l06-v01-event-04",
+        "l06-v01-event-05",
+        "l06-v01-event-06",
+        "l06-v01-event-07",
+        "l06-v01-event-08",
+        "l06-v01-event-09",
+        "l06-v01-event-10",
+        "l06-v01-event-11"
+      ]
+    },
+    {
+      "sceneId": "L06-V02",
+      "progressionStage": "EXPLANATION",
+      "narrationAnchor": "existing-market-association",
+      "startMs": 62216,
+      "durationMs": 51626,
+      "treatment": {
+        "treatmentId": "l06-v02-treatment",
+        "sceneId": "L06-V02",
+        "progressionStage": "EXPLANATION",
+        "narrativeBeat": "existing-market-association",
+        "communicationIntent": "define-category",
+        "strategy": "market-crowd",
+        "subjectRequirement": "many visually similar providers and one legible category owner; same protagonist l06-protagonist",
+        "environment": "crowded trade hall or market aisle; client point-of-decision zone",
+        "composition": "compressed crowd field with controlled focal isolation; central void separating competing signals",
+        "camera": "105mm elevated telephoto compression; subjective client viewpoint",
+        "lighting": "natural public-space practical light",
+        "action": "a broad field resolves into a legible category",
+        "props": [
+          "repeated neutral objects",
+          "single category artifact",
+          "association evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "slow-push",
+          "subject-detail",
+          "transition-state"
+        ],
+        "diagram": null,
+        "grammar": {
+          "strategy": "market-crowd",
+          "subjectArchetype": "persistent-protagonist",
+          "environment": "crowded trade hall or market aisle; client point-of-decision zone",
+          "composition": "compressed crowd field with controlled focal isolation; central void separating competing signals",
+          "camera": "105mm elevated telephoto compression; subjective client viewpoint",
+          "props": [
+            "repeated neutral objects",
+            "single category artifact",
+            "association evidence artifact"
+          ],
+          "topology": "none",
+          "semanticTokens": [
+            "association",
+            "existing",
+            "market"
+          ],
+          "continuityIdentityId": "l06-protagonist"
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "market-crowd",
+          "subjectArchetype": "persistent-protagonist",
+          "environmentArchetype": "crowded trade hall or market aisle; client point-of-decision zone",
+          "compositionArchetype": "compressed crowd field with controlled focal isolation; central void separating competing signals",
+          "cameraArchetype": "105mm elevated telephoto compression; subjective client viewpoint",
+          "lightingArchetype": "natural public-space practical light",
+          "actionArchetype": "a broad field resolves into a legible category",
+          "dominantObjectArchetype": "repeated neutral objects",
+          "motionArchetype": "establishing-crop-then-slow-push-then-subject-detail-then-transition-state"
+        },
+        "treatmentHash": "b396f4eded04e064a0e70ada21e44517f032ff23d7c691cd9792667ea37bd5e0"
+      },
+      "overlayKey": "l06.l06-v02",
+      "assetId": "l06-v02-base",
+      "eventIds": [
+        "l06-v02-event-01",
+        "l06-v02-event-02",
+        "l06-v02-event-03",
+        "l06-v02-event-04",
+        "l06-v02-event-05",
+        "l06-v02-event-06",
+        "l06-v02-event-07",
+        "l06-v02-event-08",
+        "l06-v02-event-09",
+        "l06-v02-event-10",
+        "l06-v02-event-11"
+      ]
+    },
+    {
+      "sceneId": "L06-V03",
+      "progressionStage": "EXPLANATION",
+      "narrationAnchor": "define-new-position",
+      "startMs": 113842,
+      "durationMs": 51626,
+      "treatment": {
+        "treatmentId": "l06-v03-treatment",
+        "sceneId": "L06-V03",
+        "progressionStage": "EXPLANATION",
+        "narrativeBeat": "define-new-position",
+        "communicationIntent": "show-transformation",
+        "strategy": "transformation",
+        "subjectRequirement": "one professional crossing between conflicting public identities; same protagonist l06-protagonist",
+        "environment": "transitional corridor linking old and new work contexts; artifact archive zone",
+        "composition": "threshold composition with subject moving across the divide; occluded-to-visible information progression",
+        "camera": "32mm lateral tracking perspective; lateral profile viewpoint",
+        "lighting": "soft directional editorial daylight",
+        "action": "one visible state transitions into another",
+        "props": [
+          "old portfolio",
+          "new proof object",
+          "define evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "slow-push",
+          "subject-detail",
+          "transition-state"
+        ],
+        "diagram": null,
+        "grammar": {
+          "strategy": "transformation",
+          "subjectArchetype": "persistent-protagonist",
+          "environment": "transitional corridor linking old and new work contexts; artifact archive zone",
+          "composition": "threshold composition with subject moving across the divide; occluded-to-visible information progression",
+          "camera": "32mm lateral tracking perspective; lateral profile viewpoint",
+          "props": [
+            "old portfolio",
+            "new proof object",
+            "define evidence artifact"
+          ],
+          "topology": "none",
+          "semanticTokens": [
+            "define",
+            "new",
+            "position"
+          ],
+          "continuityIdentityId": "l06-protagonist"
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "transformation",
+          "subjectArchetype": "persistent-protagonist",
+          "environmentArchetype": "transitional corridor linking old and new work contexts; artifact archive zone",
+          "compositionArchetype": "threshold composition with subject moving across the divide; occluded-to-visible information progression",
+          "cameraArchetype": "32mm lateral tracking perspective; lateral profile viewpoint",
+          "lightingArchetype": "soft directional editorial daylight",
+          "actionArchetype": "one visible state transitions into another",
+          "dominantObjectArchetype": "old portfolio",
+          "motionArchetype": "establishing-crop-then-slow-push-then-subject-detail-then-transition-state"
+        },
+        "treatmentHash": "fea0c85f83aa41324f4773d498b8a8222b16ed277bd221d745b893ba2376a5b9"
+      },
+      "overlayKey": "l06.l06-v03",
+      "assetId": "l06-v03-base",
+      "eventIds": [
+        "l06-v03-event-01",
+        "l06-v03-event-02",
+        "l06-v03-event-03",
+        "l06-v03-event-04",
+        "l06-v03-event-05",
+        "l06-v03-event-06",
+        "l06-v03-event-07",
+        "l06-v03-event-08",
+        "l06-v03-event-09",
+        "l06-v03-event-10",
+        "l06-v03-event-11"
+      ]
+    },
+    {
+      "sceneId": "L06-V04",
+      "progressionStage": "METHOD",
+      "narrationAnchor": "bridge-old-to-new",
+      "startMs": 165468,
+      "durationMs": 51626,
+      "treatment": {
+        "treatmentId": "l06-v04-treatment",
+        "sceneId": "L06-V04",
+        "progressionStage": "METHOD",
+        "narrativeBeat": "bridge-old-to-new",
+        "communicationIntent": "show-transformation",
+        "strategy": "before-after",
+        "subjectRequirement": "same identity before, during, and after a positioning change; same protagonist l06-protagonist",
+        "environment": "matched triptych across evolving business contexts; peer-referral setting",
+        "composition": "three-state panoramic progression; near-far contrast between choice and result",
+        "camera": "50mm matched locked frames; compressed distant observation",
+        "lighting": "soft directional editorial daylight",
+        "action": "one visible state transitions into another",
+        "props": [
+          "legacy signal",
+          "bridge artifact",
+          "new signal",
+          "bridge evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "diagram-build",
+          "highlighted-region",
+          "punch-in"
+        ],
+        "diagram": {
+          "diagramId": "l06-v04-diagram",
+          "proposition": "bridge-old-to-new",
+          "textFreeBackground": true,
+          "type": "sequence",
+          "orderedNodes": [
+            {
+              "id": "l06-v04-diagram-credible-past",
+              "semanticRole": "credible-past",
+              "labelKey": "l06-v04-diagram.credible-past"
+            },
+            {
+              "id": "l06-v04-diagram-bridge-evidence",
+              "semanticRole": "bridge-evidence",
+              "labelKey": "l06-v04-diagram.bridge-evidence"
+            },
+            {
+              "id": "l06-v04-diagram-new-position",
+              "semanticRole": "new-position",
+              "labelKey": "l06-v04-diagram.new-position"
+            }
+          ],
+          "edges": [
+            {
+              "from": "l06-v04-diagram-credible-past",
+              "to": "l06-v04-diagram-bridge-evidence",
+              "semanticRole": "supports"
+            },
+            {
+              "from": "l06-v04-diagram-bridge-evidence",
+              "to": "l06-v04-diagram-new-position",
+              "semanticRole": "transitions-to"
+            }
+          ],
+          "overlayLabelKeys": [
+            "l06-v04-diagram.credible-past",
+            "l06-v04-diagram.bridge-evidence",
+            "l06-v04-diagram.new-position"
+          ]
+        },
+        "grammar": {
+          "strategy": "before-after",
+          "subjectArchetype": "persistent-protagonist",
+          "environment": "matched triptych across evolving business contexts; peer-referral setting",
+          "composition": "three-state panoramic progression; near-far contrast between choice and result",
+          "camera": "50mm matched locked frames; compressed distant observation",
+          "props": [
+            "legacy signal",
+            "bridge artifact",
+            "new signal",
+            "bridge evidence artifact"
+          ],
+          "topology": "sequence",
+          "semanticTokens": [
+            "bridge",
+            "new",
+            "old"
+          ],
+          "continuityIdentityId": "l06-protagonist"
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "before-after",
+          "subjectArchetype": "persistent-protagonist",
+          "environmentArchetype": "matched triptych across evolving business contexts; peer-referral setting",
+          "compositionArchetype": "three-state panoramic progression; near-far contrast between choice and result",
+          "cameraArchetype": "50mm matched locked frames; compressed distant observation",
+          "lightingArchetype": "soft directional editorial daylight",
+          "actionArchetype": "one visible state transitions into another",
+          "dominantObjectArchetype": "legacy signal",
+          "motionArchetype": "establishing-crop-then-diagram-build-then-highlighted-region-then-punch-in"
+        },
+        "treatmentHash": "c58ffd70f827f7589b1ccaeb22dcc39eda9b9d791e9812c9bb9539d4085571ca"
+      },
+      "overlayKey": "l06.l06-v04",
+      "assetId": "l06-v04-base",
+      "eventIds": [
+        "l06-v04-event-01",
+        "l06-v04-event-02",
+        "l06-v04-event-03",
+        "l06-v04-event-04",
+        "l06-v04-event-05",
+        "l06-v04-event-06",
+        "l06-v04-event-07",
+        "l06-v04-event-08",
+        "l06-v04-event-09",
+        "l06-v04-event-10",
+        "l06-v04-event-11"
+      ]
+    },
+    {
+      "sceneId": "L06-V05",
+      "progressionStage": "EXPLANATION",
+      "narrationAnchor": "new-evidence-content",
+      "startMs": 217094,
+      "durationMs": 51626,
+      "treatment": {
+        "treatmentId": "l06-v05-treatment",
+        "sceneId": "L06-V05",
+        "progressionStage": "EXPLANATION",
+        "narrativeBeat": "new-evidence-content",
+        "communicationIntent": "make-proof-visible",
+        "strategy": "publishing-media-authority",
+        "subjectRequirement": "expert contributing knowledge through a public medium; same protagonist l06-protagonist",
+        "environment": "podcast booth, small stage, interview corner, or editorial desk; field-work context",
+        "composition": "medium-wide frame with medium and audience both visible; layered reflection with off-axis evidence",
+        "camera": "70mm off-axis broadcast documentary; close foreground parallax",
+        "lighting": "soft directional editorial daylight",
+        "action": "observable proof accumulates toward trust",
+        "props": [
+          "microphone",
+          "camera tally light",
+          "printed proof",
+          "content evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "slow-push",
+          "subject-detail",
+          "transition-state"
+        ],
+        "diagram": null,
+        "grammar": {
+          "strategy": "publishing-media-authority",
+          "subjectArchetype": "persistent-protagonist",
+          "environment": "podcast booth, small stage, interview corner, or editorial desk; field-work context",
+          "composition": "medium-wide frame with medium and audience both visible; layered reflection with off-axis evidence",
+          "camera": "70mm off-axis broadcast documentary; close foreground parallax",
+          "props": [
+            "microphone",
+            "camera tally light",
+            "printed proof",
+            "content evidence artifact"
+          ],
+          "topology": "none",
+          "semanticTokens": [
+            "content",
+            "evidence",
+            "new"
+          ],
+          "continuityIdentityId": "l06-protagonist"
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "publishing-media-authority",
+          "subjectArchetype": "persistent-protagonist",
+          "environmentArchetype": "podcast booth, small stage, interview corner, or editorial desk; field-work context",
+          "compositionArchetype": "medium-wide frame with medium and audience both visible; layered reflection with off-axis evidence",
+          "cameraArchetype": "70mm off-axis broadcast documentary; close foreground parallax",
+          "lightingArchetype": "soft directional editorial daylight",
+          "actionArchetype": "observable proof accumulates toward trust",
+          "dominantObjectArchetype": "microphone",
+          "motionArchetype": "establishing-crop-then-slow-push-then-subject-detail-then-transition-state"
+        },
+        "treatmentHash": "4f5672b360d4d49a8b980a7f65f5ece9dd1c428d2d70b2251887373a58b31e11"
+      },
+      "overlayKey": "l06.l06-v05",
+      "assetId": "l06-v05-base",
+      "eventIds": [
+        "l06-v05-event-01",
+        "l06-v05-event-02",
+        "l06-v05-event-03",
+        "l06-v05-event-04",
+        "l06-v05-event-05",
+        "l06-v05-event-06",
+        "l06-v05-event-07",
+        "l06-v05-event-08",
+        "l06-v05-event-09",
+        "l06-v05-event-10",
+        "l06-v05-event-11"
+      ]
+    },
+    {
+      "sceneId": "L06-V06",
+      "progressionStage": "EXPLANATION",
+      "narrationAnchor": "old-and-new-overlap",
+      "startMs": 268720,
+      "durationMs": 51626,
+      "treatment": {
+        "treatmentId": "l06-v06-treatment",
+        "sceneId": "L06-V06",
+        "progressionStage": "EXPLANATION",
+        "narrativeBeat": "old-and-new-overlap",
+        "communicationIntent": "show-transformation",
+        "strategy": "before-after",
+        "subjectRequirement": "same identity before, during, and after a positioning change; same protagonist l06-protagonist",
+        "environment": "matched triptych across evolving business contexts; street-facing public threshold",
+        "composition": "three-state panoramic progression; foreground consequence against background cause",
+        "camera": "50mm matched locked frames; low three-quarter viewpoint",
+        "lighting": "soft directional editorial daylight",
+        "action": "one visible state transitions into another",
+        "props": [
+          "legacy signal",
+          "bridge artifact",
+          "new signal",
+          "new evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "diagram-build",
+          "highlighted-region",
+          "punch-in"
+        ],
+        "diagram": {
+          "diagramId": "l06-v06-diagram",
+          "proposition": "old-and-new-overlap",
+          "textFreeBackground": true,
+          "type": "intersection",
+          "sets": [
+            {
+              "id": "l06-v06-diagram-legacy-strength",
+              "semanticRole": "legacy-strength",
+              "labelKey": "l06-v06-diagram.legacy-strength"
+            },
+            {
+              "id": "l06-v06-diagram-new-direction",
+              "semanticRole": "new-direction",
+              "labelKey": "l06-v06-diagram.new-direction"
+            }
+          ],
+          "intersectionMeaning": "credible-transition-bridge",
+          "overlayLabelKeys": [
+            "l06-v06-diagram.legacy-strength",
+            "l06-v06-diagram.new-direction",
+            "l06-v06-diagram.bridge"
+          ]
+        },
+        "grammar": {
+          "strategy": "before-after",
+          "subjectArchetype": "persistent-protagonist",
+          "environment": "matched triptych across evolving business contexts; street-facing public threshold",
+          "composition": "three-state panoramic progression; foreground consequence against background cause",
+          "camera": "50mm matched locked frames; low three-quarter viewpoint",
+          "props": [
+            "legacy signal",
+            "bridge artifact",
+            "new signal",
+            "new evidence artifact"
+          ],
+          "topology": "intersection",
+          "semanticTokens": [
+            "new",
+            "old",
+            "overlap"
+          ],
+          "continuityIdentityId": "l06-protagonist"
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "before-after",
+          "subjectArchetype": "persistent-protagonist",
+          "environmentArchetype": "matched triptych across evolving business contexts; street-facing public threshold",
+          "compositionArchetype": "three-state panoramic progression; foreground consequence against background cause",
+          "cameraArchetype": "50mm matched locked frames; low three-quarter viewpoint",
+          "lightingArchetype": "soft directional editorial daylight",
+          "actionArchetype": "one visible state transitions into another",
+          "dominantObjectArchetype": "legacy signal",
+          "motionArchetype": "establishing-crop-then-diagram-build-then-highlighted-region-then-punch-in"
+        },
+        "treatmentHash": "8fded10f16e2f71b9d7c125af01aedc0b48c5bd08738595d3e7868fbe2436d8f"
+      },
+      "overlayKey": "l06.l06-v06",
+      "assetId": "l06-v06-base",
+      "eventIds": [
+        "l06-v06-event-01",
+        "l06-v06-event-02",
+        "l06-v06-event-03",
+        "l06-v06-event-04",
+        "l06-v06-event-05",
+        "l06-v06-event-06",
+        "l06-v06-event-07",
+        "l06-v06-event-08",
+        "l06-v06-event-09",
+        "l06-v06-event-10",
+        "l06-v06-event-11"
+      ]
+    },
+    {
+      "sceneId": "L06-V07",
+      "progressionStage": "EXPLANATION",
+      "narrationAnchor": "repositioning-as-memory-change",
+      "startMs": 320346,
+      "durationMs": 51626,
+      "treatment": {
+        "treatmentId": "l06-v07-treatment",
+        "sceneId": "L06-V07",
+        "progressionStage": "EXPLANATION",
+        "narrativeBeat": "repositioning-as-memory-change",
+        "communicationIntent": "show-transformation",
+        "strategy": "transformation",
+        "subjectRequirement": "one professional crossing between conflicting public identities; same protagonist l06-protagonist",
+        "environment": "transitional corridor linking old and new work contexts; backstage production zone",
+        "composition": "threshold composition with subject moving across the divide; left-to-right reveal path",
+        "camera": "32mm lateral tracking perspective; elevated diagonal viewpoint",
+        "lighting": "soft directional editorial daylight",
+        "action": "one visible state transitions into another",
+        "props": [
+          "old portfolio",
+          "new proof object",
+          "change evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "diagram-build",
+          "highlighted-region",
+          "punch-in"
+        ],
+        "diagram": {
+          "diagramId": "l06-v07-diagram",
+          "proposition": "repositioning-as-memory-change",
+          "textFreeBackground": true,
+          "type": "before-after",
+          "before": {
+            "id": "l06-v07-diagram-before-state",
+            "semanticRole": "before-state",
+            "labelKey": "l06-v07-diagram.before-state"
+          },
+          "transformation": {
+            "id": "l06-v07-diagram-transformation",
+            "semanticRole": "transformation",
+            "labelKey": "l06-v07-diagram.transformation"
+          },
+          "after": {
+            "id": "l06-v07-diagram-after-state",
+            "semanticRole": "after-state",
+            "labelKey": "l06-v07-diagram.after-state"
+          },
+          "edges": [
+            {
+              "from": "l06-v07-diagram-before-state",
+              "to": "l06-v07-diagram-transformation",
+              "semanticRole": "changes-through"
+            },
+            {
+              "from": "l06-v07-diagram-transformation",
+              "to": "l06-v07-diagram-after-state",
+              "semanticRole": "becomes"
+            }
+          ],
+          "overlayLabelKeys": [
+            "l06-v07-diagram.before-state",
+            "l06-v07-diagram.transformation",
+            "l06-v07-diagram.after-state"
+          ]
+        },
+        "grammar": {
+          "strategy": "transformation",
+          "subjectArchetype": "persistent-protagonist",
+          "environment": "transitional corridor linking old and new work contexts; backstage production zone",
+          "composition": "threshold composition with subject moving across the divide; left-to-right reveal path",
+          "camera": "32mm lateral tracking perspective; elevated diagonal viewpoint",
+          "props": [
+            "old portfolio",
+            "new proof object",
+            "change evidence artifact"
+          ],
+          "topology": "before-after",
+          "semanticTokens": [
+            "change",
+            "memory",
+            "repositioning"
+          ],
+          "continuityIdentityId": "l06-protagonist"
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "transformation",
+          "subjectArchetype": "persistent-protagonist",
+          "environmentArchetype": "transitional corridor linking old and new work contexts; backstage production zone",
+          "compositionArchetype": "threshold composition with subject moving across the divide; left-to-right reveal path",
+          "cameraArchetype": "32mm lateral tracking perspective; elevated diagonal viewpoint",
+          "lightingArchetype": "soft directional editorial daylight",
+          "actionArchetype": "one visible state transitions into another",
+          "dominantObjectArchetype": "old portfolio",
+          "motionArchetype": "establishing-crop-then-diagram-build-then-highlighted-region-then-punch-in"
+        },
+        "treatmentHash": "df1521d9d3f44d1c5cd8b0def8ef9e5f80d6199b2de005951e0b5d65bbec9b14"
+      },
+      "overlayKey": "l06.l06-v07",
+      "assetId": "l06-v07-base",
+      "eventIds": [
+        "l06-v07-event-01",
+        "l06-v07-event-02",
+        "l06-v07-event-03",
+        "l06-v07-event-04",
+        "l06-v07-event-05",
+        "l06-v07-event-06",
+        "l06-v07-event-07",
+        "l06-v07-event-08",
+        "l06-v07-event-09",
+        "l06-v07-event-10",
+        "l06-v07-event-11"
+      ]
+    },
+    {
+      "sceneId": "L06-V08",
+      "progressionStage": "PAYOFF",
+      "narrationAnchor": "market-language-shift",
+      "startMs": 371972,
+      "durationMs": 51628,
+      "treatment": {
+        "treatmentId": "l06-v08-treatment",
+        "sceneId": "L06-V08",
+        "progressionStage": "PAYOFF",
+        "narrativeBeat": "market-language-shift",
+        "communicationIntent": "deliver-payoff",
+        "strategy": "market-crowd",
+        "subjectRequirement": "many visually similar providers and one legible category owner; same protagonist l06-protagonist",
+        "environment": "crowded trade hall or market aisle; client point-of-decision zone",
+        "composition": "compressed crowd field with controlled focal isolation; central void separating competing signals",
+        "camera": "105mm elevated telephoto compression; subjective client viewpoint",
+        "lighting": "natural public-space practical light",
+        "action": "the final visual state resolves the proposition",
+        "props": [
+          "repeated neutral objects",
+          "single category artifact",
+          "language evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "slow-push",
+          "subject-detail",
+          "transition-state"
+        ],
+        "diagram": null,
+        "grammar": {
+          "strategy": "market-crowd",
+          "subjectArchetype": "persistent-protagonist",
+          "environment": "crowded trade hall or market aisle; client point-of-decision zone",
+          "composition": "compressed crowd field with controlled focal isolation; central void separating competing signals",
+          "camera": "105mm elevated telephoto compression; subjective client viewpoint",
+          "props": [
+            "repeated neutral objects",
+            "single category artifact",
+            "language evidence artifact"
+          ],
+          "topology": "none",
+          "semanticTokens": [
+            "language",
+            "market",
+            "shift"
+          ],
+          "continuityIdentityId": "l06-protagonist"
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "market-crowd",
+          "subjectArchetype": "persistent-protagonist",
+          "environmentArchetype": "crowded trade hall or market aisle; client point-of-decision zone",
+          "compositionArchetype": "compressed crowd field with controlled focal isolation; central void separating competing signals",
+          "cameraArchetype": "105mm elevated telephoto compression; subjective client viewpoint",
+          "lightingArchetype": "natural public-space practical light",
+          "actionArchetype": "the final visual state resolves the proposition",
+          "dominantObjectArchetype": "repeated neutral objects",
+          "motionArchetype": "establishing-crop-then-slow-push-then-subject-detail-then-transition-state"
+        },
+        "treatmentHash": "724ea4bb20ad4d44a65b1cb50c3c36327d77a83eb51831ec3eb55591817f2af6"
+      },
+      "overlayKey": "l06.l06-v08",
+      "assetId": "l06-v08-base",
+      "eventIds": [
+        "l06-v08-event-01",
+        "l06-v08-event-02",
+        "l06-v08-event-03",
+        "l06-v08-event-04",
+        "l06-v08-event-05",
+        "l06-v08-event-06",
+        "l06-v08-event-07",
+        "l06-v08-event-08",
+        "l06-v08-event-09",
+        "l06-v08-event-10",
+        "l06-v08-event-11"
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "assetId": "l06-cold_open-base",
+      "contentId": "L06",
+      "sceneId": "L06-COLD_OPEN",
+      "semanticPurpose": "unresolved-contradiction-consequence-old-position-new-offer-conflict",
+      "strategy": "identity-perception",
+      "prompt": "Text-free 16:9 identity-perception treatment for unresolved contradiction consequence old position new offer conflict. Communication intent: create-tension. Subject: evolved professional seen through an audience-held legacy image. Environment: street-facing reflection installation joining old category and changed business. Composition: split-time reflection with current person offset from persistent public image. Camera: 58mm through-glass parallax view. Props: legacy silhouette reflected over new work evidence, new offer artifact. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "16:9",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "native composition"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "subject-aware-crop",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "protected subject and overlay regions survive a subject-aware derivative"
+        }
+      ],
+      "subjectIdentityId": "l06-protagonist",
+      "referenceAssetId": null,
+      "semanticFingerprint": "87d90cfe13638025703b07fc9fd7dbb726f52b9d72466c1eb3b446d89c8aa406",
+      "generatedAssetCacheKey": "191e1163280c2a234ada0740644d2b1bd9305578b3b1c61ac7c8c445b93c419e"
+    },
+    {
+      "assetId": "l06-v01-base",
+      "contentId": "L06",
+      "sceneId": "L06-V01",
+      "semanticPurpose": "old-position-new-offer-conflict",
+      "strategy": "transformation",
+      "prompt": "Text-free 16:9 transformation treatment for old position new offer conflict. Communication intent: compare-alternatives. Subject: one professional crossing between conflicting public identities; same protagonist l06-protagonist. Environment: transitional corridor linking old and new work contexts; backstage production zone. Composition: threshold composition with subject moving across the divide; left-to-right reveal path. Camera: 32mm lateral tracking perspective; elevated diagonal viewpoint. Props: old portfolio, new proof object, conflict evidence artifact. Proposition-specific before-after structure with 3 separately rendered label anchors. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "16:9",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "native composition"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "subject-aware-crop",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "protected subject and overlay regions survive a subject-aware derivative"
+        }
+      ],
+      "subjectIdentityId": "l06-protagonist",
+      "referenceAssetId": "l06-cold_open-base",
+      "semanticFingerprint": "e3fc6a4a312c8fff97b0bfedd81c1aebd680dd0e08ece79af804c51142ab24e7",
+      "generatedAssetCacheKey": "7e443676e116ad16d2e5c9faa09d159c1f34a6e316df5d233143d053442373d1"
+    },
+    {
+      "assetId": "l06-v02-base",
+      "contentId": "L06",
+      "sceneId": "L06-V02",
+      "semanticPurpose": "existing-market-association",
+      "strategy": "market-crowd",
+      "prompt": "Text-free 16:9 market-crowd treatment for existing market association. Communication intent: define-category. Subject: many visually similar providers and one legible category owner; same protagonist l06-protagonist. Environment: crowded trade hall or market aisle; client point-of-decision zone. Composition: compressed crowd field with controlled focal isolation; central void separating competing signals. Camera: 105mm elevated telephoto compression; subjective client viewpoint. Props: repeated neutral objects, single category artifact, association evidence artifact. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "16:9",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "native composition"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": false,
+          "cropMode": "not-safe",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "wide multi-subject topology loses meaning in a vertical crop"
+        }
+      ],
+      "subjectIdentityId": "l06-protagonist",
+      "referenceAssetId": "l06-cold_open-base",
+      "semanticFingerprint": "d9e77716538e7531e98c209bda50a147128d7a2cdbc60967e0ba6b8cd23ccb62",
+      "generatedAssetCacheKey": "cbd75bf22f2bc1533126e2777db5610159b21ee2cafdca65d6978c72a79e0845"
+    },
+    {
+      "assetId": "l06-v03-base",
+      "contentId": "L06",
+      "sceneId": "L06-V03",
+      "semanticPurpose": "define-new-position",
+      "strategy": "transformation",
+      "prompt": "Text-free 16:9 transformation treatment for define new position. Communication intent: show-transformation. Subject: one professional crossing between conflicting public identities; same protagonist l06-protagonist. Environment: transitional corridor linking old and new work contexts; artifact archive zone. Composition: threshold composition with subject moving across the divide; occluded-to-visible information progression. Camera: 32mm lateral tracking perspective; lateral profile viewpoint. Props: old portfolio, new proof object, define evidence artifact. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "16:9",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "native composition"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "subject-aware-crop",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "protected subject and overlay regions survive a subject-aware derivative"
+        }
+      ],
+      "subjectIdentityId": "l06-protagonist",
+      "referenceAssetId": "l06-cold_open-base",
+      "semanticFingerprint": "514feacf5e725340611bd4a1924e6dd1ef49aab72881cfe9f461992f1c30ccde",
+      "generatedAssetCacheKey": "26ad503a7b9da654bcee81cc88390e73b8fa0cf8bd96bab9b302eda7188c5c61"
+    },
+    {
+      "assetId": "l06-v04-base",
+      "contentId": "L06",
+      "sceneId": "L06-V04",
+      "semanticPurpose": "bridge-old-to-new",
+      "strategy": "before-after",
+      "prompt": "Text-free 16:9 before-after treatment for bridge old to new. Communication intent: show-transformation. Subject: same identity before, during, and after a positioning change; same protagonist l06-protagonist. Environment: matched triptych across evolving business contexts; peer-referral setting. Composition: three-state panoramic progression; near-far contrast between choice and result. Camera: 50mm matched locked frames; compressed distant observation. Props: legacy signal, bridge artifact, new signal, bridge evidence artifact. Proposition-specific sequence structure with 3 separately rendered label anchors. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "16:9",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "native composition"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": false,
+          "cropMode": "not-safe",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "wide multi-subject topology loses meaning in a vertical crop"
+        }
+      ],
+      "subjectIdentityId": "l06-protagonist",
+      "referenceAssetId": "l06-cold_open-base",
+      "semanticFingerprint": "4e30f735b9ff5809566f68fd72c34c832a6047d0ad49d207c5952a0cda9b0f2f",
+      "generatedAssetCacheKey": "f640845935bef5173c060c7dbbb725488031989057a938105d29c2afa25974ad"
+    },
+    {
+      "assetId": "l06-v05-base",
+      "contentId": "L06",
+      "sceneId": "L06-V05",
+      "semanticPurpose": "new-evidence-content",
+      "strategy": "publishing-media-authority",
+      "prompt": "Text-free 16:9 publishing-media-authority treatment for new evidence content. Communication intent: make-proof-visible. Subject: expert contributing knowledge through a public medium; same protagonist l06-protagonist. Environment: podcast booth, small stage, interview corner, or editorial desk; field-work context. Composition: medium-wide frame with medium and audience both visible; layered reflection with off-axis evidence. Camera: 70mm off-axis broadcast documentary; close foreground parallax. Props: microphone, camera tally light, printed proof, content evidence artifact. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "16:9",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "native composition"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "subject-aware-crop",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "protected subject and overlay regions survive a subject-aware derivative"
+        }
+      ],
+      "subjectIdentityId": "l06-protagonist",
+      "referenceAssetId": "l06-cold_open-base",
+      "semanticFingerprint": "b6389a2eb52f0a9af3c1658fe8e95f928d318f1f5450af6d875067eefcad0398",
+      "generatedAssetCacheKey": "4a28b58b2ea0b9372bf2856fa601285332e204802b20106dfe7492f639233ac6"
+    },
+    {
+      "assetId": "l06-v06-base",
+      "contentId": "L06",
+      "sceneId": "L06-V06",
+      "semanticPurpose": "old-and-new-overlap",
+      "strategy": "before-after",
+      "prompt": "Text-free 16:9 before-after treatment for old and new overlap. Communication intent: show-transformation. Subject: same identity before, during, and after a positioning change; same protagonist l06-protagonist. Environment: matched triptych across evolving business contexts; street-facing public threshold. Composition: three-state panoramic progression; foreground consequence against background cause. Camera: 50mm matched locked frames; low three-quarter viewpoint. Props: legacy signal, bridge artifact, new signal, new evidence artifact. Proposition-specific intersection structure with 3 separately rendered label anchors. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "16:9",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "native composition"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": false,
+          "cropMode": "not-safe",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "wide multi-subject topology loses meaning in a vertical crop"
+        }
+      ],
+      "subjectIdentityId": "l06-protagonist",
+      "referenceAssetId": "l06-cold_open-base",
+      "semanticFingerprint": "8a839384a82516fa5d87a65f5ebe5c7ddca54713433e29470ea0f59bf34f402a",
+      "generatedAssetCacheKey": "75c15de2b4e84d108e72dde9347f6138fbdd77cda31590bd4d81bc854953d42f"
+    },
+    {
+      "assetId": "l06-v07-base",
+      "contentId": "L06",
+      "sceneId": "L06-V07",
+      "semanticPurpose": "repositioning-as-memory-change",
+      "strategy": "transformation",
+      "prompt": "Text-free 16:9 transformation treatment for repositioning as memory change. Communication intent: show-transformation. Subject: one professional crossing between conflicting public identities; same protagonist l06-protagonist. Environment: transitional corridor linking old and new work contexts; backstage production zone. Composition: threshold composition with subject moving across the divide; left-to-right reveal path. Camera: 32mm lateral tracking perspective; elevated diagonal viewpoint. Props: old portfolio, new proof object, change evidence artifact. Proposition-specific before-after structure with 3 separately rendered label anchors. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "16:9",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "native composition"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "subject-aware-crop",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "protected subject and overlay regions survive a subject-aware derivative"
+        }
+      ],
+      "subjectIdentityId": "l06-protagonist",
+      "referenceAssetId": "l06-cold_open-base",
+      "semanticFingerprint": "36367161b9e0c74f3c08f2633e13d4f49f4be93c1f5f74ba2e45bc1eae798d94",
+      "generatedAssetCacheKey": "2779130d05e6dcdefd20bca69d8f4aab3bafca6aee1669c86d503128a03a1b0d"
+    },
+    {
+      "assetId": "l06-v08-base",
+      "contentId": "L06",
+      "sceneId": "L06-V08",
+      "semanticPurpose": "market-language-shift",
+      "strategy": "market-crowd",
+      "prompt": "Text-free 16:9 market-crowd treatment for market language shift. Communication intent: deliver-payoff. Subject: many visually similar providers and one legible category owner; same protagonist l06-protagonist. Environment: crowded trade hall or market aisle; client point-of-decision zone. Composition: compressed crowd field with controlled focal isolation; central void separating competing signals. Camera: 105mm elevated telephoto compression; subjective client viewpoint. Props: repeated neutral objects, single category artifact, language evidence artifact. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "16:9",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "native composition"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": false,
+          "cropMode": "not-safe",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "wide multi-subject topology loses meaning in a vertical crop"
+        }
+      ],
+      "subjectIdentityId": "l06-protagonist",
+      "referenceAssetId": "l06-cold_open-base",
+      "semanticFingerprint": "75f681d3d0a96951e2c1d225663290ba67cc1f726e2ac1802d63b7fff73c3783",
+      "generatedAssetCacheKey": "376e199b546d569071f777a634be96a107ac6a8bdf52deca7aef4b39f224e0d7"
+    }
+  ],
+  "visualEvents": [
+    {
+      "eventId": "l06-cold_open-event-01",
+      "sceneId": "L06-COLD_OPEN",
+      "assetId": "l06-cold_open-base",
+      "kind": "slow-push",
+      "startMs": 0,
+      "durationMs": 2647,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "69a70fbe6c2e191c85b0e773b7effeaeddf988e46bd8e01c874bf99238b85d7d"
+    },
+    {
+      "eventId": "l06-cold_open-event-02",
+      "sceneId": "L06-COLD_OPEN",
+      "assetId": "l06-cold_open-base",
+      "kind": "masked-overlay",
+      "startMs": 2647,
+      "durationMs": 2647,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "9adf35c6677e1b128176d242d306be00b9891de7e141bd6d4576c1c4e868cfd1"
+    },
+    {
+      "eventId": "l06-cold_open-event-03",
+      "sceneId": "L06-COLD_OPEN",
+      "assetId": "l06-cold_open-base",
+      "kind": "subject-detail",
+      "startMs": 5294,
+      "durationMs": 2647,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "subject"
+      },
+      "renderCacheKey": "154d3ab045f352b66e6ea8a8dd3a441da25b7830dcbe08cf1ec786bed4bbe319"
+    },
+    {
+      "eventId": "l06-cold_open-event-04",
+      "sceneId": "L06-COLD_OPEN",
+      "assetId": "l06-cold_open-base",
+      "kind": "transition-state",
+      "startMs": 7941,
+      "durationMs": 2649,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "6d934c8f8c2968305f763e46b41db971f047645bc75fd34ad00879865c986252"
+    },
+    {
+      "eventId": "l06-v01-event-01",
+      "sceneId": "L06-V01",
+      "assetId": "l06-v01-base",
+      "kind": "establishing-crop",
+      "startMs": 10590,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "090cce1fae897afae3405eae2625dd4b3f5cd87d524651e7decd4e04af724563"
+    },
+    {
+      "eventId": "l06-v01-event-02",
+      "sceneId": "L06-V01",
+      "assetId": "l06-v01-base",
+      "kind": "diagram-build",
+      "startMs": 15283,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "e91b4807f275382fd0b8ff6116a80918eb1f7c30b16840d32901a5517595423a"
+    },
+    {
+      "eventId": "l06-v01-event-03",
+      "sceneId": "L06-V01",
+      "assetId": "l06-v01-base",
+      "kind": "highlighted-region",
+      "startMs": 19976,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "ba3cdf9dc01fe33cc2f905b43423e5260c550787df73d43195b7540fbf126ed2"
+    },
+    {
+      "eventId": "l06-v01-event-04",
+      "sceneId": "L06-V01",
+      "assetId": "l06-v01-base",
+      "kind": "punch-in",
+      "startMs": 24669,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1.12,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "f81d77ba3f662e62f4b2bf098709533542e73cf50f48be8b204e3b9ee99f2b56"
+    },
+    {
+      "eventId": "l06-v01-event-05",
+      "sceneId": "L06-V01",
+      "assetId": "l06-v01-base",
+      "kind": "establishing-crop",
+      "startMs": 29362,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "e4444f3e8fbf8794737b1b9f1a21610fcff1393695842077ad81d827018369ef"
+    },
+    {
+      "eventId": "l06-v01-event-06",
+      "sceneId": "L06-V01",
+      "assetId": "l06-v01-base",
+      "kind": "diagram-build",
+      "startMs": 34055,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "879c5bef5762d736058b053ee971e41782d500d3a166e8ca71369f3cdbfc797d"
+    },
+    {
+      "eventId": "l06-v01-event-07",
+      "sceneId": "L06-V01",
+      "assetId": "l06-v01-base",
+      "kind": "highlighted-region",
+      "startMs": 38748,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "469b6fe1756ce82a84a66f08cc723e2428d900857a3ac41fcd48d0b13999129d"
+    },
+    {
+      "eventId": "l06-v01-event-08",
+      "sceneId": "L06-V01",
+      "assetId": "l06-v01-base",
+      "kind": "punch-in",
+      "startMs": 43441,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1.12,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "141d8d20aa8169c51c8f2f58243bfc438b02e74f7070c8598d577fadcf2c0384"
+    },
+    {
+      "eventId": "l06-v01-event-09",
+      "sceneId": "L06-V01",
+      "assetId": "l06-v01-base",
+      "kind": "establishing-crop",
+      "startMs": 48134,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "d85ad10f11633567074f6391ac7f63c747d6670070e7eb7fef17605e3b0123f7"
+    },
+    {
+      "eventId": "l06-v01-event-10",
+      "sceneId": "L06-V01",
+      "assetId": "l06-v01-base",
+      "kind": "diagram-build",
+      "startMs": 52827,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "de428e4bc55f1127b8cbbd479194a99468317fab9e68533069b9a17a80d31a4e"
+    },
+    {
+      "eventId": "l06-v01-event-11",
+      "sceneId": "L06-V01",
+      "assetId": "l06-v01-base",
+      "kind": "highlighted-region",
+      "startMs": 57520,
+      "durationMs": 4696,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "b6111b0048672ae7e98fb38d0e0445484964ed52045a2b3bc30eb4b3074ab383"
+    },
+    {
+      "eventId": "l06-v02-event-01",
+      "sceneId": "L06-V02",
+      "assetId": "l06-v02-base",
+      "kind": "establishing-crop",
+      "startMs": 62216,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "7d49cf43f88e1fdd63bc8fa7cc91bb19412ff4f2c2dc914f9df24f26e7fde91a"
+    },
+    {
+      "eventId": "l06-v02-event-02",
+      "sceneId": "L06-V02",
+      "assetId": "l06-v02-base",
+      "kind": "slow-push",
+      "startMs": 66909,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "c32cee70b512e34c1ebf2036e1d5d7eb45e23de3c81081a8d7b156e1a72d3bdd"
+    },
+    {
+      "eventId": "l06-v02-event-03",
+      "sceneId": "L06-V02",
+      "assetId": "l06-v02-base",
+      "kind": "subject-detail",
+      "startMs": 71602,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "subject"
+      },
+      "renderCacheKey": "0d573c415c35eebfd82d887ec94381c44ed948b1c9438a5f2fc66b469b725d8c"
+    },
+    {
+      "eventId": "l06-v02-event-04",
+      "sceneId": "L06-V02",
+      "assetId": "l06-v02-base",
+      "kind": "transition-state",
+      "startMs": 76295,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "71263266f1a714bdd3b89f7814d5df202d4f5d75474a201d94fe429f5ebab826"
+    },
+    {
+      "eventId": "l06-v02-event-05",
+      "sceneId": "L06-V02",
+      "assetId": "l06-v02-base",
+      "kind": "establishing-crop",
+      "startMs": 80988,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "acc85418c6bffea55249165016bb812564bd370ce33a6fff6f3a371875c053b6"
+    },
+    {
+      "eventId": "l06-v02-event-06",
+      "sceneId": "L06-V02",
+      "assetId": "l06-v02-base",
+      "kind": "slow-push",
+      "startMs": 85681,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "b82cc220168c4c32d66b73ed448548fe4ed352e0e1c4e1d0b96344d6ed2f22b9"
+    },
+    {
+      "eventId": "l06-v02-event-07",
+      "sceneId": "L06-V02",
+      "assetId": "l06-v02-base",
+      "kind": "subject-detail",
+      "startMs": 90374,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "subject"
+      },
+      "renderCacheKey": "b201f02f99d7979bb52df33ddb55b73d7831dea7e6406348a4bb1ebe6e399eb9"
+    },
+    {
+      "eventId": "l06-v02-event-08",
+      "sceneId": "L06-V02",
+      "assetId": "l06-v02-base",
+      "kind": "transition-state",
+      "startMs": 95067,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "f3dd701b66782deb7176bf3e98dde8997c746e6ac9acf4e3c643c55cd96b3867"
+    },
+    {
+      "eventId": "l06-v02-event-09",
+      "sceneId": "L06-V02",
+      "assetId": "l06-v02-base",
+      "kind": "establishing-crop",
+      "startMs": 99760,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "4f2d1a2f4b2789ddc747b76550ddeb15741e129f9a660bf46c7685445258f962"
+    },
+    {
+      "eventId": "l06-v02-event-10",
+      "sceneId": "L06-V02",
+      "assetId": "l06-v02-base",
+      "kind": "slow-push",
+      "startMs": 104453,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "0a2227a5c4a49bdfcd8e00b314fcba3f67e73ede44240ead9dfd2595e209181b"
+    },
+    {
+      "eventId": "l06-v02-event-11",
+      "sceneId": "L06-V02",
+      "assetId": "l06-v02-base",
+      "kind": "subject-detail",
+      "startMs": 109146,
+      "durationMs": 4696,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "subject"
+      },
+      "renderCacheKey": "b49eb07dc02cb3f6c8aa7b99194d09fed36430839a58e3cbb13b1d01a7999a45"
+    },
+    {
+      "eventId": "l06-v03-event-01",
+      "sceneId": "L06-V03",
+      "assetId": "l06-v03-base",
+      "kind": "establishing-crop",
+      "startMs": 113842,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "86b524ffde44b2833bfd226a855bc5f25c6da569b18ba7056fda21627a4e5a8d"
+    },
+    {
+      "eventId": "l06-v03-event-02",
+      "sceneId": "L06-V03",
+      "assetId": "l06-v03-base",
+      "kind": "slow-push",
+      "startMs": 118535,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "294104cfd749c4717dc7293a49c19652ddba03a49b1f7d4930cedf11fc80c684"
+    },
+    {
+      "eventId": "l06-v03-event-03",
+      "sceneId": "L06-V03",
+      "assetId": "l06-v03-base",
+      "kind": "subject-detail",
+      "startMs": 123228,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "subject"
+      },
+      "renderCacheKey": "cb6b3cdf86df332152bfedd9382847866065e79f23a656331f0e1bd3d239ab91"
+    },
+    {
+      "eventId": "l06-v03-event-04",
+      "sceneId": "L06-V03",
+      "assetId": "l06-v03-base",
+      "kind": "transition-state",
+      "startMs": 127921,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "dbe424970c28e2c5c1f06519466783aa06fe1efb4f4d4ca77877f4a86b8c325f"
+    },
+    {
+      "eventId": "l06-v03-event-05",
+      "sceneId": "L06-V03",
+      "assetId": "l06-v03-base",
+      "kind": "establishing-crop",
+      "startMs": 132614,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "98b89e1329a8ced54a7d504be7b4fae2a71a633ae12c77b8a703e0c6f99e8006"
+    },
+    {
+      "eventId": "l06-v03-event-06",
+      "sceneId": "L06-V03",
+      "assetId": "l06-v03-base",
+      "kind": "slow-push",
+      "startMs": 137307,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "45a3d945433d69ddcb3af264ee81162a6ac24eb32372ba3bc0c7bc68403c7b56"
+    },
+    {
+      "eventId": "l06-v03-event-07",
+      "sceneId": "L06-V03",
+      "assetId": "l06-v03-base",
+      "kind": "subject-detail",
+      "startMs": 142000,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "subject"
+      },
+      "renderCacheKey": "dcb289a8af6ce56a0d0c9121cce18ee5b1bbd49443fbd61ee84fa6e776bab366"
+    },
+    {
+      "eventId": "l06-v03-event-08",
+      "sceneId": "L06-V03",
+      "assetId": "l06-v03-base",
+      "kind": "transition-state",
+      "startMs": 146693,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "5b15f4ede14bf74cf7c9614fba378ec4c96b1a895ca183e51366e42b1c74f1e6"
+    },
+    {
+      "eventId": "l06-v03-event-09",
+      "sceneId": "L06-V03",
+      "assetId": "l06-v03-base",
+      "kind": "establishing-crop",
+      "startMs": 151386,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "22aa40126a3b63dec8b074455b9b43a99dddfe4c8f6d1076681f2b3e580801b5"
+    },
+    {
+      "eventId": "l06-v03-event-10",
+      "sceneId": "L06-V03",
+      "assetId": "l06-v03-base",
+      "kind": "slow-push",
+      "startMs": 156079,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "c41c93e60e30f84d8381121e4cd3f84c4589d6dbeeb42fd06e01f2aac54bfb2f"
+    },
+    {
+      "eventId": "l06-v03-event-11",
+      "sceneId": "L06-V03",
+      "assetId": "l06-v03-base",
+      "kind": "subject-detail",
+      "startMs": 160772,
+      "durationMs": 4696,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "subject"
+      },
+      "renderCacheKey": "e248ed714fb79ee47c5504afe5b5faee33607ad39bf917317ac35203929d1696"
+    },
+    {
+      "eventId": "l06-v04-event-01",
+      "sceneId": "L06-V04",
+      "assetId": "l06-v04-base",
+      "kind": "establishing-crop",
+      "startMs": 165468,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "dc92bd0fb474f39f7a52b592b153569c300be875752ba464a5e2af9c2b246499"
+    },
+    {
+      "eventId": "l06-v04-event-02",
+      "sceneId": "L06-V04",
+      "assetId": "l06-v04-base",
+      "kind": "diagram-build",
+      "startMs": 170161,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "48388c949bf8eebcd089c4ef375ae83426258c6b44762173f8695bee2df02868"
+    },
+    {
+      "eventId": "l06-v04-event-03",
+      "sceneId": "L06-V04",
+      "assetId": "l06-v04-base",
+      "kind": "highlighted-region",
+      "startMs": 174854,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "f18fbafeec6a060849a7594a9237f3f9db699de316b5ec531029414e191893d1"
+    },
+    {
+      "eventId": "l06-v04-event-04",
+      "sceneId": "L06-V04",
+      "assetId": "l06-v04-base",
+      "kind": "punch-in",
+      "startMs": 179547,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1.12,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "ecfe509aa1884b9ba63f73ee55d0fb79795563a70e07eb10b38a18dd5e5fae69"
+    },
+    {
+      "eventId": "l06-v04-event-05",
+      "sceneId": "L06-V04",
+      "assetId": "l06-v04-base",
+      "kind": "establishing-crop",
+      "startMs": 184240,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "a841c0e76c0c2a09ed3782a7a5c621eeef1dff141393390142821cca39e45c00"
+    },
+    {
+      "eventId": "l06-v04-event-06",
+      "sceneId": "L06-V04",
+      "assetId": "l06-v04-base",
+      "kind": "diagram-build",
+      "startMs": 188933,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "a0048b5c001fa4b734cb516effc8e75f1c775f623f401c817843362083b58c76"
+    },
+    {
+      "eventId": "l06-v04-event-07",
+      "sceneId": "L06-V04",
+      "assetId": "l06-v04-base",
+      "kind": "highlighted-region",
+      "startMs": 193626,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "dba492a8267e7a22849630a20e2238d17edfca1990cfd7254fcc27ff845d8440"
+    },
+    {
+      "eventId": "l06-v04-event-08",
+      "sceneId": "L06-V04",
+      "assetId": "l06-v04-base",
+      "kind": "punch-in",
+      "startMs": 198319,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1.12,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "052a58c7e0922c20bac983e324dfd00cc3f856b87d028c415093bc001a2f89b6"
+    },
+    {
+      "eventId": "l06-v04-event-09",
+      "sceneId": "L06-V04",
+      "assetId": "l06-v04-base",
+      "kind": "establishing-crop",
+      "startMs": 203012,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "b51647e02e0f8a9f8ac0a8ba0a26202d0f26dc46d3d0c650ed8bc9ac895c7c1b"
+    },
+    {
+      "eventId": "l06-v04-event-10",
+      "sceneId": "L06-V04",
+      "assetId": "l06-v04-base",
+      "kind": "diagram-build",
+      "startMs": 207705,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "797967ffeab75956a71385381450ef167379d04d36c04f34d58a2afdc066bdb9"
+    },
+    {
+      "eventId": "l06-v04-event-11",
+      "sceneId": "L06-V04",
+      "assetId": "l06-v04-base",
+      "kind": "highlighted-region",
+      "startMs": 212398,
+      "durationMs": 4696,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "dbd3d491cdfcc4e03dbcfbc6582bd81da030ade949e3870cb4e6baa03a4d5ddc"
+    },
+    {
+      "eventId": "l06-v05-event-01",
+      "sceneId": "L06-V05",
+      "assetId": "l06-v05-base",
+      "kind": "establishing-crop",
+      "startMs": 217094,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "2f776b2d3bb3ac34f87ad98ed5304f87b09e20eeba75ae318a806655026ef15b"
+    },
+    {
+      "eventId": "l06-v05-event-02",
+      "sceneId": "L06-V05",
+      "assetId": "l06-v05-base",
+      "kind": "slow-push",
+      "startMs": 221787,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "60f8cb454c5a0e22c2e2a1bffe407859b94b7cd226ff670350b0cc70c949149f"
+    },
+    {
+      "eventId": "l06-v05-event-03",
+      "sceneId": "L06-V05",
+      "assetId": "l06-v05-base",
+      "kind": "subject-detail",
+      "startMs": 226480,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "subject"
+      },
+      "renderCacheKey": "50856f7d6c91cfcd559187f9c816170dfcb0436d4d57829b649e988eaf5403fe"
+    },
+    {
+      "eventId": "l06-v05-event-04",
+      "sceneId": "L06-V05",
+      "assetId": "l06-v05-base",
+      "kind": "transition-state",
+      "startMs": 231173,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "7824e1d058d90ef4bc78a96896d12b3365ac745561a78fdabd9d2f216a401ea6"
+    },
+    {
+      "eventId": "l06-v05-event-05",
+      "sceneId": "L06-V05",
+      "assetId": "l06-v05-base",
+      "kind": "establishing-crop",
+      "startMs": 235866,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "14c3c5277023307aa83529b1a12a9c7a6ec3cb04e5a820dde17c01d5cf0eff5f"
+    },
+    {
+      "eventId": "l06-v05-event-06",
+      "sceneId": "L06-V05",
+      "assetId": "l06-v05-base",
+      "kind": "slow-push",
+      "startMs": 240559,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "fcd331e560ccd6ca9b66f53fc445bbc56990c2c5525f52cde97169c843cd7ec6"
+    },
+    {
+      "eventId": "l06-v05-event-07",
+      "sceneId": "L06-V05",
+      "assetId": "l06-v05-base",
+      "kind": "subject-detail",
+      "startMs": 245252,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "subject"
+      },
+      "renderCacheKey": "fd32f67ed83b69e67a813c1662f4d6a7dd96fceb211a7e160e0ab58a2bbc90e8"
+    },
+    {
+      "eventId": "l06-v05-event-08",
+      "sceneId": "L06-V05",
+      "assetId": "l06-v05-base",
+      "kind": "transition-state",
+      "startMs": 249945,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "d262102d08dc4c2a31914098ccde8bb98b765bdc30656e2bd00c804755890577"
+    },
+    {
+      "eventId": "l06-v05-event-09",
+      "sceneId": "L06-V05",
+      "assetId": "l06-v05-base",
+      "kind": "establishing-crop",
+      "startMs": 254638,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "ef200c8161cbdbdd951ff95d51c794e48e8e397b766620b71e3fcfe0c5bea132"
+    },
+    {
+      "eventId": "l06-v05-event-10",
+      "sceneId": "L06-V05",
+      "assetId": "l06-v05-base",
+      "kind": "slow-push",
+      "startMs": 259331,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "7c35597bfea78a5f79561e43cc47edbf1e4e70621880f06bc6dcea3d1f0e3eb2"
+    },
+    {
+      "eventId": "l06-v05-event-11",
+      "sceneId": "L06-V05",
+      "assetId": "l06-v05-base",
+      "kind": "subject-detail",
+      "startMs": 264024,
+      "durationMs": 4696,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "subject"
+      },
+      "renderCacheKey": "cd8771f7fdc3c12fb5b350f889da5fc8ebf51124403deedbb5c45ad719b8ac77"
+    },
+    {
+      "eventId": "l06-v06-event-01",
+      "sceneId": "L06-V06",
+      "assetId": "l06-v06-base",
+      "kind": "establishing-crop",
+      "startMs": 268720,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "2dd91d18cb59229ebf13abb2537cba858bacfa10d5ffe39b52abbd7df0751560"
+    },
+    {
+      "eventId": "l06-v06-event-02",
+      "sceneId": "L06-V06",
+      "assetId": "l06-v06-base",
+      "kind": "diagram-build",
+      "startMs": 273413,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "b2fe26393c0942361e8376d0e487e13cc3738619831358cc3706b68035c49acf"
+    },
+    {
+      "eventId": "l06-v06-event-03",
+      "sceneId": "L06-V06",
+      "assetId": "l06-v06-base",
+      "kind": "highlighted-region",
+      "startMs": 278106,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "ef342a217c0c09dfd5aaf90ea1a3c8608da3ac7b6efe8c1424de99b92aa3ee86"
+    },
+    {
+      "eventId": "l06-v06-event-04",
+      "sceneId": "L06-V06",
+      "assetId": "l06-v06-base",
+      "kind": "punch-in",
+      "startMs": 282799,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1.12,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "94fea5150c710181a85e7a55e4a531014a9abbe56f93435037d5c9d79cb9939a"
+    },
+    {
+      "eventId": "l06-v06-event-05",
+      "sceneId": "L06-V06",
+      "assetId": "l06-v06-base",
+      "kind": "establishing-crop",
+      "startMs": 287492,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "4b771eb7755ee2947dad361d25a49756f7bc99997bfc1eed5e3cf4e896967532"
+    },
+    {
+      "eventId": "l06-v06-event-06",
+      "sceneId": "L06-V06",
+      "assetId": "l06-v06-base",
+      "kind": "diagram-build",
+      "startMs": 292185,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "292a6849a2dec63aa216d44fd6871f9fe5541123f1b096f974978d1da0660bf6"
+    },
+    {
+      "eventId": "l06-v06-event-07",
+      "sceneId": "L06-V06",
+      "assetId": "l06-v06-base",
+      "kind": "highlighted-region",
+      "startMs": 296878,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "8211addadf5be9fdda30bd851c28aa7f7a7c371ad8647cd36baf7fea9e61a59e"
+    },
+    {
+      "eventId": "l06-v06-event-08",
+      "sceneId": "L06-V06",
+      "assetId": "l06-v06-base",
+      "kind": "punch-in",
+      "startMs": 301571,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1.12,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "1be71039c41168ad1766957f1eb70f3f54fef0dd8024d3c008ebdc585aff5e47"
+    },
+    {
+      "eventId": "l06-v06-event-09",
+      "sceneId": "L06-V06",
+      "assetId": "l06-v06-base",
+      "kind": "establishing-crop",
+      "startMs": 306264,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "07c5992a7e984c68e0c0e4c2a73f8efe6b7b6bbf324b9358807a521f13f82649"
+    },
+    {
+      "eventId": "l06-v06-event-10",
+      "sceneId": "L06-V06",
+      "assetId": "l06-v06-base",
+      "kind": "diagram-build",
+      "startMs": 310957,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "e8398a1f93c0d118dc9f35514c639248b430eff5c5dd2e98aa6c2f67262b65a4"
+    },
+    {
+      "eventId": "l06-v06-event-11",
+      "sceneId": "L06-V06",
+      "assetId": "l06-v06-base",
+      "kind": "highlighted-region",
+      "startMs": 315650,
+      "durationMs": 4696,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "e6b85f23ae665ac6da277b12fc67bad97841e5cf7ac9c73f5dc2e72172253b65"
+    },
+    {
+      "eventId": "l06-v07-event-01",
+      "sceneId": "L06-V07",
+      "assetId": "l06-v07-base",
+      "kind": "establishing-crop",
+      "startMs": 320346,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "ba733a9df9c625bdba3b57f44afa493fbba5d01e9177815277f3a692fbea70e3"
+    },
+    {
+      "eventId": "l06-v07-event-02",
+      "sceneId": "L06-V07",
+      "assetId": "l06-v07-base",
+      "kind": "diagram-build",
+      "startMs": 325039,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "478ad8440968253028b42575b38457c661e0e4e314deedf54adf8a8ba54d73db"
+    },
+    {
+      "eventId": "l06-v07-event-03",
+      "sceneId": "L06-V07",
+      "assetId": "l06-v07-base",
+      "kind": "highlighted-region",
+      "startMs": 329732,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "c7d66328608120d1a98d648f211c48b15abe1b1c3799d0e708ef4cb962d3f974"
+    },
+    {
+      "eventId": "l06-v07-event-04",
+      "sceneId": "L06-V07",
+      "assetId": "l06-v07-base",
+      "kind": "punch-in",
+      "startMs": 334425,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1.12,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "42d205dbc36e4a04940a5c3408c712ed17d331d0fbd0eed2c184d775b306b50b"
+    },
+    {
+      "eventId": "l06-v07-event-05",
+      "sceneId": "L06-V07",
+      "assetId": "l06-v07-base",
+      "kind": "establishing-crop",
+      "startMs": 339118,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "c7ff152af6d82482312ee35bfba069d08e21e982e4d02e915a8d1efa9fdd82b5"
+    },
+    {
+      "eventId": "l06-v07-event-06",
+      "sceneId": "L06-V07",
+      "assetId": "l06-v07-base",
+      "kind": "diagram-build",
+      "startMs": 343811,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "c228cc8e21c1b47317831e9f2f33b475e538f369ad809939050a6f2c57eb1922"
+    },
+    {
+      "eventId": "l06-v07-event-07",
+      "sceneId": "L06-V07",
+      "assetId": "l06-v07-base",
+      "kind": "highlighted-region",
+      "startMs": 348504,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "32f230e9f6834d38331d4490ad7f09426ca971137479dcac3f403e4cf886cfa0"
+    },
+    {
+      "eventId": "l06-v07-event-08",
+      "sceneId": "L06-V07",
+      "assetId": "l06-v07-base",
+      "kind": "punch-in",
+      "startMs": 353197,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1.12,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "5089e84bf7c2cd7e402fedd0d9d2e0b0aae36524c32754447a8f2592acb34ed5"
+    },
+    {
+      "eventId": "l06-v07-event-09",
+      "sceneId": "L06-V07",
+      "assetId": "l06-v07-base",
+      "kind": "establishing-crop",
+      "startMs": 357890,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "adbfd05c88a521ce0d7addc413c45f14bac1df7cc263eb9f98defd07ca868bf9"
+    },
+    {
+      "eventId": "l06-v07-event-10",
+      "sceneId": "L06-V07",
+      "assetId": "l06-v07-base",
+      "kind": "diagram-build",
+      "startMs": 362583,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "f9d477c56f6a1fb08b01ea27750c738fe0c3822b4ef3a42f0783c4734fe80eb6"
+    },
+    {
+      "eventId": "l06-v07-event-11",
+      "sceneId": "L06-V07",
+      "assetId": "l06-v07-base",
+      "kind": "highlighted-region",
+      "startMs": 367276,
+      "durationMs": 4696,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "1ec52f40091a927210e287e04e405321f51b5ab95690417ec7acc4d30cfa1299"
+    },
+    {
+      "eventId": "l06-v08-event-01",
+      "sceneId": "L06-V08",
+      "assetId": "l06-v08-base",
+      "kind": "establishing-crop",
+      "startMs": 371972,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "cd215bbe63cad58a70eea1c5b0de7d42e66009fcde46f90b1f0fb7767dd16783"
+    },
+    {
+      "eventId": "l06-v08-event-02",
+      "sceneId": "L06-V08",
+      "assetId": "l06-v08-base",
+      "kind": "slow-push",
+      "startMs": 376665,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "d746fb8054c2476dcba46a8ae63e1f37ec30a93cd1735dc837b690f8fb6928f4"
+    },
+    {
+      "eventId": "l06-v08-event-03",
+      "sceneId": "L06-V08",
+      "assetId": "l06-v08-base",
+      "kind": "subject-detail",
+      "startMs": 381358,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "subject"
+      },
+      "renderCacheKey": "e093dbb0e48022279a61294718f29447a34af3d2ed4b4c2587bc1b9858bec645"
+    },
+    {
+      "eventId": "l06-v08-event-04",
+      "sceneId": "L06-V08",
+      "assetId": "l06-v08-base",
+      "kind": "transition-state",
+      "startMs": 386051,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "ce2735f939c2f42f4430367f0627c90dbd438c58ceb9da1753869adfc4949fe1"
+    },
+    {
+      "eventId": "l06-v08-event-05",
+      "sceneId": "L06-V08",
+      "assetId": "l06-v08-base",
+      "kind": "establishing-crop",
+      "startMs": 390744,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "6a0d0d7d2d882641c79a4ba9b1078ad44d2220e73f58423ec702276c5e10b7fa"
+    },
+    {
+      "eventId": "l06-v08-event-06",
+      "sceneId": "L06-V08",
+      "assetId": "l06-v08-base",
+      "kind": "slow-push",
+      "startMs": 395437,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "39181620793c020bc36f3be18db6ea00f5313027778c61f07e6f708706c4a6f7"
+    },
+    {
+      "eventId": "l06-v08-event-07",
+      "sceneId": "L06-V08",
+      "assetId": "l06-v08-base",
+      "kind": "subject-detail",
+      "startMs": 400130,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "subject"
+      },
+      "renderCacheKey": "c6174af477f3a4279cc6eb01fdfe65db89f457d2893f7e1b00246693fa8b6a94"
+    },
+    {
+      "eventId": "l06-v08-event-08",
+      "sceneId": "L06-V08",
+      "assetId": "l06-v08-base",
+      "kind": "transition-state",
+      "startMs": 404823,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "59f526ae4b9e68cc53deb5d61a42d6d6808203f26d68d1dd6671d52d58f3a3c8"
+    },
+    {
+      "eventId": "l06-v08-event-09",
+      "sceneId": "L06-V08",
+      "assetId": "l06-v08-base",
+      "kind": "establishing-crop",
+      "startMs": 409516,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "2b46c0d2a27a00e993c1a0c5fb9e70d20e58103da2ab277d44fdf818ca00cb25"
+    },
+    {
+      "eventId": "l06-v08-event-10",
+      "sceneId": "L06-V08",
+      "assetId": "l06-v08-base",
+      "kind": "slow-push",
+      "startMs": 414209,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "e0b150c33dd075c6548a933ad65cc43a2f9a05c92ff72f0de127a6ed26ac705e"
+    },
+    {
+      "eventId": "l06-v08-event-11",
+      "sceneId": "L06-V08",
+      "assetId": "l06-v08-base",
+      "kind": "subject-detail",
+      "startMs": 418902,
+      "durationMs": 4698,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "subject"
+      },
+      "renderCacheKey": "d04021c7831ad320721e8a3f47779d190de02b2be83412a9fd10cd1aaf194a48"
+    }
+  ],
+  "diagrams": [
+    {
+      "diagramId": "l06-v01-diagram",
+      "proposition": "old-position-new-offer-conflict",
+      "textFreeBackground": true,
+      "type": "before-after",
+      "before": {
+        "id": "l06-v01-diagram-before-state",
+        "semanticRole": "before-state",
+        "labelKey": "l06-v01-diagram.before-state"
+      },
+      "transformation": {
+        "id": "l06-v01-diagram-transformation",
+        "semanticRole": "transformation",
+        "labelKey": "l06-v01-diagram.transformation"
+      },
+      "after": {
+        "id": "l06-v01-diagram-after-state",
+        "semanticRole": "after-state",
+        "labelKey": "l06-v01-diagram.after-state"
+      },
+      "edges": [
+        {
+          "from": "l06-v01-diagram-before-state",
+          "to": "l06-v01-diagram-transformation",
+          "semanticRole": "changes-through"
+        },
+        {
+          "from": "l06-v01-diagram-transformation",
+          "to": "l06-v01-diagram-after-state",
+          "semanticRole": "becomes"
+        }
+      ],
+      "overlayLabelKeys": [
+        "l06-v01-diagram.before-state",
+        "l06-v01-diagram.transformation",
+        "l06-v01-diagram.after-state"
+      ]
+    },
+    {
+      "diagramId": "l06-v04-diagram",
+      "proposition": "bridge-old-to-new",
+      "textFreeBackground": true,
+      "type": "sequence",
+      "orderedNodes": [
+        {
+          "id": "l06-v04-diagram-credible-past",
+          "semanticRole": "credible-past",
+          "labelKey": "l06-v04-diagram.credible-past"
+        },
+        {
+          "id": "l06-v04-diagram-bridge-evidence",
+          "semanticRole": "bridge-evidence",
+          "labelKey": "l06-v04-diagram.bridge-evidence"
+        },
+        {
+          "id": "l06-v04-diagram-new-position",
+          "semanticRole": "new-position",
+          "labelKey": "l06-v04-diagram.new-position"
+        }
+      ],
+      "edges": [
+        {
+          "from": "l06-v04-diagram-credible-past",
+          "to": "l06-v04-diagram-bridge-evidence",
+          "semanticRole": "supports"
+        },
+        {
+          "from": "l06-v04-diagram-bridge-evidence",
+          "to": "l06-v04-diagram-new-position",
+          "semanticRole": "transitions-to"
+        }
+      ],
+      "overlayLabelKeys": [
+        "l06-v04-diagram.credible-past",
+        "l06-v04-diagram.bridge-evidence",
+        "l06-v04-diagram.new-position"
+      ]
+    },
+    {
+      "diagramId": "l06-v06-diagram",
+      "proposition": "old-and-new-overlap",
+      "textFreeBackground": true,
+      "type": "intersection",
+      "sets": [
+        {
+          "id": "l06-v06-diagram-legacy-strength",
+          "semanticRole": "legacy-strength",
+          "labelKey": "l06-v06-diagram.legacy-strength"
+        },
+        {
+          "id": "l06-v06-diagram-new-direction",
+          "semanticRole": "new-direction",
+          "labelKey": "l06-v06-diagram.new-direction"
+        }
+      ],
+      "intersectionMeaning": "credible-transition-bridge",
+      "overlayLabelKeys": [
+        "l06-v06-diagram.legacy-strength",
+        "l06-v06-diagram.new-direction",
+        "l06-v06-diagram.bridge"
+      ]
+    },
+    {
+      "diagramId": "l06-v07-diagram",
+      "proposition": "repositioning-as-memory-change",
+      "textFreeBackground": true,
+      "type": "before-after",
+      "before": {
+        "id": "l06-v07-diagram-before-state",
+        "semanticRole": "before-state",
+        "labelKey": "l06-v07-diagram.before-state"
+      },
+      "transformation": {
+        "id": "l06-v07-diagram-transformation",
+        "semanticRole": "transformation",
+        "labelKey": "l06-v07-diagram.transformation"
+      },
+      "after": {
+        "id": "l06-v07-diagram-after-state",
+        "semanticRole": "after-state",
+        "labelKey": "l06-v07-diagram.after-state"
+      },
+      "edges": [
+        {
+          "from": "l06-v07-diagram-before-state",
+          "to": "l06-v07-diagram-transformation",
+          "semanticRole": "changes-through"
+        },
+        {
+          "from": "l06-v07-diagram-transformation",
+          "to": "l06-v07-diagram-after-state",
+          "semanticRole": "becomes"
+        }
+      ],
+      "overlayLabelKeys": [
+        "l06-v07-diagram.before-state",
+        "l06-v07-diagram.transformation",
+        "l06-v07-diagram.after-state"
+      ]
+    }
+  ],
+  "assetReuseDecisions": [
+    {
+      "sourceAssetId": "l06-v04-base",
+      "sourceContentId": "L06",
+      "targetContentId": "L06-S01",
+      "targetSceneId": "L06-S01-HOOK",
+      "eligible": false,
+      "reuseMode": "not-reusable",
+      "cropAdaptation": "none",
+      "semanticCompatibility": 0.475,
+      "reason": "unsafe-aspect-ratio-adaptation"
+    },
+    {
+      "sourceAssetId": "l06-v07-base",
+      "sourceContentId": "L06",
+      "targetContentId": "L06-S01",
+      "targetSceneId": "L06-S01-V01",
+      "eligible": true,
+      "reuseMode": "vertical-derivative",
+      "cropAdaptation": "subject-aware-crop",
+      "semanticCompatibility": 0.5,
+      "reason": "semantic purpose, continuity, and protected crop regions are compatible"
+    },
+    {
+      "sourceAssetId": "l06-v01-base",
+      "sourceContentId": "L06",
+      "targetContentId": "L06-S01",
+      "targetSceneId": "L06-S01-V02",
+      "eligible": true,
+      "reuseMode": "vertical-derivative",
+      "cropAdaptation": "subject-aware-crop",
+      "semanticCompatibility": 0.5,
+      "reason": "semantic purpose, continuity, and protected crop regions are compatible"
+    },
+    {
+      "sourceAssetId": "l06-v01-base",
+      "sourceContentId": "L06",
+      "targetContentId": "L06-S01",
+      "targetSceneId": "L06-S01-V03",
+      "eligible": true,
+      "reuseMode": "vertical-derivative",
+      "cropAdaptation": "subject-aware-crop",
+      "semanticCompatibility": 0.64,
+      "reason": "semantic purpose, continuity, and protected crop regions are compatible"
+    },
+    {
+      "sourceAssetId": "l06-v03-base",
+      "sourceContentId": "L06",
+      "targetContentId": "L06-S01",
+      "targetSceneId": "L06-S01-V04",
+      "eligible": true,
+      "reuseMode": "vertical-derivative",
+      "cropAdaptation": "subject-aware-crop",
+      "semanticCompatibility": 0.55,
+      "reason": "semantic purpose, continuity, and protected crop regions are compatible"
+    },
+    {
+      "sourceAssetId": "l06-v07-base",
+      "sourceContentId": "L06",
+      "targetContentId": "L06-S02",
+      "targetSceneId": "L06-S02-HOOK",
+      "eligible": false,
+      "reuseMode": "not-reusable",
+      "cropAdaptation": "none",
+      "semanticCompatibility": 0.0667,
+      "reason": "semantic-purpose-insufficiently-compatible"
+    },
+    {
+      "sourceAssetId": "l06-v07-base",
+      "sourceContentId": "L06",
+      "targetContentId": "L06-S02",
+      "targetSceneId": "L06-S02-V01",
+      "eligible": false,
+      "reuseMode": "not-reusable",
+      "cropAdaptation": "none",
+      "semanticCompatibility": 0.15,
+      "reason": "semantic-purpose-insufficiently-compatible"
+    },
+    {
+      "sourceAssetId": "l06-cold_open-base",
+      "sourceContentId": "L06",
+      "targetContentId": "L06-S02",
+      "targetSceneId": "L06-S02-V02",
+      "eligible": true,
+      "reuseMode": "vertical-derivative",
+      "cropAdaptation": "subject-aware-crop",
+      "semanticCompatibility": 0.4,
+      "reason": "semantic purpose, continuity, and protected crop regions are compatible"
+    },
+    {
+      "sourceAssetId": "l06-v03-base",
+      "sourceContentId": "L06",
+      "targetContentId": "L06-S02",
+      "targetSceneId": "L06-S02-V03",
+      "eligible": true,
+      "reuseMode": "vertical-derivative",
+      "cropAdaptation": "subject-aware-crop",
+      "semanticCompatibility": 0.52,
+      "reason": "semantic purpose, continuity, and protected crop regions are compatible"
+    },
+    {
+      "sourceAssetId": "l06-v01-base",
+      "sourceContentId": "L06",
+      "targetContentId": "L06-S02",
+      "targetSceneId": "L06-S02-V04",
+      "eligible": true,
+      "reuseMode": "vertical-derivative",
+      "cropAdaptation": "subject-aware-crop",
+      "semanticCompatibility": 0.4,
+      "reason": "semantic purpose, continuity, and protected crop regions are compatible"
+    },
+    {
+      "sourceAssetId": "l06-v07-base",
+      "sourceContentId": "L06",
+      "targetContentId": "L06-S03",
+      "targetSceneId": "L06-S03-HOOK",
+      "eligible": true,
+      "reuseMode": "vertical-derivative",
+      "cropAdaptation": "subject-aware-crop",
+      "semanticCompatibility": 0.46,
+      "reason": "semantic purpose, continuity, and protected crop regions are compatible"
+    },
+    {
+      "sourceAssetId": "l06-cold_open-base",
+      "sourceContentId": "L06",
+      "targetContentId": "L06-S03",
+      "targetSceneId": "L06-S03-V01",
+      "eligible": true,
+      "reuseMode": "vertical-derivative",
+      "cropAdaptation": "subject-aware-crop",
+      "semanticCompatibility": 0.4,
+      "reason": "semantic purpose, continuity, and protected crop regions are compatible"
+    },
+    {
+      "sourceAssetId": "l06-v03-base",
+      "sourceContentId": "L06",
+      "targetContentId": "L06-S03",
+      "targetSceneId": "L06-S03-V02",
+      "eligible": true,
+      "reuseMode": "vertical-derivative",
+      "cropAdaptation": "subject-aware-crop",
+      "semanticCompatibility": 0.55,
+      "reason": "semantic purpose, continuity, and protected crop regions are compatible"
+    },
+    {
+      "sourceAssetId": "l06-v04-base",
+      "sourceContentId": "L06",
+      "targetContentId": "L06-S03",
+      "targetSceneId": "L06-S03-V03",
+      "eligible": false,
+      "reuseMode": "not-reusable",
+      "cropAdaptation": "none",
+      "semanticCompatibility": 0.55,
+      "reason": "unsafe-aspect-ratio-adaptation"
+    },
+    {
+      "sourceAssetId": "l06-v08-base",
+      "sourceContentId": "L06",
+      "targetContentId": "L06-S03",
+      "targetSceneId": "L06-S03-V04",
+      "eligible": false,
+      "reuseMode": "not-reusable",
+      "cropAdaptation": "none",
+      "semanticCompatibility": 0.7,
+      "reason": "unsafe-aspect-ratio-adaptation"
+    }
+  ],
+  "diversityMetrics": {
+    "visualGrammarDuplicateRate": 0.2222,
+    "subjectArchetypeDuplicateRate": 0,
+    "environmentDuplicateRate": 0.2222,
+    "compositionDuplicateRate": 0.2222,
+    "cameraDuplicateRate": 0.2222,
+    "propDuplicateRate": 0,
+    "diagramTopologyDuplicateRate": 0.25,
+    "consecutiveSceneSimilarity": {
+      "mean": 0.1417,
+      "maximum": 0.2833,
+      "violatingPairs": []
+    },
+    "hookVsScene1Similarity": null,
+    "status": "pass",
+    "failures": []
+  },
+  "cadenceMetrics": {
+    "durationMs": 423600,
+    "baseAssetCount": 9,
+    "visualEventCount": 92,
+    "eventsPerBaseAsset": 10.2222,
+    "meanSecondsPerEvent": 4.6043,
+    "shortestEventSeconds": 2.647,
+    "longestEventSeconds": 4.698,
+    "targetRangeSeconds": [
+      3,
+      7
+    ],
+    "targetComplianceRate": 0.9565,
+    "hookMeanSecondsPerEvent": null
+  },
+  "localizationCompatibility": {
+    "locales": [
+      "en",
+      "de",
+      "it",
+      "fr",
+      "pt"
+    ],
+    "canonicalImageryLocale": "en",
+    "textInGeneratedImage": false,
+    "translationInvalidatesCanonicalImagery": false,
+    "overlaysRenderedSeparately": true
+  },
+  "productionCoverage": {
+    "ctaEndScreenPlacement": "planned",
+    "motionTreatment": "planned",
+    "overlayStrategy": "planned",
+    "musicSfx": "unsupported-not-planned",
+    "thumbnail": {
+      "concept": "one core idea propagating across a physical media ecosystem; one legible tension, no generic portrait",
+      "titleRelationship": "thumbnail visualizes the consequence or contradiction; title supplies the claim",
+      "localeStrategy": "text-free-image-localized-overlay"
+    }
+  },
+  "cacheInvalidation": {
+    "semanticPlanInvalidatesOn": [
+      "canonical-narrative-semantic-change",
+      "semantic-beat-structure-change",
+      "visual-vocabulary-change",
+      "planner-algorithm-version-change"
+    ],
+    "canonicalImageInvalidatesOn": [
+      "semantic-plan-change",
+      "image-provider-or-model-change",
+      "prompt-contract-change"
+    ],
+    "titleQaInvalidatesOn": [
+      "localized-title-change",
+      "title-qa-version-change"
+    ],
+    "renderEventsInvalidateOn": [
+      "semantic-plan-change",
+      "ffmpeg-renderer-version-change",
+      "timing-change"
+    ]
+  },
+  "migration": {
+    "legacyV1Plan": "inspect-only-replan-required",
+    "legacyAssetReuse": "eligible-only-after-semantic-fingerprint-match"
+  },
+  "validation": {
+    "status": "pass",
+    "failures": []
+  },
+  "planHash": "07a4367f48a7474ab370fdbad9fcafb7a11c9628192b11ab00b31c4948a46ddb"
+}

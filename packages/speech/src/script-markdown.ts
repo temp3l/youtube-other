@@ -108,12 +108,15 @@ export async function loadEpisodeScriptMarkdown(
 
 export async function listEpisodeScriptLanguages(episodeDir: string): Promise<string[]> {
   const languagesDir = path.join(episodeDir, "languages");
-  const entries = await fs.readdir(languagesDir, { withFileTypes: true }).catch(() => []);
-  return entries
+  const [entries, shortEntries] = await Promise.all([
+    fs.readdir(languagesDir, { withFileTypes: true }).catch(() => []),
+    fs.readdir(path.join(languagesDir, "short"), { withFileTypes: true }).catch(() => []),
+  ]);
+  return [...entries, ...shortEntries]
     .filter((entry) => entry.isFile())
-    .map((entry) => entry.name)
-    .map((name) => name.match(/^script-([a-z0-9-]+)\.md$/iu)?.[1] ?? "")
+    .map((entry) => entry.name.match(/^script-([a-z0-9-]+)\.md$/iu)?.[1] ?? "")
     .filter((language) => language.length > 0)
+    .filter((language, index, all) => all.indexOf(language) === index)
     .sort();
 }
 

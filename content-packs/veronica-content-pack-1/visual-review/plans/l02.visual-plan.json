@@ -1,0 +1,4147 @@
+{
+  "schemaVersion": "veronicabenini-positioning-visual-plan.v2",
+  "plannerVersion": "veronicabenini-positioning-visual-planner.v2.1",
+  "contentId": "L02",
+  "parentLongFormId": "L02",
+  "format": "long",
+  "aspectRatio": "16:9",
+  "canonicalNarrationSource": "long/en/02-how-to-find-your-niche-without-making-yourself-too-small.md",
+  "canonicalSourceHash": "497d7d0fb6bdce68ecc4e6aae6e4090e013ebfd7ea235c3013707c064c16c58f",
+  "sourceNarrationSemanticHash": "20be33af04b4f085c860b3e257d05a23b466a776336c0b28babf367262cbfecf",
+  "semanticBeatStructureHash": "d2d7199b907e189e717f456dd2ba30774635214c8e16728c7290f570b49a035f",
+  "semanticPlanCacheKey": "897d200f3ab8b2627ccb49d96e45cfa01a810a9ba917e51ba65b8a86316f5169",
+  "canonicalImagePlanHash": "71298b53bcca020c3c1181da78f4c91b5d4ca6c02e283bb68bb7ac3f4a0bacad",
+  "renderEventPlanHash": "c1fead29f81bfbf05e199fc1138210b57a63cf207104ecbf90ed5948298da4e3",
+  "localizedTitleArtifact": {
+    "schemaVersion": "veronicabenini-title-transcreation-qa.v2",
+    "contentId": "L02",
+    "locales": {
+      "en": {
+        "metadataTitle": "Why Trying to Sell to Everyone Makes You Invisible",
+        "displayTitle": "Why Trying to Sell to Everyone Makes You Invisible",
+        "displayLines": [
+          "Why Trying to Sell to",
+          "Everyone Makes You Invisible"
+        ],
+        "displayTitleDistinctFromMetadata": false,
+        "minimumFontScale": 1,
+        "naturalness": "reviewed-source",
+        "semanticPreservation": "pass",
+        "excessiveLength": false,
+        "sourceOverlayOverflowRisk": "low",
+        "overlayOverflowRisk": "low",
+        "awkwardLiteralTranslation": false,
+        "warnings": []
+      },
+      "de": {
+        "metadataTitle": "Warum du unsichtbar wirst, wenn du an alle verkaufen willst",
+        "displayTitle": "Warum du unsichtbar wirst, wenn du an alle verkaufen willst",
+        "displayLines": [
+          "Warum du unsichtbar wirst, wenn",
+          "du an alle verkaufen willst"
+        ],
+        "displayTitleDistinctFromMetadata": false,
+        "minimumFontScale": 1,
+        "naturalness": "reviewed-source",
+        "semanticPreservation": "pass",
+        "excessiveLength": false,
+        "sourceOverlayOverflowRisk": "medium",
+        "overlayOverflowRisk": "low",
+        "awkwardLiteralTranslation": false,
+        "warnings": [
+          "overlay-fit-resolved-with-approved-display-layout"
+        ]
+      },
+      "it": {
+        "metadataTitle": "Perché cercare di vendere a tutti ti rende invisibile",
+        "displayTitle": "Perché cercare di vendere a tutti ti rende invisibile",
+        "displayLines": [
+          "Perché cercare di vendere",
+          "a tutti ti rende invisibile"
+        ],
+        "displayTitleDistinctFromMetadata": false,
+        "minimumFontScale": 1,
+        "naturalness": "reviewed-source",
+        "semanticPreservation": "pass",
+        "excessiveLength": false,
+        "sourceOverlayOverflowRisk": "medium",
+        "overlayOverflowRisk": "low",
+        "awkwardLiteralTranslation": false,
+        "warnings": [
+          "overlay-fit-resolved-with-approved-display-layout"
+        ]
+      },
+      "fr": {
+        "metadataTitle": "Pourquoi vouloir vendre à tout le monde vous rend invisible",
+        "displayTitle": "Pourquoi vouloir vendre à tout le monde vous rend invisible",
+        "displayLines": [
+          "Pourquoi vouloir vendre à tout",
+          "le monde vous rend invisible"
+        ],
+        "displayTitleDistinctFromMetadata": false,
+        "minimumFontScale": 1,
+        "naturalness": "reviewed-source",
+        "semanticPreservation": "pass",
+        "excessiveLength": false,
+        "sourceOverlayOverflowRisk": "medium",
+        "overlayOverflowRisk": "low",
+        "awkwardLiteralTranslation": false,
+        "warnings": [
+          "overlay-fit-resolved-with-approved-display-layout"
+        ]
+      },
+      "pt": {
+        "metadataTitle": "Por que tentar vender para todo mundo torna você invisível",
+        "displayTitle": "Por que tentar vender para todo mundo torna você invisível",
+        "displayLines": [
+          "Por que tentar vender para",
+          "todo mundo torna você invisível"
+        ],
+        "displayTitleDistinctFromMetadata": false,
+        "minimumFontScale": 1,
+        "naturalness": "reviewed-source",
+        "semanticPreservation": "pass",
+        "excessiveLength": false,
+        "sourceOverlayOverflowRisk": "medium",
+        "overlayOverflowRisk": "low",
+        "awkwardLiteralTranslation": false,
+        "warnings": [
+          "overlay-fit-resolved-with-approved-display-layout"
+        ]
+      }
+    },
+    "sourceTitlesHash": "8f6c506313a7106b1beabc63102f930fdaa8225d0ddbdb9525fd51a6e5ce3931",
+    "cacheKey": "9d0a8e1d1335c063535cc3f0fa51669e72c54943b4a9f2f020a4056adb9f2655",
+    "artifactHash": "aedfda857760ccdfa99d37f303ca0e703ccdb1dcf50f2daf8659024e5ce58932"
+  },
+  "visualVocabulary": {
+    "schemaVersion": "veronicabenini-positioning-visual-vocabulary.v1",
+    "episodeId": "L02",
+    "semanticDomains": [
+      "niche-positioning",
+      "authority-recognition",
+      "content-positioning",
+      "expertise-perceived-value"
+    ],
+    "recurringMotifs": [
+      "crowds resolving into selected audience clusters",
+      "knowledge moving through stages, interviews, and recommendations",
+      "one core idea propagating across a physical media ecosystem",
+      "visible evidence trails and consequential client choices"
+    ],
+    "environments": [
+      "crowded trade hall",
+      "audience concourse",
+      "specialist service context",
+      "case-study archive",
+      "client decision setting",
+      "active professional context",
+      "editorial wall",
+      "podcast booth",
+      "multi-format production table",
+      "case-study archive",
+      "client decision setting",
+      "active professional context"
+    ],
+    "materialPalette": [
+      "warm paper",
+      "coral accent",
+      "ink",
+      "glass",
+      "unfinished wood"
+    ],
+    "excludedCliches": [
+      "generic professional in office",
+      "laptop-at-desk pose",
+      "repeated notebook-and-cards staging",
+      "unmotivated business handshake"
+    ],
+    "sourceSemanticHash": "4a0c0381c74653aaed7646c8ca1ce771dc8bf17e69811736730fa2a3c9314b34",
+    "cacheKey": "e3c9dfa3d1248c9a013ed19588581c1e55a4d50271724a6291b71d44903536c0",
+    "vocabularyHash": "d9d2c3a50824b5017ede46518c442305d8557e12551a9a7e3834ffd6e4ba5a64"
+  },
+  "coldOpen": {
+    "sceneId": "L02-COLD_OPEN",
+    "progressionStage": "COLD_OPEN",
+    "narrationAnchor": "unresolved-contradiction-consequence-broad-market-vs-niche",
+    "startMs": 0,
+    "durationMs": 10590,
+    "treatment": {
+      "treatmentId": "l02-cold_open-treatment",
+      "sceneId": "L02-COLD_OPEN",
+      "progressionStage": "COLD_OPEN",
+      "narrativeBeat": "unresolved-contradiction-consequence-broad-market-vs-niche",
+      "communicationIntent": "create-tension",
+      "strategy": "market-crowd",
+      "subjectRequirement": "undifferentiated crowd with one relevant audience cluster",
+      "environment": "large public concourse crossed by broad and precise signal paths",
+      "composition": "wide diffusion field resolving into one isolated cluster",
+      "camera": "24mm elevated architectural wide",
+      "lighting": "high-key concourse light with one precise colored beam",
+      "action": "broad signal disperses while a narrow beam reaches its intended group",
+      "props": [
+        "broad glow field and focused signal beam",
+        "cluster markers"
+      ],
+      "motionOpportunities": [
+        "pan",
+        "highlighted-region",
+        "slow-push",
+        "transition-state"
+      ],
+      "diagram": null,
+      "grammar": {
+        "strategy": "market-crowd",
+        "subjectArchetype": "undifferentiated crowd with one relevant audience cluster",
+        "environment": "large public concourse crossed by broad and precise signal paths",
+        "composition": "wide diffusion field resolving into one isolated cluster",
+        "camera": "24mm elevated architectural wide",
+        "props": [
+          "broad glow field and focused signal beam",
+          "cluster markers"
+        ],
+        "topology": "none",
+        "semanticTokens": [
+          "broad",
+          "consequence",
+          "contradiction",
+          "market",
+          "niche",
+          "unresolved"
+        ],
+        "continuityIdentityId": null
+      },
+      "viewerVisibleFingerprint": {
+        "strategyFamily": "market-crowd",
+        "subjectArchetype": "undifferentiated crowd with one relevant audience cluster",
+        "environmentArchetype": "large public concourse crossed by broad and precise signal paths",
+        "compositionArchetype": "wide diffusion field resolving into one isolated cluster",
+        "cameraArchetype": "24mm elevated architectural wide",
+        "lightingArchetype": "high-key concourse light with one precise colored beam",
+        "actionArchetype": "broad signal disperses while a narrow beam reaches its intended group",
+        "dominantObjectArchetype": "broad glow field and focused signal beam",
+        "motionArchetype": "diffusion sweep into focal isolation"
+      },
+      "treatmentHash": "d902e9be7dc9e10840b854237fae34a8a3801dfd1c071d4daa410a97c8d973a7"
+    },
+    "overlayKey": "l02.l02-cold_open",
+    "assetId": "l02-cold_open-base",
+    "eventIds": [
+      "l02-cold_open-event-01",
+      "l02-cold_open-event-02",
+      "l02-cold_open-event-03",
+      "l02-cold_open-event-04"
+    ]
+  },
+  "progression": [
+    "COLD_OPEN",
+    "MANIFESTATION",
+    "EXPLANATION",
+    "EXPLANATION",
+    "REVERSAL",
+    "EXPLANATION",
+    "EXPLANATION",
+    "EXPLANATION",
+    "PAYOFF"
+  ],
+  "continuity": {
+    "mode": "ensemble-independent",
+    "variationDimensions": [
+      "age",
+      "gender-presentation",
+      "profession",
+      "environment",
+      "framing"
+    ],
+    "scenesShareIdentity": false
+  },
+  "scenes": [
+    {
+      "sceneId": "L02-COLD_OPEN",
+      "progressionStage": "COLD_OPEN",
+      "narrationAnchor": "unresolved-contradiction-consequence-broad-market-vs-niche",
+      "startMs": 0,
+      "durationMs": 10590,
+      "treatment": {
+        "treatmentId": "l02-cold_open-treatment",
+        "sceneId": "L02-COLD_OPEN",
+        "progressionStage": "COLD_OPEN",
+        "narrativeBeat": "unresolved-contradiction-consequence-broad-market-vs-niche",
+        "communicationIntent": "create-tension",
+        "strategy": "market-crowd",
+        "subjectRequirement": "undifferentiated crowd with one relevant audience cluster",
+        "environment": "large public concourse crossed by broad and precise signal paths",
+        "composition": "wide diffusion field resolving into one isolated cluster",
+        "camera": "24mm elevated architectural wide",
+        "lighting": "high-key concourse light with one precise colored beam",
+        "action": "broad signal disperses while a narrow beam reaches its intended group",
+        "props": [
+          "broad glow field and focused signal beam",
+          "cluster markers"
+        ],
+        "motionOpportunities": [
+          "pan",
+          "highlighted-region",
+          "slow-push",
+          "transition-state"
+        ],
+        "diagram": null,
+        "grammar": {
+          "strategy": "market-crowd",
+          "subjectArchetype": "undifferentiated crowd with one relevant audience cluster",
+          "environment": "large public concourse crossed by broad and precise signal paths",
+          "composition": "wide diffusion field resolving into one isolated cluster",
+          "camera": "24mm elevated architectural wide",
+          "props": [
+            "broad glow field and focused signal beam",
+            "cluster markers"
+          ],
+          "topology": "none",
+          "semanticTokens": [
+            "broad",
+            "consequence",
+            "contradiction",
+            "market",
+            "niche",
+            "unresolved"
+          ],
+          "continuityIdentityId": null
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "market-crowd",
+          "subjectArchetype": "undifferentiated crowd with one relevant audience cluster",
+          "environmentArchetype": "large public concourse crossed by broad and precise signal paths",
+          "compositionArchetype": "wide diffusion field resolving into one isolated cluster",
+          "cameraArchetype": "24mm elevated architectural wide",
+          "lightingArchetype": "high-key concourse light with one precise colored beam",
+          "actionArchetype": "broad signal disperses while a narrow beam reaches its intended group",
+          "dominantObjectArchetype": "broad glow field and focused signal beam",
+          "motionArchetype": "diffusion sweep into focal isolation"
+        },
+        "treatmentHash": "d902e9be7dc9e10840b854237fae34a8a3801dfd1c071d4daa410a97c8d973a7"
+      },
+      "overlayKey": "l02.l02-cold_open",
+      "assetId": "l02-cold_open-base",
+      "eventIds": [
+        "l02-cold_open-event-01",
+        "l02-cold_open-event-02",
+        "l02-cold_open-event-03",
+        "l02-cold_open-event-04"
+      ]
+    },
+    {
+      "sceneId": "L02-V01",
+      "progressionStage": "MANIFESTATION",
+      "narrationAnchor": "broad-market-vs-niche",
+      "startMs": 10590,
+      "durationMs": 51626,
+      "treatment": {
+        "treatmentId": "l02-v01-treatment",
+        "sceneId": "L02-V01",
+        "progressionStage": "MANIFESTATION",
+        "narrativeBeat": "broad-market-vs-niche",
+        "communicationIntent": "compare-alternatives",
+        "strategy": "market-crowd",
+        "subjectRequirement": "many visually similar providers and one legible category owner; mid-career hospitality owner",
+        "environment": "crowded trade hall or market aisle; backstage production zone",
+        "composition": "compressed crowd field with controlled focal isolation; left-to-right reveal path",
+        "camera": "105mm elevated telephoto compression; elevated diagonal viewpoint",
+        "lighting": "natural public-space practical light",
+        "action": "two alternatives reveal a meaningful contrast",
+        "props": [
+          "repeated neutral objects",
+          "single category artifact",
+          "broad evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "diagram-build",
+          "highlighted-region",
+          "punch-in"
+        ],
+        "diagram": {
+          "diagramId": "l02-v01-diagram",
+          "proposition": "broad-market-vs-niche",
+          "textFreeBackground": true,
+          "type": "comparison",
+          "entities": [
+            {
+              "id": "l02-v01-diagram-alternative-a",
+              "semanticRole": "alternative-a",
+              "labelKey": "l02-v01-diagram.alternative-a"
+            },
+            {
+              "id": "l02-v01-diagram-alternative-b",
+              "semanticRole": "alternative-b",
+              "labelKey": "l02-v01-diagram.alternative-b"
+            }
+          ],
+          "relation": "contrast",
+          "overlayLabelKeys": [
+            "l02-v01-diagram.alternative-a",
+            "l02-v01-diagram.alternative-b"
+          ]
+        },
+        "grammar": {
+          "strategy": "market-crowd",
+          "subjectArchetype": "many visually similar providers and one legible category owner; mid-career hospitality owner",
+          "environment": "crowded trade hall or market aisle; backstage production zone",
+          "composition": "compressed crowd field with controlled focal isolation; left-to-right reveal path",
+          "camera": "105mm elevated telephoto compression; elevated diagonal viewpoint",
+          "props": [
+            "repeated neutral objects",
+            "single category artifact",
+            "broad evidence artifact"
+          ],
+          "topology": "comparison",
+          "semanticTokens": [
+            "broad",
+            "market",
+            "niche"
+          ],
+          "continuityIdentityId": null
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "market-crowd",
+          "subjectArchetype": "many visually similar providers and one legible category owner; mid-career hospitality owner",
+          "environmentArchetype": "crowded trade hall or market aisle; backstage production zone",
+          "compositionArchetype": "compressed crowd field with controlled focal isolation; left-to-right reveal path",
+          "cameraArchetype": "105mm elevated telephoto compression; elevated diagonal viewpoint",
+          "lightingArchetype": "natural public-space practical light",
+          "actionArchetype": "two alternatives reveal a meaningful contrast",
+          "dominantObjectArchetype": "repeated neutral objects",
+          "motionArchetype": "establishing-crop-then-diagram-build-then-highlighted-region-then-punch-in"
+        },
+        "treatmentHash": "d05fc366c14d2d1fe89fbcf355970b574010da4c257cdb43a7bfb8132ed1a6a4"
+      },
+      "overlayKey": "l02.l02-v01",
+      "assetId": "l02-v01-base",
+      "eventIds": [
+        "l02-v01-event-01",
+        "l02-v01-event-02",
+        "l02-v01-event-03",
+        "l02-v01-event-04",
+        "l02-v01-event-05",
+        "l02-v01-event-06",
+        "l02-v01-event-07",
+        "l02-v01-event-08",
+        "l02-v01-event-09",
+        "l02-v01-event-10",
+        "l02-v01-event-11"
+      ]
+    },
+    {
+      "sceneId": "L02-V02",
+      "progressionStage": "EXPLANATION",
+      "narrationAnchor": "ideal-customer-context",
+      "startMs": 62216,
+      "durationMs": 51626,
+      "treatment": {
+        "treatmentId": "l02-v02-treatment",
+        "sceneId": "L02-V02",
+        "progressionStage": "EXPLANATION",
+        "narrativeBeat": "ideal-customer-context",
+        "communicationIntent": "prompt-decision",
+        "strategy": "audience-segmentation",
+        "subjectRequirement": "distinct audience clusters separated by needs and context; older technical consultant",
+        "environment": "public concourse transformed into spatial audience islands; client point-of-decision zone",
+        "composition": "high-angle clustered field with a deliberate narrow focus; central void separating competing signals",
+        "camera": "24mm elevated architectural view; subjective client viewpoint",
+        "lighting": "soft directional editorial daylight",
+        "action": "a decision maker selects between visible options",
+        "props": [
+          "color-coded objects",
+          "path markers",
+          "context evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "slow-push",
+          "subject-detail",
+          "transition-state"
+        ],
+        "diagram": null,
+        "grammar": {
+          "strategy": "audience-segmentation",
+          "subjectArchetype": "distinct audience clusters separated by needs and context; older technical consultant",
+          "environment": "public concourse transformed into spatial audience islands; client point-of-decision zone",
+          "composition": "high-angle clustered field with a deliberate narrow focus; central void separating competing signals",
+          "camera": "24mm elevated architectural view; subjective client viewpoint",
+          "props": [
+            "color-coded objects",
+            "path markers",
+            "context evidence artifact"
+          ],
+          "topology": "none",
+          "semanticTokens": [
+            "context",
+            "customer",
+            "ideal"
+          ],
+          "continuityIdentityId": null
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "audience-segmentation",
+          "subjectArchetype": "distinct audience clusters separated by needs and context; older technical consultant",
+          "environmentArchetype": "public concourse transformed into spatial audience islands; client point-of-decision zone",
+          "compositionArchetype": "high-angle clustered field with a deliberate narrow focus; central void separating competing signals",
+          "cameraArchetype": "24mm elevated architectural view; subjective client viewpoint",
+          "lightingArchetype": "soft directional editorial daylight",
+          "actionArchetype": "a decision maker selects between visible options",
+          "dominantObjectArchetype": "color-coded objects",
+          "motionArchetype": "establishing-crop-then-slow-push-then-subject-detail-then-transition-state"
+        },
+        "treatmentHash": "351dc6edcab0b311f7949b7ab0d109dc04f60c1a6029a094877dffdf95ef9d71"
+      },
+      "overlayKey": "l02.l02-v02",
+      "assetId": "l02-v02-base",
+      "eventIds": [
+        "l02-v02-event-01",
+        "l02-v02-event-02",
+        "l02-v02-event-03",
+        "l02-v02-event-04",
+        "l02-v02-event-05",
+        "l02-v02-event-06",
+        "l02-v02-event-07",
+        "l02-v02-event-08",
+        "l02-v02-event-09",
+        "l02-v02-event-10",
+        "l02-v02-event-11"
+      ]
+    },
+    {
+      "sceneId": "L02-V03",
+      "progressionStage": "EXPLANATION",
+      "narrationAnchor": "niche-and-subniche",
+      "startMs": 113842,
+      "durationMs": 51626,
+      "treatment": {
+        "treatmentId": "l02-v03-treatment",
+        "sceneId": "L02-V03",
+        "progressionStage": "EXPLANATION",
+        "narrativeBeat": "niche-and-subniche",
+        "communicationIntent": "define-category",
+        "strategy": "audience-segmentation",
+        "subjectRequirement": "distinct audience clusters separated by needs and context; nonbinary creative director",
+        "environment": "public concourse transformed into spatial audience islands; artifact archive zone",
+        "composition": "high-angle clustered field with a deliberate narrow focus; occluded-to-visible information progression",
+        "camera": "24mm elevated architectural view; lateral profile viewpoint",
+        "lighting": "soft directional editorial daylight",
+        "action": "a broad field resolves into a legible category",
+        "props": [
+          "color-coded objects",
+          "path markers",
+          "niche evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "diagram-build",
+          "highlighted-region",
+          "punch-in"
+        ],
+        "diagram": {
+          "diagramId": "l02-v03-diagram",
+          "proposition": "niche-and-subniche",
+          "textFreeBackground": true,
+          "type": "funnel",
+          "stages": [
+            {
+              "id": "l02-v03-diagram-broad-market",
+              "semanticRole": "broad-market",
+              "labelKey": "l02-v03-diagram.broad-market"
+            },
+            {
+              "id": "l02-v03-diagram-qualified-segment",
+              "semanticRole": "qualified-segment",
+              "labelKey": "l02-v03-diagram.qualified-segment"
+            },
+            {
+              "id": "l02-v03-diagram-chosen-niche",
+              "semanticRole": "chosen-niche",
+              "labelKey": "l02-v03-diagram.chosen-niche"
+            }
+          ],
+          "direction": "broad-to-narrow",
+          "overlayLabelKeys": [
+            "l02-v03-diagram.broad-market",
+            "l02-v03-diagram.qualified-segment",
+            "l02-v03-diagram.chosen-niche"
+          ]
+        },
+        "grammar": {
+          "strategy": "audience-segmentation",
+          "subjectArchetype": "distinct audience clusters separated by needs and context; nonbinary creative director",
+          "environment": "public concourse transformed into spatial audience islands; artifact archive zone",
+          "composition": "high-angle clustered field with a deliberate narrow focus; occluded-to-visible information progression",
+          "camera": "24mm elevated architectural view; lateral profile viewpoint",
+          "props": [
+            "color-coded objects",
+            "path markers",
+            "niche evidence artifact"
+          ],
+          "topology": "funnel",
+          "semanticTokens": [
+            "niche",
+            "subniche"
+          ],
+          "continuityIdentityId": null
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "audience-segmentation",
+          "subjectArchetype": "distinct audience clusters separated by needs and context; nonbinary creative director",
+          "environmentArchetype": "public concourse transformed into spatial audience islands; artifact archive zone",
+          "compositionArchetype": "high-angle clustered field with a deliberate narrow focus; occluded-to-visible information progression",
+          "cameraArchetype": "24mm elevated architectural view; lateral profile viewpoint",
+          "lightingArchetype": "soft directional editorial daylight",
+          "actionArchetype": "a broad field resolves into a legible category",
+          "dominantObjectArchetype": "color-coded objects",
+          "motionArchetype": "establishing-crop-then-diagram-build-then-highlighted-region-then-punch-in"
+        },
+        "treatmentHash": "3562583890f28b4824425e83db5a857baed10808ad53cdd16bfec712f43bcb11"
+      },
+      "overlayKey": "l02.l02-v03",
+      "assetId": "l02-v03-base",
+      "eventIds": [
+        "l02-v03-event-01",
+        "l02-v03-event-02",
+        "l02-v03-event-03",
+        "l02-v03-event-04",
+        "l02-v03-event-05",
+        "l02-v03-event-06",
+        "l02-v03-event-07",
+        "l02-v03-event-08",
+        "l02-v03-event-09",
+        "l02-v03-event-10",
+        "l02-v03-event-11"
+      ]
+    },
+    {
+      "sceneId": "L02-V04",
+      "progressionStage": "REVERSAL",
+      "narrationAnchor": "generic-vs-specific-message",
+      "startMs": 165468,
+      "durationMs": 51626,
+      "treatment": {
+        "treatmentId": "l02-v04-treatment",
+        "sceneId": "L02-V04",
+        "progressionStage": "REVERSAL",
+        "narrativeBeat": "generic-vs-specific-message",
+        "communicationIntent": "compare-alternatives",
+        "strategy": "comparison-composition",
+        "subjectRequirement": "two meaningfully different outcomes or choices; woman-led retail founder",
+        "environment": "dual-world editorial set; peer-referral setting",
+        "composition": "asymmetric split composition with a decisive visual imbalance; near-far contrast between choice and result",
+        "camera": "40mm locked frontal comparison; compressed distant observation",
+        "lighting": "soft directional editorial daylight",
+        "action": "two alternatives reveal a meaningful contrast",
+        "props": [
+          "contrasting evidence sets",
+          "decision marker",
+          "generic evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "diagram-build",
+          "highlighted-region",
+          "punch-in"
+        ],
+        "diagram": {
+          "diagramId": "l02-v04-diagram",
+          "proposition": "generic-vs-specific-message",
+          "textFreeBackground": true,
+          "type": "comparison",
+          "entities": [
+            {
+              "id": "l02-v04-diagram-alternative-a",
+              "semanticRole": "alternative-a",
+              "labelKey": "l02-v04-diagram.alternative-a"
+            },
+            {
+              "id": "l02-v04-diagram-alternative-b",
+              "semanticRole": "alternative-b",
+              "labelKey": "l02-v04-diagram.alternative-b"
+            }
+          ],
+          "relation": "contrast",
+          "overlayLabelKeys": [
+            "l02-v04-diagram.alternative-a",
+            "l02-v04-diagram.alternative-b"
+          ]
+        },
+        "grammar": {
+          "strategy": "comparison-composition",
+          "subjectArchetype": "two meaningfully different outcomes or choices; woman-led retail founder",
+          "environment": "dual-world editorial set; peer-referral setting",
+          "composition": "asymmetric split composition with a decisive visual imbalance; near-far contrast between choice and result",
+          "camera": "40mm locked frontal comparison; compressed distant observation",
+          "props": [
+            "contrasting evidence sets",
+            "decision marker",
+            "generic evidence artifact"
+          ],
+          "topology": "comparison",
+          "semanticTokens": [
+            "generic",
+            "message",
+            "specific"
+          ],
+          "continuityIdentityId": null
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "comparison-composition",
+          "subjectArchetype": "two meaningfully different outcomes or choices; woman-led retail founder",
+          "environmentArchetype": "dual-world editorial set; peer-referral setting",
+          "compositionArchetype": "asymmetric split composition with a decisive visual imbalance; near-far contrast between choice and result",
+          "cameraArchetype": "40mm locked frontal comparison; compressed distant observation",
+          "lightingArchetype": "soft directional editorial daylight",
+          "actionArchetype": "two alternatives reveal a meaningful contrast",
+          "dominantObjectArchetype": "contrasting evidence sets",
+          "motionArchetype": "establishing-crop-then-diagram-build-then-highlighted-region-then-punch-in"
+        },
+        "treatmentHash": "a3a2678342ecb0f259eccb8a5c7b091ae4ccb3ff629ad1725b1e375b8a6c3097"
+      },
+      "overlayKey": "l02.l02-v04",
+      "assetId": "l02-v04-base",
+      "eventIds": [
+        "l02-v04-event-01",
+        "l02-v04-event-02",
+        "l02-v04-event-03",
+        "l02-v04-event-04",
+        "l02-v04-event-05",
+        "l02-v04-event-06",
+        "l02-v04-event-07",
+        "l02-v04-event-08",
+        "l02-v04-event-09",
+        "l02-v04-event-10",
+        "l02-v04-event-11"
+      ]
+    },
+    {
+      "sceneId": "L02-V05",
+      "progressionStage": "EXPLANATION",
+      "narrationAnchor": "problem-recognition",
+      "startMs": 217094,
+      "durationMs": 51626,
+      "treatment": {
+        "treatmentId": "l02-v05-treatment",
+        "sceneId": "L02-V05",
+        "progressionStage": "EXPLANATION",
+        "narrativeBeat": "problem-recognition",
+        "communicationIntent": "make-proof-visible",
+        "strategy": "evidence-proof",
+        "subjectRequirement": "observable work evidence accumulating into trust; male wellness practitioner",
+        "environment": "case-study archive, exhibition rail, or results wall; field-work context",
+        "composition": "progressive evidence trail leading to a decision; layered reflection with off-axis evidence",
+        "camera": "35mm shallow diagonal dolly perspective; close foreground parallax",
+        "lighting": "soft directional editorial daylight",
+        "action": "observable proof accumulates toward trust",
+        "props": [
+          "before-after sample",
+          "prototype",
+          "testimonial portrait without text",
+          "problem evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "diagram-build",
+          "highlighted-region",
+          "punch-in"
+        ],
+        "diagram": {
+          "diagramId": "l02-v05-diagram",
+          "proposition": "problem-recognition",
+          "textFreeBackground": true,
+          "type": "cause-effect",
+          "causes": [
+            {
+              "id": "l02-v05-diagram-cause-a",
+              "semanticRole": "cause-a",
+              "labelKey": "l02-v05-diagram.cause-a"
+            },
+            {
+              "id": "l02-v05-diagram-cause-b",
+              "semanticRole": "cause-b",
+              "labelKey": "l02-v05-diagram.cause-b"
+            },
+            {
+              "id": "l02-v05-diagram-cause-c",
+              "semanticRole": "cause-c",
+              "labelKey": "l02-v05-diagram.cause-c"
+            }
+          ],
+          "effect": {
+            "id": "l02-v05-diagram-consequence",
+            "semanticRole": "consequence",
+            "labelKey": "l02-v05-diagram.consequence"
+          },
+          "edges": [
+            {
+              "from": "l02-v05-diagram-cause-a",
+              "to": "l02-v05-diagram-consequence",
+              "semanticRole": "causes"
+            },
+            {
+              "from": "l02-v05-diagram-cause-b",
+              "to": "l02-v05-diagram-consequence",
+              "semanticRole": "causes"
+            },
+            {
+              "from": "l02-v05-diagram-cause-c",
+              "to": "l02-v05-diagram-consequence",
+              "semanticRole": "causes"
+            }
+          ],
+          "overlayLabelKeys": [
+            "l02-v05-diagram.cause-a",
+            "l02-v05-diagram.cause-b",
+            "l02-v05-diagram.cause-c",
+            "l02-v05-diagram.consequence"
+          ]
+        },
+        "grammar": {
+          "strategy": "evidence-proof",
+          "subjectArchetype": "observable work evidence accumulating into trust; male wellness practitioner",
+          "environment": "case-study archive, exhibition rail, or results wall; field-work context",
+          "composition": "progressive evidence trail leading to a decision; layered reflection with off-axis evidence",
+          "camera": "35mm shallow diagonal dolly perspective; close foreground parallax",
+          "props": [
+            "before-after sample",
+            "prototype",
+            "testimonial portrait without text",
+            "problem evidence artifact"
+          ],
+          "topology": "cause-effect",
+          "semanticTokens": [
+            "problem",
+            "recognition"
+          ],
+          "continuityIdentityId": null
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "evidence-proof",
+          "subjectArchetype": "observable work evidence accumulating into trust; male wellness practitioner",
+          "environmentArchetype": "case-study archive, exhibition rail, or results wall; field-work context",
+          "compositionArchetype": "progressive evidence trail leading to a decision; layered reflection with off-axis evidence",
+          "cameraArchetype": "35mm shallow diagonal dolly perspective; close foreground parallax",
+          "lightingArchetype": "soft directional editorial daylight",
+          "actionArchetype": "observable proof accumulates toward trust",
+          "dominantObjectArchetype": "before-after sample",
+          "motionArchetype": "establishing-crop-then-diagram-build-then-highlighted-region-then-punch-in"
+        },
+        "treatmentHash": "ac7bf109e0add33d23288db5ad5126305a68f1fa914fedbc415ff7f51e815dd8"
+      },
+      "overlayKey": "l02.l02-v05",
+      "assetId": "l02-v05-base",
+      "eventIds": [
+        "l02-v05-event-01",
+        "l02-v05-event-02",
+        "l02-v05-event-03",
+        "l02-v05-event-04",
+        "l02-v05-event-05",
+        "l02-v05-event-06",
+        "l02-v05-event-07",
+        "l02-v05-event-08",
+        "l02-v05-event-09",
+        "l02-v05-event-10",
+        "l02-v05-event-11"
+      ]
+    },
+    {
+      "sceneId": "L02-V06",
+      "progressionStage": "EXPLANATION",
+      "narrationAnchor": "market-problem-solution",
+      "startMs": 268720,
+      "durationMs": 51626,
+      "treatment": {
+        "treatmentId": "l02-v06-treatment",
+        "sceneId": "L02-V06",
+        "progressionStage": "EXPLANATION",
+        "narrativeBeat": "market-problem-solution",
+        "communicationIntent": "define-category",
+        "strategy": "market-crowd",
+        "subjectRequirement": "many visually similar providers and one legible category owner; younger independent product designer",
+        "environment": "crowded trade hall or market aisle; street-facing public threshold",
+        "composition": "compressed crowd field with controlled focal isolation; foreground consequence against background cause",
+        "camera": "105mm elevated telephoto compression; low three-quarter viewpoint",
+        "lighting": "natural public-space practical light",
+        "action": "a broad field resolves into a legible category",
+        "props": [
+          "repeated neutral objects",
+          "single category artifact",
+          "market evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "slow-push",
+          "subject-detail",
+          "transition-state"
+        ],
+        "diagram": null,
+        "grammar": {
+          "strategy": "market-crowd",
+          "subjectArchetype": "many visually similar providers and one legible category owner; younger independent product designer",
+          "environment": "crowded trade hall or market aisle; street-facing public threshold",
+          "composition": "compressed crowd field with controlled focal isolation; foreground consequence against background cause",
+          "camera": "105mm elevated telephoto compression; low three-quarter viewpoint",
+          "props": [
+            "repeated neutral objects",
+            "single category artifact",
+            "market evidence artifact"
+          ],
+          "topology": "none",
+          "semanticTokens": [
+            "market",
+            "problem",
+            "solution"
+          ],
+          "continuityIdentityId": null
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "market-crowd",
+          "subjectArchetype": "many visually similar providers and one legible category owner; younger independent product designer",
+          "environmentArchetype": "crowded trade hall or market aisle; street-facing public threshold",
+          "compositionArchetype": "compressed crowd field with controlled focal isolation; foreground consequence against background cause",
+          "cameraArchetype": "105mm elevated telephoto compression; low three-quarter viewpoint",
+          "lightingArchetype": "natural public-space practical light",
+          "actionArchetype": "a broad field resolves into a legible category",
+          "dominantObjectArchetype": "repeated neutral objects",
+          "motionArchetype": "establishing-crop-then-slow-push-then-subject-detail-then-transition-state"
+        },
+        "treatmentHash": "067af953ab054614cf40b7d521d61fbebf086c54d90c62859fd254f0d69494df"
+      },
+      "overlayKey": "l02.l02-v06",
+      "assetId": "l02-v06-base",
+      "eventIds": [
+        "l02-v06-event-01",
+        "l02-v06-event-02",
+        "l02-v06-event-03",
+        "l02-v06-event-04",
+        "l02-v06-event-05",
+        "l02-v06-event-06",
+        "l02-v06-event-07",
+        "l02-v06-event-08",
+        "l02-v06-event-09",
+        "l02-v06-event-10",
+        "l02-v06-event-11"
+      ]
+    },
+    {
+      "sceneId": "L02-V07",
+      "progressionStage": "EXPLANATION",
+      "narrationAnchor": "niche-content-boundaries",
+      "startMs": 320346,
+      "durationMs": 51626,
+      "treatment": {
+        "treatmentId": "l02-v07-treatment",
+        "sceneId": "L02-V07",
+        "progressionStage": "EXPLANATION",
+        "narrativeBeat": "niche-content-boundaries",
+        "communicationIntent": "define-category",
+        "strategy": "publishing-media-authority",
+        "subjectRequirement": "expert contributing knowledge through a public medium; mid-career hospitality owner",
+        "environment": "podcast booth, small stage, interview corner, or editorial desk; backstage production zone",
+        "composition": "medium-wide frame with medium and audience both visible; left-to-right reveal path",
+        "camera": "70mm off-axis broadcast documentary; elevated diagonal viewpoint",
+        "lighting": "soft directional editorial daylight",
+        "action": "a broad field resolves into a legible category",
+        "props": [
+          "microphone",
+          "camera tally light",
+          "printed proof",
+          "boundaries evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "diagram-build",
+          "highlighted-region",
+          "punch-in"
+        ],
+        "diagram": {
+          "diagramId": "l02-v07-diagram",
+          "proposition": "niche-content-boundaries",
+          "textFreeBackground": true,
+          "type": "hierarchy",
+          "root": {
+            "id": "l02-v07-diagram-broad-market",
+            "semanticRole": "broad-market",
+            "labelKey": "l02-v07-diagram.broad-market"
+          },
+          "children": [
+            {
+              "id": "l02-v07-diagram-qualified-segment-a",
+              "semanticRole": "qualified-segment-a",
+              "labelKey": "l02-v07-diagram.qualified-segment-a"
+            },
+            {
+              "id": "l02-v07-diagram-qualified-segment-b",
+              "semanticRole": "qualified-segment-b",
+              "labelKey": "l02-v07-diagram.qualified-segment-b"
+            },
+            {
+              "id": "l02-v07-diagram-chosen-niche",
+              "semanticRole": "chosen-niche",
+              "labelKey": "l02-v07-diagram.chosen-niche"
+            }
+          ],
+          "edges": [
+            {
+              "from": "l02-v07-diagram-broad-market",
+              "to": "l02-v07-diagram-qualified-segment-a",
+              "semanticRole": "contains"
+            },
+            {
+              "from": "l02-v07-diagram-broad-market",
+              "to": "l02-v07-diagram-qualified-segment-b",
+              "semanticRole": "contains"
+            },
+            {
+              "from": "l02-v07-diagram-broad-market",
+              "to": "l02-v07-diagram-chosen-niche",
+              "semanticRole": "contains"
+            }
+          ],
+          "overlayLabelKeys": [
+            "l02-v07-diagram.broad-market",
+            "l02-v07-diagram.qualified-segment-a",
+            "l02-v07-diagram.qualified-segment-b",
+            "l02-v07-diagram.chosen-niche"
+          ]
+        },
+        "grammar": {
+          "strategy": "publishing-media-authority",
+          "subjectArchetype": "expert contributing knowledge through a public medium; mid-career hospitality owner",
+          "environment": "podcast booth, small stage, interview corner, or editorial desk; backstage production zone",
+          "composition": "medium-wide frame with medium and audience both visible; left-to-right reveal path",
+          "camera": "70mm off-axis broadcast documentary; elevated diagonal viewpoint",
+          "props": [
+            "microphone",
+            "camera tally light",
+            "printed proof",
+            "boundaries evidence artifact"
+          ],
+          "topology": "hierarchy",
+          "semanticTokens": [
+            "boundaries",
+            "content",
+            "niche"
+          ],
+          "continuityIdentityId": null
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "publishing-media-authority",
+          "subjectArchetype": "expert contributing knowledge through a public medium; mid-career hospitality owner",
+          "environmentArchetype": "podcast booth, small stage, interview corner, or editorial desk; backstage production zone",
+          "compositionArchetype": "medium-wide frame with medium and audience both visible; left-to-right reveal path",
+          "cameraArchetype": "70mm off-axis broadcast documentary; elevated diagonal viewpoint",
+          "lightingArchetype": "soft directional editorial daylight",
+          "actionArchetype": "a broad field resolves into a legible category",
+          "dominantObjectArchetype": "microphone",
+          "motionArchetype": "establishing-crop-then-diagram-build-then-highlighted-region-then-punch-in"
+        },
+        "treatmentHash": "4a8bc5da58bc38c7e8045f66a842073fc947be38b7762f63614609e3abe28d9a"
+      },
+      "overlayKey": "l02.l02-v07",
+      "assetId": "l02-v07-base",
+      "eventIds": [
+        "l02-v07-event-01",
+        "l02-v07-event-02",
+        "l02-v07-event-03",
+        "l02-v07-event-04",
+        "l02-v07-event-05",
+        "l02-v07-event-06",
+        "l02-v07-event-07",
+        "l02-v07-event-08",
+        "l02-v07-event-09",
+        "l02-v07-event-10",
+        "l02-v07-event-11"
+      ]
+    },
+    {
+      "sceneId": "L02-V08",
+      "progressionStage": "PAYOFF",
+      "narrationAnchor": "specificity-test",
+      "startMs": 371972,
+      "durationMs": 51628,
+      "treatment": {
+        "treatmentId": "l02-v08-treatment",
+        "sceneId": "L02-V08",
+        "progressionStage": "PAYOFF",
+        "narrativeBeat": "specificity-test",
+        "communicationIntent": "deliver-payoff",
+        "strategy": "comparison-composition",
+        "subjectRequirement": "two meaningfully different outcomes or choices; older technical consultant",
+        "environment": "dual-world editorial set; client point-of-decision zone",
+        "composition": "asymmetric split composition with a decisive visual imbalance; central void separating competing signals",
+        "camera": "40mm locked frontal comparison; subjective client viewpoint",
+        "lighting": "soft directional editorial daylight",
+        "action": "the final visual state resolves the proposition",
+        "props": [
+          "contrasting evidence sets",
+          "decision marker",
+          "specificity evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "diagram-build",
+          "highlighted-region",
+          "punch-in"
+        ],
+        "diagram": {
+          "diagramId": "l02-v08-diagram",
+          "proposition": "specificity-test",
+          "textFreeBackground": true,
+          "type": "funnel",
+          "stages": [
+            {
+              "id": "l02-v08-diagram-broad-market",
+              "semanticRole": "broad-market",
+              "labelKey": "l02-v08-diagram.broad-market"
+            },
+            {
+              "id": "l02-v08-diagram-qualified-segment",
+              "semanticRole": "qualified-segment",
+              "labelKey": "l02-v08-diagram.qualified-segment"
+            },
+            {
+              "id": "l02-v08-diagram-chosen-niche",
+              "semanticRole": "chosen-niche",
+              "labelKey": "l02-v08-diagram.chosen-niche"
+            }
+          ],
+          "direction": "broad-to-narrow",
+          "overlayLabelKeys": [
+            "l02-v08-diagram.broad-market",
+            "l02-v08-diagram.qualified-segment",
+            "l02-v08-diagram.chosen-niche"
+          ]
+        },
+        "grammar": {
+          "strategy": "comparison-composition",
+          "subjectArchetype": "two meaningfully different outcomes or choices; older technical consultant",
+          "environment": "dual-world editorial set; client point-of-decision zone",
+          "composition": "asymmetric split composition with a decisive visual imbalance; central void separating competing signals",
+          "camera": "40mm locked frontal comparison; subjective client viewpoint",
+          "props": [
+            "contrasting evidence sets",
+            "decision marker",
+            "specificity evidence artifact"
+          ],
+          "topology": "funnel",
+          "semanticTokens": [
+            "specificity",
+            "test"
+          ],
+          "continuityIdentityId": null
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "comparison-composition",
+          "subjectArchetype": "two meaningfully different outcomes or choices; older technical consultant",
+          "environmentArchetype": "dual-world editorial set; client point-of-decision zone",
+          "compositionArchetype": "asymmetric split composition with a decisive visual imbalance; central void separating competing signals",
+          "cameraArchetype": "40mm locked frontal comparison; subjective client viewpoint",
+          "lightingArchetype": "soft directional editorial daylight",
+          "actionArchetype": "the final visual state resolves the proposition",
+          "dominantObjectArchetype": "contrasting evidence sets",
+          "motionArchetype": "establishing-crop-then-diagram-build-then-highlighted-region-then-punch-in"
+        },
+        "treatmentHash": "f0c91c6d27dfe5fc125e30fe100f4253904a02c61c480e826ffbf6ea59a69bcd"
+      },
+      "overlayKey": "l02.l02-v08",
+      "assetId": "l02-v08-base",
+      "eventIds": [
+        "l02-v08-event-01",
+        "l02-v08-event-02",
+        "l02-v08-event-03",
+        "l02-v08-event-04",
+        "l02-v08-event-05",
+        "l02-v08-event-06",
+        "l02-v08-event-07",
+        "l02-v08-event-08",
+        "l02-v08-event-09",
+        "l02-v08-event-10",
+        "l02-v08-event-11"
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "assetId": "l02-cold_open-base",
+      "contentId": "L02",
+      "sceneId": "L02-COLD_OPEN",
+      "semanticPurpose": "unresolved-contradiction-consequence-broad-market-vs-niche",
+      "strategy": "market-crowd",
+      "prompt": "Text-free 16:9 market-crowd treatment for unresolved contradiction consequence broad market vs niche. Communication intent: create-tension. Subject: undifferentiated crowd with one relevant audience cluster. Environment: large public concourse crossed by broad and precise signal paths. Composition: wide diffusion field resolving into one isolated cluster. Camera: 24mm elevated architectural wide. Props: broad glow field and focused signal beam, cluster markers. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "16:9",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "native composition"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": false,
+          "cropMode": "not-safe",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "wide multi-subject topology loses meaning in a vertical crop"
+        }
+      ],
+      "subjectIdentityId": null,
+      "referenceAssetId": null,
+      "semanticFingerprint": "5c7ce900359117a96baf2386dac6a36129fe14b0b158fd954f6550874bc33a0a",
+      "generatedAssetCacheKey": "ef15663b8be8ec647d95435f5cf5ac74dc2b636bd32b0247f88ce4fcb64ade20"
+    },
+    {
+      "assetId": "l02-v01-base",
+      "contentId": "L02",
+      "sceneId": "L02-V01",
+      "semanticPurpose": "broad-market-vs-niche",
+      "strategy": "market-crowd",
+      "prompt": "Text-free 16:9 market-crowd treatment for broad market vs niche. Communication intent: compare-alternatives. Subject: many visually similar providers and one legible category owner; mid-career hospitality owner. Environment: crowded trade hall or market aisle; backstage production zone. Composition: compressed crowd field with controlled focal isolation; left-to-right reveal path. Camera: 105mm elevated telephoto compression; elevated diagonal viewpoint. Props: repeated neutral objects, single category artifact, broad evidence artifact. Proposition-specific comparison structure with 2 separately rendered label anchors. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "16:9",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "native composition"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": false,
+          "cropMode": "not-safe",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "wide multi-subject topology loses meaning in a vertical crop"
+        }
+      ],
+      "subjectIdentityId": null,
+      "referenceAssetId": null,
+      "semanticFingerprint": "cfacc37a59e2ae2854d25e479afbe6d3282d08134897f535d9d6b247afa75d19",
+      "generatedAssetCacheKey": "bbf52e36039b8d76db3c965648e4516af031cafcb420c191e7add33db4df781e"
+    },
+    {
+      "assetId": "l02-v02-base",
+      "contentId": "L02",
+      "sceneId": "L02-V02",
+      "semanticPurpose": "ideal-customer-context",
+      "strategy": "audience-segmentation",
+      "prompt": "Text-free 16:9 audience-segmentation treatment for ideal customer context. Communication intent: prompt-decision. Subject: distinct audience clusters separated by needs and context; older technical consultant. Environment: public concourse transformed into spatial audience islands; client point-of-decision zone. Composition: high-angle clustered field with a deliberate narrow focus; central void separating competing signals. Camera: 24mm elevated architectural view; subjective client viewpoint. Props: color-coded objects, path markers, context evidence artifact. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "16:9",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "native composition"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "subject-aware-crop",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "protected subject and overlay regions survive a subject-aware derivative"
+        }
+      ],
+      "subjectIdentityId": null,
+      "referenceAssetId": null,
+      "semanticFingerprint": "31c3e5c5bcaa22e90bb479ad677acc25aa7073e1762dc152e9e1cb62f1705f58",
+      "generatedAssetCacheKey": "d1d8fbe1db0d737a82c31ecce7810c334029f8580afe0db0f707976a211a38bf"
+    },
+    {
+      "assetId": "l02-v03-base",
+      "contentId": "L02",
+      "sceneId": "L02-V03",
+      "semanticPurpose": "niche-and-subniche",
+      "strategy": "audience-segmentation",
+      "prompt": "Text-free 16:9 audience-segmentation treatment for niche and subniche. Communication intent: define-category. Subject: distinct audience clusters separated by needs and context; nonbinary creative director. Environment: public concourse transformed into spatial audience islands; artifact archive zone. Composition: high-angle clustered field with a deliberate narrow focus; occluded-to-visible information progression. Camera: 24mm elevated architectural view; lateral profile viewpoint. Props: color-coded objects, path markers, niche evidence artifact. Proposition-specific funnel structure with 3 separately rendered label anchors. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "16:9",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "native composition"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "subject-aware-crop",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "protected subject and overlay regions survive a subject-aware derivative"
+        }
+      ],
+      "subjectIdentityId": null,
+      "referenceAssetId": null,
+      "semanticFingerprint": "9a7d428b962bce9ed9b5ce9ba1bb410d952ec5379b0bda1e1e1224882f88ddb3",
+      "generatedAssetCacheKey": "181ab5453387cd9fb86993a3ef65595d95a05d01fff3a22e298a07928c3250da"
+    },
+    {
+      "assetId": "l02-v04-base",
+      "contentId": "L02",
+      "sceneId": "L02-V04",
+      "semanticPurpose": "generic-vs-specific-message",
+      "strategy": "comparison-composition",
+      "prompt": "Text-free 16:9 comparison-composition treatment for generic vs specific message. Communication intent: compare-alternatives. Subject: two meaningfully different outcomes or choices; woman-led retail founder. Environment: dual-world editorial set; peer-referral setting. Composition: asymmetric split composition with a decisive visual imbalance; near-far contrast between choice and result. Camera: 40mm locked frontal comparison; compressed distant observation. Props: contrasting evidence sets, decision marker, generic evidence artifact. Proposition-specific comparison structure with 2 separately rendered label anchors. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "16:9",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "native composition"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "subject-aware-crop",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "protected subject and overlay regions survive a subject-aware derivative"
+        }
+      ],
+      "subjectIdentityId": null,
+      "referenceAssetId": null,
+      "semanticFingerprint": "09e100e6cb1e4f756b656011906780d6359a663be256978bf1d7e70aee010fe6",
+      "generatedAssetCacheKey": "9de48a9ba223752a5dbca87663358258a9fdb433fbbfe0137f463261723d2c28"
+    },
+    {
+      "assetId": "l02-v05-base",
+      "contentId": "L02",
+      "sceneId": "L02-V05",
+      "semanticPurpose": "problem-recognition",
+      "strategy": "evidence-proof",
+      "prompt": "Text-free 16:9 evidence-proof treatment for problem recognition. Communication intent: make-proof-visible. Subject: observable work evidence accumulating into trust; male wellness practitioner. Environment: case-study archive, exhibition rail, or results wall; field-work context. Composition: progressive evidence trail leading to a decision; layered reflection with off-axis evidence. Camera: 35mm shallow diagonal dolly perspective; close foreground parallax. Props: before-after sample, prototype, testimonial portrait without text, problem evidence artifact. Proposition-specific cause-effect structure with 4 separately rendered label anchors. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "16:9",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "native composition"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "subject-aware-crop",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "protected subject and overlay regions survive a subject-aware derivative"
+        }
+      ],
+      "subjectIdentityId": null,
+      "referenceAssetId": null,
+      "semanticFingerprint": "239b668df6225af4bf0576d7633794d0e35c4b0dbd92684358cc625d6cd95bd2",
+      "generatedAssetCacheKey": "5acfeac7276b7d74093f223d9b8c5eba9ae5c0e6cb1975a5c3557e31bc4bd7e5"
+    },
+    {
+      "assetId": "l02-v06-base",
+      "contentId": "L02",
+      "sceneId": "L02-V06",
+      "semanticPurpose": "market-problem-solution",
+      "strategy": "market-crowd",
+      "prompt": "Text-free 16:9 market-crowd treatment for market problem solution. Communication intent: define-category. Subject: many visually similar providers and one legible category owner; younger independent product designer. Environment: crowded trade hall or market aisle; street-facing public threshold. Composition: compressed crowd field with controlled focal isolation; foreground consequence against background cause. Camera: 105mm elevated telephoto compression; low three-quarter viewpoint. Props: repeated neutral objects, single category artifact, market evidence artifact. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "16:9",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "native composition"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": false,
+          "cropMode": "not-safe",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "wide multi-subject topology loses meaning in a vertical crop"
+        }
+      ],
+      "subjectIdentityId": null,
+      "referenceAssetId": null,
+      "semanticFingerprint": "ed180ae5d7508932491c89feec1a7e7a48a965f57dfaed90666914f959335e25",
+      "generatedAssetCacheKey": "c41292583a22cdd1b6b288ae31468254801850a33a6e81d250bf1f54a6dc21f8"
+    },
+    {
+      "assetId": "l02-v07-base",
+      "contentId": "L02",
+      "sceneId": "L02-V07",
+      "semanticPurpose": "niche-content-boundaries",
+      "strategy": "publishing-media-authority",
+      "prompt": "Text-free 16:9 publishing-media-authority treatment for niche content boundaries. Communication intent: define-category. Subject: expert contributing knowledge through a public medium; mid-career hospitality owner. Environment: podcast booth, small stage, interview corner, or editorial desk; backstage production zone. Composition: medium-wide frame with medium and audience both visible; left-to-right reveal path. Camera: 70mm off-axis broadcast documentary; elevated diagonal viewpoint. Props: microphone, camera tally light, printed proof, boundaries evidence artifact. Proposition-specific hierarchy structure with 4 separately rendered label anchors. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "16:9",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "native composition"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "subject-aware-crop",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "protected subject and overlay regions survive a subject-aware derivative"
+        }
+      ],
+      "subjectIdentityId": null,
+      "referenceAssetId": null,
+      "semanticFingerprint": "647eb0d0b85e59bc5ac6a1a709f52e279fa31917495fa374f67106688490c4d3",
+      "generatedAssetCacheKey": "c38d1941b55b51c651b6134918714009147c7bbd7863d0caf134064dd6b985b3"
+    },
+    {
+      "assetId": "l02-v08-base",
+      "contentId": "L02",
+      "sceneId": "L02-V08",
+      "semanticPurpose": "specificity-test",
+      "strategy": "comparison-composition",
+      "prompt": "Text-free 16:9 comparison-composition treatment for specificity test. Communication intent: deliver-payoff. Subject: two meaningfully different outcomes or choices; older technical consultant. Environment: dual-world editorial set; client point-of-decision zone. Composition: asymmetric split composition with a decisive visual imbalance; central void separating competing signals. Camera: 40mm locked frontal comparison; subjective client viewpoint. Props: contrasting evidence sets, decision marker, specificity evidence artifact. Proposition-specific funnel structure with 3 separately rendered label anchors. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "16:9",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "native composition"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "subject-aware-crop",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "protected subject and overlay regions survive a subject-aware derivative"
+        }
+      ],
+      "subjectIdentityId": null,
+      "referenceAssetId": null,
+      "semanticFingerprint": "0933557a3905cf880a47b426be06e8833a0e8d29f79c1987cb45e6ba61ea9b0b",
+      "generatedAssetCacheKey": "a71c558b82b993eb04c1a8d293ff9a7d052ec46378e819367d592ee8f3a31a44"
+    }
+  ],
+  "visualEvents": [
+    {
+      "eventId": "l02-cold_open-event-01",
+      "sceneId": "L02-COLD_OPEN",
+      "assetId": "l02-cold_open-base",
+      "kind": "pan",
+      "startMs": 0,
+      "durationMs": 2647,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "3de3eb51c069babf698bc7bf9e536455df9bf9ee5e24f4f25f4fc0e8928ba4aa"
+    },
+    {
+      "eventId": "l02-cold_open-event-02",
+      "sceneId": "L02-COLD_OPEN",
+      "assetId": "l02-cold_open-base",
+      "kind": "highlighted-region",
+      "startMs": 2647,
+      "durationMs": 2647,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "25cce6cd4a8424271e4db671106880e03e7bf7036bcb6f1935b9767e74e6bb3c"
+    },
+    {
+      "eventId": "l02-cold_open-event-03",
+      "sceneId": "L02-COLD_OPEN",
+      "assetId": "l02-cold_open-base",
+      "kind": "slow-push",
+      "startMs": 5294,
+      "durationMs": 2647,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "01e1e29c8f2feff5aa1336f40d2663c85f5c35d73f9385d6c34f144d743017ae"
+    },
+    {
+      "eventId": "l02-cold_open-event-04",
+      "sceneId": "L02-COLD_OPEN",
+      "assetId": "l02-cold_open-base",
+      "kind": "transition-state",
+      "startMs": 7941,
+      "durationMs": 2649,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "b163a9f5b7e499643f246e6a5934848d224e5b27383fac37c274d1001e7b1a88"
+    },
+    {
+      "eventId": "l02-v01-event-01",
+      "sceneId": "L02-V01",
+      "assetId": "l02-v01-base",
+      "kind": "establishing-crop",
+      "startMs": 10590,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "903a8955251a52a29aa6cfc70722b0c7a34e424d7ff96e70a972e6b01f2badf6"
+    },
+    {
+      "eventId": "l02-v01-event-02",
+      "sceneId": "L02-V01",
+      "assetId": "l02-v01-base",
+      "kind": "diagram-build",
+      "startMs": 15283,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "57734aa4a6104deb93230ceae5f41d577270501b4d8191a1d9c95f0179609b76"
+    },
+    {
+      "eventId": "l02-v01-event-03",
+      "sceneId": "L02-V01",
+      "assetId": "l02-v01-base",
+      "kind": "highlighted-region",
+      "startMs": 19976,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "c2dc9642d46d43e9245c124ff95f944d7bd5a95c761f83aff5a0d7625112cdd6"
+    },
+    {
+      "eventId": "l02-v01-event-04",
+      "sceneId": "L02-V01",
+      "assetId": "l02-v01-base",
+      "kind": "punch-in",
+      "startMs": 24669,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1.12,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "21ac9e1e741eb1cbdc05335b25dec225df5a2b68b5ad078ada6f7714448d038d"
+    },
+    {
+      "eventId": "l02-v01-event-05",
+      "sceneId": "L02-V01",
+      "assetId": "l02-v01-base",
+      "kind": "establishing-crop",
+      "startMs": 29362,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "30b95be4fe1628c178f13b50a32a4ffb788deb18b5e88bfc3b25bd0e7ef75ccc"
+    },
+    {
+      "eventId": "l02-v01-event-06",
+      "sceneId": "L02-V01",
+      "assetId": "l02-v01-base",
+      "kind": "diagram-build",
+      "startMs": 34055,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "9eb967f23c13a602e2054f721d6e4f3d626dc1be5ca16d3d4bc022e343d31606"
+    },
+    {
+      "eventId": "l02-v01-event-07",
+      "sceneId": "L02-V01",
+      "assetId": "l02-v01-base",
+      "kind": "highlighted-region",
+      "startMs": 38748,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "5894563e9782ab00841c980d36e008219106fa90646ce844e56f082f65af0fa0"
+    },
+    {
+      "eventId": "l02-v01-event-08",
+      "sceneId": "L02-V01",
+      "assetId": "l02-v01-base",
+      "kind": "punch-in",
+      "startMs": 43441,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1.12,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "d4f60ee36a68d11e0e0032bcf27760b852ee04736683b80001a5ba22a4430db9"
+    },
+    {
+      "eventId": "l02-v01-event-09",
+      "sceneId": "L02-V01",
+      "assetId": "l02-v01-base",
+      "kind": "establishing-crop",
+      "startMs": 48134,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "f00ab82d205bd648bbde9f54fc5f549a2d45900ce7431410105bed0d81f47b9e"
+    },
+    {
+      "eventId": "l02-v01-event-10",
+      "sceneId": "L02-V01",
+      "assetId": "l02-v01-base",
+      "kind": "diagram-build",
+      "startMs": 52827,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "1febb20402902b669e6eac43ce8ec144291e7f7eaee9d8b8483bf81db93312b8"
+    },
+    {
+      "eventId": "l02-v01-event-11",
+      "sceneId": "L02-V01",
+      "assetId": "l02-v01-base",
+      "kind": "highlighted-region",
+      "startMs": 57520,
+      "durationMs": 4696,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "00f2cc860038a867feba96840d2a1f79aaa1e08cc768bae0a60c0f21a6d2e3c3"
+    },
+    {
+      "eventId": "l02-v02-event-01",
+      "sceneId": "L02-V02",
+      "assetId": "l02-v02-base",
+      "kind": "establishing-crop",
+      "startMs": 62216,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "3b53e231a791e835898aabf510666a8ac31dd3a376a6d466873bf1c773b06298"
+    },
+    {
+      "eventId": "l02-v02-event-02",
+      "sceneId": "L02-V02",
+      "assetId": "l02-v02-base",
+      "kind": "slow-push",
+      "startMs": 66909,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "640f72f369c1e2c6ab2f7670ba87f8b72361805df9c35e320346d68107c6423c"
+    },
+    {
+      "eventId": "l02-v02-event-03",
+      "sceneId": "L02-V02",
+      "assetId": "l02-v02-base",
+      "kind": "subject-detail",
+      "startMs": 71602,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "subject"
+      },
+      "renderCacheKey": "86a022e5553dcbfec1923fc1b540d0b551586b02cfe5c4479cb9210d8b5b3853"
+    },
+    {
+      "eventId": "l02-v02-event-04",
+      "sceneId": "L02-V02",
+      "assetId": "l02-v02-base",
+      "kind": "transition-state",
+      "startMs": 76295,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "55d17201c719ac2be94048cf174a24426f79b8c2b764ca4417134c8b24d2a4f4"
+    },
+    {
+      "eventId": "l02-v02-event-05",
+      "sceneId": "L02-V02",
+      "assetId": "l02-v02-base",
+      "kind": "establishing-crop",
+      "startMs": 80988,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "738079a767805486cbab9aaea05e9d9ea735c694268481eba7a2ca4401f92458"
+    },
+    {
+      "eventId": "l02-v02-event-06",
+      "sceneId": "L02-V02",
+      "assetId": "l02-v02-base",
+      "kind": "slow-push",
+      "startMs": 85681,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "616b35695c8fb63694bfb5a724b29387ca3fb90df60af3ba5c27bf53fc784a18"
+    },
+    {
+      "eventId": "l02-v02-event-07",
+      "sceneId": "L02-V02",
+      "assetId": "l02-v02-base",
+      "kind": "subject-detail",
+      "startMs": 90374,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "subject"
+      },
+      "renderCacheKey": "9ea18ecad13d12c8d6c2e1cf95035acb99995edb33a59b96c687adfe5014037f"
+    },
+    {
+      "eventId": "l02-v02-event-08",
+      "sceneId": "L02-V02",
+      "assetId": "l02-v02-base",
+      "kind": "transition-state",
+      "startMs": 95067,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "d213502af54cda733ecae79331ff718f6d959e26465c2040a12d11685cfcc702"
+    },
+    {
+      "eventId": "l02-v02-event-09",
+      "sceneId": "L02-V02",
+      "assetId": "l02-v02-base",
+      "kind": "establishing-crop",
+      "startMs": 99760,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "9aac066c67b673cadc9ce6f7ce9703e4045aeb4e8b75e8d26bfc140e92c53162"
+    },
+    {
+      "eventId": "l02-v02-event-10",
+      "sceneId": "L02-V02",
+      "assetId": "l02-v02-base",
+      "kind": "slow-push",
+      "startMs": 104453,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "ec4ccb3c0a3a04b313d3842b0b95322a8e51f54a0d6e67255c75c4ca3993dbb5"
+    },
+    {
+      "eventId": "l02-v02-event-11",
+      "sceneId": "L02-V02",
+      "assetId": "l02-v02-base",
+      "kind": "subject-detail",
+      "startMs": 109146,
+      "durationMs": 4696,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "subject"
+      },
+      "renderCacheKey": "36c880952c2297e3514ea05363a924955bbf15b3313cdb38a8712194a1b17a59"
+    },
+    {
+      "eventId": "l02-v03-event-01",
+      "sceneId": "L02-V03",
+      "assetId": "l02-v03-base",
+      "kind": "establishing-crop",
+      "startMs": 113842,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "401e5748fdec084bcf48a42999fb2b61c836bc5a58ec645be19a55642e22dbea"
+    },
+    {
+      "eventId": "l02-v03-event-02",
+      "sceneId": "L02-V03",
+      "assetId": "l02-v03-base",
+      "kind": "diagram-build",
+      "startMs": 118535,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "42c4eb822798b77461112613931511e917f5ad04f78b72b017f59ee6f62f43b8"
+    },
+    {
+      "eventId": "l02-v03-event-03",
+      "sceneId": "L02-V03",
+      "assetId": "l02-v03-base",
+      "kind": "highlighted-region",
+      "startMs": 123228,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "f7457c828e5d455afc934e51cec1dd02adc89da6b9e79b4700c30e31c8618120"
+    },
+    {
+      "eventId": "l02-v03-event-04",
+      "sceneId": "L02-V03",
+      "assetId": "l02-v03-base",
+      "kind": "punch-in",
+      "startMs": 127921,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1.12,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "efe8020567f23c9b79ae556207c0cdf00ffd96aee05714937a3930d82625e566"
+    },
+    {
+      "eventId": "l02-v03-event-05",
+      "sceneId": "L02-V03",
+      "assetId": "l02-v03-base",
+      "kind": "establishing-crop",
+      "startMs": 132614,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "8bf23813e2a1e03025cfdc7abe197cfb5b966f614f3471911c93c29834ae3764"
+    },
+    {
+      "eventId": "l02-v03-event-06",
+      "sceneId": "L02-V03",
+      "assetId": "l02-v03-base",
+      "kind": "diagram-build",
+      "startMs": 137307,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "492edd60d9cb511cd7842b5d4157067b0ea3b0471f3b48b0b6c54de10ba15ef2"
+    },
+    {
+      "eventId": "l02-v03-event-07",
+      "sceneId": "L02-V03",
+      "assetId": "l02-v03-base",
+      "kind": "highlighted-region",
+      "startMs": 142000,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "d87acfd3c99811cba47a3ace7efc7c46a7cff7e5c50162327dc28f19cfd79280"
+    },
+    {
+      "eventId": "l02-v03-event-08",
+      "sceneId": "L02-V03",
+      "assetId": "l02-v03-base",
+      "kind": "punch-in",
+      "startMs": 146693,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1.12,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "e86216055856d04ecadc11691b4cdfd20d6440f3c75828509c545fc69858571d"
+    },
+    {
+      "eventId": "l02-v03-event-09",
+      "sceneId": "L02-V03",
+      "assetId": "l02-v03-base",
+      "kind": "establishing-crop",
+      "startMs": 151386,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "ef76ada37573195ad433d04b5daa309fd35eb749959eb2c563ba3e4793689df4"
+    },
+    {
+      "eventId": "l02-v03-event-10",
+      "sceneId": "L02-V03",
+      "assetId": "l02-v03-base",
+      "kind": "diagram-build",
+      "startMs": 156079,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "d7e41a84c4ce19f0dfe3a0d951d070985175954233fa8185b9cb161ff20613ad"
+    },
+    {
+      "eventId": "l02-v03-event-11",
+      "sceneId": "L02-V03",
+      "assetId": "l02-v03-base",
+      "kind": "highlighted-region",
+      "startMs": 160772,
+      "durationMs": 4696,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "e80ec63656143962d4c50c89924ac22350064439552c0f15eaf934284e28cd28"
+    },
+    {
+      "eventId": "l02-v04-event-01",
+      "sceneId": "L02-V04",
+      "assetId": "l02-v04-base",
+      "kind": "establishing-crop",
+      "startMs": 165468,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "f253aef88d8a1180626a8f9de2c2ae1fb6591abcc5b9f850a6470baabe778e17"
+    },
+    {
+      "eventId": "l02-v04-event-02",
+      "sceneId": "L02-V04",
+      "assetId": "l02-v04-base",
+      "kind": "diagram-build",
+      "startMs": 170161,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "7389b0fd8cb6b5f780dbceff1cd690f187523a821e2e4190d21804af1f3b5883"
+    },
+    {
+      "eventId": "l02-v04-event-03",
+      "sceneId": "L02-V04",
+      "assetId": "l02-v04-base",
+      "kind": "highlighted-region",
+      "startMs": 174854,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "d006b975d4dd57080ca9adfe996483b2dbe4b0da5fa43dd94a551d77fcc7ac2e"
+    },
+    {
+      "eventId": "l02-v04-event-04",
+      "sceneId": "L02-V04",
+      "assetId": "l02-v04-base",
+      "kind": "punch-in",
+      "startMs": 179547,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1.12,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "b84ac6dc81491f49edb9ca31e8f0f10be85acc294b10aacd238524508e2df709"
+    },
+    {
+      "eventId": "l02-v04-event-05",
+      "sceneId": "L02-V04",
+      "assetId": "l02-v04-base",
+      "kind": "establishing-crop",
+      "startMs": 184240,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "cbcff4624407a649cdb333bddb30ca2f03037f4f6412f8e14ad721bde645249f"
+    },
+    {
+      "eventId": "l02-v04-event-06",
+      "sceneId": "L02-V04",
+      "assetId": "l02-v04-base",
+      "kind": "diagram-build",
+      "startMs": 188933,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "f089140eb51c5d3cfbabfa30c9739211fd8c32b373b2a708b695b1327f923b47"
+    },
+    {
+      "eventId": "l02-v04-event-07",
+      "sceneId": "L02-V04",
+      "assetId": "l02-v04-base",
+      "kind": "highlighted-region",
+      "startMs": 193626,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "6571e5027c6f5d6cfb3102793f55514ab5e1ea1c4b4dfefb05c880622eab18f6"
+    },
+    {
+      "eventId": "l02-v04-event-08",
+      "sceneId": "L02-V04",
+      "assetId": "l02-v04-base",
+      "kind": "punch-in",
+      "startMs": 198319,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1.12,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "5ce7935c15e368c10a3e767a34a15d27da833f7d6097c786698981f40ae19e2e"
+    },
+    {
+      "eventId": "l02-v04-event-09",
+      "sceneId": "L02-V04",
+      "assetId": "l02-v04-base",
+      "kind": "establishing-crop",
+      "startMs": 203012,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "ab3acfb113dd3875a53fb2d761ad8d6549dbcd6a788df3db2b8a8d6375572874"
+    },
+    {
+      "eventId": "l02-v04-event-10",
+      "sceneId": "L02-V04",
+      "assetId": "l02-v04-base",
+      "kind": "diagram-build",
+      "startMs": 207705,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "c3716538a1ac2cf583b0bde167933bb601d842aaf8877b91495dc38a727c1d5c"
+    },
+    {
+      "eventId": "l02-v04-event-11",
+      "sceneId": "L02-V04",
+      "assetId": "l02-v04-base",
+      "kind": "highlighted-region",
+      "startMs": 212398,
+      "durationMs": 4696,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "30c209ca435a998b447824da7ec83310d66223038e2ca328cf76fbbf3ab7edd7"
+    },
+    {
+      "eventId": "l02-v05-event-01",
+      "sceneId": "L02-V05",
+      "assetId": "l02-v05-base",
+      "kind": "establishing-crop",
+      "startMs": 217094,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "0547ec712d27f4e64ec0c95b565c20ff51d70236620781855912fad851de53c4"
+    },
+    {
+      "eventId": "l02-v05-event-02",
+      "sceneId": "L02-V05",
+      "assetId": "l02-v05-base",
+      "kind": "diagram-build",
+      "startMs": 221787,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "b73313b29beb6b98ac5572b8bfb051c572de043fcaa8076290709d1121cc36c8"
+    },
+    {
+      "eventId": "l02-v05-event-03",
+      "sceneId": "L02-V05",
+      "assetId": "l02-v05-base",
+      "kind": "highlighted-region",
+      "startMs": 226480,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "1f22c8f512ee689961c5df9ce34d33e55eff3d45559ec9a07c677c4aa6947e19"
+    },
+    {
+      "eventId": "l02-v05-event-04",
+      "sceneId": "L02-V05",
+      "assetId": "l02-v05-base",
+      "kind": "punch-in",
+      "startMs": 231173,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1.12,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "978959893573f16fa62dec16f0b498bbd99cba2f2ac8779b4c722ef4fa4fd1ae"
+    },
+    {
+      "eventId": "l02-v05-event-05",
+      "sceneId": "L02-V05",
+      "assetId": "l02-v05-base",
+      "kind": "establishing-crop",
+      "startMs": 235866,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "8ef91db61eb7feab39fac708e18d531f494a47a3c5094eb0ebd93b5ae26b7810"
+    },
+    {
+      "eventId": "l02-v05-event-06",
+      "sceneId": "L02-V05",
+      "assetId": "l02-v05-base",
+      "kind": "diagram-build",
+      "startMs": 240559,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "de7b72238e0123c9e7409a57a46e5e0200e573b3c48ada26b687f4a3c714bd68"
+    },
+    {
+      "eventId": "l02-v05-event-07",
+      "sceneId": "L02-V05",
+      "assetId": "l02-v05-base",
+      "kind": "highlighted-region",
+      "startMs": 245252,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "309a3b32cf8b71b884de2a14a731ed59beae4c793c5d085fe76302d2e3e17a07"
+    },
+    {
+      "eventId": "l02-v05-event-08",
+      "sceneId": "L02-V05",
+      "assetId": "l02-v05-base",
+      "kind": "punch-in",
+      "startMs": 249945,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1.12,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "1cf90b806bfc80d9248fdfe138dc919a5e9fcbdea777d3100827ba8b6797a48f"
+    },
+    {
+      "eventId": "l02-v05-event-09",
+      "sceneId": "L02-V05",
+      "assetId": "l02-v05-base",
+      "kind": "establishing-crop",
+      "startMs": 254638,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "208bb78729406a3fe771fcb21ccc24dcf4e5e1c0abf289615597bee66016877e"
+    },
+    {
+      "eventId": "l02-v05-event-10",
+      "sceneId": "L02-V05",
+      "assetId": "l02-v05-base",
+      "kind": "diagram-build",
+      "startMs": 259331,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "0f937bc5c3dfa8acd4192d1c28f31ac2fb885cd97bbce12deca9ce87da1825e9"
+    },
+    {
+      "eventId": "l02-v05-event-11",
+      "sceneId": "L02-V05",
+      "assetId": "l02-v05-base",
+      "kind": "highlighted-region",
+      "startMs": 264024,
+      "durationMs": 4696,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "cd36e7159217db60a0b656b59843bb6eee19717bb3c13a5dfb85539423c7e0bf"
+    },
+    {
+      "eventId": "l02-v06-event-01",
+      "sceneId": "L02-V06",
+      "assetId": "l02-v06-base",
+      "kind": "establishing-crop",
+      "startMs": 268720,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "e31f5704e941bf94a5d8fc4175d186b3feb50e1423b7b869d47830d789a696b9"
+    },
+    {
+      "eventId": "l02-v06-event-02",
+      "sceneId": "L02-V06",
+      "assetId": "l02-v06-base",
+      "kind": "slow-push",
+      "startMs": 273413,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "4f176e5597c1a3bb6b55aaba11bb6aa5fda8c84cee0e36dee2e9d1ad781ce4c9"
+    },
+    {
+      "eventId": "l02-v06-event-03",
+      "sceneId": "L02-V06",
+      "assetId": "l02-v06-base",
+      "kind": "subject-detail",
+      "startMs": 278106,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "subject"
+      },
+      "renderCacheKey": "fad166220698e696de5e3be93bee86aaff90f3ef2b0dc0e1276db4df17e164db"
+    },
+    {
+      "eventId": "l02-v06-event-04",
+      "sceneId": "L02-V06",
+      "assetId": "l02-v06-base",
+      "kind": "transition-state",
+      "startMs": 282799,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "0d30e8873e401c5ec797127030645fc8a3ac0d8862eb4096cac4a4bc08ac471b"
+    },
+    {
+      "eventId": "l02-v06-event-05",
+      "sceneId": "L02-V06",
+      "assetId": "l02-v06-base",
+      "kind": "establishing-crop",
+      "startMs": 287492,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "42fba98c5a4f198afcfc198572e0eaefdec213dd968e1c0315658711041d8447"
+    },
+    {
+      "eventId": "l02-v06-event-06",
+      "sceneId": "L02-V06",
+      "assetId": "l02-v06-base",
+      "kind": "slow-push",
+      "startMs": 292185,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "638bf032a011e280bbc49c7bcf946b5922bd1221ebdea6694eac06be5110721e"
+    },
+    {
+      "eventId": "l02-v06-event-07",
+      "sceneId": "L02-V06",
+      "assetId": "l02-v06-base",
+      "kind": "subject-detail",
+      "startMs": 296878,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "subject"
+      },
+      "renderCacheKey": "9d41f8dad7b703fa15ee146f34abee22aded4e33d8352679497489b2512e81cd"
+    },
+    {
+      "eventId": "l02-v06-event-08",
+      "sceneId": "L02-V06",
+      "assetId": "l02-v06-base",
+      "kind": "transition-state",
+      "startMs": 301571,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "8b7537638f9d26db9dd38d172cc49ea610065c4a131eba078f5a4a7eba761d41"
+    },
+    {
+      "eventId": "l02-v06-event-09",
+      "sceneId": "L02-V06",
+      "assetId": "l02-v06-base",
+      "kind": "establishing-crop",
+      "startMs": 306264,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "1d4460fd076a42a20f2662aaa297cc8931cb4ca61bfc040d3ea822f83f370840"
+    },
+    {
+      "eventId": "l02-v06-event-10",
+      "sceneId": "L02-V06",
+      "assetId": "l02-v06-base",
+      "kind": "slow-push",
+      "startMs": 310957,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "a166f8416c4747fc52743bac519fd3bd0a3de8d5ba8f47d85995a342a5f47e1b"
+    },
+    {
+      "eventId": "l02-v06-event-11",
+      "sceneId": "L02-V06",
+      "assetId": "l02-v06-base",
+      "kind": "subject-detail",
+      "startMs": 315650,
+      "durationMs": 4696,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "subject"
+      },
+      "renderCacheKey": "bf38b80ac9e0cf812b7547639dfa58a57bc5f212f21b021b6380caa0f1da1850"
+    },
+    {
+      "eventId": "l02-v07-event-01",
+      "sceneId": "L02-V07",
+      "assetId": "l02-v07-base",
+      "kind": "establishing-crop",
+      "startMs": 320346,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "497a511e57c072c573773fad64f10da702c565cb9e02df583ddc2a17522d50d6"
+    },
+    {
+      "eventId": "l02-v07-event-02",
+      "sceneId": "L02-V07",
+      "assetId": "l02-v07-base",
+      "kind": "diagram-build",
+      "startMs": 325039,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "b8c73ac5cb889b8033283e7d46f3bec3c3b226b5a5444c10f51b9f550f146516"
+    },
+    {
+      "eventId": "l02-v07-event-03",
+      "sceneId": "L02-V07",
+      "assetId": "l02-v07-base",
+      "kind": "highlighted-region",
+      "startMs": 329732,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "636dfa65c3e21f2f64b3f66e4fd81f0cd41b53c38e6274d8a632e2c115a2416c"
+    },
+    {
+      "eventId": "l02-v07-event-04",
+      "sceneId": "L02-V07",
+      "assetId": "l02-v07-base",
+      "kind": "punch-in",
+      "startMs": 334425,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1.12,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "220791454f71db7da11d90d7bf352d04d874100b164292fd7da214fdce0b6558"
+    },
+    {
+      "eventId": "l02-v07-event-05",
+      "sceneId": "L02-V07",
+      "assetId": "l02-v07-base",
+      "kind": "establishing-crop",
+      "startMs": 339118,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "0418ba6cd03ecc955bd310f4d9dbbf02ad2a5afe17e4b876139137d2b7b453ab"
+    },
+    {
+      "eventId": "l02-v07-event-06",
+      "sceneId": "L02-V07",
+      "assetId": "l02-v07-base",
+      "kind": "diagram-build",
+      "startMs": 343811,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "5a80b3975e1c0fa8af4b1484ec6ae06713334994dd714a6be1fd478826df083c"
+    },
+    {
+      "eventId": "l02-v07-event-07",
+      "sceneId": "L02-V07",
+      "assetId": "l02-v07-base",
+      "kind": "highlighted-region",
+      "startMs": 348504,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "b22475a748877d098d7cab07a9c8da7b19dce32f664fb38a0a294259276fb364"
+    },
+    {
+      "eventId": "l02-v07-event-08",
+      "sceneId": "L02-V07",
+      "assetId": "l02-v07-base",
+      "kind": "punch-in",
+      "startMs": 353197,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1.12,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "cf7d5ebe4c08d565ba3224352569f27b57e105285ce4a4e25eccb34e60669ada"
+    },
+    {
+      "eventId": "l02-v07-event-09",
+      "sceneId": "L02-V07",
+      "assetId": "l02-v07-base",
+      "kind": "establishing-crop",
+      "startMs": 357890,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "4e4442f57ac08f9339ac07262d2f6feaad7b3492399842c051041ad40fead8a3"
+    },
+    {
+      "eventId": "l02-v07-event-10",
+      "sceneId": "L02-V07",
+      "assetId": "l02-v07-base",
+      "kind": "diagram-build",
+      "startMs": 362583,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "e2da492376433db35b82878968bebd0f7116a29084a18bced7742d84d9c3ab0d"
+    },
+    {
+      "eventId": "l02-v07-event-11",
+      "sceneId": "L02-V07",
+      "assetId": "l02-v07-base",
+      "kind": "highlighted-region",
+      "startMs": 367276,
+      "durationMs": 4696,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "97f2fe69266d37998d3cc3df0f145e12dad11de1bec3e5d40d3251dfff488382"
+    },
+    {
+      "eventId": "l02-v08-event-01",
+      "sceneId": "L02-V08",
+      "assetId": "l02-v08-base",
+      "kind": "establishing-crop",
+      "startMs": 371972,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "4bf4e6aaa731cf2bc04b90ab1b6e00e0bc84bc32ce5acb8db8a4a8982309bfe3"
+    },
+    {
+      "eventId": "l02-v08-event-02",
+      "sceneId": "L02-V08",
+      "assetId": "l02-v08-base",
+      "kind": "diagram-build",
+      "startMs": 376665,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "7f875fa75b0ac180fc6dfe7729ac7f6a2ef24d056303e6ff2892e2b35a2210dd"
+    },
+    {
+      "eventId": "l02-v08-event-03",
+      "sceneId": "L02-V08",
+      "assetId": "l02-v08-base",
+      "kind": "highlighted-region",
+      "startMs": 381358,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "4e40e21c4661c63037a394af359edabd91e9f28a940720d39f8294afae457649"
+    },
+    {
+      "eventId": "l02-v08-event-04",
+      "sceneId": "L02-V08",
+      "assetId": "l02-v08-base",
+      "kind": "punch-in",
+      "startMs": 386051,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1.12,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "1e819ad91040ab1e440a3d46df8df969134783836546a060d73de96068d790e2"
+    },
+    {
+      "eventId": "l02-v08-event-05",
+      "sceneId": "L02-V08",
+      "assetId": "l02-v08-base",
+      "kind": "establishing-crop",
+      "startMs": 390744,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "8e562402216d53d600a19ac156ffaf978633f5ad0497980e89adf311cac45114"
+    },
+    {
+      "eventId": "l02-v08-event-06",
+      "sceneId": "L02-V08",
+      "assetId": "l02-v08-base",
+      "kind": "diagram-build",
+      "startMs": 395437,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "db8788089badf76c9dbf9e36e399ee156ab5fd148e321a42b4f0378504470a92"
+    },
+    {
+      "eventId": "l02-v08-event-07",
+      "sceneId": "L02-V08",
+      "assetId": "l02-v08-base",
+      "kind": "highlighted-region",
+      "startMs": 400130,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "e5fa37b12d0bdb853c04867b1121d5369cc6f1cf897ec19654245378343339c2"
+    },
+    {
+      "eventId": "l02-v08-event-08",
+      "sceneId": "L02-V08",
+      "assetId": "l02-v08-base",
+      "kind": "punch-in",
+      "startMs": 404823,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1.12,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "6f5421a8d075732f72f2c5aefaec611dd972c9b81dcecc61b1812dfd34f991fb"
+    },
+    {
+      "eventId": "l02-v08-event-09",
+      "sceneId": "L02-V08",
+      "assetId": "l02-v08-base",
+      "kind": "establishing-crop",
+      "startMs": 409516,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "ebb0260cf4ab878047ddc93327178f343e1d31f9f07af1b82063e7fdcfd80b11"
+    },
+    {
+      "eventId": "l02-v08-event-10",
+      "sceneId": "L02-V08",
+      "assetId": "l02-v08-base",
+      "kind": "diagram-build",
+      "startMs": 414209,
+      "durationMs": 4693,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "e9129ef9312731ecfe923c4089fea645d21affed99f586bd2729ad341f5e2be1"
+    },
+    {
+      "eventId": "l02-v08-event-11",
+      "sceneId": "L02-V08",
+      "assetId": "l02-v08-base",
+      "kind": "highlighted-region",
+      "startMs": 418902,
+      "durationMs": 4698,
+      "aspectRatio": "16:9",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "eb02c155c90db63ca433cce0636debad265a64ca055a89fb5549dd7f6b590040"
+    }
+  ],
+  "diagrams": [
+    {
+      "diagramId": "l02-v01-diagram",
+      "proposition": "broad-market-vs-niche",
+      "textFreeBackground": true,
+      "type": "comparison",
+      "entities": [
+        {
+          "id": "l02-v01-diagram-alternative-a",
+          "semanticRole": "alternative-a",
+          "labelKey": "l02-v01-diagram.alternative-a"
+        },
+        {
+          "id": "l02-v01-diagram-alternative-b",
+          "semanticRole": "alternative-b",
+          "labelKey": "l02-v01-diagram.alternative-b"
+        }
+      ],
+      "relation": "contrast",
+      "overlayLabelKeys": [
+        "l02-v01-diagram.alternative-a",
+        "l02-v01-diagram.alternative-b"
+      ]
+    },
+    {
+      "diagramId": "l02-v03-diagram",
+      "proposition": "niche-and-subniche",
+      "textFreeBackground": true,
+      "type": "funnel",
+      "stages": [
+        {
+          "id": "l02-v03-diagram-broad-market",
+          "semanticRole": "broad-market",
+          "labelKey": "l02-v03-diagram.broad-market"
+        },
+        {
+          "id": "l02-v03-diagram-qualified-segment",
+          "semanticRole": "qualified-segment",
+          "labelKey": "l02-v03-diagram.qualified-segment"
+        },
+        {
+          "id": "l02-v03-diagram-chosen-niche",
+          "semanticRole": "chosen-niche",
+          "labelKey": "l02-v03-diagram.chosen-niche"
+        }
+      ],
+      "direction": "broad-to-narrow",
+      "overlayLabelKeys": [
+        "l02-v03-diagram.broad-market",
+        "l02-v03-diagram.qualified-segment",
+        "l02-v03-diagram.chosen-niche"
+      ]
+    },
+    {
+      "diagramId": "l02-v04-diagram",
+      "proposition": "generic-vs-specific-message",
+      "textFreeBackground": true,
+      "type": "comparison",
+      "entities": [
+        {
+          "id": "l02-v04-diagram-alternative-a",
+          "semanticRole": "alternative-a",
+          "labelKey": "l02-v04-diagram.alternative-a"
+        },
+        {
+          "id": "l02-v04-diagram-alternative-b",
+          "semanticRole": "alternative-b",
+          "labelKey": "l02-v04-diagram.alternative-b"
+        }
+      ],
+      "relation": "contrast",
+      "overlayLabelKeys": [
+        "l02-v04-diagram.alternative-a",
+        "l02-v04-diagram.alternative-b"
+      ]
+    },
+    {
+      "diagramId": "l02-v05-diagram",
+      "proposition": "problem-recognition",
+      "textFreeBackground": true,
+      "type": "cause-effect",
+      "causes": [
+        {
+          "id": "l02-v05-diagram-cause-a",
+          "semanticRole": "cause-a",
+          "labelKey": "l02-v05-diagram.cause-a"
+        },
+        {
+          "id": "l02-v05-diagram-cause-b",
+          "semanticRole": "cause-b",
+          "labelKey": "l02-v05-diagram.cause-b"
+        },
+        {
+          "id": "l02-v05-diagram-cause-c",
+          "semanticRole": "cause-c",
+          "labelKey": "l02-v05-diagram.cause-c"
+        }
+      ],
+      "effect": {
+        "id": "l02-v05-diagram-consequence",
+        "semanticRole": "consequence",
+        "labelKey": "l02-v05-diagram.consequence"
+      },
+      "edges": [
+        {
+          "from": "l02-v05-diagram-cause-a",
+          "to": "l02-v05-diagram-consequence",
+          "semanticRole": "causes"
+        },
+        {
+          "from": "l02-v05-diagram-cause-b",
+          "to": "l02-v05-diagram-consequence",
+          "semanticRole": "causes"
+        },
+        {
+          "from": "l02-v05-diagram-cause-c",
+          "to": "l02-v05-diagram-consequence",
+          "semanticRole": "causes"
+        }
+      ],
+      "overlayLabelKeys": [
+        "l02-v05-diagram.cause-a",
+        "l02-v05-diagram.cause-b",
+        "l02-v05-diagram.cause-c",
+        "l02-v05-diagram.consequence"
+      ]
+    },
+    {
+      "diagramId": "l02-v07-diagram",
+      "proposition": "niche-content-boundaries",
+      "textFreeBackground": true,
+      "type": "hierarchy",
+      "root": {
+        "id": "l02-v07-diagram-broad-market",
+        "semanticRole": "broad-market",
+        "labelKey": "l02-v07-diagram.broad-market"
+      },
+      "children": [
+        {
+          "id": "l02-v07-diagram-qualified-segment-a",
+          "semanticRole": "qualified-segment-a",
+          "labelKey": "l02-v07-diagram.qualified-segment-a"
+        },
+        {
+          "id": "l02-v07-diagram-qualified-segment-b",
+          "semanticRole": "qualified-segment-b",
+          "labelKey": "l02-v07-diagram.qualified-segment-b"
+        },
+        {
+          "id": "l02-v07-diagram-chosen-niche",
+          "semanticRole": "chosen-niche",
+          "labelKey": "l02-v07-diagram.chosen-niche"
+        }
+      ],
+      "edges": [
+        {
+          "from": "l02-v07-diagram-broad-market",
+          "to": "l02-v07-diagram-qualified-segment-a",
+          "semanticRole": "contains"
+        },
+        {
+          "from": "l02-v07-diagram-broad-market",
+          "to": "l02-v07-diagram-qualified-segment-b",
+          "semanticRole": "contains"
+        },
+        {
+          "from": "l02-v07-diagram-broad-market",
+          "to": "l02-v07-diagram-chosen-niche",
+          "semanticRole": "contains"
+        }
+      ],
+      "overlayLabelKeys": [
+        "l02-v07-diagram.broad-market",
+        "l02-v07-diagram.qualified-segment-a",
+        "l02-v07-diagram.qualified-segment-b",
+        "l02-v07-diagram.chosen-niche"
+      ]
+    },
+    {
+      "diagramId": "l02-v08-diagram",
+      "proposition": "specificity-test",
+      "textFreeBackground": true,
+      "type": "funnel",
+      "stages": [
+        {
+          "id": "l02-v08-diagram-broad-market",
+          "semanticRole": "broad-market",
+          "labelKey": "l02-v08-diagram.broad-market"
+        },
+        {
+          "id": "l02-v08-diagram-qualified-segment",
+          "semanticRole": "qualified-segment",
+          "labelKey": "l02-v08-diagram.qualified-segment"
+        },
+        {
+          "id": "l02-v08-diagram-chosen-niche",
+          "semanticRole": "chosen-niche",
+          "labelKey": "l02-v08-diagram.chosen-niche"
+        }
+      ],
+      "direction": "broad-to-narrow",
+      "overlayLabelKeys": [
+        "l02-v08-diagram.broad-market",
+        "l02-v08-diagram.qualified-segment",
+        "l02-v08-diagram.chosen-niche"
+      ]
+    }
+  ],
+  "assetReuseDecisions": [
+    {
+      "sourceAssetId": "l02-v06-base",
+      "sourceContentId": "L02",
+      "targetContentId": "L02-S01",
+      "targetSceneId": "L02-S01-HOOK",
+      "eligible": false,
+      "reuseMode": "not-reusable",
+      "cropAdaptation": "none",
+      "semanticCompatibility": 0.4667,
+      "reason": "unsafe-aspect-ratio-adaptation"
+    },
+    {
+      "sourceAssetId": "l02-cold_open-base",
+      "sourceContentId": "L02",
+      "targetContentId": "L02-S01",
+      "targetSceneId": "L02-S01-V01",
+      "eligible": false,
+      "reuseMode": "not-reusable",
+      "cropAdaptation": "none",
+      "semanticCompatibility": 0.4,
+      "reason": "unsafe-aspect-ratio-adaptation"
+    },
+    {
+      "sourceAssetId": "l02-v02-base",
+      "sourceContentId": "L02",
+      "targetContentId": "L02-S01",
+      "targetSceneId": "L02-S01-V02",
+      "eligible": false,
+      "reuseMode": "not-reusable",
+      "cropAdaptation": "none",
+      "semanticCompatibility": 0.12,
+      "reason": "semantic-purpose-insufficiently-compatible"
+    },
+    {
+      "sourceAssetId": "l02-v03-base",
+      "sourceContentId": "L02",
+      "targetContentId": "L02-S01",
+      "targetSceneId": "L02-S01-V03",
+      "eligible": true,
+      "reuseMode": "vertical-derivative",
+      "cropAdaptation": "subject-aware-crop",
+      "semanticCompatibility": 0.6,
+      "reason": "semantic purpose, continuity, and protected crop regions are compatible"
+    },
+    {
+      "sourceAssetId": "l02-v08-base",
+      "sourceContentId": "L02",
+      "targetContentId": "L02-S01",
+      "targetSceneId": "L02-S01-V04",
+      "eligible": true,
+      "reuseMode": "vertical-derivative",
+      "cropAdaptation": "subject-aware-crop",
+      "semanticCompatibility": 0.6,
+      "reason": "semantic purpose, continuity, and protected crop regions are compatible"
+    },
+    {
+      "sourceAssetId": "l02-v03-base",
+      "sourceContentId": "L02",
+      "targetContentId": "L02-S02",
+      "targetSceneId": "L02-S02-HOOK",
+      "eligible": true,
+      "reuseMode": "vertical-derivative",
+      "cropAdaptation": "subject-aware-crop",
+      "semanticCompatibility": 0.46,
+      "reason": "semantic purpose, continuity, and protected crop regions are compatible"
+    },
+    {
+      "sourceAssetId": "l02-v03-base",
+      "sourceContentId": "L02",
+      "targetContentId": "L02-S02",
+      "targetSceneId": "L02-S02-V01",
+      "eligible": true,
+      "reuseMode": "vertical-derivative",
+      "cropAdaptation": "subject-aware-crop",
+      "semanticCompatibility": 0.55,
+      "reason": "semantic purpose, continuity, and protected crop regions are compatible"
+    },
+    {
+      "sourceAssetId": "l02-v03-base",
+      "sourceContentId": "L02",
+      "targetContentId": "L02-S02",
+      "targetSceneId": "L02-S02-V02",
+      "eligible": true,
+      "reuseMode": "vertical-derivative",
+      "cropAdaptation": "subject-aware-crop",
+      "semanticCompatibility": 0.55,
+      "reason": "semantic purpose, continuity, and protected crop regions are compatible"
+    },
+    {
+      "sourceAssetId": "l02-cold_open-base",
+      "sourceContentId": "L02",
+      "targetContentId": "L02-S02",
+      "targetSceneId": "L02-S02-V03",
+      "eligible": false,
+      "reuseMode": "not-reusable",
+      "cropAdaptation": "none",
+      "semanticCompatibility": 0,
+      "reason": "unsafe-aspect-ratio-adaptation"
+    },
+    {
+      "sourceAssetId": "l02-v03-base",
+      "sourceContentId": "L02",
+      "targetContentId": "L02-S02",
+      "targetSceneId": "L02-S02-V04",
+      "eligible": false,
+      "reuseMode": "not-reusable",
+      "cropAdaptation": "none",
+      "semanticCompatibility": 0.2,
+      "reason": "semantic-purpose-insufficiently-compatible"
+    },
+    {
+      "sourceAssetId": "l02-v08-base",
+      "sourceContentId": "L02",
+      "targetContentId": "L02-S03",
+      "targetSceneId": "L02-S03-HOOK",
+      "eligible": false,
+      "reuseMode": "not-reusable",
+      "cropAdaptation": "none",
+      "semanticCompatibility": 0.0857,
+      "reason": "semantic-purpose-insufficiently-compatible"
+    },
+    {
+      "sourceAssetId": "l02-v01-base",
+      "sourceContentId": "L02",
+      "targetContentId": "L02-S03",
+      "targetSceneId": "L02-S03-V01",
+      "eligible": false,
+      "reuseMode": "not-reusable",
+      "cropAdaptation": "none",
+      "semanticCompatibility": 0.6,
+      "reason": "unsafe-aspect-ratio-adaptation"
+    },
+    {
+      "sourceAssetId": "l02-v05-base",
+      "sourceContentId": "L02",
+      "targetContentId": "L02-S03",
+      "targetSceneId": "L02-S03-V02",
+      "eligible": true,
+      "reuseMode": "graphical-derivative",
+      "cropAdaptation": "subject-aware-crop",
+      "semanticCompatibility": 0.3,
+      "reason": "semantic purpose, continuity, and protected crop regions are compatible"
+    },
+    {
+      "sourceAssetId": "l02-v06-base",
+      "sourceContentId": "L02",
+      "targetContentId": "L02-S03",
+      "targetSceneId": "L02-S03-V03",
+      "eligible": false,
+      "reuseMode": "not-reusable",
+      "cropAdaptation": "none",
+      "semanticCompatibility": 0.2,
+      "reason": "unsafe-aspect-ratio-adaptation"
+    },
+    {
+      "sourceAssetId": "l02-cold_open-base",
+      "sourceContentId": "L02",
+      "targetContentId": "L02-S03",
+      "targetSceneId": "L02-S03-V04",
+      "eligible": false,
+      "reuseMode": "not-reusable",
+      "cropAdaptation": "none",
+      "semanticCompatibility": 0,
+      "reason": "unsafe-aspect-ratio-adaptation"
+    }
+  ],
+  "diversityMetrics": {
+    "visualGrammarDuplicateRate": 0,
+    "subjectArchetypeDuplicateRate": 0,
+    "environmentDuplicateRate": 0,
+    "compositionDuplicateRate": 0,
+    "cameraDuplicateRate": 0,
+    "propDuplicateRate": 0,
+    "diagramTopologyDuplicateRate": 0.3333,
+    "consecutiveSceneSimilarity": {
+      "mean": 0.0542,
+      "maximum": 0.2917,
+      "violatingPairs": []
+    },
+    "hookVsScene1Similarity": null,
+    "status": "pass",
+    "failures": []
+  },
+  "cadenceMetrics": {
+    "durationMs": 423600,
+    "baseAssetCount": 9,
+    "visualEventCount": 92,
+    "eventsPerBaseAsset": 10.2222,
+    "meanSecondsPerEvent": 4.6043,
+    "shortestEventSeconds": 2.647,
+    "longestEventSeconds": 4.698,
+    "targetRangeSeconds": [
+      3,
+      7
+    ],
+    "targetComplianceRate": 0.9565,
+    "hookMeanSecondsPerEvent": null
+  },
+  "localizationCompatibility": {
+    "locales": [
+      "en",
+      "de",
+      "it",
+      "fr",
+      "pt"
+    ],
+    "canonicalImageryLocale": "en",
+    "textInGeneratedImage": false,
+    "translationInvalidatesCanonicalImagery": false,
+    "overlaysRenderedSeparately": true
+  },
+  "productionCoverage": {
+    "ctaEndScreenPlacement": "planned",
+    "motionTreatment": "planned",
+    "overlayStrategy": "planned",
+    "musicSfx": "unsupported-not-planned",
+    "thumbnail": {
+      "concept": "crowds resolving into selected audience clusters; one legible tension, no generic portrait",
+      "titleRelationship": "thumbnail visualizes the consequence or contradiction; title supplies the claim",
+      "localeStrategy": "text-free-image-localized-overlay"
+    }
+  },
+  "cacheInvalidation": {
+    "semanticPlanInvalidatesOn": [
+      "canonical-narrative-semantic-change",
+      "semantic-beat-structure-change",
+      "visual-vocabulary-change",
+      "planner-algorithm-version-change"
+    ],
+    "canonicalImageInvalidatesOn": [
+      "semantic-plan-change",
+      "image-provider-or-model-change",
+      "prompt-contract-change"
+    ],
+    "titleQaInvalidatesOn": [
+      "localized-title-change",
+      "title-qa-version-change"
+    ],
+    "renderEventsInvalidateOn": [
+      "semantic-plan-change",
+      "ffmpeg-renderer-version-change",
+      "timing-change"
+    ]
+  },
+  "migration": {
+    "legacyV1Plan": "inspect-only-replan-required",
+    "legacyAssetReuse": "eligible-only-after-semantic-fingerprint-match"
+  },
+  "validation": {
+    "status": "pass",
+    "failures": []
+  },
+  "planHash": "830f07aff5e1891b428ddfc82893d49f17fe103d19148ec61670b1959ead0b2c"
+}

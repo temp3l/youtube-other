@@ -1,0 +1,1482 @@
+{
+  "schemaVersion": "veronicabenini-positioning-visual-plan.v2",
+  "plannerVersion": "veronicabenini-positioning-visual-planner.v2.1",
+  "contentId": "L03-S01",
+  "parentLongFormId": "L03",
+  "format": "short",
+  "aspectRatio": "9:16",
+  "canonicalNarrationSource": "shorts/en/l03-s01-you-cant-just-call-yourself-an-expert.md",
+  "canonicalSourceHash": "ac2be91a86f7508decd37e11030e91db6c6d81191315b7717da13957aaa72006",
+  "sourceNarrationSemanticHash": "02a15cd71ff44e2cfecc0b15ec2e55673beb9cc954385f21b19f54f8ecff2547",
+  "semanticBeatStructureHash": "343c6ce6dbdd70d15c773f0f0f49493d51afd6c3ec00ab59d1bfb3529c367825",
+  "semanticPlanCacheKey": "a16134d7289eac18dedd171e001a0593ef4f15bd8dcde1fba98f793cb80914d2",
+  "canonicalImagePlanHash": "fcd2376d553dcff50b7d1299ca7ca95d51cb6eaf1d7bbdc9d5f316299bd6b848",
+  "renderEventPlanHash": "16b052a3ec7ee399198479f9913ac60180e9facdbca793bb88f5d7c2224c8e6c",
+  "localizedTitleArtifact": {
+    "schemaVersion": "veronicabenini-title-transcreation-qa.v2",
+    "contentId": "L03-S01",
+    "locales": {
+      "en": {
+        "metadataTitle": "You Can’t Just Call Yourself an Expert",
+        "displayTitle": "You Can’t Just Call Yourself an Expert",
+        "displayLines": [
+          "You Can’t Just Call Yourself an Expert"
+        ],
+        "displayTitleDistinctFromMetadata": false,
+        "minimumFontScale": 1,
+        "naturalness": "reviewed-source",
+        "semanticPreservation": "pass",
+        "excessiveLength": false,
+        "sourceOverlayOverflowRisk": "low",
+        "overlayOverflowRisk": "low",
+        "awkwardLiteralTranslation": false,
+        "warnings": []
+      },
+      "de": {
+        "metadataTitle": "Du kannst dich nicht einfach Expertin nennen",
+        "displayTitle": "Du kannst dich nicht einfach Expertin nennen",
+        "displayLines": [
+          "Du kannst dich nicht",
+          "einfach Expertin nennen"
+        ],
+        "displayTitleDistinctFromMetadata": false,
+        "minimumFontScale": 1,
+        "naturalness": "reviewed-source",
+        "semanticPreservation": "pass",
+        "excessiveLength": false,
+        "sourceOverlayOverflowRisk": "low",
+        "overlayOverflowRisk": "low",
+        "awkwardLiteralTranslation": false,
+        "warnings": []
+      },
+      "it": {
+        "metadataTitle": "Non basta definirti esperta",
+        "displayTitle": "Non basta definirti esperta",
+        "displayLines": [
+          "Non basta definirti esperta"
+        ],
+        "displayTitleDistinctFromMetadata": false,
+        "minimumFontScale": 1,
+        "naturalness": "reviewed-source",
+        "semanticPreservation": "pass",
+        "excessiveLength": false,
+        "sourceOverlayOverflowRisk": "low",
+        "overlayOverflowRisk": "low",
+        "awkwardLiteralTranslation": false,
+        "warnings": []
+      },
+      "fr": {
+        "metadataTitle": "Il ne suffit pas de vous déclarer experte",
+        "displayTitle": "Il ne suffit pas de vous déclarer experte",
+        "displayLines": [
+          "Il ne suffit pas de",
+          "vous déclarer experte"
+        ],
+        "displayTitleDistinctFromMetadata": false,
+        "minimumFontScale": 1,
+        "naturalness": "reviewed-source",
+        "semanticPreservation": "pass",
+        "excessiveLength": false,
+        "sourceOverlayOverflowRisk": "low",
+        "overlayOverflowRisk": "low",
+        "awkwardLiteralTranslation": false,
+        "warnings": []
+      },
+      "pt": {
+        "metadataTitle": "Não basta se chamar de especialista",
+        "displayTitle": "Não basta se chamar de especialista",
+        "displayLines": [
+          "Não basta se chamar de especialista"
+        ],
+        "displayTitleDistinctFromMetadata": false,
+        "minimumFontScale": 1,
+        "naturalness": "reviewed-source",
+        "semanticPreservation": "pass",
+        "excessiveLength": false,
+        "sourceOverlayOverflowRisk": "low",
+        "overlayOverflowRisk": "low",
+        "awkwardLiteralTranslation": false,
+        "warnings": []
+      }
+    },
+    "sourceTitlesHash": "3fbf937f10192e3cc9d91904ee2e98c006c760cbe3e999b90568a45a2d139154",
+    "cacheKey": "8dd8fe385b6b77ba1c3915b1061054e1a7712fffb2fd76373aafeceebb620ecb",
+    "artifactHash": "ad51cfd08ae17722534f66b0139a131db3c7ad5d2c70be97900bbe5c8dd56f5a"
+  },
+  "visualVocabulary": {
+    "schemaVersion": "veronicabenini-positioning-visual-vocabulary.v1",
+    "episodeId": "L03",
+    "semanticDomains": [
+      "expertise-perceived-value",
+      "authority-recognition",
+      "content-positioning",
+      "niche-positioning"
+    ],
+    "recurringMotifs": [
+      "visible evidence trails and consequential client choices",
+      "knowledge moving through stages, interviews, and recommendations",
+      "one core idea propagating across a physical media ecosystem",
+      "crowds resolving into selected audience clusters"
+    ],
+    "environments": [
+      "case-study archive",
+      "client decision setting",
+      "active professional context",
+      "case-study archive",
+      "client decision setting",
+      "active professional context",
+      "editorial wall",
+      "podcast booth",
+      "multi-format production table",
+      "crowded trade hall",
+      "audience concourse",
+      "specialist service context"
+    ],
+    "materialPalette": [
+      "warm paper",
+      "coral accent",
+      "ink",
+      "glass",
+      "unfinished wood"
+    ],
+    "excludedCliches": [
+      "generic professional in office",
+      "laptop-at-desk pose",
+      "repeated notebook-and-cards staging",
+      "unmotivated business handshake"
+    ],
+    "sourceSemanticHash": "7240937e69e5a2a42279a074b5b40d89eb3e33a1c24a0d6341dc736b52ab5ace",
+    "cacheKey": "e7f02d989a82c4018b1f87ab3d08b6f0d7d67c2c03d1267dac6c776fbf8a8532",
+    "vocabularyHash": "5356fe2660a1bfb45f28dbbe5c08ad6d6be8bad4a50550844a2d64e5a7fcbc5a"
+  },
+  "coldOpen": null,
+  "progression": [
+    "HOOK",
+    "PROOF",
+    "MANIFESTATION",
+    "REVERSAL",
+    "PAYOFF"
+  ],
+  "continuity": {
+    "mode": "persistent-protagonist",
+    "identityId": "l03-protagonist",
+    "identityFingerprint": "3b193ef84214b918938cecc7fe8b596379b950be8b85c3ed084fdc25a31f20e7",
+    "appearance": {
+      "ageBand": "38-45",
+      "genderPresentation": "feminine",
+      "hair": "dark shoulder-length wavy hair",
+      "wardrobeAnchor": "rust jacket with charcoal workwear separates"
+    },
+    "referencePolicy": "reuse-only-for-linked-scenes",
+    "linkedSceneIds": [
+      "L03-S01-HOOK",
+      "L03-S01-V01",
+      "L03-S01-V02",
+      "L03-S01-V04"
+    ]
+  },
+  "scenes": [
+    {
+      "sceneId": "L03-S01-HOOK",
+      "progressionStage": "HOOK",
+      "narrationAnchor": "provocative-tension-unresolved-You Can’t Just Call Yourself an Expert",
+      "startMs": 0,
+      "durationMs": 6000,
+      "treatment": {
+        "treatmentId": "l03-s01-hook-treatment",
+        "sceneId": "L03-S01-HOOK",
+        "progressionStage": "HOOK",
+        "narrativeBeat": "provocative-tension-unresolved-You Can’t Just Call Yourself an Expert",
+        "communicationIntent": "create-tension",
+        "strategy": "social-interaction",
+        "subjectRequirement": "self-declared expert awaiting external recognition",
+        "environment": "vertical industry-event entrance with peer conversation beyond",
+        "composition": "foreground self-label separated from background peer acknowledgement",
+        "camera": "70mm candid vertical eye-line compression",
+        "lighting": "event practicals with focus shifting from badge to peers",
+        "action": "subject presents a blank badge while peers respond only to demonstrated evidence",
+        "props": [
+          "unlabeled badge and peer-shared work sample",
+          "event lanyard"
+        ],
+        "motionOpportunities": [
+          "subject-detail",
+          "reveal",
+          "alternate-crop"
+        ],
+        "diagram": null,
+        "grammar": {
+          "strategy": "social-interaction",
+          "subjectArchetype": "self-declared expert awaiting external recognition",
+          "environment": "vertical industry-event entrance with peer conversation beyond",
+          "composition": "foreground self-label separated from background peer acknowledgement",
+          "camera": "70mm candid vertical eye-line compression",
+          "props": [
+            "unlabeled badge and peer-shared work sample",
+            "event lanyard"
+          ],
+          "topology": "none",
+          "semanticTokens": [
+            "call",
+            "can",
+            "expert",
+            "just",
+            "provocative",
+            "tension",
+            "unresolved",
+            "yourself"
+          ],
+          "continuityIdentityId": "l03-protagonist"
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "social-interaction",
+          "subjectArchetype": "self-declared expert awaiting external recognition",
+          "environmentArchetype": "vertical industry-event entrance with peer conversation beyond",
+          "compositionArchetype": "foreground self-label separated from background peer acknowledgement",
+          "cameraArchetype": "70mm candid vertical eye-line compression",
+          "lightingArchetype": "event practicals with focus shifting from badge to peers",
+          "actionArchetype": "subject presents a blank badge while peers respond only to demonstrated evidence",
+          "dominantObjectArchetype": "unlabeled badge and peer-shared work sample",
+          "motionArchetype": "badge reveal followed by peer-evidence reaction"
+        },
+        "treatmentHash": "0b97f54f87d4733e1b8980e41798f835ed123d19e9be60cb506db8973395f36c"
+      },
+      "overlayKey": "l03-s01.l03-s01-hook",
+      "assetId": "l03-s01-hook-base",
+      "eventIds": [
+        "l03-s01-hook-event-01",
+        "l03-s01-hook-event-02"
+      ]
+    },
+    {
+      "sceneId": "L03-S01-V01",
+      "progressionStage": "PROOF",
+      "narrationAnchor": "expert-label",
+      "startMs": 6000,
+      "durationMs": 8400,
+      "treatment": {
+        "treatmentId": "l03-s01-v01-treatment",
+        "sceneId": "L03-S01-V01",
+        "progressionStage": "PROOF",
+        "narrativeBeat": "expert-label",
+        "communicationIntent": "make-proof-visible",
+        "strategy": "environmental-storytelling",
+        "subjectRequirement": "independent craftsperson visible through traces of completed work; same protagonist l03-protagonist",
+        "environment": "workshop, shop floor, studio wall, or hospitality space; backstage production zone",
+        "composition": "wide environmental tableau with evidence trail; left-to-right reveal path",
+        "camera": "28mm high-corner documentary wide; elevated diagonal viewpoint",
+        "lighting": "soft directional editorial daylight",
+        "action": "observable proof accumulates toward trust",
+        "props": [
+          "finished work",
+          "tools in use",
+          "expert evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "slow-push",
+          "subject-detail",
+          "transition-state"
+        ],
+        "diagram": null,
+        "grammar": {
+          "strategy": "environmental-storytelling",
+          "subjectArchetype": "persistent-protagonist",
+          "environment": "workshop, shop floor, studio wall, or hospitality space; backstage production zone",
+          "composition": "wide environmental tableau with evidence trail; left-to-right reveal path",
+          "camera": "28mm high-corner documentary wide; elevated diagonal viewpoint",
+          "props": [
+            "finished work",
+            "tools in use",
+            "expert evidence artifact"
+          ],
+          "topology": "none",
+          "semanticTokens": [
+            "expert",
+            "label"
+          ],
+          "continuityIdentityId": "l03-protagonist"
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "environmental-storytelling",
+          "subjectArchetype": "persistent-protagonist",
+          "environmentArchetype": "workshop, shop floor, studio wall, or hospitality space; backstage production zone",
+          "compositionArchetype": "wide environmental tableau with evidence trail; left-to-right reveal path",
+          "cameraArchetype": "28mm high-corner documentary wide; elevated diagonal viewpoint",
+          "lightingArchetype": "soft directional editorial daylight",
+          "actionArchetype": "observable proof accumulates toward trust",
+          "dominantObjectArchetype": "finished work",
+          "motionArchetype": "establishing-crop-then-slow-push-then-subject-detail-then-transition-state"
+        },
+        "treatmentHash": "17c50a27285fa4b18c2fa2769da73fcca2c0c95deac4d8780349d253000ee18d"
+      },
+      "overlayKey": "l03-s01.l03-s01-v01",
+      "assetId": "l03-s01-v01-base",
+      "eventIds": [
+        "l03-s01-v01-event-01",
+        "l03-s01-v01-event-02"
+      ]
+    },
+    {
+      "sceneId": "L03-S01-V02",
+      "progressionStage": "MANIFESTATION",
+      "narrationAnchor": "evidence-signals",
+      "startMs": 14400,
+      "durationMs": 8400,
+      "treatment": {
+        "treatmentId": "l03-s01-v02-treatment",
+        "sceneId": "L03-S01-V02",
+        "progressionStage": "MANIFESTATION",
+        "narrativeBeat": "evidence-signals",
+        "communicationIntent": "make-proof-visible",
+        "strategy": "evidence-proof",
+        "subjectRequirement": "observable work evidence accumulating into trust; same protagonist l03-protagonist",
+        "environment": "case-study archive, exhibition rail, or results wall; client point-of-decision zone",
+        "composition": "progressive evidence trail leading to a decision; central void separating competing signals",
+        "camera": "35mm shallow diagonal dolly perspective; subjective client viewpoint",
+        "lighting": "soft directional editorial daylight",
+        "action": "observable proof accumulates toward trust",
+        "props": [
+          "before-after sample",
+          "prototype",
+          "testimonial portrait without text",
+          "evidence evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "diagram-build",
+          "highlighted-region",
+          "punch-in"
+        ],
+        "diagram": {
+          "diagramId": "l03-s01-v02-diagram",
+          "proposition": "evidence-signals",
+          "textFreeBackground": true,
+          "type": "hierarchy",
+          "root": {
+            "id": "l03-s01-v02-diagram-core-position",
+            "semanticRole": "core-position",
+            "labelKey": "l03-s01-v02-diagram.core-position"
+          },
+          "children": [
+            {
+              "id": "l03-s01-v02-diagram-visible-signal-a",
+              "semanticRole": "visible-signal-a",
+              "labelKey": "l03-s01-v02-diagram.visible-signal-a"
+            },
+            {
+              "id": "l03-s01-v02-diagram-visible-signal-b",
+              "semanticRole": "visible-signal-b",
+              "labelKey": "l03-s01-v02-diagram.visible-signal-b"
+            },
+            {
+              "id": "l03-s01-v02-diagram-visible-signal-c",
+              "semanticRole": "visible-signal-c",
+              "labelKey": "l03-s01-v02-diagram.visible-signal-c"
+            }
+          ],
+          "edges": [
+            {
+              "from": "l03-s01-v02-diagram-core-position",
+              "to": "l03-s01-v02-diagram-visible-signal-a",
+              "semanticRole": "contains"
+            },
+            {
+              "from": "l03-s01-v02-diagram-core-position",
+              "to": "l03-s01-v02-diagram-visible-signal-b",
+              "semanticRole": "contains"
+            },
+            {
+              "from": "l03-s01-v02-diagram-core-position",
+              "to": "l03-s01-v02-diagram-visible-signal-c",
+              "semanticRole": "contains"
+            }
+          ],
+          "overlayLabelKeys": [
+            "l03-s01-v02-diagram.core-position",
+            "l03-s01-v02-diagram.visible-signal-a",
+            "l03-s01-v02-diagram.visible-signal-b",
+            "l03-s01-v02-diagram.visible-signal-c"
+          ]
+        },
+        "grammar": {
+          "strategy": "evidence-proof",
+          "subjectArchetype": "persistent-protagonist",
+          "environment": "case-study archive, exhibition rail, or results wall; client point-of-decision zone",
+          "composition": "progressive evidence trail leading to a decision; central void separating competing signals",
+          "camera": "35mm shallow diagonal dolly perspective; subjective client viewpoint",
+          "props": [
+            "before-after sample",
+            "prototype",
+            "testimonial portrait without text",
+            "evidence evidence artifact"
+          ],
+          "topology": "hierarchy",
+          "semanticTokens": [
+            "evidence",
+            "signals"
+          ],
+          "continuityIdentityId": "l03-protagonist"
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "evidence-proof",
+          "subjectArchetype": "persistent-protagonist",
+          "environmentArchetype": "case-study archive, exhibition rail, or results wall; client point-of-decision zone",
+          "compositionArchetype": "progressive evidence trail leading to a decision; central void separating competing signals",
+          "cameraArchetype": "35mm shallow diagonal dolly perspective; subjective client viewpoint",
+          "lightingArchetype": "soft directional editorial daylight",
+          "actionArchetype": "observable proof accumulates toward trust",
+          "dominantObjectArchetype": "before-after sample",
+          "motionArchetype": "establishing-crop-then-diagram-build-then-highlighted-region-then-punch-in"
+        },
+        "treatmentHash": "af685d15b1c8a0bb4d5d10042be9d08cdcdce949f06019ee25f6f76070b62b61"
+      },
+      "overlayKey": "l03-s01.l03-s01-v02",
+      "assetId": "l03-s01-v02-base",
+      "eventIds": [
+        "l03-s01-v02-event-01",
+        "l03-s01-v02-event-02"
+      ]
+    },
+    {
+      "sceneId": "L03-S01-V03",
+      "progressionStage": "REVERSAL",
+      "narrationAnchor": "coherent-touchpoints",
+      "startMs": 22800,
+      "durationMs": 8400,
+      "treatment": {
+        "treatmentId": "l03-s01-v03-treatment",
+        "sceneId": "L03-S01-V03",
+        "progressionStage": "REVERSAL",
+        "narrativeBeat": "coherent-touchpoints",
+        "communicationIntent": "explain-causality",
+        "strategy": "semantic-diagram",
+        "subjectRequirement": "unlabeled shapes with proposition-specific relationships; nonbinary creative director",
+        "environment": "warm-paper editorial diagram field; artifact archive zone",
+        "composition": "topology-led orthographic composition; occluded-to-visible information progression",
+        "camera": "orthographic graphic plane; lateral profile viewpoint",
+        "lighting": "controlled graphic light with clear shape separation",
+        "action": "multiple visible conditions produce one outcome",
+        "props": [
+          "semantic nodes",
+          "directional connectors",
+          "highlight region",
+          "coherent evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "diagram-build",
+          "highlighted-region",
+          "punch-in"
+        ],
+        "diagram": {
+          "diagramId": "l03-s01-v03-diagram",
+          "proposition": "coherent-touchpoints",
+          "textFreeBackground": true,
+          "type": "hub-spoke",
+          "hub": {
+            "id": "l03-s01-v03-diagram-core-position",
+            "semanticRole": "core-position",
+            "labelKey": "l03-s01-v03-diagram.core-position"
+          },
+          "spokes": [
+            {
+              "id": "l03-s01-v03-diagram-offer",
+              "semanticRole": "offer",
+              "labelKey": "l03-s01-v03-diagram.offer"
+            },
+            {
+              "id": "l03-s01-v03-diagram-content",
+              "semanticRole": "content",
+              "labelKey": "l03-s01-v03-diagram.content"
+            },
+            {
+              "id": "l03-s01-v03-diagram-reputation",
+              "semanticRole": "reputation",
+              "labelKey": "l03-s01-v03-diagram.reputation"
+            },
+            {
+              "id": "l03-s01-v03-diagram-context",
+              "semanticRole": "context",
+              "labelKey": "l03-s01-v03-diagram.context"
+            }
+          ],
+          "edges": [
+            {
+              "from": "l03-s01-v03-diagram-core-position",
+              "to": "l03-s01-v03-diagram-offer",
+              "semanticRole": "reinforces"
+            },
+            {
+              "from": "l03-s01-v03-diagram-core-position",
+              "to": "l03-s01-v03-diagram-content",
+              "semanticRole": "reinforces"
+            },
+            {
+              "from": "l03-s01-v03-diagram-core-position",
+              "to": "l03-s01-v03-diagram-reputation",
+              "semanticRole": "reinforces"
+            },
+            {
+              "from": "l03-s01-v03-diagram-core-position",
+              "to": "l03-s01-v03-diagram-context",
+              "semanticRole": "reinforces"
+            }
+          ],
+          "overlayLabelKeys": [
+            "l03-s01-v03-diagram.core-position",
+            "l03-s01-v03-diagram.offer",
+            "l03-s01-v03-diagram.content",
+            "l03-s01-v03-diagram.reputation",
+            "l03-s01-v03-diagram.context"
+          ]
+        },
+        "grammar": {
+          "strategy": "semantic-diagram",
+          "subjectArchetype": "unlabeled shapes with proposition-specific relationships; nonbinary creative director",
+          "environment": "warm-paper editorial diagram field; artifact archive zone",
+          "composition": "topology-led orthographic composition; occluded-to-visible information progression",
+          "camera": "orthographic graphic plane; lateral profile viewpoint",
+          "props": [
+            "semantic nodes",
+            "directional connectors",
+            "highlight region",
+            "coherent evidence artifact"
+          ],
+          "topology": "hub-spoke",
+          "semanticTokens": [
+            "coherent",
+            "touchpoints"
+          ],
+          "continuityIdentityId": null
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "semantic-diagram",
+          "subjectArchetype": "unlabeled shapes with proposition-specific relationships; nonbinary creative director",
+          "environmentArchetype": "warm-paper editorial diagram field; artifact archive zone",
+          "compositionArchetype": "topology-led orthographic composition; occluded-to-visible information progression",
+          "cameraArchetype": "orthographic graphic plane; lateral profile viewpoint",
+          "lightingArchetype": "controlled graphic light with clear shape separation",
+          "actionArchetype": "multiple visible conditions produce one outcome",
+          "dominantObjectArchetype": "semantic nodes",
+          "motionArchetype": "establishing-crop-then-diagram-build-then-highlighted-region-then-punch-in"
+        },
+        "treatmentHash": "d1f307c3c2b29bf3b1aec0cee6e3af099d1006ec545944c7512fa9ee4b5714af"
+      },
+      "overlayKey": "l03-s01.l03-s01-v03",
+      "assetId": "l03-s01-v03-base",
+      "eventIds": [
+        "l03-s01-v03-event-01",
+        "l03-s01-v03-event-02"
+      ]
+    },
+    {
+      "sceneId": "L03-S01-V04",
+      "progressionStage": "PAYOFF",
+      "narrationAnchor": "others-call-you-expert",
+      "startMs": 31200,
+      "durationMs": 8400,
+      "treatment": {
+        "treatmentId": "l03-s01-v04-treatment",
+        "sceneId": "L03-S01-V04",
+        "progressionStage": "PAYOFF",
+        "narrativeBeat": "others-call-you-expert",
+        "communicationIntent": "deliver-payoff",
+        "strategy": "human-scenario",
+        "subjectRequirement": "service professional responding to a consequential real-world moment; same protagonist l03-protagonist",
+        "environment": "active service counter or field-work setting; peer-referral setting",
+        "composition": "layered observational frame with consequence in foreground; near-far contrast between choice and result",
+        "camera": "35mm shoulder-height documentary angle; compressed distant observation",
+        "lighting": "soft directional editorial daylight",
+        "action": "the final visual state resolves the proposition",
+        "props": [
+          "work sample",
+          "client brief",
+          "call evidence artifact"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "slow-push",
+          "subject-detail",
+          "transition-state"
+        ],
+        "diagram": null,
+        "grammar": {
+          "strategy": "human-scenario",
+          "subjectArchetype": "persistent-protagonist",
+          "environment": "active service counter or field-work setting; peer-referral setting",
+          "composition": "layered observational frame with consequence in foreground; near-far contrast between choice and result",
+          "camera": "35mm shoulder-height documentary angle; compressed distant observation",
+          "props": [
+            "work sample",
+            "client brief",
+            "call evidence artifact"
+          ],
+          "topology": "none",
+          "semanticTokens": [
+            "call",
+            "expert",
+            "others"
+          ],
+          "continuityIdentityId": "l03-protagonist"
+        },
+        "viewerVisibleFingerprint": {
+          "strategyFamily": "human-scenario",
+          "subjectArchetype": "persistent-protagonist",
+          "environmentArchetype": "active service counter or field-work setting; peer-referral setting",
+          "compositionArchetype": "layered observational frame with consequence in foreground; near-far contrast between choice and result",
+          "cameraArchetype": "35mm shoulder-height documentary angle; compressed distant observation",
+          "lightingArchetype": "soft directional editorial daylight",
+          "actionArchetype": "the final visual state resolves the proposition",
+          "dominantObjectArchetype": "work sample",
+          "motionArchetype": "establishing-crop-then-slow-push-then-subject-detail-then-transition-state"
+        },
+        "treatmentHash": "683a43987f302a70fa24976092b8a2d17f737ef75a4be51c28c9f8c85c68824e"
+      },
+      "overlayKey": "l03-s01.l03-s01-v04",
+      "assetId": "l03-s01-v04-base",
+      "eventIds": [
+        "l03-s01-v04-event-01",
+        "l03-s01-v04-event-02"
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "assetId": "l03-s01-hook-base",
+      "contentId": "L03-S01",
+      "sceneId": "L03-S01-HOOK",
+      "semanticPurpose": "provocative-tension-unresolved-You Can’t Just Call Yourself an Expert",
+      "strategy": "social-interaction",
+      "prompt": "Text-free 9:16 social-interaction treatment for provocative tension unresolved You Can’t Just Call Yourself an Expert. Communication intent: create-tension. Subject: self-declared expert awaiting external recognition. Environment: vertical industry-event entrance with peer conversation beyond. Composition: foreground self-label separated from background peer acknowledgement. Camera: 70mm candid vertical eye-line compression. Props: unlabeled badge and peer-shared work sample, event lanyard. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "9:16",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "subject-aware-crop",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "protected subject and overlay regions survive a subject-aware derivative"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "native composition"
+        }
+      ],
+      "subjectIdentityId": "l03-protagonist",
+      "referenceAssetId": null,
+      "semanticFingerprint": "109cb1c48246456e8aff0f22d576f31712a7dbe95c186defac510b71f07b2f38",
+      "generatedAssetCacheKey": "093aadf28f78ea828140a771e88745f403fa360e09c0e5611d5c8a85981d54a5"
+    },
+    {
+      "assetId": "l03-s01-v01-base",
+      "contentId": "L03-S01",
+      "sceneId": "L03-S01-V01",
+      "semanticPurpose": "expert-label",
+      "strategy": "environmental-storytelling",
+      "prompt": "Text-free 9:16 environmental-storytelling treatment for expert label. Communication intent: make-proof-visible. Subject: independent craftsperson visible through traces of completed work; same protagonist l03-protagonist. Environment: workshop, shop floor, studio wall, or hospitality space; backstage production zone. Composition: wide environmental tableau with evidence trail; left-to-right reveal path. Camera: 28mm high-corner documentary wide; elevated diagonal viewpoint. Props: finished work, tools in use, expert evidence artifact. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "9:16",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "subject-aware-crop",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "protected subject and overlay regions survive a subject-aware derivative"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "native composition"
+        }
+      ],
+      "subjectIdentityId": "l03-protagonist",
+      "referenceAssetId": "l03-s01-hook-base",
+      "semanticFingerprint": "816be9b256a63d9a3e28228b0b5909c8a0562e8fe0261f24cabe985439abcb22",
+      "generatedAssetCacheKey": "54371a889f08c747ff733ffd91c5310859ac4f2342948cfc8333fddd80260345"
+    },
+    {
+      "assetId": "l03-s01-v02-base",
+      "contentId": "L03-S01",
+      "sceneId": "L03-S01-V02",
+      "semanticPurpose": "evidence-signals",
+      "strategy": "evidence-proof",
+      "prompt": "Text-free 9:16 evidence-proof treatment for evidence signals. Communication intent: make-proof-visible. Subject: observable work evidence accumulating into trust; same protagonist l03-protagonist. Environment: case-study archive, exhibition rail, or results wall; client point-of-decision zone. Composition: progressive evidence trail leading to a decision; central void separating competing signals. Camera: 35mm shallow diagonal dolly perspective; subjective client viewpoint. Props: before-after sample, prototype, testimonial portrait without text, evidence evidence artifact. Proposition-specific hierarchy structure with 4 separately rendered label anchors. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "9:16",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "subject-aware-crop",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "protected subject and overlay regions survive a subject-aware derivative"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "native composition"
+        }
+      ],
+      "subjectIdentityId": "l03-protagonist",
+      "referenceAssetId": "l03-s01-hook-base",
+      "semanticFingerprint": "d521bf5c861d94da326580e79b69d2575c6ec7d8a1ad5fce2681c643674a0b87",
+      "generatedAssetCacheKey": "f1c78857c4ab1b1e87908f48de257920b953d7a7c4d98b1486d29a05581139d5"
+    },
+    {
+      "assetId": "l03-s01-v03-base",
+      "contentId": "L03-S01",
+      "sceneId": "L03-S01-V03",
+      "semanticPurpose": "coherent-touchpoints",
+      "strategy": "semantic-diagram",
+      "prompt": "Text-free 9:16 semantic-diagram treatment for coherent touchpoints. Communication intent: explain-causality. Subject: unlabeled shapes with proposition-specific relationships; nonbinary creative director. Environment: warm-paper editorial diagram field; artifact archive zone. Composition: topology-led orthographic composition; occluded-to-visible information progression. Camera: orthographic graphic plane; lateral profile viewpoint. Props: semantic nodes, directional connectors, highlight region, coherent evidence artifact. Proposition-specific hub-spoke structure with 5 separately rendered label anchors. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "9:16",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "subject-aware-crop",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "protected subject and overlay regions survive a subject-aware derivative"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "native composition"
+        }
+      ],
+      "subjectIdentityId": null,
+      "referenceAssetId": null,
+      "semanticFingerprint": "fa307fdeaa0d05525dff1d7e33307cf58832eecdbf432ef213ab1faf135bc7ae",
+      "generatedAssetCacheKey": "536b7a1a12c3628fbb8a269d6371d9738ed6e493a9eac09b38a3a22140fcf252"
+    },
+    {
+      "assetId": "l03-s01-v04-base",
+      "contentId": "L03-S01",
+      "sceneId": "L03-S01-V04",
+      "semanticPurpose": "others-call-you-expert",
+      "strategy": "human-scenario",
+      "prompt": "Text-free 9:16 human-scenario treatment for others call you expert. Communication intent: deliver-payoff. Subject: service professional responding to a consequential real-world moment; same protagonist l03-protagonist. Environment: active service counter or field-work setting; peer-referral setting. Composition: layered observational frame with consequence in foreground; near-far contrast between choice and result. Camera: 35mm shoulder-height documentary angle; compressed distant observation. Props: work sample, client brief, call evidence artifact. No decorative diagram; make the proposition visible through the selected scene model. Contemporary European editorial realism; no readable text, letters, numbers, logos, UI, generic office, laptop-at-desk pose, stock handshake, or repeated notebook staging.",
+      "textFree": true,
+      "textInGeneratedImage": false,
+      "nativeAspectRatio": "9:16",
+      "ratioAdaptations": [
+        {
+          "aspectRatio": "16:9",
+          "supported": true,
+          "cropMode": "subject-aware-crop",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.08,
+              "y": 0.08,
+              "width": 0.52,
+              "height": 0.72
+            },
+            {
+              "id": "overlay",
+              "x": 0.64,
+              "y": 0.1,
+              "width": 0.28,
+              "height": 0.38
+            },
+            {
+              "id": "subtitle",
+              "x": 0.08,
+              "y": 0.78,
+              "width": 0.84,
+              "height": 0.14
+            }
+          ],
+          "reason": "protected subject and overlay regions survive a subject-aware derivative"
+        },
+        {
+          "aspectRatio": "9:16",
+          "supported": true,
+          "cropMode": "native",
+          "safeRegions": [
+            {
+              "id": "subject",
+              "x": 0.12,
+              "y": 0.18,
+              "width": 0.76,
+              "height": 0.54
+            },
+            {
+              "id": "overlay",
+              "x": 0.12,
+              "y": 0.1,
+              "width": 0.76,
+              "height": 0.2
+            },
+            {
+              "id": "subtitle",
+              "x": 0.12,
+              "y": 0.72,
+              "width": 0.76,
+              "height": 0.16
+            }
+          ],
+          "reason": "native composition"
+        }
+      ],
+      "subjectIdentityId": "l03-protagonist",
+      "referenceAssetId": "l03-s01-hook-base",
+      "semanticFingerprint": "2c5b2ded00f80ff02f5a407f14e6d896236ddd92d1d341e1b7057353d0bb6e93",
+      "generatedAssetCacheKey": "8dcff8b3a454f0407aed0314ffb035869ec71fc9591fbdbc2437a6a7d8ec99a6"
+    }
+  ],
+  "visualEvents": [
+    {
+      "eventId": "l03-s01-hook-event-01",
+      "sceneId": "L03-S01-HOOK",
+      "assetId": "l03-s01-hook-base",
+      "kind": "subject-detail",
+      "startMs": 0,
+      "durationMs": 3000,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "subject"
+      },
+      "renderCacheKey": "ed7496a930852786888d9f2258fd1d3d90cec1a100d06db9919c42e5d032386b"
+    },
+    {
+      "eventId": "l03-s01-hook-event-02",
+      "sceneId": "L03-S01-HOOK",
+      "assetId": "l03-s01-hook-base",
+      "kind": "reveal",
+      "startMs": 3000,
+      "durationMs": 3000,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "3d517290122a9bfb829a0324519dac59d562f9781bb4aa6df1fbcd0e313de499"
+    },
+    {
+      "eventId": "l03-s01-v01-event-01",
+      "sceneId": "L03-S01-V01",
+      "assetId": "l03-s01-v01-base",
+      "kind": "establishing-crop",
+      "startMs": 6000,
+      "durationMs": 4200,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "bb39908edcd50fcb3cb45ec33183c6b2186a25ef00fc059450bed2134299463b"
+    },
+    {
+      "eventId": "l03-s01-v01-event-02",
+      "sceneId": "L03-S01-V01",
+      "assetId": "l03-s01-v01-base",
+      "kind": "slow-push",
+      "startMs": 10200,
+      "durationMs": 4200,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "9ba53cd60c1745ec5067f4620f848102dcfe471ec3c61c426eee7610c1ce600d"
+    },
+    {
+      "eventId": "l03-s01-v02-event-01",
+      "sceneId": "L03-S01-V02",
+      "assetId": "l03-s01-v02-base",
+      "kind": "establishing-crop",
+      "startMs": 14400,
+      "durationMs": 4200,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "8b36f2198535aae5744052bc2c28c56ba00a9f2bb58ad3cf35721bfc256911f1"
+    },
+    {
+      "eventId": "l03-s01-v02-event-02",
+      "sceneId": "L03-S01-V02",
+      "assetId": "l03-s01-v02-base",
+      "kind": "diagram-build",
+      "startMs": 18600,
+      "durationMs": 4200,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "83e0b26ac02a148cd4d36b0d550667fe1de062bbf7c51ab1eed156deb16889ae"
+    },
+    {
+      "eventId": "l03-s01-v03-event-01",
+      "sceneId": "L03-S01-V03",
+      "assetId": "l03-s01-v03-base",
+      "kind": "establishing-crop",
+      "startMs": 22800,
+      "durationMs": 4200,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "0eceac122eee53212c1a85797aeff46bb21f78e11a753a6b815b60139d0d1138"
+    },
+    {
+      "eventId": "l03-s01-v03-event-02",
+      "sceneId": "L03-S01-V03",
+      "assetId": "l03-s01-v03-base",
+      "kind": "diagram-build",
+      "startMs": 27000,
+      "durationMs": 4200,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "ab724a1085cebcd10293b342d55e90b2902c958522748065bf65c0c1d300fc3c"
+    },
+    {
+      "eventId": "l03-s01-v04-event-01",
+      "sceneId": "L03-S01-V04",
+      "assetId": "l03-s01-v04-base",
+      "kind": "establishing-crop",
+      "startMs": 31200,
+      "durationMs": 4200,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.04,
+        "anchor": "center"
+      },
+      "renderCacheKey": "f5f8733ab86294b130f0d7273c09d0622c27691a711ebe202f65a8f57019d124"
+    },
+    {
+      "eventId": "l03-s01-v04-event-02",
+      "sceneId": "L03-S01-V04",
+      "assetId": "l03-s01-v04-base",
+      "kind": "slow-push",
+      "startMs": 35400,
+      "durationMs": 4200,
+      "aspectRatio": "9:16",
+      "safeRegionIds": [
+        "subject",
+        "overlay",
+        "subtitle"
+      ],
+      "deterministicParameters": {
+        "startScale": 1,
+        "endScale": 1.16,
+        "anchor": "center"
+      },
+      "renderCacheKey": "ad0dee67ef8a006ba94748576635fb7c1a256ec9bb649767a9aafb687c0e3172"
+    }
+  ],
+  "diagrams": [
+    {
+      "diagramId": "l03-s01-v02-diagram",
+      "proposition": "evidence-signals",
+      "textFreeBackground": true,
+      "type": "hierarchy",
+      "root": {
+        "id": "l03-s01-v02-diagram-core-position",
+        "semanticRole": "core-position",
+        "labelKey": "l03-s01-v02-diagram.core-position"
+      },
+      "children": [
+        {
+          "id": "l03-s01-v02-diagram-visible-signal-a",
+          "semanticRole": "visible-signal-a",
+          "labelKey": "l03-s01-v02-diagram.visible-signal-a"
+        },
+        {
+          "id": "l03-s01-v02-diagram-visible-signal-b",
+          "semanticRole": "visible-signal-b",
+          "labelKey": "l03-s01-v02-diagram.visible-signal-b"
+        },
+        {
+          "id": "l03-s01-v02-diagram-visible-signal-c",
+          "semanticRole": "visible-signal-c",
+          "labelKey": "l03-s01-v02-diagram.visible-signal-c"
+        }
+      ],
+      "edges": [
+        {
+          "from": "l03-s01-v02-diagram-core-position",
+          "to": "l03-s01-v02-diagram-visible-signal-a",
+          "semanticRole": "contains"
+        },
+        {
+          "from": "l03-s01-v02-diagram-core-position",
+          "to": "l03-s01-v02-diagram-visible-signal-b",
+          "semanticRole": "contains"
+        },
+        {
+          "from": "l03-s01-v02-diagram-core-position",
+          "to": "l03-s01-v02-diagram-visible-signal-c",
+          "semanticRole": "contains"
+        }
+      ],
+      "overlayLabelKeys": [
+        "l03-s01-v02-diagram.core-position",
+        "l03-s01-v02-diagram.visible-signal-a",
+        "l03-s01-v02-diagram.visible-signal-b",
+        "l03-s01-v02-diagram.visible-signal-c"
+      ]
+    },
+    {
+      "diagramId": "l03-s01-v03-diagram",
+      "proposition": "coherent-touchpoints",
+      "textFreeBackground": true,
+      "type": "hub-spoke",
+      "hub": {
+        "id": "l03-s01-v03-diagram-core-position",
+        "semanticRole": "core-position",
+        "labelKey": "l03-s01-v03-diagram.core-position"
+      },
+      "spokes": [
+        {
+          "id": "l03-s01-v03-diagram-offer",
+          "semanticRole": "offer",
+          "labelKey": "l03-s01-v03-diagram.offer"
+        },
+        {
+          "id": "l03-s01-v03-diagram-content",
+          "semanticRole": "content",
+          "labelKey": "l03-s01-v03-diagram.content"
+        },
+        {
+          "id": "l03-s01-v03-diagram-reputation",
+          "semanticRole": "reputation",
+          "labelKey": "l03-s01-v03-diagram.reputation"
+        },
+        {
+          "id": "l03-s01-v03-diagram-context",
+          "semanticRole": "context",
+          "labelKey": "l03-s01-v03-diagram.context"
+        }
+      ],
+      "edges": [
+        {
+          "from": "l03-s01-v03-diagram-core-position",
+          "to": "l03-s01-v03-diagram-offer",
+          "semanticRole": "reinforces"
+        },
+        {
+          "from": "l03-s01-v03-diagram-core-position",
+          "to": "l03-s01-v03-diagram-content",
+          "semanticRole": "reinforces"
+        },
+        {
+          "from": "l03-s01-v03-diagram-core-position",
+          "to": "l03-s01-v03-diagram-reputation",
+          "semanticRole": "reinforces"
+        },
+        {
+          "from": "l03-s01-v03-diagram-core-position",
+          "to": "l03-s01-v03-diagram-context",
+          "semanticRole": "reinforces"
+        }
+      ],
+      "overlayLabelKeys": [
+        "l03-s01-v03-diagram.core-position",
+        "l03-s01-v03-diagram.offer",
+        "l03-s01-v03-diagram.content",
+        "l03-s01-v03-diagram.reputation",
+        "l03-s01-v03-diagram.context"
+      ]
+    }
+  ],
+  "assetReuseDecisions": [
+    {
+      "sourceAssetId": "l03-cold_open-base",
+      "sourceContentId": "L03",
+      "targetContentId": "L03-S01",
+      "targetSceneId": "L03-S01-HOOK",
+      "eligible": false,
+      "reuseMode": "not-reusable",
+      "cropAdaptation": "none",
+      "semanticCompatibility": 0.0462,
+      "reason": "semantic-purpose-insufficiently-compatible"
+    },
+    {
+      "sourceAssetId": "l03-v05-base",
+      "sourceContentId": "L03",
+      "targetContentId": "L03-S01",
+      "targetSceneId": "L03-S01-V01",
+      "eligible": true,
+      "reuseMode": "vertical-derivative",
+      "cropAdaptation": "subject-aware-crop",
+      "semanticCompatibility": 0.4,
+      "reason": "semantic purpose, continuity, and protected crop regions are compatible"
+    },
+    {
+      "sourceAssetId": "l03-v02-base",
+      "sourceContentId": "L03",
+      "targetContentId": "L03-S01",
+      "targetSceneId": "L03-S01-V02",
+      "eligible": true,
+      "reuseMode": "vertical-derivative",
+      "cropAdaptation": "subject-aware-crop",
+      "semanticCompatibility": 0.4,
+      "reason": "semantic purpose, continuity, and protected crop regions are compatible"
+    },
+    {
+      "sourceAssetId": "l03-v03-base",
+      "sourceContentId": "L03",
+      "targetContentId": "L03-S01",
+      "targetSceneId": "L03-S01-V03",
+      "eligible": true,
+      "reuseMode": "vertical-derivative",
+      "cropAdaptation": "subject-aware-crop",
+      "semanticCompatibility": 1,
+      "reason": "semantic purpose, continuity, and protected crop regions are compatible"
+    },
+    {
+      "sourceAssetId": "l03-cold_open-base",
+      "sourceContentId": "L03",
+      "targetContentId": "L03-S01",
+      "targetSceneId": "L03-S01-V04",
+      "eligible": false,
+      "reuseMode": "not-reusable",
+      "cropAdaptation": "none",
+      "semanticCompatibility": 0,
+      "reason": "semantic-purpose-insufficiently-compatible"
+    }
+  ],
+  "diversityMetrics": {
+    "visualGrammarDuplicateRate": 0,
+    "subjectArchetypeDuplicateRate": 0,
+    "environmentDuplicateRate": 0,
+    "compositionDuplicateRate": 0,
+    "cameraDuplicateRate": 0,
+    "propDuplicateRate": 0,
+    "diagramTopologyDuplicateRate": 0,
+    "consecutiveSceneSimilarity": {
+      "mean": 0.0709,
+      "maximum": 0.1417,
+      "violatingPairs": []
+    },
+    "hookVsScene1Similarity": 0.1417,
+    "status": "pass",
+    "failures": []
+  },
+  "cadenceMetrics": {
+    "durationMs": 39600,
+    "baseAssetCount": 5,
+    "visualEventCount": 10,
+    "eventsPerBaseAsset": 2,
+    "meanSecondsPerEvent": 3.96,
+    "shortestEventSeconds": 3,
+    "longestEventSeconds": 4.2,
+    "targetRangeSeconds": [
+      3,
+      7
+    ],
+    "targetComplianceRate": 1,
+    "hookMeanSecondsPerEvent": 3
+  },
+  "localizationCompatibility": {
+    "locales": [
+      "en",
+      "de",
+      "it",
+      "fr",
+      "pt"
+    ],
+    "canonicalImageryLocale": "en",
+    "textInGeneratedImage": false,
+    "translationInvalidatesCanonicalImagery": false,
+    "overlaysRenderedSeparately": true
+  },
+  "productionCoverage": {
+    "ctaEndScreenPlacement": "planned",
+    "motionTreatment": "planned",
+    "overlayStrategy": "planned",
+    "musicSfx": "unsupported-not-planned",
+    "thumbnail": {
+      "concept": "visible evidence trails and consequential client choices; one legible tension, no generic portrait",
+      "titleRelationship": "thumbnail visualizes the consequence or contradiction; title supplies the claim",
+      "localeStrategy": "text-free-image-localized-overlay"
+    }
+  },
+  "cacheInvalidation": {
+    "semanticPlanInvalidatesOn": [
+      "canonical-narrative-semantic-change",
+      "semantic-beat-structure-change",
+      "visual-vocabulary-change",
+      "planner-algorithm-version-change"
+    ],
+    "canonicalImageInvalidatesOn": [
+      "semantic-plan-change",
+      "image-provider-or-model-change",
+      "prompt-contract-change"
+    ],
+    "titleQaInvalidatesOn": [
+      "localized-title-change",
+      "title-qa-version-change"
+    ],
+    "renderEventsInvalidateOn": [
+      "semantic-plan-change",
+      "ffmpeg-renderer-version-change",
+      "timing-change"
+    ]
+  },
+  "migration": {
+    "legacyV1Plan": "inspect-only-replan-required",
+    "legacyAssetReuse": "eligible-only-after-semantic-fingerprint-match"
+  },
+  "validation": {
+    "status": "pass",
+    "failures": []
+  },
+  "planHash": "3af835a848f6d96d70f08c7f1ed66c2157f38e4030da145c62d1291fda01e6dc"
+}

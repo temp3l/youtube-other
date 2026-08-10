@@ -37,6 +37,23 @@ History media uses the common provider-neutral speech, image, rendering, metadat
 
 ## Visual-plan approval gate
 
+After V3.5 visual approval, the shared semantic image-prompt preflight interprets
+all episode shots in one strict OpenAI text request. It uses only frozen trusted
+narration and approved claims/entities/chronology/geography; it triggers no
+research, claim extraction, web retrieval, or image generation. Map and diagram
+state IDs and existing historical-figure reference eligibility remain
+authoritative.
+
+```bash
+mediaforge history visuals derive-image-prompts <episode-id> --json
+mediaforge history visuals inspect-image-prompts <episode-id> --json
+# Targeted semantic-only refresh; frozen research and visual plans are unchanged:
+mediaforge history visuals derive-image-prompts <episode-id> --refresh-image-prompt-brief --json
+```
+
+The cache is canonical and locale-independent. A missing, malformed, factually
+broadened, anachronistic, or generic brief fails before paid image generation.
+
 Before any History image generation, create and review a deterministic visual plan. The planner uses episode runtime metadata when present, otherwise its documented 108 words-per-minute default. It writes `history-visual-plan.json`, `history-shot-list.json`, `history-asset-manifest.draft.json`, `history-approval-pack.md`, `history-visual-validation.json`, and `history-visual-approval.json` under the episode `source/` directory. Planning never starts media generation.
 
 ```bash

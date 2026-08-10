@@ -1,0 +1,344 @@
+[
+  {
+    "id": "L01-S01",
+    "parent": "L01",
+    "slug": "being-good-isnt-enough",
+    "titles": {
+      "en": "Being Good Isn’t Enough",
+      "de": "Gut zu sein reicht nicht",
+      "it": "Essere bravi non basta",
+      "fr": "Être bon ne suffit pas",
+      "pt": "Ser bom não basta"
+    },
+    "narrations": {
+      "en": "You can be better than your competitors and still lose the client. Why? Because customers cannot see expertise directly. They see your offer, your content, your website, what other people say about you, and what they remember you for. Being an expert and being perceived as an expert are two different problems. Your work builds the expertise. Your positioning makes that expertise visible. If nobody understands what you are especially good at, they have no reason to choose you for it. The goal is not to look impressive. The goal is to make real expertise easy to recognize.",
+      "de": "Du kannst besser sein als deine Konkurrenz und trotzdem den Kunden verlieren. Warum? Weil Kunden Fachwissen nicht direkt sehen können. Sie sehen dein Angebot, deine Inhalte, deine Website, was andere über dich sagen und wofür sie dich in Erinnerung behalten. Experte zu sein und als Experte wahrgenommen zu werden, sind zwei verschiedene Probleme. Deine Arbeit schafft die Kompetenz. Deine Positionierung macht sie sichtbar. Wenn niemand versteht, worin du besonders gut bist, gibt es keinen klaren Grund, dich genau dafür zu wählen. Es geht nicht darum, beeindruckend zu wirken. Es geht darum, echte Kompetenz leicht erkennbar zu machen.",
+      "it": "Puoi essere più brava dei tuoi concorrenti e perdere comunque il cliente. Perché? Perché i clienti non possono vedere direttamente la tua competenza. Vedono la tua offerta, i tuoi contenuti, il tuo sito, quello che gli altri dicono di te e ciò per cui ti ricordano. Essere esperta ed essere percepita come esperta sono due problemi diversi. Il tuo lavoro costruisce la competenza. Il posizionamento la rende visibile. Se nessuno capisce in cosa sei particolarmente brava, non ha un motivo chiaro per scegliere te proprio per quello. L'obiettivo non è sembrare importante. È rendere riconoscibile una competenza reale.",
+      "fr": "Vous pouvez être meilleur que vos concurrents et perdre quand même le client. Pourquoi ? Parce qu’un client ne voit pas directement votre expertise. Il voit votre offre, vos contenus, votre site, ce que les autres disent de vous et ce qu’il retient de vous. Être expert et être perçu comme expert sont deux problèmes différents. Votre travail construit l’expertise. Votre positionnement la rend visible. Si personne ne comprend clairement ce dans quoi vous êtes particulièrement bon, personne n’a de raison évidente de vous choisir pour cela. Le but n’est pas d’avoir l’air impressionnant. Le but est de rendre une vraie expertise facile à reconnaître.",
+      "pt": "Você pode ser melhor que os seus concorrentes e ainda assim perder o cliente. Por quê? Porque o cliente não consegue enxergar a sua competência diretamente. Ele vê a sua oferta, o seu conteúdo, o seu site, o que outras pessoas dizem sobre você e pelo que se lembram de você. Ser especialista e ser percebido como especialista são dois problemas diferentes. O seu trabalho constrói competência. O seu posicionamento torna essa competência visível. Se ninguém entende no que você é especialmente bom, não existe uma razão clara para escolher você por isso. O objetivo não é parecer importante. É tornar uma competência real fácil de reconhecer."
+    }
+  },
+  {
+    "id": "L01-S02",
+    "parent": "L01",
+    "slug": "expertise-vs-perception",
+    "titles": {
+      "en": "Skill Won’t Fix This Positioning Problem",
+      "de": "Mehr Können löst dieses Positionierungsproblem nicht",
+      "it": "Più competenza non risolve questo problema di posizionamento",
+      "fr": "Plus de compétence ne résout pas ce problème de positionnement",
+      "pt": "Mais habilidade não resolve este problema de posicionamento"
+    },
+    "narrations": {
+      "en": "Getting better at your craft will not fix this problem: the market may still have no idea how good you are. Expertise lives in the work. Positioning lives in the customer’s mind. Those are two different systems. Improve your skills, yes — but also make the evidence easy to see. Your offer, examples, content, reputation, and results should all point toward the same expertise. Never fake authority. But do not hide real authority behind a message nobody can understand.",
+      "de": "Mehr Können löst dieses Problem nicht automatisch: Der Markt kann trotzdem keine Ahnung haben, wie gut du wirklich bist. Expertise steckt in der Arbeit. Positionierung entsteht im Kopf des Kunden. Das sind zwei verschiedene Systeme. Verbessere deine Fähigkeiten — aber mach auch die Belege sichtbar. Angebot, Beispiele, Content, Ruf und Ergebnisse sollten auf dieselbe Expertise zeigen. Spiele niemals Autorität vor. Verstecke echte Autorität aber auch nicht hinter einer Botschaft, die niemand versteht.",
+      "it": "Diventare più brava non risolve automaticamente questo problema: il mercato può continuare a non capire quanto sei competente. La competenza vive nel lavoro. Il posizionamento vive nella mente del cliente. Sono due sistemi diversi. Migliora le tue capacità, certo — ma rendi visibili anche le prove. Offerta, esempi, contenuti, reputazione e risultati dovrebbero indicare la stessa competenza. Non fingere mai autorevolezza. Ma non nascondere quella reale dietro un messaggio che nessuno capisce.",
+      "fr": "Devenir meilleure dans votre métier ne résout pas automatiquement ce problème : le marché peut toujours ignorer votre véritable niveau. L’expertise vit dans le travail. Le positionnement vit dans l’esprit du client. Ce sont deux systèmes différents. Améliorez vos compétences, bien sûr — mais rendez aussi les preuves visibles. Offre, exemples, contenus, réputation et résultats doivent pointer vers la même expertise. Ne simulez jamais l’autorité. Mais ne cachez pas une vraie autorité derrière un message incompréhensible.",
+      "pt": "Ficar melhor no que você faz não resolve automaticamente este problema: o mercado ainda pode não ter ideia do seu nível real. A competência vive no trabalho. O posicionamento vive na mente do cliente. São dois sistemas diferentes. Melhore suas habilidades, sim — mas torne as evidências visíveis. Oferta, exemplos, conteúdo, reputação e resultados devem apontar para a mesma competência. Nunca finja autoridade. Mas também não esconda autoridade real atrás de uma mensagem que ninguém entende."
+    }
+  },
+  {
+    "id": "L01-S03",
+    "parent": "L01",
+    "slug": "what-do-people-remember-you-for",
+    "titles": {
+      "en": "What Do People Remember You For?",
+      "de": "Wofür erinnern sich Menschen an dich?",
+      "it": "Per cosa ti ricordano le persone?",
+      "fr": "Pour quoi les gens se souviennent-ils de vous ?",
+      "pt": "Pelo que as pessoas lembram de você?"
+    },
+    "narrations": {
+      "en": "Try this positioning test. Ask yourself what you want to be known for. Then ask a client or colleague to describe what they think you are known for, without showing them your answer. If the two answers match, your positioning is communicating clearly. If they do not, that gap is valuable information. It tells you what the market currently sees. Positioning is not what you intended to communicate. It is what people actually remember. And when the right problem appears, memory matters because the person they remember is often the person they contact.",
+      "de": "Mach diesen Positionierungstest. Frage dich zuerst, wofür du bekannt sein willst. Dann bitte einen Kunden oder Kollegen, zu beschreiben, wofür du seiner Meinung nach bekannt bist, ohne deine Antwort zu zeigen. Stimmen beide Antworten überein, kommuniziert deine Positionierung klar. Tun sie es nicht, ist diese Lücke wertvolle Information. Sie zeigt dir, was der Markt aktuell wahrnimmt. Positionierung ist nicht das, was du kommunizieren wolltest. Sie ist das, woran sich Menschen tatsächlich erinnern. Und wenn das passende Problem auftaucht, zählt Erinnerung, denn oft wird genau die Person kontaktiert, an die man zuerst denkt.",
+      "it": "Prova questo test di posizionamento. Chiediti per cosa vuoi essere conosciuta. Poi chiedi a una cliente o a un collega di descrivere per cosa pensa che tu sia conosciuta, senza mostrargli la tua risposta. Se le due risposte coincidono, il posizionamento sta comunicando con chiarezza. Se non coincidono, quella distanza è un'informazione preziosa. Ti dice cosa vede oggi il mercato. Il posizionamento non è ciò che volevi comunicare. È ciò che le persone ricordano davvero. E quando nasce il problema giusto, la memoria conta, perché spesso viene contattata proprio la persona che viene in mente per prima.",
+      "fr": "Faites ce test de positionnement. Demandez-vous d’abord pour quoi vous voulez être connu. Puis demandez à un client ou à un collègue de dire pour quoi, selon lui, vous êtes connu, sans lui montrer votre réponse. Si les deux réponses correspondent, votre positionnement est clair. Si elles diffèrent, cet écart est une information précieuse. Il vous montre ce que le marché perçoit aujourd’hui. Le positionnement n’est pas ce que vous vouliez communiquer. C’est ce dont les gens se souviennent réellement. Et quand le bon problème apparaît, la mémoire compte, car la personne dont on se souvient est souvent celle que l’on contacte.",
+      "pt": "Faça este teste de posicionamento. Primeiro, pergunte a si mesmo pelo que você quer ser conhecido. Depois, peça a um cliente ou colega que diga pelo que acredita que você é conhecido, sem mostrar a sua resposta. Se as duas respostas coincidem, o seu posicionamento está claro. Se não coincidem, essa diferença é uma informação valiosa. Ela mostra o que o mercado enxerga hoje. Posicionamento não é aquilo que você pretendia comunicar. É aquilo de que as pessoas realmente se lembram. E, quando surge o problema certo, a memória importa, porque muitas vezes a pessoa lembrada é a pessoa procurada."
+    }
+  },
+  {
+    "id": "L02-S01",
+    "parent": "L02",
+    "slug": "selling-to-everyone-is-the-problem",
+    "titles": {
+      "en": "Trying to Sell to Everyone Is the Problem",
+      "de": "An alle verkaufen zu wollen ist das Problem",
+      "it": "Cercare di vendere a tutti è il problema",
+      "fr": "Vouloir vendre à tout le monde est le problème",
+      "pt": "Tentar vender para todo mundo é o problema"
+    },
+    "narrations": {
+      "en": "If your offer is for everyone, your message usually becomes relevant to no one. Different customers have different needs, fears, priorities, and reasons for buying. The more generic your message becomes, the more work the customer has to do to decide whether it applies to them. A niche solves that problem. It does not mean nobody outside the niche can buy from you. It means one group can immediately recognize, “This is for me.” Specificity is not a restriction. It is a communication advantage. Before making your offer broader, ask whether making it clearer would work better.",
+      "de": "Wenn dein Angebot für alle ist, wird deine Botschaft oft für niemanden wirklich relevant. Unterschiedliche Kunden haben unterschiedliche Bedürfnisse, Ängste, Prioritäten und Kaufgründe. Je allgemeiner deine Botschaft wird, desto mehr Arbeit muss der Kunde leisten, um herauszufinden, ob sie überhaupt zu ihm passt. Eine Nische löst dieses Problem. Sie bedeutet nicht, dass niemand außerhalb der Nische bei dir kaufen darf. Sie bedeutet, dass eine bestimmte Gruppe sofort erkennt: Das ist für mich. Spezifität ist keine Einschränkung, sondern ein Kommunikationsvorteil. Bevor du dein Angebot breiter machst, frage dich, ob mehr Klarheit nicht besser funktionieren würde.",
+      "it": "Se la tua offerta è per tutti, il tuo messaggio finisce spesso per non essere davvero rilevante per nessuno. Clienti diversi hanno bisogni, paure, priorità e motivazioni d'acquisto diverse. Più il messaggio diventa generico, più lavoro deve fare il cliente per capire se riguarda anche lui. Una nicchia risolve questo problema. Non significa che chi è fuori dalla nicchia non possa comprare da te. Significa che un gruppo preciso può riconoscere subito: questo è per me. La specificità non è una limitazione. È un vantaggio di comunicazione. Prima di allargare l'offerta, chiediti se renderla più chiara non funzionerebbe meglio.",
+      "fr": "Si votre offre s’adresse à tout le monde, votre message finit souvent par ne vraiment concerner personne. Des clients différents ont des besoins, des peurs, des priorités et des raisons d’acheter différentes. Plus votre message devient générique, plus le client doit faire d’efforts pour savoir s’il le concerne. Une niche résout ce problème. Cela ne veut pas dire que les autres ne peuvent pas acheter chez vous. Cela veut dire qu’un groupe précis peut immédiatement se dire : c’est pour moi. La précision n’est pas une limitation. C’est un avantage de communication. Avant d’élargir votre offre, demandez-vous si la rendre plus claire ne serait pas plus efficace.",
+      "pt": "Se a sua oferta é para todo mundo, a sua mensagem normalmente acaba sendo realmente relevante para ninguém. Clientes diferentes têm necessidades, medos, prioridades e motivos de compra diferentes. Quanto mais genérica fica a mensagem, mais trabalho o cliente precisa fazer para descobrir se aquilo serve para ele. Um nicho resolve esse problema. Isso não significa que pessoas fora do nicho não possam comprar de você. Significa que um grupo específico consegue reconhecer imediatamente: isso é para mim. Especificidade não é uma limitação. É uma vantagem de comunicação. Antes de ampliar a oferta, pergunte se torná-la mais clara não funcionaria melhor."
+    }
+  },
+  {
+    "id": "L02-S02",
+    "parent": "L02",
+    "slug": "why-smaller-niches-can-make-you-bigger",
+    "titles": {
+      "en": "Why a Smaller Niche Can Make You Bigger",
+      "de": "Warum eine kleinere Nische dich größer machen kann",
+      "it": "Perché una nicchia più piccola può farti crescere",
+      "fr": "Pourquoi une niche plus petite peut vous faire grandir",
+      "pt": "Por que um nicho menor pode fazer você crescer"
+    },
+    "narrations": {
+      "en": "Choosing a smaller niche can feel like throwing customers away. But early positioning often needs the opposite of breadth. A specific niche gives people a simple reason to remember you. It makes your examples sharper, your content easier to plan, and your offer easier to understand. Once the market knows what you are the person for, you can expand from a position of strength. Starting broad is harder because nobody knows which part of your expertise to remember first. A niche gives you a foothold. It does not have to define your entire future.",
+      "de": "Eine kleinere Nische zu wählen kann sich anfühlen, als würdest du Kunden wegschicken. Doch gerade am Anfang braucht Positionierung oft das Gegenteil von Breite. Eine konkrete Nische gibt Menschen einen einfachen Grund, sich an dich zu erinnern. Deine Beispiele werden präziser, Inhalte leichter planbar und dein Angebot verständlicher. Wenn der Markt erst einmal weiß, wofür du die richtige Person bist, kannst du aus einer starken Position heraus erweitern. Sehr breit zu starten ist schwieriger, weil niemand weiß, welchen Teil deiner Kompetenz er zuerst behalten soll. Eine Nische gibt dir einen Einstiegspunkt. Sie muss nicht deine gesamte Zukunft definieren.",
+      "it": "Scegliere una nicchia più piccola può sembrare come rinunciare a dei clienti. Ma all'inizio il posizionamento ha spesso bisogno del contrario della genericità. Una nicchia specifica dà alle persone un motivo semplice per ricordarsi di te. Rende gli esempi più precisi, i contenuti più facili da pianificare e l'offerta più facile da capire. Quando il mercato sa già per cosa sei la persona giusta, puoi allargarti da una posizione di forza. Partire troppo larghi è più difficile, perché nessuno sa quale parte della tua competenza ricordare per prima. La nicchia ti dà un punto d'appoggio. Non deve definire tutto il tuo futuro.",
+      "fr": "Choisir une niche plus petite peut donner l’impression de renoncer à des clients. Pourtant, au début, le positionnement a souvent besoin du contraire de la largeur. Une niche précise donne aux gens une raison simple de se souvenir de vous. Vos exemples deviennent plus pertinents, vos contenus plus faciles à planifier et votre offre plus facile à comprendre. Une fois que le marché sait pour quoi vous êtes la bonne personne, vous pouvez élargir à partir d’une position solide. Commencer trop large est plus difficile, car personne ne sait quelle partie de votre expertise retenir en premier. Une niche vous donne un point d’appui. Elle n’a pas à définir tout votre avenir.",
+      "pt": "Escolher um nicho menor pode parecer que você está abrindo mão de clientes. Mas, no início, o posicionamento muitas vezes precisa do oposto da amplitude. Um nicho específico dá às pessoas uma razão simples para se lembrar de você. Torna os exemplos mais precisos, o conteúdo mais fácil de planejar e a oferta mais fácil de entender. Quando o mercado já sabe para que você é a pessoa certa, fica mais fácil expandir a partir de uma posição forte. Começar amplo demais é mais difícil, porque ninguém sabe qual parte da sua competência deve lembrar primeiro. Um nicho dá um ponto de apoio. Ele não precisa definir todo o seu futuro."
+    }
+  },
+  {
+    "id": "L02-S03",
+    "parent": "L02",
+    "slug": "market-problem-solution-test",
+    "titles": {
+      "en": "The 3-Question Positioning Test",
+      "de": "Der Positionierungs-Test mit 3 Fragen",
+      "it": "Il test di posizionamento in 3 domande",
+      "fr": "Le test de positionnement en 3 questions",
+      "pt": "O teste de posicionamento em 3 perguntas"
+    },
+    "narrations": {
+      "en": "If your positioning feels vague, answer three questions. One: which market do you understand well enough to describe specifically? Two: what problem does that group already recognize in its own words? Three: how does your solution connect directly to that problem? If one answer is fuzzy, the whole position gets fuzzy. Most businesses start with the thing they want to sell. Customers start with what they are experiencing. Strong positioning connects the two through a precise understanding of the market.",
+      "de": "Wenn deine Positionierung schwammig wirkt, beantworte drei Fragen. Erstens: Welchen Markt verstehst du so gut, dass du ihn konkret beschreiben kannst? Zweitens: Welches Problem erkennt diese Gruppe bereits in ihren eigenen Worten? Drittens: Wie verbindet sich deine Lösung direkt mit diesem Problem? Ist eine Antwort unklar, wird die ganze Positionierung unklar. Unternehmen starten oft mit dem, was sie verkaufen wollen. Kunden starten mit dem, was sie gerade erleben. Gute Positionierung verbindet beides.",
+      "it": "Se il tuo posizionamento sembra vago, rispondi a tre domande. Uno: quale mercato conosci abbastanza bene da descriverlo in modo specifico? Due: quale problema riconosce già quel gruppo, con le sue parole? Tre: come si collega direttamente la tua soluzione a quel problema? Se una risposta è sfocata, lo diventa tutto il posizionamento. Le aziende partono spesso da ciò che vogliono vendere. I clienti partono da ciò che stanno vivendo. Un buon posizionamento collega le due cose.",
+      "fr": "Si votre positionnement semble vague, répondez à trois questions. Un : quel marché comprenez-vous assez bien pour le décrire précisément ? Deux : quel problème ce groupe reconnaît-il déjà avec ses propres mots ? Trois : comment votre solution se relie-t-elle directement à ce problème ? Si une réponse est floue, tout le positionnement devient flou. Les entreprises commencent souvent par ce qu’elles veulent vendre. Les clients commencent par ce qu’ils vivent. Un bon positionnement relie les deux.",
+      "pt": "Se o seu posicionamento parece vago, responda a três perguntas. Um: qual mercado você entende bem o suficiente para descrever com precisão? Dois: qual problema esse grupo já reconhece nas próprias palavras? Três: como a sua solução se conecta diretamente a esse problema? Se uma resposta estiver nebulosa, todo o posicionamento fica nebuloso. Empresas costumam começar pelo que querem vender. Clientes começam pelo que estão vivendo. Um bom posicionamento conecta as duas coisas."
+    }
+  },
+  {
+    "id": "L03-S01",
+    "parent": "L03",
+    "slug": "you-cant-just-call-yourself-an-expert",
+    "titles": {
+      "en": "You Can’t Just Call Yourself an Expert",
+      "de": "Du kannst dich nicht einfach Expertin nennen",
+      "it": "Non basta definirti esperta",
+      "fr": "Il ne suffit pas de vous déclarer experte",
+      "pt": "Não basta se chamar de especialista"
+    },
+    "narrations": {
+      "en": "Changing your bio to “expert” does not make the market see you as one. Recognition comes from evidence. Does your offer match the expertise you claim? Does your content show that you understand the problem? Does your website make your role clear? Are you present in conversations where that expertise matters? Positioning is the accumulation of these signals. You do not need to look huge or famous. You need enough coherent evidence for people to reach the conclusion themselves. The strongest form of expert positioning is when other people start using the label before you do.",
+      "de": "Wenn du in deiner Bio einfach „Experte“ ergänzt, sieht der Markt dich noch lange nicht so. Anerkennung entsteht durch Belege. Passt dein Angebot zu der Kompetenz, die du beanspruchst? Zeigen deine Inhalte, dass du das Problem verstehst? Macht deine Website deine Rolle klar? Bist du in Gesprächen präsent, in denen diese Expertise relevant ist? Positionierung entsteht aus der Summe dieser Signale. Du musst weder riesig noch berühmt wirken. Du brauchst genügend stimmige Belege, damit Menschen selbst zu diesem Schluss kommen. Die stärkste Expertenpositionierung entsteht dann, wenn andere das Etikett benutzen, bevor du es selbst tun musst.",
+      "it": "Aggiungere “esperta” alla bio non fa sì che il mercato ti veda automaticamente così. Il riconoscimento nasce dalle prove. La tua offerta è coerente con la competenza che dichiari? I tuoi contenuti mostrano che capisci il problema? Il sito rende chiaro il tuo ruolo? Sei presente nelle conversazioni in cui quella competenza conta? Il posizionamento è l'accumulo di questi segnali. Non devi sembrare enorme o famosa. Servono abbastanza prove coerenti perché siano gli altri ad arrivare da soli alla conclusione. La forma più forte di posizionamento da esperta è quando sono gli altri a usare quella definizione prima ancora che tu debba farlo.",
+      "fr": "Ajouter « expert » à votre bio ne suffit pas pour que le marché vous voie ainsi. La reconnaissance vient des preuves. Votre offre correspond-elle à l’expertise que vous revendiquez ? Vos contenus montrent-ils que vous comprenez le problème ? Votre site rend-il votre rôle clair ? Êtes-vous présent dans les conversations où cette expertise compte ? Le positionnement est l’accumulation de ces signaux. Vous n’avez pas besoin de paraître énorme ou célèbre. Vous avez besoin de suffisamment de preuves cohérentes pour que les gens arrivent eux-mêmes à la conclusion. Le positionnement d’expert le plus fort apparaît lorsque les autres commencent à utiliser ce mot avant vous.",
+      "pt": "Mudar a bio para “especialista” não faz o mercado enxergar você dessa forma. Reconhecimento vem de evidências. A sua oferta combina com a competência que você afirma ter? O seu conteúdo mostra que você entende o problema? O seu site deixa claro qual é o seu papel? Você participa das conversas em que essa competência importa? Posicionamento é o acúmulo desses sinais. Você não precisa parecer enorme ou famoso. Precisa de evidências coerentes suficientes para que as pessoas cheguem à conclusão sozinhas. A forma mais forte de posicionamento como especialista acontece quando outras pessoas começam a usar esse rótulo antes de você."
+    }
+  },
+  {
+    "id": "L03-S02",
+    "parent": "L03",
+    "slug": "three-signals-to-build-from-zero",
+    "titles": {
+      "en": "Starting From Zero? Build These 3 Signals",
+      "de": "Start bei null? Baue zuerst diese 3 Signale",
+      "it": "Parti da zero? Costruisci prima questi 3 segnali",
+      "fr": "Vous partez de zéro ? Construisez ces 3 signaux",
+      "pt": "Começando do zero? Construa estes 3 sinais"
+    },
+    "narrations": {
+      "en": "Starting from zero? Build these three signals before you chase followers. First: a clear offer. People should understand the problem you solve. Second: useful content. Let them see how you think before you ask them to buy. Third: relevant context. Show up where the people and conversations in your field already exist. You do not need a huge audience or a complex website. At the beginning, alignment beats volume. Ten coherent signals around one expertise can build more recognition than fifty unrelated posts.",
+      "de": "Du startest bei null? Baue diese drei Signale auf, bevor du Follower jagst. Erstens: ein klares Angebot. Menschen müssen verstehen, welches Problem du löst. Zweitens: hilfreicher Content. Zeige, wie du denkst, bevor du etwas verkaufen willst. Drittens: relevanter Kontext. Sei dort sichtbar, wo die Menschen und Gespräche deines Fachgebiets bereits stattfinden. Du brauchst weder ein riesiges Publikum noch eine komplexe Website. Am Anfang schlägt Ausrichtung reine Menge. Zehn konsistente Signale können mehr Anerkennung aufbauen als fünfzig unverbundene Posts.",
+      "it": "Parti da zero? Costruisci questi tre segnali prima di inseguire follower. Primo: un’offerta chiara. Le persone devono capire quale problema risolvi. Secondo: contenuti utili. Fai vedere come ragioni prima di chiedere di comprare. Terzo: contesto rilevante. Fatti vedere dove esistono già le persone e le conversazioni del tuo settore. Non ti servono un pubblico enorme o un sito complesso. All’inizio, l’allineamento vale più del volume. Dieci segnali coerenti possono costruire più riconoscimento di cinquanta post scollegati.",
+      "fr": "Vous partez de zéro ? Construisez ces trois signaux avant de courir après les abonnés. D’abord : une offre claire. Les gens doivent comprendre le problème que vous résolvez. Ensuite : du contenu utile. Montrez comment vous réfléchissez avant de demander d’acheter. Enfin : un contexte pertinent. Soyez présente là où les personnes et les conversations de votre domaine existent déjà. Vous n’avez pas besoin d’une énorme audience ni d’un site complexe. Au début, l’alignement vaut plus que le volume. Dix signaux cohérents peuvent construire plus de reconnaissance que cinquante publications dispersées.",
+      "pt": "Começando do zero? Construa estes três sinais antes de correr atrás de seguidores. Primeiro: uma oferta clara. As pessoas precisam entender qual problema você resolve. Segundo: conteúdo útil. Mostre como você pensa antes de pedir que comprem. Terceiro: contexto relevante. Apareça onde as pessoas e conversas do seu setor já existem. Você não precisa de uma audiência enorme nem de um site complexo. No começo, alinhamento vale mais do que volume. Dez sinais coerentes podem construir mais reconhecimento do que cinquenta posts desconectados."
+    }
+  },
+  {
+    "id": "L03-S03",
+    "parent": "L03",
+    "slug": "your-website-has-five-seconds",
+    "titles": {
+      "en": "Your Website Has Five Seconds",
+      "de": "Deine Website hat fünf Sekunden",
+      "it": "Il tuo sito ha cinque secondi",
+      "fr": "Votre site a cinq secondes",
+      "pt": "Seu site tem cinco segundos"
+    },
+    "narrations": {
+      "en": "Open your website and pretend you have never seen your business before. Can you understand, within five seconds, who it is for and what problem it solves? If not, adding more sections may not help. Positioning needs a clear first impression. Your website does not have to explain your entire career on the first screen. It needs to give the visitor the right category. Who do you help? With what? Why should they keep reading? A simple one-page site with a coherent message can position you better than a beautiful site that leaves people guessing.",
+      "de": "Öffne deine Website und tu so, als würdest du dein Unternehmen zum ersten Mal sehen. Verstehst du innerhalb von fünf Sekunden, für wen das Angebot gedacht ist und welches Problem es löst? Wenn nicht, helfen mehr Abschnitte wahrscheinlich nicht. Positionierung braucht einen klaren ersten Eindruck. Deine Website muss auf dem ersten Bildschirm nicht deine gesamte Karriere erklären. Sie muss den Besucher in die richtige Kategorie führen. Wem hilfst du? Wobei? Warum sollte man weiterlesen? Eine einfache Ein-Seiten-Website mit einer stimmigen Botschaft kann dich besser positionieren als eine wunderschöne Website, bei der niemand versteht, was du eigentlich machst.",
+      "it": "Apri il tuo sito e fai finta di non aver mai visto prima la tua attività. In cinque secondi riesci a capire per chi è e quale problema risolve? Se la risposta è no, aggiungere altre sezioni probabilmente non aiuterà. Il posizionamento ha bisogno di una prima impressione chiara. La home non deve raccontare tutta la tua carriera nel primo schermo. Deve dare al visitatore la categoria giusta. Chi aiuti? In cosa? Perché dovrebbe continuare a leggere? Un semplice sito monopagina con un messaggio coerente può posizionarti meglio di un sito bellissimo che lascia tutti a chiedersi cosa fai davvero.",
+      "fr": "Ouvrez votre site et faites comme si vous découvriez votre entreprise pour la première fois. En cinq secondes, comprenez-vous à qui l’offre s’adresse et quel problème elle résout ? Si ce n’est pas le cas, ajouter encore des sections ne changera probablement rien. Le positionnement a besoin d’une première impression claire. Votre page d’accueil n’a pas à raconter toute votre carrière dès le premier écran. Elle doit donner la bonne catégorie au visiteur. Qui aidez-vous ? Sur quoi ? Pourquoi devrait-il continuer ? Un site simple et cohérent peut mieux vous positionner qu’un site magnifique qui laisse les gens deviner ce que vous faites.",
+      "pt": "Abra o seu site e finja que nunca viu o seu negócio antes. Em cinco segundos, você consegue entender para quem ele é e qual problema resolve? Se não consegue, adicionar mais seções provavelmente não vai ajudar. Posicionamento precisa de uma primeira impressão clara. O site não precisa explicar toda a sua carreira logo na primeira tela. Precisa colocar você na categoria certa. Quem você ajuda? Em quê? Por que a pessoa deveria continuar lendo? Um site simples, de uma página, com uma mensagem coerente pode posicionar você melhor do que um site lindo que deixa todo mundo tentando adivinhar o que você faz."
+    }
+  },
+  {
+    "id": "L04-S01",
+    "parent": "L04",
+    "slug": "stop-posting-random-content",
+    "titles": {
+      "en": "Stop Posting Random Content",
+      "de": "Hör auf, wahllos Content zu posten",
+      "it": "Smetti di pubblicare contenuti a caso",
+      "fr": "Arrêtez de publier du contenu au hasard",
+      "pt": "Pare de postar conteúdo sem direção"
+    },
+    "narrations": {
+      "en": "If you constantly ask, “What should I post today?”, you probably have a content problem caused by a positioning problem. Start somewhere else: what do you want people to remember you for? Choose one core expertise. List the recurring problems inside it. Then turn each problem into explanations, mistakes, examples, questions, stories, and conversations. Now your content can vary without your professional identity changing every day. Good positioning gives content boundaries. Those boundaries are useful because every new post can strengthen an association that already exists instead of starting from zero.",
+      "de": "Wenn du dich ständig fragst: „Was soll ich heute posten?“, hast du vielleicht ein Content-Problem, das eigentlich ein Positionierungsproblem ist. Beginne an einer anderen Stelle: Wofür sollen sich Menschen an dich erinnern? Wähle eine Kernkompetenz. Liste die wiederkehrenden Probleme darin auf. Verwandle jedes Problem in Erklärungen, Fehler, Beispiele, Fragen, Geschichten und Gespräche. So kann dein Content abwechslungsreich sein, ohne dass deine berufliche Identität jeden Tag wechselt. Gute Positionierung setzt sinnvolle Grenzen. Dadurch stärkt jeder neue Beitrag eine bestehende Verbindung, statt immer wieder bei null anzufangen.",
+      "it": "Se ti chiedi continuamente “Cosa pubblico oggi?”, forse hai un problema di contenuti che in realtà nasce dal posizionamento. Parti da un'altra domanda: per cosa vuoi che le persone si ricordino di te? Scegli una competenza centrale. Elenca i problemi ricorrenti al suo interno. Poi trasforma ogni problema in spiegazioni, errori, esempi, domande, storie e conversazioni. Così i contenuti possono cambiare senza cambiare ogni giorno la tua identità professionale. Un buon posizionamento crea dei confini utili. Ogni nuovo contenuto rafforza un'associazione che esiste già, invece di ripartire sempre da zero.",
+      "fr": "Si vous vous demandez sans cesse « Qu’est-ce que je publie aujourd’hui ? », votre problème de contenu vient peut-être d’un problème de positionnement. Commencez ailleurs : pour quoi voulez-vous que les gens se souviennent de vous ? Choisissez une expertise centrale. Listez les problèmes récurrents autour de cette expertise. Transformez chacun en explications, erreurs, exemples, questions, histoires et conversations. Votre contenu peut alors varier sans que votre identité professionnelle change chaque jour. Un bon positionnement crée des limites utiles. Chaque nouveau contenu renforce une association existante au lieu de repartir de zéro.",
+      "pt": "Se você vive perguntando “O que eu posto hoje?”, talvez tenha um problema de conteúdo causado por um problema de posicionamento. Comece em outro lugar: pelo que você quer que as pessoas se lembrem de você? Escolha uma competência central. Liste os problemas recorrentes dentro dela. Depois transforme cada problema em explicações, erros, exemplos, perguntas, histórias e conversas. Assim o conteúdo pode variar sem que a sua identidade profissional mude todos os dias. Um bom posicionamento cria limites úteis. Cada novo conteúdo fortalece uma associação que já existe, em vez de começar do zero outra vez."
+    }
+  },
+  {
+    "id": "L04-S02",
+    "parent": "L04",
+    "slug": "the-goal-is-recognition-not-views",
+    "titles": {
+      "en": "The Goal Is Recognition, Not Views",
+      "de": "Das Ziel ist Wiedererkennung, nicht Views",
+      "it": "L’obiettivo è il riconoscimento, non le visualizzazioni",
+      "fr": "Le but, c’est la reconnaissance, pas les vues",
+      "pt": "O objetivo é reconhecimento, não visualizações"
+    },
+    "narrations": {
+      "en": "A viral post can give you attention without giving you positioning. The better question is not only, “How many people saw this?” Ask, “What did they learn to associate with my name?” Positioning content repeatedly connects three things: a topic, your name, and useful knowledge. When that happens often enough, people can retrieve you from memory when the relevant problem appears. Views measure exposure. Recognition measures whether that exposure built something useful. You do not need every post to go viral. You need enough people to remember the right thing about you.",
+      "de": "Ein viraler Beitrag kann dir Aufmerksamkeit bringen, ohne deine Positionierung zu stärken. Die bessere Frage lautet nicht nur: „Wie viele Menschen haben das gesehen?“ Frage: „Was haben sie gelernt, mit meinem Namen zu verbinden?“ Positionierungs-Content verbindet immer wieder drei Dinge: ein Thema, deinen Namen und nützliches Wissen. Passiert das oft genug, erinnern sich Menschen an dich, wenn das passende Problem auftaucht. Views messen Reichweite. Wiedererkennung misst, ob aus dieser Reichweite etwas Wertvolles entstanden ist. Nicht jeder Beitrag muss viral gehen. Die richtigen Menschen müssen sich nur an das Richtige über dich erinnern.",
+      "it": "Un contenuto virale può darti attenzione senza darti posizionamento. La domanda migliore non è solo “Quante persone lo hanno visto?”. Chiediti: “Che cosa hanno imparato ad associare al mio nome?”. I contenuti di posizionamento collegano ripetutamente tre cose: un tema, il tuo nome e conoscenza utile. Quando succede abbastanza volte, le persone riescono a ricordarsi di te nel momento in cui emerge il problema giusto. Le visualizzazioni misurano l'esposizione. Il riconoscimento misura se quell'esposizione ha costruito qualcosa di utile. Non serve che ogni contenuto diventi virale. Serve che le persone giuste ricordino la cosa giusta di te.",
+      "fr": "Un contenu viral peut vous donner de l’attention sans vous donner de positionnement. La meilleure question n’est pas seulement : « Combien de personnes l’ont vu ? » Demandez plutôt : « Qu’ont-elles appris à associer à mon nom ? » Le contenu de positionnement relie régulièrement trois choses : un sujet, votre nom et une connaissance utile. À force, les gens peuvent vous retrouver dans leur mémoire lorsque le bon problème apparaît. Les vues mesurent l’exposition. La reconnaissance mesure si cette exposition a construit quelque chose d’utile. Chaque contenu n’a pas besoin de devenir viral. Il faut surtout que les bonnes personnes retiennent la bonne chose à votre sujet.",
+      "pt": "Um conteúdo viral pode trazer atenção sem trazer posicionamento. A melhor pergunta não é apenas “Quantas pessoas viram isso?”. Pergunte: “O que elas aprenderam a associar ao meu nome?”. Conteúdo de posicionamento conecta repetidamente três coisas: um tema, o seu nome e conhecimento útil. Quando isso acontece vezes suficientes, as pessoas conseguem lembrar de você quando surge o problema certo. Visualizações medem exposição. Reconhecimento mede se essa exposição construiu algo útil. Você não precisa que todo conteúdo viralize. Precisa que as pessoas certas se lembrem da coisa certa sobre você."
+    }
+  },
+  {
+    "id": "L04-S03",
+    "parent": "L04",
+    "slug": "make-other-people-talk-about-your-expertise",
+    "titles": {
+      "en": "Make Other People Talk About Your Expertise",
+      "de": "Sorge dafür, dass andere über deine Expertise sprechen",
+      "it": "Fai parlare gli altri della tua competenza",
+      "fr": "Faites parler les autres de votre expertise",
+      "pt": "Faça outras pessoas falarem da sua competência"
+    },
+    "narrations": {
+      "en": "One of the strongest positioning signals happens when you are not in the room. Someone asks, “Do you know anybody who can help with this?” and another person says your name. Content can help create that moment. Explain your field clearly, interview people from adjacent areas, participate in relevant conversations, and make your knowledge easy to share. The goal is not only to tell people what you do. It is to build such a clear association between you and a problem that other people can repeat the association for you. That is when positioning starts becoming reputation.",
+      "de": "Eines der stärksten Positionierungssignale entsteht, wenn du gar nicht im Raum bist. Jemand fragt: „Kennst du jemanden, der dabei helfen kann?“ und eine andere Person nennt deinen Namen. Content kann genau diesen Moment vorbereiten. Erkläre dein Fachgebiet klar, interviewe Menschen aus angrenzenden Bereichen, beteilige dich an relevanten Gesprächen und mache dein Wissen leicht teilbar. Das Ziel ist nicht nur, selbst zu erzählen, was du machst. Es geht darum, die Verbindung zwischen dir und einem Problem so klar zu machen, dass andere sie für dich wiederholen können. Genau dann wird Positionierung langsam zu Reputation.",
+      "it": "Uno dei segnali più forti di posizionamento si verifica quando tu non sei nemmeno presente. Qualcuno chiede: “Conosci una persona che può aiutarmi con questo?” e un'altra persona fa il tuo nome. I contenuti possono preparare proprio quel momento. Spiega bene il tuo settore, intervista persone di ambiti vicini, partecipa a conversazioni rilevanti e rendi la tua conoscenza facile da condividere. L'obiettivo non è solo raccontare agli altri quello che fai. È creare un'associazione così chiara tra te e un problema che siano gli altri a ripeterla per te. È lì che il posizionamento comincia a diventare reputazione.",
+      "fr": "L’un des signaux de positionnement les plus puissants apparaît lorsque vous n’êtes même pas dans la pièce. Quelqu’un demande : « Tu connais quelqu’un qui peut m’aider avec ça ? » et une autre personne cite votre nom. Le contenu peut préparer ce moment. Expliquez clairement votre domaine, interviewez des personnes de secteurs voisins, participez aux bonnes conversations et rendez votre savoir facile à partager. Le but n’est pas seulement de dire ce que vous faites. Il est de créer une association si claire entre vous et un problème que les autres puissent la répéter à votre place. C’est là que le positionnement commence à devenir une réputation.",
+      "pt": "Um dos sinais mais fortes de posicionamento acontece quando você nem está presente. Alguém pergunta: “Você conhece alguém que possa ajudar com isso?” e outra pessoa diz o seu nome. O conteúdo pode preparar exatamente esse momento. Explique a sua área com clareza, entreviste pessoas de áreas próximas, participe das conversas relevantes e torne o seu conhecimento fácil de compartilhar. O objetivo não é apenas dizer o que você faz. É criar uma associação tão clara entre você e um problema que outras pessoas consigam repeti-la por você. É aí que posicionamento começa a virar reputação."
+    }
+  },
+  {
+    "id": "L05-S01",
+    "parent": "L05",
+    "slug": "you-dont-need-a-publisher",
+    "titles": {
+      "en": "You Don’t Need a Publisher to Build Authority",
+      "de": "Du brauchst keinen Verlag, um Autorität aufzubauen",
+      "it": "Non ti serve un editore per costruire autorevolezza",
+      "fr": "Vous n’avez pas besoin d’un éditeur pour construire votre autorité",
+      "pt": "Você não precisa de editora para construir autoridade"
+    },
+    "narrations": {
+      "en": "You do not need a major publisher to use a book as an authority asset. A focused book can be self-published, released as an ebook, or even given away. The value is not the logo on the cover. The value is that you have organized useful knowledge around the expertise you want people to associate with your name. Publishing does not create expertise. But a strong book gives existing expertise a durable object people can read, recommend, reference, and remember.",
+      "de": "Du brauchst keinen großen Verlag, um ein Buch als Autoritäts-Asset zu nutzen. Ein fokussiertes Buch kann selbst veröffentlicht, als E-Book herausgebracht oder sogar verschenkt werden. Der Wert liegt nicht im Logo auf dem Cover. Der Wert liegt darin, dass du nützliches Wissen rund um die Expertise organisiert hast, die Menschen mit deinem Namen verbinden sollen. Veröffentlichen erzeugt keine Expertise. Ein starkes Buch gibt vorhandener Expertise aber ein dauerhaftes Objekt, das Menschen lesen, empfehlen, zitieren und erinnern können.",
+      "it": "Non ti serve un grande editore per usare un libro come asset di autorevolezza. Un libro focalizzato può essere autopubblicato, distribuito come ebook o persino regalato. Il valore non è il logo in copertina. Il valore è aver organizzato conoscenza utile attorno alla competenza che vuoi associare al tuo nome. Pubblicare non crea competenza. Ma un buon libro dà alla competenza reale un oggetto duraturo che le persone possono leggere, consigliare, citare e ricordare.",
+      "fr": "Vous n’avez pas besoin d’un grand éditeur pour utiliser un livre comme actif d’autorité. Un livre ciblé peut être autoédité, publié en ebook ou même offert. La valeur n’est pas le logo sur la couverture. La valeur vient du fait que vous avez organisé des connaissances utiles autour de l’expertise que vous voulez associer à votre nom. Publier ne crée pas l’expertise. Mais un bon livre donne à une expertise réelle un objet durable que l’on peut lire, recommander, citer et retenir.",
+      "pt": "Você não precisa de uma grande editora para usar um livro como ativo de autoridade. Um livro focado pode ser autopublicado, lançado como ebook ou até oferecido gratuitamente. O valor não está no logotipo da capa. Está em organizar conhecimento útil em torno da competência que você quer associar ao seu nome. Publicar não cria competência. Mas um bom livro dá à competência real um objeto duradouro que as pessoas podem ler, recomendar, citar e lembrar."
+    }
+  },
+  {
+    "id": "L05-S02",
+    "parent": "L05",
+    "slug": "dont-write-a-book-about-everything-you-know",
+    "titles": {
+      "en": "Don’t Write a Book About Everything You Know",
+      "de": "Schreib kein Buch über alles, was du weißt",
+      "it": "Non scrivere un libro su tutto ciò che sai",
+      "fr": "N’écrivez pas un livre sur tout ce que vous savez",
+      "pt": "Não escreva um livro sobre tudo o que você sabe"
+    },
+    "narrations": {
+      "en": "The fastest way to weaken a positioning book is to put everything you know into it. Marketing, productivity, motivation, branding, mindset, sales, communication — suddenly the reader has no idea what expertise the book is supposed to represent. A stronger book usually does the opposite. Choose one problem, one reader, and one professional territory you want to become associated with. You can explore that subject deeply through stories, examples, mistakes, and methods without losing the position. A book becomes useful for positioning when somebody can easily explain why they should recommend it — and why your name belongs with that topic.",
+      "de": "Der schnellste Weg, ein Positionierungsbuch zu schwächen, ist alles hineinzupacken, was du weißt. Marketing, Produktivität, Motivation, Branding, Mindset, Verkauf, Kommunikation – plötzlich weiß der Leser nicht mehr, für welche Expertise das Buch eigentlich stehen soll. Ein stärkeres Buch macht meistens das Gegenteil. Wähle ein Problem, einen Leser und ein berufliches Themenfeld, mit dem du verbunden werden willst. Dieses Thema kannst du mit Geschichten, Beispielen, Fehlern und Methoden tief behandeln, ohne die Position zu verlieren. Ein Buch wird für die Positionierung dann wertvoll, wenn andere leicht erklären können, warum sie es empfehlen – und warum dein Name zu diesem Thema gehört.",
+      "it": "Il modo più veloce per indebolire un libro di posizionamento è metterci dentro tutto quello che sai. Marketing, produttività, motivazione, branding, mindset, vendita, comunicazione: a un certo punto il lettore non capisce più quale competenza dovrebbe rappresentare quel libro. Un libro più forte fa di solito il contrario. Scegli un problema, un lettore e un territorio professionale a cui vuoi essere associata. Puoi approfondirlo con storie, esempi, errori e metodi senza perdere il posizionamento. Il libro diventa utile quando qualcuno riesce a spiegare facilmente perché consigliarlo e perché il tuo nome appartiene a quel tema.",
+      "fr": "Le moyen le plus rapide d’affaiblir un livre de positionnement est d’y mettre tout ce que vous savez. Marketing, productivité, motivation, branding, état d’esprit, vente, communication : soudain, le lecteur ne sait plus quelle expertise le livre est censé représenter. Un livre plus fort fait généralement l’inverse. Choisissez un problème, un lecteur et un territoire professionnel auquel vous voulez être associé. Vous pouvez l’explorer en profondeur avec des histoires, des exemples, des erreurs et des méthodes sans perdre votre position. Un livre devient utile pour le positionnement lorsque quelqu’un peut facilement expliquer pourquoi il le recommande et pourquoi votre nom appartient à ce sujet.",
+      "pt": "A forma mais rápida de enfraquecer um livro de posicionamento é colocar nele tudo o que você sabe. Marketing, produtividade, motivação, branding, mentalidade, vendas, comunicação — de repente o leitor já não entende qual competência o livro deveria representar. Um livro mais forte normalmente faz o contrário. Escolha um problema, um leitor e um território profissional ao qual você quer ser associado. Você pode aprofundar esse tema com histórias, exemplos, erros e métodos sem perder a posição. O livro se torna útil quando alguém consegue explicar facilmente por que recomenda a leitura e por que o seu nome pertence àquele assunto."
+    }
+  },
+  {
+    "id": "L05-S03",
+    "parent": "L05",
+    "slug": "one-book-can-become-fifty-pieces-of-content",
+    "titles": {
+      "en": "One Book Can Become Months of Content",
+      "de": "Ein Buch kann zu Monaten voller Content werden",
+      "it": "Un libro può diventare mesi di contenuti",
+      "fr": "Un livre peut devenir des mois de contenu",
+      "pt": "Um livro pode virar meses de conteúdo"
+    },
+    "narrations": {
+      "en": "A positioning book is not only a finished product. It can become months of coherent content. A chapter can become several Shorts. A framework can become a diagram. A client question can become an article. An example can become an interview topic. The important part is not the number of pieces. It is that every piece reinforces the same expertise. Instead of inventing random content every week, you distribute one coherent body of knowledge across different formats.",
+      "de": "Ein Positionierungsbuch ist nicht nur ein fertiges Produkt. Es kann zu Monaten voller konsistentem Content werden. Ein Kapitel kann mehrere Shorts ergeben. Ein Framework kann zum Diagramm werden. Eine Kundenfrage kann zum Artikel werden. Ein Beispiel kann zum Interviewthema werden. Entscheidend ist nicht die Anzahl der Inhalte. Entscheidend ist, dass jeder Inhalt dieselbe Expertise verstärkt. Statt jede Woche zufälligen Content zu erfinden, verteilst du einen zusammenhängenden Wissenskern auf verschiedene Formate.",
+      "it": "Un libro di posizionamento non è solo un prodotto finito. Può diventare mesi di contenuti coerenti. Un capitolo può generare diversi Short. Un framework può diventare un diagramma. Una domanda di una cliente può diventare un articolo. Un esempio può diventare il tema di un’intervista. Il punto non è il numero dei contenuti. È che ogni contenuto rafforzi la stessa competenza. Invece di inventare contenuti casuali ogni settimana, distribuisci un unico corpo di conoscenze in formati diversi.",
+      "fr": "Un livre de positionnement n’est pas seulement un produit fini. Il peut devenir des mois de contenu cohérent. Un chapitre peut donner plusieurs Shorts. Un framework peut devenir un schéma. Une question de cliente peut devenir un article. Un exemple peut devenir un sujet d’interview. Le point important n’est pas le nombre de contenus. C’est que chaque contenu renforce la même expertise. Au lieu d’inventer du contenu au hasard chaque semaine, vous distribuez un même corpus de connaissances dans plusieurs formats.",
+      "pt": "Um livro de posicionamento não é apenas um produto final. Ele pode virar meses de conteúdo coerente. Um capítulo pode gerar vários Shorts. Um framework pode virar diagrama. Uma pergunta de cliente pode virar artigo. Um exemplo pode virar tema de entrevista. O ponto não é a quantidade de peças. É que cada peça reforce a mesma competência. Em vez de inventar conteúdo aleatório toda semana, você distribui um corpo coerente de conhecimento em formatos diferentes."
+    }
+  },
+  {
+    "id": "L06-S01",
+    "parent": "L06",
+    "slug": "your-audience-remembers-the-old-you",
+    "titles": {
+      "en": "Your Audience Remembers the Old You",
+      "de": "Dein Publikum erinnert sich an dein altes Ich",
+      "it": "Il pubblico ricorda ancora la vecchia te",
+      "fr": "Votre audience se souvient encore de l’ancienne version de vous",
+      "pt": "Seu público ainda lembra da versão antiga de você"
+    },
+    "narrations": {
+      "en": "Your business can change faster than your audience’s memory. You may have moved into a new field, built new skills, and created a new offer, while people still associate you with what you did two years ago. That does not mean the new direction is wrong. It means the market’s mental model has not caught up yet. Repositioning starts by identifying the association that already exists, then deliberately building a new one. You are not just changing a service. You are changing what problem should make people think of your name.",
+      "de": "Dein Unternehmen kann sich schneller verändern als die Erinnerung deines Publikums. Vielleicht arbeitest du längst in einem neuen Bereich, hast neue Fähigkeiten aufgebaut und ein neues Angebot entwickelt, während Menschen dich immer noch mit dem verbinden, was du vor zwei Jahren gemacht hast. Das bedeutet nicht, dass die neue Richtung falsch ist. Es bedeutet, dass das mentale Bild des Marktes noch nicht nachgezogen hat. Repositionierung beginnt damit, die bestehende Verbindung zu erkennen und anschließend bewusst eine neue aufzubauen. Du änderst nicht nur eine Dienstleistung. Du veränderst, bei welchem Problem Menschen an deinen Namen denken sollen.",
+      "it": "Il tuo business può cambiare più velocemente della memoria del pubblico. Puoi essere entrata in un nuovo settore, aver sviluppato nuove competenze e creato una nuova offerta, mentre le persone continuano ad associarti a quello che facevi due anni fa. Non significa che la nuova direzione sia sbagliata. Significa che il modello mentale del mercato non si è ancora aggiornato. Il riposizionamento parte dal riconoscere l'associazione che esiste già e costruirne poi una nuova in modo intenzionale. Non stai cambiando soltanto un servizio. Stai cambiando il problema che dovrebbe far venire in mente il tuo nome.",
+      "fr": "Votre activité peut changer plus vite que la mémoire de votre audience. Vous pouvez avoir changé de domaine, développé de nouvelles compétences et créé une nouvelle offre, tandis que les gens vous associent encore à ce que vous faisiez il y a deux ans. Cela ne signifie pas que votre nouvelle direction est mauvaise. Cela signifie que le modèle mental du marché n’a pas encore suivi. Le repositionnement commence par identifier l’association existante, puis par en construire volontairement une nouvelle. Vous ne changez pas seulement de service. Vous changez le problème qui doit faire penser à votre nom.",
+      "pt": "O seu negócio pode mudar mais rápido do que a memória do público. Você pode ter entrado em uma nova área, desenvolvido novas competências e criado uma nova oferta enquanto as pessoas ainda associam você ao que fazia dois anos atrás. Isso não significa que a nova direção esteja errada. Significa que o modelo mental do mercado ainda não acompanhou a mudança. Reposicionamento começa identificando a associação que já existe e construindo uma nova de forma intencional. Você não está apenas mudando um serviço. Está mudando qual problema deve fazer as pessoas lembrarem do seu nome."
+    }
+  },
+  {
+    "id": "L06-S02",
+    "parent": "L06",
+    "slug": "changing-your-bio-isnt-repositioning",
+    "titles": {
+      "en": "Changing Your Bio Isn’t Repositioning",
+      "de": "Eine neue Bio ist noch keine Repositionierung",
+      "it": "Cambiare la bio non è riposizionarsi",
+      "fr": "Changer votre bio n’est pas vous repositionner",
+      "pt": "Mudar a bio não é reposicionamento"
+    },
+    "narrations": {
+      "en": "You can change your profile description in thirty seconds. Repositioning takes longer because you are not editing text — you are updating memory. Your offer, website, content, examples, conversations, and professional story all need to reinforce the new direction. Some people will understand immediately. Others will keep seeing the old version of you for a while. That overlap is normal. The mistake is changing direction again because the market did not update fast enough. A new bio announces the position. Repeated evidence makes the position believable and memorable.",
+      "de": "Deine Profilbeschreibung kannst du in dreißig Sekunden ändern. Repositionierung dauert länger, weil du nicht nur Text bearbeitest, sondern Erinnerung aktualisierst. Angebot, Website, Inhalte, Beispiele, Gespräche und berufliche Geschichte müssen die neue Richtung gemeinsam verstärken. Manche Menschen verstehen sie sofort. Andere sehen noch eine Zeit lang die alte Version von dir. Diese Überschneidung ist normal. Der Fehler wäre, gleich wieder die Richtung zu wechseln, nur weil der Markt sich nicht schnell genug angepasst hat. Eine neue Bio kündigt die Position an. Wiederholte Belege machen sie glaubwürdig und erinnerbar.",
+      "it": "Puoi cambiare la descrizione del profilo in trenta secondi. Riposizionarsi richiede più tempo, perché non stai modificando del testo: stai aggiornando una memoria. Offerta, sito, contenuti, esempi, conversazioni e storia professionale devono rafforzare insieme la nuova direzione. Alcune persone capiranno subito. Altre continueranno per un po' a vedere la vecchia versione di te. È normale. L'errore è cambiare di nuovo direzione perché il mercato non si è aggiornato abbastanza velocemente. Una nuova bio annuncia il posizionamento. Le prove ripetute lo rendono credibile e memorabile.",
+      "fr": "Vous pouvez changer votre bio en trente secondes. Un repositionnement prend plus de temps parce que vous ne modifiez pas seulement du texte : vous mettez à jour une mémoire. Votre offre, votre site, vos contenus, vos exemples, vos conversations et votre histoire professionnelle doivent tous renforcer la nouvelle direction. Certaines personnes comprendront immédiatement. D’autres continueront quelque temps à voir l’ancienne version de vous. C’est normal. L’erreur serait de changer encore de direction parce que le marché n’a pas évolué assez vite. Une nouvelle bio annonce la position. Des preuves répétées la rendent crédible et mémorable.",
+      "pt": "Você pode mudar a descrição do perfil em trinta segundos. Reposicionamento leva mais tempo porque você não está apenas editando texto — está atualizando uma memória. Oferta, site, conteúdo, exemplos, conversas e história profissional precisam reforçar a nova direção. Algumas pessoas vão entender imediatamente. Outras continuarão vendo a versão antiga de você por algum tempo. Isso é normal. O erro é mudar de direção outra vez porque o mercado não se atualizou rápido o suficiente. Uma nova bio anuncia a posição. Evidências repetidas tornam essa posição crível e memorável."
+    }
+  },
+  {
+    "id": "L06-S03",
+    "parent": "L06",
+    "slug": "change-what-people-know-you-for",
+    "titles": {
+      "en": "How to Change What People Know You For",
+      "de": "So änderst du, wofür Menschen dich kennen",
+      "it": "Come cambiare ciò per cui le persone ti conoscono",
+      "fr": "Comment changer ce pour quoi les gens vous connaissent",
+      "pt": "Como mudar aquilo pelo que as pessoas conhecem você"
+    },
+    "narrations": {
+      "en": "Want people to know you for something new? Do not start by posting more. Start by defining the old association. What do people think of when they hear your name today? Then define the new expertise, explain the bridge from old to new, and align your offer, site, content, and collaborations around it. Finally, listen to the language people use. When inquiries and introductions begin using the new category, repositioning is working. The goal is not more content. It is a different association.",
+      "de": "Du willst, dass Menschen dich für etwas Neues kennen? Fang nicht damit an, einfach mehr zu posten. Definiere zuerst die alte Verbindung. Woran denken Menschen heute, wenn sie deinen Namen hören? Dann definierst du die neue Expertise, erklärst die Brücke vom Alten zum Neuen und richtest Angebot, Website, Content und Kooperationen darauf aus. Achte anschließend auf die Sprache anderer. Wenn Anfragen und Vorstellungen die neue Kategorie verwenden, funktioniert die Repositionierung. Das Ziel ist nicht mehr Content. Das Ziel ist eine andere Verbindung.",
+      "it": "Vuoi che le persone ti conoscano per qualcosa di nuovo? Non iniziare pubblicando di più. Inizia definendo la vecchia associazione. A cosa pensano oggi quando sentono il tuo nome? Poi definisci la nuova competenza, spiega il ponte tra vecchio e nuovo e allinea offerta, sito, contenuti e collaborazioni. Infine ascolta il linguaggio degli altri. Quando richieste e presentazioni iniziano a usare la nuova categoria, il riposizionamento sta funzionando. L’obiettivo non è più contenuto. È una nuova associazione.",
+      "fr": "Vous voulez que les gens vous connaissent pour quelque chose de nouveau ? Ne commencez pas par publier davantage. Commencez par définir l’ancienne association. À quoi pensent-ils aujourd’hui lorsqu’ils entendent votre nom ? Définissez ensuite la nouvelle expertise, expliquez le pont entre l’ancien et le nouveau, puis alignez votre offre, votre site, vos contenus et vos collaborations. Enfin, écoutez le vocabulaire des autres. Quand les demandes et présentations utilisent la nouvelle catégorie, le repositionnement fonctionne. Le but n’est pas plus de contenu. C’est une nouvelle association.",
+      "pt": "Quer que as pessoas conheçam você por algo novo? Não comece publicando mais. Comece definindo a associação antiga. No que as pessoas pensam hoje quando ouvem o seu nome? Depois defina a nova competência, explique a ponte entre o antigo e o novo e alinhe oferta, site, conteúdo e colaborações. Por fim, escute a linguagem que os outros usam. Quando contatos e apresentações começam a usar a nova categoria, o reposicionamento está funcionando. O objetivo não é mais conteúdo. É uma associação diferente."
+    }
+  }
+]
