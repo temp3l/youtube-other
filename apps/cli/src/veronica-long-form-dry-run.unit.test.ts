@@ -95,6 +95,42 @@ describe("Veronica L02 full non-provider dry run", () => {
     expect(parsedPack.narrationDiagnostic.mode).toBe("full-current-policy");
     expect(parsedPack.sources.map((source) => source.name)).not.toContain("pacing-calibration.v1.json");
   });
+
+  it("packages compact, listening, and forensic modes without changing semantic artifacts", async () => {
+    const workspaceRoot = await fs.mkdtemp(path.join(os.tmpdir(), "veronica-review-pack-modes-"));
+    const episodeDir = path.join(workspaceRoot, "l02");
+    const sourcePlan = JSON.parse(await fs.readFile(planPath, "utf8")) as { readonly scenes: readonly { readonly startMs: number; readonly durationMs: number }[] };
+    const finalScene = sourcePlan.scenes.at(-1);
+    if (!finalScene) throw new Error("L02 fixture has no scenes.");
+    await writeOfflineWav(path.join(episodeDir, "locales/en/full/audio/narration.wav"), finalScene.startMs + finalScene.durationMs);
+    await preparePositioningProductionEpisode({ workspaceRoot, episodeId: "l02", language: "en", variant: "full", planPath, scriptPath: narrationPath });
+    const semanticPlanHash = createHash("sha256").update(await fs.readFile(path.join(episodeDir, "source/pre-image-semantic-plan.v1.json"))).digest("hex");
+    const compact = await createVeronicaPreImageReviewPack({ episodeDir, language: "en", variant: "full" });
+    const listening = await createVeronicaPreImageReviewPack({ episodeDir, language: "en", variant: "full", reviewPackMode: "listening" });
+    const forensic = await createVeronicaPreImageReviewPack({ episodeDir, language: "en", variant: "full", reviewPackMode: "forensic" });
+    const compactManifest = JSON.parse(await fs.readFile(compact.manifestPath, "utf8")) as { readonly reviewPackMode: string; readonly canonicalAudioEmbedded: boolean; readonly reviewAudioPreviewEmbedded: boolean; readonly canonicalAudioSha256: string; readonly packFileHashes: Readonly<Record<string, string>> };
+    const compactIntegrity = JSON.parse(await fs.readFile(path.join(compact.packDir, "audio-integrity.json"), "utf8")) as { readonly audioPrepackageValidationStatus: string; readonly timingIntegrityStatus: string; readonly decodedDurationSeconds: number };
+    const listeningIntegrity = JSON.parse(await fs.readFile(path.join(listening.packDir, "audio-integrity.json"), "utf8")) as { readonly reviewAudioPreview: { readonly embedded: boolean; readonly canonical: boolean; readonly sourceCanonicalAudioSha256: string; readonly durationDifferenceSeconds: number } };
+    expect(compact.reviewPackMode).toBe("compact");
+    expect(compactManifest).toMatchObject({ reviewPackMode: "compact", canonicalAudioEmbedded: false, reviewAudioPreviewEmbedded: false });
+    await expect(fs.access(path.join(compact.packDir, "narration.wav"))).rejects.toThrow();
+    expect(compactIntegrity).toMatchObject({ audioPrepackageValidationStatus: "PASS", timingIntegrityStatus: "PASS" });
+    expect(compactIntegrity.decodedDurationSeconds).toBeCloseTo((finalScene.startMs + finalScene.durationMs) / 1_000, 3);
+    expect(compactManifest.packFileHashes).not.toHaveProperty("narration.wav");
+    expect(await fs.readFile(compact.readmePath, "utf8")).toContain("WAV intentionally omitted");
+    expect(await fs.readFile(path.join(listening.packDir, "narration-review.opus"))).toBeDefined();
+    expect(listeningIntegrity.reviewAudioPreview).toMatchObject({ embedded: true, canonical: false, sourceCanonicalAudioSha256: compactManifest.canonicalAudioSha256 });
+    expect(listeningIntegrity.reviewAudioPreview.durationDifferenceSeconds).toBeLessThanOrEqual(0.05);
+    expect(await fs.readFile(path.join(forensic.packDir, "narration.wav"))).toBeDefined();
+    expect(createHash("sha256").update(await fs.readFile(path.join(forensic.packDir, "narration.wav"))).digest("hex")).toBe(compactManifest.canonicalAudioSha256);
+    expect(createHash("sha256").update(await fs.readFile(path.join(episodeDir, "source/pre-image-semantic-plan.v1.json"))).digest("hex")).toBe(semanticPlanHash);
+    expect(new Set([compact.zipPath, listening.zipPath, forensic.zipPath]).size).toBe(3);
+  }, 30_000);
+
+  it("fails closed when canonical audio is unavailable for compact validation", async () => {
+    const episodeDir = await fs.mkdtemp(path.join(os.tmpdir(), "veronica-missing-review-audio-"));
+    await expect(createVeronicaPreImageReviewPack({ episodeDir, language: "en", variant: "full" })).rejects.toThrow("CANONICAL_AUDIO_UNAVAILABLE_FOR_PREPACKAGE_VALIDATION");
+  });
 });
 
 describe("Veronica L01 full semantic remediation", () => {

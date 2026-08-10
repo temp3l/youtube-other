@@ -30,6 +30,7 @@ describe("veronica media commands", () => {
       "generate",
     ]);
     const imageGenerate = images?.commands.find((command) => command.name() === "generate");
+    const reviewPack = images?.commands.find((command) => command.name() === "review-pack");
     expect(imageGenerate?.options.map((option) => option.long)).toEqual(
       expect.arrayContaining([
         "--mode",
@@ -38,6 +39,7 @@ describe("veronica media commands", () => {
         "--refresh-image-prompt-brief",
       ]),
     );
+    expect(reviewPack?.options.find((option) => option.long === "--review-pack-mode")?.defaultValue).toBe("compact");
     const speech = veronica?.commands.find((command) => command.name() === "speech");
     expect(speech?.commands.map((command) => command.name())).toEqual([
       "plan",

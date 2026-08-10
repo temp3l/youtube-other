@@ -37,7 +37,7 @@ import {
   VERONICA_SEMANTIC_IMAGE_PROMPT_PLANNER_VERSION,
   type PositioningVisualPlanV2,
 } from "@mediaforge/strategic-reinvention";
-import { createVeronicaPreImageReviewPack } from "./veronica-pre-image-review-pack.js";
+import { createVeronicaPreImageReviewPack, reviewPackModeSchema } from "./veronica-pre-image-review-pack.js";
 
 const mediaforgeBinPath = fileURLToPath(
   new URL("../bin/mediaforge.js", import.meta.url),
@@ -326,6 +326,7 @@ export function registerVeronicaMediaCommands(program: Command): void {
         episodeDir: source.episodeDir,
         language: "en",
         variant: options.variant,
+        reviewPackMode: "compact",
       });
       const payload = {
         contentId: source.plan.contentId,
@@ -363,12 +364,14 @@ export function registerVeronicaMediaCommands(program: Command): void {
     .requiredOption("--episode-id <id>", "Episode identifier")
     .option("--language <code>", "Narration language", "en")
     .option("--variant <full|short>", "Narration variant", "short")
+    .option("--review-pack-mode <compact|listening|forensic>", "compact: metadata-only audio integrity; listening: review-only compressed narration; forensic: canonical production WAV", "compact")
     .option("--json", "Emit machine-readable output", false)
-    .action(async (options: { workspace: string; episodeId: string; language: VeronicaLanguage; variant: VeronicaVariant; json: boolean }) => {
+    .action(async (options: { workspace: string; episodeId: string; language: VeronicaLanguage; variant: VeronicaVariant; reviewPackMode: string; json: boolean }) => {
       const result = await createVeronicaPreImageReviewPack({
         episodeDir: path.join(path.resolve(options.workspace), options.episodeId),
         language: options.language,
         variant: options.variant,
+        reviewPackMode: reviewPackModeSchema.parse(options.reviewPackMode),
       });
       process.stdout.write(options.json ? `${JSON.stringify(result, null, 2)}\n` : `Created pre-image review pack: ${result.packDir}\nZIP: ${result.zipPath}\n`);
     });

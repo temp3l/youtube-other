@@ -74,16 +74,22 @@ in [positioning visual planning V2](positioning-visual-planning-v2.md).
 ### Pre-image review
 
 Before any Veronica image-provider request, create or refresh semantic prompts,
-then review the episode-local pack with ChatGPT. The pack contains the mastered
-narration WAV, English script, retimed scene plan, canonical plan, exact prompt
-review data, and a ChatGPT-ready review request. The image commands reject a
-missing or stale pack.
+then review the episode-local pack with ChatGPT. The default `compact` pack
+includes validated canonical-audio hash/duration/timing metadata, narration
+text, plans, and prompts, but intentionally omits the production WAV. Use
+`listening` for a lossy review-only Opus preview or `forensic` for the canonical
+WAV. The image commands reject a missing or stale pack.
 
 ```bash
 pnpm mediaforge -- veronica-media images derive-image-prompts --workspace episodes --episode-id <episode-id> --variant short
-# Review episodes/<episode-id>/review-packs/pre-image/en-short/chatgpt-review-prompt.md
+pnpm mediaforge -- veronica-media images review-pack --workspace episodes --episode-id <episode-id> --variant short --review-pack-mode compact
+# Review episodes/<episode-id>/review-packs/pre-image/en-short/<run>/chatgpt-pre-image-review-request.md
 pnpm mediaforge -- images generate --episode <episode-id> --variant short
 ```
+
+`compact` is the normal semantic/image-prompt review mode; `listening` includes
+`narration-review.opus` for intelligibility checks; `forensic` embeds
+`narration.wav` for waveform and timing investigation.
 
 The public review-pack command applies the same artifact and freshness contract
 to History and Dark Truth full or Short productions:

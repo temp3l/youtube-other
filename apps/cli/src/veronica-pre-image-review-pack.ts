@@ -4,17 +4,60 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import { scenePlanSchema } from "@mediaforge/domain";
-import { assessVeronicaShortPacing, resolveVeronicaShortPacingPolicy, veronicaShortPacingCalibrationSchema } from "@mediaforge/speech";
+import { runCommand } from "@mediaforge/process-runner";
+import { assessVeronicaShortPacing, probeAudioWithFfprobe, resolveVeronicaShortPacingPolicy, veronicaShortPacingCalibrationSchema } from "@mediaforge/speech";
 import { preparePositioningProductionEpisode } from "@mediaforge/strategic-reinvention";
 import { z } from "zod";
 
-const PACK_SCHEMA_VERSION = "veronica-pre-image-review-pack.v7" as const;
+const PACK_SCHEMA_VERSION = "veronica-pre-image-review-pack.v8" as const;
+const AUDIO_INTEGRITY_SCHEMA_VERSION = "veronica-review-audio-integrity.v1" as const;
+const REVIEW_AUDIO_PREVIEW_CODEC = "opus" as const;
+const REVIEW_AUDIO_PREVIEW_BITRATE_KBPS = 64;
+const REVIEW_AUDIO_PREVIEW_DURATION_EPSILON_SECONDS = 0.05;
 export const VERONICA_TIMING_INTEGRITY_EPSILON_SECONDS = 0.02;
 const execFileAsync = promisify(execFile);
+export const reviewPackModeSchema = z.enum(["compact", "listening", "forensic"]);
+export type ReviewPackMode = z.infer<typeof reviewPackModeSchema>;
+
+const audioIntegritySchema = z.strictObject({
+  schemaVersion: z.literal(AUDIO_INTEGRITY_SCHEMA_VERSION),
+  canonicalAudioEmbedded: z.boolean(),
+  canonicalAudioPath: z.string().min(1),
+  canonicalAudioSha256: z.string().regex(/^[a-f0-9]{64}$/u),
+  selectedAudioSha256: z.string().regex(/^[a-f0-9]{64}$/u),
+  decodedDurationSeconds: z.number().positive(),
+  sampleRateHz: z.number().int().positive(),
+  channels: z.number().int().positive(),
+  codec: z.string().min(1),
+  container: z.string().min(1),
+  wordCount: z.number().int().nonnegative(),
+  effectiveWpm: z.number().nonnegative(),
+  pacingPolicyVersion: z.string().optional(),
+  pacingProfile: z.string().optional(),
+  pacingStatus: z.string().min(1),
+  calibrationStatus: z.string().optional(),
+  canonicalTimingDurationSeconds: z.number().positive(),
+  finalSceneEndSeconds: z.number().positive(),
+  finalEventEndSeconds: z.number().positive(),
+  timingIntegrityStatus: z.enum(["PASS", "FAIL"]),
+  audioPrepackageValidationStatus: z.enum(["PASS", "FAIL"]),
+  reviewAudioPreview: z.object({
+    embedded: z.boolean(), canonical: z.boolean(), sourceCanonicalAudioSha256: z.string().regex(/^[a-f0-9]{64}$/u).optional(), sha256: z.string().regex(/^[a-f0-9]{64}$/u).optional(), codec: z.string().min(1).optional(), bitrateKbps: z.number().int().positive().optional(), durationSeconds: z.number().positive().optional(), durationDifferenceSeconds: z.number().nonnegative().optional(), encoderVersion: z.string().min(1).optional(),
+  }),
+});
+
+type AudioIntegrity = z.infer<typeof audioIntegritySchema>;
 const reviewManifestSchema = z.strictObject({
   schemaVersion: z.literal(PACK_SCHEMA_VERSION), episodeId: z.string().min(1), language: z.string().min(1), variant: z.enum(["full", "short"]),
   sceneCount: z.number().int().positive(), narrationDurationSeconds: z.number().positive(), timingSource: z.string().min(1),
   selectedAudioHash: z.string().regex(/^[a-f0-9]{64}$/u),
+  reviewPackMode: reviewPackModeSchema,
+  canonicalAudioEmbedded: z.boolean(),
+  reviewAudioPreviewEmbedded: z.boolean(),
+  packagingFingerprint: z.string().regex(/^[a-f0-9]{64}$/u),
+  canonicalAudioSha256: z.string().regex(/^[a-f0-9]{64}$/u),
+  canonicalAudioDurationSeconds: z.number().positive(),
+  audioPrepackageValidation: z.object({ status: z.literal("PASS"), sourceExists: z.literal(true), sourceHashValidated: z.literal(true), sourceDurationMeasured: z.literal(true) }),
   providerRequestsAllowed: z.literal(false), sources: z.array(z.strictObject({ name: z.string().min(1), path: z.string().min(1), sha256: z.string().regex(/^[a-f0-9]{64}$/u) })).min(1),
   artifactHashes: z.record(z.string(), z.string().regex(/^[a-f0-9]{64}$/u)),
   packFileHashes: z.record(z.string(), z.string().regex(/^[a-f0-9]{64}$/u)),
@@ -81,12 +124,14 @@ export interface VeronicaPreImageReviewPackResult {
   readonly zipPath: string;
   readonly zipSha256: string;
   readonly generatedAtMs: number;
+  readonly reviewPackMode: ReviewPackMode;
 }
 
-interface PackInput {
+export interface PackInput {
   readonly episodeDir: string;
   readonly language: string;
   readonly variant: "full" | "short";
+  readonly reviewPackMode?: ReviewPackMode;
 }
 
 function packRoot(input: PackInput): string {
@@ -95,28 +140,45 @@ function packRoot(input: PackInput): string {
 
 function packDir(input: PackInput, generatedAtMs: number): string { return path.join(packRoot(input), `run-${generatedAtMs}`); }
 
-function zipFileName(input: PackInput, generatedAtMs: number): string {
-  return `veronica-pre-image-review-pack-${input.language}-${input.variant}-${generatedAtMs}.zip`;
+function zipFileName(input: PackInput, reviewPackMode: ReviewPackMode, generatedAtMs: number): string {
+  return `veronica-pre-image-review-pack-${input.language}-${input.variant}-${reviewPackMode}-${generatedAtMs}.zip`;
 }
 
 async function fileHash(filePath: string): Promise<string> {
   return createHash("sha256").update(await fs.readFile(filePath)).digest("hex");
 }
 
-function waveDurationSeconds(bytes: Buffer): number {
+interface WavAudioMetadata {
+  readonly durationSeconds: number;
+  readonly sampleRateHz: number;
+  readonly channels: number;
+  readonly codec: "pcm" | "ieee-float";
+  readonly container: "WAV";
+}
+
+function waveAudioMetadata(bytes: Buffer): WavAudioMetadata {
   if (bytes.length < 44 || bytes.subarray(0, 4).toString("ascii") !== "RIFF" || bytes.subarray(8, 12).toString("ascii") !== "WAVE") throw new Error("Invalid narration WAV header.");
   let offset = 12;
   let byteRate = 0;
   let dataSize = -1;
+  let sampleRateHz = 0;
+  let channels = 0;
+  let formatTag = 0;
   while (offset + 8 <= bytes.length) {
     const id = bytes.subarray(offset, offset + 4).toString("ascii");
     const size = bytes.readUInt32LE(offset + 4);
-    if (id === "fmt " && offset + 20 <= bytes.length) byteRate = bytes.readUInt32LE(offset + 16);
+    if (id === "fmt " && offset + 24 <= bytes.length) {
+      formatTag = bytes.readUInt16LE(offset + 8);
+      channels = bytes.readUInt16LE(offset + 10);
+      sampleRateHz = bytes.readUInt32LE(offset + 12);
+      byteRate = bytes.readUInt32LE(offset + 16);
+    }
     if (id === "data") { dataSize = size; break; }
     offset += 8 + size + (size % 2);
   }
-  if (byteRate <= 0 || dataSize < 0) throw new Error("Narration WAV has no measurable data chunk.");
-  return dataSize / byteRate;
+  if (byteRate <= 0 || dataSize < 0 || sampleRateHz <= 0 || channels <= 0) throw new Error("Narration WAV has no measurable audio format/data chunks.");
+  if (formatTag !== 1 && formatTag !== 3) throw new Error(`Unsupported narration WAV codec format tag: ${formatTag}.`);
+  return { durationSeconds: dataSize / byteRate, sampleRateHz, channels, codec: formatTag === 1 ? "pcm" : "ieee-float", container: "WAV" };
 }
 
 async function requiredFile(filePath: string, label: string): Promise<void> {
@@ -127,8 +189,49 @@ async function requiredFile(filePath: string, label: string): Promise<void> {
   }
 }
 
+async function requireCanonicalNarration(filePath: string): Promise<void> {
+  try {
+    await fs.access(filePath);
+  } catch {
+    throw new Error(`CANONICAL_AUDIO_UNAVAILABLE_FOR_PREPACKAGE_VALIDATION: ${filePath}`);
+  }
+}
+
+async function reviewAudioPreview(input: {
+  readonly outputDir: string;
+  readonly narrationPath: string;
+  readonly canonicalAudioSha256: string;
+  readonly canonicalDurationSeconds: number;
+}): Promise<NonNullable<AudioIntegrity["reviewAudioPreview"]>> {
+  const previewPath = path.join(input.outputDir, "narration-review.opus");
+  await runCommand("ffmpeg", [
+    "-y", "-i", input.narrationPath, "-map", "0:a:0", "-c:a", "libopus", "-b:a", `${REVIEW_AUDIO_PREVIEW_BITRATE_KBPS}k`, "-vbr", "off", "-application", "audio", previewPath,
+  ], { timeoutMs: 300_000 });
+  const [metadata, sha256, encoder] = await Promise.all([
+    probeAudioWithFfprobe(previewPath),
+    fileHash(previewPath),
+    runCommand("ffmpeg", ["-version"], { timeoutMs: 30_000 }),
+  ]);
+  const durationDifferenceSeconds = Math.abs(metadata.durationSeconds - input.canonicalDurationSeconds);
+  if (!Number.isFinite(metadata.durationSeconds) || metadata.durationSeconds <= 0 || durationDifferenceSeconds > REVIEW_AUDIO_PREVIEW_DURATION_EPSILON_SECONDS) {
+    throw new Error(`REVIEW_AUDIO_PREVIEW_DURATION_MISMATCH: preview=${metadata.durationSeconds}, canonical=${input.canonicalDurationSeconds}, epsilon=${REVIEW_AUDIO_PREVIEW_DURATION_EPSILON_SECONDS}`);
+  }
+  return {
+    embedded: true,
+    canonical: false,
+    sourceCanonicalAudioSha256: input.canonicalAudioSha256,
+    sha256,
+    codec: metadata.codecName ?? REVIEW_AUDIO_PREVIEW_CODEC,
+    bitrateKbps: REVIEW_AUDIO_PREVIEW_BITRATE_KBPS,
+    durationSeconds: metadata.durationSeconds,
+    durationDifferenceSeconds,
+    encoderVersion: encoder.stdout.split(/\r?\n/u)[0]?.trim() || "ffmpeg-version-unavailable",
+  };
+}
+
 function promptReviewMarkdown(input: {
   readonly variant: "full" | "short";
+  readonly reviewPackMode: ReviewPackMode;
   readonly narration: string;
   readonly pacingSummary: string;
   readonly scenes: ReturnType<typeof scenePlanSchema.parse>["scenes"];
@@ -141,6 +244,12 @@ function promptReviewMarkdown(input: {
     "# ChatGPT pre-image review request",
     "",
     veronicaPreImageReviewInstruction(input.variant),
+    "",
+    input.reviewPackMode === "compact"
+      ? "Review-pack mode: **compact**. Canonical production audio was validated before packaging, but its bytes are intentionally omitted. Use the included hash/duration/timing metadata for semantic and image-prompt review; this pack cannot support audio-quality judgment."
+      : input.reviewPackMode === "listening"
+        ? "Review-pack mode: **listening**. `narration-review.opus` is a lossy review-only preview derived from validated canonical audio. Do not treat preview encoding artifacts as canonical WAV defects."
+        : "Review-pack mode: **forensic**. `narration.wav` is the validated canonical production WAV and may be inspected directly.",
     "",
     "## English narration",
     "",
@@ -240,14 +349,22 @@ function shortNarrationDiagnostic(narrationDurationSeconds: number, timingSource
 export async function createVeronicaPreImageReviewPack(
   input: PackInput,
 ): Promise<VeronicaPreImageReviewPackResult> {
-  // The review-pack command is itself a production workflow boundary: always
-  // converge the source plan and reconcile currently selected audio first.
-  await preparePositioningProductionEpisode({
-    workspaceRoot: path.dirname(input.episodeDir),
-    episodeId: path.basename(input.episodeDir),
-    language: input.language as "en" | "de" | "es" | "fr" | "pt" | "it",
-    variant: input.variant,
-  });
+  const reviewPackMode = reviewPackModeSchema.parse(input.reviewPackMode ?? "compact");
+  const packagingFingerprint = createHash("sha256").update(JSON.stringify({ schemaVersion: PACK_SCHEMA_VERSION, reviewPackMode, previewCodec: reviewPackMode === "listening" ? REVIEW_AUDIO_PREVIEW_CODEC : null, previewBitrateKbps: reviewPackMode === "listening" ? REVIEW_AUDIO_PREVIEW_BITRATE_KBPS : null })).digest("hex");
+  const narrationPathBeforePreparation = path.join(input.episodeDir, "locales", input.language, input.variant, "audio", "narration.wav");
+  await requireCanonicalNarration(narrationPathBeforePreparation);
+  // Planning is prepared only when its canonical artifact does not already
+  // exist. Packaging-mode changes must not re-run semantic remediation.
+  const existingSourcePlanPath = path.join(input.episodeDir, "source", "pre-image-semantic-plan.v1.json");
+  const sourcePlanExists = await fs.access(existingSourcePlanPath).then(() => true).catch(() => false);
+  if (!sourcePlanExists) {
+    await preparePositioningProductionEpisode({
+      workspaceRoot: path.dirname(input.episodeDir),
+      episodeId: path.basename(input.episodeDir),
+      language: input.language as "en" | "de" | "es" | "fr" | "pt" | "it",
+      variant: input.variant,
+    });
+  }
   const localeRoot = path.join(input.episodeDir, "locales", input.language, input.variant);
   const sourcePlanPath = path.join(input.episodeDir, "source", "pre-image-semantic-plan.v1.json");
   const narrationPath = path.join(localeRoot, "audio", "narration.wav");
@@ -260,7 +377,7 @@ export async function createVeronicaPreImageReviewPack(
   const pacingCalibrationPath = path.join(localeRoot, "audio", "narration", "pacing-calibration.v1.json");
   await Promise.all([
     requiredFile(sourcePlanPath, "the canonical visual plan"),
-    requiredFile(narrationPath, "mastered narration.wav"),
+    requireCanonicalNarration(narrationPath),
     requiredFile(scriptPath, "the English script"),
     requiredFile(scenePlanPath, "the retimed scene plan"),
     requiredFile(manifestPath, "the episode manifest"),
@@ -283,7 +400,8 @@ export async function createVeronicaPreImageReviewPack(
   const scenePlan = scenePlanSchema.parse(JSON.parse(scenePlanRaw) as unknown);
   const timing = JSON.parse(timingRaw) as { readonly timingSource?: unknown; readonly narrationDurationSeconds?: unknown; readonly selectedAudioHash?: unknown };
   if (typeof timing.timingSource !== "string" || typeof timing.narrationDurationSeconds !== "number") throw new Error(`Invalid canonical locale timing artifact: ${timingPath}`);
-  const audioDurationSeconds = waveDurationSeconds(narrationBytes);
+  const audioMetadata = waveAudioMetadata(narrationBytes);
+  const audioDurationSeconds = audioMetadata.durationSeconds;
   const selectedAudioHash = createHash("sha256").update(narrationBytes).digest("hex");
   const pacingCalibration = input.variant === "short" ? veronicaShortPacingCalibrationSchema.parse(JSON.parse(pacingCalibrationRaw ?? "") as unknown) : undefined;
   const diagnostic = input.variant === "short"
@@ -327,8 +445,9 @@ export async function createVeronicaPreImageReviewPack(
   const generatedAtMs = Date.now();
   const outputDir = packDir(input, generatedAtMs);
   await fs.mkdir(outputDir, { recursive: true });
+  const canonicalAudioEmbedded = reviewPackMode === "forensic";
   const files: Array<readonly [string, string]> = [
-    ["narration.wav", narrationPath],
+    ...(canonicalAudioEmbedded ? [["narration.wav", narrationPath] as const] : []),
     ["script.md", scriptPath],
     ["retimed-scene-plan.json", scenePlanPath],
     ["canonical-locale-timing.v1.json", timingPath],
@@ -339,13 +458,40 @@ export async function createVeronicaPreImageReviewPack(
     ...(input.variant === "short" ? [["pacing-calibration.v1.json", pacingCalibrationPath] as const] : []),
   ];
   await Promise.all(files.map(([fileName, sourcePath]) => fs.copyFile(sourcePath, path.join(outputDir, fileName))));
+  const preview = reviewPackMode === "listening"
+    ? await reviewAudioPreview({ outputDir, narrationPath, canonicalAudioSha256: selectedAudioHash, canonicalDurationSeconds: audioDurationSeconds })
+    : { embedded: false, canonical: false };
+  const audioIntegrity: AudioIntegrity = audioIntegritySchema.parse({
+    schemaVersion: AUDIO_INTEGRITY_SCHEMA_VERSION,
+    canonicalAudioEmbedded,
+    canonicalAudioPath: path.relative(input.episodeDir, narrationPath).replace(/\\/gu, "/"),
+    canonicalAudioSha256: selectedAudioHash,
+    selectedAudioSha256: selectedAudioHash,
+    decodedDurationSeconds: audioDurationSeconds,
+    sampleRateHz: audioMetadata.sampleRateHz,
+    channels: audioMetadata.channels,
+    codec: audioMetadata.codec,
+    container: audioMetadata.container,
+    wordCount: diagnostic.wordCount,
+    effectiveWpm: diagnostic.approximateWordsPerMinute,
+    ...(diagnostic.mode === "short-adaptive" ? { pacingPolicyVersion: diagnostic.pacingPolicyVersion, pacingProfile: "short-adaptive", calibrationStatus: diagnostic.calibrationStatus } : { pacingProfile: "full-current-policy" }),
+    pacingStatus: diagnostic.pacingStatus,
+    canonicalTimingDurationSeconds: timing.narrationDurationSeconds,
+    finalSceneEndSeconds: scenePlan.scenes.at(-1)?.timing.endSeconds ?? 0,
+    finalEventEndSeconds: finalEvent ? (finalEvent.startMs + finalEvent.durationMs) / 1_000 : 0,
+    timingIntegrityStatus: integrity.status,
+    audioPrepackageValidationStatus: "PASS",
+    reviewAudioPreview: preview,
+  });
+  const audioIntegrityPath = path.join(outputDir, "audio-integrity.json");
+  await fs.writeFile(audioIntegrityPath, `${JSON.stringify(audioIntegrity, null, 2)}\n`, "utf8");
   const promptPath = path.join(outputDir, "chatgpt-pre-image-review-request.md");
   const promptsPath = path.join(outputDir, "provider-image-prompts.md");
   const qualityReviewPath = path.join(outputDir, "semantic-quality-review.md");
   const pacingSummary = diagnostic.mode === "short-adaptive"
     ? `${diagnostic.wordCount} words; ${diagnostic.narrationDurationSeconds.toFixed(3)}s; ${diagnostic.approximateWordsPerMinute} WPM; natural-pacing status ${diagnostic.pacingStatus}; editorial duration ${diagnostic.editorialDurationStatus}; selected speed ${diagnostic.ttsSpeed}; cached calibration ${diagnostic.calibrationStatus}${diagnostic.legacyCalibrationPolicy ? " under legacy policy" : ""}.`
     : `${diagnostic.wordCount} words; ${diagnostic.narrationDurationSeconds.toFixed(3)}s; ${diagnostic.approximateWordsPerMinute} WPM; full-form pacing policy not configured.`;
-  const promptMarkdown = promptReviewMarkdown({ variant: input.variant, narration, pacingSummary, scenes: scenePlan.scenes, findingsByScene, stateByScene, actorByScene, thesisByScene });
+  const promptMarkdown = promptReviewMarkdown({ variant: input.variant, reviewPackMode, narration, pacingSummary, scenes: scenePlan.scenes, findingsByScene, stateByScene, actorByScene, thesisByScene });
   const providerMarkdown = providerPromptsMarkdown(scenePlan.scenes, stateByScene, actorByScene, thesisByScene, assetsByScene);
   const blockedMarkerCount = providerMarkdown.match(/MISSING\s+[—-]\s+PROVIDER PROJECTION BLOCKED/giu)?.length ?? 0;
   const providerPromptQuality = {
@@ -364,11 +510,25 @@ export async function createVeronicaPreImageReviewPack(
     ["chatgpt-pre-image-review-request.md", promptPath],
     ["provider-image-prompts.md", promptsPath],
     ["semantic-quality-review.md", qualityReviewPath],
+    ["audio-integrity.json", audioIntegrityPath],
   ];
   const artifactHashes = Object.fromEntries(await Promise.all(artifactFiles.map(async ([name, artifactPath]) => [name, await fileHash(artifactPath)] as const)));
-  const sources = await Promise.all(files.map(async ([name, sourcePath]) => ({ name, path: path.relative(input.episodeDir, sourcePath), sha256: await fileHash(sourcePath) })));
+  const sourceFiles: readonly (readonly [string, string])[] = [
+    ["narration.wav", narrationPath],
+    ["script.md", scriptPath],
+    ["retimed-scene-plan.json", scenePlanPath],
+    ["canonical-locale-timing.v1.json", timingPath],
+    ["retimed-visual-events.json", eventPath],
+    ["visual-plan.json", sourcePlanPath],
+    ["episode-manifest.json", manifestPath],
+    ["pre-image-semantic-reviews.v1.json", semanticReviewPath],
+    ...(input.variant === "short" ? [["pacing-calibration.v1.json", pacingCalibrationPath] as const] : []),
+  ];
+  const sources = await Promise.all(sourceFiles.map(async ([name, sourcePath]) => ({ name, path: path.relative(input.episodeDir, sourcePath).replace(/\\/gu, "/"), sha256: await fileHash(sourcePath) })));
   const packFileHashes = Object.fromEntries(await Promise.all([
     ...files.map(async ([name]) => [name, await fileHash(path.join(outputDir, name))] as const),
+    ["audio-integrity.json", await fileHash(audioIntegrityPath)] as const,
+    ...(preview.embedded ? [["narration-review.opus", await fileHash(path.join(outputDir, "narration-review.opus"))] as const] : []),
     ["chatgpt-pre-image-review-request.md", await fileHash(promptPath)] as const,
     ["provider-image-prompts.md", await fileHash(promptsPath)] as const,
     ["semantic-quality-review.md", await fileHash(qualityReviewPath)] as const,
@@ -385,6 +545,13 @@ export async function createVeronicaPreImageReviewPack(
       narrationDurationSeconds: audioDurationSeconds,
       timingSource: timing.timingSource,
       selectedAudioHash,
+      reviewPackMode,
+      canonicalAudioEmbedded,
+      reviewAudioPreviewEmbedded: preview.embedded,
+      packagingFingerprint,
+      canonicalAudioSha256: selectedAudioHash,
+      canonicalAudioDurationSeconds: audioDurationSeconds,
+      audioPrepackageValidation: { status: "PASS", sourceExists: true, sourceHashValidated: true, sourceDurationMeasured: true },
       providerRequestsAllowed: false,
       sources,
       artifactHashes,
@@ -406,6 +573,10 @@ export async function createVeronicaPreImageReviewPack(
     readmePath,
     `# Veronica pre-image review pack\n\n- Episode: \`${path.basename(input.episodeDir)}\`
 - Locale / variant: \`${input.language}/${input.variant}\`
+- Review-pack mode: \`${reviewPackMode}\`
+- ${reviewPackMode === "compact" ? "Canonical production audio validated before packaging; WAV intentionally omitted from this review archive." : reviewPackMode === "listening" ? "Canonical production audio validated before packaging; compressed review-only narration preview included; production WAV omitted." : "Canonical production WAV included for forensic review."}
+- CANONICAL_AUDIO_EMBEDDED: **${canonicalAudioEmbedded}**.
+- CANONICAL_AUDIO_PREPACKAGE_VALIDATION: **PASS**.
 - Narration duration: \`${audioDurationSeconds.toFixed(3)}s\`
 - Word count / approximate WPM: \`${diagnostic.wordCount}\` / \`${diagnostic.approximateWordsPerMinute}\`${diagnostic.mode === "short-adaptive" ? ` (natural-pacing \`${diagnostic.pacingStatus}\`${diagnostic.preferredWpmRange ? `; locale/profile WPM guidance \`${diagnostic.preferredWpmRange.join("–")}\`` : ""}; editorial duration \`${diagnostic.editorialDurationStatus}\`)\n- TTS pacing: initial \`${diagnostic.initialTtsSpeed}\`, selected \`${diagnostic.ttsSpeed}\`, \`${diagnostic.calibrationAttemptCount}\` cached measured attempt(s), normalization \`${diagnostic.speedNormalizationApplied}\`, calibration \`${diagnostic.calibrationStatus}\`; policy \`${diagnostic.calibrationPolicyVersion}\`${diagnostic.legacyCalibrationPolicy ? " (legacy cached audio reused; future generation uses current natural-pacing policy)" : ""}` : "\n- TTS pacing: full-form current policy preserved; no Short adaptive calibration."}
 - Canonical timing source: \`${timing.timingSource}\`
@@ -426,12 +597,12 @@ Review \`chatgpt-pre-image-review-request.md\`, \`semantic-quality-review.md\`, 
     "utf8",
   );
   await fs.writeFile(path.join(packRoot(input), "latest.json"), `${JSON.stringify({ schemaVersion: "veronica-pre-image-review-pack-latest.v1", packDir: path.basename(outputDir) })}\n`, "utf8");
-  const zipPath = path.resolve(packRoot(input), zipFileName(input, generatedAtMs));
+  const zipPath = path.resolve(packRoot(input), zipFileName(input, reviewPackMode, generatedAtMs));
   await execFileAsync("zip", ["-X", "-q", "-r", zipPath, path.basename(outputDir)], {
     cwd: packRoot(input),
   });
   await execFileAsync("unzip", ["-t", zipPath], { cwd: packRoot(input) });
-  return { packDir: outputDir, manifestPath: reviewManifestPath, readmePath, promptPath, zipPath, zipSha256: await fileHash(zipPath), generatedAtMs };
+  return { packDir: outputDir, manifestPath: reviewManifestPath, readmePath, promptPath, zipPath, zipSha256: await fileHash(zipPath), generatedAtMs, reviewPackMode };
 }
 
 export async function assertVeronicaPreImageReviewPackCurrent(input: PackInput): Promise<void> {
