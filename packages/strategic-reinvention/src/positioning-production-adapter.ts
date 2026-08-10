@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import {
   episodeManifestSchema,
@@ -13,9 +14,11 @@ import {
   writeTextAtomic,
 } from "@mediaforge/shared";
 import { z } from "zod";
+import { hardenVeronicaPreImagePlan, rebuildVeronicaFinalTreatmentState, VERONICA_PRE_IMAGE_SEMANTIC_GATE_VERSION } from "./veronica-pre-image-semantic-gate.js";
+import type { PositioningVisualPlanV2, VisualEvent } from "./positioning-visual-contracts.js";
 
 export const POSITIONING_PRODUCTION_ADAPTER_VERSION =
-  "veronicabenini-positioning-production-adapter.v1" as const;
+  "veronicabenini-positioning-production-adapter.v2" as const;
 
 const productionSceneSchema = z.object({
   sceneId: z.string().min(1),
@@ -32,6 +35,7 @@ const productionSceneSchema = z.object({
     camera: z.string().min(1),
     lighting: z.string().min(1),
     action: z.string().min(1),
+    actionOwnerRole: z.enum(["expert", "buyer", "shared", "none"]).optional(),
     props: z.array(z.string()),
   }).passthrough(),
 }).passthrough();
@@ -51,7 +55,10 @@ export const positioningProductionPlanSchema = z.object({
   aspectRatio: z.enum(["16:9", "9:16"]),
   scenes: z.array(productionSceneSchema).min(1),
   assets: z.array(productionAssetSchema).min(1),
-  validation: z.object({ status: z.literal("pass") }).passthrough(),
+  // A semantic-gate failure may still be compiled into a human review pack; it
+  // never becomes provider-ready because every resulting scene is explicitly
+  // `semantic-review-required`.
+  validation: z.object({ status: z.enum(["pass", "fail"]) }).passthrough(),
   planHash: z.string().regex(/^[a-f0-9]{64}$/u),
 }).passthrough();
 
@@ -173,10 +180,65 @@ export function compilePositioningProductionScenePlan(input: {
         aspectRatios: [asset.nativeAspectRatio],
         imagePrompt: asset.prompt,
         expectedImageFilenames: [`${sceneId}-${asset.nativeAspectRatio.replace(":", "x")}.png`],
-        qualityStatus: "approved",
+        qualityStatus: "semantic-review-required",
       };
     }),
   });
+}
+
+function waveDurationSeconds(bytes: Buffer): number | null {
+  if (bytes.length < 44 || bytes.subarray(0, 4).toString("ascii") !== "RIFF" || bytes.subarray(8, 12).toString("ascii") !== "WAVE") return null;
+  let offset = 12;
+  let byteRate: number | null = null;
+  let dataSize: number | null = null;
+  while (offset + 8 <= bytes.length) {
+    const id = bytes.subarray(offset, offset + 4).toString("ascii");
+    const size = bytes.readUInt32LE(offset + 4);
+    if (id === "fmt " && offset + 16 <= bytes.length) byteRate = bytes.readUInt32LE(offset + 16);
+    if (id === "data") { dataSize = size; break; }
+    offset += 8 + size + (size % 2);
+  }
+  return byteRate && dataSize !== null && byteRate > 0 ? dataSize / byteRate : null;
+}
+
+function reconcileScenePlan(scenePlan: ScenePlan, narrationDurationSeconds: number): ScenePlan {
+  const plannedTotal = scenePlan.scenes.at(-1)?.timing.endSeconds ?? 0;
+  if (plannedTotal <= 0) throw new Error("Veronica scene timing must have a positive planned duration.");
+  let cursor = 0;
+  return scenePlanSchema.parse({
+    ...scenePlan,
+    scenes: scenePlan.scenes.map((scene, index) => {
+      const planned = scene.timing.endSeconds - scene.timing.startSeconds;
+      const reconciled = index === scenePlan.scenes.length - 1
+        ? narrationDurationSeconds - cursor
+        : planned * narrationDurationSeconds / plannedTotal;
+      const timing = { startSeconds: cursor, endSeconds: cursor + reconciled };
+      cursor = timing.endSeconds;
+      return { ...scene, estimatedDurationSeconds: reconciled, plannedDurationSeconds: planned, reconciledDurationSeconds: reconciled, timingSource: "proportional-total-audio-reconciliation" as const, timingConfidence: "estimated" as const, timing };
+    }),
+  });
+}
+
+function retimeVisualEvents(input: { readonly events: readonly VisualEvent[]; readonly plan: PositioningVisualPlanV2; readonly scenePlan: ScenePlan }): readonly VisualEvent[] {
+  const timingByIndex = input.scenePlan.scenes.map((scene) => ({ startMs: Math.round(scene.timing.startSeconds * 1000), durationMs: Math.round((scene.timing.endSeconds - scene.timing.startSeconds) * 1000) }));
+  const sceneIndex = new Map(input.plan.scenes.map((scene, index) => [scene.sceneId, index] as const));
+  return input.events.map((event) => {
+    const index = sceneIndex.get(event.sceneId);
+    const timing = index === undefined ? undefined : timingByIndex[index];
+    const oldScene = input.plan.scenes[index ?? -1];
+    if (!timing || !oldScene) return event;
+    const oldEvents = input.events.filter((candidate) => candidate.sceneId === event.sceneId);
+    const ordinal = oldEvents.findIndex((candidate) => candidate.eventId === event.eventId);
+    const count = Math.max(1, oldEvents.length);
+    const durationMs = ordinal === count - 1 ? timing.durationMs - Math.floor(timing.durationMs / count) * (count - 1) : Math.floor(timing.durationMs / count);
+    const startMs = timing.startMs + Math.floor(timing.durationMs / count) * ordinal;
+    const base = { ...event, startMs, durationMs };
+    return { ...base, renderCacheKey: stableEventHash(base) };
+  });
+}
+
+function stableEventHash(event: Omit<VisualEvent, "renderCacheKey">): string {
+  return createHash("sha256").update(JSON.stringify(event)).digest("hex");
 }
 
 export async function preparePositioningProductionEpisode(
@@ -204,10 +266,37 @@ export async function preparePositioningProductionEpisode(
       `Veronica plan format ${plan.format} does not match requested ${input.variant} production.`,
     );
   }
-  const scenePlan = compilePositioningProductionScenePlan({
+  const provisionalScenePlan = compilePositioningProductionScenePlan({
     episodeId,
     narration,
     plan,
+  });
+  const hardened = hardenVeronicaPreImagePlan({
+    plan: plan as unknown as PositioningVisualPlanV2,
+    narrationByScene: provisionalScenePlan.scenes.map((scene) => scene.canonicalNarration),
+  });
+  const hardenedProductionPlan = positioningProductionPlanSchema.parse(hardened.plan as unknown);
+  const compiledScenePlan = compilePositioningProductionScenePlan({ episodeId, narration, plan: hardenedProductionPlan });
+  const narrationPath = path.join(episodeDir, "locales", input.language, input.variant, "audio", "narration.wav");
+  let measuredNarrationDurationSeconds: number | null = null;
+  try { measuredNarrationDurationSeconds = waveDurationSeconds(await fs.readFile(narrationPath)); } catch { /* TTS has not run yet; planning timing remains explicit. */ }
+  const scenePlan = measuredNarrationDurationSeconds === null ? compiledScenePlan : reconcileScenePlan(compiledScenePlan, measuredNarrationDurationSeconds);
+  // The final treatment owns all derived state. Rebuild, rather than retime a
+  // prior event list, after narration timing becomes canonical.
+  const canonicalPlan = rebuildVeronicaFinalTreatmentState({
+    plan: hardened.plan,
+    sceneTimings: scenePlan.scenes.map((scene) => ({ id: scene.id, timing: scene.timing })),
+  });
+  const retimedEvents = canonicalPlan.visualEvents;
+  // Scene-plan prompts are the provider-facing projection copied into the
+  // review pack, so replace their provisional prompts with final state-aware
+  // projections after final-treatment reconciliation.
+  const finalScenePlan = scenePlanSchema.parse({
+    ...scenePlan,
+    scenes: scenePlan.scenes.map((scene, index) => ({
+      ...scene,
+      imagePrompt: canonicalPlan.assets[index]?.prompt ?? scene.imagePrompt,
+    })),
   });
   const existing = (await fileExists(manifestPath))
     ? episodeManifestSchema.parse(
@@ -225,7 +314,7 @@ export async function preparePositioningProductionEpisode(
       pipelineRuns: [],
       createdAt: now,
     }),
-    scenePlan,
+    scenePlan: finalScenePlan,
     sourceMetadata: {
       ...(existing?.sourceMetadata && typeof existing.sourceMetadata === "object"
         ? existing.sourceMetadata
@@ -236,6 +325,9 @@ export async function preparePositioningProductionEpisode(
       locale: input.language,
       variant: input.variant,
       positioningPlanHash: plan.planHash,
+      canonicalPreImagePlanHash: canonicalPlan.planHash,
+      canonicalLocaleTimingArtifactPath: `locales/${input.language}/${input.variant}/canonical-timing.v1.json`,
+      timingPhase: measuredNarrationDurationSeconds === null ? "pre-tts-planning" : "post-tts-reconciled",
       syntheticCreatorLikenessAllowed: false,
     },
     updatedAt: now,
@@ -254,7 +346,12 @@ export async function preparePositioningProductionEpisode(
   );
   await Promise.all([
     writeJsonAtomic(manifestPath, manifest),
-    writeJsonAtomic(scenePlanPath, scenePlan),
+    writeJsonAtomic(scenePlanPath, finalScenePlan),
+    writeJsonAtomic(path.join(episodeDir, "locales", input.language, input.variant, "scene-plan.json"), finalScenePlan),
+    writeJsonAtomic(path.join(episodeDir, "source", "pre-image-semantic-plan.v1.json"), canonicalPlan),
+    writeJsonAtomic(path.join(episodeDir, "shared", "pre-image-semantic-reviews.v1.json"), { schemaVersion: "veronica-pre-image-semantic-reviews.v1", gateVersion: VERONICA_PRE_IMAGE_SEMANTIC_GATE_VERSION, reviews: hardened.reviews }),
+    writeJsonAtomic(path.join(episodeDir, "locales", input.language, input.variant, "canonical-timing.v1.json"), { schemaVersion: "veronica-canonical-locale-timing.v1", locale: input.language, variant: input.variant, timingPhase: measuredNarrationDurationSeconds === null ? "pre-tts-planning" : "post-tts-reconciled", timingSource: measuredNarrationDurationSeconds === null ? "planned" : "proportional-total-audio-reconciliation", narrationDurationSeconds: measuredNarrationDurationSeconds ?? finalScenePlan.scenes.at(-1)?.timing.endSeconds ?? 0, scenes: finalScenePlan.scenes.map((scene) => ({ sceneId: scene.id, plannedDurationSeconds: scene.plannedDurationSeconds ?? scene.estimatedDurationSeconds, reconciledDurationSeconds: scene.reconciledDurationSeconds ?? scene.estimatedDurationSeconds, startSeconds: scene.timing.startSeconds, endSeconds: scene.timing.endSeconds })) }),
+    writeJsonAtomic(path.join(episodeDir, "locales", input.language, input.variant, "retimed-visual-events.json"), { schemaVersion: "veronica-retimed-visual-events.v1", timingSource: measuredNarrationDurationSeconds === null ? "planned" : "proportional-total-audio-reconciliation", events: retimedEvents }),
     writeTextAtomic(canonicalScriptPath, narration),
     writeTextAtomic(languageScriptPath, narration),
   ]);

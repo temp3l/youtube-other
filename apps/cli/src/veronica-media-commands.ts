@@ -125,9 +125,9 @@ async function loadVeronicaSemanticInputs(input: {
   readonly canonicalNarration: string;
 }> {
   const episodeDir = path.join(path.resolve(input.workspace), input.episodeId);
-  const planPath = path.resolve(
-    input.planPath ?? path.join(episodeDir, "source", "visual-plan.json"),
-  );
+  const generatedPreImagePlan = path.join(episodeDir, "source", "pre-image-semantic-plan.v1.json");
+  const defaultPlanPath = await fs.access(generatedPreImagePlan).then(() => generatedPreImagePlan).catch(() => path.join(episodeDir, "source", "visual-plan.json"));
+  const planPath = path.resolve(input.planPath ?? defaultPlanPath);
   const plan = positioningProductionPlanSchema.parse(
     JSON.parse(await fs.readFile(planPath, "utf8")) as unknown,
   ) as unknown as PositioningVisualPlanV2;
@@ -201,7 +201,7 @@ export function registerVeronicaMediaCommands(program: Command): void {
     .description("Adapt an approved Veronica positioning plan to canonical image and speech episode artifacts")
     .requiredOption("--workspace <path>", "Episode workspace root")
     .requiredOption("--episode-id <id>", "Episode identifier")
-    .requiredOption("--language <code>", "Narration language")
+    .requiredOption("-L, --language <code>", "Narration language")
     .requiredOption("--variant <full|short>", "Production variant")
     .option("--plan <path>", "Positioning visual plan (defaults to source/visual-plan.json)")
     .option("--script <path>", "Narration script override")
@@ -369,7 +369,7 @@ export function registerVeronicaMediaCommands(program: Command): void {
         language: options.language,
         variant: options.variant,
       });
-      process.stdout.write(options.json ? `${JSON.stringify(result, null, 2)}\n` : `Created pre-image review pack: ${result.packDir}\n`);
+      process.stdout.write(options.json ? `${JSON.stringify(result, null, 2)}\n` : `Created pre-image review pack: ${result.packDir}\nZIP: ${result.zipPath}\n`);
     });
   images
     .command("generate")

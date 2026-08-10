@@ -458,7 +458,13 @@ export const sceneSchema = z.object({
   canonicalNarration: z.string(),
   sourceSegmentIds: z.array(transcriptSegmentIdSchema),
   estimatedDurationSeconds: z.number().nonnegative(),
+  /** Set only when a real scene/chunk boundary was measured from audio. */
   actualAudioDurationSeconds: z.number().nonnegative().optional(),
+  /** Planning duration is retained after TTS so proportional reconciliation is not mislabelled as measured audio. */
+  plannedDurationSeconds: z.number().nonnegative().optional(),
+  reconciledDurationSeconds: z.number().nonnegative().optional(),
+  timingSource: z.enum(["planned", "proportional-total-audio-reconciliation", "measured-scene-audio", "measured-narration-audio"]).optional(),
+  timingConfidence: z.enum(["planned", "estimated", "measured"]).optional(),
   timing: sceneTimingSchema,
   visualPurpose: z.string(),
   textRequirement: sceneTextRequirementSchema,
@@ -474,7 +480,11 @@ export const sceneSchema = z.object({
   aspectRatios: z.array(z.enum(["16:9", "9:16"])),
   imagePrompt: z.string(),
   expectedImageFilenames: z.array(z.string()),
-  qualityStatus: z.enum(["draft", "approved", "rejected"])
+  qualityStatus: z.enum([
+    "draft", "approved", "rejected",
+    "planned", "semantic-review-required", "pre-image-approved", "image-requested",
+    "image-generated", "post-image-review-required", "post-image-approved", "manual-review-required",
+  ])
 });
 export type Scene = z.infer<typeof sceneSchema>;
 

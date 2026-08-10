@@ -1094,13 +1094,15 @@ export function analyzeAssetReuse(input: {
   const semanticCompatibility = Math.round(
     (tokenScore * 0.6 + (input.source.strategy === input.targetStrategy ? 0.4 : 0)) * 10_000,
   ) / 10_000;
+  // Crop safety is only a necessary condition. Veronica's causal Shorts keep
+  // a protagonist and motif contract, so loose token overlap is review-only.
   const eligible =
-    Boolean(adaptation?.supported) && input.continuityCompatible && semanticCompatibility >= 0.25;
+    Boolean(adaptation?.supported) && input.continuityCompatible && semanticCompatibility >= 0.8;
   const reason = !adaptation?.supported
     ? "unsafe-aspect-ratio-adaptation"
     : !input.continuityCompatible
       ? "subject-continuity-incompatible"
-      : semanticCompatibility < 0.25
+      : semanticCompatibility < 0.8
         ? "semantic-purpose-insufficiently-compatible"
         : "semantic purpose, continuity, and protected crop regions are compatible";
   return {
@@ -1120,6 +1122,7 @@ export function analyzeAssetReuse(input: {
         : "subject-aware-crop"
       : "none",
     semanticCompatibility,
+    decision: eligible ? "AUTO_REUSE_APPROVED" : semanticCompatibility >= 0.4 ? "REUSE_REQUIRES_SEMANTIC_REVIEW" : "REUSE_REJECTED",
     reason,
   };
 }

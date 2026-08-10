@@ -753,7 +753,7 @@ export async function persistVeronicaSemanticImagePromptReview(input: {
       const asset = input.plan.assets[index];
       const prompt = asset ? promptByAsset.get(asset.assetId) : undefined;
       if (!asset || !prompt) throw new Error(`Missing Veronica prompt for scene ${scene.id}.`);
-      return { ...scene, imagePrompt: prompt.prompt, qualityStatus: "approved" };
+      return { ...scene, imagePrompt: prompt.prompt, qualityStatus: "semantic-review-required" };
     }),
   });
   const paths = resolveVeronicaSemanticImagePromptPaths(input.episodeDir);

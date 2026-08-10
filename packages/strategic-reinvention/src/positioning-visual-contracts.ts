@@ -53,6 +53,9 @@ export type VisualStrategy =
   | "abstract-conceptual"
   | "semantic-diagram";
 
+/** The semantic owner of the scene's primary visible action. */
+export type VeronicaActionOwnerRole = "expert" | "buyer" | "shared" | "none";
+
 export type ProgressionStage =
   | "COLD_OPEN"
   | "HOOK"
@@ -249,6 +252,8 @@ export interface PositioningVisualTreatment {
   readonly camera: string;
   readonly lighting: string;
   readonly action: string;
+  /** Explicit when remediation knows who performs the action; never inferred from buyer perspective. */
+  readonly actionOwnerRole?: VeronicaActionOwnerRole;
   readonly props: readonly string[];
   readonly motionOpportunities: readonly VisualEventKind[];
   readonly diagram: DiagramTopology | null;
@@ -341,6 +346,8 @@ export interface PlannedScene {
   readonly continuityGroup?: string;
   readonly callbackToBeatId?: string;
   readonly callbackPurpose?: string;
+  /** A still must show one readable state or one decisive visible transition. */
+  readonly stateComplexity?: "SINGLE_STATE" | "DECISIVE_TRANSITION_MOMENT" | "MULTI_STATE_REQUIRED";
 }
 
 export interface DiversityMetrics {
@@ -359,6 +366,38 @@ export interface DiversityMetrics {
   readonly hookVsScene1Similarity: number | null;
   readonly status: "pass" | "fail";
   readonly failures: readonly string[];
+  /** Final-treatment viewer-visible diagnostics; optional only for legacy V2 plans. */
+  readonly intentionalMotifReuseRate?: number;
+  readonly accidentalVisualRepetitionRate?: number;
+  readonly consecutiveViewerVisibleSimilarity?: { readonly mean: number; readonly maximum: number; readonly violatingPairs: readonly string[] };
+  readonly environmentFamilyReuseRate?: number;
+  readonly cameraFamilyReuseRate?: number;
+  readonly interactionFamilyReuseRate?: number;
+  readonly motifContinuityCoverage?: number;
+  /** Adjacent transition reuse rates use normalized final viewer-visible families. */
+  readonly continuityIdentityReuseRate?: number;
+  readonly harmfulRepetitionPairs?: readonly string[];
+  readonly viewerVisibleFamilies?: readonly {
+    readonly sceneId: string;
+    readonly strategyFamily: string;
+    readonly environmentFamily: string;
+    readonly compositionFamily: string;
+    readonly cameraFamily: string;
+    readonly interactionFamily: string;
+    readonly dominantObjectFamily: string;
+    readonly motionFamily: string;
+    readonly diagramFamily: string;
+    readonly motifFamily: string;
+    readonly continuityIdentityFamily: string;
+  }[];
+}
+
+export interface SelectedRecurringMotif {
+  readonly schemaVersion: "veronica-selected-recurring-motif.v1";
+  readonly family: string;
+  readonly concept: string;
+  readonly source: "narration-native" | "visual-vocabulary";
+  readonly sceneIds: readonly string[];
 }
 
 export interface CadenceMetrics {
@@ -410,6 +449,8 @@ export interface AssetReuseDecision {
   readonly reuseMode: "vertical-derivative" | "graphical-derivative" | "not-reusable";
   readonly cropAdaptation: "subject-aware-crop" | "center-crop" | "none";
   readonly semanticCompatibility: number;
+  /** Veronica does not turn loose similarity into an automatic provider reuse. */
+  readonly decision?: "AUTO_REUSE_APPROVED" | "REUSE_REQUIRES_SEMANTIC_REVIEW" | "REUSE_REJECTED";
   readonly reason: string;
 }
 
@@ -430,6 +471,8 @@ export interface PositioningVisualPlanV2 {
   readonly renderEventPlanHash: string;
   readonly localizedTitleArtifact: TitleTranscreationQa;
   readonly visualVocabulary: VisualVocabulary;
+  /** Persisted final motif selection, consumed by finalization and review. */
+  readonly selectedRecurringMotif?: SelectedRecurringMotif;
   /** Canonical short/long shared semantic visual language projection. */
   readonly visualStoryBible: VeronicaVisualStoryBible;
   /** Present only for 16:9 plans; short plans remain beat-driven. */

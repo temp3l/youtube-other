@@ -56,7 +56,7 @@ describe("positioning production adapter", () => {
     expect(result.scenes[0]?.negativeConstraints).toContain(
       "no depiction or synthetic likeness of Veronica Benini",
     );
-    expect(result.scenes.every((scene) => scene.qualityStatus === "approved")).toBe(true);
+    expect(result.scenes.every((scene) => scene.qualityStatus === "semantic-review-required")).toBe(true);
   });
 
   it("writes the shared scene plan and locale/variant script used by existing pipelines", async () => {
