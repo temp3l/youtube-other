@@ -15,7 +15,7 @@ const reviewManifestSchema = z.strictObject({
   providerRequestsAllowed: z.literal(false), sources: z.array(z.strictObject({ name: z.string().min(1), path: z.string().min(1), sha256: z.string().regex(/^[a-f0-9]{64}$/u) })).min(1),
   artifactHashes: z.record(z.string(), z.string().regex(/^[a-f0-9]{64}$/u)),
   packFileHashes: z.record(z.string(), z.string().regex(/^[a-f0-9]{64}$/u)),
-  narrationDiagnostic: z.strictObject({ wordCount: z.number().int().nonnegative(), narrationDurationSeconds: z.number().positive(), approximateWordsPerMinute: z.number().nonnegative(), timingSource: z.string().min(1), initialTtsSpeed: z.number().positive(), ttsSpeed: z.number().positive(), calibrationAttemptCount: z.number().int().positive(), speedNormalizationApplied: z.boolean(), preferredDurationRangeSeconds: z.tuple([z.number().positive(), z.number().positive()]), preferredWpmRange: z.tuple([z.number().positive(), z.number().positive()]).optional(), pacingStatus: z.enum(["within-target", "slightly-fast", "fast", "very-fast", "slightly-slow", "slow"]) }),
+  narrationDiagnostic: z.strictObject({ wordCount: z.number().int().nonnegative(), narrationDurationSeconds: z.number().positive(), approximateWordsPerMinute: z.number().nonnegative(), timingSource: z.string().min(1), initialTtsSpeed: z.number().positive(), ttsSpeed: z.number().positive(), calibrationAttemptCount: z.number().int().positive(), speedNormalizationApplied: z.boolean(), preferredDurationRangeSeconds: z.tuple([z.number().positive(), z.number().positive()]), preferredWpmRange: z.tuple([z.number().positive(), z.number().positive()]).optional(), pacingStatus: z.enum(["within-target", "slightly-fast", "fast", "very-fast", "slightly-slow", "slow"]), durationAcceptanceStatus: z.enum(["WITHIN_PREFERRED_RANGE", "WITHIN_ACCEPTANCE_TOLERANCE", "PACING_TARGET_MISSED"]) }),
 });
 
 export interface VeronicaPreImageReviewPackResult {
@@ -100,7 +100,7 @@ function providerPromptsMarkdown(scenes: ReturnType<typeof scenePlanSchema.parse
 
 function narrationDiagnostic(narrationDurationSeconds: number, timingSource: string, calibration: ReturnType<typeof veronicaShortPacingCalibrationSchema.parse>) {
   const initial = calibration.attempts[0]!;
-  return { wordCount: calibration.wordCount, narrationDurationSeconds, approximateWordsPerMinute: Math.round(calibration.wordCount / narrationDurationSeconds * 60 * 10) / 10, timingSource, initialTtsSpeed: initial.requestedSpeed, ttsSpeed: calibration.selectedSpeed, calibrationAttemptCount: calibration.attempts.length, speedNormalizationApplied: calibration.speedNormalizationApplied, preferredDurationRangeSeconds: calibration.targetDurationRange, ...(calibration.preferredWpmRange ? { preferredWpmRange: calibration.preferredWpmRange } : {}), pacingStatus: calibration.selectedPacingStatus };
+  return { wordCount: calibration.wordCount, narrationDurationSeconds, approximateWordsPerMinute: Math.round(calibration.wordCount / narrationDurationSeconds * 60 * 10) / 10, timingSource, initialTtsSpeed: initial.requestedSpeed, ttsSpeed: calibration.selectedSpeed, calibrationAttemptCount: calibration.attempts.length, speedNormalizationApplied: calibration.speedNormalizationApplied, preferredDurationRangeSeconds: calibration.targetDurationRange, ...(calibration.preferredWpmRange ? { preferredWpmRange: calibration.preferredWpmRange } : {}), pacingStatus: calibration.selectedPacingStatus, durationAcceptanceStatus: calibration.selectedDurationAcceptanceStatus };
 }
 
 export async function createVeronicaPreImageReviewPack(
@@ -163,7 +163,7 @@ export async function createVeronicaPreImageReviewPack(
   await Promise.all(files.map(([fileName, sourcePath]) => fs.copyFile(sourcePath, path.join(outputDir, fileName))));
   const promptPath = path.join(outputDir, "chatgpt-pre-image-review-request.md");
   const promptsPath = path.join(outputDir, "provider-image-prompts.md");
-  const promptMarkdown = promptReviewMarkdown({ narration, pacingSummary: `${diagnostic.wordCount} words; ${diagnostic.narrationDurationSeconds.toFixed(3)}s; ${diagnostic.approximateWordsPerMinute} WPM; ${diagnostic.pacingStatus}; selected speed ${diagnostic.ttsSpeed}; calibration ${diagnostic.speedNormalizationApplied ? "applied" : "not required"}.`, scenes: scenePlan.scenes, findingsByScene, stateByScene, actorByScene });
+  const promptMarkdown = promptReviewMarkdown({ narration, pacingSummary: `${diagnostic.wordCount} words; ${diagnostic.narrationDurationSeconds.toFixed(3)}s; ${diagnostic.approximateWordsPerMinute} WPM; ${diagnostic.pacingStatus}; ${diagnostic.durationAcceptanceStatus}; selected speed ${diagnostic.ttsSpeed}; calibration ${diagnostic.speedNormalizationApplied ? "applied" : "not required"}.`, scenes: scenePlan.scenes, findingsByScene, stateByScene, actorByScene });
   await Promise.all([
     fs.writeFile(promptPath, promptMarkdown, "utf8"),
     fs.writeFile(promptsPath, providerPromptsMarkdown(scenePlan.scenes, stateByScene, actorByScene), "utf8"),
@@ -205,7 +205,7 @@ export async function createVeronicaPreImageReviewPack(
 - Locale / variant: \`${input.language}/${input.variant}\`
 - Narration duration: \`${timing.narrationDurationSeconds.toFixed(3)}s\`
 - Word count / approximate WPM: \`${diagnostic.wordCount}\` / \`${diagnostic.approximateWordsPerMinute}\` (\`${diagnostic.pacingStatus}\`; preferred duration \`${diagnostic.preferredDurationRangeSeconds.join("–")}s\`${diagnostic.preferredWpmRange ? `; WPM guidance \`${diagnostic.preferredWpmRange.join("–")}\`` : ""})
-- TTS pacing: initial \`${diagnostic.initialTtsSpeed}\`, selected \`${diagnostic.ttsSpeed}\`, \`${diagnostic.calibrationAttemptCount}\` measured attempt(s), normalization \`${diagnostic.speedNormalizationApplied}\`
+- TTS pacing: initial \`${diagnostic.initialTtsSpeed}\`, selected \`${diagnostic.ttsSpeed}\`, \`${diagnostic.calibrationAttemptCount}\` measured attempt(s), normalization \`${diagnostic.speedNormalizationApplied}\`, acceptance \`${diagnostic.durationAcceptanceStatus}\`
 - Canonical timing source: \`${timing.timingSource}\`
 - Scene count: \`${scenePlan.scenes.length}\`
 - Selected recurring motif: \`${finalPlan.selectedRecurringMotif?.concept ?? "none"}\`
