@@ -1,0 +1,176 @@
+{
+  "schemaVersion": "production-hardening.v1",
+  "fixtureId": "007-save-file-knew-his-real-name:full",
+  "genre": "dark-truth",
+  "variant": "full",
+  "status": "passed",
+  "policy": {
+    "schemaVersion": "cross-genre-production-policy.v1",
+    "genre": "dark-truth",
+    "variant": "full",
+    "aspectRatio": "16:9",
+    "stateRepresentation": "multi-state-first-class",
+    "multiStateMapsAllowed": false,
+    "visualDensityPolicy": "darktruth-visual-retention-full",
+    "diversityEnforcement": "diagnostic-no-factual-mutation",
+    "repetitionSensitivity": "atmosphere-aware",
+    "pacing": {
+      "mode": "static-guidance",
+      "policyVersion": "darktruth-full-existing-pacing.v1",
+      "preferredWpmRange": [
+        175,
+        185
+      ]
+    },
+    "providerProjectionVersion": "semantic-actor-provider-projection.v1",
+    "diversityNormalizationVersion": "viewer-visible-families.v1",
+    "reusePolicyVersion": "semantic-asset-reuse.v1"
+  },
+  "hardeningFingerprint": {
+    "schemaVersion": "production-hardening-fingerprint.v1",
+    "taskId": "offline-production-hardening-fixture",
+    "genre": "dark-truth",
+    "variant": "full",
+    "policyFingerprint": "5aa4a39dbf240ea0fc3d64d67f2fa4451ed5526b5d2260a40918cb62c08bf1bc",
+    "sharedPrimitiveFingerprint": "3d4d306c2d4c21d00506f0d6531109c2481815eaf6fe07f3f89dfbffee8e0170",
+    "fingerprint": "d69b425471a74b177c81c227ec0c01c41566c873b5ce236d6ec25e12134c2b4a"
+  },
+  "timing": {
+    "schemaVersion": "canonical-production-timing.v1",
+    "timingPhase": "post-tts-reconciled",
+    "timingSource": "proportional-total-audio-reconciliation",
+    "selectedAudioHash": "ff2f4ad770eb6ca760b7bb44df471caf803c3911ce8eea5c988a8eaef263aaae",
+    "narrationDurationSeconds": 420,
+    "scenes": [
+      {
+        "sceneId": "darktruth-007-cartridge",
+        "startSeconds": 0,
+        "endSeconds": 140
+      },
+      {
+        "sceneId": "darktruth-007-save-files",
+        "startSeconds": 140,
+        "endSeconds": 280
+      },
+      {
+        "sceneId": "darktruth-007-impossible-footage",
+        "startSeconds": 280,
+        "endSeconds": 420
+      }
+    ],
+    "timingHash": "6de40939d7adcd106c46ee5746849bd2dce40fa4c9e5190d4947cef6967f34e7"
+  },
+  "treatmentHash": "e1838aced6a49deb162b1904cd182980fe4672033ae5adad346162d8a496d85d",
+  "events": [
+    {
+      "eventId": "darktruth-007-cartridge:hold",
+      "sceneId": "darktruth-007-cartridge",
+      "category": "hold",
+      "genreEventType": "hold",
+      "treatmentHash": "b30feedd4a06c21bbb10eb4701678a923ef002db6409b488b0e922f1e4d00261",
+      "startSeconds": 0,
+      "endSeconds": 140,
+      "stateIds": []
+    },
+    {
+      "eventId": "darktruth-007-save-files:decisive-transition",
+      "sceneId": "darktruth-007-save-files",
+      "category": "decisive-transition",
+      "genreEventType": "threat-reveal",
+      "treatmentHash": "752a3bb002ccd8e1f272b205d9350da6757cf4cde6924ff05fe65082c8581b7d",
+      "startSeconds": 140,
+      "endSeconds": 280,
+      "stateIds": []
+    },
+    {
+      "eventId": "darktruth-007-impossible-footage:multi-state-progression",
+      "sceneId": "darktruth-007-impossible-footage",
+      "category": "multi-state-progression",
+      "genreEventType": "setup-to-reveal",
+      "treatmentHash": "e4b3370dffbd8349b913942c830bc38f5f9fc5ee7dac1eea341e979bb078c13f",
+      "startSeconds": 280,
+      "endSeconds": 420,
+      "stateIds": []
+    }
+  ],
+  "diversity": {
+    "intentionalContinuityPairs": [
+      "darktruth-007-cartridge->darktruth-007-save-files",
+      "darktruth-007-save-files->darktruth-007-impossible-footage"
+    ],
+    "harmfulRepetitionPairs": [],
+    "normalizedFamilies": [
+      {
+        "strategy": "grounded-human-scenario",
+        "environment": "flea-market",
+        "composition": "object-handoff",
+        "camera": "close-medium",
+        "interaction": "protagonist-buys-object",
+        "dominantObject": "unlabelled-cartridge",
+        "motion": "handoff",
+        "diagram": "none",
+        "motif": "corrupted-game-signal",
+        "continuityIdentity": "felix-and-cartridge"
+      },
+      {
+        "strategy": "evidence-reveal",
+        "environment": "cramped-retro-apartment",
+        "composition": "protagonist-and-impossible-display",
+        "camera": "over-shoulder",
+        "interaction": "phenomenon-targets-protagonist",
+        "dominantObject": "save-file-screen",
+        "motion": "name-appears",
+        "diagram": "none",
+        "motif": "corrupted-game-signal",
+        "continuityIdentity": "felix-and-cartridge"
+      },
+      {
+        "strategy": "setup-to-reveal",
+        "environment": "corrupted-apartment",
+        "composition": "room-with-impossible-second-view",
+        "camera": "screen-to-room-comparison",
+        "interaction": "phenomenon-observes-protagonist",
+        "dominantObject": "impossible-footage-folder",
+        "motion": "sequential-reveal",
+        "diagram": "none",
+        "motif": "corrupted-game-signal",
+        "continuityIdentity": "felix-and-cartridge"
+      }
+    ]
+  },
+  "reuseDecisions": [
+    {
+      "allowed": true,
+      "reasons": [],
+      "decisionHash": "8a1c83632264af3030d56db7bdea26f2a21a3fb4a47ce1e7990a0c687b045484"
+    }
+  ],
+  "findings": [],
+  "reviewIntegrityHash": "49704ee3060d0c2d984df9c80ff54bf882c1349be4b769f5f1d2f91dbcc4ce15",
+  "pacingCalibrationPlanHash": null,
+  "providerReadiness": {
+    "allowed": false,
+    "blockers": [
+      "HUMAN_APPROVAL_MISSING"
+    ]
+  },
+  "diagnostics": {
+    "genreResolved": "dark-truth",
+    "variantResolved": "full",
+    "semanticPolicyResolved": "cross-genre-production-policy.v1",
+    "hardeningFingerprint": "d69b425471a74b177c81c227ec0c01c41566c873b5ce236d6ec25e12134c2b4a",
+    "actionOwnerResolved": true,
+    "statePolicyResolved": "multi-state-first-class",
+    "motifContinuityPolicyResolved": "atmosphere-aware",
+    "diversityPolicyResolved": "viewer-visible-families.v1",
+    "reusePolicyResolved": "semantic-asset-reuse.v1",
+    "pacingPolicyResolved": "darktruth-full-existing-pacing.v1",
+    "calibrationPlanResolved": false,
+    "toleranceResolved": "not-enabled",
+    "canonicalTimingSource": "proportional-total-audio-reconciliation",
+    "reviewProviderReady": false,
+    "fixtureDryRunResult": "passed"
+  },
+  "liveTtsProviderCalls": 0,
+  "imageProviderCalls": 0
+}

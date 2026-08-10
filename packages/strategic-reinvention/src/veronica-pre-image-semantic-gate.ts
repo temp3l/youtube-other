@@ -169,6 +169,7 @@ function legacyActionOwnerRole(
 ): VeronicaActionOwnerRole | undefined {
   if (treatment.actionOwnerRole) return treatment.actionOwnerRole;
   const text = `${treatment.subjectRequirement} ${treatment.action}`;
+  if (/\b(?:two alternatives|meaningful contrast|simultaneous comparison)\b/iu.test(treatment.action)) return "none";
   if (/\b(?:buyer|customer|prospect|decision maker)\b/iu.test(text)) return "buyer";
   if (/\b(?:expert|professional)\b/iu.test(text)) return "expert";
   switch (treatment.strategy) {
@@ -451,7 +452,10 @@ export function hardenVeronicaPreImagePlan(input: { readonly plan: PositioningVi
       const actionOwnerRole = legacyActionOwnerRole(scene.treatment);
       return { ...scene, narrationAnchor: narration, treatment: refreshFinalTreatmentDerivedState(scene.treatment, actionOwnerRole) };
     }
-    if (!proposal) return scene;
+    if (!proposal) {
+      const actionOwnerRole = legacyActionOwnerRole(scene.treatment);
+      return { ...scene, narrationAnchor: narration, treatment: refreshFinalTreatmentDerivedState(scene.treatment, actionOwnerRole) };
+    }
     const treatmentBase = { ...scene.treatment, strategy: proposal.strategy, narrativeBeat: proposal.thesis, subjectRequirement: "recurring occupation-neutral expert and buyer", actionOwnerRole: proposal.actionOwnerRole, environment: proposal.environment, composition: proposal.composition, camera: proposal.camera, action: proposal.action, props: proposal.props, motionOpportunities: proposal.motion, diagram: null };
     const treatment: PositioningVisualTreatment = refreshFinalTreatmentDerivedState({ ...treatmentBase, grammar: { ...scene.treatment.grammar, continuityIdentityId: `${input.plan.contentId.toLowerCase()}-causal-arc` } } as PositioningVisualTreatment, proposal.actionOwnerRole);
     return { ...scene, narrationAnchor: narration, treatment, visibleThesis: proposal.thesis, newInformation: `Adds the next causal doorway/recognition relationship: ${proposal.thesis}`, visualFamily: "human-decision" as const, continuityGroup: `${input.plan.contentId.toLowerCase()}-causal-arc` };

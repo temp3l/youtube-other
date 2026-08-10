@@ -21,8 +21,10 @@ import {
   createTaskRegistry,
   type TaskRegistration,
   type TaskImplementation,
+  type TaskFingerprintMaterial,
 } from "@mediaforge/workflow-engine";
 import {
+  createProductionHardeningTaskMaterial,
   normalizeWhitespace,
   sceneFilename,
   writeJsonAtomic,
@@ -42,6 +44,11 @@ import {
   loadHistoryVisualPlanV35,
   syncHistoryProductionArtifactsV35,
 } from "./history-render-adapter-v35.js";
+import {
+  createHistoryShortTtsCalibrationPlan,
+  planHistoryShortVisuals,
+  resolveHistoryShortNarration,
+} from "./history-short-workflow.js";
 
 export const HISTORY_TASK_REGISTRY_VERSION =
   "history.task-registry.v2" as const;
@@ -402,6 +409,42 @@ export const HISTORY_TASK_IDS = tasks.map((task) =>
 export const HISTORY_IMPORTED_CHECKPOINT_TASK_IDS = tasks
   .filter((task) => task.importedCheckpoint)
   .map((task) => taskIdSchema.parse(task.id)) satisfies readonly TaskId[];
+
+const historyHardeningTaskIds = new Set<string>([
+  "history.script-extraction",
+  "history.script-repair",
+  "history.pronunciation-planning",
+  "history.visual-planning",
+  "history.map-timeline-planning",
+  "history.localization",
+  "history.audio-generation",
+  "history.chapter-alignment",
+  "history.image-generation",
+  "history.video-rendering",
+  "history.thumbnail-rendering",
+  "history.publish-validation",
+]);
+
+/** Mandatory canonical-task material for every History output affected by the
+ * shared hardening policy. Downstream task fingerprints additionally inherit
+ * dependency fingerprints through WorkflowOperator. */
+export function createHistoryFingerprintMaterial(input: {
+  readonly variant: "full" | "short";
+}): Readonly<Record<string, TaskFingerprintMaterial>> {
+  return Object.fromEntries(
+    HISTORY_TASK_IDS.filter((taskId) => historyHardeningTaskIds.has(taskId)).map(
+      (taskId) => [
+        taskId,
+        createProductionHardeningTaskMaterial({
+          taskId,
+          genre: "history",
+          variant: input.variant,
+        }),
+      ],
+    ),
+  ) as Readonly<Record<string, TaskFingerprintMaterial>>;
+}
+
 export function createHistoryTaskRegistrations(
   implementations: Readonly<Partial<Record<string, TaskImplementation>>> = {}
 ): readonly TaskRegistration[] {
@@ -436,10 +479,20 @@ export const historyVisualV2WorkflowDefinition: WorkflowDefinition =
   });
 
 function createHistoryProductionImplementations(
-  root: string
+  root: string,
+  variant: "full" | "short",
 ): Readonly<Partial<Record<string, TaskImplementation>>> {
   const source = (file: string) => path.join(root, "source", file);
-  const scriptPath = path.join(root, "languages", "script-en.md");
+  const longScriptPath = path.join(root, "languages", "script-en.md");
+  const shortNarrationPath = path.join(
+    root,
+    "locales",
+    "en",
+    "short",
+    "narration",
+    "narration.md",
+  );
+  const scriptPath = variant === "short" ? shortNarrationPath : longScriptPath;
   return {
     "history.source-assessment": async () => {
       const declared = (await readJson(source("research-sources.json"))) as {
@@ -488,7 +541,7 @@ function createHistoryProductionImplementations(
     },
     "history.claim-extraction": async () => {
       const narration = normalizeWhitespace(
-        await fs.readFile(scriptPath, "utf8")
+        await fs.readFile(longScriptPath, "utf8")
       );
       const assessment = (await readJson(source("source-assessment.json"))) as {
         sources?: Array<{ id: string }>;
@@ -568,7 +621,7 @@ function createHistoryProductionImplementations(
       };
     },
     "history.quotation-verification": async () => {
-      const narration = await fs.readFile(scriptPath, "utf8");
+      const narration = await fs.readFile(longScriptPath, "utf8");
       const quotations = [...narration.matchAll(/[“"]([^”"\n]{2,500})[”"]/gu)]
         .map((match) => match[1]!)
         .filter(Boolean);
@@ -586,7 +639,7 @@ function createHistoryProductionImplementations(
     "history.factuality-audit": async () => {
       const [narration, claimsRaw, chronologyRaw, quotationsRaw] =
         await Promise.all([
-          fs.readFile(scriptPath, "utf8"),
+          fs.readFile(longScriptPath, "utf8"),
           readJson(source("claims.json")),
           readJson(source("chronology.json")),
           readJson(source("verified-quotations.json")),
@@ -622,7 +675,21 @@ function createHistoryProductionImplementations(
       };
       if (audit.status !== "passed")
         throw new Error("Script repair requires a passing factuality audit.");
-      await fs.copyFile(scriptPath, source("verified-narration-en.md"));
+      if (variant === "short") {
+        const dedicatedPath = source("short-narration-en.md");
+        const dedicatedNarration = (await fileExists(dedicatedPath))
+          ? await fs.readFile(dedicatedPath, "utf8")
+          : null;
+        const resolved = resolveHistoryShortNarration({
+          trustedLongNarration: await fs.readFile(longScriptPath, "utf8"),
+          dedicatedShortNarration: dedicatedNarration,
+        });
+        await fs.mkdir(path.dirname(shortNarrationPath), { recursive: true });
+        await fs.writeFile(shortNarrationPath, `${resolved.narration}\n`, "utf8");
+        await writeJsonAtomic(source("history-short-narration-en.json"), resolved);
+      } else {
+        await fs.copyFile(longScriptPath, source("verified-narration-en.md"));
+      }
       return { outputArtifacts: [], warnings: [] };
     },
     "history.pronunciation-planning": async () => {
@@ -636,6 +703,29 @@ function createHistoryProductionImplementations(
       };
     },
     "history.visual-planning": async () => {
+      if (variant === "short") {
+        const narration = resolveHistoryShortNarration({
+          trustedLongNarration: await fs.readFile(longScriptPath, "utf8"),
+          dedicatedShortNarration: await fs.readFile(shortNarrationPath, "utf8"),
+        });
+        const shortPlan = planHistoryShortVisuals({ narration });
+        await fs.mkdir(path.join(root, "shared", "short"), { recursive: true });
+        await fs.mkdir(path.join(root, "locales", "en", "short"), { recursive: true });
+        await writeJsonAtomic(
+          path.join(root, "shared", "short", "scenes.json"),
+          shortPlan,
+        );
+        await writeJsonAtomic(
+          path.join(root, "locales", "en", "short", "visual-plan.json"),
+          shortPlan,
+        );
+        return {
+          outputArtifacts: [],
+          warnings: [
+            `History Short planner created ${shortPlan.sceneCount} first-class 9:16 scenes from ${narration.sourceMode}.`,
+          ],
+        };
+      }
       const v35Plan = await loadHistoryVisualPlanV35(root);
       if (v35Plan) {
         const { derivative } = await syncHistoryProductionArtifactsV35({
@@ -773,20 +863,39 @@ function createHistoryProductionImplementations(
     "history.localization": async () => {
       await writeJsonAtomic(source("localization-en.json"), {
         locale: "en",
-        sourceScript: "languages/script-en.md",
-        status: "canonical-source-retained",
+        variant,
+        sourceScript:
+          variant === "short"
+            ? "locales/en/short/narration/narration.md"
+            : "languages/script-en.md",
+        status:
+          variant === "short"
+            ? "canonical-short-narration-retained"
+            : "canonical-source-retained",
       });
       return { outputArtifacts: [], warnings: [] };
     },
-    "history.audio-generation": externalArtifactTask(
-      root,
-      "locales/en/full/audio/narration.wav",
-      "pnpm mediaforge -- --tts-provider openai-compatible audio generate <episode-id>"
-    ),
+    "history.audio-generation": async (context) => {
+      if (variant === "short") {
+        const narration = resolveHistoryShortNarration({
+          trustedLongNarration: await fs.readFile(longScriptPath, "utf8"),
+          dedicatedShortNarration: await fs.readFile(shortNarrationPath, "utf8"),
+        });
+        await writeJsonAtomic(
+          path.join(root, "locales", "en", "short", "audio", "calibration-plan.json"),
+          createHistoryShortTtsCalibrationPlan(narration),
+        );
+      }
+      return externalArtifactTask(
+        root,
+        `locales/en/${variant}/audio/narration.wav`,
+        "pnpm mediaforge -- --tts-provider openai-compatible audio generate <episode-id>"
+      )(context);
+    },
     "history.chapter-alignment": async () => {
       if (
         !(await fileExists(
-          path.join(root, "locales", "en", "full", "audio", "narration.wav")
+          path.join(root, "locales", "en", variant, "audio", "narration.wav")
         ))
       )
         throw new Error(
@@ -803,24 +912,24 @@ function createHistoryProductionImplementations(
       await assertHistoryVisualApproval(root);
       return externalArtifactTask(
         root,
-        "shared/images/generated",
+        variant === "short" ? "shared/short/images/generated" : "shared/images/generated",
         "pnpm mediaforge -- images generate --episode <episode-id>"
       )(context);
     },
     "history.video-rendering": externalArtifactTask(
       root,
-      "locales/en/full/renders/youtube/youtube-16x9-clean.mp4",
+      `locales/en/${variant}/renders/youtube/youtube-${variant === "short" ? "9x16" : "16x9"}-clean.mp4`,
       "pnpm mediaforge -- render <episode-id> --profile youtube"
     ),
     "history.thumbnail-rendering": externalArtifactTask(
       root,
-      "locales/en/full/thumbnails/thumbnail.png",
+      `locales/en/${variant}/thumbnails/thumbnail.png`,
       "pnpm mediaforge -- thumbnails generate --episode-slug <episode-id> --locale en --format full"
     ),
     "history.publish-validation": async () => {
       const required = [
-        "locales/en/full/renders/youtube/youtube-16x9-clean.mp4",
-        "locales/en/full/thumbnails/thumbnail.png",
+        `locales/en/${variant}/renders/youtube/youtube-${variant === "short" ? "9x16" : "16x9"}-clean.mp4`,
+        `locales/en/${variant}/thumbnails/thumbnail.png`,
       ];
       const missing = (
         await Promise.all(
@@ -869,7 +978,7 @@ export function createHistoryWorkflowOperator(request: {
     workflow: historyWorkflowDefinition,
     registry: createTaskRegistry(
       createHistoryTaskRegistrations({
-        ...createHistoryProductionImplementations(request.unitRoot),
+        ...createHistoryProductionImplementations(request.unitRoot, variant),
         "history.research-brief": async () => {
           const metadata = zHistoryImportMetadata.parse(
             JSON.parse(
@@ -923,6 +1032,7 @@ export function createHistoryWorkflowOperator(request: {
       locale,
       variant,
     },
+    fingerprintMaterial: createHistoryFingerprintMaterial({ variant }),
     ...(request.now ? { now: request.now } : {}),
   });
 }

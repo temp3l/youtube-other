@@ -75,6 +75,10 @@ import {
   type VeronicaVisualQaBrief,
   type VeronicaVisualQaEvaluator,
 } from "./veronica-post-generation-visual-qa.js";
+import {
+  inspectTechnicalImagePixels,
+  resolveTechnicalPixelQaPolicy,
+} from "./technical-pixel-qa.js";
 import { getOrResolveHistoricalVisualDirectionForEpisode } from "./history-visual-direction-bridge-v1.js";
 import type { HistoricalVisualDirectionProfileV1 } from "@mediaforge/history";
 import {
@@ -1059,12 +1063,12 @@ export interface EpisodeImageMediaContext extends MediaStageContext {
   readonly scenePlanningConfigFingerprint?: string;
   readonly imagePlanningConfigFingerprint?: string;
   readonly shortMediaRequirements?: ShortMediaRequirements;
-  readonly contentGenre?: "history" | "veronicabenini";
+  readonly contentGenre?: "history" | "dark-truth" | "veronicabenini";
 }
 
 export function buildEpisodeImageMediaContext(input: {
   readonly episodeId: string;
-  readonly contentGenre?: "history" | "veronicabenini";
+  readonly contentGenre?: "history" | "dark-truth" | "veronicabenini";
   readonly base?: EpisodeImageMediaContext;
 }): EpisodeImageMediaContext {
   const base = input.base ?? defaultEpisodeImageMediaContext(input.episodeId);
@@ -1124,6 +1128,9 @@ async function resolveEpisodeImageMediaContext(
       ) as {
         readonly sourceMetadata?: { readonly genre?: unknown };
       };
+      if (manifest.sourceMetadata?.genre === "dark-truth") {
+        return { ...base, contentGenre: "dark-truth" };
+      }
       if (
         manifest.sourceMetadata?.genre === "veronicabenini" ||
         manifest.sourceMetadata?.genre === "strategic-reinvention"
@@ -6979,6 +6986,33 @@ export async function generateEpisodeImages(
       }))
     );
   }
+  const technicalGenre =
+    context.contentGenre === "history" || context.contentGenre === "dark-truth"
+      ? context.contentGenre
+      : null;
+  const technicalGatedResults =
+    !technicalGenre
+      ? results
+      : await Promise.all(
+          results.map(async (result) => {
+            if (result.status === "failed" || !(await fileExists(result.outputPath))) {
+              return result;
+            }
+            const plan = plans.find((candidate) => candidate.scene.id === result.sceneId);
+            if (!plan) return { ...result, status: "failed" as const };
+            const review = await inspectTechnicalImagePixels({
+              imagePath: result.outputPath,
+              expectedAspectRatio: plan.providerRequest.aspectRatio,
+              policy: resolveTechnicalPixelQaPolicy(technicalGenre),
+            });
+            if (review.passed) return result;
+            settings.logger?.error(
+              { sceneId: result.sceneId, findings: review.findings },
+              "Technical pixel QA rejected generated image."
+            );
+            return { ...result, status: "failed" as const };
+          })
+        );
   const veronicaVisualQaEvaluator = options?.veronicaVisualQaEvaluator;
   const veronicaQaBriefs = new Map(
     (options?.veronicaVisualQaBriefs ?? []).map(
@@ -6987,9 +7021,9 @@ export async function generateEpisodeImages(
   );
   const gatedResults =
     context.contentGenre !== "veronicabenini" || !veronicaVisualQaEvaluator
-      ? results
+      ? technicalGatedResults
       : await Promise.all(
-          results.map(async (result) => {
+          technicalGatedResults.map(async (result) => {
             if (result.status === "failed") return result;
             const plan = plans.find(
               (candidate) => candidate.scene.id === result.sceneId

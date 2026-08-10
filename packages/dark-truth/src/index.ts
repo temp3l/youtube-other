@@ -93,6 +93,7 @@ export * from "./profile-bindings.js";
 export * from "./canonical-story-task-adapters.js";
 export * from "./canonical-media-task-adapters.js";
 export * from "./canonical-task-composition.js";
+export * from "./production-hardening.js";
 
 export type SpeechVoicePreset = "slow" | "fast" | "very-fast";
 
@@ -1490,10 +1491,10 @@ export function buildScenePlan(
       onScreenText: "",
       textRequirement: inferSceneTextRequirement(chunk),
       negativeConstraints: ["no subtitles", "no watermark"],
-      aspectRatios: ["16:9"],
+      aspectRatios: [artifactType === "short" ? "9:16" : "16:9"],
       imagePrompt: sceneSeed.narration,
       expectedImageFilenames: [
-        `scene-${String(sceneNumber).padStart(3, "0")}__${String(Math.floor(startSeconds)).padStart(6, "0")}-${String(Math.floor(endSeconds)).padStart(6, "0")}__16x9.png`,
+        `scene-${String(sceneNumber).padStart(3, "0")}__${String(Math.floor(startSeconds)).padStart(6, "0")}-${String(Math.floor(endSeconds)).padStart(6, "0")}__${artifactType === "short" ? "9x16" : "16x9"}.png`,
       ],
       qualityStatus: "draft",
     });

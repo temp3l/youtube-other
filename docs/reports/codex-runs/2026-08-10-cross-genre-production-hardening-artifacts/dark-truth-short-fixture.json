@@ -1,0 +1,180 @@
+{
+  "schemaVersion": "production-hardening.v1",
+  "fixtureId": "007-save-file-knew-his-real-name:short",
+  "genre": "dark-truth",
+  "variant": "short",
+  "status": "passed",
+  "policy": {
+    "schemaVersion": "cross-genre-production-policy.v1",
+    "genre": "dark-truth",
+    "variant": "short",
+    "aspectRatio": "9:16",
+    "stateRepresentation": "decisive-transition-preferred",
+    "multiStateMapsAllowed": false,
+    "visualDensityPolicy": "darktruth-visual-retention-short",
+    "diversityEnforcement": "diagnostic-no-factual-mutation",
+    "repetitionSensitivity": "atmosphere-aware",
+    "pacing": {
+      "mode": "static-guidance",
+      "policyVersion": "darktruth-short-existing-pacing.v1",
+      "preferredWpmRange": [
+        175,
+        185
+      ],
+      "preferredDurationRangeSeconds": [
+        55,
+        65
+      ]
+    },
+    "providerProjectionVersion": "semantic-actor-provider-projection.v1",
+    "diversityNormalizationVersion": "viewer-visible-families.v1",
+    "reusePolicyVersion": "semantic-asset-reuse.v1"
+  },
+  "hardeningFingerprint": {
+    "schemaVersion": "production-hardening-fingerprint.v1",
+    "taskId": "offline-production-hardening-fixture",
+    "genre": "dark-truth",
+    "variant": "short",
+    "policyFingerprint": "5442173a5565f5486ea8075ec187c12479de825e9d6ffa0d654893911547c7ff",
+    "sharedPrimitiveFingerprint": "3d4d306c2d4c21d00506f0d6531109c2481815eaf6fe07f3f89dfbffee8e0170",
+    "fingerprint": "4a4f75bda38075a2c26edd9df00689464930e33aa8e1129affbbc73ef5185ae1"
+  },
+  "timing": {
+    "schemaVersion": "canonical-production-timing.v1",
+    "timingPhase": "post-tts-reconciled",
+    "timingSource": "proportional-total-audio-reconciliation",
+    "selectedAudioHash": "0aace72763cdaba56e6824f70ec30a8c3514b8fa3f8910fd3473af875732788a",
+    "narrationDurationSeconds": 60,
+    "scenes": [
+      {
+        "sceneId": "darktruth-007-cartridge",
+        "startSeconds": 0,
+        "endSeconds": 20
+      },
+      {
+        "sceneId": "darktruth-007-save-files",
+        "startSeconds": 20,
+        "endSeconds": 40
+      },
+      {
+        "sceneId": "darktruth-007-impossible-footage",
+        "startSeconds": 40,
+        "endSeconds": 60
+      }
+    ],
+    "timingHash": "fa021fa2b6f1147337d685577511f8d3557caf3791ecb829d45621bbe7dac5df"
+  },
+  "treatmentHash": "c46cc481fe5f29ed977d5a272eb9fef568870f803f986fb82731247f4885c031",
+  "events": [
+    {
+      "eventId": "darktruth-007-cartridge:hold",
+      "sceneId": "darktruth-007-cartridge",
+      "category": "hold",
+      "genreEventType": "hold",
+      "treatmentHash": "b30feedd4a06c21bbb10eb4701678a923ef002db6409b488b0e922f1e4d00261",
+      "startSeconds": 0,
+      "endSeconds": 20,
+      "stateIds": []
+    },
+    {
+      "eventId": "darktruth-007-save-files:decisive-transition",
+      "sceneId": "darktruth-007-save-files",
+      "category": "decisive-transition",
+      "genreEventType": "threat-reveal",
+      "treatmentHash": "752a3bb002ccd8e1f272b205d9350da6757cf4cde6924ff05fe65082c8581b7d",
+      "startSeconds": 20,
+      "endSeconds": 40,
+      "stateIds": []
+    },
+    {
+      "eventId": "darktruth-007-impossible-footage:decisive-transition",
+      "sceneId": "darktruth-007-impossible-footage",
+      "category": "decisive-transition",
+      "genreEventType": "threat-reveal",
+      "treatmentHash": "16c3791b3e8b88f1c33a1d256cf226be7d92fc618bd5f5474cc4d0e44cf3b3a3",
+      "startSeconds": 40,
+      "endSeconds": 60,
+      "stateIds": []
+    }
+  ],
+  "diversity": {
+    "intentionalContinuityPairs": [
+      "darktruth-007-cartridge->darktruth-007-save-files",
+      "darktruth-007-save-files->darktruth-007-impossible-footage"
+    ],
+    "harmfulRepetitionPairs": [],
+    "normalizedFamilies": [
+      {
+        "strategy": "grounded-human-scenario",
+        "environment": "flea-market",
+        "composition": "object-handoff",
+        "camera": "close-medium",
+        "interaction": "protagonist-buys-object",
+        "dominantObject": "unlabelled-cartridge",
+        "motion": "handoff",
+        "diagram": "none",
+        "motif": "corrupted-game-signal",
+        "continuityIdentity": "felix-and-cartridge"
+      },
+      {
+        "strategy": "evidence-reveal",
+        "environment": "cramped-retro-apartment",
+        "composition": "protagonist-and-impossible-display",
+        "camera": "over-shoulder",
+        "interaction": "phenomenon-targets-protagonist",
+        "dominantObject": "save-file-screen",
+        "motion": "name-appears",
+        "diagram": "none",
+        "motif": "corrupted-game-signal",
+        "continuityIdentity": "felix-and-cartridge"
+      },
+      {
+        "strategy": "decisive-reveal",
+        "environment": "corrupted-apartment",
+        "composition": "room-with-impossible-second-view",
+        "camera": "screen-to-room-comparison",
+        "interaction": "phenomenon-observes-protagonist",
+        "dominantObject": "impossible-footage-folder",
+        "motion": "instant-reveal",
+        "diagram": "none",
+        "motif": "corrupted-game-signal",
+        "continuityIdentity": "felix-and-cartridge"
+      }
+    ]
+  },
+  "reuseDecisions": [
+    {
+      "allowed": true,
+      "reasons": [],
+      "decisionHash": "1cbc81eac9098b385349dee5c12c87b2da41b6136593c927e64d28994f81224d"
+    }
+  ],
+  "findings": [],
+  "reviewIntegrityHash": "88d27611336a5ac06bf385c7a3f596135af64fe1f878fc4ecbcf7e8ff58f37c2",
+  "pacingCalibrationPlanHash": null,
+  "providerReadiness": {
+    "allowed": false,
+    "blockers": [
+      "HUMAN_APPROVAL_MISSING"
+    ]
+  },
+  "diagnostics": {
+    "genreResolved": "dark-truth",
+    "variantResolved": "short",
+    "semanticPolicyResolved": "cross-genre-production-policy.v1",
+    "hardeningFingerprint": "4a4f75bda38075a2c26edd9df00689464930e33aa8e1129affbbc73ef5185ae1",
+    "actionOwnerResolved": true,
+    "statePolicyResolved": "decisive-transition-preferred",
+    "motifContinuityPolicyResolved": "atmosphere-aware",
+    "diversityPolicyResolved": "viewer-visible-families.v1",
+    "reusePolicyResolved": "semantic-asset-reuse.v1",
+    "pacingPolicyResolved": "darktruth-short-existing-pacing.v1",
+    "calibrationPlanResolved": false,
+    "toleranceResolved": "not-enabled",
+    "canonicalTimingSource": "proportional-total-audio-reconciliation",
+    "reviewProviderReady": false,
+    "fixtureDryRunResult": "passed"
+  },
+  "liveTtsProviderCalls": 0,
+  "imageProviderCalls": 0
+}

@@ -1,0 +1,196 @@
+{
+  "schemaVersion": "production-hardening.v1",
+  "fixtureId": "02-napoleons-invasion-of-russia:short",
+  "genre": "history",
+  "variant": "short",
+  "status": "passed",
+  "policy": {
+    "schemaVersion": "cross-genre-production-policy.v1",
+    "genre": "history",
+    "variant": "short",
+    "aspectRatio": "9:16",
+    "stateRepresentation": "decisive-transition-preferred",
+    "multiStateMapsAllowed": true,
+    "visualDensityPolicy": "history-v3.5-vertical-derivative",
+    "diversityEnforcement": "diagnostic-no-factual-mutation",
+    "repetitionSensitivity": "standard",
+    "pacing": {
+      "mode": "adaptive-duration",
+      "policyVersion": "history-short-adaptive-pacing.v1",
+      "preferredDurationRangeSeconds": [
+        55,
+        65
+      ],
+      "targetDurationSeconds": 60,
+      "durationAcceptanceToleranceSeconds": 3,
+      "preferredWpmRange": [
+        135,
+        165
+      ],
+      "minimumSpeed": 0.9,
+      "maximumSpeed": 1.1,
+      "maximumAdjustmentPerAttempt": 0.05,
+      "maxCalibrationAttempts": 3
+    },
+    "providerProjectionVersion": "semantic-actor-provider-projection.v1",
+    "diversityNormalizationVersion": "viewer-visible-families.v1",
+    "reusePolicyVersion": "semantic-asset-reuse.v1"
+  },
+  "hardeningFingerprint": {
+    "schemaVersion": "production-hardening-fingerprint.v1",
+    "taskId": "offline-production-hardening-fixture",
+    "genre": "history",
+    "variant": "short",
+    "policyFingerprint": "81b4889a3741ccc8bd8580ca219a655b171a2dc5f1b6919c98324b7bb832c273",
+    "sharedPrimitiveFingerprint": "3d4d306c2d4c21d00506f0d6531109c2481815eaf6fe07f3f89dfbffee8e0170",
+    "fingerprint": "f64a51857fc101d6231ef346174751c3e42e333ec7aeeee179553786797357ca"
+  },
+  "timing": {
+    "schemaVersion": "canonical-production-timing.v1",
+    "timingPhase": "post-tts-reconciled",
+    "timingSource": "proportional-total-audio-reconciliation",
+    "selectedAudioHash": "acd0d331c7db46579cc27671ffc30c8581dd62c5129443f30013562e03c2b3fa",
+    "narrationDurationSeconds": 60,
+    "scenes": [
+      {
+        "sceneId": "history-1812-crossing",
+        "startSeconds": 0,
+        "endSeconds": 20
+      },
+      {
+        "sceneId": "history-1812-russian-withdrawal",
+        "startSeconds": 20,
+        "endSeconds": 40
+      },
+      {
+        "sceneId": "history-1812-retreat",
+        "startSeconds": 40,
+        "endSeconds": 60
+      }
+    ],
+    "timingHash": "ab4c9017593dbf91943157424f8efb33661a7290ec1b92019fc445b9b4809ce3"
+  },
+  "treatmentHash": "4e1713fff5a264b8111b8031740b10be915e9a381ef218e9b6b58652b5d25c36",
+  "events": [
+    {
+      "eventId": "history-1812-crossing:map-progression",
+      "sceneId": "history-1812-crossing",
+      "category": "map-progression",
+      "genreEventType": "map-progression",
+      "treatmentHash": "0a5f860327b41ca50cdd2b5757be35c21ab06264ff4ff2c218cb180ad6e6b266",
+      "startSeconds": 0,
+      "endSeconds": 20,
+      "stateIds": [
+        "niemEN-crossing-1812"
+      ]
+    },
+    {
+      "eventId": "history-1812-russian-withdrawal:map-progression",
+      "sceneId": "history-1812-russian-withdrawal",
+      "category": "map-progression",
+      "genreEventType": "map-progression",
+      "treatmentHash": "5d7d0868626e1376d73db7111b41ab57398526f7a6d5751ff3583107bf7dead6",
+      "startSeconds": 20,
+      "endSeconds": 40,
+      "stateIds": [
+        "western-withdrawal",
+        "smolensk-withdrawal",
+        "moscow-approach"
+      ]
+    },
+    {
+      "eventId": "history-1812-retreat:map-progression",
+      "sceneId": "history-1812-retreat",
+      "category": "map-progression",
+      "genreEventType": "map-progression",
+      "treatmentHash": "3a8740c17ea1334e4fbf99434e46807c2583e238859a82ebbf89ae7436e5b52b",
+      "startSeconds": 40,
+      "endSeconds": 60,
+      "stateIds": [
+        "moscow-retreat",
+        "berezina-crossing",
+        "niemen-return"
+      ]
+    }
+  ],
+  "diversity": {
+    "intentionalContinuityPairs": [
+      "history-1812-crossing->history-1812-russian-withdrawal",
+      "history-1812-russian-withdrawal->history-1812-retreat"
+    ],
+    "harmfulRepetitionPairs": [],
+    "normalizedFamilies": [
+      {
+        "strategy": "map-and-human-scale",
+        "environment": "river-crossing",
+        "composition": "columns-and-supply-depth",
+        "camera": "documentary-wide",
+        "interaction": "army-crosses-border",
+        "dominantObject": "river-and-supply-wagons",
+        "motion": "route-begins",
+        "diagram": "campaign-map",
+        "motif": "campaign-route",
+        "continuityIdentity": "1812-campaign"
+      },
+      {
+        "strategy": "map-progression",
+        "environment": "continental-route",
+        "composition": "opposed-movement-arrows",
+        "camera": "orthographic-map",
+        "interaction": "withdrawal-versus-pursuit",
+        "dominantObject": "campaign-route",
+        "motion": "eastward-progression",
+        "diagram": "campaign-map",
+        "motif": "campaign-route",
+        "continuityIdentity": "1812-campaign"
+      },
+      {
+        "strategy": "evidence-progression",
+        "environment": "winter-retreat-route",
+        "composition": "diminishing-column-sequence",
+        "camera": "map-to-ground-detail",
+        "interaction": "army-retreats-under-attrition",
+        "dominantObject": "abandoned-wagons",
+        "motion": "westward-retreat",
+        "diagram": "campaign-map",
+        "motif": "campaign-route",
+        "continuityIdentity": "1812-campaign"
+      }
+    ]
+  },
+  "reuseDecisions": [
+    {
+      "allowed": true,
+      "reasons": [],
+      "decisionHash": "86f625c32b7e53c88dac97228469b0c96994fd93d84b6884f325fd4727694857"
+    }
+  ],
+  "findings": [],
+  "reviewIntegrityHash": "b9500c30547d20318e5448ddfbac51df21c06ea1d91aba492efd081be6f9ab7e",
+  "pacingCalibrationPlanHash": "9ab0abf1363c21de4ec3f327457de4e3cd698d3e4afbb8af112a12d34cb15ef4",
+  "providerReadiness": {
+    "allowed": false,
+    "blockers": [
+      "HUMAN_APPROVAL_MISSING"
+    ]
+  },
+  "diagnostics": {
+    "genreResolved": "history",
+    "variantResolved": "short",
+    "semanticPolicyResolved": "cross-genre-production-policy.v1",
+    "hardeningFingerprint": "f64a51857fc101d6231ef346174751c3e42e333ec7aeeee179553786797357ca",
+    "actionOwnerResolved": true,
+    "statePolicyResolved": "decisive-transition-preferred",
+    "motifContinuityPolicyResolved": "standard",
+    "diversityPolicyResolved": "viewer-visible-families.v1",
+    "reusePolicyResolved": "semantic-asset-reuse.v1",
+    "pacingPolicyResolved": "history-short-adaptive-pacing.v1",
+    "calibrationPlanResolved": true,
+    "toleranceResolved": 3,
+    "canonicalTimingSource": "proportional-total-audio-reconciliation",
+    "reviewProviderReady": false,
+    "fixtureDryRunResult": "passed"
+  },
+  "liveTtsProviderCalls": 0,
+  "imageProviderCalls": 0
+}

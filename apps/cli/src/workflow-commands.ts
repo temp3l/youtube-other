@@ -384,6 +384,7 @@ async function createOperator(
     fingerprintMaterial = createDarkTruthFingerprintMaterial({
       bible,
       references,
+      variant,
     });
   }
   const artifactRepository = new ArtifactRepository({

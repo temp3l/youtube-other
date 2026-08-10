@@ -30,7 +30,7 @@ function plan(variant: "short" | "full" = "short") {
         camera: "45mm point of view",
         lighting: "clean directional daylight",
         action: index === 0 ? "two alternatives reveal a meaningful contrast" : "a decision maker selects between visible options",
-        actionOwnerRole: index === 0 ? "none" : "buyer",
+        ...(index === 0 ? {} : { actionOwnerRole: "buyer" as const }),
         strategy: index === 0 ? "comparison-composition" : "client-decision",
         props: ["portfolio"],
       },

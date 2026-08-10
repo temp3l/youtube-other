@@ -4,6 +4,7 @@ import path from "node:path";
 import os from "node:os";
 export * from "./openai-debug-logger.js";
 export * from "./narration-audio.js";
+export * from "./production-hardening.js";
 
 export function normalizeWhitespace(value: string): string {
   return value.replace(/\s+/g, " ").trim();

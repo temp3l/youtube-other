@@ -55,6 +55,7 @@ export * from "./dark-truth-adapter.js";
 export * from "./voice-benchmark.js";
 export * from "./narration-telemetry.js";
 export * from "./narration-pacing.js";
+export * from "./adaptive-pacing.js";
 export * from "./veronica-short-pacing.js";
 export {
   loadSpeechVoiceInstructionTemplate,

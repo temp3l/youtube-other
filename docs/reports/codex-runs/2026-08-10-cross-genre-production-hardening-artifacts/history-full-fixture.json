@@ -1,0 +1,183 @@
+{
+  "schemaVersion": "production-hardening.v1",
+  "fixtureId": "02-napoleons-invasion-of-russia:full",
+  "genre": "history",
+  "variant": "full",
+  "status": "passed",
+  "policy": {
+    "schemaVersion": "cross-genre-production-policy.v1",
+    "genre": "history",
+    "variant": "full",
+    "aspectRatio": "16:9",
+    "stateRepresentation": "multi-state-first-class",
+    "multiStateMapsAllowed": true,
+    "visualDensityPolicy": "history-v3.5-documentary-long",
+    "diversityEnforcement": "diagnostic-no-factual-mutation",
+    "repetitionSensitivity": "standard",
+    "pacing": {
+      "mode": "preserve-current",
+      "policyVersion": "history-full-existing-pacing.v1",
+      "reason": "No approved adaptive History full-form pacing policy exists; trusted narration configuration remains authoritative."
+    },
+    "providerProjectionVersion": "semantic-actor-provider-projection.v1",
+    "diversityNormalizationVersion": "viewer-visible-families.v1",
+    "reusePolicyVersion": "semantic-asset-reuse.v1"
+  },
+  "hardeningFingerprint": {
+    "schemaVersion": "production-hardening-fingerprint.v1",
+    "taskId": "offline-production-hardening-fixture",
+    "genre": "history",
+    "variant": "full",
+    "policyFingerprint": "b1bf493ad8bfe33b63be9cac28f48f76a9ea9b9c45637906443156265a9711cf",
+    "sharedPrimitiveFingerprint": "3d4d306c2d4c21d00506f0d6531109c2481815eaf6fe07f3f89dfbffee8e0170",
+    "fingerprint": "4963d762c3cd86589f02b1fbf42d08db651f134f0dc60fab4a78db8a02eb2f53"
+  },
+  "timing": {
+    "schemaVersion": "canonical-production-timing.v1",
+    "timingPhase": "post-tts-reconciled",
+    "timingSource": "proportional-total-audio-reconciliation",
+    "selectedAudioHash": "787dcfc6235dc979d202d2877bb4a0492f244d35edd3f30334c3d0644c852829",
+    "narrationDurationSeconds": 786,
+    "scenes": [
+      {
+        "sceneId": "history-1812-crossing",
+        "startSeconds": 0,
+        "endSeconds": 262
+      },
+      {
+        "sceneId": "history-1812-russian-withdrawal",
+        "startSeconds": 262,
+        "endSeconds": 524
+      },
+      {
+        "sceneId": "history-1812-retreat",
+        "startSeconds": 524,
+        "endSeconds": 786
+      }
+    ],
+    "timingHash": "93451fa13b7992cb48d1c2bdfc72877a17d2d6e2e60cb9b3d2dd36621063eaa5"
+  },
+  "treatmentHash": "07d34eb52e484b64456e83eba787230e519ed40cca100b6ffe6ac36a5e9c46a9",
+  "events": [
+    {
+      "eventId": "history-1812-crossing:map-progression",
+      "sceneId": "history-1812-crossing",
+      "category": "map-progression",
+      "genreEventType": "map-progression",
+      "treatmentHash": "231e0f14f6bbbac3bca4a5dd5b7f693acc64de86e3d6ffd2b459a5f5685ea43c",
+      "startSeconds": 0,
+      "endSeconds": 262,
+      "stateIds": [
+        "niemEN-crossing-1812"
+      ]
+    },
+    {
+      "eventId": "history-1812-russian-withdrawal:map-progression",
+      "sceneId": "history-1812-russian-withdrawal",
+      "category": "map-progression",
+      "genreEventType": "map-progression",
+      "treatmentHash": "045275493af14775a59b1fb42b9cd038c4186aae0431ee514f7d53aaef6078e7",
+      "startSeconds": 262,
+      "endSeconds": 524,
+      "stateIds": [
+        "western-withdrawal",
+        "smolensk-withdrawal",
+        "moscow-approach"
+      ]
+    },
+    {
+      "eventId": "history-1812-retreat:map-progression",
+      "sceneId": "history-1812-retreat",
+      "category": "map-progression",
+      "genreEventType": "map-progression",
+      "treatmentHash": "4f0e350e5a14c30f4e540856cf96a5f30ac3623edd65d10f8f24037aa1f9791e",
+      "startSeconds": 524,
+      "endSeconds": 786,
+      "stateIds": [
+        "moscow-retreat",
+        "berezina-crossing",
+        "niemen-return"
+      ]
+    }
+  ],
+  "diversity": {
+    "intentionalContinuityPairs": [
+      "history-1812-crossing->history-1812-russian-withdrawal",
+      "history-1812-russian-withdrawal->history-1812-retreat"
+    ],
+    "harmfulRepetitionPairs": [],
+    "normalizedFamilies": [
+      {
+        "strategy": "map-and-human-scale",
+        "environment": "river-crossing",
+        "composition": "columns-and-supply-depth",
+        "camera": "documentary-wide",
+        "interaction": "army-crosses-border",
+        "dominantObject": "river-and-supply-wagons",
+        "motion": "route-begins",
+        "diagram": "campaign-map",
+        "motif": "campaign-route",
+        "continuityIdentity": "1812-campaign"
+      },
+      {
+        "strategy": "map-progression",
+        "environment": "continental-route",
+        "composition": "opposed-movement-arrows",
+        "camera": "orthographic-map",
+        "interaction": "withdrawal-versus-pursuit",
+        "dominantObject": "campaign-route",
+        "motion": "eastward-progression",
+        "diagram": "campaign-map",
+        "motif": "campaign-route",
+        "continuityIdentity": "1812-campaign"
+      },
+      {
+        "strategy": "evidence-progression",
+        "environment": "winter-retreat-route",
+        "composition": "diminishing-column-sequence",
+        "camera": "map-to-ground-detail",
+        "interaction": "army-retreats-under-attrition",
+        "dominantObject": "abandoned-wagons",
+        "motion": "westward-retreat",
+        "diagram": "campaign-map",
+        "motif": "campaign-route",
+        "continuityIdentity": "1812-campaign"
+      }
+    ]
+  },
+  "reuseDecisions": [
+    {
+      "allowed": true,
+      "reasons": [],
+      "decisionHash": "0d2a0c7dd1283848f36713dd1666d4ebbcb1eaa64030e91ba20fcf5e2979cfa5"
+    }
+  ],
+  "findings": [],
+  "reviewIntegrityHash": "61d83b5573981971f0039c8cba35a79cc0f4d3cee5a7852a7c6c8a4bda3d9c69",
+  "pacingCalibrationPlanHash": null,
+  "providerReadiness": {
+    "allowed": false,
+    "blockers": [
+      "HUMAN_APPROVAL_MISSING"
+    ]
+  },
+  "diagnostics": {
+    "genreResolved": "history",
+    "variantResolved": "full",
+    "semanticPolicyResolved": "cross-genre-production-policy.v1",
+    "hardeningFingerprint": "4963d762c3cd86589f02b1fbf42d08db651f134f0dc60fab4a78db8a02eb2f53",
+    "actionOwnerResolved": true,
+    "statePolicyResolved": "multi-state-first-class",
+    "motifContinuityPolicyResolved": "standard",
+    "diversityPolicyResolved": "viewer-visible-families.v1",
+    "reusePolicyResolved": "semantic-asset-reuse.v1",
+    "pacingPolicyResolved": "history-full-existing-pacing.v1",
+    "calibrationPlanResolved": false,
+    "toleranceResolved": "not-enabled",
+    "canonicalTimingSource": "proportional-total-audio-reconciliation",
+    "reviewProviderReady": false,
+    "fixtureDryRunResult": "passed"
+  },
+  "liveTtsProviderCalls": 0,
+  "imageProviderCalls": 0
+}
