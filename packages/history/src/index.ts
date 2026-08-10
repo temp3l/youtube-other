@@ -117,3 +117,4 @@ export * from "./v36/renderer-shadow-v36.js";
 export * from "./v36/canonical-geography-sidecar-v36.js";
 export * from "./v36/visual-plan-shadow-v36.js";
 export * from "./v36/production-canary-route-v36.js";
+export * from "./v36/production-composer-v36.js";

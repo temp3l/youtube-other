@@ -40,8 +40,16 @@ import {
 } from "./visual-planner.js";
 import {
   loadHistoryVisualPlanV35,
-  syncHistoryProductionArtifactsV35,
 } from "./history-render-adapter-v35.js";
+import {
+  HistoryProductionComposerErrorV36,
+  syncHistoryProductionArtifactsRoutedV36,
+} from "./v36/production-composer-v36.js";
+import {
+  HISTORY_V36_CANARY_EPISODES_ENV,
+  resolveHistoryProductionRouteV36,
+} from "./v36/production-canary-route-v36.js";
+import { HISTORY_VISUAL_PLAN_ACTIVATION_FLAG_V36 } from "./v36/visual-plan-shadow-v36.js";
 
 export const HISTORY_TASK_REGISTRY_VERSION =
   "history.task-registry.v2" as const;
@@ -636,22 +644,45 @@ function createHistoryProductionImplementations(
       };
     },
     "history.visual-planning": async () => {
+      const episodeId = path.basename(root);
+      const activationFlagValue =
+        process.env[HISTORY_VISUAL_PLAN_ACTIVATION_FLAG_V36];
+      const canaryEpisodesValue =
+        process.env[HISTORY_V36_CANARY_EPISODES_ENV];
+      const routing = resolveHistoryProductionRouteV36({
+        episodeId,
+        ...(activationFlagValue ? { activationFlagValue } : {}),
+        ...(canaryEpisodesValue ? { canaryEpisodesValue } : {}),
+      });
       const v35Plan = await loadHistoryVisualPlanV35(root);
       if (v35Plan) {
-        const { derivative } = await syncHistoryProductionArtifactsV35({
+        const composition = await syncHistoryProductionArtifactsRoutedV36({
           root,
           plan: v35Plan,
+          ...(activationFlagValue ? { activationFlagValue } : {}),
+          ...(canaryEpisodesValue ? { canaryEpisodesValue } : {}),
         });
+        const derivative =
+          composition.route === "V3_5_PRODUCTION"
+            ? composition.derivative
+            : composition.plan.baseDerivative;
         return {
           outputArtifacts: [],
           warnings: [
-            `History V3.5 render derivative synced (${derivative.shotCount} shots; ${derivative.illustrationShotCount} illustration shots).`,
+            composition.route === "V3_5_PRODUCTION"
+              ? `History V3.5 render derivative synced (${derivative.shotCount} shots; ${derivative.illustrationShotCount} illustration shots).`
+              : `History V3.6 production plan synced (${composition.plan.visualPlan.renderSpecs.length} semantic overlays; ${derivative.shotCount} preserved base shots).`,
             `Approve with mediaforge history visuals approve ${path.basename(root)} --planner-version v3.5 --plan-hash ${v35Plan.planHash} --derivative-hash ${derivative.derivativeHash}.`,
           ],
         };
       }
+      if (routing.route === "V3_6_PRODUCTION")
+        throw new HistoryProductionComposerErrorV36(
+          "V36_REQUIRED_ARTIFACT_INVALID",
+          `V3.6 ${routing.mode.toUpperCase()} routing requires a compatible History V3.5 base plan for ${episodeId}.`
+        );
       const visualPlanning = await planHistoryVisuals({
-        episodeId: path.basename(root),
+        episodeId,
         outputRoot: path.dirname(root),
       });
       const narration = normalizeWhitespace(

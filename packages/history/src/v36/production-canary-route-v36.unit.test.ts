@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  HistoryProductionRoutingConfigErrorV36,
+  parseHistoryProductionModeV36,
   parseHistoryV36CanaryEpisodes,
   resolveHistoryProductionCanaryRouteV36,
+  resolveHistoryProductionRouteV36,
 } from "./production-canary-route-v36.js";
 
 const blackDeath = "history-youtube-history-10-video-story-pack-04-black-death";
@@ -57,5 +60,48 @@ describe("V3.6 production canary routing", () => {
         reason: "EPISODE_NOT_IN_CANARY_ALLOWLIST",
       })
     );
+  });
+
+  it("models OFF, CANARY, and GLOBAL as explicit production states", () => {
+    expect(parseHistoryProductionModeV36(undefined)).toBe("off");
+    expect(parseHistoryProductionModeV36("shadow")).toBe("off");
+    expect(
+      resolveHistoryProductionRouteV36({
+        episodeId: blackDeath,
+        activationFlagValue: "off",
+        canaryEpisodesValue: allowlist,
+      })
+    ).toMatchObject({ route: "V3_5_PRODUCTION", mode: "off" });
+    expect(
+      resolveHistoryProductionRouteV36({
+        episodeId: blackDeath,
+        activationFlagValue: "canary",
+        canaryEpisodesValue: allowlist,
+      })
+    ).toMatchObject({ route: "V3_6_PRODUCTION", mode: "canary" });
+    expect(
+      resolveHistoryProductionRouteV36({
+        episodeId: "history-not-a-canary",
+        activationFlagValue: "canary",
+        canaryEpisodesValue: allowlist,
+      })
+    ).toMatchObject({ route: "V3_5_PRODUCTION", mode: "canary" });
+    expect(
+      resolveHistoryProductionRouteV36({
+        episodeId: "history-not-a-canary",
+        activationFlagValue: "global",
+        canaryEpisodesValue: "",
+      })
+    ).toMatchObject({
+      route: "V3_6_PRODUCTION",
+      mode: "global",
+      productionActivated: true,
+    });
+  });
+
+  it("fails closed for an invalid production routing value", () => {
+    expect(() =>
+      parseHistoryProductionModeV36("production")
+    ).toThrow(HistoryProductionRoutingConfigErrorV36);
   });
 });
