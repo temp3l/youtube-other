@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import "./env-setup.js";
 import { packagedCliFreshnessCheck } from "./doctor-freshness.js";
+import { calibrateVeronicaShortNarration } from "./veronica-short-pacing.js";
 import {
   loadEpisodeConfig,
   loadRuntimeConfig,
@@ -3651,7 +3652,7 @@ async function runAudioNarrationPipeline(
             format: variant,
           });
         }
-        const result = await runner.run({
+        let result = await runner.run({
           episodeDir,
           episodeId,
           language,
@@ -3707,6 +3708,77 @@ async function runAudioNarrationPipeline(
             );
           },
         });
+        // Only Veronica Shorts opt into measured-duration calibration. Full
+        // Veronica and every other profile continue to use their existing
+        // staged narration behavior unchanged.
+        if (
+          isVeronica &&
+          variant === "short" &&
+          narrationStageRequiresTts(stage) &&
+          !(commandOptions.dryRun ?? options.dryRun) &&
+          result.exitCode === 0 &&
+          speechSettings.speed !== undefined
+        ) {
+          const spokenPath = path.join(
+            episodeDir,
+            "locales",
+            language,
+            "short",
+            "audio",
+            "narration",
+            "spoken-text.md"
+          );
+          const narration = await fs.readFile(spokenPath, "utf8");
+          const runtime = await loadTargetRuntime();
+          const pacing = await calibrateVeronicaShortNarration({
+            episodeDir,
+            episodeId,
+            locale: language,
+            narration,
+            model,
+            voice,
+            baselineSpeed: speechSettings.speed,
+            baseInstructions: speechSettings.instructions,
+            synthesize: async (request) => {
+              await runtime.speech.synthesize(
+                {
+                  contentProfileId: "veronicabenini",
+                  sceneId: sceneIdSchema.parse("scene-001"),
+                  text: request.text,
+                  voiceProfile: {
+                    ...speechSettings.profile,
+                    providerVoiceId: voice,
+                  },
+                  outputPath: request.outputPath,
+                  instructions: request.instructions,
+                  speed: request.speed,
+                  dispatchContext: { kind: "legacy-noncreator" },
+                },
+                new AbortController().signal
+              );
+            },
+            probeDuration: async (filePath) =>
+              (await probeAudioWithFfprobe(filePath)).durationSeconds,
+          });
+          if (pacing) {
+            // Re-run only validation after promotion, so quality and pacing
+            // diagnostics observe the selected audio rather than the baseline.
+            result = await runner.run({
+              episodeDir,
+              episodeId,
+              language,
+              variant,
+              stage: "validate",
+              rolloutMode,
+              validationOnly: true,
+              model,
+              voice,
+              speed: pacing.selectedSpeed,
+              outputFormat: "wav",
+              baseVoiceInstructions: speechSettings.instructions,
+            });
+          }
+        }
         results.push(result);
         targetStatuses.push(
           buildNarrationTargetStatusFromResult(

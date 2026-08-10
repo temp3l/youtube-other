@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import { scenePlanSchema } from "@mediaforge/domain";
+import { veronicaShortPacingCalibrationSchema } from "@mediaforge/speech";
 import { z } from "zod";
 
 const PACK_SCHEMA_VERSION = "veronica-pre-image-review-pack.v3" as const;
@@ -14,7 +15,7 @@ const reviewManifestSchema = z.strictObject({
   providerRequestsAllowed: z.literal(false), sources: z.array(z.strictObject({ name: z.string().min(1), path: z.string().min(1), sha256: z.string().regex(/^[a-f0-9]{64}$/u) })).min(1),
   artifactHashes: z.record(z.string(), z.string().regex(/^[a-f0-9]{64}$/u)),
   packFileHashes: z.record(z.string(), z.string().regex(/^[a-f0-9]{64}$/u)),
-  narrationDiagnostic: z.strictObject({ wordCount: z.number().int().nonnegative(), narrationDurationSeconds: z.number().positive(), approximateWordsPerMinute: z.number().nonnegative(), timingSource: z.string().min(1), ttsSpeed: z.number().positive(), speedNormalizationApplied: z.boolean(), preferredWpmRange: z.tuple([z.number().positive(), z.number().positive()]), pacingStatus: z.enum(["within-target", "fast", "very-fast", "slow"]) }),
+  narrationDiagnostic: z.strictObject({ wordCount: z.number().int().nonnegative(), narrationDurationSeconds: z.number().positive(), approximateWordsPerMinute: z.number().nonnegative(), timingSource: z.string().min(1), initialTtsSpeed: z.number().positive(), ttsSpeed: z.number().positive(), calibrationAttemptCount: z.number().int().positive(), speedNormalizationApplied: z.boolean(), preferredDurationRangeSeconds: z.tuple([z.number().positive(), z.number().positive()]), preferredWpmRange: z.tuple([z.number().positive(), z.number().positive()]).optional(), pacingStatus: z.enum(["within-target", "slightly-fast", "fast", "very-fast", "slightly-slow", "slow"]) }),
 });
 
 export interface VeronicaPreImageReviewPackResult {
@@ -57,6 +58,7 @@ async function requiredFile(filePath: string, label: string): Promise<void> {
 
 function promptReviewMarkdown(input: {
   readonly narration: string;
+  readonly pacingSummary: string;
   readonly scenes: ReturnType<typeof scenePlanSchema.parse>["scenes"];
   readonly findingsByScene: ReadonlyMap<string, readonly string[]>;
   readonly stateByScene: ReadonlyMap<string, string>;
@@ -70,6 +72,8 @@ function promptReviewMarkdown(input: {
     "## English narration",
     "",
     input.narration,
+    "",
+    `Pacing: ${input.pacingSummary}`,
     "",
     "## Scene prompts",
     "",
@@ -94,12 +98,9 @@ function providerPromptsMarkdown(scenes: ReturnType<typeof scenePlanSchema.parse
   return ["# UNAPPROVED — DO NOT SUBMIT", "", "These provider-oriented prompts are intentionally blocked until human pre-image approval is recorded.", "", ...scenes.flatMap((scene) => [`## ${scene.id}`, "", `State complexity: ${stateByScene.get(scene.id) ?? "SINGLE_STATE"}`, `Action owner: ${actorByScene.get(scene.id) ?? "not applicable"}`, "", scene.imagePrompt, ""])].join("\n");
 }
 
-function narrationDiagnostic(narration: string, narrationDurationSeconds: number, timingSource: string) {
-  const wordCount = narration.replace(/^---[\s\S]*?---\s*/u, "").match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)?/gu)?.length ?? 0;
-  const approximateWordsPerMinute = Math.round(wordCount / narrationDurationSeconds * 60 * 10) / 10;
-  const preferredWpmRange = [155, 170] as const;
-  const pacingStatus = approximateWordsPerMinute > 185 ? "very-fast" as const : approximateWordsPerMinute > preferredWpmRange[1] ? "fast" as const : approximateWordsPerMinute < preferredWpmRange[0] ? "slow" as const : "within-target" as const;
-  return { wordCount, narrationDurationSeconds, approximateWordsPerMinute, timingSource, ttsSpeed: 1, speedNormalizationApplied: false, preferredWpmRange, pacingStatus };
+function narrationDiagnostic(narrationDurationSeconds: number, timingSource: string, calibration: ReturnType<typeof veronicaShortPacingCalibrationSchema.parse>) {
+  const initial = calibration.attempts[0]!;
+  return { wordCount: calibration.wordCount, narrationDurationSeconds, approximateWordsPerMinute: Math.round(calibration.wordCount / narrationDurationSeconds * 60 * 10) / 10, timingSource, initialTtsSpeed: initial.requestedSpeed, ttsSpeed: calibration.selectedSpeed, calibrationAttemptCount: calibration.attempts.length, speedNormalizationApplied: calibration.speedNormalizationApplied, preferredDurationRangeSeconds: calibration.targetDurationRange, ...(calibration.preferredWpmRange ? { preferredWpmRange: calibration.preferredWpmRange } : {}), pacingStatus: calibration.selectedPacingStatus };
 }
 
 export async function createVeronicaPreImageReviewPack(
@@ -114,6 +115,7 @@ export async function createVeronicaPreImageReviewPack(
   const timingPath = path.join(localeRoot, "canonical-timing.v1.json");
   const eventPath = path.join(localeRoot, "retimed-visual-events.json");
   const semanticReviewPath = path.join(input.episodeDir, "shared", "pre-image-semantic-reviews.v1.json");
+  const pacingCalibrationPath = path.join(localeRoot, "audio", "narration", "pacing-calibration.v1.json");
   await Promise.all([
     requiredFile(sourcePlanPath, "the canonical visual plan"),
     requiredFile(narrationPath, "mastered narration.wav"),
@@ -123,13 +125,19 @@ export async function createVeronicaPreImageReviewPack(
     requiredFile(timingPath, "canonical locale timing"),
     requiredFile(eventPath, "retimed visual events"),
     requiredFile(semanticReviewPath, "semantic gate reviews"),
+    requiredFile(pacingCalibrationPath, "adaptive pacing calibration"),
   ]);
-  const [narration, scenePlanRaw, semanticReviewRaw] = await Promise.all([
+  const [narration, scenePlanRaw, semanticReviewRaw, pacingCalibrationRaw] = await Promise.all([
     fs.readFile(scriptPath, "utf8"),
     fs.readFile(scenePlanPath, "utf8"),
     fs.readFile(semanticReviewPath, "utf8"),
+    fs.readFile(pacingCalibrationPath, "utf8"),
   ]);
   const scenePlan = scenePlanSchema.parse(JSON.parse(scenePlanRaw) as unknown);
+  const pacingCalibration = veronicaShortPacingCalibrationSchema.parse(JSON.parse(pacingCalibrationRaw) as unknown);
+  const timing = JSON.parse(await fs.readFile(timingPath, "utf8")) as { readonly timingSource?: unknown; readonly narrationDurationSeconds?: unknown };
+  if (typeof timing.timingSource !== "string" || typeof timing.narrationDurationSeconds !== "number") throw new Error(`Invalid canonical locale timing artifact: ${timingPath}`);
+  const diagnostic = narrationDiagnostic(timing.narrationDurationSeconds, timing.timingSource, pacingCalibration);
   const finalPlan = z.object({ continuity: z.object({ mode: z.string() }).optional(), selectedRecurringMotif: z.object({ concept: z.string() }).optional(), scenes: z.array(z.object({ sceneId: z.string(), stateComplexity: z.enum(["SINGLE_STATE", "DECISIVE_TRANSITION_MOMENT", "MULTI_STATE_REQUIRED"]).optional(), treatment: z.object({ actionOwnerRole: z.enum(["expert", "buyer", "shared", "none"]).optional() }) })) }).parse(JSON.parse(await fs.readFile(sourcePlanPath, "utf8")) as unknown);
   const stateByScene = new Map(scenePlan.scenes.map((scene, index) => [scene.id, finalPlan.scenes[index]?.stateComplexity ?? "SINGLE_STATE"] as const));
   const actorByScene = new Map(scenePlan.scenes.map((scene, index) => [scene.id, finalPlan.scenes[index]?.treatment.actionOwnerRole ?? "not applicable"] as const));
@@ -150,11 +158,12 @@ export async function createVeronicaPreImageReviewPack(
     ["visual-plan.json", sourcePlanPath],
     ["episode-manifest.json", manifestPath],
     ["pre-image-semantic-reviews.v1.json", semanticReviewPath],
+    ["pacing-calibration.v1.json", pacingCalibrationPath],
   ];
   await Promise.all(files.map(([fileName, sourcePath]) => fs.copyFile(sourcePath, path.join(outputDir, fileName))));
   const promptPath = path.join(outputDir, "chatgpt-pre-image-review-request.md");
   const promptsPath = path.join(outputDir, "provider-image-prompts.md");
-  const promptMarkdown = promptReviewMarkdown({ narration, scenes: scenePlan.scenes, findingsByScene, stateByScene, actorByScene });
+  const promptMarkdown = promptReviewMarkdown({ narration, pacingSummary: `${diagnostic.wordCount} words; ${diagnostic.narrationDurationSeconds.toFixed(3)}s; ${diagnostic.approximateWordsPerMinute} WPM; ${diagnostic.pacingStatus}; selected speed ${diagnostic.ttsSpeed}; calibration ${diagnostic.speedNormalizationApplied ? "applied" : "not required"}.`, scenes: scenePlan.scenes, findingsByScene, stateByScene, actorByScene });
   await Promise.all([
     fs.writeFile(promptPath, promptMarkdown, "utf8"),
     fs.writeFile(promptsPath, providerPromptsMarkdown(scenePlan.scenes, stateByScene, actorByScene), "utf8"),
@@ -165,9 +174,6 @@ export async function createVeronicaPreImageReviewPack(
   ];
   const artifactHashes = Object.fromEntries(await Promise.all(artifactFiles.map(async ([name, artifactPath]) => [name, await fileHash(artifactPath)] as const)));
   const sources = await Promise.all(files.map(async ([name, sourcePath]) => ({ name, path: path.relative(input.episodeDir, sourcePath), sha256: await fileHash(sourcePath) })));
-  const timing = JSON.parse(await fs.readFile(timingPath, "utf8")) as { readonly timingSource?: unknown; readonly narrationDurationSeconds?: unknown };
-  if (typeof timing.timingSource !== "string" || typeof timing.narrationDurationSeconds !== "number") throw new Error(`Invalid canonical locale timing artifact: ${timingPath}`);
-  const diagnostic = narrationDiagnostic(narration, timing.narrationDurationSeconds, timing.timingSource);
   const packFileHashes = Object.fromEntries(await Promise.all([
     ...files.map(async ([name]) => [name, await fileHash(path.join(outputDir, name))] as const),
     ["chatgpt-pre-image-review-request.md", await fileHash(promptPath)] as const,
@@ -198,7 +204,8 @@ export async function createVeronicaPreImageReviewPack(
     `# Veronica pre-image review pack\n\n- Episode: \`${path.basename(input.episodeDir)}\`
 - Locale / variant: \`${input.language}/${input.variant}\`
 - Narration duration: \`${timing.narrationDurationSeconds.toFixed(3)}s\`
-- Word count / approximate WPM: \`${diagnostic.wordCount}\` / \`${diagnostic.approximateWordsPerMinute}\` (\`${diagnostic.pacingStatus}\`; preferred \`${diagnostic.preferredWpmRange.join("–")}\`)
+- Word count / approximate WPM: \`${diagnostic.wordCount}\` / \`${diagnostic.approximateWordsPerMinute}\` (\`${diagnostic.pacingStatus}\`; preferred duration \`${diagnostic.preferredDurationRangeSeconds.join("–")}s\`${diagnostic.preferredWpmRange ? `; WPM guidance \`${diagnostic.preferredWpmRange.join("–")}\`` : ""})
+- TTS pacing: initial \`${diagnostic.initialTtsSpeed}\`, selected \`${diagnostic.ttsSpeed}\`, \`${diagnostic.calibrationAttemptCount}\` measured attempt(s), normalization \`${diagnostic.speedNormalizationApplied}\`
 - Canonical timing source: \`${timing.timingSource}\`
 - Scene count: \`${scenePlan.scenes.length}\`
 - Selected recurring motif: \`${finalPlan.selectedRecurringMotif?.concept ?? "none"}\`
@@ -251,6 +258,8 @@ export async function assertVeronicaPreImageReviewPackCurrent(input: PackInput):
               ? path.join(input.episodeDir, "manifest.json")
               : fileName === "canonical-locale-timing.v1.json" || fileName === "retimed-visual-events.json"
                 ? path.join(input.episodeDir, "locales", input.language, input.variant, fileName)
+                : fileName === "pacing-calibration.v1.json"
+                  ? path.join(input.episodeDir, "locales", input.language, input.variant, "audio", "narration", fileName)
                 : path.join(input.episodeDir, "shared", fileName);
     if (await fileHash(sourcePath) !== source.sha256) {
       throw new Error(`Veronica pre-image review pack is stale because ${fileName} changed. Recreate it before image generation.`);
