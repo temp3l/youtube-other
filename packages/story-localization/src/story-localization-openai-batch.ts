@@ -19,10 +19,16 @@ export interface OpenAiStoryClient {
         readonly model: string;
         readonly input: ReadonlyArray<{
           readonly role: "system" | "user";
-          readonly content: ReadonlyArray<{
-            readonly type: "input_text";
-            readonly text: string;
-          }>;
+          readonly content: ReadonlyArray<
+            | {
+                readonly type: "input_text";
+                readonly text: string;
+              }
+            | {
+                readonly type: "input_image";
+                readonly image_url: string;
+              }
+          >;
         }>;
         readonly text?: {
           readonly format: unknown;
@@ -51,10 +57,16 @@ export interface OpenAiStoryClient {
         readonly model: string;
         readonly input: ReadonlyArray<{
           readonly role: "system" | "user";
-          readonly content: ReadonlyArray<{
-            readonly type: "input_text";
-            readonly text: string;
-          }>;
+          readonly content: ReadonlyArray<
+            | {
+                readonly type: "input_text";
+                readonly text: string;
+              }
+            | {
+                readonly type: "input_image";
+                readonly image_url: string;
+              }
+          >;
         }>;
         readonly text?: {
           readonly format: unknown;
@@ -170,10 +182,12 @@ export function createOpenAiStoryClientWithOptions(options: {
     apiKey,
     maxRetries: options.maxRetries ?? 5,
     timeout: options.timeoutMs ?? 120_000,
-    ...(options.baseUrl ?? process.env["OPENAI_BASE_URL"]
+    ...((options.baseUrl ?? process.env["OPENAI_BASE_URL"])
       ? { baseURL: options.baseUrl ?? process.env["OPENAI_BASE_URL"] }
       : {}),
-    ...(options.organization ?? process.env["OPENAI_ORGANIZATION"] ?? process.env["OPENAI_ORG_ID"]
+    ...((options.organization ??
+    process.env["OPENAI_ORGANIZATION"] ??
+    process.env["OPENAI_ORG_ID"])
       ? {
           organization:
             options.organization ??
@@ -181,7 +195,7 @@ export function createOpenAiStoryClientWithOptions(options: {
             process.env["OPENAI_ORG_ID"],
         }
       : {}),
-    ...(options.project ?? process.env["OPENAI_PROJECT"]
+    ...((options.project ?? process.env["OPENAI_PROJECT"])
       ? { project: options.project ?? process.env["OPENAI_PROJECT"] }
       : {}),
   }) as unknown as OpenAiStoryClient;

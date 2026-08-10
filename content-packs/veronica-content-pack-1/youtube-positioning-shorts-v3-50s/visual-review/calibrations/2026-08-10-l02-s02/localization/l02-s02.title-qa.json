@@ -1,0 +1,96 @@
+{
+  "schemaVersion": "veronicabenini-title-transcreation-qa.v2",
+  "contentId": "L02-S02",
+  "locales": {
+    "en": {
+      "metadataTitle": "Why a Smaller Niche Can Make You Bigger",
+      "displayTitle": "Why a Smaller Niche Can Make You Bigger",
+      "displayLines": [
+        "Why a Smaller Niche",
+        "Can Make You Bigger"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "de": {
+      "metadataTitle": "Warum eine kleinere Nische dich größer machen kann",
+      "displayTitle": "Warum eine kleinere Nische dich größer machen kann",
+      "displayLines": [
+        "Warum eine kleinere Nische",
+        "dich größer machen kann"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "it": {
+      "metadataTitle": "Perché una nicchia più piccola può farti crescere",
+      "displayTitle": "Perché una nicchia più piccola può farti crescere",
+      "displayLines": [
+        "Perché una nicchia più",
+        "piccola può farti crescere"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "fr": {
+      "metadataTitle": "Pourquoi une niche plus petite peut vous faire grandir",
+      "displayTitle": "Pourquoi une niche plus petite peut vous faire grandir",
+      "displayLines": [
+        "Pourquoi une niche plus",
+        "petite peut vous faire grandir"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "medium",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": [
+        "overlay-fit-resolved-with-approved-display-layout"
+      ]
+    },
+    "pt": {
+      "metadataTitle": "Por que um nicho menor pode fazer você crescer",
+      "displayTitle": "Por que um nicho menor pode fazer você crescer",
+      "displayLines": [
+        "Por que um nicho menor",
+        "pode fazer você crescer"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    }
+  },
+  "sourceTitlesHash": "8390c2641f49db328d47fa4ce8546c4fb1f8d1e141631e98695749c840ca7733",
+  "cacheKey": "bd7a31f584d1b790fa8351fb9da59b521754d72984a5ef31095af612f6e608b0",
+  "artifactHash": "b3caed5cb1acaa35e34ceaa16733fc2fb112ba943ae30ab754591b6e3f719dd0"
+}

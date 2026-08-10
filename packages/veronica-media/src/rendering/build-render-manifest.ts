@@ -14,6 +14,8 @@ export function buildRenderManifest(input: {
   readonly preparedAssetPaths: Readonly<Record<string, string>>;
   readonly outputPath: string;
   readonly narrationAudioPath: string;
+  /** Measured-audio reconciliation wins over authored dwell for this locale. */
+  readonly reconciledDwellSecondsByPlacement?: Readonly<Record<string, number>>;
 }): VeronicaRenderManifest {
   const profile =
     input.aspectRatio === "16:9"
@@ -28,7 +30,10 @@ export function buildRenderManifest(input: {
       preparedAssetPaths: input.preparedAssetPaths,
     });
     const startSeconds = cursor;
-    const endSeconds = cursor + placement.dwellDurationSeconds;
+    const dwellDurationSeconds =
+      input.reconciledDwellSecondsByPlacement?.[placement.placementId] ??
+      placement.dwellDurationSeconds;
+    const endSeconds = cursor + dwellDurationSeconds;
     cursor = endSeconds;
     return veronicaRenderClipSchema.parse({
       clipId: `${placement.placementId}-clip`,

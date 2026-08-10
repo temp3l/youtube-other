@@ -68,6 +68,13 @@ import {
   type HistorySceneImageGuidance,
 } from "./history-image-plan.js";
 import { resolveHistoricalPersonReferencesForScene } from "./history-person-reference-images.js";
+import {
+  buildVeronicaVisualRemediationPrompt,
+  defaultVeronicaVisualQaPolicy,
+  reviewVeronicaGeneratedImage,
+  type VeronicaVisualQaBrief,
+  type VeronicaVisualQaEvaluator,
+} from "./veronica-post-generation-visual-qa.js";
 import { getOrResolveHistoricalVisualDirectionForEpisode } from "./history-visual-direction-bridge-v1.js";
 import type { HistoricalVisualDirectionProfileV1 } from "@mediaforge/history";
 import {
@@ -151,7 +158,9 @@ export const shortMediaRequirementsSchema = z
     parentFullFingerprint: z.string().min(1).optional(),
   })
   .strict();
-export type ShortMediaRequirements = z.infer<typeof shortMediaRequirementsSchema>;
+export type ShortMediaRequirements = z.infer<
+  typeof shortMediaRequirementsSchema
+>;
 
 export interface MediaStageContext {
   readonly identity: MediaStageIdentity;
@@ -474,6 +483,7 @@ export type SceneCheckpointStatus =
 export type SceneFailureStage =
   | "visual-planning"
   | "reference-resolution"
+  | "semantic-qa"
   | "provider"
   | "filesystem"
   | "manifest";
@@ -490,7 +500,8 @@ export type SceneFailureCategory =
   | "provider-transient-error"
   | "provider-permanent-error"
   | "filesystem-error"
-  | "manifest-conflict";
+  | "manifest-conflict"
+  | "semantic-qa-rejected";
 
 export interface PersistedImageProviderRequest {
   sceneId: string;
@@ -595,7 +606,9 @@ export interface EpisodeImagePipelineSettings {
   force: boolean;
   debug: boolean;
   /** Optional policy override; History never enables semantic cross-episode reuse. */
-  veronicaGeneratedImageReusePolicy?: Partial<import("./veronica-reusable-image-registry.js").VeronicaGeneratedImageReusePolicy>;
+  veronicaGeneratedImageReusePolicy?: Partial<
+    import("./veronica-reusable-image-registry.js").VeronicaGeneratedImageReusePolicy
+  >;
   logger?: {
     info: (obj: Record<string, unknown>, msg?: string) => void;
     warn: (obj: Record<string, unknown>, msg?: string) => void;
@@ -629,13 +642,26 @@ function buildVeronicaReusableImageSemantics(args: {
     "lawyer",
     "chef",
   ].filter((cue) => new RegExp(`\\b${cue}\\b`, "iu").test(semanticText));
-  const hasVisibleText = args.scene.onScreenText.trim().length > 0 || args.scene.textRequirement.required;
-  const hasUniqueEvidence = /\b(?:screenshot|document|report|case study|testimonial|unique evidence)\b/iu.test(semanticText);
+  const hasVisibleText =
+    args.scene.onScreenText.trim().length > 0 ||
+    args.scene.textRequirement.required;
+  const hasUniqueEvidence =
+    /\b(?:screenshot|document|report|case study|testimonial|unique evidence)\b/iu.test(
+      semanticText
+    );
   const hasNamedBrand = /\b(?:logo|brand)\b/iu.test(semanticText);
-  const containsNamedPerson = args.spec.characters.length > 0 || /\bveronica benini\b/iu.test(semanticText);
+  const containsNamedPerson =
+    args.spec.characters.length > 0 ||
+    /\bveronica benini\b/iu.test(semanticText);
   const continuitySensitive = args.scene.continuityReferences.length > 0;
   const usesReferenceImage = args.referenceCount > 0;
-  const eligible = !hasVisibleText && !hasNamedBrand && !containsNamedPerson && !usesReferenceImage && !continuitySensitive && !hasUniqueEvidence;
+  const eligible =
+    !hasVisibleText &&
+    !hasNamedBrand &&
+    !containsNamedPerson &&
+    !usesReferenceImage &&
+    !continuitySensitive &&
+    !hasUniqueEvidence;
   return {
     visualIntent: args.scene.visualPurpose,
     semanticBeat: args.scene.canonicalNarration,
@@ -655,7 +681,9 @@ function buildVeronicaReusableImageSemantics(args: {
     continuitySensitive,
     identitySensitive: containsNamedPerson,
     uniqueEvidence: hasUniqueEvidence,
-    uniqueProductIdentity: /\b(?:product|product identity)\b/iu.test(semanticText),
+    uniqueProductIdentity: /\b(?:product|product identity)\b/iu.test(
+      semanticText
+    ),
     materialEditingMask: false,
     occupationNeutral: occupationCues.length === 0,
     occupationCues,
@@ -671,12 +699,18 @@ function veronicaReusableImageWorkspaceRoot(episodeDir: string): string {
 async function writeVeronicaReuseProvenance(
   episodeDir: string,
   sceneId: string,
-  provenance: Awaited<ReturnType<typeof materializeVeronicaReusableImage>>,
+  provenance: Awaited<ReturnType<typeof materializeVeronicaReusableImage>>
 ): Promise<void> {
   if (!provenance) return;
   await writeJsonAtomic(
-    path.join(episodeDir, "state", "image-generation", "reuse-provenance", `${sceneId}.json`),
-    provenance,
+    path.join(
+      episodeDir,
+      "state",
+      "image-generation",
+      "reuse-provenance",
+      `${sceneId}.json`
+    ),
+    provenance
   );
 }
 
@@ -685,10 +719,20 @@ const envSchema = z.object({
   OPENAI_IMAGE_MODEL: z.string().default("gpt-image-2"),
   MEDIAFORGE_OPENAI_IMAGE_SCENE_MODEL: z.string().min(1).optional(),
   MEDIAFORGE_OPENAI_IMAGE_SHORT_MODEL: z.string().min(1).optional(),
-  MEDIAFORGE_OPENAI_IMAGE_SCENE_SIZE: z.string().regex(/^\d+x\d+$/u).optional(),
-  MEDIAFORGE_OPENAI_IMAGE_SHORT_SIZE: z.string().regex(/^\d+x\d+$/u).optional(),
-  MEDIAFORGE_OPENAI_IMAGE_SCENE_QUALITY: z.enum(["low", "medium", "high", "auto"]).optional(),
-  MEDIAFORGE_OPENAI_IMAGE_SHORT_QUALITY: z.enum(["low", "medium", "high", "auto"]).optional(),
+  MEDIAFORGE_OPENAI_IMAGE_SCENE_SIZE: z
+    .string()
+    .regex(/^\d+x\d+$/u)
+    .optional(),
+  MEDIAFORGE_OPENAI_IMAGE_SHORT_SIZE: z
+    .string()
+    .regex(/^\d+x\d+$/u)
+    .optional(),
+  MEDIAFORGE_OPENAI_IMAGE_SCENE_QUALITY: z
+    .enum(["low", "medium", "high", "auto"])
+    .optional(),
+  MEDIAFORGE_OPENAI_IMAGE_SHORT_QUALITY: z
+    .enum(["low", "medium", "high", "auto"])
+    .optional(),
   OPENAI_IMAGE_SIZE: z.string().optional(),
   OPENAI_IMAGE_FULL_SIZE: z.string().optional(),
   OPENAI_IMAGE_SHORT_SIZE: z.string().optional(),
@@ -972,6 +1016,7 @@ const persistedImageGenerationFailureSchema = z.object({
   stage: z.enum([
     "visual-planning",
     "reference-resolution",
+    "semantic-qa",
     "provider",
     "filesystem",
     "manifest",
@@ -989,6 +1034,7 @@ const persistedImageGenerationFailureSchema = z.object({
     "provider-permanent-error",
     "filesystem-error",
     "manifest-conflict",
+    "semantic-qa-rejected",
   ]),
   outputPath: z.string().min(1),
   promptHash: z.string().optional(),
@@ -1028,7 +1074,9 @@ export function buildEpisodeImageMediaContext(input: {
   };
 }
 
-function defaultEpisodeImageMediaContext(episodeId: string): EpisodeImageMediaContext {
+function defaultEpisodeImageMediaContext(
+  episodeId: string
+): EpisodeImageMediaContext {
   const narrationFingerprint = hashText(`${episodeId}:narration:en:en-US:full`);
   return {
     identity: mediaStageIdentitySchema.parse({
@@ -1071,7 +1119,9 @@ async function resolveEpisodeImageMediaContext(
   const manifestPath = path.join(episodeDir, "manifest.json");
   if (await fileExists(manifestPath)) {
     try {
-      const manifest = JSON.parse(await fsPromises.readFile(manifestPath, "utf8")) as {
+      const manifest = JSON.parse(
+        await fsPromises.readFile(manifestPath, "utf8")
+      ) as {
         readonly sourceMetadata?: { readonly genre?: unknown };
       };
       if (
@@ -1087,21 +1137,27 @@ async function resolveEpisodeImageMediaContext(
   return base;
 }
 
-function scenePlanIdentity(context: EpisodeImageMediaContext): MediaStageIdentity {
+function scenePlanIdentity(
+  context: EpisodeImageMediaContext
+): MediaStageIdentity {
   return mediaStageIdentitySchema.parse({
     ...context.identity,
     owner: "scene-plan",
   });
 }
 
-function imagePlanIdentity(context: EpisodeImageMediaContext): MediaStageIdentity {
+function imagePlanIdentity(
+  context: EpisodeImageMediaContext
+): MediaStageIdentity {
   return mediaStageIdentitySchema.parse({
     ...context.identity,
     owner: "image-plan",
   });
 }
 
-function imageGenerationIdentity(context: EpisodeImageMediaContext): MediaStageIdentity {
+function imageGenerationIdentity(
+  context: EpisodeImageMediaContext
+): MediaStageIdentity {
   return mediaStageIdentitySchema.parse({
     ...context.identity,
     owner: "image-generation",
@@ -1119,7 +1175,8 @@ function buildScenePlanningConfigFingerprint(
       locale: context.identity.locale,
       narrationFingerprint: context.narration.fingerprint,
       targetSceneCount: scene.sequenceNumber,
-      targetDurationSeconds: scene.timing.endSeconds - scene.timing.startSeconds,
+      targetDurationSeconds:
+        scene.timing.endSeconds - scene.timing.startSeconds,
       explicitConfigFingerprint: context.scenePlanningConfigFingerprint ?? null,
       shortMediaRequirements: context.shortMediaRequirements ?? null,
     })
@@ -1443,7 +1500,10 @@ async function canReuseSceneImage(input: {
   readonly currentProviderRequestHash: string;
   readonly currentVisualPlanHash: string;
   readonly currentRenderability?: SceneRenderability;
-  readonly currentReferenceImages: Array<{ readonly characterId: string; readonly sha256: string }>;
+  readonly currentReferenceImages: Array<{
+    readonly characterId: string;
+    readonly sha256: string;
+  }>;
   readonly outputPath: string;
   readonly expectedSize: string;
   readonly force: boolean;
@@ -1489,11 +1549,16 @@ async function canReuseSceneImage(input: {
   ) {
     return false;
   }
-  if (input.existing.referenceImages.length !== input.currentReferenceImages.length) {
+  if (
+    input.existing.referenceImages.length !==
+    input.currentReferenceImages.length
+  ) {
     return false;
   }
   const existingRefs = new Map(
-    input.existing.referenceImages.map((entry) => [entry.characterId, entry.sha256] as const)
+    input.existing.referenceImages.map(
+      (entry) => [entry.characterId, entry.sha256] as const
+    )
   );
   for (const reference of input.currentReferenceImages) {
     if (existingRefs.get(reference.characterId) !== reference.sha256) {
@@ -1575,7 +1640,9 @@ async function quarantineSupersededSceneImages(
     "superseded-assets"
   );
   for (const plan of plans) {
-    const canonicalName = path.basename(sceneOutputPath(episodeDir, plan.scene));
+    const canonicalName = path.basename(
+      sceneOutputPath(episodeDir, plan.scene)
+    );
     const staleNames = entries.filter(
       (entry) =>
         entry.startsWith(`${plan.scene.id}__`) &&
@@ -1643,7 +1710,10 @@ function canResolveByReusingNextScene(
   renderability: SceneRenderability,
   issues: readonly SceneVisualPlanIssue[]
 ): boolean {
-  return renderability === "mergeWithNext" && canResolveByReusingPreviousScene("mergeWithPrevious", issues);
+  return (
+    renderability === "mergeWithNext" &&
+    canResolveByReusingPreviousScene("mergeWithPrevious", issues)
+  );
 }
 
 interface PendingMergeWithNextScene {
@@ -1705,9 +1775,13 @@ async function materializePendingMergeWithNextScenes(args: {
         finalPrompt: pending.prompt,
         providerRequestHash: pending.providerRequest.providerRequestHash,
         promptHash: pending.promptHash,
-        ...(pending.previousSceneId ? { previousSceneId: pending.previousSceneId } : {}),
+        ...(pending.previousSceneId
+          ? { previousSceneId: pending.previousSceneId }
+          : {}),
         reusedFromSceneId: args.sourceSceneId,
-        materialDifferencesFromPrevious: [...pending.materialDifferencesFromPrevious],
+        materialDifferencesFromPrevious: [
+          ...pending.materialDifferencesFromPrevious,
+        ],
         ...(pending.validationIssueCodes.length > 0
           ? { validationIssueCodes: [...pending.validationIssueCodes] }
           : {}),
@@ -1769,7 +1843,9 @@ async function materializePendingMergeWithNextScenes(args: {
         ...(pending.previousSceneId
           ? { previousSceneId: pending.previousSceneId }
           : {}),
-        materialDifferencesFromPrevious: [...pending.materialDifferencesFromPrevious],
+        materialDifferencesFromPrevious: [
+          ...pending.materialDifferencesFromPrevious,
+        ],
         ...(pending.validationIssueCodes.length > 0
           ? { validationIssueCodes: [...pending.validationIssueCodes] }
           : {}),
@@ -1860,7 +1936,9 @@ async function materializePendingMergeWithNextScenes(args: {
         ...(pending.previousSceneId
           ? { previousSceneId: pending.previousSceneId }
           : {}),
-        materialDifferencesFromPrevious: [...pending.materialDifferencesFromPrevious],
+        materialDifferencesFromPrevious: [
+          ...pending.materialDifferencesFromPrevious,
+        ],
         ...(pending.validationIssueCodes.length > 0
           ? { validationIssueCodes: [...pending.validationIssueCodes] }
           : {}),
@@ -1919,8 +1997,12 @@ async function materializePendingMergeWithNextScenes(args: {
       finalPrompt: pending.prompt,
       providerRequestHash: generation.providerRequestHash,
       promptHash: generation.promptHash,
-      ...(pending.previousSceneId ? { previousSceneId: pending.previousSceneId } : {}),
-      materialDifferencesFromPrevious: [...pending.materialDifferencesFromPrevious],
+      ...(pending.previousSceneId
+        ? { previousSceneId: pending.previousSceneId }
+        : {}),
+      materialDifferencesFromPrevious: [
+        ...pending.materialDifferencesFromPrevious,
+      ],
       ...(pending.validationIssueCodes.length > 0
         ? { validationIssueCodes: [...pending.validationIssueCodes] }
         : {}),
@@ -1998,7 +2080,9 @@ function formatCharacterSubject(
   }
   const names = characters
     .map((usage) =>
-      registry.characters.find((character) => character.id === usage.characterId)
+      registry.characters.find(
+        (character) => character.id === usage.characterId
+      )
     )
     .filter((character): character is CharacterDefinition => Boolean(character))
     .map((character) => character.name);
@@ -2023,7 +2107,8 @@ function inferConcreteSubjectFromNarration(scene: Scene): string | undefined {
   }
   if (/record/i.test(narration)) return "the bedside recorder";
   if (/\bphone\b/u.test(narration)) return "the phone on the bedside table";
-  if (/\bevidence\b/u.test(narration)) return "the evidence spread across the table";
+  if (/\bevidence\b/u.test(narration))
+    return "the evidence spread across the table";
   if (/\bdoorway?\b|\bthreshold\b/u.test(narration)) return "the motel doorway";
   if (/\bcorridor\b|\bhallway\b/u.test(narration)) return "the empty corridor";
   if (/\blamp\b/u.test(narration)) return "the flickering practical lamp";
@@ -2058,7 +2143,10 @@ function inferConcreteActionFromNarration(
   if (/\bcorridor\b|\bhallway\b/u.test(narration)) {
     return "sits empty under weak practical light";
   }
-  if (/\blamp\b/u.test(narration) && /\bflicker|\bflickers|\bflickering/u.test(narration)) {
+  if (
+    /\blamp\b/u.test(narration) &&
+    /\bflicker|\bflickers|\bflickering/u.test(narration)
+  ) {
     return "flickers over the room";
   }
   if (/\bphone\b/u.test(narration)) {
@@ -2195,10 +2283,7 @@ function deriveCameraAngle(scene: Scene): CameraAngle {
   return "eye-level";
 }
 
-function deriveVisibleAction(
-  scene: Scene,
-  subject: string
-): string {
+function deriveVisibleAction(scene: Scene, subject: string): string {
   if (
     !isGenericText(scene.action) &&
     !isLikelyAbstractVisualAction(scene.action)
@@ -2237,17 +2322,27 @@ function buildSceneContextFragments(scene: Scene): {
   if (/\bdoorway?\b/u.test(narration)) background.push("the doorway");
   if (/\bhallway\b/u.test(narration)) background.push("the hallway");
   if (/\bcorridor\b/u.test(narration)) background.push("the corridor");
-  if (/\brain\b/u.test(narration)) environment.push("rain on the window and floor");
-  if (/\bwindow\b/u.test(narration)) background.push("the rain-streaked window");
-  if (/\bphone\b/u.test(narration)) foreground.push("a phone on the bedside table");
-  if (/\bmonitor\b/u.test(narration)) foreground.push("a monitor glow on a desk");
-  if (/record/i.test(narration)) foreground.push("a recorder and scattered notes");
-  if (/\bevidence\b/u.test(narration)) foreground.push("scattered evidence on a table");
-  if (/\bchildren?\b/u.test(narration)) foreground.push("two children at the threshold");
-  if (/\btable\b/u.test(narration)) foreground.push("a small table in the center of the room");
+  if (/\brain\b/u.test(narration))
+    environment.push("rain on the window and floor");
+  if (/\bwindow\b/u.test(narration))
+    background.push("the rain-streaked window");
+  if (/\bphone\b/u.test(narration))
+    foreground.push("a phone on the bedside table");
+  if (/\bmonitor\b/u.test(narration))
+    foreground.push("a monitor glow on a desk");
+  if (/record/i.test(narration))
+    foreground.push("a recorder and scattered notes");
+  if (/\bevidence\b/u.test(narration))
+    foreground.push("scattered evidence on a table");
+  if (/\bchildren?\b/u.test(narration))
+    foreground.push("two children at the threshold");
+  if (/\btable\b/u.test(narration))
+    foreground.push("a small table in the center of the room");
   if (/\blamp\b/u.test(narration)) environment.push("a single practical lamp");
-  if (/\boutside\b/u.test(narration)) background.push("the dark space outside the room");
-  if (/\bthreshold\b/u.test(narration)) foreground.push("the doorway threshold");
+  if (/\boutside\b/u.test(narration))
+    background.push("the dark space outside the room");
+  if (/\bthreshold\b/u.test(narration))
+    foreground.push("the doorway threshold");
 
   return {
     environment: [...new Set(environment)],
@@ -2265,8 +2360,8 @@ function describeSceneSpace(
   const environment =
     fragments.environment.length > 0
       ? fragments.environment.join(", ")
-      : inferConcreteEnvironmentFromNarration(scene, previous) ??
-        unresolvedEnvironment;
+      : (inferConcreteEnvironmentFromNarration(scene, previous) ??
+        unresolvedEnvironment);
   const foreground =
     fragments.foreground.length > 0
       ? fragments.foreground.join(", ")
@@ -2344,7 +2439,9 @@ function isLowValueExposition(scene: Scene): boolean {
     /transition|aftermath|consequence|meaning|ordinary details|next incident|same impossible detail|without explanation|official account ended|reveal is therefore|recurring sound|recorded|support part|introduced a contradiction|advance the story|bridge|story began|first reports|detail mattered|became important|witness statements|warning was ignored|survived with evidence|setting was described|time weather|contradiction|deliberate|exaggerated|ignored impossible pattern|central sequence remained|remote roadside motel|ambulance transfer/u.test(
       source
     ) ||
-    (scene.sequenceNumber > 1 && wordCount(scene.canonicalNarration) <= 20 && vagueSurface)
+    (scene.sequenceNumber > 1 &&
+      wordCount(scene.canonicalNarration) <= 20 &&
+      vagueSurface)
   );
 }
 
@@ -2362,7 +2459,7 @@ function deriveRenderability(
     isLikelyAbstractVisualAction(seed) ||
     /\btransition|aftermath|consequence|meaning|account ended|without explanation\b/iu.test(
       seed
-  );
+    );
   if (previous) {
     const comparison = compareSceneSemantics(previous, spec);
     if (
@@ -2422,7 +2519,10 @@ function likelyNameTokens(character: CharacterDefinition): string[] {
   ].filter((token) => token.length >= 4);
 }
 
-function hasCharacterLabelMatch(haystack: string, character: CharacterDefinition): boolean {
+function hasCharacterLabelMatch(
+  haystack: string,
+  character: CharacterDefinition
+): boolean {
   for (const label of characterLabels(character)) {
     if (wordBoundaryPattern(label).test(haystack)) {
       return true;
@@ -2461,9 +2561,7 @@ function unresolvedRecurringMentions(
     // needs an identity reference. Preserve the stricter check for a named or
     // anaphoric group such as "the children".
     if (
-      !new RegExp(`\\b(?:the|these|those)\\s+${term}\\b`, "iu").test(
-        haystack
-      )
+      !new RegExp(`\\b(?:the|these|those)\\s+${term}\\b`, "iu").test(haystack)
     ) {
       continue;
     }
@@ -2553,9 +2651,7 @@ function buildPrimaryVisualEvent(spec: SceneVisualSpec): string {
 }
 
 function buildProhibitedElements(scene: Scene): string[] {
-  const base = [
-    "No malformed anatomy, duplicate figures, or unreadable UI",
-  ];
+  const base = ["No malformed anatomy, duplicate figures, or unreadable UI"];
   return [
     ...base,
     ...scene.negativeConstraints
@@ -2578,11 +2674,10 @@ export function buildSceneVisualSpec(
   const visibleAction = deriveVisibleAction(scene, focalSubject);
   const historyProfile = options?.profile === "history-documentary";
   const historySpace = historyProfile
-      ? buildHistorySceneSpace({ scene, subject: focalSubject })
-      : null;
+    ? buildHistorySceneSpace({ scene, subject: focalSubject })
+    : null;
   const environment =
-    historySpace?.environment ??
-    deriveEnvironment(scene, previous);
+    historySpace?.environment ?? deriveEnvironment(scene, previous);
   return {
     sceneId: scene.id,
     sequenceNumber: scene.sequenceNumber,
@@ -2608,8 +2703,12 @@ export function buildSceneVisualSpec(
         ? "40-50mm natural perspective with a clear focal subject and grounded documentary realism"
         : "strong cinematic composition with a clear visual hierarchy and negative space"
       : normalizeSentence(scene.composition),
-    lighting: historyProfile ? deriveHistorySceneLighting(scene) : deriveLighting(scene),
-    timeOfDay: historyProfile ? deriveHistorySceneTimeOfDay(scene) : deriveTimeOfDay(scene),
+    lighting: historyProfile
+      ? deriveHistorySceneLighting(scene)
+      : deriveLighting(scene),
+    timeOfDay: historyProfile
+      ? deriveHistorySceneTimeOfDay(scene)
+      : deriveTimeOfDay(scene),
     mood: historyProfile ? deriveHistorySceneMood(scene) : deriveMood(scene),
     distinctiveAnchor: extractAnchor(
       scene.canonicalNarration,
@@ -2688,8 +2787,7 @@ function compareSceneSemantics(
   const weightedChecks = [
     {
       weight: 5,
-      matches:
-        overlapRatio(previous.focalSubject, current.focalSubject) > 0.75,
+      matches: overlapRatio(previous.focalSubject, current.focalSubject) > 0.75,
       material: previous.focalSubject !== current.focalSubject,
     },
     {
@@ -2706,7 +2804,8 @@ function compareSceneSemantics(
     {
       weight: 4,
       matches:
-        overlapRatio(previous.distinctiveAnchor, current.distinctiveAnchor) > 0.65,
+        overlapRatio(previous.distinctiveAnchor, current.distinctiveAnchor) >
+        0.65,
       material: previous.distinctiveAnchor !== current.distinctiveAnchor,
     },
     {
@@ -2717,10 +2816,14 @@ function compareSceneSemantics(
     {
       weight: 3,
       matches:
-        previous.characters.map((character) => character.characterId).join(" ") ===
+        previous.characters
+          .map((character) => character.characterId)
+          .join(" ") ===
         current.characters.map((character) => character.characterId).join(" "),
       material:
-        previous.characters.map((character) => character.characterId).join(" ") !==
+        previous.characters
+          .map((character) => character.characterId)
+          .join(" ") !==
         current.characters.map((character) => character.characterId).join(" "),
     },
     {
@@ -2829,19 +2932,36 @@ function hasContradictoryRequiredFeature(current: SceneVisualSpec): boolean {
     .join(" ")
     .toLowerCase();
   const exclusions = current.prohibitedElements.join(" ").toLowerCase();
-  if (requiresSceneText(current.textRequirement) && /no readable text|no text|no labels|no signs|no lettering/iu.test(exclusions)) {
+  if (
+    requiresSceneText(current.textRequirement) &&
+    /no readable text|no text|no labels|no signs|no lettering/iu.test(
+      exclusions
+    )
+  ) {
     return true;
   }
-  if (/\bchildren?\b/iu.test(requiredFeatureText) && /\bno children\b|\bno kids\b/iu.test(exclusions)) {
+  if (
+    /\bchildren?\b/iu.test(requiredFeatureText) &&
+    /\bno children\b|\bno kids\b/iu.test(exclusions)
+  ) {
     return true;
   }
-  if (/\bdoor\b|\bdoorway\b|\bthreshold\b/iu.test(requiredFeatureText) && /\bno doors?\b|\bno doorway\b/iu.test(exclusions)) {
+  if (
+    /\bdoor\b|\bdoorway\b|\bthreshold\b/iu.test(requiredFeatureText) &&
+    /\bno doors?\b|\bno doorway\b/iu.test(exclusions)
+  ) {
     return true;
   }
-  if (/\bphone\b/iu.test(requiredFeatureText) && /\bno phones?\b/iu.test(exclusions)) {
+  if (
+    /\bphone\b/iu.test(requiredFeatureText) &&
+    /\bno phones?\b/iu.test(exclusions)
+  ) {
     return true;
   }
-  if (/\bmonitor\b|\bscreen\b/iu.test(requiredFeatureText) && /\bno screens?\b|\bno monitors?\b/iu.test(exclusions)) {
+  if (
+    /\bmonitor\b|\bscreen\b/iu.test(requiredFeatureText) &&
+    /\bno screens?\b|\bno monitors?\b/iu.test(exclusions)
+  ) {
     return true;
   }
   return false;
@@ -2888,7 +3008,9 @@ function verboseVisualFields(current: SceneVisualSpec): string[] {
     .map(([field]) => field);
 }
 
-function expectsRecurringCharacterContinuity(current: SceneVisualSpec): boolean {
+function expectsRecurringCharacterContinuity(
+  current: SceneVisualSpec
+): boolean {
   const continuityText = normalizePlanText(
     current.continuityElements.join(" ")
   ).toLowerCase();
@@ -2896,9 +3018,7 @@ function expectsRecurringCharacterContinuity(current: SceneVisualSpec): boolean 
     return false;
   }
   return (
-    /\b(same|keep|preserve|consistent|continuity)\b/iu.test(
-      continuityText
-    ) &&
+    /\b(same|keep|preserve|consistent|continuity)\b/iu.test(continuityText) &&
     /\b(character|person|man|woman|child|children|face|facial|hair|hairline|eyes?|skin|build|wardrobe|clothes|clothing|jacket|backpack|accessor(?:y|ies))\b/iu.test(
       continuityText
     )
@@ -2918,7 +3038,10 @@ export function validateSceneVisualSpec(
     isGenericText(current.focalSubject) ||
     current.focalSubject === unresolvedFocalSubject
   ) {
-    push("MISSING_FOCAL_SUBJECT", "prompt does not identify a concrete visible subject");
+    push(
+      "MISSING_FOCAL_SUBJECT",
+      "prompt does not identify a concrete visible subject"
+    );
   }
   if (
     isGenericText(current.visibleAction) ||
@@ -2926,20 +3049,32 @@ export function validateSceneVisualSpec(
     current.visibleAction.toLowerCase().includes("shown") ||
     isLikelyAbstractVisualAction(current.visibleAction)
   ) {
-    push("ABSTRACT_VISIBLE_ACTION", "visible action is too generic or abstract");
+    push(
+      "ABSTRACT_VISIBLE_ACTION",
+      "visible action is too generic or abstract"
+    );
   }
   if (
     isGenericText(current.environment) ||
     current.environment === unresolvedEnvironment ||
     hasPlaceholderLanguage(current.environment)
   ) {
-    push("PLACEHOLDER_ENVIRONMENT", "environment is too generic or placeholder-driven");
+    push(
+      "PLACEHOLDER_ENVIRONMENT",
+      "environment is too generic or placeholder-driven"
+    );
   }
   if (fieldIsEmptyLocation(current.environment)) {
     push("EMPTY_LOCATION", "scene does not establish a usable location");
   }
-  if (hasPlaceholderLanguage(current.foreground) || hasPlaceholderLanguage(current.background)) {
-    push("PLACEHOLDER_ENVIRONMENT", "foreground or background contains placeholder phrasing");
+  if (
+    hasPlaceholderLanguage(current.foreground) ||
+    hasPlaceholderLanguage(current.background)
+  ) {
+    push(
+      "PLACEHOLDER_ENVIRONMENT",
+      "foreground or background contains placeholder phrasing"
+    );
   }
   if (hasContradictoryRequiredFeature(current)) {
     push(
@@ -2974,16 +3109,19 @@ export function validateSceneVisualSpec(
     looksTruncated(current.visibleAction) ||
     looksTruncated(current.environment)
   ) {
-    push("TRUNCATED_SENTENCE", "one or more visual plan fields end in an unfinished clause");
+    push(
+      "TRUNCATED_SENTENCE",
+      "one or more visual plan fields end in an unfinished clause"
+    );
   }
   if (hasRepeatedNarrationSentence(current.sourceNarration)) {
-    push("DUPLICATED_NARRATION", "narration beat repeats the same sentence fragment");
+    push(
+      "DUPLICATED_NARRATION",
+      "narration beat repeats the same sentence fragment"
+    );
   }
   const comparison = compareSceneSemantics(previous, current);
-  if (
-    previous &&
-    isNearIdenticalSceneComparison(comparison)
-  ) {
+  if (previous && isNearIdenticalSceneComparison(comparison)) {
     push(
       "NON_MATERIAL_SCENE_DIFFERENCE",
       "scene differs from the previous scene mostly by framing or lighting instead of visual semantics"
@@ -3039,7 +3177,9 @@ function buildCharacterIdentitySection(
 }
 
 function stripLeadingPromptConjunction(value: string): string {
-  return normalizePlanText(value).replace(/^(?:and|und)\s+/iu, "").trim();
+  return normalizePlanText(value)
+    .replace(/^(?:and|und)\s+/iu, "")
+    .trim();
 }
 
 function sanitizeImagePromptNarrativeText(value: string): string {
@@ -3102,10 +3242,7 @@ function shouldUseImagePromptFallback(value: string): boolean {
   );
 }
 
-function sanitizeImagePromptField(
-  value: string,
-  fallback: string
-): string {
+function sanitizeImagePromptField(value: string, fallback: string): string {
   const sanitized = sanitizeImagePromptNarrativeText(value);
   if (shouldUseImagePromptFallback(sanitized)) {
     return normalizeSentence(fallback);
@@ -3126,7 +3263,9 @@ function renderImageProviderPrompt(request: ImageProviderRequest): string {
         referenceCharacterIds: request.referenceImages.map(
           (reference) => reference.characterId
         ),
-        ...(request.visualDirection ? { visualDirection: request.visualDirection } : {}),
+        ...(request.visualDirection
+          ? { visualDirection: request.visualDirection }
+          : {}),
         ...(request.sceneIdForDirection
           ? { sceneId: request.sceneIdForDirection }
           : {}),
@@ -3138,24 +3277,24 @@ function renderImageProviderPrompt(request: ImageProviderRequest): string {
   if (request.promptProfile === "strategic-reinvention-editorial") {
     const authoritative = sanitizeImagePromptField(
       request.authoritativeImagePrompt ?? "",
-      `${request.scene.focalSubject} ${request.scene.visibleAction} in ${request.scene.environment}`,
+      `${request.scene.focalSubject} ${request.scene.visibleAction} in ${request.scene.environment}`
     );
     return [
       promptSection(
         "VERONICA EDITORIAL VISUAL",
-        `${authoritative}. Contemporary European editorial-documentary realism with a direct, practical, anti-cliche visual point of view.`,
+        `${authoritative}. Contemporary European editorial-documentary realism with a direct, practical, anti-cliche visual point of view.`
       ),
       promptSection(
         "CAMERA AND COMPOSITION",
-        `${request.scene.shotSize} shot, ${request.scene.cameraAngle} angle. ${request.scene.composition}. ${request.scene.lighting}.`,
+        `${request.scene.shotSize} shot, ${request.scene.cameraAngle} angle. ${request.scene.composition}. ${request.scene.lighting}.`
       ),
       promptSection(
         "CREATOR AND RIGHTS BOUNDARY",
-        "Use only generic, non-identifiable people where a human subject is necessary. Do not depict, imitate, or create a synthetic likeness of Veronica Benini or any other identifiable creator.",
+        "Use only generic, non-identifiable people where a human subject is necessary. Do not depict, imitate, or create a synthetic likeness of Veronica Benini or any other identifiable creator."
       ),
       promptSection(
         "TEXT AND BRAND BOUNDARY",
-        "Text-free base image. No readable text, letters, numbers, captions, subtitles, labels, logos, UI, or watermarks; localized overlays are rendered separately.",
+        "Text-free base image. No readable text, letters, numbers, captions, subtitles, labels, logos, UI, or watermarks; localized overlays are rendered separately."
       ),
       promptSection(
         "EXCLUSIONS",
@@ -3166,7 +3305,7 @@ function renderImageProviderPrompt(request: ImageProviderRequest): string {
           "stock handshake",
           "visual sexualization",
           "misleading reenactment",
-        ].join("; "),
+        ].join("; ")
       ),
     ].join("\n\n");
   }
@@ -3435,7 +3574,7 @@ export function buildPromptFromSpec(
   options?: {
     readonly profile?: ImagePromptProfile;
     readonly authoritativeImagePrompt?: string;
-  },
+  }
 ): string {
   return prepareImageProviderRequest(
     buildImageProviderRequest({
@@ -3479,11 +3618,15 @@ export function validatePrompt(
     issues.push({ code, message });
   };
   if (/rough ink collage/i.test(prompt) && /photorealistic/i.test(prompt)) {
-    push("CONTRADICTORY_CONSTRAINTS", "prompt contains contradictory style directions");
+    push(
+      "CONTRADICTORY_CONSTRAINTS",
+      "prompt contains contradictory style directions"
+    );
   }
-  const hasBlanketNoText = /do not include captions, subtitles, labels, logos, watermarks, or readable text/i.test(
-    prompt
-  );
+  const hasBlanketNoText =
+    /do not include captions, subtitles, labels, logos, watermarks, or readable text/i.test(
+      prompt
+    );
   const hasExactRequiredText = requiresSceneText(current.textRequirement)
     ? prompt.includes(current.textRequirement.text)
     : false;
@@ -3501,7 +3644,10 @@ export function validatePrompt(
       );
     }
   } else {
-    if (!hasBlanketNoText && !/no readable text|no captions|no subtitles|no labels/i.test(prompt)) {
+    if (
+      !hasBlanketNoText &&
+      !/no readable text|no captions|no subtitles|no labels/i.test(prompt)
+    ) {
       push(
         "BLANKET_NO_TEXT_INSTRUCTION_MISSING",
         "blanket_no_text_instruction_missing: prompt should discourage readable text for ordinary scenes"
@@ -3509,13 +3655,19 @@ export function validatePrompt(
     }
   }
   if (wordCount(prompt) > 450) {
-    push("PROMPT_TOO_VERBOSE", "prompt is too verbose for the amount of useful visual information");
+    push(
+      "PROMPT_TOO_VERBOSE",
+      "prompt is too verbose for the amount of useful visual information"
+    );
   }
   if (
     /whisper|sound|audio/i.test(prompt) &&
     !/waveform|reaction|device|recording|looks|turns|reacts/i.test(prompt)
   ) {
-    push("NON_VISUAL_AUDIO_REFERENCE", "prompt mentions non-visual sound without visible evidence");
+    push(
+      "NON_VISUAL_AUDIO_REFERENCE",
+      "prompt mentions non-visual sound without visible evidence"
+    );
   }
   return issues.map((issue) => issue.message);
 }
@@ -3647,7 +3799,9 @@ async function requestOpenAiImageWithCurl(
 
     const stdout = typeof execError.stdout === "string" ? execError.stdout : "";
     const stderr = typeof execError.stderr === "string" ? execError.stderr : "";
-    const parsedBody = await readCurlJsonResponse(stdout).catch(() => undefined);
+    const parsedBody = await readCurlJsonResponse(stdout).catch(
+      () => undefined
+    );
 
     throw new ProviderResponseError(
       formatJsonValue({
@@ -3679,14 +3833,19 @@ async function requestOpenAiTextOnlyImage(
     readonly b64_json?: string;
   }>;
 }> {
-  const baseUrl = new URL(endpoint, settings.baseUrl ?? "https://api.openai.com").toString();
+  const baseUrl = new URL(
+    endpoint,
+    settings.baseUrl ?? "https://api.openai.com"
+  ).toString();
   try {
     const response = await fetch(baseUrl, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${settings.apiKey}`,
         "Content-Type": "application/json",
-        ...(settings.organization ? { "OpenAI-Organization": settings.organization } : {}),
+        ...(settings.organization
+          ? { "OpenAI-Organization": settings.organization }
+          : {}),
         ...(settings.project ? { "OpenAI-Project": settings.project } : {}),
       },
       body: JSON.stringify(body),
@@ -3764,7 +3923,9 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function resolveEpisodeRootFromImageOutputPath(outputPath: string): string | undefined {
+function resolveEpisodeRootFromImageOutputPath(
+  outputPath: string
+): string | undefined {
   const parts = path.resolve(outputPath).split(path.sep);
   const markerIndex = parts.findIndex(
     (part, index) =>
@@ -3828,7 +3989,10 @@ async function saveRegistry(
   episodeDir: string,
   registry: CharacterRegistry
 ): Promise<void> {
-  await writeJsonAtomic(resolveEpisodeCharacterRegistryPath(episodeDir), registry);
+  await writeJsonAtomic(
+    resolveEpisodeCharacterRegistryPath(episodeDir),
+    registry
+  );
 }
 
 export function loadEpisodeImageGenerationSettings(
@@ -3843,10 +4007,16 @@ export function loadEpisodeImageGenerationSettings(
   const profileEnv = {
     ...mergedEnv,
     ...(profile === "full" && mergedEnv["MEDIAFORGE_OPENAI_IMAGE_SCENE_SIZE"]
-      ? { OPENAI_IMAGE_FULL_SIZE: mergedEnv["MEDIAFORGE_OPENAI_IMAGE_SCENE_SIZE"] }
+      ? {
+          OPENAI_IMAGE_FULL_SIZE:
+            mergedEnv["MEDIAFORGE_OPENAI_IMAGE_SCENE_SIZE"],
+        }
       : {}),
     ...(profile === "short" && mergedEnv["MEDIAFORGE_OPENAI_IMAGE_SHORT_SIZE"]
-      ? { OPENAI_IMAGE_SHORT_SIZE: mergedEnv["MEDIAFORGE_OPENAI_IMAGE_SHORT_SIZE"] }
+      ? {
+          OPENAI_IMAGE_SHORT_SIZE:
+            mergedEnv["MEDIAFORGE_OPENAI_IMAGE_SHORT_SIZE"],
+        }
       : {}),
   };
   const parsed = envSchema.parse(profileEnv);
@@ -3859,7 +4029,9 @@ export function loadEpisodeImageGenerationSettings(
     env: profileEnv,
   });
   const ignoredShortWarning =
-    profile === "short" ? buildIgnoredShortFullSizeWarning(mergedEnv) : undefined;
+    profile === "short"
+      ? buildIgnoredShortFullSizeWarning(mergedEnv)
+      : undefined;
   if (ignoredShortWarning) {
     console.warn(ignoredShortWarning);
   }
@@ -3871,15 +4043,19 @@ export function loadEpisodeImageGenerationSettings(
     profile,
     model:
       profile === "short"
-        ? parsed.MEDIAFORGE_OPENAI_IMAGE_SHORT_MODEL ?? parsed.OPENAI_IMAGE_MODEL
-        : parsed.MEDIAFORGE_OPENAI_IMAGE_SCENE_MODEL ?? parsed.OPENAI_IMAGE_MODEL,
+        ? (parsed.MEDIAFORGE_OPENAI_IMAGE_SHORT_MODEL ??
+          parsed.OPENAI_IMAGE_MODEL)
+        : (parsed.MEDIAFORGE_OPENAI_IMAGE_SCENE_MODEL ??
+          parsed.OPENAI_IMAGE_MODEL),
     size: configuredGenerationSize.size,
     renderSize: configuredRenderSize.size,
     resolvedSize: configuredGenerationSize.size,
     quality:
       profile === "short"
-        ? parsed.MEDIAFORGE_OPENAI_IMAGE_SHORT_QUALITY ?? parsed.OPENAI_IMAGE_QUALITY
-        : parsed.MEDIAFORGE_OPENAI_IMAGE_SCENE_QUALITY ?? parsed.OPENAI_IMAGE_QUALITY,
+        ? (parsed.MEDIAFORGE_OPENAI_IMAGE_SHORT_QUALITY ??
+          parsed.OPENAI_IMAGE_QUALITY)
+        : (parsed.MEDIAFORGE_OPENAI_IMAGE_SCENE_QUALITY ??
+          parsed.OPENAI_IMAGE_QUALITY),
     concurrency: parsed.OPENAI_IMAGE_CONCURRENCY,
     maxRetries: parsed.OPENAI_IMAGE_MAX_RETRIES,
     timeoutMs: parsed.OPENAI_IMAGE_TIMEOUT_MS,
@@ -3989,20 +4165,23 @@ export class OpenAIImageGenerator implements ImageGenerator {
             ? this.client.images.generate(requestBodyBase, {
                 signal: AbortSignal.timeout(this.settings.timeoutMs),
               })
-            : this.client.images.edit({
-                ...requestBodyBase,
-                image: await Promise.all(
-                  request.referenceImages.map(async (reference) =>
-                    toFile(
-                      await fsPromises.readFile(reference.filePath),
-                      path.basename(reference.filePath),
-                      { type: reference.mimeType }
+            : this.client.images.edit(
+                {
+                  ...requestBodyBase,
+                  image: await Promise.all(
+                    request.referenceImages.map(async (reference) =>
+                      toFile(
+                        await fsPromises.readFile(reference.filePath),
+                        path.basename(reference.filePath),
+                        { type: reference.mimeType }
+                      )
                     )
-                  )
-                ),
-              }, {
-                signal: AbortSignal.timeout(this.settings.timeoutMs),
-              });
+                  ),
+                },
+                {
+                  signal: AbortSignal.timeout(this.settings.timeoutMs),
+                }
+              );
         let responseData:
           | {
               readonly data?: Array<{
@@ -4016,7 +4195,10 @@ export class OpenAIImageGenerator implements ImageGenerator {
           responseData = sdkResponse.data;
           requestId = sdkResponse.request_id ?? undefined;
         } catch (error) {
-          if (request.referenceImages.length > 0 || !shouldFallbackToCurl(error)) {
+          if (
+            request.referenceImages.length > 0 ||
+            !shouldFallbackToCurl(error)
+          ) {
             throw error;
           }
           responseData = await requestOpenAiTextOnlyImage(
@@ -4083,11 +4265,16 @@ export class OpenAIImageGenerator implements ImageGenerator {
           ? estimateImageGenerationCost(telemetry.catalog, {
               provider: "openai",
               model: this.settings.model,
-              operation: generationMode === "reference-assisted" ? "edit" : "generate",
+              operation:
+                generationMode === "reference-assisted" ? "edit" : "generate",
               size: this.settings.size,
               quality: this.settings.quality,
             })
-          : { pricingVersion: "unconfigured", costMicros: null, warning: undefined };
+          : {
+              pricingVersion: "unconfigured",
+              costMicros: null,
+              warning: undefined,
+            };
         telemetry?.recordApiCall({
           provider: "openai",
           model: this.settings.model,
@@ -4457,7 +4644,9 @@ function buildPersistedSceneVisualPlan(args: {
     ...(args.context.shortMediaRequirements
       ? { shortMediaRequirements: args.context.shortMediaRequirements }
       : {}),
-    ...(args.previousSpec ? { previousSceneId: args.previousSpec.sceneId } : {}),
+    ...(args.previousSpec
+      ? { previousSceneId: args.previousSpec.sceneId }
+      : {}),
     narrationBeat: normalizedNarrationBeat(args.scene),
     visualSpec: args.spec,
     renderability: deriveRenderability(
@@ -4477,7 +4666,10 @@ async function writeSceneVisualPlanArtifact(
   artifact: PersistedSceneVisualPlan
 ): Promise<string> {
   const filePath = resolveEpisodeImageVisualPlanPath(episodeDir, sceneId);
-  await writeJsonAtomic(filePath, persistedSceneVisualPlanSchema.parse(artifact));
+  await writeJsonAtomic(
+    filePath,
+    persistedSceneVisualPlanSchema.parse(artifact)
+  );
   return filePath;
 }
 
@@ -4555,7 +4747,9 @@ function buildProviderResponseArtifact(args: {
     outputSha256: args.generation.outputSha256,
     attempts: args.generation.attempts,
     durationMs: args.generation.durationMs,
-    ...(args.generation.requestId ? { requestId: args.generation.requestId } : {}),
+    ...(args.generation.requestId
+      ? { requestId: args.generation.requestId }
+      : {}),
     referenceHashes: args.generation.referenceHashes.map((reference) => ({
       characterId: reference.characterId,
       sha256: reference.sha256,
@@ -4581,7 +4775,10 @@ async function writeGenerationCheckpoint(
   episodeDir: string,
   artifact: PersistedImageGenerationCheckpoint
 ): Promise<string> {
-  const filePath = resolveEpisodeImageCheckpointPath(episodeDir, artifact.sceneId);
+  const filePath = resolveEpisodeImageCheckpointPath(
+    episodeDir,
+    artifact.sceneId
+  );
   await writeJsonAtomic(
     filePath,
     persistedImageGenerationCheckpointSchema.parse(artifact)
@@ -4680,24 +4877,27 @@ function mergePromotionScore(plan: EpisodeScenePlan): number {
 }
 
 function sceneContentSimilarity(previous: Scene, current: Scene): number {
-  const weightedFields: Array<{ weight: number; left: string; right: string }> = [
-    {
-      weight: 4,
-      left: previous.canonicalNarration,
-      right: current.canonicalNarration,
-    },
-    { weight: 2, left: previous.subject, right: current.subject },
-    { weight: 2, left: previous.action, right: current.action },
-    { weight: 2, left: previous.setting, right: current.setting },
-    { weight: 1, left: previous.visualPurpose, right: current.visualPurpose },
-    { weight: 1, left: previous.composition, right: current.composition },
-    { weight: 1, left: previous.cameraFraming, right: current.cameraFraming },
-    { weight: 1, left: previous.mood, right: current.mood },
-  ];
-  const totalWeight = weightedFields.reduce((sum, field) => sum + field.weight, 0);
+  const weightedFields: Array<{ weight: number; left: string; right: string }> =
+    [
+      {
+        weight: 4,
+        left: previous.canonicalNarration,
+        right: current.canonicalNarration,
+      },
+      { weight: 2, left: previous.subject, right: current.subject },
+      { weight: 2, left: previous.action, right: current.action },
+      { weight: 2, left: previous.setting, right: current.setting },
+      { weight: 1, left: previous.visualPurpose, right: current.visualPurpose },
+      { weight: 1, left: previous.composition, right: current.composition },
+      { weight: 1, left: previous.cameraFraming, right: current.cameraFraming },
+      { weight: 1, left: previous.mood, right: current.mood },
+    ];
+  const totalWeight = weightedFields.reduce(
+    (sum, field) => sum + field.weight,
+    0
+  );
   const matchedWeight = weightedFields.reduce(
-    (sum, field) =>
-      sum + overlapRatio(field.left, field.right) * field.weight,
+    (sum, field) => sum + overlapRatio(field.left, field.right) * field.weight,
     0
   );
   return totalWeight === 0 ? 0 : matchedWeight / totalWeight;
@@ -4722,7 +4922,10 @@ function shouldMergeScenePair(args: {
   if (!args.previousSpec) {
     return false;
   }
-  if (sceneReuseSignature(args.previousScene) === sceneReuseSignature(args.currentScene)) {
+  if (
+    sceneReuseSignature(args.previousScene) ===
+    sceneReuseSignature(args.currentScene)
+  ) {
     return true;
   }
   const semanticComparison = compareSceneSemantics(
@@ -4735,9 +4938,10 @@ function shouldMergeScenePair(args: {
   );
 }
 
-function rebalanceEpisodeScenePlans(
-  plans: EpisodeScenePlan[]
-): { readonly plans: EpisodeScenePlan[]; readonly promotedSceneIds: string[] } {
+function rebalanceEpisodeScenePlans(plans: EpisodeScenePlan[]): {
+  readonly plans: EpisodeScenePlan[];
+  readonly promotedSceneIds: string[];
+} {
   const sceneCount = plans.length;
   const reuseBudget = episodeReuseBudget(plans);
   const uniqueQuota = Math.min(sceneCount, episodeUniqueQuota(plans));
@@ -4753,7 +4957,8 @@ function rebalanceEpisodeScenePlans(
   const promotedSceneIds: string[] = [];
   const nextPlans = plans.map((plan) => ({ ...plan }));
   const candidates = reusablePlans.sort((left, right) => {
-    const scoreDelta = mergePromotionScore(left.plan) - mergePromotionScore(right.plan);
+    const scoreDelta =
+      mergePromotionScore(left.plan) - mergePromotionScore(right.plan);
     if (scoreDelta !== 0) return scoreDelta;
     const materialDelta =
       (right.plan.mergeComparison?.materialChangeCount ?? 0) -
@@ -4977,7 +5182,9 @@ async function readManifest(
   return readJsonIfExists(
     filePath,
     (value) =>
-      sceneGenerationManifestSchema.parse(value) as unknown as SceneGenerationManifest
+      sceneGenerationManifestSchema.parse(
+        value
+      ) as unknown as SceneGenerationManifest
   );
 }
 
@@ -5058,7 +5265,9 @@ function canGenerateScenePlansConcurrently(
 ): boolean {
   return plans.every(
     (plan) =>
-      !sceneRequiresSequentialReuseHandling(plan.visualPlanArtifact.renderability)
+      !sceneRequiresSequentialReuseHandling(
+        plan.visualPlanArtifact.renderability
+      )
   );
 }
 
@@ -5119,7 +5328,7 @@ export interface SyncEpisodeSharedImageAssetsResult {
 async function persistEpisodeFocalMetadataForResults(
   episodeDir: string,
   episodeId: string,
-  results: readonly EpisodeImageGenerationResult[],
+  results: readonly EpisodeImageGenerationResult[]
 ): Promise<void> {
   await ensureEpisodeFocalMetadataForImages({
     episodeDir,
@@ -5198,7 +5407,8 @@ async function generateIndependentScenePlan(args: {
       finalPrompt: args.plan.prompt,
       providerRequestHash: args.plan.providerRequestHash,
       promptHash: args.plan.promptHash,
-      materialDifferencesFromPrevious: args.plan.materialDifferencesFromPrevious,
+      materialDifferencesFromPrevious:
+        args.plan.materialDifferencesFromPrevious,
       characterIds: args.plan.spec.characters.map(
         (character) => character.characterId
       ),
@@ -5264,7 +5474,9 @@ async function generateIndependentScenePlan(args: {
       sceneId: args.plan.scene.id,
       manifestPath,
       outputPath,
-      ...(existing?.outputSha256 ? { outputSha256: existing.outputSha256 } : {}),
+      ...(existing?.outputSha256
+        ? { outputSha256: existing.outputSha256 }
+        : {}),
       status: "skipped",
     };
   }
@@ -5292,7 +5504,8 @@ async function generateIndependentScenePlan(args: {
       ...(args.plan.previousSceneId
         ? { previousSceneId: args.plan.previousSceneId }
         : {}),
-      materialDifferencesFromPrevious: args.plan.materialDifferencesFromPrevious,
+      materialDifferencesFromPrevious:
+        args.plan.materialDifferencesFromPrevious,
       ...(args.plan.validationIssues.length > 0
         ? {
             validationIssueCodes: args.plan.validationIssues.map(
@@ -5384,7 +5597,8 @@ async function generateIndependentScenePlan(args: {
       ...(args.plan.previousSceneId
         ? { previousSceneId: args.plan.previousSceneId }
         : {}),
-      materialDifferencesFromPrevious: args.plan.materialDifferencesFromPrevious,
+      materialDifferencesFromPrevious:
+        args.plan.materialDifferencesFromPrevious,
       ...(args.plan.validationIssues.length > 0
         ? {
             validationIssueCodes: args.plan.validationIssues.map(
@@ -5500,7 +5714,8 @@ async function generateIndependentScenePlan(args: {
       ...(args.plan.previousSceneId
         ? { previousSceneId: args.plan.previousSceneId }
         : {}),
-      materialDifferencesFromPrevious: args.plan.materialDifferencesFromPrevious,
+      materialDifferencesFromPrevious:
+        args.plan.materialDifferencesFromPrevious,
       ...(args.plan.validationIssues.length > 0
         ? {
             validationIssueCodes: args.plan.validationIssues.map(
@@ -5582,7 +5797,9 @@ async function generateIndependentScenePlan(args: {
     finalPrompt: args.plan.prompt,
     providerRequestHash: generation.providerRequestHash,
     promptHash: generation.promptHash,
-    ...(args.plan.previousSceneId ? { previousSceneId: args.plan.previousSceneId } : {}),
+    ...(args.plan.previousSceneId
+      ? { previousSceneId: args.plan.previousSceneId }
+      : {}),
     materialDifferencesFromPrevious: args.plan.materialDifferencesFromPrevious,
     ...(args.plan.validationIssues.length > 0
       ? {
@@ -5599,7 +5816,9 @@ async function generateIndependentScenePlan(args: {
     size: generation.size,
     quality: generation.quality,
     outputPath,
-    ...(generation.outputSha256 ? { outputSha256: generation.outputSha256 } : {}),
+    ...(generation.outputSha256
+      ? { outputSha256: generation.outputSha256 }
+      : {}),
     status: "generated",
     attempts: generation.attempts,
     generatedAt: new Date().toISOString(),
@@ -5632,7 +5851,9 @@ async function generateIndependentScenePlan(args: {
     sceneId: args.plan.scene.id,
     manifestPath,
     outputPath,
-    ...(generation.outputSha256 ? { outputSha256: generation.outputSha256 } : {}),
+    ...(generation.outputSha256
+      ? { outputSha256: generation.outputSha256 }
+      : {}),
     status: "generated",
   };
 }
@@ -5646,6 +5867,8 @@ export async function planEpisodeImageGeneration(
     sceneId?: string;
     client?: OpenAI;
     context?: EpisodeImageMediaContext;
+    veronicaVisualQaEvaluator?: VeronicaVisualQaEvaluator;
+    veronicaVisualQaBriefs?: readonly VeronicaVisualQaBrief[];
     refreshVisualDirection?: boolean;
   }
 ): Promise<EpisodeImagePlanResult[]> {
@@ -5655,8 +5878,12 @@ export async function planEpisodeImageGeneration(
     options?.context
   );
   const registry = await loadRegistry(episodeDir, episodeId);
-  await ensureDir(path.join(episodeDir, "state", "image-generation", "manifests"));
-  await ensureDir(path.join(episodeDir, "state", "image-generation", "prompts"));
+  await ensureDir(
+    path.join(episodeDir, "state", "image-generation", "manifests")
+  );
+  await ensureDir(
+    path.join(episodeDir, "state", "image-generation", "prompts")
+  );
   await ensureDir(resolveEpisodeImageVisualPlansDir(episodeDir));
   await ensureDir(resolveEpisodeImageProviderRequestsDir(episodeDir));
   await ensureDir(resolveEpisodeImageProviderResponsesDir(episodeDir));
@@ -5727,12 +5954,20 @@ export async function planEpisodeImageGeneration(
       finalPrompt: plan.prompt,
       providerRequestHash: plan.providerRequestHash,
       promptHash: plan.promptHash,
-      ...(plan.previousSceneId ? { previousSceneId: plan.previousSceneId } : {}),
+      ...(plan.previousSceneId
+        ? { previousSceneId: plan.previousSceneId }
+        : {}),
       materialDifferencesFromPrevious: plan.materialDifferencesFromPrevious,
       ...(plan.validationIssues.length > 0
-        ? { validationIssueCodes: plan.validationIssues.map((issue) => issue.code) }
+        ? {
+            validationIssueCodes: plan.validationIssues.map(
+              (issue) => issue.code
+            ),
+          }
         : {}),
-      characterIds: plan.spec.characters.map((character) => character.characterId),
+      characterIds: plan.spec.characters.map(
+        (character) => character.characterId
+      ),
       referenceImages: plan.referenceImages,
       model: plan.providerRequest.model,
       size: plan.providerRequest.size,
@@ -5749,7 +5984,10 @@ export async function planEpisodeImageGeneration(
           }
         : {}),
     };
-    const manifestPath = resolveEpisodeImageManifestPath(episodeDir, plan.scene.id);
+    const manifestPath = resolveEpisodeImageManifestPath(
+      episodeDir,
+      plan.scene.id
+    );
     const existing = await readManifest(manifestPath);
     const reusable =
       plan.validationFailures.length === 0 &&
@@ -5782,11 +6020,13 @@ export async function planEpisodeImageGeneration(
       sceneId: plan.scene.id,
       stageIdentity: imageGenerationIdentity(context),
       imagePlanDependency,
-      status: plan.validationFailures.length > 0 ? "validation_failed" : "planned",
+      status:
+        plan.validationFailures.length > 0 ? "validation_failed" : "planned",
       outputPath: manifest.outputPath,
       promptHash: plan.promptHash,
       visualPlanHash: plan.visualPlanHash,
-      cacheDecision: plan.validationFailures.length > 0 ? "validation-failed" : "planned",
+      cacheDecision:
+        plan.validationFailures.length > 0 ? "validation-failed" : "planned",
       ...(plan.validationFailures.length > 0
         ? { details: [...plan.validationFailures] }
         : {}),
@@ -5825,7 +6065,9 @@ export async function planEpisodeImageGeneration(
       validationIssues: plan.validationIssues,
       validationFailures: plan.validationFailures,
       materialDifferencesFromPrevious: plan.materialDifferencesFromPrevious,
-      characterIds: plan.spec.characters.map((character) => character.characterId),
+      characterIds: plan.spec.characters.map(
+        (character) => character.characterId
+      ),
       referenceImages: plan.referenceImages,
       plannedAction:
         plan.validationFailures.length > 0
@@ -5946,6 +6188,8 @@ export async function generateEpisodeImages(
     client?: OpenAI;
     context?: EpisodeImageMediaContext;
     refreshVisualDirection?: boolean;
+    veronicaVisualQaEvaluator?: VeronicaVisualQaEvaluator;
+    veronicaVisualQaBriefs?: readonly VeronicaVisualQaBrief[];
   }
 ): Promise<EpisodeImageGenerationResult[]> {
   const context = await resolveEpisodeImageMediaContext(
@@ -5953,8 +6197,18 @@ export async function generateEpisodeImages(
     episodeId,
     options?.context
   );
+  if (
+    context.contentGenre === "veronicabenini" &&
+    (!options?.veronicaVisualQaEvaluator || !options.veronicaVisualQaBriefs)
+  ) {
+    throw new Error(
+      "Veronica image generation requires a configured post-generation vision evaluator and persisted semantic QA briefs."
+    );
+  }
   const registry = await loadRegistry(episodeDir, episodeId);
-  await ensureDir(path.join(episodeDir, "state", "image-generation", "manifests"));
+  await ensureDir(
+    path.join(episodeDir, "state", "image-generation", "manifests")
+  );
   await ensureDir(path.join(episodeDir, "shared", "images", "generated"));
   await ensureDir(resolveEpisodeImageVisualPlansDir(episodeDir));
   await ensureDir(resolveEpisodeImageProviderRequestsDir(episodeDir));
@@ -6001,23 +6255,24 @@ export async function generateEpisodeImages(
       },
       "Generating independent episode scenes with bounded concurrency."
     );
-    return mapWithConcurrency(
-      plans,
-      settings.concurrency,
-      async (plan) =>
-        generateIndependentScenePlan({
-          episodeDir,
-          episodeId,
-          plan,
-          context,
-          settings,
-          registry,
-          generator,
-          force,
-          ...(options?.client ? { client: options.client } : {}),
-        })
+    return mapWithConcurrency(plans, settings.concurrency, async (plan) =>
+      generateIndependentScenePlan({
+        episodeDir,
+        episodeId,
+        plan,
+        context,
+        settings,
+        registry,
+        generator,
+        force,
+        ...(options?.client ? { client: options.client } : {}),
+      })
     ).then(async (results) => {
-      await persistEpisodeFocalMetadataForResults(episodeDir, episodeId, results);
+      await persistEpisodeFocalMetadataForResults(
+        episodeDir,
+        episodeId,
+        results
+      );
       return results;
     });
   }
@@ -6035,10 +6290,13 @@ export async function generateEpisodeImages(
         sceneId: string;
         outputPath: string;
       }
-      | undefined;
+    | undefined;
   let pendingMergeWithNextScenes: PendingMergeWithNextScene[] = [];
   for (const [sceneIndex, plan] of plans.entries()) {
-    const manifestPath = resolveEpisodeImageManifestPath(episodeDir, plan.scene.id);
+    const manifestPath = resolveEpisodeImageManifestPath(
+      episodeDir,
+      plan.scene.id
+    );
     const existing = await readManifest(manifestPath);
     const outputPath = sceneOutputPath(episodeDir, plan.scene);
     const spec = plan.spec;
@@ -6109,7 +6367,9 @@ export async function generateEpisodeImages(
         promptHash: currentPromptHash,
         visualPlanHash: currentVisualPlanHash,
         renderability: visualPlanArtifact.renderability,
-        ...(plan.previousSceneId ? { previousSceneId: plan.previousSceneId } : {}),
+        ...(plan.previousSceneId
+          ? { previousSceneId: plan.previousSceneId }
+          : {}),
         materialDifferencesFromPrevious: plan.materialDifferencesFromPrevious,
         validationIssueCodes: validationIssues.map((issue) => issue.code),
         characterIds: spec.characters.map((character) => character.characterId),
@@ -6126,7 +6386,10 @@ export async function generateEpisodeImages(
         details: ["queued to reuse next concrete scene output"],
         recordedAt: new Date().toISOString(),
       });
-      currentImageRunLength = Math.min(3, pendingMergeWithNextScenes.length + 1);
+      currentImageRunLength = Math.min(
+        3,
+        pendingMergeWithNextScenes.length + 1
+      );
       continue;
     }
     if (
@@ -6156,15 +6419,21 @@ export async function generateEpisodeImages(
           finalPrompt: prompt,
           providerRequestHash: currentProviderRequestHash,
           promptHash: currentPromptHash,
-          ...(plan.previousSceneId ? { previousSceneId: plan.previousSceneId } : {}),
+          ...(plan.previousSceneId
+            ? { previousSceneId: plan.previousSceneId }
+            : {}),
           reusedFromSceneId: reused.reusedFromSceneId,
           materialDifferencesFromPrevious: plan.materialDifferencesFromPrevious,
           ...(validationIssues.length > 0
             ? {
-                validationIssueCodes: validationIssues.map((issue) => issue.code),
+                validationIssueCodes: validationIssues.map(
+                  (issue) => issue.code
+                ),
               }
             : {}),
-          characterIds: spec.characters.map((character) => character.characterId),
+          characterIds: spec.characters.map(
+            (character) => character.characterId
+          ),
           referenceImages: referenceImagesSummary,
           model: providerRequest.model,
           size: providerRequest.size,
@@ -6219,10 +6488,9 @@ export async function generateEpisodeImages(
         currentReferenceImages: referenceImagesSummary,
         outputPath,
         force,
-      }))
-      &&
+      })) &&
       currentImageRunLength < 3
-      ) {
+    ) {
       if (pendingMergeWithNextScenes.length > 0) {
         const pendingResults = await materializePendingMergeWithNextScenes({
           pendingScenes: pendingMergeWithNextScenes,
@@ -6311,9 +6579,14 @@ export async function generateEpisodeImages(
             finalPrompt: prompt,
             providerRequestHash: currentProviderRequestHash,
             promptHash: currentPromptHash,
-            ...(plan.previousSceneId ? { previousSceneId: plan.previousSceneId } : {}),
-            materialDifferencesFromPrevious: plan.materialDifferencesFromPrevious,
-            characterIds: spec.characters.map((character) => character.characterId),
+            ...(plan.previousSceneId
+              ? { previousSceneId: plan.previousSceneId }
+              : {}),
+            materialDifferencesFromPrevious:
+              plan.materialDifferencesFromPrevious,
+            characterIds: spec.characters.map(
+              (character) => character.characterId
+            ),
             referenceImages: referenceImagesSummary,
             model: providerRequest.model,
             size: providerRequest.size,
@@ -6325,12 +6598,22 @@ export async function generateEpisodeImages(
             generatedAt: new Date().toISOString(),
           };
           await writeManifest(manifestPath, manifest);
-          await writeVeronicaReuseProvenance(episodeDir, plan.scene.id, provenance);
-          await recordVeronicaReusableImageUse(veronicaRegistryPath, reuseDecision.asset.assetId);
+          await writeVeronicaReuseProvenance(
+            episodeDir,
+            plan.scene.id,
+            provenance
+          );
+          await recordVeronicaReusableImageUse(
+            veronicaRegistryPath,
+            reuseDecision.asset.assetId
+          );
           currentExecutionTelemetry()?.recordEvent({
             name: "crossEpisodeImageReuseHit",
             at: new Date().toISOString(),
-            details: { genre: "veronicabenini", compatibility: reuseDecision.reason },
+            details: {
+              genre: "veronicabenini",
+              compatibility: reuseDecision.reason,
+            },
           });
           await writeGenerationCheckpoint(episodeDir, {
             sceneId: plan.scene.id,
@@ -6374,10 +6657,14 @@ export async function generateEpisodeImages(
         finalPrompt: prompt,
         providerRequestHash: currentProviderRequestHash,
         promptHash: currentPromptHash,
-        ...(plan.previousSceneId ? { previousSceneId: plan.previousSceneId } : {}),
+        ...(plan.previousSceneId
+          ? { previousSceneId: plan.previousSceneId }
+          : {}),
         materialDifferencesFromPrevious: plan.materialDifferencesFromPrevious,
         ...(validationIssues.length > 0
-          ? { validationIssueCodes: validationIssues.map((issue) => issue.code) }
+          ? {
+              validationIssueCodes: validationIssues.map((issue) => issue.code),
+            }
           : {}),
         characterIds: spec.characters.map((character) => character.characterId),
         referenceImages: referenceImagesSummary,
@@ -6443,10 +6730,14 @@ export async function generateEpisodeImages(
         finalPrompt: prompt,
         providerRequestHash: currentProviderRequestHash,
         promptHash: currentPromptHash,
-        ...(plan.previousSceneId ? { previousSceneId: plan.previousSceneId } : {}),
+        ...(plan.previousSceneId
+          ? { previousSceneId: plan.previousSceneId }
+          : {}),
         materialDifferencesFromPrevious: plan.materialDifferencesFromPrevious,
         ...(validationIssues.length > 0
-          ? { validationIssueCodes: validationIssues.map((issue) => issue.code) }
+          ? {
+              validationIssueCodes: validationIssues.map((issue) => issue.code),
+            }
           : {}),
         characterIds: spec.characters.map((character) => character.characterId),
         referenceImages: referenceImagesSummary,
@@ -6509,9 +6800,7 @@ export async function generateEpisodeImages(
       details: ["provider request persisted"],
       recordedAt: new Date().toISOString(),
     });
-    let generation:
-      | Awaited<ReturnType<typeof generator.generate>>
-      | undefined;
+    let generation: Awaited<ReturnType<typeof generator.generate>> | undefined;
     try {
       generation = await generator.generate({
         providerRequest,
@@ -6534,10 +6823,14 @@ export async function generateEpisodeImages(
         finalPrompt: prompt,
         providerRequestHash: currentProviderRequestHash,
         promptHash: currentPromptHash,
-        ...(plan.previousSceneId ? { previousSceneId: plan.previousSceneId } : {}),
+        ...(plan.previousSceneId
+          ? { previousSceneId: plan.previousSceneId }
+          : {}),
         materialDifferencesFromPrevious: plan.materialDifferencesFromPrevious,
         ...(validationIssues.length > 0
-          ? { validationIssueCodes: validationIssues.map((issue) => issue.code) }
+          ? {
+              validationIssueCodes: validationIssues.map((issue) => issue.code),
+            }
           : {}),
         characterIds: spec.characters.map((character) => character.characterId),
         referenceImages: referenceImagesSummary,
@@ -6599,7 +6892,9 @@ export async function generateEpisodeImages(
       finalPrompt: prompt,
       providerRequestHash: generation.providerRequestHash,
       promptHash: generation.promptHash,
-      ...(plan.previousSceneId ? { previousSceneId: plan.previousSceneId } : {}),
+      ...(plan.previousSceneId
+        ? { previousSceneId: plan.previousSceneId }
+        : {}),
       materialDifferencesFromPrevious: plan.materialDifferencesFromPrevious,
       ...(validationIssues.length > 0
         ? { validationIssueCodes: validationIssues.map((issue) => issue.code) }
@@ -6626,33 +6921,6 @@ export async function generateEpisodeImages(
         generation,
       })
     );
-    if (context.contentGenre === "veronicabenini") {
-      const outputSha256 = generation.outputSha256 ?? await hashFile(outputPath);
-      const registered = await registerVeronicaReusableImage({
-        registryPath: veronicaRegistryPath,
-        workspaceRoot: veronicaWorkspaceRoot,
-        sourcePath: outputPath,
-        descriptor: {
-          ...buildVeronicaReusableImageSemantics({
-            scene: plan.scene,
-            spec,
-            aspectRatio: providerRequest.aspectRatio,
-            referenceCount: referenceImagesSummary.length,
-          }),
-          assetId: hashText(`${episodeId}:${plan.scene.id}:${outputSha256}`),
-          sourceEpisodeId: episodeId,
-          sourceSceneId: plan.scene.id,
-          generationFingerprint: currentProviderRequestHash,
-        },
-      });
-      if (registered) {
-        currentExecutionTelemetry()?.recordEvent({
-          name: "reusableAssetRegistered",
-          at: new Date().toISOString(),
-          details: { genre: "veronicabenini" },
-        });
-      }
-    }
     await writeGenerationCheckpoint(episodeDir, {
       sceneId: plan.scene.id,
       status: "generated",
@@ -6677,7 +6945,10 @@ export async function generateEpisodeImages(
         ...(options?.client ? { client: options.client } : {}),
       });
       results.push(...pendingResults);
-      currentImageRunLength = Math.min(3, pendingMergeWithNextScenes.length + 1);
+      currentImageRunLength = Math.min(
+        3,
+        pendingMergeWithNextScenes.length + 1
+      );
       pendingMergeWithNextScenes = [];
     }
     results.push({
@@ -6708,8 +6979,184 @@ export async function generateEpisodeImages(
       }))
     );
   }
-  await persistEpisodeFocalMetadataForResults(episodeDir, episodeId, results);
-  return results;
+  const veronicaVisualQaEvaluator = options?.veronicaVisualQaEvaluator;
+  const veronicaQaBriefs = new Map(
+    (options?.veronicaVisualQaBriefs ?? []).map(
+      (brief) => [brief.assetId, brief] as const
+    )
+  );
+  const gatedResults =
+    context.contentGenre !== "veronicabenini" || !veronicaVisualQaEvaluator
+      ? results
+      : await Promise.all(
+          results.map(async (result) => {
+            if (result.status === "failed") return result;
+            const plan = plans.find(
+              (candidate) => candidate.scene.id === result.sceneId
+            );
+            if (!plan || !(await fileExists(result.outputPath)))
+              return { ...result, status: "failed" as const };
+            try {
+              const scene = plan.scene;
+              const semanticBrief = veronicaQaBriefs.get(scene.id);
+              if (!semanticBrief)
+                throw new Error(
+                  `Missing persisted Veronica semantic QA brief for ${scene.id}.`
+                );
+              const review = await reviewVeronicaGeneratedImage({
+                cacheDir: path.join(
+                  episodeDir,
+                  "state",
+                  "image-generation",
+                  "veronica-post-generation-visual-qa"
+                ),
+                imagePath: result.outputPath,
+                brief: {
+                  ...semanticBrief,
+                  locale: context.identity.language,
+                  variant:
+                    context.identity.variant === "short" ? "short" : "full",
+                  canonicalNarration: scene.canonicalNarration,
+                  finalPrompt: plan.prompt,
+                },
+                evaluator: veronicaVisualQaEvaluator,
+              });
+              settings.logger?.info(
+                {
+                  sceneId: scene.id,
+                  cacheStatus: review.cacheStatus,
+                  approved: review.approved,
+                },
+                "Veronica post-generation visual QA completed."
+              );
+              let finalReview = review;
+              let outputSha256 = result.outputSha256;
+              for (
+                let attempt = 1;
+                !finalReview.approved &&
+                attempt <=
+                  defaultVeronicaVisualQaPolicy.maxRegenerationAttempts;
+                attempt += 1
+              ) {
+                const remediationPrompt = buildVeronicaVisualRemediationPrompt({
+                  brief: { ...semanticBrief, finalPrompt: plan.prompt },
+                  review: finalReview.review,
+                });
+                const remediationRequest = {
+                  ...plan.providerRequest,
+                  prompt: remediationPrompt,
+                  promptHash: hashText(remediationPrompt),
+                  providerRequestHash: hashText(
+                    JSON.stringify({
+                      ...plan.providerRequest,
+                      prompt: remediationPrompt,
+                      attempt,
+                    })
+                  ),
+                };
+                settings.logger?.warn(
+                  { sceneId: scene.id, attempt },
+                  "Regenerating Veronica asset after semantic QA failure."
+                );
+                const regenerated = await generator.generate({
+                  providerRequest: remediationRequest,
+                  referenceImages: plan.referenceImages.map((reference) => ({
+                    characterId: reference.characterId,
+                    filePath: reference.path,
+                    mimeType: "image/png" as const,
+                  })),
+                  context: {
+                    episodeId,
+                    language: context.identity.language,
+                    profile: context.identity.variant,
+                    creatorMedia: { syntheticLikeness: false },
+                  },
+                });
+                outputSha256 = regenerated.outputSha256;
+                finalReview = await reviewVeronicaGeneratedImage({
+                  cacheDir: path.join(
+                    episodeDir,
+                    "state",
+                    "image-generation",
+                    "veronica-post-generation-visual-qa"
+                  ),
+                  imagePath: result.outputPath,
+                  brief: {
+                    ...semanticBrief,
+                    locale: context.identity.language,
+                    variant:
+                      context.identity.variant === "short" ? "short" : "full",
+                    canonicalNarration: scene.canonicalNarration,
+                    finalPrompt: remediationPrompt,
+                  },
+                  evaluator: veronicaVisualQaEvaluator,
+                });
+              }
+              if (!finalReview.approved) {
+                await writeGenerationFailure(episodeDir, {
+                  sceneId: scene.id,
+                  stage: "semantic-qa",
+                  category: "semantic-qa-rejected",
+                  outputPath: result.outputPath,
+                  promptHash: plan.providerRequest.promptHash,
+                  message: buildVeronicaVisualRemediationPrompt({
+                    brief: semanticBrief,
+                    review: finalReview.review,
+                  }),
+                  retryable: false,
+                  attempts:
+                    defaultVeronicaVisualQaPolicy.maxRegenerationAttempts,
+                  recordedAt: new Date().toISOString(),
+                });
+                settings.logger?.error(
+                  { sceneId: scene.id },
+                  "Veronica semantic QA exhausted; manual review is required."
+                );
+                return { ...result, status: "failed" as const };
+              }
+              const verifiedOutputSha256 =
+                outputSha256 ?? (await hashFile(result.outputPath));
+              const registered = await registerVeronicaReusableImage({
+                registryPath: veronicaRegistryPath,
+                workspaceRoot: veronicaWorkspaceRoot,
+                sourcePath: result.outputPath,
+                descriptor: {
+                  ...buildVeronicaReusableImageSemantics({
+                    scene,
+                    spec: plan.spec,
+                    aspectRatio: plan.providerRequest.aspectRatio,
+                    referenceCount: 0,
+                  }),
+                  assetId: hashText(
+                    `${episodeId}:${scene.id}:${verifiedOutputSha256}`
+                  ),
+                  sourceEpisodeId: episodeId,
+                  sourceSceneId: scene.id,
+                  generationFingerprint: plan.providerRequestHash,
+                },
+              });
+              if (registered)
+                currentExecutionTelemetry()?.recordEvent({
+                  name: "reusableAssetRegistered",
+                  at: new Date().toISOString(),
+                  details: { genre: "veronicabenini" },
+                });
+              return { ...result, outputSha256: verifiedOutputSha256 };
+            } catch (error) {
+              settings.logger?.error(
+                { sceneId: result.sceneId, error: formatError(error) },
+                "Veronica post-generation visual QA failed closed."
+              );
+              return { ...result, status: "failed" as const };
+            }
+          })
+        );
+  await persistEpisodeFocalMetadataForResults(
+    episodeDir,
+    episodeId,
+    gatedResults
+  );
+  return gatedResults;
 }
 
 export async function syncEpisodeSharedImageAssets(
@@ -6718,7 +7165,8 @@ export async function syncEpisodeSharedImageAssets(
   options?: SyncEpisodeSharedImageAssetsOptions
 ): Promise<SyncEpisodeSharedImageAssetsResult> {
   const includeGeneratedImages = options?.includeGeneratedImages ?? true;
-  const includeCharacterReferences = options?.includeCharacterReferences ?? true;
+  const includeCharacterReferences =
+    options?.includeCharacterReferences ?? true;
   const copiedGeneratedImages: string[] = [];
   const copiedCharacterReferences: string[] = [];
   const missingGeneratedSources: string[] = [];
@@ -6727,8 +7175,18 @@ export async function syncEpisodeSharedImageAssets(
   let skippedCharacterReferences = 0;
 
   if (includeGeneratedImages) {
-    const manifestsDir = path.join(episodeDir, "state", "image-generation", "manifests");
-    const stateImagesDir = path.join(episodeDir, "state", "image-generation", "images");
+    const manifestsDir = path.join(
+      episodeDir,
+      "state",
+      "image-generation",
+      "manifests"
+    );
+    const stateImagesDir = path.join(
+      episodeDir,
+      "state",
+      "image-generation",
+      "images"
+    );
     const manifestFiles = await fsPromises
       .readdir(manifestsDir, { withFileTypes: true })
       .catch(() => []);
@@ -6737,8 +7195,12 @@ export async function syncEpisodeSharedImageAssets(
         continue;
       }
       const manifestPath = path.join(manifestsDir, entry.name);
-      const manifest = await readJsonIfExists(manifestPath, (value) =>
-        sceneGenerationManifestSchema.parse(value) as unknown as SceneGenerationManifest
+      const manifest = await readJsonIfExists(
+        manifestPath,
+        (value) =>
+          sceneGenerationManifestSchema.parse(
+            value
+          ) as unknown as SceneGenerationManifest
       );
       if (!manifest || !manifest.outputPath) {
         continue;
@@ -6754,7 +7216,8 @@ export async function syncEpisodeSharedImageAssets(
       }
       await copyAtomic(sourcePath, manifest.outputPath);
       await assertGeneratedImageFileMatchesSpec({
-        episodeId: manifest.stageIdentity?.episodeId ?? path.basename(episodeDir),
+        episodeId:
+          manifest.stageIdentity?.episodeId ?? path.basename(episodeDir),
         language: manifest.stageIdentity?.language ?? "en",
         videoKind:
           manifest.stageIdentity?.variant ??

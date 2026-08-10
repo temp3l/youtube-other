@@ -36,6 +36,7 @@ export { syncEpisodeSharedImageAssets } from "./episode-image-pipeline.js";
 export * from "./shorts-image-strategy.js";
 export * from "./canonical-visual-images.js";
 export * from "./episode-image-pipeline.js";
+export * from "./veronica-post-generation-visual-qa.js";
 export * from "./veronica-reusable-image-registry.js";
 export * from "./history-image-plan.js";
 export * from "./history-image-cinematography.js";

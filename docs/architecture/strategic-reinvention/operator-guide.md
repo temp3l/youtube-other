@@ -71,6 +71,28 @@ The positioning-series command is a planning-only V2 path. Its cache graph,
 diversity calibration, migration behavior, and review artifacts are documented
 in [positioning visual planning V2](positioning-visual-planning-v2.md).
 
+### Pre-image review
+
+Before any Veronica image-provider request, create or refresh semantic prompts,
+then review the episode-local pack with ChatGPT. The pack contains the mastered
+narration WAV, English script, retimed scene plan, canonical plan, exact prompt
+review data, and a ChatGPT-ready review request. The image commands reject a
+missing or stale pack.
+
+```bash
+pnpm mediaforge -- veronica-media images derive-image-prompts --workspace episodes --episode-id <episode-id> --variant short
+# Review episodes/<episode-id>/review-packs/pre-image/en-short/chatgpt-review-prompt.md
+pnpm mediaforge -- images generate --episode <episode-id> --variant short
+```
+
+The public review-pack command applies the same artifact and freshness contract
+to History and Dark Truth full or Short productions:
+
+```bash
+pnpm mediaforge -- images review-pack --episode <episode-id> --variant full
+pnpm mediaforge -- images review-pack --episode <episode-id> --variant short
+```
+
 ### Workflow
 
 The `strategic-episode` resource registers the full 20-task episode DAG

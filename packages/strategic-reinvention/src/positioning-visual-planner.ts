@@ -975,15 +975,16 @@ async function buildDraft(input: {
   });
   const semanticBeatStructureHash = stableHash(visualBeats);
   const sourceNarrationSemanticHash = semanticHash(narration);
+  const sceneCountRationale =
+    input.content.format === "short"
+      ? `duration-aware: ${Math.round(durationMs / 1_000)} seconds requires ${visualBeats.length + 1} total scenes including hook; ${input.content.visualBeats.length} authored beats were expanded with ${visualBeats.length - input.content.visualBeats.length} Buyer-evaluation/contrast beats.`
+      : `long-form chapter planning retains ${visualBeats.length} authored semantic beats plus cold open.`;
   const semanticPlanCacheKey = stableHash({
     plannerVersion: POSITIONING_PLANNER_VERSION,
     contentId: input.content.contentId,
     sourceNarrationSemanticHash,
     semanticBeatStructureHash,
-    sceneCountRationale:
-      input.content.format === "short"
-        ? `duration-aware: ${Math.round(durationMs / 1_000)} seconds requires ${visualBeats.length + 1} total scenes including hook; ${input.content.visualBeats.length} authored beats were expanded with ${visualBeats.length - input.content.visualBeats.length} Buyer-evaluation/contrast beats.`
-        : `long-form chapter planning retains ${visualBeats.length} authored semantic beats plus cold open.`,
+    sceneCountRationale,
     visualAssetKey: input.content.visualAssetKey,
     vocabularyHash: vocabulary.vocabularyHash,
     visualLanguageVersion: VERONICA_VISUAL_LANGUAGE_VERSION,
@@ -1004,6 +1005,7 @@ async function buildDraft(input: {
     canonicalSourceHash: stableHash(narration),
     sourceNarrationSemanticHash,
     semanticBeatStructureHash,
+    sceneCountRationale,
     semanticPlanCacheKey,
     canonicalImagePlanHash,
     renderEventPlanHash: stableHash(events),

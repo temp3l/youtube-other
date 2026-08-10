@@ -24,6 +24,7 @@ describe("veronica media commands", () => {
     expect(images?.commands.map((command) => command.name())).toEqual([
       "derive-image-prompts",
       "inspect-image-prompts",
+      "review-pack",
       "generate",
     ]);
     const imageGenerate = images?.commands.find((command) => command.name() === "generate");

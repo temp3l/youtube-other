@@ -4,6 +4,7 @@ export * from "./canonical-json.js";
 export * from "./contracts/media-plan.v1.js";
 export * from "./ingestion/secure-ingest.js";
 export * from "./narration/revision.js";
+export * from "./narration/timing-reconciliation.js";
 export * from "./approval/eligibility.js";
 export * from "./planning/semantic-planner.js";
 export * from "./planning/direction.js";

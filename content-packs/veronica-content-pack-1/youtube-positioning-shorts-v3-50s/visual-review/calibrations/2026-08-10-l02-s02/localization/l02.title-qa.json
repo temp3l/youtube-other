@@ -1,0 +1,102 @@
+{
+  "schemaVersion": "veronicabenini-title-transcreation-qa.v2",
+  "contentId": "L02",
+  "locales": {
+    "en": {
+      "metadataTitle": "Why Trying to Sell to Everyone Makes You Invisible",
+      "displayTitle": "Why Trying to Sell to Everyone Makes You Invisible",
+      "displayLines": [
+        "Why Trying to Sell to",
+        "Everyone Makes You Invisible"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "low",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": []
+    },
+    "de": {
+      "metadataTitle": "Warum du unsichtbar wirst, wenn du an alle verkaufen willst",
+      "displayTitle": "Warum du unsichtbar wirst, wenn du an alle verkaufen willst",
+      "displayLines": [
+        "Warum du unsichtbar wirst, wenn",
+        "du an alle verkaufen willst"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "medium",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": [
+        "overlay-fit-resolved-with-approved-display-layout"
+      ]
+    },
+    "it": {
+      "metadataTitle": "Perché cercare di vendere a tutti ti rende invisibile",
+      "displayTitle": "Perché cercare di vendere a tutti ti rende invisibile",
+      "displayLines": [
+        "Perché cercare di vendere",
+        "a tutti ti rende invisibile"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "medium",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": [
+        "overlay-fit-resolved-with-approved-display-layout"
+      ]
+    },
+    "fr": {
+      "metadataTitle": "Pourquoi vouloir vendre à tout le monde vous rend invisible",
+      "displayTitle": "Pourquoi vouloir vendre à tout le monde vous rend invisible",
+      "displayLines": [
+        "Pourquoi vouloir vendre à tout",
+        "le monde vous rend invisible"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "medium",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": [
+        "overlay-fit-resolved-with-approved-display-layout"
+      ]
+    },
+    "pt": {
+      "metadataTitle": "Por que tentar vender para todo mundo torna você invisível",
+      "displayTitle": "Por que tentar vender para todo mundo torna você invisível",
+      "displayLines": [
+        "Por que tentar vender para",
+        "todo mundo torna você invisível"
+      ],
+      "displayTitleDistinctFromMetadata": false,
+      "minimumFontScale": 1,
+      "naturalness": "reviewed-source",
+      "semanticPreservation": "pass",
+      "excessiveLength": false,
+      "sourceOverlayOverflowRisk": "medium",
+      "overlayOverflowRisk": "low",
+      "awkwardLiteralTranslation": false,
+      "warnings": [
+        "overlay-fit-resolved-with-approved-display-layout"
+      ]
+    }
+  },
+  "sourceTitlesHash": "8f6c506313a7106b1beabc63102f930fdaa8225d0ddbdb9525fd51a6e5ce3931",
+  "cacheKey": "9d0a8e1d1335c063535cc3f0fa51669e72c54943b4a9f2f020a4056adb9f2655",
+  "artifactHash": "aedfda857760ccdfa99d37f303ca0e703ccdb1dcf50f2daf8659024e5ce58932"
+}

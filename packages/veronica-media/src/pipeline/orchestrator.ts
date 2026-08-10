@@ -7,9 +7,17 @@ import {
   type VeronicaRenderManifest,
 } from "../contracts/media-plan.v1.js";
 import { ingestSupplementalMediaAsset } from "../ingestion/secure-ingest.js";
-import { rasterizeVeronicaPreparedAsset, type VeronicaRasterInput } from "../preparation/external-rasterizer.js";
+import {
+  rasterizeVeronicaPreparedAsset,
+  type VeronicaRasterInput,
+} from "../preparation/external-rasterizer.js";
 import { buildSemanticMediaPlan } from "../planning/semantic-planner.js";
 import { resolveAnchorTimings } from "../narration/revision.js";
+import {
+  reconcileVeronicaNarrationTiming,
+  veronicaTimingReconciliationSchema,
+  type VeronicaTimingReconciliation,
+} from "../narration/timing-reconciliation.js";
 import { evaluateApprovalEligibility } from "../approval/eligibility.js";
 import { exportVeronicaApprovalPack } from "../review-pack/export.js";
 import {
@@ -65,10 +73,37 @@ export interface VeronicaPipelineResult {
   readonly approvalPackDir: string;
   readonly cacheKeys: readonly string[];
   readonly ffmpegCommands: readonly (readonly string[])[];
+  readonly timingReconciliation?: VeronicaTimingReconciliation;
   readonly resumed?: boolean;
 }
 
-export function veronicaEpisodeStateDir(workspaceRoot: string, episodeId: string): string {
+function reconcileRenderTiming(input: {
+  readonly locale: string;
+  readonly placements: VeronicaMediaPlan["landscapePlacements"];
+  readonly alignedSegments: NonNullable<
+    VeronicaPipelineInput["alignedSegments"]
+  >;
+}): VeronicaTimingReconciliation {
+  const measuredNarrationDurationSeconds = Math.max(
+    ...input.alignedSegments.map((segment) => segment.endSeconds)
+  );
+  return reconcileVeronicaNarrationTiming({
+    locale: input.locale,
+    variant: "full",
+    timingSource: "measured-chunks",
+    measuredNarrationDurationSeconds,
+    plannedScenes: input.placements.map((placement) => ({
+      sceneId: placement.placementId,
+      plannedDurationSeconds: placement.dwellDurationSeconds,
+      minimumDwellSeconds: Math.min(2, placement.dwellDurationSeconds),
+    })),
+  });
+}
+
+export function veronicaEpisodeStateDir(
+  workspaceRoot: string,
+  episodeId: string
+): string {
   return path.join(workspaceRoot, episodeId, "state", "veronica-media");
 }
 
@@ -84,15 +119,31 @@ export async function loadVeronicaPipelineResult(input: {
   const planPath = path.join(input.stateDir, "veronica-media-plan.json");
   try {
     const plan = veronicaMediaPlanSchema.parse(
-      JSON.parse(await fs.readFile(planPath, "utf8")) as unknown,
+      JSON.parse(await fs.readFile(planPath, "utf8")) as unknown
     );
-    const landscapePath = path.join(input.stateDir, "renders", "landscape-manifest.json");
-    const portraitPath = path.join(input.stateDir, "renders", "portrait-manifest.json");
+    const landscapePath = path.join(
+      input.stateDir,
+      "renders",
+      "landscape-manifest.json"
+    );
+    const portraitPath = path.join(
+      input.stateDir,
+      "renders",
+      "portrait-manifest.json"
+    );
     const landscapeManifest = veronicaRenderManifestSchema.parse(
-      JSON.parse(await fs.readFile(landscapePath, "utf8")) as unknown,
+      JSON.parse(await fs.readFile(landscapePath, "utf8")) as unknown
     );
     const portraitManifest = veronicaRenderManifestSchema.parse(
-      JSON.parse(await fs.readFile(portraitPath, "utf8")) as unknown,
+      JSON.parse(await fs.readFile(portraitPath, "utf8")) as unknown
+    );
+    const timingReconciliation = veronicaTimingReconciliationSchema.parse(
+      JSON.parse(
+        await fs.readFile(
+          path.join(input.stateDir, "timing-reconciliation.v1.json"),
+          "utf8"
+        )
+      ) as unknown
     );
     return {
       plan,
@@ -119,6 +170,7 @@ export async function loadVeronicaPipelineResult(input: {
         ...compileRenderManifestToFfmpegArgs(landscapeManifest),
         ...compileRenderManifestToFfmpegArgs(portraitManifest),
       ],
+      timingReconciliation,
       resumed: true,
     };
   } catch {
@@ -127,9 +179,12 @@ export async function loadVeronicaPipelineResult(input: {
 }
 
 export async function runVeronicaSupplementalMediaPipeline(
-  input: VeronicaPipelineInput,
+  input: VeronicaPipelineInput
 ): Promise<VeronicaPipelineResult> {
-  const stateDir = veronicaEpisodeStateDir(input.workspaceRoot, input.episodeId);
+  const stateDir = veronicaEpisodeStateDir(
+    input.workspaceRoot,
+    input.episodeId
+  );
   await fs.mkdir(stateDir, { recursive: true });
   const inputFingerprint = computeVeronicaPipelineInputFingerprint(input);
   const fingerprintPath = pipelineFingerprintPath(stateDir);
@@ -151,13 +206,15 @@ export async function runVeronicaSupplementalMediaPipeline(
     }
   }
   const ingested = input.supplementalFiles.map((file) =>
-    ingestSupplementalMediaAsset(file),
+    ingestSupplementalMediaAsset(file)
   );
   const ingestedById = new Map(ingested.map((asset) => [asset.assetId, asset]));
   let plan = buildSemanticMediaPlan({
     episodeId: input.episodeId,
     originalNarration: input.originalNarration,
-    ...(input.revisedNarration ? { revisedNarration: input.revisedNarration } : {}),
+    ...(input.revisedNarration
+      ? { revisedNarration: input.revisedNarration }
+      : {}),
     assets: ingested,
     targetLanguage: input.targetLanguage,
     ...(input.sourceLanguage ? { sourceLanguage: input.sourceLanguage } : {}),
@@ -184,12 +241,15 @@ export async function runVeronicaSupplementalMediaPipeline(
     const absolute = path.join(stateDir, prepared.relativePath);
     await fs.mkdir(path.dirname(absolute), { recursive: true });
     const provenance = plan.provenance.find(
-      (record) => record.provenanceId === prepared.provenanceId,
+      (record) => record.provenanceId === prepared.provenanceId
     );
     const sourceAsset =
-      (provenance ? ingestedById.get(provenance.sourceAssetId) : undefined) ?? ingested[0];
+      (provenance ? ingestedById.get(provenance.sourceAssetId) : undefined) ??
+      ingested[0];
     if (!sourceAsset) {
-      throw new Error(`Missing ingested asset for prepared asset ${prepared.preparedAssetId}.`);
+      throw new Error(
+        `Missing ingested asset for prepared asset ${prepared.preparedAssetId}.`
+      );
     }
     const rasterInput: VeronicaRasterInput = {
       asset: sourceAsset,
@@ -199,21 +259,25 @@ export async function runVeronicaSupplementalMediaPipeline(
       height: prepared.height,
     };
     if (provenance?.sourceReference.pageNumber !== undefined) {
-      Object.assign(rasterInput, { pageNumber: provenance.sourceReference.pageNumber });
+      Object.assign(rasterInput, {
+        pageNumber: provenance.sourceReference.pageNumber,
+      });
     }
     if (provenance?.sourceReference.slideNumber !== undefined) {
-      Object.assign(rasterInput, { slideNumber: provenance.sourceReference.slideNumber });
+      Object.assign(rasterInput, {
+        slideNumber: provenance.sourceReference.slideNumber,
+      });
     }
     const raster = await rasterizeVeronicaPreparedAsset(rasterInput);
     await fs.writeFile(absolute, raster.bytes);
     const outputChecksum = sha256Bytes(raster.bytes);
     const verification = verifyPreparedAssetBytes(
       { ...prepared, checksum: outputChecksum },
-      raster.bytes,
+      raster.bytes
     );
     if (!verification.valid) {
       throw new Error(
-        `Prepared asset ${prepared.preparedAssetId} failed integrity checks: ${verification.issues.join(", ")}`,
+        `Prepared asset ${prepared.preparedAssetId} failed integrity checks: ${verification.issues.join(", ")}`
       );
     }
     const contentKey = computePreparedAssetContentKey({
@@ -245,6 +309,25 @@ export async function runVeronicaSupplementalMediaPipeline(
     ingestedAssets: ingested,
     preparedAssetPaths,
   });
+  const timingReconciliation =
+    input.alignedSegments && input.alignedSegments.length > 0
+      ? reconcileRenderTiming({
+          locale: input.targetLanguage,
+          placements: plan.landscapePlacements,
+          alignedSegments: input.alignedSegments,
+        })
+      : undefined;
+  if (!timingReconciliation) {
+    throw new Error(
+      "Veronica rendering requires measured narration alignment; planned timing alone is not production-safe."
+    );
+  }
+  const reconciledDwellSecondsByPlacement = Object.fromEntries(
+    timingReconciliation.scenes.map((scene) => [
+      scene.sceneId,
+      scene.endSeconds - scene.startSeconds,
+    ])
+  );
   const landscapeManifest = buildRenderManifest({
     plan,
     aspectRatio: "16:9",
@@ -252,6 +335,7 @@ export async function runVeronicaSupplementalMediaPipeline(
     preparedAssetPaths,
     outputPath: path.join(stateDir, "renders", "landscape.mp4"),
     narrationAudioPath: path.join(stateDir, "audio", "narration.wav"),
+    reconciledDwellSecondsByPlacement,
   });
   const portraitManifest = buildRenderManifest({
     plan,
@@ -260,6 +344,7 @@ export async function runVeronicaSupplementalMediaPipeline(
     preparedAssetPaths,
     outputPath: path.join(stateDir, "renders", "portrait.mp4"),
     narrationAudioPath: path.join(stateDir, "audio", "narration.wav"),
+    reconciledDwellSecondsByPlacement,
   });
   plan = await finalizeVeronicaEpisodePlan({
     episodeId: input.episodeId,
@@ -274,9 +359,11 @@ export async function runVeronicaSupplementalMediaPipeline(
   await fs.writeFile(
     fingerprintPath,
     `${JSON.stringify({ fingerprint: inputFingerprint, storedAt: new Date().toISOString() }, null, 2)}\n`,
-    "utf8",
+    "utf8"
   );
-  await fs.mkdir(path.dirname(landscapeManifest.narrationAudioPath), { recursive: true });
+  await fs.mkdir(path.dirname(landscapeManifest.narrationAudioPath), {
+    recursive: true,
+  });
   await fs.writeFile(landscapeManifest.narrationAudioPath, Buffer.alloc(44, 0));
   const ffmpegCommands = [
     ...compileRenderManifestToFfmpegArgs(landscapeManifest),
@@ -285,14 +372,19 @@ export async function runVeronicaSupplementalMediaPipeline(
   validateCompiledFfmpegSafety(ffmpegCommands);
   await fs.mkdir(path.join(stateDir, "renders"), { recursive: true });
   await fs.writeFile(
+    path.join(stateDir, "timing-reconciliation.v1.json"),
+    `${JSON.stringify(timingReconciliation, null, 2)}\n`,
+    "utf8"
+  );
+  await fs.writeFile(
     path.join(stateDir, "renders", "landscape-manifest.json"),
     `${JSON.stringify(landscapeManifest, null, 2)}\n`,
-    "utf8",
+    "utf8"
   );
   await fs.writeFile(
     path.join(stateDir, "renders", "portrait-manifest.json"),
     `${JSON.stringify(portraitManifest, null, 2)}\n`,
-    "utf8",
+    "utf8"
   );
   const approvalPack = await exportVeronicaApprovalPack({
     outputDir: stateDir,
@@ -321,6 +413,7 @@ export async function runVeronicaSupplementalMediaPipeline(
     approvalPackDir: approvalPack.packRoot,
     cacheKeys,
     ffmpegCommands,
+    timingReconciliation,
     resumed: false,
   };
 }
@@ -328,9 +421,6 @@ export async function runVeronicaSupplementalMediaPipeline(
 export function createMinimalPngBytes(label: string): Uint8Array {
   const payload = Buffer.from(label, "utf8");
   return Uint8Array.from(
-    createHash("sha256")
-      .update(payload)
-      .digest()
-      .subarray(0, 32),
+    createHash("sha256").update(payload).digest().subarray(0, 32)
   );
 }

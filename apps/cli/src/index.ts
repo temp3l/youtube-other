@@ -23,6 +23,7 @@ import { retimeScenePlan, sliceSceneAudioFiles } from "@mediaforge/dark-truth";
 import {
   approveEpisodeCharacter,
   buildEpisodeImageMediaContext,
+  createOpenAiVeronicaVisualQaEvaluator,
   createPromptBatch,
   exportSceneWorkbook,
   generateEpisodeImageReferences,
@@ -97,7 +98,9 @@ import {
   resolveEpisodeNarrationAudioPath,
   writeJsonAtomic,
   writeTextAtomic,
+  type SemanticImagePromptCacheArtifact,
 } from "@mediaforge/shared";
+import type { VeronicaVisualQaBrief } from "@mediaforge/image-generation";
 import {
   buildAudioInstructionArtifact,
   computeTtsDependencyFingerprint,
@@ -240,7 +243,9 @@ import { registerImagesBatchCommands } from "./images-batch-commands.js";
 import { MathCliSemanticError, registerMathCommands } from "./math-commands.js";
 import { registerVeronicaMediaCommands } from "./veronica-media-commands.js";
 import { buildImageStatusOutput } from "./images-status-output.js";
-import { registerImagesResumeCommand } from "./images-resume-command.js";
+import { commandImagesResume } from "./images-resume-command.js";
+import { assertVeronicaPreImageReviewPackCurrent } from "./veronica-pre-image-review-pack.js";
+import { assertPreImageReviewPackCurrent, createPreImageReviewPack, type PreImageReviewGenre } from "./pre-image-review-pack.js";
 import { registerImagesSyncSharedCommand } from "./images-sync-shared-command.js";
 import {
   summarizeRemoteStatusJob,
@@ -661,7 +666,7 @@ function isEnglishLanguage(language: string): boolean {
 function episodePathContext(
   episodeDir: string,
   language: string,
-  variant: "full" | "short" = "full",
+  variant: "full" | "short" = "full"
 ) {
   const episodeRoot = path.resolve(episodeDir);
   const resolver = createEpisodePathResolver(path.dirname(episodeRoot));
@@ -676,9 +681,13 @@ function episodePathContext(
 function localizedAudioBaseDir(
   episodeDir: string,
   language: string,
-  variant: "full" | "short" = "full",
+  variant: "full" | "short" = "full"
 ): string {
-  const { resolver, context } = episodePathContext(episodeDir, language, variant);
+  const { resolver, context } = episodePathContext(
+    episodeDir,
+    language,
+    variant
+  );
   return resolver.localeVariantRoot(context);
 }
 
@@ -870,9 +879,14 @@ async function localizedSceneAudioIsComplete(
 async function loadNarrationScriptMarkdown(
   episodeDir: string,
   language: string,
-  variant: "full" | "short" = "full",
+  variant: "full" | "short" = "full"
 ): Promise<{ readonly filePath: string; readonly text: string }> {
-  return loadEpisodeScriptMarkdown(episodeDir, language, "Narration Script", variant);
+  return loadEpisodeScriptMarkdown(
+    episodeDir,
+    language,
+    "Narration Script",
+    variant
+  );
 }
 
 function localeForLanguage(language: string): string {
@@ -922,7 +936,11 @@ async function loadValidatedNarrationDependency(
     readonly filePath: string;
   }
 > {
-  const script = await loadNarrationScriptMarkdown(episodeDir, language, variant);
+  const script = await loadNarrationScriptMarkdown(
+    episodeDir,
+    language,
+    variant
+  );
   const narrationText = normalizeWhitespace(script.text);
   const episodeSlug = path.basename(episodeDir);
   const episodeNumber = episodeSlug.split("-")[0] ?? episodeSlug;
@@ -2418,7 +2436,10 @@ async function commandAudioResliceSegments(
   retime = false
 ): Promise<void> {
   markEpisodeTelemetry(episodeId);
-  const { manifest, episodeDir } = await readManifestForEpisode(options, episodeId);
+  const { manifest, episodeDir } = await readManifestForEpisode(
+    options,
+    episodeId
+  );
   if (!manifest.scenePlan) {
     throw new Error("Scene plan is not available.");
   }
@@ -2922,6 +2943,13 @@ async function assertImageGenerationGate(
     await assertHistoryVisualApproval(episodeDir);
     return;
   }
+  const isVeronica =
+    metadata !== null &&
+    typeof metadata === "object" &&
+    ["veronicabenini", "strategic-reinvention"].includes(
+      String(Reflect.get(metadata, "genre"))
+    );
+  if (isVeronica) return;
   await assertScriptScoreGate({
     outputRoot: path.dirname(episodeDir),
     episode: manifest.episodeId,
@@ -2938,9 +2966,59 @@ function resolveEpisodeImageMediaContext(
     manifest.sourceMetadata !== null &&
     typeof manifest.sourceMetadata === "object" &&
     Reflect.get(manifest.sourceMetadata, "genre") === "history";
+  const isVeronica =
+    manifest.sourceMetadata !== null &&
+    typeof manifest.sourceMetadata === "object" &&
+    ["veronicabenini", "strategic-reinvention"].includes(
+      String(Reflect.get(manifest.sourceMetadata, "genre"))
+    );
   return buildEpisodeImageMediaContext({
     episodeId,
     ...(isHistory ? { contentGenre: "history" as const } : {}),
+    ...(isVeronica ? { contentGenre: "veronicabenini" as const } : {}),
+  });
+}
+
+function buildVeronicaVisualQaBriefsFromArtifact(input: {
+  readonly artifact: SemanticImagePromptCacheArtifact;
+  readonly scenePlan: NonNullable<EpisodeManifest["scenePlan"]>;
+  readonly variant: "short" | "full";
+}): readonly VeronicaVisualQaBrief[] {
+  if (input.artifact.brief.genre !== "veronicaBenini")
+    throw new Error(
+      "Veronica image generation requires a Veronica semantic brief."
+    );
+  const sceneIds = new Set(input.scenePlan.scenes.map((scene) => scene.id));
+  const rules = [
+    ...input.artifact.brief.visualDirection.overallVisualLanguage,
+    ...input.artifact.brief.visualDirection.forbiddenDrift,
+    ...input.artifact.brief.genreContext.antiDriftRules,
+    "Muted narration must still reveal the principal relationship in one to two seconds.",
+  ];
+  return input.artifact.brief.assets.map((asset) => {
+    if (!sceneIds.has(asset.beatId))
+      throw new Error(
+        `Veronica semantic asset ${asset.assetId} has no scene ${asset.beatId}.`
+      );
+    return {
+      contentId: input.artifact.brief.contentId,
+      assetId: asset.beatId,
+      locale: "en",
+      variant: input.variant,
+      canonicalNarration: "",
+      spokenMeaning: asset.spokenMeaning,
+      viewerTakeaway: asset.viewerTakeaway,
+      narrativePurpose: asset.narrativePurpose,
+      visualRelationship: asset.visualRelationship,
+      mustShow: asset.mustShow,
+      mustNotShow: asset.mustNotShow,
+      relevanceAnchors: asset.relevanceAnchors,
+      genericDriftRisks: asset.genericDriftRisks,
+      finalPrompt: "",
+      visualDirectionRules: rules,
+      semanticBriefHash: input.artifact.briefHash,
+      visualDirectionVersion: input.artifact.genreVisualDirectionVersion,
+    };
   });
 }
 
@@ -2977,7 +3055,9 @@ async function commandImagesPlan(
     settings,
     {
       ...(sceneId !== undefined ? { sceneId } : {}),
-      ...(options.refreshVisualDirection ? { refreshVisualDirection: true } : {}),
+      ...(options.refreshVisualDirection
+        ? { refreshVisualDirection: true }
+        : {}),
       context: resolveEpisodeImageMediaContext(manifest.episodeId, manifest),
     }
   );
@@ -3034,7 +3114,8 @@ async function commandImagesGenerate(
   if (
     options.force &&
     selectedScenes.sceneId === undefined &&
-    (selectedScenes.sceneIds === undefined || selectedScenes.sceneIds.length === 0)
+    (selectedScenes.sceneIds === undefined ||
+      selectedScenes.sceneIds.length === 0)
   ) {
     throw new Error(
       "Refusing episode-wide --force image regeneration. Pass --scene <scene-id> or comma-separated scene ids to scope paid regeneration."
@@ -3046,6 +3127,22 @@ async function commandImagesGenerate(
     episodeId
   );
   await assertImageGenerationGate(episodeDir, manifest);
+  if (resolveEpisodeImageMediaContext(manifest.episodeId, manifest).contentGenre === "veronicabenini") {
+    await assertVeronicaPreImageReviewPackCurrent({
+      episodeDir,
+      language: "en",
+      variant: scenePlan.scenes.some((scene) => scene.aspectRatios.includes("9:16")) ? "short" : "full",
+    });
+  } else {
+    const metadata = manifest.sourceMetadata;
+    const genre: PreImageReviewGenre = metadata !== null && typeof metadata === "object" && Reflect.get(metadata, "genre") === "history" ? "history" : "dark-truth";
+    await assertPreImageReviewPackCurrent({
+      episodeDir,
+      language: "en",
+      variant: scenePlan.scenes.some((scene) => scene.aspectRatios.includes("9:16")) ? "short" : "full",
+      genre,
+    });
+  }
   const settings = loadEpisodeImageGenerationSettings(
     {
       ...process.env,
@@ -3062,6 +3159,52 @@ async function commandImagesGenerate(
       profile: "full",
     }
   );
+  const imageContext = resolveEpisodeImageMediaContext(
+    manifest.episodeId,
+    manifest
+  );
+  const veronicaQa =
+    imageContext.contentGenre === "veronicabenini"
+      ? await (async () => {
+          const runtime = await loadRuntimeConfig({});
+          const artifact = await inspectSemanticImagePromptCache(
+            path.join(
+              episodeDir,
+              "shared",
+              "semantic-image-prompt-brief.v1.json"
+            )
+          );
+          const client = createOpenAiStoryClientWithOptions({
+            apiKey: settings.apiKey,
+            ...(settings.baseUrl ? { baseUrl: settings.baseUrl } : {}),
+            ...(settings.organization
+              ? { organization: settings.organization }
+              : {}),
+            ...(settings.project ? { project: settings.project } : {}),
+            maxRetries: 0,
+            timeoutMs: settings.timeoutMs,
+          });
+          return {
+            evaluator: createOpenAiVeronicaVisualQaEvaluator({
+              client,
+              model:
+                process.env["VERONICA_VISUAL_QA_MODEL"] ??
+                runtime.openAiValidatorModel ??
+                runtime.openAiStoryModel ??
+                "",
+            }),
+            briefs: buildVeronicaVisualQaBriefsFromArtifact({
+              artifact,
+              scenePlan,
+              variant: scenePlan.scenes.some((scene) =>
+                scene.aspectRatios.includes("9:16")
+              )
+                ? "short"
+                : "full",
+            }),
+          };
+        })()
+      : undefined;
   const results = await generateEpisodeImages(
     episodeDir,
     manifest.episodeId,
@@ -3077,7 +3220,13 @@ async function commandImagesGenerate(
       ...(options.refreshVisualDirection
         ? { refreshVisualDirection: true }
         : {}),
-      context: resolveEpisodeImageMediaContext(manifest.episodeId, manifest),
+      context: imageContext,
+      ...(veronicaQa
+        ? {
+            veronicaVisualQaEvaluator: veronicaQa.evaluator,
+            veronicaVisualQaBriefs: veronicaQa.briefs,
+          }
+        : {}),
     }
   );
   printJson(results);
@@ -3276,8 +3425,7 @@ async function commandRender(
           shortMediaRequirements: {
             aspectRatio: "9:16" as const,
             durationSeconds:
-              scenePlan.scenes[scenePlan.scenes.length - 1]
-                ?.timing.endSeconds,
+              scenePlan.scenes[scenePlan.scenes.length - 1]?.timing.endSeconds,
             safeVerticalComposition: true,
             focalSubjectPlacement: "center third",
             textSafeArea: "top and bottom 12 percent",
@@ -3424,7 +3572,8 @@ async function runAudioNarrationPipeline(
   const { episodeDir } = resolved;
   const episodeGenre = resolveEpisodeGenre(resolved.manifest?.sourceMetadata);
   const isVeronica =
-    episodeGenre === "veronicabenini" || episodeGenre === "strategic-reinvention";
+    episodeGenre === "veronicabenini" ||
+    episodeGenre === "strategic-reinvention";
   const episodeConfig = await loadEpisodeConfig(episodeDir);
   const config = await loadRuntimeConfig(
     configOverridesFromCli(options),
@@ -5018,10 +5167,7 @@ audioCommand
     "Slice scene segment WAVs from narration_elevenlabs.mp3 when present, otherwise narration.wav"
   )
   .argument("<episode-id>")
-  .option(
-    "--narration-path <path>",
-    "override narration source (mp3 or wav)"
-  )
+  .option("--narration-path <path>", "override narration source (mp3 or wav)")
   .option("--variant <full|short>", "target variant", "full")
   .option(
     "--retime",
@@ -5193,8 +5339,20 @@ const imagesCommand = program
   .command("images")
   .description("Local scene image workflow");
 registerImagesBatchCommands(imagesCommand);
-registerImagesResumeCommand(imagesCommand);
 registerImagesSyncSharedCommand(imagesCommand);
+imagesCommand
+  .command("review-pack")
+  .description("Create a pre-image review pack for History or Dark Truth")
+  .requiredOption("--episode <episode-id>")
+  .option("--language <code>", "review language", "en")
+  .option("--variant <full|short>", "media variant", "full")
+  .action(async (opts: { episode: string; language: string; variant: "full" | "short" }) => {
+    const { manifest, episodeDir } = await readManifestForEpisode(program.opts<CliOptions>(), opts.episode);
+    const metadata = manifest.sourceMetadata;
+    const genre: PreImageReviewGenre = metadata !== null && typeof metadata === "object" && Reflect.get(metadata, "genre") === "history" ? "history" : "dark-truth";
+    const result = await createPreImageReviewPack({ episodeDir, language: opts.language, variant: opts.variant, genre });
+    process.stdout.write(`Created pre-image review pack: ${result.packDir}\n`);
+  });
 imagesCommand
   .command("plan")
   .requiredOption("--episode <episode-id>")
@@ -5234,12 +5392,17 @@ imagesCommand
 imagesCommand
   .command("generate")
   .requiredOption("--episode <episode-id>")
-  .option(
-    "--scene <scene-id>",
-    "single scene id or comma-separated scene ids"
+  .option("--scene <scene-id>", "single scene id or comma-separated scene ids")
+  .option("--resume", "generate only retry-eligible failed scenes")
+  .option("--source <path>", "source file used when bootstrapping an episode")
+  .option("--concurrency <number>", "parallel scene generation", (value) =>
+    Number(value)
   )
+  .option("--variant <full|short>", "media variant", "full")
   .option("--allow-unapproved-character-references")
   .option("--force")
+  .option("--json")
+  .option("--verbose")
   .option(
     "--refresh-visual-direction",
     "regenerate the persisted episode visual-direction artifact"
@@ -5248,8 +5411,14 @@ imagesCommand
     async (opts: {
       episode: string;
       scene?: string;
+      resume?: boolean;
+      source?: string;
+      concurrency?: number;
+      variant: "full" | "short";
       allowUnapprovedCharacterReferences?: boolean;
       force?: boolean;
+      json?: boolean;
+      verbose?: boolean;
       refreshVisualDirection?: boolean;
     }) => {
       const cliOptions: CliOptions = {
@@ -5267,6 +5436,25 @@ imagesCommand
           ? { refreshVisualDirection: opts.refreshVisualDirection }
           : {}),
       };
+      if (opts.resume) {
+        await commandImagesResume({
+          episode: opts.episode,
+          ...(opts.scene !== undefined ? { scene: opts.scene } : {}),
+          ...(opts.source !== undefined ? { source: opts.source } : {}),
+          ...(opts.concurrency !== undefined
+            ? { concurrency: opts.concurrency }
+            : {}),
+          variant: opts.variant,
+          ...(opts.allowUnapprovedCharacterReferences
+            ? { allowUnapprovedCharacterReferences: true }
+            : {}),
+          ...(opts.force ? { force: true } : {}),
+          ...(opts.json ? { json: true } : {}),
+          ...(opts.verbose ? { verbose: true } : {}),
+          ...(cliOptions.workspace ? { workspace: cliOptions.workspace } : {}),
+        });
+        return;
+      }
       await commandImagesGenerate(cliOptions, opts.episode, opts.scene);
     }
   );
@@ -5561,7 +5749,7 @@ registerHistoryCommands(program, {
   importHistoryContentPack,
   generateHistoryYoutubeMetadata: async (request) => {
     const outputRoot = path.resolve(
-      request.outputRoot ?? path.join(process.cwd(), "episodes"),
+      request.outputRoot ?? path.join(process.cwd(), "episodes")
     );
     const runtime = await loadRuntimeConfig({ workspaceDir: outputRoot });
     return generateHistoryYoutubeMetadata({
@@ -5570,22 +5758,53 @@ registerHistoryCommands(program, {
       locale: request.locale,
       variant: request.variant,
       generationOptions: {
-        apiKey: runtime.openAiCompatibleApiKey ?? process.env["OPENAI_API_KEY"] ?? "",
+        apiKey:
+          runtime.openAiCompatibleApiKey ?? process.env["OPENAI_API_KEY"] ?? "",
         model: runtime.openAiMetadataModel ?? "gpt-5.4-mini",
-        repairModel: runtime.openAiValidatorModel ?? runtime.openAiMetadataModel ?? "gpt-5.4-mini",
+        repairModel:
+          runtime.openAiValidatorModel ??
+          runtime.openAiMetadataModel ??
+          "gpt-5.4-mini",
         language: request.locale,
-        promptText: await fs.readFile(path.resolve("prompts", "youtube-metadata.prompt.md"), "utf8"),
+        promptText: await fs.readFile(
+          path.resolve("prompts", "youtube-metadata.prompt.md"),
+          "utf8"
+        ),
         promptVersion: YOUTUBE_METADATA_PROMPT_VERSION,
         maxRetries: runtime.openAiMetadataMaxRetries ?? 3,
         timeoutMs: runtime.openAiMetadataTimeoutMs ?? 120000,
         keepFile: runtime.openAiMetadataKeepFile,
         force: request.force,
         dryRun: request.dryRun,
-        ...(runtime.openAiMetadataReasoningEffort ? { reasoningEffort: runtime.openAiMetadataReasoningEffort } : {}),
-        ...(runtime.openAiMetadataMaxOutputTokens !== undefined ? { maxOutputTokens: runtime.openAiMetadataMaxOutputTokens } : {}),
-        ...(runtime.openAiValidatorReasoningEffort ?? runtime.openAiMetadataReasoningEffort ? { repairReasoningEffort: runtime.openAiValidatorReasoningEffort ?? runtime.openAiMetadataReasoningEffort } : {}),
-        ...(runtime.openAiValidatorMaxOutputTokens ?? runtime.openAiMetadataMaxOutputTokens ? { repairMaxOutputTokens: runtime.openAiValidatorMaxOutputTokens ?? runtime.openAiMetadataMaxOutputTokens } : {}),
-        ...(runtime.openAiCompatibleBaseUrl ?? process.env["OPENAI_BASE_URL"] ? { baseUrl: runtime.openAiCompatibleBaseUrl ?? process.env["OPENAI_BASE_URL"] } : {}),
+        ...(runtime.openAiMetadataReasoningEffort
+          ? { reasoningEffort: runtime.openAiMetadataReasoningEffort }
+          : {}),
+        ...(runtime.openAiMetadataMaxOutputTokens !== undefined
+          ? { maxOutputTokens: runtime.openAiMetadataMaxOutputTokens }
+          : {}),
+        ...((runtime.openAiValidatorReasoningEffort ??
+        runtime.openAiMetadataReasoningEffort)
+          ? {
+              repairReasoningEffort:
+                runtime.openAiValidatorReasoningEffort ??
+                runtime.openAiMetadataReasoningEffort,
+            }
+          : {}),
+        ...((runtime.openAiValidatorMaxOutputTokens ??
+        runtime.openAiMetadataMaxOutputTokens)
+          ? {
+              repairMaxOutputTokens:
+                runtime.openAiValidatorMaxOutputTokens ??
+                runtime.openAiMetadataMaxOutputTokens,
+            }
+          : {}),
+        ...((runtime.openAiCompatibleBaseUrl ?? process.env["OPENAI_BASE_URL"])
+          ? {
+              baseUrl:
+                runtime.openAiCompatibleBaseUrl ??
+                process.env["OPENAI_BASE_URL"],
+            }
+          : {}),
       },
     });
   },
@@ -5596,32 +5815,32 @@ registerHistoryCommands(program, {
     request.plannerVersion === "v3.5"
       ? planHistoryVisualsV35(request)
       : request.plannerVersion === "v3.4"
-      ? planHistoryVisualsV34(request)
-      : request.plannerVersion === "v3.3"
-      ? planHistoryVisualsV33(request)
-      : request.plannerVersion === "v3.2"
-      ? planHistoryVisualsV32(request)
-      : request.plannerVersion === "v3.1"
-      ? planHistoryVisualsV31(request)
-      : request.plannerVersion === "v3"
-        ? planHistoryVisualsV3(request)
-        : request.plannerVersion === "v2"
-          ? planHistoryVisualsV2(request)
-          : planHistoryVisuals(request),
+        ? planHistoryVisualsV34(request)
+        : request.plannerVersion === "v3.3"
+          ? planHistoryVisualsV33(request)
+          : request.plannerVersion === "v3.2"
+            ? planHistoryVisualsV32(request)
+            : request.plannerVersion === "v3.1"
+              ? planHistoryVisualsV31(request)
+              : request.plannerVersion === "v3"
+                ? planHistoryVisualsV3(request)
+                : request.plannerVersion === "v2"
+                  ? planHistoryVisualsV2(request)
+                  : planHistoryVisuals(request),
   decideHistoryVisualApproval: (request) =>
     request.plannerVersion === "v3.5"
       ? decideHistoryVisualApprovalV35(request)
       : request.plannerVersion === "v3.3"
-      ? decideHistoryVisualApprovalV33(request)
-      : request.plannerVersion === "v3.2"
-      ? decideHistoryVisualApprovalV32(request)
-      : request.plannerVersion === "v3.1"
-      ? decideHistoryVisualApprovalV31(request)
-      : request.plannerVersion === "v3"
-        ? decideHistoryVisualApprovalV3(request)
-        : request.plannerVersion === "v2"
-          ? decideHistoryVisualApprovalV2(request)
-          : decideHistoryVisualApproval(request),
+        ? decideHistoryVisualApprovalV33(request)
+        : request.plannerVersion === "v3.2"
+          ? decideHistoryVisualApprovalV32(request)
+          : request.plannerVersion === "v3.1"
+            ? decideHistoryVisualApprovalV31(request)
+            : request.plannerVersion === "v3"
+              ? decideHistoryVisualApprovalV3(request)
+              : request.plannerVersion === "v2"
+                ? decideHistoryVisualApprovalV2(request)
+                : decideHistoryVisualApproval(request),
   inspectHistoryVisualsV2: inspectHistoryVisualV2,
   reconcileHistoryVisualAudioV2: (request) =>
     reconcileHistoryVisualAudioV2({
@@ -5642,19 +5861,22 @@ registerHistoryCommands(program, {
   inspectHistoryVisualsV35,
   deriveHistorySemanticImagePrompts: async (request) => {
     const outputRoot = path.resolve(
-      request.outputRoot ?? path.join(process.cwd(), "episodes"),
+      request.outputRoot ?? path.join(process.cwd(), "episodes")
     );
-    const episodeDir = path.join(outputRoot, normalizeEpisodeId(request.episodeId));
+    const episodeDir = path.join(
+      outputRoot,
+      normalizeEpisodeId(request.episodeId)
+    );
     const plan = await loadHistoryVisualPlanV35(episodeDir);
     if (!plan) {
       throw new Error(
-        `History V3.5 visual plan is required before semantic prompt derivation for ${request.episodeId}.`,
+        `History V3.5 visual plan is required before semantic prompt derivation for ${request.episodeId}.`
       );
     }
     const runtime = await loadRuntimeConfig({ workspaceDir: outputRoot });
     const fixtureValue = request.fixtureResponse
       ? (JSON.parse(
-          await fs.readFile(path.resolve(request.fixtureResponse), "utf8"),
+          await fs.readFile(path.resolve(request.fixtureResponse), "utf8")
         ) as unknown)
       : undefined;
     const client = request.fixtureResponse
@@ -5678,9 +5900,9 @@ registerHistoryCommands(program, {
       client,
       model: request.fixtureResponse
         ? "history-semantic-fixture-v1"
-        : process.env["HISTORY_IMAGE_PROMPT_PLANNER_MODEL"] ??
+        : (process.env["HISTORY_IMAGE_PROMPT_PLANNER_MODEL"] ??
           runtime.openAiStoryModel ??
-          "",
+          ""),
       ...(request.refresh ? { refresh: true } : {}),
     });
     const persisted = await persistHistorySemanticImagePromptReview({
@@ -5708,12 +5930,19 @@ registerHistoryCommands(program, {
   inspectHistorySemanticImagePrompts: async (request) => {
     const episodeDir = path.join(
       path.resolve(request.outputRoot ?? path.join(process.cwd(), "episodes")),
-      normalizeEpisodeId(request.episodeId),
+      normalizeEpisodeId(request.episodeId)
     );
     const paths = resolveHistorySemanticImagePromptPaths(episodeDir);
     const artifact = await inspectSemanticImagePromptCache(paths.cachePath);
-    const review = JSON.parse(await fs.readFile(paths.reviewPath, "utf8")) as unknown;
-    return { cachePath: paths.cachePath, reviewPath: paths.reviewPath, artifact, review };
+    const review = JSON.parse(
+      await fs.readFile(paths.reviewPath, "utf8")
+    ) as unknown;
+    return {
+      cachePath: paths.cachePath,
+      reviewPath: paths.reviewPath,
+      artifact,
+      review,
+    };
   },
   validateHistoryVisualPlanV34Command: async (request) => {
     const planned = await planHistoryVisualsV34(request);

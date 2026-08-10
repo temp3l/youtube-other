@@ -37,6 +37,7 @@ import {
   VERONICA_SEMANTIC_IMAGE_PROMPT_PLANNER_VERSION,
   type PositioningVisualPlanV2,
 } from "@mediaforge/strategic-reinvention";
+import { createVeronicaPreImageReviewPack } from "./veronica-pre-image-review-pack.js";
 
 const mediaforgeBinPath = fileURLToPath(
   new URL("../bin/mediaforge.js", import.meta.url),
@@ -320,6 +321,11 @@ export function registerVeronicaMediaCommands(program: Command): void {
         previousArtifact: derived.previousArtifact,
         findings: derived.findings,
       });
+      const reviewPack = await createVeronicaPreImageReviewPack({
+        episodeDir: source.episodeDir,
+        language: "en",
+        variant: options.variant,
+      });
       const payload = {
         contentId: source.plan.contentId,
         cacheStatus: derived.cacheStatus,
@@ -328,6 +334,7 @@ export function registerVeronicaMediaCommands(program: Command): void {
         semanticBriefHash: derived.artifact.briefHash,
         finalPromptSetHash: persisted.finalPromptSetHash,
         staleAssetIds: persisted.staleAssetIds,
+        preImageReviewPack: reviewPack.packDir,
         imageGenerationCalls: 0,
       };
       process.stdout.write(`${JSON.stringify(payload, options.json ? null : undefined, options.json ? 2 : undefined)}\n`);
@@ -347,6 +354,22 @@ export function registerVeronicaMediaCommands(program: Command): void {
       process.stdout.write(
         `${JSON.stringify({ cachePath: paths.cachePath, reviewPath: paths.reviewPath, artifact, review }, null, options.json ? 2 : undefined)}\n`,
       );
+    });
+  images
+    .command("review-pack")
+    .description("Create a local review pack before Veronica image-provider requests")
+    .requiredOption("--workspace <path>", "Episode workspace root")
+    .requiredOption("--episode-id <id>", "Episode identifier")
+    .option("--language <code>", "Narration language", "en")
+    .option("--variant <full|short>", "Narration variant", "short")
+    .option("--json", "Emit machine-readable output", false)
+    .action(async (options: { workspace: string; episodeId: string; language: VeronicaLanguage; variant: VeronicaVariant; json: boolean }) => {
+      const result = await createVeronicaPreImageReviewPack({
+        episodeDir: path.join(path.resolve(options.workspace), options.episodeId),
+        language: options.language,
+        variant: options.variant,
+      });
+      process.stdout.write(options.json ? `${JSON.stringify(result, null, 2)}\n` : `Created pre-image review pack: ${result.packDir}\n`);
     });
   images
     .command("generate")

@@ -1,10 +1,15 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { Command } from "commander";
 import { loadRuntimeConfig } from "@mediaforge/config";
-import { episodeManifestSchema, scenePlanSchema, type EpisodeManifest, type ScenePlan } from "@mediaforge/domain";
+import {
+  episodeManifestSchema,
+  scenePlanSchema,
+  type EpisodeManifest,
+  type ScenePlan,
+} from "@mediaforge/domain";
 import {
   buildEpisodeImageMediaContext,
+  createOpenAiVeronicaVisualQaEvaluator,
   generateEpisodeImages,
   loadEpisodeSceneManifest,
   loadEpisodeImageGenerationSettings,
@@ -26,7 +31,16 @@ import {
   positioningProductionPlanSchema,
   type PositioningVisualPlanV2,
 } from "@mediaforge/strategic-reinvention";
-import { ensureDir, fileExists, normalizeWhitespace, writeJsonAtomic } from "@mediaforge/shared";
+import {
+  ensureDir,
+  fileExists,
+  normalizeWhitespace,
+  writeJsonAtomic,
+  type SemanticImagePromptCacheArtifact,
+} from "@mediaforge/shared";
+import { assertVeronicaPreImageReviewPackCurrent } from "./veronica-pre-image-review-pack.js";
+import { assertPreImageReviewPackCurrent } from "./pre-image-review-pack.js";
+import type { VeronicaVisualQaBrief } from "@mediaforge/image-generation";
 
 export interface ImagesResumeCliOptions {
   readonly episode?: string;
@@ -57,16 +71,57 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
+function buildVeronicaVisualQaBriefs(input: {
+  readonly artifact: SemanticImagePromptCacheArtifact;
+  readonly scenePlan: ScenePlan;
+  readonly variant: "short" | "full";
+}): readonly VeronicaVisualQaBrief[] {
+  if (input.artifact.brief.genre !== "veronicaBenini")
+    throw new Error("Veronica visual QA requires a Veronica semantic brief.");
+  const sceneIds = new Set(input.scenePlan.scenes.map((scene) => scene.id));
+  const rules = [
+    ...input.artifact.brief.visualDirection.overallVisualLanguage,
+    ...input.artifact.brief.visualDirection.forbiddenDrift,
+    ...input.artifact.brief.genreContext.antiDriftRules,
+    "Muted narration must still reveal the principal relationship in one to two seconds.",
+  ];
+  return input.artifact.brief.assets.map((asset) => {
+    if (!sceneIds.has(asset.beatId))
+      throw new Error(
+        `Veronica semantic asset ${asset.assetId} has no scene ${asset.beatId}.`
+      );
+    return {
+      contentId: input.artifact.brief.contentId,
+      assetId: asset.beatId,
+      locale: "en",
+      variant: input.variant,
+      canonicalNarration: "",
+      spokenMeaning: asset.spokenMeaning,
+      viewerTakeaway: asset.viewerTakeaway,
+      narrativePurpose: asset.narrativePurpose,
+      visualRelationship: asset.visualRelationship,
+      mustShow: asset.mustShow,
+      mustNotShow: asset.mustNotShow,
+      relevanceAnchors: asset.relevanceAnchors,
+      genericDriftRisks: asset.genericDriftRisks,
+      finalPrompt: "",
+      visualDirectionRules: rules,
+      semanticBriefHash: input.artifact.briefHash,
+      visualDirectionVersion: input.artifact.genreVisualDirectionVersion,
+    };
+  });
+}
+
 async function resolveVeronicaCanonicalNarration(
   episodeDir: string,
   variant: "full" | "short",
-  canonicalNarrationSource?: string,
+  canonicalNarrationSource?: string
 ): Promise<string> {
   let manifestCanonicalNarration: string | null = null;
   if (canonicalNarrationSource) {
     try {
       const manifest = JSON.parse(
-        await fs.readFile(path.join(episodeDir, "manifest.json"), "utf8"),
+        await fs.readFile(path.join(episodeDir, "manifest.json"), "utf8")
       ) as { readonly source?: { readonly filePath?: unknown } };
       const sourcePath = manifest.source?.filePath;
       if (typeof sourcePath === "string" && !path.isAbsolute(sourcePath)) {
@@ -78,7 +133,7 @@ async function resolveVeronicaCanonicalNarration(
             "..",
             "..",
             normalized.slice(0, packageBoundary),
-            canonicalNarrationSource,
+            canonicalNarrationSource
           );
         }
       }
@@ -104,7 +159,7 @@ async function resolveVeronicaCanonicalNarration(
     if (await fileExists(candidate)) return fs.readFile(candidate, "utf8");
   }
   throw new Error(
-    `Veronica semantic image-prompt preflight requires canonical narration at one of: ${candidates.join(", ")}.`,
+    `Veronica semantic image-prompt preflight requires canonical narration at one of: ${candidates.join(", ")}.`
   );
 }
 
@@ -135,7 +190,9 @@ async function resolveEpisodeSourceFile(
     return resolved;
   }
   const sourceDir = path.join(episodeDir, "source");
-  const sourceEntries = await fs.readdir(sourceDir, { withFileTypes: true }).catch(() => []);
+  const sourceEntries = await fs
+    .readdir(sourceDir, { withFileTypes: true })
+    .catch(() => []);
   const candidates = sourceEntries
     .filter((entry) => entry.isFile() && isEpisodeSourceFile(entry.name))
     .map((entry) => path.join(sourceDir, entry.name))
@@ -157,9 +214,7 @@ async function resolveEpisodeSourceFile(
   return candidates[0]!;
 }
 
-async function resolveScenePlan(
-  episodeDir: string
-): Promise<ScenePlan> {
+async function resolveScenePlan(episodeDir: string): Promise<ScenePlan> {
   const candidates = [
     path.join(episodeDir, "shared", "scenes.json"),
     path.join(episodeDir, "state", "image-generation", "scenes.json"),
@@ -202,8 +257,7 @@ async function readFailureResumeStatus(
     return null;
   }
   return {
-    retryable:
-      typeof raw["retryable"] === "boolean" ? raw["retryable"] : false,
+    retryable: typeof raw["retryable"] === "boolean" ? raw["retryable"] : false,
     ...(typeof raw["category"] === "string"
       ? { category: raw["category"] }
       : {}),
@@ -243,7 +297,8 @@ async function buildResumeEligibleScenePlan(
     }
     if (manifest.status === "failed") {
       const failure = await readFailureResumeStatus(episodeDir, scene.id);
-      const retryable = failure?.retryable ?? manifest.error?.retryable ?? false;
+      const retryable =
+        failure?.retryable ?? manifest.error?.retryable ?? false;
       if (retryable) {
         eligibleScenes.push(scene);
       } else {
@@ -364,18 +419,33 @@ export async function commandImagesResume(
   if (isVeronica) {
     const positioningPlanHash = Reflect.get(
       manifest.sourceMetadata as object,
-      "positioningPlanHash",
+      "positioningPlanHash"
     );
     if (
       typeof positioningPlanHash !== "string" ||
       !/^[a-f0-9]{64}$/u.test(positioningPlanHash) ||
-      manifest.scenePlan.scenes.some((scene) => scene.qualityStatus !== "approved")
+      manifest.scenePlan.scenes.some(
+        (scene) => scene.qualityStatus !== "approved"
+      )
     ) {
       throw new Error(
-        "Veronica image generation requires an approved, hash-bound positioning production plan.",
+        "Veronica image generation requires an approved, hash-bound positioning production plan."
       );
     }
-  } else if (!isHistory) {
+    await assertVeronicaPreImageReviewPackCurrent({
+      episodeDir,
+      language: "en",
+      variant: options.variant ?? "short",
+    });
+  } else {
+    await assertPreImageReviewPackCurrent({
+      episodeDir,
+      language: "en",
+      variant: options.variant ?? "full",
+      genre: isHistory ? "history" : "dark-truth",
+    });
+  }
+  if (!isHistory && !isVeronica) {
     await assertScriptScoreGate({
       outputRoot: path.dirname(episodeDir),
       episode: manifest.episodeId,
@@ -383,26 +453,33 @@ export async function commandImagesResume(
       format: "full",
     });
   }
-  const settings = loadEpisodeImageGenerationSettings({
-    ...process.env,
-    OPENAI_IMAGE_CONCURRENCY:
-      options.concurrency !== undefined
-        ? String(options.concurrency)
-        : process.env["OPENAI_IMAGE_CONCURRENCY"],
-    OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES:
-      options.allowUnapprovedCharacterReferences
+  const settings = loadEpisodeImageGenerationSettings(
+    {
+      ...process.env,
+      OPENAI_IMAGE_CONCURRENCY:
+        options.concurrency !== undefined
+          ? String(options.concurrency)
+          : process.env["OPENAI_IMAGE_CONCURRENCY"],
+      OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES:
+        options.allowUnapprovedCharacterReferences
+          ? "true"
+          : process.env["OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES"],
+      OPENAI_IMAGE_FORCE: options.force
         ? "true"
-        : process.env["OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES"],
-    OPENAI_IMAGE_FORCE: options.force
-      ? "true"
-      : process.env["OPENAI_IMAGE_FORCE"],
-  }, {
-    profile: options.variant ?? "full",
-  });
+        : process.env["OPENAI_IMAGE_FORCE"],
+    },
+    {
+      profile: options.variant ?? "full",
+    }
+  );
   let semanticScenePlan = manifest.scenePlan;
+  let veronicaVisualQaEvaluator:
+    | ReturnType<typeof createOpenAiVeronicaVisualQaEvaluator>
+    | undefined;
+  let veronicaVisualQaBriefs: readonly VeronicaVisualQaBrief[] | undefined;
   if (isVeronica || isHistory) {
     const runtime = await loadRuntimeConfig(
-      options.workspace ? { workspaceDir: options.workspace } : {},
+      options.workspace ? { workspaceDir: options.workspace } : {}
     );
     const client = createOpenAiStoryClientWithOptions({
       apiKey: settings.apiKey,
@@ -415,12 +492,12 @@ export async function commandImagesResume(
     if (isVeronica) {
       const planPath = path.join(episodeDir, "source", "visual-plan.json");
       const rawPlan = positioningProductionPlanSchema.parse(
-        JSON.parse(await fs.readFile(planPath, "utf8")) as unknown,
+        JSON.parse(await fs.readFile(planPath, "utf8")) as unknown
       ) as unknown as PositioningVisualPlanV2;
       const canonicalNarration = await resolveVeronicaCanonicalNarration(
         episodeDir,
         options.variant ?? (rawPlan.format === "short" ? "short" : "full"),
-        rawPlan.canonicalNarrationSource,
+        rawPlan.canonicalNarrationSource
       );
       const derived = await deriveVeronicaSemanticImagePromptBrief({
         episodeDir,
@@ -442,6 +519,20 @@ export async function commandImagesResume(
           findings: derived.findings,
         })
       ).scenePlan;
+      veronicaVisualQaEvaluator = createOpenAiVeronicaVisualQaEvaluator({
+        client,
+        model:
+          process.env["VERONICA_VISUAL_QA_MODEL"] ??
+          runtime.openAiValidatorModel ??
+          runtime.openAiStoryModel ??
+          "",
+      });
+      veronicaVisualQaBriefs = buildVeronicaVisualQaBriefs({
+        artifact: derived.artifact,
+        scenePlan: semanticScenePlan,
+        variant:
+          options.variant ?? (rawPlan.format === "short" ? "short" : "full"),
+      });
     } else if (historyPlan) {
       await assertHistoryVisualApprovalV35(episodeDir);
       const derived = await deriveHistorySemanticImagePromptBrief({
@@ -470,14 +561,22 @@ export async function commandImagesResume(
     process.stderr
   );
   if (selectedSceneIds.length > 0) {
-    const availableSceneIds = new Set(semanticScenePlan.scenes.map((scene) => String(scene.id)));
-    const unknownSceneIds = selectedSceneIds.filter((sceneId) => !availableSceneIds.has(sceneId));
+    const availableSceneIds = new Set(
+      semanticScenePlan.scenes.map((scene) => String(scene.id))
+    );
+    const unknownSceneIds = selectedSceneIds.filter(
+      (sceneId) => !availableSceneIds.has(sceneId)
+    );
     if (unknownSceneIds.length > 0) {
-      throw new Error(`Unknown image scene IDs: ${unknownSceneIds.join(", ")}.`);
+      throw new Error(
+        `Unknown image scene IDs: ${unknownSceneIds.join(", ")}.`
+      );
     }
     semanticScenePlan = scenePlanSchema.parse({
       ...semanticScenePlan,
-      scenes: semanticScenePlan.scenes.filter((scene) => selectedSceneIds.includes(String(scene.id))),
+      scenes: semanticScenePlan.scenes.filter((scene) =>
+        selectedSceneIds.includes(String(scene.id))
+      ),
     });
   }
   const resumePlan = await buildResumeEligibleScenePlan(
@@ -498,6 +597,8 @@ export async function commandImagesResume(
               episodeId: manifest.episodeId,
               contentGenre: "veronicabenini",
             }),
+            veronicaVisualQaEvaluator,
+            veronicaVisualQaBriefs,
           }
         : {}),
     }
@@ -509,8 +610,7 @@ export async function commandImagesResume(
     generated: results.filter((result) => result.status === "generated").length,
     skipped: results.filter((result) => result.status === "skipped").length,
     failed: results.filter((result) => result.status === "failed").length,
-    skippedNonRetryableFailures:
-      resumePlan.skippedNonRetryableFailures.length,
+    skippedNonRetryableFailures: resumePlan.skippedNonRetryableFailures.length,
     skippedNonRetryableFailureCategories:
       resumePlan.skippedNonRetryableFailures.reduce<Record<string, number>>(
         (counts, failure) => {
@@ -537,23 +637,4 @@ export async function commandImagesResume(
       `Total: ${summary.total}`,
     ].join("\n") + "\n"
   );
-}
-
-export function registerImagesResumeCommand(imagesCommand: Command): void {
-  imagesCommand
-    .command("resume")
-    .requiredOption("--episode <episode-id>")
-    .option("--scene <scene-id>", "single scene id or comma-separated scene ids")
-    .option("--source <path>")
-    .option("--concurrency <number>", "parallel scene generation", (value) =>
-      Number(value)
-    )
-    .option("--variant <full|short>", "media variant", "full")
-    .option("--allow-unapproved-character-references")
-    .option("--force")
-    .option("--json")
-    .option("--verbose")
-    .action(async (opts: ImagesResumeCliOptions) => {
-      await commandImagesResume(opts);
-    });
 }

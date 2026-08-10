@@ -1,7 +1,6 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { Command } from "commander";
 import { mkdtempSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { scenePlanSchema } from "@mediaforge/domain";
@@ -21,9 +20,9 @@ vi.mock("@mediaforge/config", () => ({
 }));
 
 vi.mock("@mediaforge/image-generation", async () => {
-  const actual = await vi.importActual<typeof import("@mediaforge/image-generation")>(
-    "@mediaforge/image-generation"
-  );
+  const actual = await vi.importActual<
+    typeof import("@mediaforge/image-generation")
+  >("@mediaforge/image-generation");
   return {
     ...actual,
     generateEpisodeImages: imageGenerationMocks.generateEpisodeImages,
@@ -31,20 +30,17 @@ vi.mock("@mediaforge/image-generation", async () => {
 });
 
 vi.mock("@mediaforge/story-localization", async () => {
-  const actual = await vi.importActual<typeof import("@mediaforge/story-localization")>(
-    "@mediaforge/story-localization"
-  );
+  const actual = await vi.importActual<
+    typeof import("@mediaforge/story-localization")
+  >("@mediaforge/story-localization");
   return {
     ...actual,
     assertScriptScoreGate: storyLocalizationMocks.assertScriptScoreGate,
   };
 });
 
-const {
-  commandImagesResume,
-  loadOrBootstrapEpisodeManifest,
-  registerImagesResumeCommand,
-} = await import("./images-resume-command.js");
+const { commandImagesResume, loadOrBootstrapEpisodeManifest } =
+  await import("./images-resume-command.js");
 
 function makeScenePlan() {
   return scenePlanSchema.parse({
@@ -70,9 +66,7 @@ function makeScenePlan() {
         negativeConstraints: ["no watermark"],
         aspectRatios: ["16:9"],
         imagePrompt: "placeholder",
-        expectedImageFilenames: [
-          "scene-001__000000-000004__16x9.png",
-        ],
+        expectedImageFilenames: ["scene-001__000000-000004__16x9.png"],
         qualityStatus: "draft",
       },
     ],
@@ -81,25 +75,13 @@ function makeScenePlan() {
 
 describe("images resume command", () => {
   beforeEach(() => {
-    workspaceDir = mkdtempSync(path.join(os.tmpdir(), "mediaforge-images-resume-"));
+    workspaceDir = mkdtempSync(
+      path.join(os.tmpdir(), "mediaforge-images-resume-")
+    );
     imageGenerationMocks.generateEpisodeImages.mockReset();
     imageGenerationMocks.generateEpisodeImages.mockResolvedValue([]);
     storyLocalizationMocks.assertScriptScoreGate.mockReset();
     storyLocalizationMocks.assertScriptScoreGate.mockResolvedValue(undefined);
-  });
-
-  it("registers the resume command with concurrency and bootstrap options", () => {
-    const program = new Command();
-    const images = program.command("images");
-    registerImagesResumeCommand(images);
-
-    const resume = images.commands.find((command) => command.name() === "resume");
-    expect(resume).toBeDefined();
-    const flags = resume?.options.map((option) => option.flags) ?? [];
-    expect(flags).toContain("--episode <episode-id>");
-    expect(flags).toContain("--source <path>");
-    expect(flags).toContain("--concurrency <number>");
-    expect(flags).toContain("--allow-unapproved-character-references");
   });
 
   it("bootstraps a missing episode manifest from the local episode folder", async () => {
@@ -120,9 +102,7 @@ describe("images resume command", () => {
     });
 
     expect(result.created).toBe(true);
-    expect(result.manifestPath).toBe(
-      path.join(episodeDir, "manifest.json")
-    );
+    expect(result.manifestPath).toBe(path.join(episodeDir, "manifest.json"));
     expect(result.manifest.scenePlan?.sourceId).toBe(
       "011-the-black-eyed-children"
     );
@@ -212,7 +192,9 @@ describe("images resume command", () => {
     expect(imageGenerationMocks.generateEpisodeImages.mock.calls[0]?.[1]).toBe(
       "011-the-black-eyed-children"
     );
-    expect(imageGenerationMocks.generateEpisodeImages.mock.calls[0]?.[3]).toMatchObject({
+    expect(
+      imageGenerationMocks.generateEpisodeImages.mock.calls[0]?.[3]
+    ).toMatchObject({
       concurrency: 2,
       allowUnapprovedCharacterReferences: true,
     });
