@@ -128,7 +128,7 @@ projected-cost warning; prefer `--force-batch`, `--refresh-source-id`, or
 `--invalidate-from`.
 
 The History long-form V3.3 policy preserves a 600,000 ms preference and allows
-480,000–1,200,000 ms. Estimated timing can pass planning validation but cannot
+300,000–1,200,000 ms. Estimated timing can pass planning validation but cannot
 approve production. In trusted-script mode, material claims with valid
 hash-bound attestation satisfy content eligibility as `trusted_input`. In
 research-backed mode, unresolved claims still block content; missing

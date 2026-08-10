@@ -190,10 +190,10 @@ describe("History V3.3 claims and timing", () => {
     expect(b.chapterPauseDurationMs).toBeLessThanOrEqual(6_000);
   });
 
-  it("preserves the ten-minute preference while allowing measured 8–20 minute episodes", () => {
+  it("preserves the ten-minute preference while allowing measured 5–20 minute episodes", () => {
     const { narration } = narrationAndClaim();
     const hash = createHash("sha256").update("audio").digest("hex");
-    for (const durationMs of [480_000, 600_000, 1_020_000, 1_200_000]) {
+    for (const durationMs of [300_000, 600_000, 1_020_000, 1_200_000]) {
       const timing = estimateHistoryTimingV33({ narration, measurement: { source: "measured-tts", durationMs, audioSha256: hash } });
       expect(timing.withinAllowedRange).toBe(true);
       expect(timing.timingSource).toBe("measured-tts");

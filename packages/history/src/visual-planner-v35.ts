@@ -3038,7 +3038,7 @@ export function buildHistoryVisualPlanV35(input: {
       diagnostic(
         "TIMING_OUTSIDE_ALLOWED_RANGE",
         "production",
-        `Narration duration ${timing.totalDurationMs}ms is outside allowed History range.`
+        `Narration duration ${timing.totalDurationMs}ms is outside allowed History range ${durationPolicy.allowedMinDurationMs}-${durationPolicy.allowedMaxDurationMs}ms.`
       )
     );
   if (
