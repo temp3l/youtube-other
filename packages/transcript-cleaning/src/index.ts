@@ -9,7 +9,7 @@ import {
   type UncertainTerm
 } from "@mediaforge/domain";
 import { runCurl } from "@mediaforge/process-runner";
-import { collapseRepeatedTokenRuns, normalizeWhitespace, splitIntoSentences } from "@mediaforge/shared";
+import { collapseRepeatedTokenRuns, DEFAULT_OPENAI_CAPABILITY_POLICY, normalizeWhitespace, splitIntoSentences } from "@mediaforge/shared";
 import {
   currentExecutionTelemetry,
   estimateTextGenerationCost
@@ -115,7 +115,11 @@ export class ConservativeTranscriptCleaner implements TranscriptCleaner {
 }
 
 export class OpenAiCompatibleTranscriptCleaner implements TranscriptCleaner {
-  public constructor(private readonly options: OpenAiCompatibleTextOptions) {}
+  public constructor(private readonly options: OpenAiCompatibleTextOptions) {
+    if (options.model !== DEFAULT_OPENAI_CAPABILITY_POLICY["transcript-cleanup"].model) {
+      throw new Error(`Transcript cleanup model is capability-owned and must be ${DEFAULT_OPENAI_CAPABILITY_POLICY["transcript-cleanup"].model}.`);
+    }
+  }
 
   public async clean(transcript: Transcript): Promise<CleanedTranscript> {
     transcriptSchema.parse(transcript);

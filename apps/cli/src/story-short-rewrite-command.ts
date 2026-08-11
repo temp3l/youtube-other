@@ -16,6 +16,7 @@ import {
   type ShortRewriteRunOptions,
   type StoryLanguage,
 } from "@mediaforge/story-localization";
+import { requireOpenAiResponsesPolicy } from "@mediaforge/shared";
 import { normalizeLocaleCode, normalizeWhitespace } from "@mediaforge/shared";
 import { buildStoryGenerationWarnings } from "./story-config-warnings.js";
 
@@ -261,12 +262,11 @@ function resolveModel(
   options: StoryRewriteShortCliOptions,
   runtimeConfig: Awaited<ReturnType<typeof loadRuntimeConfig>>
 ): string {
-  return (
-    options.model ??
-    runtimeConfig.openAiShortModel ??
-    runtimeConfig.openAiStoryModel ??
-    DEFAULT_STORY_REWRITE_MODEL
-  );
+  const policy = requireOpenAiResponsesPolicy(runtimeConfig.openAiPolicy["short-rewrite"]);
+  if (options.model && options.model !== policy.model) {
+    throw new Error("--model is not supported for paid short rewrites; configure the short-rewrite capability instead.");
+  }
+  return policy.model;
 }
 
 function normalizeTargetDuration(
@@ -393,6 +393,11 @@ export function registerStoryRewriteShortCommand(
       const timeoutMs = options.timeoutMs ?? SHORT_REWRITE_DEFAULT_TIMEOUT_MS;
       const maxRetries = options.maxRetries ?? 2;
       const model = resolveModel(options, runtimeConfig);
+      const shortPolicy = requireOpenAiResponsesPolicy(runtimeConfig.openAiPolicy["short-rewrite"]);
+      const repairPolicy = requireOpenAiResponsesPolicy(runtimeConfig.openAiPolicy.repair);
+      if (options.reasoningEffort && options.reasoningEffort !== shortPolicy.reasoning) {
+        throw new Error("--reasoning-effort is not supported for paid short rewrites; configure the short-rewrite capability instead.");
+      }
       const client =
         options.dryRun || hasDryRunFlag
           ? undefined
@@ -441,12 +446,8 @@ export function registerStoryRewriteShortCommand(
             model,
             maxOutputTokens,
             retryMaxOutputTokens,
-            repairModel:
-              runtimeConfig.openAiValidatorModel ??
-              runtimeConfig.openAiMetadataModel,
-            repairReasoningEffort:
-              runtimeConfig.openAiValidatorReasoningEffort ??
-              runtimeConfig.openAiMetadataReasoningEffort,
+            repairModel: repairPolicy.model,
+            repairReasoningEffort: repairPolicy.reasoning,
             repairMaxOutputTokens:
               runtimeConfig.openAiValidatorMaxOutputTokens ??
               runtimeConfig.openAiMetadataMaxOutputTokens,
@@ -454,11 +455,7 @@ export function registerStoryRewriteShortCommand(
               options.temperature ??
               runtimeConfig.openAiStoryTemperature ??
               SHORT_REWRITE_DEFAULT_TEMPERATURE,
-            reasoningEffort:
-              options.reasoningEffort ??
-              runtimeConfig.openAiShortReasoningEffort ??
-              runtimeConfig.openAiStoryReasoningEffort ??
-              DEFAULT_STORY_REWRITE_REASONING_EFFORT,
+            reasoningEffort: shortPolicy.reasoning,
             maxConcurrency: options.maxConcurrency,
             timeoutMs,
             maxRetries,

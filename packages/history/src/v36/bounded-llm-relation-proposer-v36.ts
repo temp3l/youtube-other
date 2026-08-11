@@ -1,6 +1,11 @@
 import { z } from "zod";
 
 import {
+  DEFAULT_OPENAI_CAPABILITY_POLICY,
+  requireOpenAiResponsesPolicy,
+} from "@mediaforge/shared";
+
+import {
   retryHistoryProviderCallV33,
   type OpenAiResponsesClientV3_3,
 } from "../history-research-v33.js";
@@ -125,9 +130,19 @@ function boundedInteger(value: string | undefined, fallback: number, minimum: nu
 export function boundedLlmProposerConfigFromEnvV36(
   environment: NodeJS.ProcessEnv = process.env
 ): BoundedLlmProposerConfigV36 {
+  const policy = requireOpenAiResponsesPolicy(
+    DEFAULT_OPENAI_CAPABILITY_POLICY["history-escalation"],
+    "history-escalation"
+  );
+  const configuredModel = environment["HISTORY_V36_RELATION_PROPOSER_MODEL"]?.trim();
+  if (configuredModel && configuredModel !== policy.model) {
+    throw new Error(
+      "HISTORY_V36_RELATION_PROPOSER_MODEL is no longer an independent model selector; use the history-escalation capability."
+    );
+  }
   return {
     enabled: environment["HISTORY_V36_LLM_SHADOW_PROPOSER"] === "1",
-    model: environment["HISTORY_V36_RELATION_PROPOSER_MODEL"]?.trim() ?? "",
+    model: policy.model,
     providerIdentity: environment["HISTORY_V36_RELATION_PROPOSER_PROVIDER"]?.trim() || "openai-compatible",
     timeoutMs: boundedInteger(environment["HISTORY_V36_RELATION_PROPOSER_TIMEOUT_MS"], 30_000, 1_000, 120_000),
     maxRetries: boundedInteger(environment["HISTORY_V36_RELATION_PROPOSER_MAX_RETRIES"], 1, 0, 2),
@@ -157,10 +172,18 @@ export class OpenAiBoundedLlmRelationProviderV36 implements BoundedLlmRelationPr
   private readonly maxOutputTokens: number;
 
   async propose(packet: BoundedLlmRelationPacketV36): Promise<BoundedLlmProviderResultV36> {
+    const policy = requireOpenAiResponsesPolicy(
+      DEFAULT_OPENAI_CAPABILITY_POLICY["history-escalation"],
+      "history-escalation"
+    );
+    if (this.model !== policy.model) {
+      throw new Error("The V36 relation proposer must use the history-escalation capability model.");
+    }
     const executed = await retryHistoryProviderCallV33({
       maxRetries: this.maxRetries,
       operation: async () => this.client.responses.create({
         model: this.model,
+        reasoning: { effort: policy.reasoning },
         temperature: 0,
         max_output_tokens: this.maxOutputTokens,
         input: [

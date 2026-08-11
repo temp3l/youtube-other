@@ -5,7 +5,7 @@ import { Command } from "commander";
 import { loadRuntimeConfig } from "@mediaforge/config";
 import { YOUTUBE_METADATA_PROMPT_VERSION, type YoutubeMetadataGenerationOptions } from "@mediaforge/metadata";
 import { runCommand } from "@mediaforge/process-runner";
-import { inspectSemanticImagePromptCache } from "@mediaforge/shared";
+import { inspectSemanticImagePromptCache, requireOpenAiResponsesPolicy } from "@mediaforge/shared";
 import {
   createVeronicaPilotFixtures,
   executeVeronicaRender,
@@ -58,13 +58,15 @@ async function veronicaMetadataOptions(input: { readonly workspace: string; read
   const runtime = await loadRuntimeConfig({
     workspaceDir: path.resolve(input.workspace),
   });
+  const metadataPolicy = requireOpenAiResponsesPolicy(runtime.openAiPolicy["youtube-metadata"]);
+  const repairPolicy = requireOpenAiResponsesPolicy(runtime.openAiPolicy["metadata-repair"]);
   const baseUrl = runtime.openAiCompatibleBaseUrl ?? process.env["OPENAI_BASE_URL"];
   return {
     apiKey: runtime.openAiCompatibleApiKey ?? process.env["OPENAI_API_KEY"] ?? "",
-    model: runtime.openAiMetadataModel ?? "gpt-5.4-mini",
+    model: metadataPolicy.model,
     maxOutputTokens: runtime.openAiMetadataMaxOutputTokens,
-    repairModel: runtime.openAiValidatorModel ?? runtime.openAiMetadataModel ?? "gpt-5.4-mini",
-    repairReasoningEffort: runtime.openAiValidatorReasoningEffort ?? runtime.openAiMetadataReasoningEffort,
+    repairModel: repairPolicy.model,
+    repairReasoningEffort: repairPolicy.reasoning,
     repairMaxOutputTokens: runtime.openAiValidatorMaxOutputTokens ?? runtime.openAiMetadataMaxOutputTokens,
     language: "en",
     promptText: await fs.readFile(path.resolve("prompts", "youtube-metadata.prompt.md"), "utf8"),
@@ -74,7 +76,7 @@ async function veronicaMetadataOptions(input: { readonly workspace: string; read
     keepFile: runtime.openAiMetadataKeepFile,
     force: input.force,
     dryRun: input.dryRun,
-    ...(runtime.openAiMetadataReasoningEffort ? { reasoningEffort: runtime.openAiMetadataReasoningEffort } : {}),
+    reasoningEffort: metadataPolicy.reasoning,
     ...(baseUrl !== undefined ? { baseUrl } : {}),
   };
 }

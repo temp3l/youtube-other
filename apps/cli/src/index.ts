@@ -97,6 +97,7 @@ import {
   normalizeContentVariant,
   normalizeEpisodeId,
   normalizeLocaleCode,
+  requireOpenAiResponsesPolicy,
   inspectSemanticImagePromptCache,
   safeBasename,
   slugify,
@@ -1278,6 +1279,40 @@ async function commandDoctor(options: CliOptions): Promise<void> {
     checks,
   };
   printJson(summary);
+}
+
+async function commandOpenAiPolicy(options: CliOptions): Promise<void> {
+  const config = await loadRuntimeConfig(configOverridesFromCli(options));
+  const rows = Object.entries(config.openAiPolicy).map(([capability, policy]) => ({
+    capability,
+    endpoint: policy.endpoint,
+    model: policy.model,
+    reasoning: policy.reasoning ?? "unsupported",
+  }));
+  if (options.json) {
+    process.stdout.write(`${JSON.stringify({ version: "openai-capability-policy-v1", capabilities: rows }, null, 2)}\n`);
+    return;
+  }
+  process.stdout.write("Capability\tEndpoint\tModel\tReasoning\n");
+  for (const row of rows) {
+    process.stdout.write(`${row.capability}\t${row.endpoint}\t${row.model}\t${row.reasoning}\n`);
+  }
+}
+
+function resolveMetadataCapabilityPolicy(config: RuntimeConfig): {
+  readonly model: string;
+  readonly reasoningEffort: "none" | "low" | "medium" | "high";
+  readonly repairModel: string;
+  readonly repairReasoningEffort: "none" | "low" | "medium" | "high";
+} {
+  const metadata = requireOpenAiResponsesPolicy(config.openAiPolicy["youtube-metadata"]);
+  const repair = requireOpenAiResponsesPolicy(config.openAiPolicy["metadata-repair"]);
+  return {
+    model: metadata.model,
+    reasoningEffort: metadata.reasoning,
+    repairModel: repair.model,
+    repairReasoningEffort: repair.reasoning,
+  };
 }
 
 async function commandInit(options: CliOptions): Promise<void> {
@@ -3253,6 +3288,7 @@ async function commandImagesGenerate(
     imageContext.contentGenre === "veronicabenini"
       ? await (async () => {
           const runtime = await loadRuntimeConfig({});
+          const visualQaPolicy = requireOpenAiResponsesPolicy(runtime.openAiPolicy["veronica-post-generation-visual-qa"]);
           const artifact = await inspectSemanticImagePromptCache(
             path.join(
               episodeDir,
@@ -3273,11 +3309,8 @@ async function commandImagesGenerate(
           return {
             evaluator: createOpenAiVeronicaVisualQaEvaluator({
               client,
-              model:
-                process.env["VERONICA_VISUAL_QA_MODEL"] ??
-                runtime.openAiValidatorModel ??
-                runtime.openAiStoryModel ??
-                "",
+              model: visualQaPolicy.model,
+              config: { reasoningEffort: visualQaPolicy.reasoning },
             }),
             briefs: buildVeronicaVisualQaBriefsFromArtifact({
               artifact,
@@ -4438,6 +4471,7 @@ async function commandMetadataGenerate(
     configOverridesFromCli(options),
     episodeConfig ? compactConfigOverrides(episodeConfig) : {}
   );
+  const metadataPolicy = resolveMetadataCapabilityPolicy(config);
   const language =
     config.scriptLanguage ?? episodeConfig?.scriptLanguage ?? "en";
   const metadataDir = localizedMetadataDir(episodeDir, language);
@@ -4455,16 +4489,11 @@ async function commandMetadataGenerate(
   } = {
     apiKey:
       config.openAiCompatibleApiKey ?? process.env["OPENAI_API_KEY"] ?? "",
-    model: config.openAiMetadataModel ?? "gpt-5.4-mini",
-    reasoningEffort: config.openAiMetadataReasoningEffort,
+    model: metadataPolicy.model,
+    reasoningEffort: metadataPolicy.reasoningEffort,
     maxOutputTokens: config.openAiMetadataMaxOutputTokens ?? 3000,
-    repairModel:
-      config.openAiValidatorModel ??
-      config.openAiMetadataModel ??
-      "gpt-5.4-mini",
-    repairReasoningEffort:
-      config.openAiValidatorReasoningEffort ??
-      config.openAiMetadataReasoningEffort,
+    repairModel: metadataPolicy.repairModel,
+    repairReasoningEffort: metadataPolicy.repairReasoningEffort,
     repairMaxOutputTokens:
       config.openAiValidatorMaxOutputTokens ??
       config.openAiMetadataMaxOutputTokens,
@@ -4682,6 +4711,7 @@ async function commandMetadataYoutube(
   }
 ): Promise<void> {
   const config = await loadRuntimeConfig(configOverridesFromCli(options));
+  const metadataPolicy = resolveMetadataCapabilityPolicy(config);
   const prompt = await loadYoutubeMetadataPromptText();
   const language =
     config.youtubeMetadataLanguage ?? config.scriptLanguage ?? "en";
@@ -4711,7 +4741,7 @@ async function commandMetadataYoutube(
           sceneCount: targetData.scenePlan.scenes.length,
           durationSeconds: targetData.durationSeconds,
           language,
-          model: config.openAiMetadataModel ?? "gpt-5.4-mini",
+          model: metadataPolicy.model,
           promptVersion: "youtube-metadata-v1",
           parentNarrationFingerprint: narration.narrationFingerprint,
         } satisfies YoutubeMetadataRunSummary;
@@ -4733,16 +4763,11 @@ async function commandMetadataYoutube(
       > & { baseUrl?: string } = {
         apiKey:
           config.openAiCompatibleApiKey ?? process.env["OPENAI_API_KEY"] ?? "",
-        model: config.openAiMetadataModel ?? "gpt-5.4-mini",
-        reasoningEffort: config.openAiMetadataReasoningEffort,
+        model: metadataPolicy.model,
+        reasoningEffort: metadataPolicy.reasoningEffort,
         maxOutputTokens: config.openAiMetadataMaxOutputTokens,
-        repairModel:
-          config.openAiValidatorModel ??
-          config.openAiMetadataModel ??
-          "gpt-5.4-mini",
-        repairReasoningEffort:
-          config.openAiValidatorReasoningEffort ??
-          config.openAiMetadataReasoningEffort,
+        repairModel: metadataPolicy.repairModel,
+        repairReasoningEffort: metadataPolicy.repairReasoningEffort,
         repairMaxOutputTokens:
           config.openAiValidatorMaxOutputTokens ??
           config.openAiMetadataMaxOutputTokens,
@@ -5009,6 +5034,7 @@ async function commandYoutubeUpload(
   markEpisodeTelemetry(uploadOptions.episode);
   const uploadVariant = parseUploadVariant(uploadOptions.variant);
   const config = await loadRuntimeConfig(configOverridesFromCli(options));
+  const metadataPolicy = resolveMetadataCapabilityPolicy(config);
   const { episodeDir } = await readManifestForEpisode(
     options,
     uploadOptions.episode
@@ -5033,16 +5059,11 @@ async function commandYoutubeUpload(
     metadataGeneration = {
       apiKey:
         config.openAiCompatibleApiKey ?? process.env["OPENAI_API_KEY"] ?? "",
-      model: config.openAiMetadataModel ?? "gpt-5.4-mini",
-      reasoningEffort: config.openAiMetadataReasoningEffort,
+      model: metadataPolicy.model,
+      reasoningEffort: metadataPolicy.reasoningEffort,
       maxOutputTokens: config.openAiMetadataMaxOutputTokens,
-      repairModel:
-        config.openAiValidatorModel ??
-        config.openAiMetadataModel ??
-        "gpt-5.4-mini",
-      repairReasoningEffort:
-        config.openAiValidatorReasoningEffort ??
-        config.openAiMetadataReasoningEffort,
+      repairModel: metadataPolicy.repairModel,
+      repairReasoningEffort: metadataPolicy.repairReasoningEffort,
       repairMaxOutputTokens:
         config.openAiValidatorMaxOutputTokens ??
         config.openAiMetadataMaxOutputTokens,
@@ -5279,6 +5300,12 @@ program
   .description("Check local dependencies and environment readiness")
   .action(async () => {
     await commandDoctor(program.opts<CliOptions>());
+  });
+program
+  .command("openai-policy")
+  .description("Print the effective OpenAI capability policy without provider calls")
+  .action(async () => {
+    await commandOpenAiPolicy(program.opts<CliOptions>());
   });
 program
   .command("init")
@@ -6120,6 +6147,7 @@ registerHistoryCommands(program, {
       request.outputRoot ?? path.join(process.cwd(), "episodes")
     );
     const runtime = await loadRuntimeConfig({ workspaceDir: outputRoot });
+    const metadataPolicy = resolveMetadataCapabilityPolicy(runtime);
     const baseUrl =
       runtime.openAiCompatibleBaseUrl ?? process.env["OPENAI_BASE_URL"];
     return generateHistoryYoutubeMetadata({
@@ -6130,12 +6158,9 @@ registerHistoryCommands(program, {
       generationOptions: {
         apiKey:
           runtime.openAiCompatibleApiKey ?? process.env["OPENAI_API_KEY"] ?? "",
-        model: runtime.openAiMetadataModel ?? "gpt-5.4-mini",
+        model: metadataPolicy.model,
         maxOutputTokens: runtime.openAiMetadataMaxOutputTokens,
-        repairModel:
-          runtime.openAiValidatorModel ??
-          runtime.openAiMetadataModel ??
-          "gpt-5.4-mini",
+        repairModel: metadataPolicy.repairModel,
         language: request.locale,
         promptText: await fs.readFile(
           path.resolve("prompts", "youtube-metadata.prompt.md"),
@@ -6147,12 +6172,8 @@ registerHistoryCommands(program, {
         keepFile: runtime.openAiMetadataKeepFile,
         force: request.force,
         dryRun: request.dryRun,
-        ...(runtime.openAiMetadataReasoningEffort
-          ? { reasoningEffort: runtime.openAiMetadataReasoningEffort }
-          : {}),
-        repairReasoningEffort:
-          runtime.openAiValidatorReasoningEffort ??
-          runtime.openAiMetadataReasoningEffort,
+        reasoningEffort: metadataPolicy.reasoningEffort,
+        repairReasoningEffort: metadataPolicy.repairReasoningEffort,
         repairMaxOutputTokens:
           runtime.openAiValidatorMaxOutputTokens ??
           runtime.openAiMetadataMaxOutputTokens,
@@ -6252,9 +6273,7 @@ registerHistoryCommands(program, {
       client,
       model: request.fixtureResponse
         ? "history-semantic-fixture-v1"
-        : (process.env["HISTORY_IMAGE_PROMPT_PLANNER_MODEL"] ??
-          runtime.openAiStoryModel ??
-          ""),
+        : runtime.openAiPolicy["history-visual-direction"].model,
       ...(request.refresh ? { refresh: true } : {}),
     });
     const persisted = await persistHistorySemanticImagePromptReview({

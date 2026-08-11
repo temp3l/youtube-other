@@ -3,6 +3,7 @@ import path from "node:path";
 import { loadRuntimeConfig } from "@mediaforge/config";
 import { createOpenAiStoryClientWithOptions } from "@mediaforge/story-localization";
 import {
+  requireOpenAiResponsesPolicy,
   serializeOpenAIError,
   writeOpenAIDebugLog,
 } from "@mediaforge/shared";
@@ -45,9 +46,6 @@ const OPENAI_QA_MODEL_PRICING: NonNullable<
     outputUsdPerMillionTokens: 12,
   },
 };
-
-const VERONICA_ROUTINE_QA_ESCALATION_MODEL = "gpt-5.6-sol";
-const VERONICA_ROUTINE_QA_ESCALATION_REASONING = "medium" as const;
 
 export interface VeronicaPaidOpenAiQaAuthorization {
   readonly maxProviderCalls: number;
@@ -469,20 +467,6 @@ export class OpenAiSourceGroundedVisualQaAdapter
   }
 }
 
-function qaEffort(
-  value: string | undefined,
-  fallback: "low" | "medium" | "high"
-): SourceGroundedModelTier["reasoningEffort"] {
-  return value === "none" ||
-    value === "minimal" ||
-    value === "low" ||
-    value === "medium" ||
-    value === "high" ||
-    value === "xhigh"
-    ? value
-    : fallback;
-}
-
 interface FixtureDocument {
   readonly scenes: Readonly<Record<string, unknown>>;
   readonly escalations?: Readonly<Record<string, unknown>>;
@@ -672,8 +656,11 @@ export async function createVeronicaSourceGroundedVisualQaComposition(input: {
   const runtime = await loadRuntimeConfig({
     workspaceDir: input.workspaceRoot,
   });
-  const primaryModel = runtime.openAiValidatorModel ?? "";
-  const escalationModel = VERONICA_ROUTINE_QA_ESCALATION_MODEL;
+  const scenePolicy = requireOpenAiResponsesPolicy(runtime.openAiPolicy["veronica-visual-qa-scene"]);
+  const sequencePolicy = requireOpenAiResponsesPolicy(runtime.openAiPolicy["veronica-visual-qa-sequence"]);
+  const escalationPolicy = requireOpenAiResponsesPolicy(runtime.openAiPolicy["veronica-visual-qa-escalation"]);
+  const remediationPolicy = requireOpenAiResponsesPolicy(runtime.openAiPolicy["veronica-visual-qa-remediation"]);
+  const finalPolicy = requireOpenAiResponsesPolicy(runtime.openAiPolicy["veronica-visual-qa-final-adjudication"]);
   const execution = sourceGroundedQaExecutionPolicy(executionProfile, {
     providerMode: input.paidOpenAiQa ? "LIVE_AUTHORIZED" : "CACHE_ONLY",
     promptPrefixCaching: runtime.openAiPromptCacheMode !== "disabled",
@@ -689,18 +676,18 @@ export async function createVeronicaSourceGroundedVisualQaComposition(input: {
   });
   const policy: SourceGroundedVisualQaPolicy = {
     enabled: true,
-    policyIdentity: `veronica-source-grounded-openai-policy.v2:${primaryModel}:${escalationModel}`,
+    policyIdentity: `veronica-source-grounded-openai-policy.v3:${scenePolicy.model}:${scenePolicy.reasoning}:${escalationPolicy.model}:${escalationPolicy.reasoning}:${finalPolicy.model}:${finalPolicy.reasoning}`,
     sceneJudge: {
-      model: primaryModel,
-      reasoningEffort: qaEffort(runtime.openAiValidatorReasoningEffort, "low"),
+      model: scenePolicy.model,
+      reasoningEffort: scenePolicy.reasoning,
       maxOutputTokens: Math.min(
         runtime.openAiValidatorMaxOutputTokens ?? 800,
         800
       ),
     },
     escalation: {
-      model: escalationModel,
-      reasoningEffort: VERONICA_ROUTINE_QA_ESCALATION_REASONING,
+      model: escalationPolicy.model,
+      reasoningEffort: escalationPolicy.reasoning,
       // Medium reasoning consumes the Responses output budget. Live
       // verification showed deterministic truncation at 1,000 tokens.
       maxOutputTokens: Math.min(
@@ -709,20 +696,25 @@ export async function createVeronicaSourceGroundedVisualQaComposition(input: {
       ),
     },
     remediationAdvisor: {
-      model: escalationModel,
-      reasoningEffort: VERONICA_ROUTINE_QA_ESCALATION_REASONING,
+      model: remediationPolicy.model,
+      reasoningEffort: remediationPolicy.reasoning,
       maxOutputTokens: Math.min(
         runtime.openAiStoryMaxOutputTokens ?? 1_200,
         1_200
       ),
     },
     sequenceJudge: {
-      model: primaryModel,
-      reasoningEffort: qaEffort(runtime.openAiValidatorReasoningEffort, "low"),
+      model: sequencePolicy.model,
+      reasoningEffort: sequencePolicy.reasoning,
       maxOutputTokens: Math.min(
         runtime.openAiValidatorMaxOutputTokens ?? 1_000,
         1_000
       ),
+    },
+    finalAdjudication: {
+      model: finalPolicy.model,
+      reasoningEffort: finalPolicy.reasoning,
+      maxOutputTokens: Math.min(runtime.openAiStoryMaxOutputTokens ?? 1_200, 1_200),
     },
     maxRemediationRounds: input.maxAutomaticRemediationRounds ?? 1,
     remediateReview: true,
@@ -742,6 +734,7 @@ export async function createVeronicaSourceGroundedVisualQaComposition(input: {
     policy,
     primaryJudge: adapter,
     escalationJudge: adapter,
+    finalJudge: adapter,
     remediationAdvisor: adapter,
     sequenceJudge: adapter,
     cache: new FileSourceGroundedVisualQaCache(

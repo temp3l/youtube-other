@@ -265,6 +265,9 @@ importers:
       '@mediaforge/domain':
         specifier: workspace:*
         version: link:../domain
+      '@mediaforge/shared':
+        specifier: workspace:*
+        version: link:../shared
       zod:
         specifier: ^4.0.14
         version: 4.4.3

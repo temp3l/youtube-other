@@ -1,3 +1,5 @@
+import { DEFAULT_OPENAI_CAPABILITY_POLICY } from "@mediaforge/shared";
+
 /**
  * History V3.3 live-research cost configuration.
  *
@@ -43,11 +45,11 @@ export interface HistoryResearchCostConfigV33 {
 }
 
 export const HISTORY_RESEARCH_COST_CONFIG_DEFAULTS_V33 = {
-  claimExtractionModel: "gpt-5.6-luna",
-  evidenceAssessmentModel: "gpt-5.6-luna",
-  researchQueryModel: "gpt-5.6-luna",
-  visualSemanticModel: "gpt-5.6-luna",
-  escalationModel: "gpt-5.6-terra",
+  claimExtractionModel: DEFAULT_OPENAI_CAPABILITY_POLICY["history-research"].model,
+  evidenceAssessmentModel: DEFAULT_OPENAI_CAPABILITY_POLICY["history-research"].model,
+  researchQueryModel: DEFAULT_OPENAI_CAPABILITY_POLICY["history-research"].model,
+  visualSemanticModel: DEFAULT_OPENAI_CAPABILITY_POLICY["history-research"].model,
+  escalationModel: DEFAULT_OPENAI_CAPABILITY_POLICY["history-escalation"].model,
 
   useBatchApi: true,
   enableEscalation: true,
@@ -275,6 +277,25 @@ export function validateHistoryResearchCostConfigV33(
       throw new HistoryResearchCostConfigErrorV33(
         `Model name ${key} must be a non-empty string.`
       );
+  }
+  const expectedResearchModel = DEFAULT_OPENAI_CAPABILITY_POLICY["history-research"].model;
+  const expectedEscalationModel = DEFAULT_OPENAI_CAPABILITY_POLICY["history-escalation"].model;
+  for (const key of [
+    "claimExtractionModel",
+    "evidenceAssessmentModel",
+    "researchQueryModel",
+    "visualSemanticModel",
+  ] as const) {
+    if (config[key] !== expectedResearchModel) {
+      throw new HistoryResearchCostConfigErrorV33(
+        `${key} is capability-owned and must be ${expectedResearchModel}; arbitrary History model overrides are not supported.`
+      );
+    }
+  }
+  if (config.escalationModel !== expectedEscalationModel) {
+    throw new HistoryResearchCostConfigErrorV33(
+      `escalationModel is capability-owned and must be ${expectedEscalationModel}.`
+    );
   }
   for (const key of POSITIVE_INT_KEYS) {
     const value = config[key];

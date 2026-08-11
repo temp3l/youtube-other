@@ -27,6 +27,7 @@ import {
   hashFile,
   hashText,
   normalizeWhitespace,
+  DEFAULT_OPENAI_CAPABILITY_POLICY,
   readJsonIfExists,
   resolveEpisodeImageCheckpointPath,
   resolveEpisodeImageCheckpointsDir,
@@ -4054,18 +4055,21 @@ export function loadEpisodeImageGenerationSettings(
   if (ignoredShortWarning) {
     console.warn(ignoredShortWarning);
   }
+  const configuredModel =
+    profile === "short"
+      ? (parsed.MEDIAFORGE_OPENAI_IMAGE_SHORT_MODEL ?? parsed.OPENAI_IMAGE_MODEL)
+      : (parsed.MEDIAFORGE_OPENAI_IMAGE_SCENE_MODEL ?? parsed.OPENAI_IMAGE_MODEL);
+  const model = DEFAULT_OPENAI_CAPABILITY_POLICY["image-generation"].model;
+  if (configuredModel !== model) {
+    throw new Error(`OpenAI image model is capability-owned and must be ${model}.`);
+  }
   return {
     apiKey: parsed.OPENAI_API_KEY,
     baseUrl: parsed.OPENAI_BASE_URL,
     organization: parsed.OPENAI_ORGANIZATION,
     project: parsed.OPENAI_PROJECT,
     profile,
-    model:
-      profile === "short"
-        ? (parsed.MEDIAFORGE_OPENAI_IMAGE_SHORT_MODEL ??
-          parsed.OPENAI_IMAGE_MODEL)
-        : (parsed.MEDIAFORGE_OPENAI_IMAGE_SCENE_MODEL ??
-          parsed.OPENAI_IMAGE_MODEL),
+    model,
     size: configuredGenerationSize.size,
     renderSize: configuredRenderSize.size,
     resolvedSize: configuredGenerationSize.size,

@@ -60,6 +60,7 @@ import {
   buildSrt,
   buildVtt,
   collapseRepeatedTokenRuns,
+  DEFAULT_OPENAI_CAPABILITY_POLICY,
   ensureDir,
   fileExists,
   hashFile,
@@ -569,9 +570,7 @@ function createSpeechProvider(
       language,
       artifactType,
       ...(configuredVoice ? { voice: configuredVoice } : {}),
-      ...(process.env["OPENAI_TTS_MODEL"]
-        ? { model: process.env["OPENAI_TTS_MODEL"] }
-        : {}),
+      model: DEFAULT_OPENAI_CAPABILITY_POLICY["speech-synthesis"].model,
     });
     if (!isPaidProviderOptInEnabled()) {
       return {
@@ -588,7 +587,7 @@ function createSpeechProvider(
     }
     const organization =
       process.env["OPENAI_ORGANIZATION"] ?? process.env["OPENAI_ORG_ID"];
-    const model = process.env["OPENAI_TTS_MODEL"] ?? voiceSettings.model;
+    const model = DEFAULT_OPENAI_CAPABILITY_POLICY["speech-synthesis"].model;
     const provider = createProviderNeutralLegacyOpenAiSpeechProvider({
       apiKey,
       ...(process.env["OPENAI_BASE_URL"]

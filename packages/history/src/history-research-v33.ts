@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import {
+  DEFAULT_OPENAI_CAPABILITY_POLICY,
   planOpenAiResponsesPromptCache,
   projectOpenAiResponsesPromptCache,
 } from "@mediaforge/shared";
@@ -1035,7 +1036,9 @@ export class OpenAiClaimExtractionProviderV33 implements ClaimExtractionProvider
     private readonly maxOutputTokens = Number(
       process.env["HISTORY_MAX_OUTPUT_TOKENS_PER_EXTRACTION_BATCH"] ?? 2_500
     ),
-    private readonly enablePromptCaching = process.env["HISTORY_ENABLE_PROMPT_CACHING"] !== "false"
+    private readonly enablePromptCaching = process.env["HISTORY_ENABLE_PROMPT_CACHING"] !== "false",
+    private readonly reasoningEffort: "none" | "low" | "medium" | "high" =
+      model === DEFAULT_OPENAI_CAPABILITY_POLICY["history-escalation"].model ? "medium" : "none"
   ) {}
 
   async extract(input: {
@@ -1077,6 +1080,7 @@ export class OpenAiClaimExtractionProviderV33 implements ClaimExtractionProvider
     const response = await this.client.responses.create(
       projectOpenAiResponsesPromptCache({
         model: this.model,
+        reasoning: { effort: this.reasoningEffort },
         max_output_tokens: this.maxOutputTokens,
         input: [
           {
@@ -1187,7 +1191,8 @@ export class OpenAiWebSearchRetrievalProviderV33 implements SourceRetrievalProvi
       process.env["HISTORY_OPENAI_TIMEOUT_MS"] ??
         process.env["OPENAI_HISTORY_TIMEOUT_MS"] ??
         10 * 60_000
-    )
+    ),
+    private readonly reasoningEffort: "none" | "low" | "medium" | "high" = "none"
   ) {}
 
   async retrieve(input: {
@@ -1201,6 +1206,7 @@ export class OpenAiWebSearchRetrievalProviderV33 implements SourceRetrievalProvi
     const response = await this.client.responses.create(
       {
         model: this.model,
+        reasoning: { effort: this.reasoningEffort },
         tools: [{ type: "web_search_preview" }],
         input: [
           {
@@ -1270,7 +1276,9 @@ export class OpenAiEvidenceAssessmentProviderV33 implements EvidenceAssessmentPr
     private readonly maxOutputTokens = Number(
       process.env["HISTORY_MAX_OUTPUT_TOKENS_PER_ASSESSMENT_BATCH"] ?? 1_500
     ),
-    private readonly enablePromptCaching = process.env["HISTORY_ENABLE_PROMPT_CACHING"] !== "false"
+    private readonly enablePromptCaching = process.env["HISTORY_ENABLE_PROMPT_CACHING"] !== "false",
+    private readonly reasoningEffort: "none" | "low" | "medium" | "high" =
+      model === DEFAULT_OPENAI_CAPABILITY_POLICY["history-escalation"].model ? "medium" : "none"
   ) {}
 
   async assess(input: {
@@ -1327,6 +1335,7 @@ export class OpenAiEvidenceAssessmentProviderV33 implements EvidenceAssessmentPr
     const response = await this.client.responses.create(
       projectOpenAiResponsesPromptCache({
         model: this.model,
+        reasoning: { effort: this.reasoningEffort },
         max_output_tokens: this.maxOutputTokens,
         input: [
           {
@@ -1405,7 +1414,8 @@ export class OpenAiVisualPurposeProviderV33 implements VisualPurposeProviderV3_3
         process.env["OPENAI_HISTORY_TIMEOUT_MS"] ??
         10 * 60_000
     ),
-    private readonly enablePromptCaching = process.env["HISTORY_ENABLE_PROMPT_CACHING"] !== "false"
+    private readonly enablePromptCaching = process.env["HISTORY_ENABLE_PROMPT_CACHING"] !== "false",
+    private readonly reasoningEffort: "none" | "low" | "medium" | "high" = "none"
   ) {}
 
   async propose(input: {
@@ -1455,6 +1465,7 @@ export class OpenAiVisualPurposeProviderV33 implements VisualPurposeProviderV3_3
     const response = await this.client.responses.create(
       projectOpenAiResponsesPromptCache({
         model: this.model,
+        reasoning: { effort: this.reasoningEffort },
         input: [
           {
             role: "system",

@@ -160,6 +160,13 @@ export function createOpenAiVeronicaVisualQaEvaluator(input: {
     typeof config.maxOutputTokens === "number" ? config.maxOutputTokens : 2200;
   const temperature =
     typeof config.temperature === "number" ? config.temperature : 0;
+  const reasoningEffort =
+    config.reasoningEffort === "none" ||
+    config.reasoningEffort === "low" ||
+    config.reasoningEffort === "medium" ||
+    config.reasoningEffort === "high"
+      ? config.reasoningEffort
+      : undefined;
   return {
     model: input.model,
     config,
@@ -180,6 +187,7 @@ export function createOpenAiVeronicaVisualQaEvaluator(input: {
       };
       const response = await input.client.responses.create({
         model: input.model,
+        ...(reasoningEffort ? { reasoning: { effort: reasoningEffort } } : {}),
         temperature,
         max_output_tokens: maxOutputTokens,
         input: [

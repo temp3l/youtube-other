@@ -18,6 +18,7 @@ import {
   localizeStoryEpisode,
   materializeCanonicalSourceStory,
 } from "@mediaforge/story-localization";
+import { requireOpenAiResponsesPolicy } from "@mediaforge/shared";
 import { normalizeLocaleCode, normalizeWhitespace } from "@mediaforge/shared";
 import { buildStoryGenerationWarnings } from "./story-config-warnings.js";
 
@@ -207,6 +208,14 @@ export function registerStoryRewriteFullCommand(storiesCommand: Command): void {
         options.retryMaxOutputTokens ??
         runtimeConfig.openAiStoryRetryMaxOutputTokens ??
         maxOutputTokens;
+      const storyPolicy = requireOpenAiResponsesPolicy(runtimeConfig.openAiPolicy["story-rewrite"]);
+      const repairPolicy = requireOpenAiResponsesPolicy(runtimeConfig.openAiPolicy.repair);
+      if (options.model && options.model !== storyPolicy.model) {
+        throw new Error("--model is not supported for paid story rewrites; configure the story-rewrite capability instead.");
+      }
+      if (options.reasoningEffort && options.reasoningEffort !== storyPolicy.reasoning) {
+        throw new Error("--reasoning-effort is not supported for paid story rewrites; configure the story-rewrite capability instead.");
+      }
       const config = createStoryLocalizationConfig({
         sourceDirectory: outputRoot,
         outputDirectory: outputRoot,
@@ -217,22 +226,12 @@ export function registerStoryRewriteFullCommand(storiesCommand: Command): void {
         timeoutMs: options.timeoutMs ?? 180_000,
         maxOutputTokens,
         retryMaxOutputTokens,
-        model:
-          options.model ??
-          runtimeConfig.openAiStoryModel ??
-          DEFAULT_STORY_REWRITE_MODEL,
+        model: storyPolicy.model,
         temperature: options.temperature ?? runtimeConfig.openAiStoryTemperature ?? SHORT_REWRITE_DEFAULT_TEMPERATURE,
-        reasoningEffort:
-          options.reasoningEffort ??
-          runtimeConfig.openAiStoryReasoningEffort ??
-          DEFAULT_STORY_REWRITE_REASONING_EFFORT,
+        reasoningEffort: storyPolicy.reasoning,
         horrorAffectRolloutMode: runtimeConfig.horrorAffectRolloutMode,
-        repairModel:
-          runtimeConfig.openAiValidatorModel ??
-          runtimeConfig.openAiMetadataModel,
-        repairReasoningEffort:
-          runtimeConfig.openAiValidatorReasoningEffort ??
-          runtimeConfig.openAiMetadataReasoningEffort,
+        repairModel: repairPolicy.model,
+        repairReasoningEffort: repairPolicy.reasoning,
         repairMaxOutputTokens:
           runtimeConfig.openAiValidatorMaxOutputTokens ??
           runtimeConfig.openAiMetadataMaxOutputTokens,
@@ -271,9 +270,8 @@ export function registerStoryRewriteFullCommand(storiesCommand: Command): void {
         estimatedCostUsd: result.estimatedCostUsd,
         failure: result.failure,
         configWarnings: buildStoryGenerationWarnings({
-          storyModel:
-            options.model ?? runtimeConfig.openAiStoryModel ?? DEFAULT_STORY_REWRITE_MODEL,
-          localizationModel: runtimeConfig.openAiLocalizationModel,
+          storyModel: storyPolicy.model,
+          localizationModel: requireOpenAiResponsesPolicy(runtimeConfig.openAiPolicy.localization).model,
           storyMaxOutputTokens:
             options.maxOutputTokens ??
             runtimeConfig.openAiStoryMaxOutputTokens ??

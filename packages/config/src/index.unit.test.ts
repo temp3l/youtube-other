@@ -105,6 +105,19 @@ describe("runtime config", () => {
     expect(config.openAiCompatibleApiKey).toBe("cli-key");
   });
 
+  it("resolves the centralized policy and rejects unsafe model/reasoning overrides", async () => {
+    const config = await loadRuntimeConfig({
+      openAiStoryModel: "gpt-5.6-terra",
+      openAiStoryReasoningEffort: "high",
+    });
+    expect(config.openAiPolicy["story-rewrite"]).toMatchObject({
+      model: "gpt-5.6-terra",
+      reasoning: "high",
+    });
+    await expect(loadRuntimeConfig({ openAiStoryModel: "arbitrary-model" })).rejects.toThrow("Unsupported OpenAI model override");
+    await expect(loadRuntimeConfig({ openAiStoryReasoningEffort: "xhigh" })).rejects.toThrow("not supported by gpt-5.6-terra");
+  });
+
   it("parses episode config JSON", async () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-config-"));
     const episodeDir = path.join(dir, "episode");
@@ -467,16 +480,16 @@ describe("runtime config", () => {
       [
         "OPENAI_API_KEY=test-key",
         "MEDIAFORGE_OPENAI_COMPATIBLE_BASE_URL=https://api.openai.com/v1",
-        "MEDIAFORGE_OPENAI_STORY_MODEL=gpt-5.5",
+        "MEDIAFORGE_OPENAI_STORY_MODEL=gpt-5.6-terra",
         "MEDIAFORGE_OPENAI_STORY_TEMPERATURE=0.5",
         "MEDIAFORGE_OPENAI_STORY_REASONING_EFFORT=high",
         "MEDIAFORGE_OPENAI_STORY_MAX_OUTPUT_TOKENS=25000",
         "MEDIAFORGE_OPENAI_STORY_RETRY_MAX_OUTPUT_TOKENS=25000",
         "MEDIAFORGE_HORROR_AFFECT_ROLLOUT_MODE=enforce",
-        "MEDIAFORGE_OPENAI_LOCALIZATION_MODEL=gpt-5.4",
+        "MEDIAFORGE_OPENAI_LOCALIZATION_MODEL=gpt-5.6-terra",
         "MEDIAFORGE_OPENAI_LOCALIZATION_REASONING_EFFORT=low",
         "MEDIAFORGE_OPENAI_LOCALIZATION_MAX_OUTPUT_TOKENS=10000",
-        "MEDIAFORGE_OPENAI_SHORT_MODEL=gpt-5.4-mini",
+        "MEDIAFORGE_OPENAI_SHORT_MODEL=gpt-5.6-terra",
         "MEDIAFORGE_OPENAI_SHORT_REASONING_EFFORT=low",
         "MEDIAFORGE_OPENAI_SHORT_MAX_OUTPUT_TOKENS=4000",
         "MEDIAFORGE_OPENAI_VALIDATOR_MODEL=gpt-5.4-mini",
@@ -494,16 +507,16 @@ describe("runtime config", () => {
       const config = await loadRuntimeConfig();
       expect(config.openAiCompatibleApiKey).toBe("test-key");
       expect(config.ttsProvider).toBe("openai-compatible");
-      expect(config.openAiStoryModel).toBe("gpt-5.5");
+      expect(config.openAiStoryModel).toBe("gpt-5.6-terra");
       expect(config.openAiStoryTemperature).toBe(0.5);
       expect(config.openAiStoryReasoningEffort).toBe("high");
       expect(config.openAiStoryMaxOutputTokens).toBe(25000);
       expect(config.openAiStoryRetryMaxOutputTokens).toBe(25000);
       expect(config.horrorAffectRolloutMode).toBe("enforce");
-      expect(config.openAiLocalizationModel).toBe("gpt-5.4");
+      expect(config.openAiLocalizationModel).toBe("gpt-5.6-terra");
       expect(config.openAiLocalizationReasoningEffort).toBe("low");
       expect(config.openAiLocalizationMaxOutputTokens).toBe(10000);
-      expect(config.openAiShortModel).toBe("gpt-5.4-mini");
+      expect(config.openAiShortModel).toBe("gpt-5.6-terra");
       expect(config.openAiShortReasoningEffort).toBe("low");
       expect(config.openAiShortMaxOutputTokens).toBe(4000);
       expect(config.openAiValidatorModel).toBe("gpt-5.4-mini");
@@ -535,8 +548,8 @@ describe("runtime config", () => {
   it("uses the production story and image model defaults", async () => {
     const config = await loadRuntimeConfig();
     expect(config).toMatchObject({
-      openAiStoryModel: "gpt-5.6-sol",
-      openAiStoryReasoningEffort: "medium",
+      openAiStoryModel: "gpt-5.6-terra",
+      openAiStoryReasoningEffort: "high",
       openAiStoryMaxOutputTokens: 14000,
       openAiStoryRetryMaxOutputTokens: 14000,
       horrorAffectRolloutMode: "shadow",

@@ -6,6 +6,13 @@ import {
   visualPacingProfileIdSchema,
   visualPacingProfileSchema,
 } from "@mediaforge/domain";
+import {
+  DEFAULT_OPENAI_CAPABILITY_POLICY,
+  type OpenAiCapability,
+  type OpenAiCapabilityPolicy,
+  type OpenAiCapabilityPolicyRegistry,
+  type OpenAiReasoningEffort,
+} from "@mediaforge/shared";
 import { z } from "zod";
 import { configurationErrorFromUnknown } from "./internal.js";
 
@@ -702,7 +709,11 @@ const configSchema = z.object({
   visualRetention: visualRetentionConfigSchema,
   narrationMastering: narrationMasteringConfigSchema,
 });
-export type RuntimeConfig = z.infer<typeof configSchema>;
+type RuntimeConfigCore = z.infer<typeof configSchema>;
+export type RuntimeConfig = RuntimeConfigCore & {
+  /** Fully resolved, credential-free policy for every production OpenAI call. */
+  readonly openAiPolicy: OpenAiCapabilityPolicyRegistry;
+};
 
 export const remoteTransportConfigSchema = z.strictObject({
   enabled: z.boolean(),
@@ -766,7 +777,7 @@ export function assertSupportedModelReasoning(
   }
 }
 
-export function validateOpenAiModelConfiguration(config: RuntimeConfig): void {
+export function validateOpenAiModelConfiguration(config: RuntimeConfigCore): void {
   const combinations = [
     [
       config.openAiStoryModel,
@@ -802,6 +813,17 @@ export function validateOpenAiModelConfiguration(config: RuntimeConfig): void {
   for (const [model, effort, settingName] of combinations) {
     if (model && effort)
       assertSupportedModelReasoning(model, effort, settingName);
+  }
+  for (const [settingName, model, expected] of [
+    ["openAiImageReferenceModel", config.openAiImageReferenceModel, DEFAULT_OPENAI_CAPABILITY_POLICY["image-generation"].model],
+    ["openAiImageSceneModel", config.openAiImageSceneModel, DEFAULT_OPENAI_CAPABILITY_POLICY["image-generation"].model],
+    ["openAiImageShortModel", config.openAiImageShortModel, DEFAULT_OPENAI_CAPABILITY_POLICY["image-edit"].model],
+    ["openAiSpeechModel", config.openAiSpeechModel, DEFAULT_OPENAI_CAPABILITY_POLICY["speech-synthesis"].model],
+    ["openAiTranscriptionModel", config.openAiTranscriptionModel, DEFAULT_OPENAI_CAPABILITY_POLICY.transcription.model],
+  ] as const) {
+    if (model !== undefined && model !== expected) {
+      throw configurationErrorFromUnknown(`${settingName} is capability-owned and must be ${expected}.`);
+    }
   }
 }
 export const runtimeConfigOverridesSchema = configSchema.partial().extend({
@@ -1238,6 +1260,79 @@ function normalizeOptionalPath(value: string | undefined): string | undefined {
   return value;
 }
 
+type ResponseCapability = Extract<OpenAiCapabilityPolicy, { readonly endpoint: "responses" }>;
+
+function resolveResponseCapability(
+  capability: OpenAiCapability,
+  model: string | undefined,
+  reasoning: string | undefined
+): OpenAiCapabilityPolicy {
+  const base = DEFAULT_OPENAI_CAPABILITY_POLICY[capability];
+  if (base.endpoint !== "responses" || (model === undefined && reasoning === undefined)) {
+    return base;
+  }
+  if (base.reasoning === null) {
+    throw new Error(`OpenAI capability ${capability} does not permit model or reasoning overrides.`);
+  }
+  const allowedModels = new Set<ResponseCapability["model"]>([
+    "gpt-5.4-mini",
+    "gpt-5.6-luna",
+    "gpt-5.6-terra",
+    "gpt-5.6-sol",
+  ]);
+  const resolvedModel = model ?? base.model;
+  const resolvedReasoning = reasoning ?? base.reasoning;
+  if (!allowedModels.has(resolvedModel as ResponseCapability["model"])) {
+    throw new Error(`Unsupported OpenAI model override for ${capability}: ${resolvedModel}`);
+  }
+  if (!(["none", "low", "medium", "high"] as const).includes(resolvedReasoning as OpenAiReasoningEffort)) {
+    throw new Error(`Unsupported OpenAI reasoning override for ${capability}: ${resolvedReasoning}`);
+  }
+  return {
+    endpoint: "responses",
+    model: resolvedModel as ResponseCapability["model"],
+    reasoning: resolvedReasoning as OpenAiReasoningEffort,
+  };
+}
+
+function resolveOpenAiPolicy(input: {
+  readonly storyModel?: string | undefined;
+  readonly storyReasoning?: string | undefined;
+  readonly localizationModel?: string | undefined;
+  readonly localizationReasoning?: string | undefined;
+  readonly shortModel?: string | undefined;
+  readonly shortReasoning?: string | undefined;
+  readonly validatorModel?: string | undefined;
+  readonly validatorReasoning?: string | undefined;
+  readonly metadataModel?: string | undefined;
+  readonly metadataReasoning?: string | undefined;
+  readonly imagePromptCompilerModel?: string | undefined;
+  readonly imagePromptCompilerReasoning?: string | undefined;
+}): OpenAiCapabilityPolicyRegistry {
+  const validation = resolveResponseCapability("validation", input.validatorModel, input.validatorReasoning);
+  const repair = resolveResponseCapability("repair", input.validatorModel, input.validatorReasoning);
+  const metadata = resolveResponseCapability("youtube-metadata", input.metadataModel, input.metadataReasoning);
+  return {
+    ...DEFAULT_OPENAI_CAPABILITY_POLICY,
+    "story-rewrite": resolveResponseCapability("story-rewrite", input.storyModel, input.storyReasoning),
+    localization: resolveResponseCapability("localization", input.localizationModel, input.localizationReasoning),
+    "short-rewrite": resolveResponseCapability("short-rewrite", input.shortModel, input.shortReasoning),
+    validation,
+    repair,
+    "dynamic-genre-analysis": validation,
+    "youtube-metadata": metadata,
+    "metadata-repair": repair,
+    "image-prompt-compiler": resolveResponseCapability(
+      "image-prompt-compiler",
+      input.imagePromptCompilerModel,
+      input.imagePromptCompilerReasoning
+    ),
+    "veronica-visual-qa-scene": validation,
+    "veronica-visual-qa-sequence": validation,
+    "veronica-post-generation-visual-qa": validation,
+  };
+}
+
 export async function loadRuntimeConfig(
   overrides: RuntimeConfigOverrides = {},
   episodeOverrides: RuntimeConfigOverrides = {}
@@ -1482,7 +1577,7 @@ export async function loadRuntimeConfig(
       episodeOverrides.openAiStoryModel ??
       env.MEDIAFORGE_OPENAI_STORY_MODEL ??
       env.OPENAI_STORY_MODEL ??
-      "gpt-5.6-sol",
+      DEFAULT_OPENAI_CAPABILITY_POLICY["story-rewrite"].model,
     openAiStoryTemperature:
       overrides.openAiStoryTemperature ??
       episodeOverrides.openAiStoryTemperature ??
@@ -1494,7 +1589,7 @@ export async function loadRuntimeConfig(
       episodeOverrides.openAiStoryReasoningEffort ??
       env.MEDIAFORGE_OPENAI_STORY_REASONING_EFFORT ??
       env.OPENAI_STORY_REASONING_EFFORT ??
-      "medium",
+      DEFAULT_OPENAI_CAPABILITY_POLICY["story-rewrite"].reasoning,
     openAiStoryMaxOutputTokens: resolvedOpenAiStoryMaxOutputTokens,
     openAiStoryRetryMaxOutputTokens: resolvedOpenAiStoryRetryMaxOutputTokens,
     horrorAffectRolloutMode:
@@ -1509,7 +1604,7 @@ export async function loadRuntimeConfig(
       env.OPENAI_LOCALIZATION_MODEL ??
       env.MEDIAFORGE_OPENAI_STORY_MODEL ??
       env.OPENAI_STORY_MODEL ??
-      "gpt-5.6-terra",
+      DEFAULT_OPENAI_CAPABILITY_POLICY.localization.model,
     openAiLocalizationReasoningEffort:
       overrides.openAiLocalizationReasoningEffort ??
       episodeOverrides.openAiLocalizationReasoningEffort ??
@@ -1517,7 +1612,7 @@ export async function loadRuntimeConfig(
       env.OPENAI_LOCALIZATION_REASONING_EFFORT ??
       env.MEDIAFORGE_OPENAI_STORY_REASONING_EFFORT ??
       env.OPENAI_STORY_REASONING_EFFORT ??
-      "low",
+      DEFAULT_OPENAI_CAPABILITY_POLICY.localization.reasoning,
     openAiLocalizationMaxOutputTokens:
       overrides.openAiLocalizationMaxOutputTokens ??
       episodeOverrides.openAiLocalizationMaxOutputTokens ??
@@ -1533,7 +1628,7 @@ export async function loadRuntimeConfig(
       env.OPENAI_SHORT_MODEL ??
       env.MEDIAFORGE_OPENAI_STORY_MODEL ??
       env.OPENAI_STORY_MODEL ??
-      "gpt-5.6-terra",
+      DEFAULT_OPENAI_CAPABILITY_POLICY["short-rewrite"].model,
     openAiShortReasoningEffort:
       overrides.openAiShortReasoningEffort ??
       episodeOverrides.openAiShortReasoningEffort ??
@@ -1541,7 +1636,7 @@ export async function loadRuntimeConfig(
       env.OPENAI_SHORT_REASONING_EFFORT ??
       env.MEDIAFORGE_OPENAI_STORY_REASONING_EFFORT ??
       env.OPENAI_STORY_REASONING_EFFORT ??
-      "low",
+      DEFAULT_OPENAI_CAPABILITY_POLICY["short-rewrite"].reasoning,
     openAiShortRewriteMaxOutputTokens:
       resolvedOpenAiShortRewriteMaxOutputTokens,
     openAiShortMaxOutputTokens: resolvedOpenAiShortMaxOutputTokens,
@@ -1556,7 +1651,7 @@ export async function loadRuntimeConfig(
       env.OPENAI_METADATA_MODEL ??
       env.MEDIAFORGE_OPENAI_SHORT_MODEL ??
       env.OPENAI_SHORT_MODEL ??
-      "gpt-5.4-mini",
+      DEFAULT_OPENAI_CAPABILITY_POLICY.validation.model,
     openAiValidatorReasoningEffort:
       overrides.openAiValidatorReasoningEffort ??
       episodeOverrides.openAiValidatorReasoningEffort ??
@@ -1564,7 +1659,7 @@ export async function loadRuntimeConfig(
       env.OPENAI_VALIDATOR_REASONING_EFFORT ??
       env.MEDIAFORGE_OPENAI_METADATA_REASONING_EFFORT ??
       env.OPENAI_METADATA_REASONING_EFFORT ??
-      "low",
+      DEFAULT_OPENAI_CAPABILITY_POLICY.validation.reasoning,
     openAiValidatorMaxOutputTokens:
       overrides.openAiValidatorMaxOutputTokens ??
       episodeOverrides.openAiValidatorMaxOutputTokens ??
@@ -1577,12 +1672,12 @@ export async function loadRuntimeConfig(
       overrides.openAiImagePromptCompilerModel ??
       episodeOverrides.openAiImagePromptCompilerModel ??
       env.MEDIAFORGE_OPENAI_IMAGE_PROMPT_COMPILER_MODEL ??
-      "gpt-5.6-terra",
+      DEFAULT_OPENAI_CAPABILITY_POLICY["image-prompt-compiler"].model,
     openAiImagePromptCompilerReasoningEffort:
       overrides.openAiImagePromptCompilerReasoningEffort ??
       episodeOverrides.openAiImagePromptCompilerReasoningEffort ??
       env.MEDIAFORGE_OPENAI_IMAGE_PROMPT_COMPILER_REASONING_EFFORT ??
-      "low",
+      DEFAULT_OPENAI_CAPABILITY_POLICY["image-prompt-compiler"].reasoning,
     openAiImagePromptCompilerMaxOutputTokens:
       overrides.openAiImagePromptCompilerMaxOutputTokens ??
       episodeOverrides.openAiImagePromptCompilerMaxOutputTokens ??
@@ -1593,13 +1688,13 @@ export async function loadRuntimeConfig(
       episodeOverrides.openAiMetadataModel ??
       env.MEDIAFORGE_OPENAI_METADATA_MODEL ??
       env.OPENAI_METADATA_MODEL ??
-      "gpt-5.4-mini",
+      DEFAULT_OPENAI_CAPABILITY_POLICY["youtube-metadata"].model,
     openAiMetadataReasoningEffort:
       overrides.openAiMetadataReasoningEffort ??
       episodeOverrides.openAiMetadataReasoningEffort ??
       env.MEDIAFORGE_OPENAI_METADATA_REASONING_EFFORT ??
       env.OPENAI_METADATA_REASONING_EFFORT ??
-      "none",
+      DEFAULT_OPENAI_CAPABILITY_POLICY["youtube-metadata"].reasoning,
     openAiMetadataMaxOutputTokens:
       overrides.openAiMetadataMaxOutputTokens ??
       episodeOverrides.openAiMetadataMaxOutputTokens ??
@@ -1952,7 +2047,23 @@ export async function loadRuntimeConfig(
       "ElevenLabs TTS was selected, but ELEVENLABS_API_KEY is not configured."
     );
   }
-  return config;
+  return {
+    ...config,
+    openAiPolicy: resolveOpenAiPolicy({
+      storyModel: config.openAiStoryModel,
+      storyReasoning: config.openAiStoryReasoningEffort,
+      localizationModel: config.openAiLocalizationModel,
+      localizationReasoning: config.openAiLocalizationReasoningEffort,
+      shortModel: config.openAiShortModel,
+      shortReasoning: config.openAiShortReasoningEffort,
+      validatorModel: config.openAiValidatorModel,
+      validatorReasoning: config.openAiValidatorReasoningEffort,
+      metadataModel: config.openAiMetadataModel,
+      metadataReasoning: config.openAiMetadataReasoningEffort,
+      imagePromptCompilerModel: config.openAiImagePromptCompilerModel,
+      imagePromptCompilerReasoning: config.openAiImagePromptCompilerReasoningEffort,
+    }),
+  };
 }
 
 function normalizeLanguageCode(

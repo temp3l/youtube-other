@@ -19,6 +19,9 @@ vi.mock("@mediaforge/config", () => ({
     openAiValidatorMaxOutputTokens: 6000,
     openAiStoryModel: "gpt-5.5",
     openAiCompatibleApiKey: "test-key",
+    openAiPolicy: {
+      validation: { endpoint: "responses", model: "gpt-5.4-mini", reasoning: "low" },
+    },
   })),
 }));
 

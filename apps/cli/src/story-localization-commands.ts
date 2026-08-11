@@ -60,6 +60,7 @@ import {
   fileExists,
   normalizeLocaleCode,
   normalizeWhitespace,
+  requireOpenAiResponsesPolicy,
 } from "@mediaforge/shared";
 import fs from "node:fs/promises";
 import { buildStoryGenerationWarnings } from "./story-config-warnings.js";
@@ -165,6 +166,13 @@ export async function buildCommandConfig(
     rawArgs.has("--dry-run") || commandText.includes("--dry-run");
   const hasValidateOnlyFlag =
     rawArgs.has("--validate-only") || commandText.includes("--validate-only");
+  const localizationPolicy = requireOpenAiResponsesPolicy(runtimeConfig.openAiPolicy.localization);
+  const storyPolicy = requireOpenAiResponsesPolicy(runtimeConfig.openAiPolicy["story-rewrite"]);
+  const shortPolicy = requireOpenAiResponsesPolicy(runtimeConfig.openAiPolicy["short-rewrite"]);
+  const repairPolicy = requireOpenAiResponsesPolicy(runtimeConfig.openAiPolicy.repair);
+  if (options.model && options.model !== localizationPolicy.model) {
+    throw new Error("--model is not supported for paid localization; configure the localization capability instead.");
+  }
   return createStoryLocalizationConfig({
     sourceDirectory: options.sourceDir ?? resolveDefaultSourceDirectory(),
     outputDirectory: options.outputDir ?? resolveDefaultOutputDirectory(),
@@ -176,33 +184,20 @@ export async function buildCommandConfig(
     shortMaxSeconds: options.shortMaxSeconds ?? 65,
     shortWpm: options.shortWpm ?? 180,
     concurrency: options.concurrency ?? 2,
-    model:
-      options.model ??
-      runtimeConfig.openAiLocalizationModel ??
-      DEFAULT_STORY_REWRITE_MODEL,
-    ...(runtimeConfig.openAiStoryModel
-      ? { canonicalModel: runtimeConfig.openAiStoryModel }
-      : {}),
-    ...(runtimeConfig.openAiStoryReasoningEffort
-      ? { canonicalReasoningEffort: runtimeConfig.openAiStoryReasoningEffort }
-      : {}),
+    model: localizationPolicy.model,
+    canonicalModel: storyPolicy.model,
+    canonicalReasoningEffort: storyPolicy.reasoning,
     ...(runtimeConfig.openAiStoryMaxOutputTokens !== undefined
       ? { canonicalMaxOutputTokens: runtimeConfig.openAiStoryMaxOutputTokens }
       : {}),
     horrorAffectRolloutMode: runtimeConfig.horrorAffectRolloutMode,
-    ...(runtimeConfig.openAiShortModel
-      ? { shortModel: runtimeConfig.openAiShortModel }
-      : {}),
-    ...(runtimeConfig.openAiShortReasoningEffort
-      ? { shortReasoningEffort: runtimeConfig.openAiShortReasoningEffort }
-      : {}),
+    shortModel: shortPolicy.model,
+    shortReasoningEffort: shortPolicy.reasoning,
     ...(runtimeConfig.openAiShortMaxOutputTokens !== undefined
       ? { shortMaxOutputTokens: runtimeConfig.openAiShortMaxOutputTokens }
       : {}),
     temperature: SHORT_REWRITE_DEFAULT_TEMPERATURE,
-    reasoningEffort:
-      runtimeConfig.openAiLocalizationReasoningEffort ??
-      DEFAULT_STORY_REWRITE_REASONING_EFFORT,
+    reasoningEffort: localizationPolicy.reasoning,
     maxOutputTokens:
       runtimeConfig.openAiLocalizationMaxOutputTokens ??
       DEFAULT_FULL_REWRITE_MAX_OUTPUT_TOKENS,
@@ -211,16 +206,9 @@ export async function buildCommandConfig(
     retryMaxOutputTokens:
       runtimeConfig.openAiLocalizationMaxOutputTokens ??
       DEFAULT_FULL_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
-    repairModel:
-      options.model ??
-      runtimeConfig.openAiLocalizationModel ??
-      DEFAULT_STORY_REWRITE_MODEL,
-    repairReasoningEffort:
-      runtimeConfig.openAiLocalizationReasoningEffort ??
-      DEFAULT_STORY_REWRITE_REASONING_EFFORT,
-    repairMaxOutputTokens:
-      runtimeConfig.openAiLocalizationMaxOutputTokens ??
-      DEFAULT_FULL_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
+    repairModel: repairPolicy.model,
+    repairReasoningEffort: repairPolicy.reasoning,
+    repairMaxOutputTokens: runtimeConfig.openAiValidatorMaxOutputTokens ?? DEFAULT_FULL_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
     fallbackToSync: options.fallbackToSync ?? false,
     force: options.force ?? false,
     submit: options.submit ?? false,
@@ -577,39 +565,33 @@ export async function buildBatchConfig(
   options: StoryBatchCliOptions
 ): Promise<ReturnType<typeof createStoryLocalizationConfig>> {
   const runtimeConfig = await loadRuntimeConfig();
+  const localizationPolicy = requireOpenAiResponsesPolicy(runtimeConfig.openAiPolicy.localization);
+  const storyPolicy = requireOpenAiResponsesPolicy(runtimeConfig.openAiPolicy["story-rewrite"]);
+  const shortPolicy = requireOpenAiResponsesPolicy(runtimeConfig.openAiPolicy["short-rewrite"]);
+  const repairPolicy = requireOpenAiResponsesPolicy(runtimeConfig.openAiPolicy.repair);
+  if (options.model && options.model !== localizationPolicy.model) {
+    throw new Error("--model is not supported for paid localization; configure the localization capability instead.");
+  }
   return createStoryLocalizationConfig({
     sourceDirectory: options.sourceDir ?? resolveDefaultSourceDirectory(),
     outputDirectory: options.outputDir ?? resolveDefaultOutputDirectory(),
     languages: parseLanguages(options.languages),
     includeEnglishShort: true,
     processingMode: "batch",
-    model:
-      options.model ??
-      runtimeConfig.openAiLocalizationModel ??
-      DEFAULT_STORY_REWRITE_MODEL,
-    ...(runtimeConfig.openAiStoryModel
-      ? { canonicalModel: runtimeConfig.openAiStoryModel }
-      : {}),
-    ...(runtimeConfig.openAiStoryReasoningEffort
-      ? { canonicalReasoningEffort: runtimeConfig.openAiStoryReasoningEffort }
-      : {}),
+    model: localizationPolicy.model,
+    canonicalModel: storyPolicy.model,
+    canonicalReasoningEffort: storyPolicy.reasoning,
     ...(runtimeConfig.openAiStoryMaxOutputTokens !== undefined
       ? { canonicalMaxOutputTokens: runtimeConfig.openAiStoryMaxOutputTokens }
       : {}),
     horrorAffectRolloutMode: runtimeConfig.horrorAffectRolloutMode,
-    ...(runtimeConfig.openAiShortModel
-      ? { shortModel: runtimeConfig.openAiShortModel }
-      : {}),
-    ...(runtimeConfig.openAiShortReasoningEffort
-      ? { shortReasoningEffort: runtimeConfig.openAiShortReasoningEffort }
-      : {}),
+    shortModel: shortPolicy.model,
+    shortReasoningEffort: shortPolicy.reasoning,
     ...(runtimeConfig.openAiShortMaxOutputTokens !== undefined
       ? { shortMaxOutputTokens: runtimeConfig.openAiShortMaxOutputTokens }
       : {}),
     temperature: SHORT_REWRITE_DEFAULT_TEMPERATURE,
-    reasoningEffort:
-      runtimeConfig.openAiLocalizationReasoningEffort ??
-      DEFAULT_STORY_REWRITE_REASONING_EFFORT,
+    reasoningEffort: localizationPolicy.reasoning,
     maxOutputTokens:
       runtimeConfig.openAiLocalizationMaxOutputTokens ??
       DEFAULT_FULL_REWRITE_MAX_OUTPUT_TOKENS,
@@ -618,16 +600,9 @@ export async function buildBatchConfig(
     retryMaxOutputTokens:
       runtimeConfig.openAiLocalizationMaxOutputTokens ??
       DEFAULT_FULL_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
-    repairModel:
-      options.model ??
-      runtimeConfig.openAiLocalizationModel ??
-      DEFAULT_STORY_REWRITE_MODEL,
-    repairReasoningEffort:
-      runtimeConfig.openAiLocalizationReasoningEffort ??
-      DEFAULT_STORY_REWRITE_REASONING_EFFORT,
-    repairMaxOutputTokens:
-      runtimeConfig.openAiLocalizationMaxOutputTokens ??
-      DEFAULT_FULL_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
+    repairModel: repairPolicy.model,
+    repairReasoningEffort: repairPolicy.reasoning,
+    repairMaxOutputTokens: runtimeConfig.openAiValidatorMaxOutputTokens ?? DEFAULT_FULL_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
     force: options.force ?? false,
     verbose: options.verbose ?? false,
   });

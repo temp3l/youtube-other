@@ -33,6 +33,7 @@ import {
   ensureDir,
   fileExists,
   normalizeWhitespace,
+  requireOpenAiResponsesPolicy,
   writeJsonAtomic,
 } from "@mediaforge/shared";
 import { assertVeronicaPreImageReviewPackCurrent } from "./veronica-pre-image-review-pack.js";
@@ -452,13 +453,11 @@ export async function commandImagesResume(
       }
       assertVeronicaHierarchicalImageReadiness(rawPlan);
       semanticScenePlan = manifest.scenePlan;
+      const visualQaPolicy = requireOpenAiResponsesPolicy(runtime.openAiPolicy["veronica-post-generation-visual-qa"]);
       veronicaVisualQaEvaluator = createOpenAiVeronicaVisualQaEvaluator({
         client,
-        model:
-          process.env["VERONICA_VISUAL_QA_MODEL"] ??
-          runtime.openAiValidatorModel ??
-          runtime.openAiStoryModel ??
-          "",
+        model: visualQaPolicy.model,
+        config: { reasoningEffort: visualQaPolicy.reasoning },
       });
       veronicaVisualQaBriefs = buildVeronicaVisualQaBriefs({
         plan: rawPlan,
@@ -472,10 +471,7 @@ export async function commandImagesResume(
         episodeDir,
         plan: historyPlan,
         client,
-        model:
-          process.env["HISTORY_IMAGE_PROMPT_PLANNER_MODEL"] ??
-          runtime.openAiStoryModel ??
-          "",
+        model: runtime.openAiPolicy["history-visual-direction"].model,
       });
       semanticScenePlan = (
         await persistHistorySemanticImagePromptReview({

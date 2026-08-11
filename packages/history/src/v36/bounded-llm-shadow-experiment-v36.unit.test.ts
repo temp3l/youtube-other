@@ -65,7 +65,7 @@ function franklinWindow() {
 describe("V3.6 bounded LLM relation proposer", () => {
   it("is opt-in with hard-bounded configuration", () => {
     expect(boundedLlmProposerConfigFromEnvV36({})).toMatchObject({ enabled: false, model: "", maxCallsPerRun: HISTORY_V36_LLM_MAX_CALLS_PER_RUN, maxCallsPerEpisode: HISTORY_V36_LLM_MAX_CALLS_PER_EPISODE });
-    expect(boundedLlmProposerConfigFromEnvV36({ HISTORY_V36_LLM_SHADOW_PROPOSER: "1", HISTORY_V36_RELATION_PROPOSER_MODEL: "test-model", HISTORY_V36_LLM_MAX_CALLS_PER_RUN: "999", HISTORY_V36_LLM_MAX_CALLS_PER_EPISODE: "999" })).toMatchObject({ enabled: true, model: "test-model", maxCallsPerRun: 40, maxCallsPerEpisode: 8 });
+    expect(boundedLlmProposerConfigFromEnvV36({ HISTORY_V36_LLM_SHADOW_PROPOSER: "1", HISTORY_V36_LLM_MAX_CALLS_PER_RUN: "999", HISTORY_V36_LLM_MAX_CALLS_PER_EPISODE: "999" })).toMatchObject({ enabled: true, model: "gpt-5.6-terra", maxCallsPerRun: 40, maxCallsPerEpisode: 8 });
   });
 
   it("enforces dedicated exact-corpus artifact provenance", () => {

@@ -49,6 +49,10 @@ vi.mock("@mediaforge/config", () => ({
     openAiCompatibleModel: "gpt-4.1-mini",
     openAiCompatibleApiKey: "test-key",
     openAiCompatibleBaseUrl: undefined,
+    openAiPolicy: {
+      "short-rewrite": { endpoint: "responses", model: "gpt-5.6-terra", reasoning: "medium" },
+      repair: { endpoint: "responses", model: "gpt-5.4-mini", reasoning: "low" },
+    },
   })),
 }));
 

@@ -8,6 +8,7 @@ import {
 } from "@mediaforge/domain";
 import {
   AmbiguousPaidOpenAiEffectError,
+  DEFAULT_OPENAI_CAPABILITY_POLICY,
   classifyPaidOpenAiFailure,
   ensureDir,
   hashFile,
@@ -1189,7 +1190,10 @@ export function loadOpenAiImageGenerationSettings(
       ? mergedEnv["MEDIAFORGE_OPENAI_IMAGE_SHORT_MODEL"]
       : mergedEnv["MEDIAFORGE_OPENAI_IMAGE_SCENE_MODEL"]) ??
     mergedEnv["OPENAI_IMAGE_MODEL"] ??
-    "gpt-image-2";
+    DEFAULT_OPENAI_CAPABILITY_POLICY["image-generation"].model;
+  if (model !== DEFAULT_OPENAI_CAPABILITY_POLICY["image-generation"].model) {
+    throw new ConfigurationError(`OpenAI image model is capability-owned and must be ${DEFAULT_OPENAI_CAPABILITY_POLICY["image-generation"].model}.`);
+  }
   const ignoredShortWarning =
     profile === "short" ? buildIgnoredShortFullSizeWarning(mergedEnv) : undefined;
   if (ignoredShortWarning) {

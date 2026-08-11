@@ -19,6 +19,12 @@ vi.mock("@mediaforge/config", () => ({
     openAiMetadataReasoningEffort: "high",
     openAiMetadataMaxOutputTokens: 8888,
     horrorAffectRolloutMode: "enforce",
+    openAiPolicy: {
+      localization: { endpoint: "responses", model: "gpt-5.6-terra", reasoning: "medium" },
+      "story-rewrite": { endpoint: "responses", model: "gpt-5.6-terra", reasoning: "high" },
+      "short-rewrite": { endpoint: "responses", model: "gpt-5.6-terra", reasoning: "medium" },
+      repair: { endpoint: "responses", model: "gpt-5.4-mini", reasoning: "low" },
+    },
   })),
 }));
 

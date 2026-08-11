@@ -2258,7 +2258,7 @@ async function evaluateScene(input: {
   let escalationStatus: SourceGroundedSceneEvaluation["escalationStatus"] =
     "NOT_ESCALATED";
   if (
-    (final.verdict === "REVIEW" || primary.consistencyReasons.length > 0) &&
+    (final.verdict !== "PASS" || primary.consistencyReasons.length > 0) &&
     input.escalationJudge
   ) {
     const escalated = await cachedSceneJudgement({
@@ -2510,7 +2510,7 @@ async function evaluateBeat(input: {
   const provenanceRecords = [primary.provenance];
   let final = guardSourceGroundedBeatPass(input.payload, primary.judgement);
   let escalationStatus: SourceGroundedVisualBeatEvaluation["escalationStatus"] = "NOT_ESCALATED";
-  if ((final.verdict === "REVIEW" || primary.consistencyReasons.length > 0) && input.escalationBatcher) {
+  if ((final.verdict !== "PASS" || primary.consistencyReasons.length > 0) && input.escalationBatcher) {
     const escalated = await cachedBeatJudgement({
       payload: input.payload,
       policyIdentity: input.policy.policyIdentity,

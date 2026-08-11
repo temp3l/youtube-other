@@ -44,6 +44,11 @@ vi.mock("@mediaforge/config", () => ({
     openAiCompatibleModel: "gpt-4.1-mini",
     openAiCompatibleApiKey: "test-key",
     openAiCompatibleBaseUrl: undefined,
+    openAiPolicy: {
+      "story-rewrite": { endpoint: "responses", model: "gpt-5.6-terra", reasoning: "high" },
+      repair: { endpoint: "responses", model: "gpt-5.4-mini", reasoning: "low" },
+      localization: { endpoint: "responses", model: "gpt-5.6-terra", reasoning: "medium" },
+    },
   })),
 }));
 
@@ -147,7 +152,7 @@ describe("story full rewrite command", () => {
       maxOutputTokens: 25000,
       retryMaxOutputTokens: 25000,
       languages: ["de"],
-      model: "gpt-5.5",
+      model: "gpt-5.6-terra",
       temperature: 0.5,
       reasoningEffort: "high",
       horrorAffectRolloutMode: "enforce",

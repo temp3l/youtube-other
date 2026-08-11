@@ -6,7 +6,7 @@ import {
   type RewrittenScript,
   type RewrittenScriptSection
 } from "@mediaforge/domain";
-import { collapseRepeatedTokenRuns, normalizeWhitespace, splitIntoSentences } from "@mediaforge/shared";
+import { collapseRepeatedTokenRuns, DEFAULT_OPENAI_CAPABILITY_POLICY, normalizeWhitespace, splitIntoSentences } from "@mediaforge/shared";
 import { runCurl } from "@mediaforge/process-runner";
 import {
   currentExecutionTelemetry,
@@ -212,6 +212,9 @@ export class OpenAiCompatibleScriptRewriter implements ScriptRewriter {
   private readonly transport: OpenAiCompatibleTextTransport;
 
   public constructor(private readonly options: OpenAiCompatibleTextOptions) {
+    if (!options.transport && options.model !== DEFAULT_OPENAI_CAPABILITY_POLICY["script-rewrite"].model) {
+      throw new Error(`Script rewrite model is capability-owned and must be ${DEFAULT_OPENAI_CAPABILITY_POLICY["script-rewrite"].model}.`);
+    }
     this.transport = options.transport ?? createCurlTextTransport();
   }
 

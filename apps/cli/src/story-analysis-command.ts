@@ -2,6 +2,7 @@ import path from "node:path";
 import { Command } from "commander";
 import { loadRuntimeConfig } from "@mediaforge/config";
 import { createLogger } from "@mediaforge/observability";
+import { requireOpenAiResponsesPolicy } from "@mediaforge/shared";
 import {
   analyzeStoryProduction,
   buildStoryProductionInspectPayload,
@@ -64,10 +65,11 @@ async function buildStoryInspectPayload(
   );
   const language = options.language ?? "en";
   const format = options.format ?? "full";
-  const statusModel =
-    options.model ??
-    runtimeConfig.openAiValidatorModel ??
-    runtimeConfig.openAiStoryModel;
+  const validationPolicy = requireOpenAiResponsesPolicy(runtimeConfig.openAiPolicy.validation);
+  if (options.model && options.model !== validationPolicy.model) {
+    throw new Error("--model is not supported for paid story analysis; configure the validation capability instead.");
+  }
+  const statusModel = validationPolicy.model;
   const analysisVersion = resolveAnalysisVersion(options.analysisVersion);
   const source = await resolveStoryProductionAnalysisSource({
     outputRoot,
@@ -80,10 +82,7 @@ async function buildStoryInspectPayload(
     episodeSlug: source.episodeSlug,
     language,
     format,
-    reasoningEffort:
-      options.reasoningEffort ??
-      runtimeConfig.openAiValidatorReasoningEffort ??
-      "medium",
+    reasoningEffort: validationPolicy.reasoning,
     ...(analysisVersion ? { analysisVersion } : {}),
     ...(statusModel !== undefined ? { model: statusModel } : {}),
   });
@@ -124,15 +123,15 @@ export function registerStoryAnalysisCommand(storiesCommand: Command): void {
         options.outputRoot ?? runtimeConfig.workspaceDir
       );
       const format = options.format ?? "full";
-      const model =
-        options.model ??
-        runtimeConfig.openAiValidatorModel ??
-        runtimeConfig.openAiStoryModel ??
-        "gpt-5.6-terra";
-      const reasoningEffort =
-        options.reasoningEffort ??
-        runtimeConfig.openAiValidatorReasoningEffort ??
-        "low";
+      const validationPolicy = requireOpenAiResponsesPolicy(runtimeConfig.openAiPolicy.validation);
+      if (options.model && options.model !== validationPolicy.model) {
+        throw new Error("--model is not supported for paid story analysis; configure the validation capability instead.");
+      }
+      if (options.reasoningEffort && options.reasoningEffort !== validationPolicy.reasoning) {
+        throw new Error("--reasoning-effort is not supported for paid story analysis; configure the validation capability instead.");
+      }
+      const model = validationPolicy.model;
+      const reasoningEffort = validationPolicy.reasoning;
       const maxOutputTokens =
         runtimeConfig.openAiValidatorMaxOutputTokens ?? 6_000;
       const logger = createLogger(

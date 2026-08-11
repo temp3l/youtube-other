@@ -28,6 +28,7 @@ import {
   type OpenAiStoryClient,
 } from "@mediaforge/story-localization";
 import { currentExecutionTelemetry } from "@mediaforge/observability";
+import { requireOpenAiResponsesPolicy } from "@mediaforge/shared";
 
 const ANALYZER_IMPLEMENTATION_VERSION = "dynamic-genre-analyzer-v1";
 
@@ -70,7 +71,8 @@ class OpenAiDynamicGenreProvider implements DynamicGenreStructuredOutputProvider
 
   constructor(
     private readonly client: OpenAiStoryClient,
-    private readonly model: string
+    private readonly model: string,
+    private readonly reasoningEffort: "none" | "low" | "medium" | "high"
   ) {}
 
   analyze(request: { readonly prompt: string; readonly signal: AbortSignal }) {
@@ -96,6 +98,7 @@ class OpenAiDynamicGenreProvider implements DynamicGenreStructuredOutputProvider
     const response = await this.client.responses.create(
       {
         model: this.model,
+        reasoning: { effort: this.reasoningEffort },
         input: [
           {
             role: "system",
@@ -394,9 +397,8 @@ export function registerDynamicGenreCommands(stories: Command): void {
                     apiKey: runtime.openAiCompatibleApiKey ?? undefined,
                     baseUrl: runtime.openAiCompatibleBaseUrl ?? undefined,
                   }),
-                  runtime.openAiValidatorModel ??
-                    runtime.openAiStoryModel ??
-                    "gpt-5.6-terra"
+                  requireOpenAiResponsesPolicy(runtime.openAiPolicy["dynamic-genre-analysis"]).model,
+                  requireOpenAiResponsesPolicy(runtime.openAiPolicy["dynamic-genre-analysis"]).reasoning
                 ),
         }
       );

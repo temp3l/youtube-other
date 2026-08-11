@@ -6,6 +6,7 @@ import {
   openAiPromptCacheFields,
   planOpenAiResponsesPromptCache,
 } from "./prompt-cache.js";
+import { requireOpenAiResponsesPolicy, DEFAULT_OPENAI_CAPABILITY_POLICY } from "./openai-model-policy.js";
 
 export const SEMANTIC_IMAGE_PROMPT_SCHEMA_VERSION = 1 as const;
 export const SEMANTIC_IMAGE_PROMPT_CORE_VERSION =
@@ -282,6 +283,7 @@ export interface SemanticImagePromptOpenAiClient {
         }>;
         readonly text: { readonly format: unknown };
         readonly max_output_tokens: number;
+        readonly reasoning?: { readonly effort: "none" | "low" | "medium" | "high" };
         readonly prompt_cache_key?: string;
         readonly prompt_cache_retention?: "in_memory" | "24h";
       },
@@ -788,6 +790,16 @@ export function buildSemanticImagePromptOpenAiRequest(input: {
   readonly plannerPromptVersion?: string;
   readonly validationFeedback?: readonly SemanticImagePromptFinding[];
 }): Parameters<SemanticImagePromptOpenAiClient["responses"]["create"]>[0] {
+  const policy = requireOpenAiResponsesPolicy(
+    DEFAULT_OPENAI_CAPABILITY_POLICY["image-prompt-compiler"],
+    "image-prompt-compiler",
+  );
+  if (input.model !== policy.model) {
+    throw new SemanticImagePromptError(
+      "SEMANTIC_IMAGE_BRIEF_PROVIDER_ERROR",
+      `Semantic image-prompt compilation must use ${policy.model}.`,
+    );
+  }
   const schema = makeJsonSchemaOpenAiStrict(
     z.toJSONSchema(semanticImagePromptBriefV1Schema),
   ) as Record<string, unknown>;
@@ -831,7 +843,8 @@ export function buildSemanticImagePromptOpenAiRequest(input: {
     breakpointAfterBlock: "semantic-image-prompt-contract",
   });
   return {
-    model: input.model,
+    model: policy.model,
+    reasoning: { effort: policy.reasoning },
     max_output_tokens: 16_000,
     input: [
       {
@@ -899,6 +912,12 @@ export async function deriveSemanticImagePromptBrief(input: {
     throw new SemanticImagePromptError(
       "SEMANTIC_IMAGE_BRIEF_PROVIDER_ERROR",
       "Semantic image-prompt preflight requires a configured planning model.",
+    );
+  }
+  if (input.model !== DEFAULT_OPENAI_CAPABILITY_POLICY["image-prompt-compiler"].model) {
+    throw new SemanticImagePromptError(
+      "SEMANTIC_IMAGE_BRIEF_PROVIDER_ERROR",
+      "Semantic image-prompt preflight must use the image-prompt-compiler capability.",
     );
   }
   const identity = buildSemanticImagePromptCacheKey({

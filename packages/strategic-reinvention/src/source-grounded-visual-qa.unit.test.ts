@@ -43,6 +43,7 @@ const policy: SourceGroundedVisualQaPolicy = {
   policyIdentity: "fixture-cheap-first.v1",
   sceneJudge: { model: "cheap-scene", reasoningEffort: "low" },
   escalation: { model: "strong-scene", reasoningEffort: "medium" },
+  finalAdjudication: { model: "final-scene", reasoningEffort: "medium" },
   remediationAdvisor: { model: "strong-advisor", reasoningEffort: "medium" },
   sequenceJudge: { model: "cheap-sequence", reasoningEffort: "low" },
   maxRemediationRounds: 1,
@@ -647,31 +648,29 @@ describe("cheap-first escalation and fail-closed behavior", () => {
     expect(controlled.qa.sequence.verdict).toBe("UNAVAILABLE");
   });
 
-  it("does not escalate primary PASS or primary BLOCK", async () => {
-    for (const primaryValue of [
-      sourceGroundedPassJudgement(),
-      blocked(["CAUSAL_INVERSION"], "SEMANTIC_EXTRACTION"),
-    ]) {
-      const primary = new FixtureSourceGroundedSceneJudge({
-        "semantic-001": primaryValue,
-      });
-      const escalation = new FixtureSourceGroundedSceneJudge({
-        "semantic-001": sourceGroundedPassJudgement(),
-      });
-      await runSourceGroundedVisualQaController({
-        plan: plan(),
-        narrationByScene: [plan().scenes[0]!.narrationAnchor],
-        policy,
-        primaryJudge: primary,
-        escalationJudge: escalation,
-        sequenceJudge: new FixtureEpisodeSequenceJudge(
-          sourceGroundedPassSequence()
-        ),
-        cache: new InMemorySourceGroundedVisualQaCache(),
-      });
-      expect(primary.calls).toHaveLength(1);
-      expect(escalation.calls).toHaveLength(0);
-    }
+  it("keeps primary PASS at Mini and routes primary BLOCK to Terra", async () => {
+    const passPrimary = new FixtureSourceGroundedSceneJudge({ "semantic-001": sourceGroundedPassJudgement() });
+    const passTerra = new FixtureSourceGroundedSceneJudge({ "semantic-001": sourceGroundedPassJudgement() });
+    const final = new FixtureSourceGroundedSceneJudge({ "semantic-001": sourceGroundedPassJudgement() });
+    await runSourceGroundedVisualQaController({ plan: plan(), narrationByScene: [plan().scenes[0]!.narrationAnchor], policy, primaryJudge: passPrimary, escalationJudge: passTerra, finalJudge: final, sequenceJudge: new FixtureEpisodeSequenceJudge(sourceGroundedPassSequence()), cache: new InMemorySourceGroundedVisualQaCache() });
+    expect(passTerra.calls).toHaveLength(0);
+    expect(final.calls).toHaveLength(0);
+
+    const blockedPrimary = new FixtureSourceGroundedSceneJudge({ "semantic-001": blocked(["CAUSAL_INVERSION"], "SEMANTIC_EXTRACTION") });
+    const resolvingTerra = new FixtureSourceGroundedSceneJudge({ "semantic-001": sourceGroundedPassJudgement() });
+    await runSourceGroundedVisualQaController({ plan: plan(), narrationByScene: [plan().scenes[0]!.narrationAnchor], policy, primaryJudge: blockedPrimary, escalationJudge: resolvingTerra, finalJudge: final, sequenceJudge: new FixtureEpisodeSequenceJudge(sourceGroundedPassSequence()), cache: new InMemorySourceGroundedVisualQaCache() });
+    expect(resolvingTerra.calls).toHaveLength(1);
+    expect(final.calls).toHaveLength(0);
+  });
+
+  it("invokes Sol exactly once only when Terra remains unresolved", async () => {
+    const review = { ...sourceGroundedPassJudgement(), sourceFidelity: "UNCERTAIN" as const, verdict: "REVIEW" as const, remediationRoute: "HUMAN_REVIEW" as const };
+    const mini = new FixtureSourceGroundedSceneJudge({ "semantic-001": review });
+    const terra = new FixtureSourceGroundedSceneJudge({ "semantic-001": review });
+    const sol = new FixtureSourceGroundedSceneJudge({ "semantic-001": review });
+    await runSourceGroundedVisualQaController({ plan: plan(), narrationByScene: [plan().scenes[0]!.narrationAnchor], policy, primaryJudge: mini, escalationJudge: terra, finalJudge: sol, sequenceJudge: new FixtureEpisodeSequenceJudge(sourceGroundedPassSequence()), cache: new InMemorySourceGroundedVisualQaCache() });
+    expect(terra.calls).toHaveLength(1);
+    expect(sol.calls).toHaveLength(1);
   });
 
   it.each([["PASS"], ["BLOCK"], ["REVIEW"]] as const)(

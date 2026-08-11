@@ -3,6 +3,7 @@ import path from "node:path";
 import {
   currentExecutionTelemetry,
 } from "@mediaforge/observability";
+import { DEFAULT_OPENAI_CAPABILITY_POLICY } from "@mediaforge/shared";
 import { readJsonFile } from "./thumbnail-contracts.js";
 import {
   type CompiledThumbnailPrompt,
@@ -122,7 +123,11 @@ export function loadThumbnailGenerationConfig(
   const organization = env["OPENAI_ORGANIZATION"] ?? env["OPENAI_ORG_ID"];
   return {
     apiKey,
-    model: env["OPENAI_THUMBNAIL_MODEL"] ?? "gpt-image-2",
+    model: (() => {
+      const model = env["OPENAI_THUMBNAIL_MODEL"] ?? DEFAULT_OPENAI_CAPABILITY_POLICY["thumbnail-generation"].model;
+      if (model !== DEFAULT_OPENAI_CAPABILITY_POLICY["thumbnail-generation"].model) throw new ThumbnailPolicyError(`Thumbnail model is capability-owned and must be ${DEFAULT_OPENAI_CAPABILITY_POLICY["thumbnail-generation"].model}.`);
+      return model;
+    })(),
     quality:
       env["OPENAI_THUMBNAIL_QUALITY"] === "low" ||
       env["OPENAI_THUMBNAIL_QUALITY"] === "medium" ||

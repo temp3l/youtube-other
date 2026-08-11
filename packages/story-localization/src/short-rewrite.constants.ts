@@ -1,10 +1,13 @@
 import path from "node:path";
+import { DEFAULT_OPENAI_CAPABILITY_POLICY } from "@mediaforge/shared";
 import { getRepoRoot } from "./story-localization.utils.js";
 
 export const SHORT_REWRITE_PROMPT_VERSION = "short-rewrite-v1";
 
-export const DEFAULT_STORY_REWRITE_MODEL = "gpt-5.5";
-export const DEFAULT_STORY_REWRITE_REASONING_EFFORT = "medium" as const;
+/** @deprecated Use the capability policy at composition roots. */
+export const DEFAULT_STORY_REWRITE_MODEL = DEFAULT_OPENAI_CAPABILITY_POLICY["story-rewrite"].model;
+/** @deprecated Use the capability policy at composition roots. */
+export const DEFAULT_STORY_REWRITE_REASONING_EFFORT = DEFAULT_OPENAI_CAPABILITY_POLICY["story-rewrite"].reasoning;
 export const DEFAULT_FULL_REWRITE_MAX_OUTPUT_TOKENS = 5_500;
 export const DEFAULT_FULL_REWRITE_RETRY_MAX_OUTPUT_TOKENS = 5_500;
 export const DEFAULT_SHORT_REWRITE_MAX_OUTPUT_TOKENS = 1_200;
@@ -42,7 +45,7 @@ export const SHORT_REWRITE_DEFAULT_OUTPUT_ROOT = path.join(
   "episodes"
 );
 
-export const SHORT_REWRITE_DEFAULT_MODEL = "gpt-5.4-medium";
+export const SHORT_REWRITE_DEFAULT_MODEL = DEFAULT_OPENAI_CAPABILITY_POLICY["short-rewrite"].model;
 
 export const SHORT_REWRITE_DEFAULT_TIMEOUT_MS = 120_000;
 
@@ -52,7 +55,7 @@ export const SHORT_REWRITE_DEFAULT_MAX_RETRIES = 2;
 
 export const SHORT_REWRITE_DEFAULT_TEMPERATURE = 0.5;
 
-export const SHORT_REWRITE_DEFAULT_REASONING_EFFORT = "low" as const;
+export const SHORT_REWRITE_DEFAULT_REASONING_EFFORT = DEFAULT_OPENAI_CAPABILITY_POLICY["short-rewrite"].reasoning;
 
 export const SHORT_REWRITE_DEFAULT_MAX_SOURCE_BYTES = 1_500_000;
 

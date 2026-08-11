@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { DEFAULT_OPENAI_CAPABILITY_POLICY } from "@mediaforge/shared";
 import { z } from "zod";
 import {
   openAiPromptCacheFields,
@@ -45,11 +46,8 @@ function buildDynamicPayload(input: VisualDirectionResolverInputV1): string {
 }
 
 export function resolveDefaultVisualDirectionModel(env: NodeJS.ProcessEnv = process.env): string {
-  return (
-    env["OPENAI_VISUAL_DIRECTION_MODEL"] ??
-    env["OPENAI_STORY_MODEL"] ??
-    "gpt-4.1-mini"
-  );
+  void env;
+  return DEFAULT_OPENAI_CAPABILITY_POLICY["history-visual-direction"].model;
 }
 
 export async function resolveHistoricalVisualDirectionWithOpenAiV1(input: {
@@ -67,7 +65,11 @@ export async function resolveHistoricalVisualDirectionWithOpenAiV1(input: {
     throw new Error("OpenAI visual-direction resolver unavailable (missing API key or dry-run).");
   }
   const client = input.client ?? new OpenAI({ apiKey });
-  const model = input.model ?? resolveDefaultVisualDirectionModel();
+  const policy = DEFAULT_OPENAI_CAPABILITY_POLICY["history-visual-direction"];
+  if (input.model && input.model !== policy.model) {
+    throw new Error("History visual-direction model is capability-owned; use a benchmark policy revision to change it.");
+  }
+  const model = policy.model;
   const schema = z.toJSONSchema(openAiVisualDirectionBodySchema) as Record<string, unknown>;
   delete schema["$schema"];
   const promptCachePlan = planOpenAiResponsesPromptCache({
