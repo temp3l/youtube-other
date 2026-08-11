@@ -960,6 +960,53 @@ function stableSystemPrefix(item: StoryBatchItem): string {
     : "";
 }
 
+function serializeJsonValue(value: unknown): string | undefined {
+  if (value === undefined) return undefined;
+  const serialized = JSON.stringify(value);
+  return serialized === undefined ? undefined : serialized;
+}
+
+function stableProviderPrefix(item: StoryBatchItem): {
+  readonly structuredOutputFormat?: string;
+  readonly structuredOutputSchema?: string;
+  readonly toolDefinitions?: string;
+} {
+  const text = item.body["text"];
+  const format =
+    typeof text === "object" && text !== null
+      ? (text as Readonly<Record<string, unknown>>)["format"]
+      : undefined;
+  const schema =
+    typeof format === "object" && format !== null
+      ? (format as Readonly<Record<string, unknown>>)["schema"]
+      : undefined;
+  const tools = item.body["tools"];
+  const structuredOutputFormat = serializeJsonValue(format);
+  const structuredOutputSchema = serializeJsonValue(schema);
+  const toolDefinitions =
+    Array.isArray(tools) && tools.length > 0
+      ? serializeJsonValue(tools)
+      : undefined;
+  return {
+    ...(structuredOutputFormat ? { structuredOutputFormat } : {}),
+    ...(structuredOutputSchema ? { structuredOutputSchema } : {}),
+    ...(toolDefinitions ? { toolDefinitions } : {}),
+  };
+}
+
+function storyBatchPromptCacheGroupKey(item: StoryBatchItem): string {
+  const providerPrefix = stableProviderPrefix(item);
+  return [
+    item.body["model"],
+    item.metadata.operation,
+    item.metadata.language ?? "en",
+    item.metadata.promptVersion,
+    stableSystemPrefix(item),
+    providerPrefix.structuredOutputFormat ?? "",
+    providerPrefix.toolDefinitions ?? "",
+  ].join("\u0000");
+}
+
 export function buildStoryBatchPromptCachePlans(
   items: readonly StoryBatchItem[],
   settings?: Pick<
@@ -969,26 +1016,15 @@ export function buildStoryBatchPromptCachePlans(
 ): ReadonlyMap<string, PromptCachePlan> {
   const counts = new Map<string, number>();
   for (const item of items) {
-    const groupKey = [
-      item.body["model"],
-      item.metadata.operation,
-      item.metadata.language ?? "en",
-      item.metadata.promptVersion,
-      stableSystemPrefix(item),
-    ].join("\u0000");
+    const groupKey = storyBatchPromptCacheGroupKey(item);
     counts.set(groupKey, (counts.get(groupKey) ?? 0) + 1);
   }
   return new Map(
     items.map((item) => {
       const reusablePrefix = stableSystemPrefix(item);
-      const groupKey = [
-        item.body["model"],
-        item.metadata.operation,
-        item.metadata.language ?? "en",
-        item.metadata.promptVersion,
-        reusablePrefix,
-      ].join("\u0000");
+      const groupKey = storyBatchPromptCacheGroupKey(item);
       const model = String(item.body["model"] ?? "unknown");
+      const providerPrefix = stableProviderPrefix(item);
       const plan = planOpenAiResponsesPromptCache({
         ...(settings?.promptCacheMode
           ? { requestedMode: settings.promptCacheMode }
@@ -1006,6 +1042,7 @@ export function buildStoryBatchPromptCachePlans(
             (item.metadata.operation.includes("short") ? "short" : "full"),
           modelFamily: model,
           stablePrefix: reusablePrefix,
+          stableProviderPrefix: providerPrefix,
         },
         breakpointAfterBlock: "system-contract",
       });
@@ -1027,6 +1064,10 @@ export function applyStoryBatchPromptCachePlans(
       plans.get(item.customId) ?? {
         mode: "disabled",
         estimatedReusablePrefixTokens: 0,
+        estimatedExplicitContentPrefixTokens: 0,
+        estimatedStructuredOutputPrefixTokens: 0,
+        estimatedToolDefinitionPrefixTokens: 0,
+        estimatedEffectiveProviderCachePrefixTokens: 0,
         expectedReuseCount: 0,
         shard: 0,
       },

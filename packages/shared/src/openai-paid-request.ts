@@ -103,6 +103,11 @@ export function createPromptPrefixFingerprint(input: {
   readonly promptPolicyVersion: string;
   readonly outputContractVersion: string;
   readonly stablePrefix: string;
+  /**
+   * Exact serialized provider-visible structures rendered ahead of the marked
+   * content block, such as a Structured Outputs format or stable tool list.
+   */
+  readonly stableProviderPrefix?: CanonicalFingerprintValue;
   /** Dynamic suffix is documented here only to make its exclusion testable. */
   readonly dynamicSuffix?: CanonicalFingerprintValue;
 }): PromptPrefixFingerprint {
@@ -113,6 +118,9 @@ export function createPromptPrefixFingerprint(input: {
     promptPolicyVersion: input.promptPolicyVersion,
     outputContractVersion: input.outputContractVersion,
     stablePrefix: input.stablePrefix,
+    ...(input.stableProviderPrefix === undefined
+      ? {}
+      : { stableProviderPrefix: input.stableProviderPrefix }),
   }) as PromptPrefixFingerprint;
 }
 

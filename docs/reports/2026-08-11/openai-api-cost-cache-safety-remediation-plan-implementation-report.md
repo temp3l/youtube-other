@@ -114,3 +114,24 @@ Story Batch projection test file. A separately approved two-call Story Batch liv
 experiment is required before expanding caching. Durable claims should target only
 demonstrated multi-process races; Image Batch submission remains the strongest
 evidenced future claim/reconciliation candidate.
+
+## Controlled live verification result
+
+Verdict: **FAIL before provider dispatch**. Official Batch documentation does not
+guarantee item execution order, so sequential Responses was selected. Static
+preflight then measured the representative Story Batch stable system block at 144
+estimated tokens versus the 1,024-token minimum. Prefix/routing identity equality,
+logical identity inequality, and byte equality passed, but cache eligibility and
+breakpoint projection correctly failed closed. Paid requests: 0. Measured cost:
+USD 0.00.
+
+Follow-up offline reconciliation showed that the 144-token result measured only
+explicit message content. The Structured Outputs schema is documented provider
+prefix material and was absent from the estimator and prefix fingerprint.
+Accounting now separates explicit-content from effective provider-prefix tokens,
+includes exact stable schema/tool serialization in identity and grouping, and
+keeps dynamic narration excluded. Current-source results are variant-dependent:
+full/ordinary localization 820, English short 746, and affect-preserving
+localization 1,105 estimated tokens; tools are absent. Only the last is eligible,
+and only when at least two exact-prefix items share a burst. Another paid test is
+not warranted until that reuse topology is observed.

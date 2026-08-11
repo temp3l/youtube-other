@@ -4,6 +4,7 @@ import {
   aggregatePromptCacheUsage,
   buildOpenAiResponsesPromptCacheKey,
   buildPromptCacheKey,
+  measureOpenAiResponsesPromptPrefix,
   normalizeOpenAiResponsesPromptCacheUsage,
   openAiPromptCacheFields,
   planOpenAiResponsesPromptCache,
@@ -188,6 +189,60 @@ describe("prompt cache planning", () => {
         breakpointAfterBlock: "contract",
       })
     ).toMatchObject({ mode: "disabled", downgradeReason: "PREFIX_TOO_SHORT" });
+  });
+
+  it("uses documented structured-output prefix tokens for conservative eligibility", () => {
+    const explicitContentPrefix = "x".repeat(576);
+    const structuredOutputFormat = JSON.stringify({
+      type: "json_schema",
+      name: "large_stable_contract",
+      strict: true,
+      schema: {
+        type: "object",
+        description: "stable-schema-rule ".repeat(230),
+      },
+    });
+    const structuredOutputSchema = JSON.stringify({
+      type: "object",
+      description: "stable-schema-rule ".repeat(230),
+    });
+    const measurements = measureOpenAiResponsesPromptPrefix({
+      explicitContentPrefix,
+      stableProviderPrefix: {
+        structuredOutputFormat,
+        structuredOutputSchema,
+      },
+    });
+    const plan = planOpenAiResponsesPromptCache({
+      model: "gpt-5.6-terra",
+      reusablePrefix: explicitContentPrefix,
+      expectedReuseCount: 2,
+      itemIdentity: "story-a",
+      contract: {
+        genre: "story",
+        planner: "full",
+        contractVersion: "story-prompt.v5",
+        schemaVersion: "story-output.v3",
+        modelFamily: "gpt-5.6-terra",
+        stablePrefix: explicitContentPrefix,
+        stableProviderPrefix: {
+          structuredOutputFormat,
+          structuredOutputSchema,
+        },
+      },
+      breakpointAfterBlock: "system-contract",
+    });
+
+    expect(measurements.explicitContentPrefixTokens).toBe(144);
+    expect(measurements.effectiveProviderCachePrefixTokens).toBeGreaterThanOrEqual(
+      1_024,
+    );
+    expect(plan).toMatchObject({
+      mode: "explicit",
+      estimatedExplicitContentPrefixTokens: 144,
+      estimatedEffectiveProviderCachePrefixTokens:
+        measurements.effectiveProviderCachePrefixTokens,
+    });
   });
 
   it("projects an explicit GPT-5.6 breakpoint while dynamic suffixes preserve prefix routing", () => {

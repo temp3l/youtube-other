@@ -436,6 +436,14 @@ export const localBatchManifestItemSchema = z.object({
       ttl: z.literal("30m").optional(),
       breakpointAfterBlock: z.string().min(1).optional(),
       estimatedReusablePrefixTokens: z.number().int().nonnegative(),
+      estimatedExplicitContentPrefixTokens: z.number().int().nonnegative().optional(),
+      estimatedStructuredOutputPrefixTokens: z.number().int().nonnegative().optional(),
+      estimatedToolDefinitionPrefixTokens: z.number().int().nonnegative().optional(),
+      estimatedEffectiveProviderCachePrefixTokens: z
+        .number()
+        .int()
+        .nonnegative()
+        .optional(),
       expectedReuseCount: z.number().int().nonnegative(),
       shard: z.number().int().nonnegative(),
     })

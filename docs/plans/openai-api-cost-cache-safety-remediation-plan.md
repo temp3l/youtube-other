@@ -206,8 +206,11 @@ Implemented scope:
 2. GPT-5.6 explicit requests project a typed routing key, a breakpoint on the
    final stable `input_text` block, and request-wide explicit mode with `30m` TTL.
 3. Legacy models retain only supported routing/retention fields.
-4. Story Batch is enabled only when the exact rendered prefix is at least 1,024
-   conservatively estimated tokens and repeats at least twice in the same batch.
+4. Story Batch eligibility uses two distinct measurements: explicit message
+   content through the breakpoint and the effective provider prefix, which also
+   includes documented stable Structured Outputs schema/tool material. It is
+   enabled only when the effective conservative estimate is at least 1,024 tokens
+   and the exact provider prefix repeats at least twice in the same batch.
 5. History V3.3 routes through the planner but its short prefixes produce no
    provider cache key or misleading provider-cache metadata.
 6. Provider cache reads/writes, throughput, cost deltas, net savings, and ROI can
@@ -379,16 +382,35 @@ No live verification may run without explicit human approval and a hard spend ca
 
 After static projection tests pass, the smallest experiment is:
 
-1. Two semantic-prompt Responses requests sharing at least 1,200 stable tokens and
-   differing only in a short dynamic suffix.
-2. Two source-grounded QA requests sharing the same rubric/schema and differing
-   only in scene payload.
-3. Two Story Batch items sharing the compiled contract and different story inputs.
+1. Construct two Story Batch `/v1/responses` bodies with one identical eligible
+   compiled contract, identical explicit breakpoint/routing key, and different
+   dynamic story payloads.
+2. Submit those exact bodies sequentially through the synchronous Responses
+   endpoint. Batch workers do not guarantee input execution order, so one Batch
+   job cannot deterministically prove a first-write/second-read sequence.
+3. Dispatch request B only after A succeeds and reports both `cached_tokens` and
+   `cache_write_tokens` fields.
 
-Maximum: six text calls, configured spend ceiling USD 0.10. Capture request ID,
-model, reasoning, tier, input/cached/write/reasoning/output tokens, latency, and
-cache-key hash. Do not log prompt contents. Abort if the first request family does
-not expose the expected usage fields.
+Maximum: two GPT-5.6 Terra text inference calls and USD 0.10 total. Disable SDK
+retries, fallbacks, repairs, and tools. Capture request ID, model, tier,
+input/cached/write/reasoning/output tokens, latency, and identity hashes without
+prompt contents. Abort before B if A lacks required usage fields.
+
+Semantic image prompts remain below the cacheable-prefix threshold. Source-grounded
+QA remains a runtime-measurement candidate, not part of this immediate experiment.
+Batch submission recovery remains a later control-plane reliability task and is
+not Phase 2B prompt cache-fill coordination.
+
+Live-gate result on 2026-08-11: **aborted before dispatch; accounting superseded**.
+The 144-token result correctly measured only the explicit system block, but the
+eligibility model and preflight omitted the stable Structured Outputs schema,
+which OpenAI documents as cached prefix content. Reconciled current-source
+estimates are 820 tokens for canonical full/ordinary localization, 746 for English
+short, and 1,105 for affect-preserving localization. Tools contribute zero.
+Therefore Story Batch is variant-dependent: only repeated affect-preserving
+localization groups are statically eligible. Do not restructure or pad the other
+variants. Require offline evidence of at least two same-prefix items in one
+30-minute burst before authorizing another live test.
 
 ## Rollout and rollback
 

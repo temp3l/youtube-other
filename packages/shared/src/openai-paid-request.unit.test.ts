@@ -106,6 +106,40 @@ describe("OpenAI paid-request identity", () => {
     );
   });
 
+  it("includes stable provider-rendered schemas in prefix identity", () => {
+    const input = {
+      provider: "openai" as const,
+      modelFamily: "gpt-5.6",
+      promptFamily: "story-localization",
+      promptPolicyVersion: "story-prompt.v5",
+      outputContractVersion: "story.v3",
+      stablePrefix: "stable trust boundary",
+    };
+    const first = createPromptPrefixFingerprint({
+      ...input,
+      stableProviderPrefix: {
+        structuredOutputFormat: '{"schema":{"type":"object"}}',
+      },
+      dynamicSuffix: { story: "first" },
+    });
+    const samePrefix = createPromptPrefixFingerprint({
+      ...input,
+      stableProviderPrefix: {
+        structuredOutputFormat: '{"schema":{"type":"object"}}',
+      },
+      dynamicSuffix: { story: "second" },
+    });
+    const changedSchema = createPromptPrefixFingerprint({
+      ...input,
+      stableProviderPrefix: {
+        structuredOutputFormat:
+          '{"schema":{"type":"object","required":["story"]}}',
+      },
+    });
+    expect(first).toBe(samePrefix);
+    expect(first).not.toBe(changedSchema);
+  });
+
   it("keeps result, routing, and batch keys type-distinct", () => {
     const logical = createLogicalRequestFingerprint(logicalInput);
     const result = createResultCacheKey(logical);

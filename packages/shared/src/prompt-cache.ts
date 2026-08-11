@@ -69,7 +69,16 @@ export interface PromptCachePlan {
   /** `30m` is retained solely to read legacy batch manifests. New plans use SDK-supported values. */
   readonly ttl?: "in_memory" | "24h" | "30m";
   readonly breakpointAfterBlock?: string;
+  /** @deprecated Use estimatedEffectiveProviderCachePrefixTokens. */
   readonly estimatedReusablePrefixTokens: number;
+  readonly estimatedExplicitContentPrefixTokens: number;
+  readonly estimatedStructuredOutputPrefixTokens: number;
+  readonly estimatedToolDefinitionPrefixTokens: number;
+  /**
+   * Conservative offline sum of documented provider-cache prefix components.
+   * This is an estimate, not exact provider tokenization.
+   */
+  readonly estimatedEffectiveProviderCachePrefixTokens: number;
   readonly expectedReuseCount: number;
   readonly shard: number;
   readonly cacheSupported?: boolean;
@@ -100,6 +109,35 @@ export interface OpenAiResponsesPromptCacheContract {
   readonly schemaVersion: string;
   readonly modelFamily: string;
   readonly stablePrefix: string;
+  readonly stableProviderPrefix?: OpenAiResponsesStableProviderPrefix;
+}
+
+export interface OpenAiResponsesStableProviderPrefix {
+  /** Exact JSON serialization of `text.format`; used for correctness identity. */
+  readonly structuredOutputFormat?: string;
+  /** Exact JSON serialization of `text.format.schema`; used for token estimation. */
+  readonly structuredOutputSchema?: string;
+  /** Exact JSON serialization of the stable `tools` array. */
+  readonly toolDefinitions?: string;
+}
+
+export interface OpenAiResponsesPromptPrefixMeasurements {
+  readonly explicitContentPrefixTokens: number;
+  readonly structuredOutputPrefixTokens: number;
+  readonly toolDefinitionPrefixTokens: number;
+  readonly effectiveProviderCachePrefixTokens: number;
+}
+
+function stableProviderPrefixFingerprintInput(
+  prefix: OpenAiResponsesStableProviderPrefix | undefined,
+) {
+  return prefix
+    ? {
+        structuredOutputFormat: prefix.structuredOutputFormat ?? null,
+        structuredOutputSchema: prefix.structuredOutputSchema ?? null,
+        toolDefinitions: prefix.toolDefinitions ?? null,
+      }
+    : null;
 }
 
 export interface CacheablePrompt {
@@ -256,6 +294,31 @@ export function estimatePromptTokens(value: string): number {
   return Math.ceil(Buffer.byteLength(normalizePromptText(value), "utf8") / 4);
 }
 
+export function measureOpenAiResponsesPromptPrefix(args: {
+  readonly explicitContentPrefix: string;
+  readonly stableProviderPrefix?: OpenAiResponsesStableProviderPrefix;
+}): OpenAiResponsesPromptPrefixMeasurements {
+  const explicitContentPrefixTokens = estimatePromptTokens(
+    args.explicitContentPrefix,
+  );
+  const structuredOutputPrefixTokens = args.stableProviderPrefix
+    ?.structuredOutputSchema
+    ? estimatePromptTokens(args.stableProviderPrefix.structuredOutputSchema)
+    : 0;
+  const toolDefinitionPrefixTokens = args.stableProviderPrefix?.toolDefinitions
+    ? estimatePromptTokens(args.stableProviderPrefix.toolDefinitions)
+    : 0;
+  return {
+    explicitContentPrefixTokens,
+    structuredOutputPrefixTokens,
+    toolDefinitionPrefixTokens,
+    effectiveProviderCachePrefixTokens:
+      explicitContentPrefixTokens +
+      structuredOutputPrefixTokens +
+      toolDefinitionPrefixTokens,
+  };
+}
+
 export function stablePromptCacheShard(itemIdentity: string, shardCount: number): number {
   if (!Number.isInteger(shardCount) || shardCount < 1 || shardCount > 32) {
     throw new Error("Prompt cache shard count must be an integer from 1 through 32.");
@@ -302,6 +365,9 @@ export function buildOpenAiResponsesPromptCacheKey(
     promptPolicyVersion: contract.contractVersion,
     outputContractVersion: contract.schemaVersion,
     stablePrefix: contract.stablePrefix,
+    stableProviderPrefix: stableProviderPrefixFingerprintInput(
+      contract.stableProviderPrefix,
+    ),
   });
   return createPromptCacheRoutingKey({
     promptFamily: `${contract.genre}.${contract.planner}`,
@@ -325,6 +391,12 @@ export function planPromptCache(args: {
   readonly minimumReuseCount?: number;
 }): PromptCachePlan {
   const estimatedReusablePrefixTokens = estimatePromptTokens(args.reusablePrefix);
+  const prefixMeasurements = {
+    estimatedExplicitContentPrefixTokens: estimatedReusablePrefixTokens,
+    estimatedStructuredOutputPrefixTokens: 0,
+    estimatedToolDefinitionPrefixTokens: 0,
+    estimatedEffectiveProviderCachePrefixTokens: estimatedReusablePrefixTokens,
+  } as const;
   const requestedShardCount = args.shardCount ?? "auto";
   const shardCount =
     requestedShardCount === "auto"
@@ -335,6 +407,7 @@ export function planPromptCache(args: {
     return {
       mode: args.requestedMode,
       estimatedReusablePrefixTokens,
+      ...prefixMeasurements,
       expectedReuseCount: args.expectedReuseCount,
       shard,
       cacheSupported: args.modelSupportsExplicitCaching,
@@ -355,6 +428,7 @@ export function planPromptCache(args: {
     return {
       mode: args.modelSupportsExplicitCaching ? "implicit" : "disabled",
       estimatedReusablePrefixTokens,
+      ...prefixMeasurements,
       expectedReuseCount: args.expectedReuseCount,
       shard,
       cacheSupported: args.modelSupportsExplicitCaching,
@@ -368,6 +442,7 @@ export function planPromptCache(args: {
     ttl: "in_memory",
     breakpointAfterBlock: args.breakpointAfterBlock,
     estimatedReusablePrefixTokens,
+    ...prefixMeasurements,
     expectedReuseCount: args.expectedReuseCount,
     shard,
     cacheSupported: true,
@@ -392,7 +467,14 @@ export function planOpenAiResponsesPromptCache(args: {
     throw new Error("Prompt cache contract stablePrefix must match the rendered reusable prefix.");
   }
   const capability = resolveOpenAiPromptCacheCapability(args.model);
-  const estimatedReusablePrefixTokens = estimatePromptTokens(args.reusablePrefix);
+  const measurements = measureOpenAiResponsesPromptPrefix({
+    explicitContentPrefix: args.reusablePrefix,
+    ...(args.contract.stableProviderPrefix
+      ? { stableProviderPrefix: args.contract.stableProviderPrefix }
+      : {}),
+  });
+  const estimatedReusablePrefixTokens =
+    measurements.effectiveProviderCachePrefixTokens;
   const minimumPrefixTokens =
     args.minimumPrefixTokens ?? capability.minimumPrefixTokens ?? Number.POSITIVE_INFINITY;
   const minimumReuseCount = args.minimumReuseCount ?? 2;
@@ -404,6 +486,9 @@ export function planOpenAiResponsesPromptCache(args: {
     promptPolicyVersion: args.contract.contractVersion,
     outputContractVersion: args.contract.schemaVersion,
     stablePrefix: args.reusablePrefix,
+    stableProviderPrefix: stableProviderPrefixFingerprintInput(
+      args.contract.stableProviderPrefix,
+    ),
   });
   const promptCacheRoutingKey = createPromptCacheRoutingKey({
     promptFamily: `${args.contract.genre}.${args.contract.planner}`,
@@ -412,6 +497,14 @@ export function planOpenAiResponsesPromptCache(args: {
   });
   const common = {
     estimatedReusablePrefixTokens,
+    estimatedExplicitContentPrefixTokens:
+      measurements.explicitContentPrefixTokens,
+    estimatedStructuredOutputPrefixTokens:
+      measurements.structuredOutputPrefixTokens,
+    estimatedToolDefinitionPrefixTokens:
+      measurements.toolDefinitionPrefixTokens,
+    estimatedEffectiveProviderCachePrefixTokens:
+      measurements.effectiveProviderCachePrefixTokens,
     expectedReuseCount: args.expectedReuseCount,
     shard: 0,
     promptPrefixFingerprint,

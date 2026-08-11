@@ -70,18 +70,26 @@ same-process duplicates; canonical speech keeps its demonstrated Postgres claim.
 Normalized usage makes uncached, cached, and cache-write input mutually exclusive.
 Routing telemetry can calculate request count and peak requests/minute per routing
 key, reads, writes, hit rate, token totals, and ROI once adapters emit the records.
-Story Batch now emits an actual GPT-5.6 explicit breakpoint and request-wide
-cache options. Routing-key sharding remains deferred pending throughput evidence.
+Eligible Story Batch variants emit an actual GPT-5.6 explicit breakpoint and
+request-wide cache options. Routing-key sharding remains deferred pending
+throughput evidence.
 
 ## Phase 2A prompt-cache eligibility
 
-Prefix sizes are the conservative offline estimate from `estimatePromptTokens`;
-runtime planning remains fail-closed at 1,024 estimated tokens and requires at
-least two requests in the same effective 30-minute workload burst.
+Prefix accounting now separates `ExplicitContentPrefixTokens` (message blocks
+through the explicit breakpoint) from `EffectiveProviderCachePrefixTokens` (that
+content plus documented stable provider-rendered schema/tool material). OpenAI
+documents Structured Outputs schemas as a prefix to the system message. The
+offline estimate conservatively counts the exact serialized schema but not
+undocumented provider wrapper tokens. Runtime planning remains fail-closed at
+1,024 effective estimated tokens and requires at least two byte-identical prefix
+requests in the same effective 30-minute workload burst.
 
 | Text/reasoning family | Stable prefix evidence | Classification | Status |
 |---|---|---|---|
-| Story Batch full/localization/short | Compiled system contract; grouped exact bytes and model, often >1,024 estimated tokens | EXPLICIT_CACHE_ELIGIBLE when group count >=2 | **ENABLED** for audited GPT-5.6 models |
+| Story Batch canonical full / ordinary localization | 144 explicit-content + 676 current narration-only schema = 820 effective estimated tokens; no tools | NOT_CURRENTLY_CACHE_WORTHWHILE | `GENUINELY_SUB_THRESHOLD`; explicit fields omitted |
+| Story Batch affect-preserving localization | 144 explicit-content + 961 localized-affect schema = 1,105 effective estimated tokens; no tools | EXPLICIT_CACHE_ELIGIBLE when the exact variant repeats at least twice in one burst | `ALREADY_ELIGIBLE` for qualifying multi-item groups; one-item groups fail on reuse |
+| Story Batch English short | 144 explicit-content + 602 English package schema = 746 effective estimated tokens; no tools | NOT_CURRENTLY_CACHE_WORTHWHILE | `GENUINELY_SUB_THRESHOLD`; explicit fields omitted |
 | Story synchronous full/localization | Same large contracts, but no proven repeated prefix inside one cache lifetime | NEEDS_RUNTIME_MEASUREMENT | Deferred |
 | Story short synchronous | Stable system contract; burst reuse not established | NEEDS_RUNTIME_MEASUREMENT | Deferred |
 | Semantic image-prompt derivation | Stable instruction is roughly 120 estimated tokens | NOT_CURRENTLY_CACHE_WORTHWHILE | Deferred; no padding |
@@ -98,6 +106,31 @@ least two requests in the same effective 30-minute workload burst.
 Image generation, speech, transcription, and image Batch endpoints are not
 Responses prompt-prefix-cache families.
 
+### Story Batch provider-visible request and prefix inventory
+
+Production builds each JSONL line in `englishShortBody` or `localizationBody`,
+then applies `projectOpenAiResponsesPromptCache` before
+`serializeBatchRequestLines`. The serialized body contains `model`, a system then
+user `input` array, `text.format`, the output cap, and optional
+temperature/reasoning; eligible items additionally receive cache routing/options
+and a breakpoint on the final system `input_text` block. OpenAI documents the
+Structured Outputs schema as a prefix to the system message, irrespective of its
+top-level JSON property position.
+
+| Provider-visible component | Classification | Approximate tokens | Before breakpoint/cacheable | Evidence |
+|---|---|---:|---|---|
+| `text.format.schema` | `STABLE_CACHE_PREFIX` per exact schema variant | 676 full; 961 localized-affect; 602 English short | yes / yes | production Zod schemas serialized by `z.toJSONSchema`; official Prompt Caching guide |
+| `text.format.type/name/strict` | `UNKNOWN_PROVIDER_RENDERING` | excluded from threshold estimate | provider-visible and fingerprinted; contribution not assumed | final Responses body |
+| system `input_text` trust boundary | `STABLE_CACHE_PREFIX` | 144 | yes / yes; explicit breakpoint terminates this block | compiled production request and tracked JSONL |
+| user `input_text` contract plus narration | `DYNAMIC_SUFFIX` | varies by story/locale | no / no for this breakpoint | compiler places it after system block |
+| `tools` | `STABLE_CACHE_PREFIX` only when supplied | 0 for Story Batch | none supplied | final Story Batch bodies |
+| model, reasoning, output cap, cache routing/options | `NOT_PROMPT_CONTENT` for the offline token sum | 0 | not counted; model/policy still participate in routing/fingerprint grouping | final request body and planner |
+
+Tracked one-episode Batch files contain one request per exact
+model/operation/locale/policy/schema group, so observed same-burst group size is
+one. Multi-source Batch preparation can produce two or more items in a group; the
+planner enables only those exact repeated groups.
+
 ### SDK projection decision
 
 The installed OpenAI 6.44/6.45 typings expose legacy
@@ -110,11 +143,24 @@ SDK-backed families remain deferred until their eligibility independently
 justifies that upgrade. The raw shape is based on the official Prompt Caching
 guide and is structurally tested without a provider call.
 
+The controlled provider test targets only Story Batch projection. Batch execution
+order is not guaranteed, so an eligible test would reuse exact bodies through two
+sequential synchronous Responses calls. The 2026-08-11 preflight stopped before
+dispatch after measuring only the 144-token system block. That was correct for
+explicit content but incomplete for provider-visible prefix accounting because it
+omitted the stable Structured Outputs schema. Reconciliation found Story Batch to
+be variant-dependent: only affect-preserving localization exceeds 1,024 offline,
+and it still needs at least two same-prefix items in one burst. Zero paid requests
+were made. Batch submission recovery remains a later control-plane reliability
+concern rather than Phase 2B cache-fill coordination.
+
 ## Next-phase cache recommendation
 
-- **A — explicit prefix caching:** Story Batch is enabled. Source-grounded QA and
-  synchronous story require rendered-prefix and same-burst measurements first.
-  Semantic prompts and History V3.3 are below the minimum and should not be padded.
+- **A — explicit prefix caching:** Story Batch projection and accounting are
+  variant-specific. Affect-preserving localization is eligible only for repeated
+  same-prefix groups; canonical full, ordinary localization, and English short are
+  sub-threshold and should not be padded or restructured for a discount. Collect
+  offline group-size evidence before another paid verification.
 - **B — durable application reuse:** transcription needs a result identity/cache;
   legacy speech should migrate to canonical speech reuse rather than copy it.
   Metadata already has durable artifacts but needs safer cache-fill coordination
