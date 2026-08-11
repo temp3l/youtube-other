@@ -506,6 +506,11 @@ export interface PlannedScene {
     readonly repairBoundary: Exclude<SemanticFaultBoundary, "UNKNOWN">;
     readonly regenerationRound: number;
   };
+  /** Explicit, reviewed per-episode treatment correction; preserves beat IDs and timing ownership. */
+  readonly editorialTreatmentOverride?: {
+    readonly overrideHash: string;
+    readonly appliedAt: string;
+  };
   /** One revision identity shared by final wrapper fields and provider projections. */
   readonly materializationRevision?: {
     readonly revisionId: string;

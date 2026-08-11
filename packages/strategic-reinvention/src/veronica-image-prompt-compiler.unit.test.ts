@@ -4,6 +4,7 @@ import type {
   PositioningVisualPlanV2,
   PositioningVisualTreatment,
 } from "./positioning-visual-contracts.js";
+import type { VeronicaVisualBibleV1 } from "./veronica-visual-artifacts.js";
 import { stableHash } from "./positioning-visual-semantics.js";
 import { rebuildVeronicaFinalTreatmentState } from "./veronica-pre-image-semantic-gate.js";
 import {
@@ -71,6 +72,17 @@ const model: VeronicaImagePromptCompilerModel = {
   maxOutputTokens: 2_000,
 };
 
+function visualBible(overrides: Partial<VeronicaVisualBibleV1> = {}): VeronicaVisualBibleV1 {
+  return {
+    schemaVersion: "veronica-visual-bible.v1", version: 1, contentId: "generic-episode",
+    characterIdentity: { characterId: "veronica-benini", identityVersion: "v1", authority: "canonical-character-reference-pack", manifestPath: "manifest.json", canonicalSource: { path: "source.png", sha256: "a".repeat(64) }, approvedReferences: [{ id: "front", path: "front.png", sha256: "b".repeat(64) }], requiredSceneIds: [] },
+    wardrobe: "editorial wardrobe", palette: ["warm paper", "coral accent"], lighting: "naturalistic editorial light", editorialStyle: "European editorial realism", environmentDefaults: ["worktable"], recurringMotifs: [],
+    output: { aspectRatio: "9:16", subtitleSafeArea: { x: 0.12, y: 0.72, width: 0.76, height: 0.16 }, readableGeneratedTextAllowed: false, logosAllowed: false, watermarksAllowed: false },
+    continuityPolicy: { canonicalIdentityAlwaysWins: true, episodeAnchorMayReplaceIdentity: false, maxIdentityReferencesPerGeneration: 2, referencePriority: ["canonical-identity", "episode-anchor", "scene-reference"] },
+    visualStoryBibleFingerprint: "c".repeat(64), artifactHash: "d".repeat(64), ...overrides,
+  };
+}
+
 function fixtureResult(item: VeronicaImagePromptCompilationInput, inputHash: string) {
   return {
     schemaVersion: "veronica-image-prompt-compilation.v1" as const,
@@ -110,14 +122,14 @@ describe("Veronica structured image prompt compilation", () => {
     const plan = canonicalPlan();
     const cache = new InMemoryVeronicaImagePromptCompilationCache();
     const fake = compiler();
-    const first = await compileVeronicaImagePrompts({ episodeId: "generic", plan, compiler: fake.port, cache, model, reasonForRegeneration: "initial" });
+    const first = await compileVeronicaImagePrompts({ episodeId: "generic", plan, visualBible: visualBible(), compiler: fake.port, cache, model, reasonForRegeneration: "initial" });
     expect(fake.compileBatch).toHaveBeenCalledTimes(1);
     expect(fake.compileBatch.mock.calls[0]![0].items).toHaveLength(2);
     expect(first.assets.every((asset) => asset.prompt === asset.promptCompilation?.result.imagePrompt)).toBe(true);
     expect(first.assets.every((asset) => !asset.prompt.includes("stale career-transition workshop"))).toBe(true);
     expect(first.imagePromptCompilation).toMatchObject({ requestCount: 1, cacheHits: 0, cacheMisses: 2, inputTokens: 1_000, outputTokens: 500, cachedInputTokens: 100, estimatedCostUsd: 0.01 });
 
-    const second = await compileVeronicaImagePrompts({ episodeId: "generic", plan, compiler: fake.port, cache, model, reasonForRegeneration: "unchanged" });
+    const second = await compileVeronicaImagePrompts({ episodeId: "generic", plan, visualBible: visualBible(), compiler: fake.port, cache, model, reasonForRegeneration: "unchanged" });
     expect(fake.compileBatch).toHaveBeenCalledTimes(1);
     expect(second.imagePromptCompilation).toMatchObject({ requestCount: 0, cacheHits: 2, cacheMisses: 0 });
   });
@@ -126,7 +138,7 @@ describe("Veronica structured image prompt compilation", () => {
     const plan = canonicalPlan();
     const scene = plan.scenes[0]!;
     const asset = plan.assets[0]!;
-    const base = buildVeronicaImagePromptCompilationInput({ plan, scene, asset });
+    const base = buildVeronicaImagePromptCompilationInput({ plan, visualBible: visualBible(), scene, asset });
     const baseHash = veronicaImagePromptCompilationInputHash({ compilationInput: base, model });
     const changedReference = { ...base, referenceAssets: [{ assetId: "approved-ref", kind: "character-reference" as const, identityId: "recurring", fingerprint: "different", required: true }] };
     const changedPolarity = { ...base, proposition: { ...base.proposition, polarity: "POSITIVE_STATE" as const } };
@@ -140,7 +152,7 @@ describe("Veronica structured image prompt compilation", () => {
     const plan = canonicalPlan();
     const scene = plan.scenes[0]!;
     const asset = plan.assets[0]!;
-    const compilationInput = buildVeronicaImagePromptCompilationInput({ plan, scene, asset });
+    const compilationInput = buildVeronicaImagePromptCompilationInput({ plan, visualBible: visualBible(), scene, asset });
     const inputHash = veronicaImagePromptCompilationInputHash({ compilationInput, model });
     const result = fixtureResult(compilationInput, inputHash);
     expect(validateVeronicaImagePromptCompilation({ compilationInput, inputHash, result })).toEqual([]);
@@ -167,7 +179,7 @@ describe("Veronica structured image prompt compilation", () => {
 
   it("uses format-specific canonical inputs and never admits a legacy provider prompt", () => {
     const plan = canonicalPlan();
-    const input = buildVeronicaImagePromptCompilationInput({ plan, scene: plan.scenes[0]!, asset: plan.assets[0]! });
+    const input = buildVeronicaImagePromptCompilationInput({ plan, visualBible: visualBible(), scene: plan.scenes[0]!, asset: plan.assets[0]! });
     expect(input.format).toEqual({
       aspectRatio: "9:16",
       contentType: "short",
@@ -184,7 +196,7 @@ describe("Veronica structured image prompt compilation", () => {
     const deterministic = new DeterministicVeronicaImagePromptCompiler();
     const first = await compileVeronicaImagePrompts({
       episodeId: "generic",
-      plan,
+      plan, visualBible: visualBible(),
       compiler: deterministic,
       cache,
       model: { model: "deterministic-template", reasoningEffort: "none" },
@@ -192,7 +204,7 @@ describe("Veronica structured image prompt compilation", () => {
     });
     const second = await compileVeronicaImagePrompts({
       episodeId: "generic",
-      plan,
+      plan, visualBible: visualBible(),
       compiler: deterministic,
       cache,
       model: { model: "deterministic-template", reasoningEffort: "none" },
@@ -211,9 +223,23 @@ describe("Veronica structured image prompt compilation", () => {
     expect(first.assets[0]?.prompt).toContain("No readable text");
   });
 
+  it("projects structured treatment action and Bible direction into the prompt identity", () => {
+    const plan = canonicalPlan();
+    const scene = plan.scenes[0]!;
+    const asset = plan.assets[0]!;
+    const firstBible = visualBible();
+    const first = buildVeronicaImagePromptCompilationInput({ plan, visualBible: firstBible, scene, asset });
+    const changedBible = visualBible({ palette: ["deep blue"], artifactHash: "e".repeat(64) });
+    const changed = buildVeronicaImagePromptCompilationInput({ plan, visualBible: changedBible, scene, asset });
+    const firstHash = veronicaImagePromptCompilationInputHash({ compilationInput: first, model });
+    expect(veronicaImagePromptCompilationInputHash({ compilationInput: changed, model })).not.toBe(firstHash);
+    const materialized = new DeterministicVeronicaImagePromptCompiler().compileBatch({ episodeId: "generic", items: [first], inputHashes: [firstHash], model, instructions: "", instructionVersion: "test", jsonSchema: {} });
+    return expect(materialized).resolves.toMatchObject({ output: { results: [expect.objectContaining({ imagePrompt: expect.stringContaining(first.treatment.actors[0]!.visibleAction) })] } });
+  });
+
   it("adjudicates materialized prompt meaning, hierarchy, state, and actor ownership", () => {
     const plan = canonicalPlan();
-    const base = buildVeronicaImagePromptCompilationInput({ plan, scene: plan.scenes[0]!, asset: plan.assets[0]! });
+    const base = buildVeronicaImagePromptCompilationInput({ plan, visualBible: visualBible(), scene: plan.scenes[0]!, asset: plan.assets[0]! });
     const inputHash = veronicaImagePromptCompilationInputHash({ compilationInput: base, model });
     const result = fixtureResult(base, inputHash);
     const contract = {

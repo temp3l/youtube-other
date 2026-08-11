@@ -13,11 +13,12 @@ import type {
 } from "./positioning-visual-contracts.js";
 import { stableHash } from "./positioning-visual-semantics.js";
 import { validateVeronicaProviderReadiness } from "./veronica-pre-image-semantic-gate.js";
+import type { VeronicaVisualBibleV1 } from "./veronica-visual-artifacts.js";
 
 export const VERONICA_IMAGE_PROMPT_COMPILER_VERSION =
-  "veronica-deterministic-image-prompt-compiler.v1" as const;
+  "veronica-deterministic-image-prompt-compiler.v2" as const;
 export const VERONICA_IMAGE_PROMPT_COMPILER_INSTRUCTION_VERSION =
-  "veronica-deterministic-image-prompt-template.v1" as const;
+  "veronica-deterministic-image-prompt-template.v2" as const;
 export const VERONICA_IMAGE_PROMPT_COMPILATION_SCHEMA_VERSION =
   "veronica-image-prompt-compilation.v1" as const;
 
@@ -111,6 +112,14 @@ export const veronicaImagePromptCompilationInputSchema = z.strictObject({
     allowedMotifs: z.array(z.string().min(1)),
     forbiddenMotifs: z.array(z.string().min(1)),
     previousSceneSummary: z.string().min(1).nullable(),
+  }),
+  visualBible: z.strictObject({
+    artifactHash: z.string().regex(/^[a-f0-9]{64}$/u),
+    editorialStyle: z.string().min(1), palette: z.array(z.string().min(1)).min(1),
+    lighting: z.string().min(1), wardrobe: z.string().min(1), recurringMotifs: z.array(z.string().min(1)),
+    aspectRatio: z.enum(["9:16", "16:9"]),
+    subtitleSafeArea: z.strictObject({ x: z.number(), y: z.number(), width: z.number(), height: z.number() }),
+    noReadableText: z.boolean(), noLogos: z.boolean(), noWatermarks: z.boolean(), continuityPolicy: z.string().min(1),
   }),
   constraints: z.strictObject({
     noReadableText: z.boolean(),
@@ -233,6 +242,8 @@ export function compileDeterministicVeronicaImagePrompt(
   item: VeronicaImagePromptCompilationInput,
   inputHash: string,
 ): VeronicaImagePromptCompilationResult {
+  const sentence = (value: string) => value.trim().replace(/[.!?]+$/u, "");
+  const actionOwner = item.treatment.actors.find((actor) => actor.actorId === item.treatment.actionOwnerActorId);
   const references = item.referenceAssets.length > 0
     ? `Use resolved references in this priority order: ${item.referenceAssets.map((reference) => `${reference.kind} ${reference.assetId}`).join(", ")}. Canonical identity controls facial identity only; scene direction controls wardrobe, pose, background, light, and framing.`
     : "No character identity reference is required for this scene.";
@@ -254,14 +265,14 @@ export function compileDeterministicVeronicaImagePrompt(
   ].join("; ");
   const prompt = [
     `Create one ${item.format.aspectRatio} ${item.format.contentType} editorial still with one immediately legible visual idea.`,
-    item.treatment.visibleThesis,
-    `Show ${item.treatment.subject} in ${item.treatment.environment}.`,
-    `The visible action is ${item.proposition.action}. The viewer must understand ${item.proposition.consequence}.`,
-    `Stage the scene as follows: ${item.treatment.composition}. Camera: ${item.treatment.camera}. Lighting: ${item.treatment.lighting}.`,
-    `Emotional direction: ${item.treatment.emotionalState}. Physical evidence: ${evidence}.`,
+    `Visual thesis: ${sentence(item.treatment.visibleThesis)}. Core meaning: ${sentence(item.proposition.cause)}. Viewer takeaway: ${sentence(item.proposition.consequence)}.`,
+    `Show ${sentence(item.treatment.subject)} in ${sentence(item.treatment.environment)}. Visible action: ${sentence(actionOwner?.visibleAction ?? item.treatment.actors.map((actor) => actor.visibleAction).join("; "))}. Required state: ${sentence(item.proposition.initialState ?? item.treatment.emotionalState)}.`,
+    `Strategy: ${item.treatment.visualMechanism}. Stage the scene as follows: ${sentence(item.treatment.composition)}. Camera: ${sentence(item.treatment.camera)}. Lighting: ${sentence(item.treatment.lighting)}.`,
+    `Editorial direction: ${sentence(item.visualBible.editorialStyle)}. Palette: ${item.visualBible.palette.join(", ")}. Bible lighting policy: ${sentence(item.visualBible.lighting)}.${actionOwner?.identityAuthority === "canonical-protagonist" ? ` Wardrobe: ${sentence(item.visualBible.wardrobe)}.` : ""}`,
+    `Emotional direction: ${sentence(item.treatment.emotionalState)}. Physical evidence: ${evidence}.`,
     references,
-    `Keep important faces, actions, and evidence outside the subtitle region x=${item.format.subtitleSafeArea.x}, y=${item.format.subtitleSafeArea.y}, width=${item.format.subtitleSafeArea.width}, height=${item.format.subtitleSafeArea.height}.`,
-    `No readable text, letters, numbers, logos, interface copy, internal labels, watermark, storyboard, or panel grid. ${negative}.`,
+    `Keep important faces, actions, and evidence outside the subtitle region x=${item.visualBible.subtitleSafeArea.x}, y=${item.visualBible.subtitleSafeArea.y}, width=${item.visualBible.subtitleSafeArea.width}, height=${item.visualBible.subtitleSafeArea.height}.`,
+    `No readable text, letters, numbers, logos, interface copy, internal labels, watermark, storyboard, or panel grid. ${negative}. Continuity policy: ${sentence(item.visualBible.continuityPolicy)}.`,
   ].join(" ").replace(/\s+/gu, " ").trim();
   return veronicaImagePromptCompilationResultSchema.parse({
     schemaVersion: VERONICA_IMAGE_PROMPT_COMPILATION_SCHEMA_VERSION,
@@ -362,6 +373,7 @@ function compositionHierarchy(composition: string, requiredEvidence: readonly st
 
 export function buildVeronicaImagePromptCompilationInput(input: {
   readonly plan: PositioningVisualPlanV2;
+  readonly visualBible: VeronicaVisualBibleV1;
   readonly scene: PlannedScene;
   readonly asset: GeneratedVisualAsset;
   readonly previousScene?: PlannedScene;
@@ -453,6 +465,17 @@ export function buildVeronicaImagePromptCompilationInput(input: {
         ? [input.plan.selectedRecurringMotif.concept]
         : [],
       previousSceneSummary: previousSceneSummary(input.previousScene),
+    },
+    visualBible: {
+      artifactHash: input.visualBible.artifactHash, editorialStyle: input.visualBible.editorialStyle,
+      palette: [...input.visualBible.palette], lighting: input.visualBible.lighting, wardrobe: input.visualBible.wardrobe,
+      recurringMotifs: [...input.visualBible.recurringMotifs], aspectRatio: input.visualBible.output.aspectRatio,
+      subtitleSafeArea: input.visualBible.output.subtitleSafeArea,
+      noReadableText: !input.visualBible.output.readableGeneratedTextAllowed,
+      noLogos: !input.visualBible.output.logosAllowed, noWatermarks: !input.visualBible.output.watermarksAllowed,
+      continuityPolicy: actors.some((actor) => actor.identityAuthority === "canonical-protagonist")
+        ? "the resolved identity reference controls the expert only; audience actors remain distinct"
+        : "keep all scene actors visually distinct; no recurring identity is requested",
     },
     constraints: {
       noReadableText: true,
@@ -627,6 +650,7 @@ export function validateVeronicaImagePromptCompilation(input: {
 
 function applyCompilationResults(input: {
   readonly plan: PositioningVisualPlanV2;
+  readonly visualBible: VeronicaVisualBibleV1;
   readonly records: readonly VeronicaImagePromptCompilationCacheRecord[];
   readonly model: VeronicaImagePromptCompilerModel;
   readonly telemetry: PositioningVisualPlanV2["imagePromptCompilation"];
@@ -639,6 +663,7 @@ function applyCompilationResults(input: {
     const prior = asset.projectionProvenance;
     const compilationInput = buildVeronicaImagePromptCompilationInput({
       plan: input.plan,
+      visualBible: input.visualBible,
       scene,
       asset,
       ...(input.plan.scenes[input.plan.scenes.indexOf(scene) - 1]
@@ -719,6 +744,7 @@ function applyCompilationResults(input: {
 export async function compileVeronicaImagePrompts(input: {
   readonly episodeId: string;
   readonly plan: PositioningVisualPlanV2;
+  readonly visualBible: VeronicaVisualBibleV1;
   readonly compiler: VeronicaImagePromptCompilerPort;
   readonly cache: VeronicaImagePromptCompilationCachePort;
   readonly model: VeronicaImagePromptCompilerModel;
@@ -732,6 +758,7 @@ export async function compileVeronicaImagePrompts(input: {
     if (!scene) throw new Error(`IMAGE_PROMPT_COMPILATION_SCENE_MISSING:${asset.sceneId}`);
     const compilationInput = buildVeronicaImagePromptCompilationInput({
       plan: input.plan,
+      visualBible: input.visualBible,
       scene,
       asset,
       ...(input.plan.scenes[sceneIndex - 1]
@@ -826,5 +853,5 @@ export async function compileVeronicaImagePrompts(input: {
     estimatedCostUsd: (previousTelemetry?.estimatedCostUsd ?? 0) + estimatedCostUsd,
     ...(requestId ? { requestId } : {}),
   };
-  return applyCompilationResults({ plan: input.plan, records, model: input.model, telemetry });
+  return applyCompilationResults({ plan: input.plan, visualBible: input.visualBible, records, model: input.model, telemetry });
 }

@@ -6,6 +6,7 @@ import { scenePlanSchema } from "@mediaforge/domain";
 import type { PositioningVisualPlanV2 } from "./positioning-visual-contracts.js";
 import { stableHash } from "./positioning-visual-semantics.js";
 import { persistVeronicaLocalizedProduction } from "./veronica-localized-production.js";
+import { assertVeronicaLocalizedNarrationHasNoNewMaterialProposition } from "./positioning-production-adapter.js";
 import {
   buildVeronicaVisualTreatmentsArtifact,
   veronicaVisualBibleV1Schema,
@@ -131,6 +132,14 @@ function bible(contentId: string) {
 }
 
 describe("Veronica typed visual and localization artifacts", () => {
+  it("does not allow a localized narration with added material propositions to inherit canonical imagery", () => {
+    expect(() => assertVeronicaLocalizedNarrationHasNoNewMaterialProposition({
+      locale: "de",
+      masterNarration: "A focused book carries useful expertise. It can be shared.",
+      localizedNarration: "Ein fokussiertes Buch transportiert nützliche Expertise. Es kann geteilt werden. Definiere vorher Leser und Problem. Der Verlag kommt später.",
+    })).toThrow("VERONICA_LOCALIZED_SEMANTIC_DIVERGENCE_REQUIRES_EXPLICIT_LOCALE_OVERRIDE");
+  });
+
   it("preserves the bridge as a typed semantic metaphor", () => {
     const artifact = buildVeronicaVisualTreatmentsArtifact(plan());
     expect(artifact.treatments[0]).toMatchObject({

@@ -59,6 +59,12 @@ export interface ResolvedEpisodeManifest {
   readonly created: boolean;
 }
 
+export function assertVeronicaHierarchicalImageReadiness(plan: Pick<PositioningVisualPlanV2, "validation" | "providerReadiness" | "hierarchicalReadiness">): void {
+  if (plan.validation.status !== "pass" || plan.providerReadiness?.status !== "PASS" || plan.hierarchicalReadiness?.providerCandidate !== true) {
+    throw new Error("VERONICA_HIERARCHICAL_PRE_IMAGE_READINESS_REQUIRED: prompt-level PASS cannot override deterministic, sequence, or source-grounded blockers.");
+  }
+}
+
 interface PersistedFailureResumeStatus {
   readonly retryable: boolean;
   readonly category?: string;
@@ -444,6 +450,7 @@ export async function commandImagesResume(
       if (rawPlan.imagePromptGenerationStrategy !== "deterministic-v1" || !rawPlan.imagePromptCompilation) {
         throw new Error("VERONICA_DETERMINISTIC_IMAGE_PROMPTS_NOT_COMPILED: rerun prepare-production before image generation.");
       }
+      assertVeronicaHierarchicalImageReadiness(rawPlan);
       semanticScenePlan = manifest.scenePlan;
       veronicaVisualQaEvaluator = createOpenAiVeronicaVisualQaEvaluator({
         client,

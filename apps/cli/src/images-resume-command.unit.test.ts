@@ -40,7 +40,7 @@ vi.mock("@mediaforge/story-localization", async () => {
   };
 });
 
-const { commandImagesResume, loadOrBootstrapEpisodeManifest } =
+const { assertVeronicaHierarchicalImageReadiness, commandImagesResume, loadOrBootstrapEpisodeManifest } =
   await import("./images-resume-command.js");
 
 function makeScenePlan() {
@@ -75,6 +75,13 @@ function makeScenePlan() {
 }
 
 describe("images resume command", () => {
+  it("does not let a prompt-level pass bypass hierarchical Veronica readiness", () => {
+    expect(() => assertVeronicaHierarchicalImageReadiness({
+      validation: { status: "pass" }, providerReadiness: { status: "PASS" },
+      hierarchicalReadiness: { providerCandidate: false },
+    } as never)).toThrow("VERONICA_HIERARCHICAL_PRE_IMAGE_READINESS_REQUIRED");
+  });
+
   beforeEach(() => {
     workspaceDir = mkdtempSync(
       path.join(os.tmpdir(), "mediaforge-images-resume-")

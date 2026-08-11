@@ -21,6 +21,7 @@ import {
   generatePositioningVisualPlanCalibration,
   generateVeronicaBeniniReviewPacks,
   preparePositioningProductionEpisode,
+  remediateExistingVeronicaPreImagePlan,
   positioningProductionPlanSchema,
   resolveVeronicaSemanticImagePromptPaths,
   runStrategicSupplementalMediaBridge,
@@ -322,6 +323,25 @@ export function registerVeronicaMediaCommands(program: Command): void {
         process.stdout.write(`Prepared ${result.episodeId} (${result.language}/${result.variant}) with ${result.sceneCount} canonical scenes.\nManifest: ${result.manifestPath}\n`);
       },
     );
+
+  veronica
+    .command("remediate-pre-image")
+    .description("Apply reviewed episode VisualTreatment overrides and recompile deterministic prompts without narration, QA, or images")
+    .requiredOption("--workspace <path>", "Episode workspace root")
+    .requiredOption("--episode-id <id>", "Episode identifier")
+    .requiredOption("--overrides <path>", "Reviewed visual-treatment override artifact")
+    .option("--json", "Emit machine-readable output", false)
+    .action(async (options: { workspace: string; episodeId: string; overrides: string; json: boolean }) => {
+      const workspaceRoot = path.resolve(options.workspace);
+      const episodeDir = path.join(workspaceRoot, options.episodeId);
+      const result = await remediateExistingVeronicaPreImagePlan({
+        workspaceRoot,
+        episodeId: options.episodeId,
+        overridePath: path.resolve(options.overrides),
+        imagePromptCompiler: await createVeronicaImagePromptCompilerComposition({ workspaceRoot, episodeDir }),
+      });
+      process.stdout.write(`${JSON.stringify(result, options.json ? null : undefined, options.json ? 2 : undefined)}\n`);
+    });
 
   const images = veronica.command("images").description("Generate Veronica positioning images through the canonical image pipeline");
   images

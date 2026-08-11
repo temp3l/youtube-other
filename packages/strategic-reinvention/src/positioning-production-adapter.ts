@@ -13,7 +13,7 @@ import {
   VERONICA_PRE_IMAGE_SEMANTIC_GATE_VERSION,
 } from "./veronica-pre-image-semantic-gate.js";
 import { resolveVeronicaProductionPolicy } from "./veronica-production-policy.js";
-import type { PositioningVisualPlanV2, VisualEvent } from "./positioning-visual-contracts.js";
+import type { PositioningVisualPlanV2, PositioningVisualTreatment, VeronicaSemanticProposition, VisualEvent } from "./positioning-visual-contracts.js";
 import { deriveVeronicaSemanticProposition, visualTreatmentFromProposition } from "./veronica-semantic-quality.js";
 import { stableHash } from "./positioning-visual-semantics.js";
 import {
@@ -41,7 +41,7 @@ import {
   type VeronicaResolvedCanonicalTiming,
   type VeronicaTimedNarrationUnit,
 } from "./veronica-canonical-timing.js";
-import { persistVeronicaVisualArtifacts } from "./veronica-visual-artifacts.js";
+import { buildVeronicaVisualBibleArtifact, persistVeronicaVisualArtifacts } from "./veronica-visual-artifacts.js";
 import {
   veronicaVisualBibleV1Schema,
   veronicaVisualTreatmentsArtifactSchema,
@@ -654,6 +654,8 @@ async function prepareLocalizedPositioningProduction(input: PreparePositioningPr
   if (canonicalPlan.format !== expectedFormat) {
     throw new Error(`Veronica canonical plan format ${canonicalPlan.format} does not match requested ${input.variant} production.`);
   }
+  const masterNarration = await fs.readFile(path.join(input.episodeDir, "locales", "en", input.variant, "script.md"), "utf8");
+  assertVeronicaLocalizedNarrationHasNoNewMaterialProposition({ masterNarration, localizedNarration: input.narration, locale: input.language });
   const localizedChunks = splitNarration(input.narration, canonicalPlan.scenes.length);
   const provisional = compilePositioningProductionScenePlan({
     episodeId: input.episodeId,
@@ -781,6 +783,18 @@ async function prepareLocalizedPositioningProduction(input: PreparePositioningPr
   };
 }
 
+/** A localization cannot silently add business advice and still inherit master imagery. */
+export function assertVeronicaLocalizedNarrationHasNoNewMaterialProposition(input: {
+  readonly masterNarration: string; readonly localizedNarration: string; readonly locale: string;
+}): void {
+  const sentences = (value: string) => value.split(/[.!?]+(?:\s|$)/u).map((part) => part.trim()).filter(Boolean);
+  const masterCount = sentences(input.masterNarration).length;
+  const localizedCount = sentences(input.localizedNarration).length;
+  if (input.locale !== "en" && localizedCount > masterCount + 1) {
+    throw new Error("VERONICA_LOCALIZED_SEMANTIC_DIVERGENCE_REQUIRES_EXPLICIT_LOCALE_OVERRIDE");
+  }
+}
+
 export interface ReconcileExistingVeronicaProductionTimingInput {
   readonly workspaceRoot: string;
   readonly episodeId: string;
@@ -799,6 +813,75 @@ export interface ReconcileExistingVeronicaProductionTimingResult {
   readonly timingPath: string;
   readonly scenePlanPath: string;
   readonly localizedProductionPath: string;
+}
+
+const editorialTreatmentOverrideSchema = z.strictObject({
+  schemaVersion: z.literal("veronica-editorial-treatment-overrides.v1"),
+  basePlanHash: z.string().regex(/^[a-f0-9]{64}$/u),
+  scenes: z.array(z.strictObject({
+    sceneId: z.string().min(1),
+    visibleThesis: z.string().min(1).optional(),
+    treatment: z.object({
+      strategy: z.string(), subjectRequirement: z.string(), environment: z.string(), composition: z.string(), camera: z.string(), lighting: z.string(), action: z.string(), actionOwnerRole: z.enum(["expert", "buyer", "shared", "none"]), props: z.array(z.string().min(1)), motionOpportunities: z.array(z.string()), narrativeBeat: z.string(), communicationIntent: z.string(),
+    }).partial().strict(),
+    semantic: z.object({
+      actorRole: z.enum(["expert", "buyer", "shared", "none"]), actorAction: z.string(), cause: z.string().optional(), consequence: z.string(), buyerInterpretation: z.string().optional(), polarity: z.enum(["POSITIVE_STATE", "NEGATIVE_STATE", "CONTRAST", "TRANSITION_NEGATIVE_TO_POSITIVE", "TRANSITION_POSITIVE_TO_NEGATIVE", "NEUTRAL"]), stateRelation: z.enum(["STABLE", "CAUSAL_BEFORE_AFTER", "CONTRAST", "CONDITIONAL_ALTERNATIVES", "SEQUENTIAL_PROGRESSION"]), visualMechanism: z.string(), evidenceAnchors: z.array(z.string().min(1)), buyerConsequenceFamily: z.string(), confidence: z.object({ proposition: z.enum(["HIGH", "MEDIUM", "LOW"]), actorOwnership: z.enum(["HIGH", "MEDIUM", "LOW"]), consequence: z.enum(["HIGH", "MEDIUM", "LOW"]), visualMechanism: z.enum(["HIGH", "MEDIUM", "LOW"]) }),
+    }).partial().strict().optional(),
+  })).min(1),
+});
+
+/** Applies reviewed episode data without reopening segmentation, narration, TTS, or source QA. */
+export async function remediateExistingVeronicaPreImagePlan(input: {
+  readonly workspaceRoot: string; readonly episodeId: string; readonly overridePath: string;
+  readonly imagePromptCompiler: NonNullable<PreparePositioningProductionEpisodeInput["imagePromptCompiler"]>;
+}): Promise<{ readonly changedSceneIds: readonly string[]; readonly retimedLocales: readonly string[]; readonly planHash: string; readonly treatmentHashes: Readonly<Record<string, string>>; readonly providerReadiness: string; readonly semanticQuality: string; }> {
+  const workspaceRoot = path.resolve(input.workspaceRoot);
+  const episodeId = normalizeEpisodeId(input.episodeId);
+  const episodeDir = path.join(workspaceRoot, episodeId);
+  const sourcePlanPath = path.join(episodeDir, "source", "pre-image-semantic-plan.v1.json");
+  const enScenePlanPath = path.join(episodeDir, "locales", "en", "short", "scene-plan.json");
+  const [planRaw, overrideRaw, scenePlanRaw] = await Promise.all([fs.readFile(sourcePlanPath, "utf8"), fs.readFile(input.overridePath, "utf8"), fs.readFile(enScenePlanPath, "utf8")]);
+  const plan = positioningProductionPlanSchema.parse(JSON.parse(planRaw) as unknown) as unknown as PositioningVisualPlanV2;
+  const override = editorialTreatmentOverrideSchema.parse(JSON.parse(overrideRaw) as unknown);
+  if (override.basePlanHash !== plan.planHash) throw new Error("VERONICA_EDITORIAL_TREATMENT_OVERRIDE_STALE");
+  const byScene = new Map(override.scenes.map((entry) => [entry.sceneId, entry] as const));
+  if (byScene.size !== override.scenes.length || [...byScene.keys()].some((sceneId) => !plan.scenes.some((scene) => scene.sceneId === sceneId))) throw new Error("VERONICA_EDITORIAL_TREATMENT_OVERRIDE_SCENE_MISMATCH");
+  const overriddenPlan = {
+    ...plan,
+    scenes: plan.scenes.map((scene) => {
+      const patch = byScene.get(scene.sceneId);
+      if (!patch) return scene;
+      const { treatmentHash: _oldTreatmentHash, ...oldTreatment } = scene.treatment;
+      const treatmentBase = { ...oldTreatment, ...patch.treatment } as PositioningVisualTreatment;
+      const treatment = { ...treatmentBase, treatmentHash: stableHash(treatmentBase) } as PositioningVisualTreatment;
+      const semantic = patch.semantic && scene.semanticProposition
+        ? (() => {
+            const { propositionHash: _oldPropositionHash, ...oldProposition } = scene.semanticProposition;
+            const base = { ...oldProposition, ...patch.semantic } as Omit<VeronicaSemanticProposition, "propositionHash">;
+            return { ...base, propositionHash: stableHash({ ...base, overrideHash: stableHash(patch) }) } as VeronicaSemanticProposition;
+          })()
+        : scene.semanticProposition;
+      return { ...scene, treatment, ...(semantic ? { semanticProposition: semantic } : {}), ...(patch.visibleThesis ? { visibleThesis: patch.visibleThesis } : {}), editorialTreatmentOverride: { overrideHash: stableHash(patch), appliedAt: new Date().toISOString() } };
+    }),
+  } as PositioningVisualPlanV2;
+  const enScenePlan = scenePlanSchema.parse(JSON.parse(scenePlanRaw) as unknown);
+  const rebuilt = rebuildVeronicaFinalTreatmentState({ plan: overriddenPlan, sceneTimings: enScenePlan.scenes.map((scene) => ({ id: scene.id, timing: scene.timing })), narrationByScene: enScenePlan.scenes.map((scene) => scene.canonicalNarration) });
+  const bible = await buildVeronicaVisualBibleArtifact({ workspaceRoot, plan: rebuilt });
+  const compiled = await compileVeronicaImagePrompts({ episodeId, plan: rebuilt, visualBible: bible, compiler: input.imagePromptCompiler.compiler, cache: input.imagePromptCompiler.cache, model: input.imagePromptCompiler.model, reasonForRegeneration: "reviewed-editorial-treatment-override" });
+  const visualArtifacts = await persistVeronicaVisualArtifacts({ workspaceRoot, episodeDir, plan: compiled });
+  const enAudio = await fs.readFile(path.join(episodeDir, "locales", "en", "short", "audio", "narration.wav"));
+  await persistVeronicaProviderImagePromptArtifact({ episodeDir, episodeId, language: "en", variant: "short", plan: compiled, scenePlan: enScenePlan, visualTreatmentsHash: visualArtifacts.treatments.artifactHash, visualBible: visualArtifacts.bible, selectedAudioHash: createHash("sha256").update(enAudio).digest("hex") });
+  await writeJsonAtomic(sourcePlanPath, compiled);
+  const supportedLocales = new Set(["en", "de", "es", "fr", "pt", "it"] as const);
+  const localeEntries = await fs.readdir(path.join(episodeDir, "locales"), { withFileTypes: true });
+  const retimedLocales = (await Promise.all(localeEntries.filter((entry) => entry.isDirectory() && supportedLocales.has(entry.name as "en" | "de" | "es" | "fr" | "pt" | "it")).map(async (entry) => {
+    const language = entry.name as "en" | "de" | "es" | "fr" | "pt" | "it";
+    const selectedAudioPath = path.join(episodeDir, "locales", language, "short", "audio", "narration.wav");
+    if (!(await fileExists(selectedAudioPath))) return null;
+    await reconcileExistingVeronicaProductionTiming({ workspaceRoot, episodeId, language, variant: "short" });
+    return language;
+  }))).filter((language): language is "en" | "de" | "es" | "fr" | "pt" | "it" => language !== null);
+  return { changedSceneIds: [...byScene.keys()], retimedLocales, planHash: compiled.planHash, treatmentHashes: Object.fromEntries(compiled.scenes.map((scene) => [scene.sceneId, scene.treatment.treatmentHash])), providerReadiness: compiled.providerReadiness?.status ?? "FAIL", semanticQuality: compiled.semanticQuality?.status ?? "FAIL" };
 }
 
 /**
@@ -995,6 +1078,7 @@ export async function preparePositioningProductionEpisode(input: PreparePosition
     ? compileVeronicaImagePrompts({
         episodeId,
         plan: candidate,
+        visualBible: await buildVeronicaVisualBibleArtifact({ workspaceRoot, plan: candidate }),
         compiler: input.imagePromptCompiler.compiler,
         cache: input.imagePromptCompiler.cache,
         model: input.imagePromptCompiler.model,

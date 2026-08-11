@@ -899,12 +899,12 @@ export function rebuildVeronicaFinalTreatmentState(input: {
     // A source-grounded directive is applied by the canonical regeneration
     // boundary below. Preserve that canonical proposition on downstream
     // rebuilds; ordinary scenes are always re-derived from source narration.
-    const proposition = scene.sourceGroundedRemediation && scene.semanticProposition
+    const proposition = (scene.sourceGroundedRemediation || scene.editorialTreatmentOverride) && scene.semanticProposition
       ? scene.semanticProposition
       : deriveVeronicaSemanticProposition({ scene: sourceScene, narration: narrationAnchor });
     const propositionCoherence = assessVeronicaPropositionInternalCoherence(proposition);
     const visibleOwner = resolveVeronicaVisiblePrimaryActionOwner(scene.treatment);
-    if (scene.sourceGroundedRemediation && visibleOwner && visibleOwner !== proposition.actorRole) {
+    if ((scene.sourceGroundedRemediation || scene.editorialTreatmentOverride) && visibleOwner && visibleOwner !== proposition.actorRole) {
       throw new Error(`SOURCE_GROUNDED_REMEDIATION_ACTION_OWNER_MISMATCH:${scene.sceneId}:${proposition.actorRole}:${visibleOwner}`);
     }
     const baseTreatment = refreshFinalTreatmentDerivedState(
