@@ -611,4 +611,40 @@ describe("Veronica pre-image semantic gate", () => {
     const native = calculateVeronicaSemanticQuality(plan([scene({ narrationAnchor: "A doorway opens.", semanticProposition: deriveVeronicaSemanticProposition({ scene: scene(), narration: "A doorway opens into a wider threshold." }) }), scene({ sceneId: "b", narrationAnchor: "The threshold widens.", semanticProposition: deriveVeronicaSemanticProposition({ scene: scene(), narration: "The threshold widens into a foothold." }) })]));
     expect(native.findingCodes).not.toContain("REMEDIATION_TEMPLATE_COLLAPSE");
   });
+
+  it("keeps the canonical expert distinct from followers, observers, and prospective buyers", () => {
+    const expert = scene({ sceneId: "expert", narrationAnchor: "The professional builds a new offer while an observer watches.", treatment: treatment({ sceneId: "expert", actionOwnerRole: "expert", action: "the professional arranges the new offer while an observer watches" }) });
+    const follower = scene({ sceneId: "follower", narrationAnchor: "A loyal follower is confused by the sudden new offer.", treatment: treatment({ sceneId: "follower", actionOwnerRole: "buyer", action: "the loyal follower looks between disconnected signals and remains confused" }) });
+    const both = scene({ sceneId: "both", narrationAnchor: "The professional shows the bridge while an observer traces the carried-over skill.", treatment: treatment({ sceneId: "both", actionOwnerRole: "expert", action: "the professional shows the bridge while an observer traces the evidence" }) });
+    const source = {
+      ...plan([expert, follower, both]),
+      continuity: { mode: "persistent-protagonist" as const, identityId: "canonical-expert", identityFingerprint: "1".repeat(64), appearance: { ageBand: "adult", genderPresentation: "woman", hair: "dark", wardrobeAnchor: "neutral jacket" }, referencePolicy: "reuse-only-for-linked-scenes" as const, linkedSceneIds: ["expert", "both"] },
+    } as PositioningVisualPlanV2;
+    const rebuilt = rebuildVeronicaFinalTreatmentState({ plan: source, sceneTimings: [
+      { id: "expert", timing: { startSeconds: 0, endSeconds: 8 } },
+      { id: "follower", timing: { startSeconds: 8, endSeconds: 16 } },
+      { id: "both", timing: { startSeconds: 16, endSeconds: 24 } },
+    ], narrationByScene: [expert.narrationAnchor, follower.narrationAnchor, both.narrationAnchor] });
+    expect(rebuilt.scenes[0]?.treatment.actors).toEqual(expect.arrayContaining([expect.objectContaining({ role: "expert", identityAuthority: "canonical-protagonist", actionOwnership: "primary" }), expect.objectContaining({ role: "observer", identityAuthority: "distinct-scene-actor" })]));
+    expect(rebuilt.scenes[1]?.treatment.actors).toEqual([expect.objectContaining({ role: "existing-follower", identityAuthority: "distinct-scene-actor", actionOwnership: "primary" })]);
+    expect(rebuilt.assets[0]).toMatchObject({ subjectIdentityId: "canonical-expert", canonicalReferenceAssetId: "canonical-expert-approved-reference", referenceAssetId: "canonical-expert-approved-reference" });
+    expect(rebuilt.assets[1]).toMatchObject({ subjectIdentityId: null, canonicalReferenceAssetId: null, referenceAssetId: null, continuityReferenceAssetIds: [] });
+    expect(rebuilt.assets[2]).toMatchObject({ subjectIdentityId: "canonical-expert", canonicalReferenceAssetId: "canonical-expert-approved-reference", referenceAssetId: "canonical-expert-approved-reference" });
+
+    const contradictory = { ...rebuilt, scenes: rebuilt.scenes.map((entry, index) => index === 1 ? { ...entry, treatment: { ...entry.treatment, actors: [{ ...entry.treatment.actors![0]!, identityAuthority: "canonical-protagonist" as const }] } } : entry) } as PositioningVisualPlanV2;
+    expect(validateVeronicaProviderReadiness(contradictory).issues).toContainEqual(expect.objectContaining({ sceneId: "follower", code: "PROVIDER_PROMPT_SEMANTIC_BLOCKER", reason: "actor-ownership-contract-invalid-or-contradictory" }));
+  });
+
+  it("plans deterministic semantic reframes without increasing generated-asset count", () => {
+    const longScene = scene({ sceneId: "long-short-scene", durationMs: 16_000, narrationAnchor: "An observer compares old signals with new proof and notices the evidence gap.", treatment: treatment({ sceneId: "long-short-scene", actionOwnerRole: "buyer", action: "an observer compares old signals with new proof", composition: "old evidence at left; new proof at right; the title cue remains peripheral", props: ["old evidence", "new proof", "peripheral title cue"] }) });
+    const input = { plan: plan([longScene]), sceneTimings: [{ id: longScene.sceneId, timing: { startSeconds: 0, endSeconds: 16 } }], narrationByScene: [longScene.narrationAnchor] };
+    const first = rebuildVeronicaFinalTreatmentState(input);
+    const second = rebuildVeronicaFinalTreatmentState(input);
+    expect(first.assets).toHaveLength(1);
+    expect(first.visualEvents.length).toBeGreaterThan(1);
+    expect(first.visualEvents.map((event) => event.kind)).toEqual(expect.arrayContaining(["establishing-crop", "prop-detail"]));
+    expect(first.visualEvents.every((event) => event.startMs >= 0 && event.startMs + event.durationMs <= 16_000)).toBe(true);
+    expect(first.visualEvents.every((event) => event.safeRegionIds.includes("subtitle") && Boolean(event.semanticFocus))).toBe(true);
+    expect(second.visualEvents).toEqual(first.visualEvents);
+  });
 });

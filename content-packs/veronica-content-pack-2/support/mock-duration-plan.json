@@ -1,0 +1,218 @@
+{
+  "osc-01": {
+    "it-IT": {
+      "long": 600,
+      "short-a": 68,
+      "short-b": 64
+    },
+    "de-DE": {
+      "long": 630,
+      "short-a": 75,
+      "short-b": 80
+    },
+    "en-US": {
+      "long": 621,
+      "short-a": 71,
+      "short-b": 73
+    },
+    "es-ES": {
+      "long": 620,
+      "short-a": 70,
+      "short-b": 67
+    },
+    "pt-BR": {
+      "long": 630,
+      "short-a": 77,
+      "short-b": 69
+    }
+  },
+  "osc-02": {
+    "it-IT": {
+      "long": 570,
+      "short-a": 81,
+      "short-b": 79
+    },
+    "de-DE": {
+      "long": 594,
+      "short-a": 66,
+      "short-b": 60
+    },
+    "en-US": {
+      "long": 591,
+      "short-a": 65,
+      "short-b": 60
+    },
+    "es-ES": {
+      "long": 570,
+      "short-a": 60,
+      "short-b": 60
+    },
+    "pt-BR": {
+      "long": 570,
+      "short-a": 60,
+      "short-b": 60
+    }
+  },
+  "osc-03": {
+    "it-IT": {
+      "long": 594,
+      "short-a": 88,
+      "short-b": 80
+    },
+    "de-DE": {
+      "long": 570,
+      "short-a": 60,
+      "short-b": 60
+    },
+    "en-US": {
+      "long": 570,
+      "short-a": 60,
+      "short-b": 60
+    },
+    "es-ES": {
+      "long": 570,
+      "short-a": 60,
+      "short-b": 60
+    },
+    "pt-BR": {
+      "long": 570,
+      "short-a": 60,
+      "short-b": 60
+    }
+  },
+  "osc-04": {
+    "it-IT": {
+      "long": 570,
+      "short-a": 84,
+      "short-b": 81
+    },
+    "de-DE": {
+      "long": 570,
+      "short-a": 60,
+      "short-b": 60
+    },
+    "en-US": {
+      "long": 587,
+      "short-a": 60,
+      "short-b": 60
+    },
+    "es-ES": {
+      "long": 570,
+      "short-a": 60,
+      "short-b": 60
+    },
+    "pt-BR": {
+      "long": 570,
+      "short-a": 60,
+      "short-b": 60
+    }
+  },
+  "osc-05": {
+    "it-IT": {
+      "long": 570,
+      "short-a": 87,
+      "short-b": 78
+    },
+    "de-DE": {
+      "long": 570,
+      "short-a": 60,
+      "short-b": 60
+    },
+    "en-US": {
+      "long": 570,
+      "short-a": 60,
+      "short-b": 60
+    },
+    "es-ES": {
+      "long": 570,
+      "short-a": 60,
+      "short-b": 60
+    },
+    "pt-BR": {
+      "long": 570,
+      "short-a": 60,
+      "short-b": 60
+    }
+  },
+  "osc-06": {
+    "it-IT": {
+      "long": 570,
+      "short-a": 79,
+      "short-b": 84
+    },
+    "de-DE": {
+      "long": 570,
+      "short-a": 60,
+      "short-b": 60
+    },
+    "en-US": {
+      "long": 570,
+      "short-a": 60,
+      "short-b": 60
+    },
+    "es-ES": {
+      "long": 570,
+      "short-a": 60,
+      "short-b": 60
+    },
+    "pt-BR": {
+      "long": 570,
+      "short-a": 60,
+      "short-b": 60
+    }
+  },
+  "osc-07": {
+    "it-IT": {
+      "long": 570,
+      "short-a": 81,
+      "short-b": 87
+    },
+    "de-DE": {
+      "long": 570,
+      "short-a": 60,
+      "short-b": 60
+    },
+    "en-US": {
+      "long": 582,
+      "short-a": 60,
+      "short-b": 60
+    },
+    "es-ES": {
+      "long": 570,
+      "short-a": 60,
+      "short-b": 60
+    },
+    "pt-BR": {
+      "long": 570,
+      "short-a": 60,
+      "short-b": 60
+    }
+  },
+  "osc-08": {
+    "it-IT": {
+      "long": 570,
+      "short-a": 80,
+      "short-b": 76
+    },
+    "de-DE": {
+      "long": 570,
+      "short-a": 60,
+      "short-b": 60
+    },
+    "en-US": {
+      "long": 584,
+      "short-a": 60,
+      "short-b": 60
+    },
+    "es-ES": {
+      "long": 570,
+      "short-a": 60,
+      "short-b": 60
+    },
+    "pt-BR": {
+      "long": 570,
+      "short-a": 60,
+      "short-b": 60
+    }
+  }
+}

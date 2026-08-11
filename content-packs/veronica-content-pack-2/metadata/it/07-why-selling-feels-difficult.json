@@ -1,0 +1,31 @@
+{
+  "title": "Perché vendere sembra così difficile",
+  "thumbnail": "VENDERE TI METTE A DISAGIO?",
+  "description": "Il disagio con denaro, prezzo e follow-up entra direttamente nel business. Questo episodio separa persuasione da coercizione e trasforma la vendita in un processo strutturato, misurabile e rispettoso.",
+  "cta": "Nel prossimo episodio trasformiamo la vendita in un sistema di scoperta, contatto e follow-up che non richiede di inseguire tutti.",
+  "alternativeTitles": [
+    "Perché dire il prezzo sembra così difficile",
+    "Vendere senza manipolare: un processo migliore"
+  ],
+  "thumbnailOptions": [
+    "VENDERE TI METTE A DISAGIO?",
+    "PERCHÉ IL PREZZO IMBARAZZA?",
+    "VENDI SENZA PRESSIONE"
+  ],
+  "youtubeOptimizationVersion": "v2-retention-localization",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  },
+  "shortA": {
+    "title": "Perché dire il prezzo è così difficile?",
+    "alternateHook": "Se il tuo comportamento cambia quando entra il denaro, cambia anche il processo di vendita."
+  },
+  "shortB": {
+    "title": "Vendere non è manipolare",
+    "alternateHook": "La persuasione sana lascia il cliente informato e libero di dire no."
+  }
+}

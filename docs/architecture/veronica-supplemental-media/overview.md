@@ -36,15 +36,47 @@ Only explicit Veronica/strategic-reinvention workflows invoke this package. Othe
 
 ## Pre-image semantic readiness
 
-Veronica provider-image prompts are projected only after a maximum-two-round,
-gate-driven semantic remediation pass. Repairs derive a typed, narration-grounded
-semantic proposition from complete sentence/claim spans and preserve polarity,
-contrast, actor ownership, and consequence family. Material proposition changes
-rebuild incompatible treatment fields. Missing or malformed theses, low-confidence
-generic fallbacks, internal contradictions, stale treatment fields, unsupported
-episode-external motifs, projection mismatches, lexical corruption, and harmful
-template repetition fail closed. Provider projections carry treatment/proposition
-hash provenance, and text-free constraints never delete normal instruction prose.
-Review-pack readiness requires semantic coherence, provider projection, prompt
-quality, timing, and hash integrity to pass independently. Passing automation never
-records human approval or permits an image-provider request.
+Canonical code owns scene segmentation, narration-grounded propositions, visual
+treatments, polarity, actor/action ownership, evidence, continuity, references,
+format, timing, hashes, invalidation, and readiness. Production persists strict
+`visual-treatments.v1.json` and `visual-bible.v1.json` artifacts. The latter resolves
+`content-packs/veronica-character-reference-v1` as identity authority while keeping
+episode wardrobe, pose, environment, lighting, and framing separate.
+
+The final provider prompt is a deterministic projection of the immutable treatment,
+visual direction, resolved references, provider policy, aspect ratio, and subtitle
+safe area. Semantic invention remains upstream; the compiler performs no model call
+and cannot reinterpret the scene.
+
+Compilation identity includes semantic, treatment, visual-bible, format, continuity,
+reference, provider-constraint, and compiler-version dependencies. Unchanged assets
+are reused per scene and never patched or merged with legacy prose. Validation blocks
+schema, provenance, actor, polarity, state, evidence, placeholder, and internal-
+language defects before the source-fidelity judge receives the exact prompt.
+Sequence QA remains separate.
+
+The former OpenAI prompt rewrite and the older deterministic assembler are
+compatibility-only. Review evidence records compiler input/result, full prompt,
+hashes, remediation, QA, and same-snapshot status. Passing automation never records
+human approval or permits an image-provider request.
+
+Every prepared locale/variant persists the exact provider prompt set in the episode
+at `locales/<language>/<variant>/image-prompts/provider-image-prompts.v1.json` and
+`provider-image-prompts.md`. The manifest records both artifacts and checksums.
+Planning-only and audio-backed pre-image review packs include byte-identical copies;
+pack creation fails closed if the persisted artifact is missing, stale, or corrupt.
+
+## Localization and visual reuse
+
+English owns the master semantic plan, treatments, bible, provider prompts, and
+canonical images. Each non-English production requires that master plan, maps its
+narration back to the unchanged semantic scene order, and gives its own selected WAV
+exclusive ownership of locale timing. Preparation emits localized alignment,
+caption, visual-event, render-readiness, publish-readiness, and lineage artifacts.
+
+Locale wording, audio, timing, captions, metadata, and render changes do not alter
+canonical image cache keys. Only an explicit typed locale visual override can do so,
+and then only for the affected scene. Generated readable text remains forbidden;
+localized text belongs to captions and render-time overlays. The existing shared-
+visual renderer and YouTube metadata/upload paths consume these artifacts after
+canonical images, human approval, and render validation exist.

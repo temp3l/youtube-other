@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   ArchitectureReviewPackError,
   MANDATORY_ARCHITECTURE_SURFACES,
+  buildArchitectureReviewPack,
   discoverArchitectureReviewPack,
   runArchitectureReviewPack,
 } from "./architecture-review-pack.js";
@@ -108,5 +109,29 @@ describe("architecture review pack", () => {
     const result = await runArchitectureReviewPack({ repositoryRoot: root, profile: "code", dryRun: true });
     expect(result.validation).toEqual(["dry-run selection and mandatory architecture surface validation completed; no staging or archive created"]);
     await expect(runArchitectureReviewPack({ repositoryRoot: root, profile: "delta", dryRun: true })).rejects.toThrow("requires --base");
+  });
+
+  it("builds the structured forensic pack with source evidence, indexes, a validated ZIP, and stable source hashes", async () => {
+    const root = await fixture();
+    const generatedAt = new Date("2026-08-11T12:00:00.000Z");
+    const first = await buildArchitectureReviewPack({ repositoryRoot: root, output: "out-a", generatedAt });
+    const second = await buildArchitectureReviewPack({ repositoryRoot: root, output: "out-b", generatedAt });
+    const firstIndex = await fs.readFile(path.join(first.packDirectory, "indexes", "source-index.json"), "utf8");
+    const secondIndex = await fs.readFile(path.join(second.packDirectory, "indexes", "source-index.json"), "utf8");
+
+    expect(firstIndex).toBe(secondIndex);
+    expect(await fs.stat(path.join(first.packDirectory, "README.md"))).toBeDefined();
+    expect(await fs.stat(path.join(first.packDirectory, "flows", "image-generation.md"))).toBeDefined();
+    expect(await fs.stat(path.join(first.packDirectory, "quality", "gate-inventory.md"))).toBeDefined();
+    for (const surface of MANDATORY_ARCHITECTURE_SURFACES) {
+      expect(await fs.stat(path.join(first.packDirectory, "source", surface.path))).toBeDefined();
+    }
+    const listing = (await execFileAsync("unzip", ["-Z1", first.zipPath ?? ""])).stdout;
+    expect(listing).toContain(`${path.basename(first.packDirectory)}/manifest.json`);
+    expect(listing).toContain(`${path.basename(first.packDirectory)}/source/packages/image-generation/src/openai-image.ts`);
+    expect(first.validation).toEqual(expect.arrayContaining([
+      "source index paths and hashes verified",
+      "ZIP root structure and archive integrity verified",
+    ]));
   });
 });

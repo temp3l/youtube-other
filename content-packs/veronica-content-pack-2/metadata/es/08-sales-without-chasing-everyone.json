@@ -1,0 +1,31 @@
+{
+  "title": "Vender sin perseguir a todo el mundo",
+  "thumbnail": "DEJA DE PERSEGUIR",
+  "description": "Prospecting no significa molestar a más personas. Diseña un sistema de descubrimiento, interés, contacto, follow-up y retención para que las personas adecuadas tengan un camino claro hacia ti.",
+  "cta": "Cierra el círculo: modelo de negocio, cliente, promesa, oferta, producto, conversión, venta y prospecting tienen que funcionar como un único sistema.",
+  "alternativeTitles": [
+    "Deja de perseguir clientes. Construye un recorrido de venta.",
+    "Seguimiento sin perseguir: el sistema de ventas"
+  ],
+  "thumbnailOptions": [
+    "DEJA DE PERSEGUIR",
+    "CONSTRUYE EL CAMINO",
+    "SEGUIMIENTO ≠ PERSEGUIR"
+  ],
+  "youtubeOptimizationVersion": "v2-retention-localization",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  },
+  "shortA": {
+    "title": "Deja de perseguir clientes",
+    "alternateHook": "Un buen prospecting construye un camino en lugar de depender de contactos aleatorios."
+  },
+  "shortB": {
+    "title": "Seguimiento o persecución?",
+    "alternateHook": "El seguimiento aporta claridad o información. Perseguir solo vuelve a pedir atención."
+  }
+}

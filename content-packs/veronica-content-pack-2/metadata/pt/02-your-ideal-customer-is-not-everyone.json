@@ -1,0 +1,31 @@
+{
+  "title": "Seu cliente ideal não é “todo mundo”",
+  "thumbnail": "NÃO É PRA TODO MUNDO",
+  "description": "Se o seu público é “qualquer pessoa que poderia comprar”, o problema ainda não é mídia: é definição. Veja como necessidade, contexto, canais e comportamento real transformam buyer persona em ferramenta de decisão.",
+  "cta": "No próximo episódio: o que o cliente realmente compra além do produto.",
+  "alternativeTitles": [
+    "Seu cliente não é todo mundo: como ser realmente específico",
+    "O teste de persona que realmente muda o marketing"
+  ],
+  "thumbnailOptions": [
+    "NÃO É PRA TODO MUNDO",
+    "PARE DE FALAR COM TODO MUNDO",
+    "PARA QUEM É?"
+  ],
+  "youtubeOptimizationVersion": "v2-retention-localization",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  },
+  "shortA": {
+    "title": "Pare de falar com todo mundo",
+    "alternateHook": "Se o seu cliente ideal é “todo mundo”, ninguém específico consegue se reconhecer na mensagem."
+  },
+  "shortB": {
+    "title": "Você não precisa estar em toda plataforma",
+    "alternateHook": "O canal certo é onde o cliente certo realmente presta atenção."
+  }
+}

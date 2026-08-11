@@ -1,0 +1,7 @@
+Vuoi più vendite, ma appena devi dire il prezzo ti senti a disagio? Non è raro. Denaro e successo portano un sacco di giudizi culturali, e quel disagio entra direttamente nel business. Può farti abbassare il prezzo, evitare il follow-up o continuare ad aggiungere valore senza mai chiedere l'acquisto. Il primo passo è separare il denaro dal giudizio morale. È uno strumento. E se hai un business, devi poter guardare quanto entra, quanto esce e quanto resta senza sentirti una persona peggiore per volerlo sapere.
+
+Osserva come quel disagio cambia il comportamento. Ritardi il momento di dire il prezzo? Fai subito uno sconto? Aggiungi cose gratis perché temi che l offerta non basti? Eviti il follow-up? Questi possono sembrare problemi di tecnica, ma spesso sono segnali della relazione con il denaro. Misurare entrate, uscite e margine non ti rende fredda. Ti permette di trattare il denaro come un dato del business invece che come un giudizio sul tuo valore personale.
+
+Poi scegli un piccolo comportamento da cambiare: dire il prezzo senza scusarti, fare il follow-up concordato o smettere di aggiungere bonus per paura. Non devi risolvere tutta la relazione con il denaro in un giorno. Devi smettere di lasciarla decidere al posto tuo.
+
+Dì il prezzo una volta, chiaramente, senza scusarti e senza aggiungere subito uno sconto.

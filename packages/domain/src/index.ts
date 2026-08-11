@@ -463,8 +463,16 @@ export const sceneSchema = z.object({
   /** Planning duration is retained after TTS so proportional reconciliation is not mislabelled as measured audio. */
   plannedDurationSeconds: z.number().nonnegative().optional(),
   reconciledDurationSeconds: z.number().nonnegative().optional(),
-  timingSource: z.enum(["planned", "proportional-total-audio-reconciliation", "measured-scene-audio", "measured-narration-audio"]).optional(),
-  timingConfidence: z.enum(["planned", "estimated", "measured"]).optional(),
+  timingSource: z.enum([
+    "planned",
+    "selected-audio-word-timestamps",
+    "selected-audio-utterance-timestamps",
+    "derived-audio-silence-alignment",
+    "proportional-total-audio-reconciliation",
+    "measured-scene-audio",
+    "measured-narration-audio",
+  ]).optional(),
+  timingConfidence: z.enum(["planned", "actual", "derived", "fallback", "estimated", "measured"]).optional(),
   timing: sceneTimingSchema,
   visualPurpose: z.string(),
   textRequirement: sceneTextRequirementSchema,
@@ -475,6 +483,8 @@ export const sceneSchema = z.object({
   cameraFraming: z.string(),
   mood: z.string(),
   continuityReferences: z.array(z.string()).default([]),
+  /** Explicit canonical character identities required by the provider adapter. */
+  referenceCharacterIds: z.array(z.string().min(1)).default([]),
   onScreenText: z.string().default(""),
   negativeConstraints: z.array(z.string()).default([]),
   aspectRatios: z.array(z.enum(["16:9", "9:16"])),

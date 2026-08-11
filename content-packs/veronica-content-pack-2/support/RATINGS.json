@@ -1,0 +1,164 @@
+{
+  "persona": "Senior Multilingual YouTube Growth Director + Audience-Retention Editor + Sales/Conversion Strategist + Consumer-Psychology Reviewer",
+  "scale": "0-10",
+  "gate": 9.5,
+  "criteria": [
+    "hook/curiosity",
+    "retention progression",
+    "topic differentiation",
+    "business accuracy",
+    "actionability",
+    "visual/story potential",
+    "packaging alignment",
+    "ethical persuasion",
+    "localization resilience"
+  ],
+  "longForm": [
+    {
+      "episode": "OSC-01",
+      "title": "Your Revenue Can Grow While Your Business Gets Weaker",
+      "score": 9.6,
+      "status": "PASS_9_5_GATE"
+    },
+    {
+      "episode": "OSC-02",
+      "title": "Your Ideal Customer Is Not Everyone",
+      "score": 9.5,
+      "status": "PASS_9_5_GATE"
+    },
+    {
+      "episode": "OSC-03",
+      "title": "People Don't Buy Your Product. They Buy the Promise.",
+      "score": 9.6,
+      "status": "PASS_9_5_GATE"
+    },
+    {
+      "episode": "OSC-04",
+      "title": "How to Build an Offer People Actually Want",
+      "score": 9.7,
+      "status": "PASS_9_5_GATE"
+    },
+    {
+      "episode": "OSC-05",
+      "title": "Stop Improving the Marketing. Fix the Product.",
+      "score": 9.8,
+      "status": "PASS_9_5_GATE"
+    },
+    {
+      "episode": "OSC-06",
+      "title": "Attention Is Not Conversion",
+      "score": 9.9,
+      "status": "PASS_9_5_GATE"
+    },
+    {
+      "episode": "OSC-07",
+      "title": "Why Selling Feels Difficult",
+      "score": 9.8,
+      "status": "PASS_9_5_GATE"
+    },
+    {
+      "episode": "OSC-08",
+      "title": "Sales Without Chasing Everyone",
+      "score": 9.7,
+      "status": "PASS_9_5_GATE"
+    }
+  ],
+  "shorts": [
+    {
+      "episode": "OSC-01A",
+      "title": "More Revenue Can Make a Weak Business Worse",
+      "score": 9.7,
+      "status": "PASS_9_5_GATE"
+    },
+    {
+      "episode": "OSC-01B",
+      "title": "Does Your Income Stop When You Stop Working?",
+      "score": 9.7,
+      "status": "PASS_9_5_GATE"
+    },
+    {
+      "episode": "OSC-02A",
+      "title": "Stop Targeting Everyone",
+      "score": 9.5,
+      "status": "PASS_9_5_GATE"
+    },
+    {
+      "episode": "OSC-02B",
+      "title": "You Do Not Need Every Platform",
+      "score": 9.5,
+      "status": "PASS_9_5_GATE"
+    },
+    {
+      "episode": "OSC-03A",
+      "title": "What Is the Customer Really Buying?",
+      "score": 9.7,
+      "status": "PASS_9_5_GATE"
+    },
+    {
+      "episode": "OSC-03B",
+      "title": "A Promise Is Not a Slogan",
+      "score": 9.6,
+      "status": "PASS_9_5_GATE"
+    },
+    {
+      "episode": "OSC-04A",
+      "title": "A Good Product Can Still Be Hard to Buy",
+      "score": 9.8,
+      "status": "PASS_9_5_GATE"
+    },
+    {
+      "episode": "OSC-04B",
+      "title": "The 30-Second Offer Test",
+      "score": 9.7,
+      "status": "PASS_9_5_GATE"
+    },
+    {
+      "episode": "OSC-05A",
+      "title": "Maybe You Do Not Have a Marketing Problem",
+      "score": 9.8,
+      "status": "PASS_9_5_GATE"
+    },
+    {
+      "episode": "OSC-05B",
+      "title": "Too Many Choices Can Hurt Sales",
+      "score": 9.7,
+      "status": "PASS_9_5_GATE"
+    },
+    {
+      "episode": "OSC-06A",
+      "title": "100K Views and Zero Sales?",
+      "score": 9.9,
+      "status": "PASS_9_5_GATE"
+    },
+    {
+      "episode": "OSC-06B",
+      "title": "A Stronger CTA Will Not Fix Missing Trust",
+      "score": 9.8,
+      "status": "PASS_9_5_GATE"
+    },
+    {
+      "episode": "OSC-07A",
+      "title": "Why Saying the Price Feels So Hard",
+      "score": 9.8,
+      "status": "PASS_9_5_GATE"
+    },
+    {
+      "episode": "OSC-07B",
+      "title": "Selling Is Not Manipulation",
+      "score": 9.9,
+      "status": "PASS_9_5_GATE"
+    },
+    {
+      "episode": "OSC-08A",
+      "title": "Stop Chasing Customers",
+      "score": 9.8,
+      "status": "PASS_9_5_GATE"
+    },
+    {
+      "episode": "OSC-08B",
+      "title": "Follow-Up vs Chasing",
+      "score": 9.9,
+      "status": "PASS_9_5_GATE"
+    }
+  ]
+}

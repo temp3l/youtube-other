@@ -6,7 +6,7 @@ import { promisify } from "node:util";
 import { scenePlanSchema } from "@mediaforge/domain";
 import { runCommand } from "@mediaforge/process-runner";
 import { assessVeronicaShortPacing, probeAudioWithFfprobe, resolveVeronicaShortPacingPolicy, veronicaShortPacingCalibrationSchema } from "@mediaforge/speech";
-import { preparePositioningProductionEpisode, type PreparePositioningProductionEpisodeInput } from "@mediaforge/strategic-reinvention";
+import { loadVeronicaProviderImagePromptArtifact, positioningProductionPlanSchema, preparePositioningProductionEpisode, type PositioningVisualPlanV2, type PreparePositioningProductionEpisodeInput } from "@mediaforge/strategic-reinvention";
 import { z } from "zod";
 
 const PACK_SCHEMA_VERSION = "veronica-pre-image-review-pack.v9" as const;
@@ -357,6 +357,7 @@ export interface PackInput {
   readonly variant: "full" | "short";
   readonly reviewPackMode?: ReviewPackMode;
   readonly sourceGroundedVisualQa?: PreparePositioningProductionEpisodeInput["sourceGroundedVisualQa"];
+  readonly imagePromptCompiler?: PreparePositioningProductionEpisodeInput["imagePromptCompiler"];
 }
 
 function packRoot(input: PackInput): string {
@@ -686,6 +687,7 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
       episodeId: path.basename(input.episodeDir),
       language: input.language as "en" | "de" | "es" | "fr" | "pt" | "it",
       variant: input.variant,
+      ...(input.imagePromptCompiler ? { imagePromptCompiler: input.imagePromptCompiler } : {}),
       ...(input.sourceGroundedVisualQa ? { sourceGroundedVisualQa: input.sourceGroundedVisualQa } : {}),
     });
   }
@@ -699,6 +701,12 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
   const eventPath = path.join(localeRoot, "retimed-visual-events.json");
   const semanticReviewPath = path.join(input.episodeDir, "shared", "pre-image-semantic-reviews.v1.json");
   const sourceGroundedQaPath = path.join(input.episodeDir, "shared", "source-grounded-visual-qa.v1.json");
+  const visualTreatmentsPath = path.join(input.episodeDir, "shared", "visual-treatments.v1.json");
+  const visualBiblePath = path.join(input.episodeDir, "shared", "visual-bible.v1.json");
+  const localizedProductionPath = path.join(localeRoot, "localized-production.v1.json");
+  const localizedAlignmentPath = path.join(localeRoot, "localized-alignment.v1.json");
+  const captionPlanPath = path.join(localeRoot, "captions", "caption-plan.v1.json");
+  const localizedVisualEventsPath = path.join(localeRoot, "localized-visual-events.v1.json");
   const pacingCalibrationPath = path.join(localeRoot, "audio", "narration", "pacing-calibration.v1.json");
   await Promise.all([
     requiredFile(sourcePlanPath, "the canonical visual plan"),
@@ -780,6 +788,12 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
     sourceTreatmentHash: z.string(),
     sourcePropositionHash: z.string().nullable(),
     stateProjectionPolicyVersion: z.string(),
+    materializationRevisionId: z.string().optional(),
+    promptCompilerVersion: z.string().optional(),
+    promptCompilationInputHash: z.string().optional(),
+    promptCompilationResultHash: z.string().optional(),
+    promptCompilerModel: z.string().optional(),
+    promptCompilerReasoningEffort: z.string().optional(),
   });
   const finalPlan = z
     .object({
@@ -807,6 +821,16 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
         .optional(),
       semanticQuality: semanticQualitySchema,
       providerReadiness: providerReadinessSchema,
+      canonicalImagePlanHash: z.string().regex(/^[a-f0-9]{64}$/u),
+      imagePromptGenerationStrategy: z.enum(["deterministic-v1", "openai", "legacy-deterministic"]).optional(),
+      imagePromptCompilation: z.object({
+        sceneCount: z.number(), assetCount: z.number(), invalidatedAssetCount: z.number(),
+        compilerModel: z.string(), reasoningEffort: z.string(), requestCount: z.number(),
+        inputTokens: z.number(), outputTokens: z.number(), cachedInputTokens: z.number(),
+        latencyMs: z.number(), compilerVersion: z.string(), compilationHashes: z.array(z.string()),
+        cacheHits: z.number(), cacheMisses: z.number(), reasonForRegeneration: z.string(),
+        estimatedCostUsd: z.number().optional(), requestId: z.string().optional(),
+      }).optional(),
       sourceGroundedVisualQa: sourceGroundedQaManifestSchema,
       hierarchicalReadiness: z.object({
         sourceFidelityReady: z.boolean(),
@@ -850,10 +874,29 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
           sceneId: z.string(),
           prompt: z.string(),
           projectionProvenance: projectionSchema.optional(),
+          promptCompilation: z.object({
+            input: z.object({
+              sceneId: z.string(), assetId: z.string(), narrationBeat: z.string(),
+              proposition: z.unknown(), treatment: z.unknown(), format: z.unknown(),
+              continuity: z.unknown(), constraints: z.unknown(), referenceAssets: z.array(z.unknown()),
+              provenance: z.object({ propositionHash: z.string(), treatmentHash: z.string(), materializationRevisionId: z.string() }),
+            }),
+            result: z.object({
+              imagePrompt: z.string(), depictedState: z.unknown(), evidenceIncluded: z.array(z.string()),
+              evidenceIntentionallyOmitted: z.array(z.string()), compositionSummary: z.string(), compilationInputHash: z.string(),
+            }).passthrough(),
+            inputHash: z.string(), resultHash: z.string(),
+          }).optional(),
         }),
       ),
     })
     .parse(JSON.parse(finalPlanRaw) as unknown);
+  const persistedPromptArtifact = await loadVeronicaProviderImagePromptArtifact({
+    episodeDir: input.episodeDir,
+    language: input.language,
+    variant: input.variant,
+    expectedCanonicalImagePlanHash: finalPlan.canonicalImagePlanHash,
+  });
   const stateByScene = new Map(scenePlan.scenes.map((scene, index) => [scene.id, finalPlan.scenes[index]?.stateComplexity ?? "SINGLE_STATE"] as const));
   const actorByScene = new Map(scenePlan.scenes.map((scene, index) => [scene.id, finalPlan.scenes[index]?.treatment.actionOwnerRole ?? "not applicable"] as const));
   const thesisByScene = new Map(
@@ -930,6 +973,19 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
   const outputDir = packDir(input, generatedAtMs);
   await fs.mkdir(outputDir, { recursive: true });
   const canonicalAudioEmbedded = reviewPackMode === "forensic";
+  const optionalAuditCandidates: readonly (readonly [string, string])[] = [
+      ["visual-treatments.v1.json", visualTreatmentsPath] as const,
+      ["visual-bible.v1.json", visualBiblePath] as const,
+      ["localized-production.v1.json", localizedProductionPath] as const,
+      ["localized-alignment.v1.json", localizedAlignmentPath] as const,
+      ["caption-plan.v1.json", captionPlanPath] as const,
+      ["localized-visual-events.v1.json", localizedVisualEventsPath] as const,
+  ];
+  const optionalAuditFiles = (
+    await Promise.all(optionalAuditCandidates.map(async (entry) =>
+      fs.access(entry[1]).then(() => entry).catch(() => null),
+    ))
+  ).filter((entry): entry is readonly [string, string] => entry !== null);
   const files: Array<readonly [string, string]> = [
     ...(canonicalAudioEmbedded ? [["narration.wav", narrationPath] as const] : []),
     ["script.md", scriptPath],
@@ -940,6 +996,7 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
     ["episode-manifest.json", manifestPath],
     ["pre-image-semantic-reviews.v1.json", semanticReviewPath],
     ["source-grounded-visual-qa.v1.json", sourceGroundedQaPath],
+    ...optionalAuditFiles,
     ...(input.variant === "short" ? [["pacing-calibration.v1.json", pacingCalibrationPath] as const] : []),
   ];
   await Promise.all(files.map(([fileName, sourcePath]) => fs.copyFile(sourcePath, path.join(outputDir, fileName))));
@@ -984,7 +1041,9 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
   await fs.writeFile(audioIntegrityPath, `${JSON.stringify(audioIntegrity, null, 2)}\n`, "utf8");
   const promptPath = path.join(outputDir, "chatgpt-pre-image-review-request.md");
   const promptsPath = path.join(outputDir, "provider-image-prompts.md");
+  const promptsJsonPath = path.join(outputDir, "provider-image-prompts.v1.json");
   const qualityReviewPath = path.join(outputDir, "semantic-quality-review.md");
+  const compilationEvidencePath = path.join(outputDir, "prompt-compilation-evidence.json");
   const pacingSummary =
     diagnostic.mode === "short-adaptive"
       ? `${diagnostic.wordCount} words; ${diagnostic.narrationDurationSeconds.toFixed(3)}s; ${diagnostic.approximateWordsPerMinute} WPM; natural-pacing status ${diagnostic.pacingStatus}; editorial duration ${diagnostic.editorialDurationStatus}; selected speed ${diagnostic.ttsSpeed}; cached calibration ${diagnostic.calibrationStatus}${diagnostic.legacyCalibrationPolicy ? " under legacy policy" : ""}.`
@@ -1000,7 +1059,7 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
     actorByScene,
     thesisByScene,
   });
-  const providerMarkdown = providerPromptsMarkdown(scenePlan.scenes, stateByScene, actorByScene, thesisByScene, assetsByScene);
+  const providerMarkdown = persistedPromptArtifact.markdown;
   const blockedMarkerCount = providerMarkdown.match(/MISSING\s+[—-]\s+PROVIDER PROJECTION BLOCKED/giu)?.length ?? 0;
   const providerPromptQuality = {
     status:
@@ -1031,6 +1090,7 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
   await Promise.all([
     fs.writeFile(promptPath, promptMarkdown, "utf8"),
     fs.writeFile(promptsPath, providerMarkdown, "utf8"),
+    fs.writeFile(promptsJsonPath, persistedPromptArtifact.json, "utf8"),
     fs.writeFile(
       qualityReviewPath,
       semanticQualityReviewMarkdown({
@@ -1042,12 +1102,51 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
       }),
       "utf8",
     ),
+    fs.writeFile(
+      compilationEvidencePath,
+      `${JSON.stringify({
+        schemaVersion: "veronica-prompt-compilation-review-evidence.v1",
+        strategy: finalPlan.imagePromptGenerationStrategy ?? "legacy-deterministic",
+        telemetry: finalPlan.imagePromptCompilation ?? null,
+        scenes: scenePlan.scenes.map((wrapper, index) => {
+          const semanticScene = finalPlan.scenes[index];
+          const assets = semanticScene ? finalPlan.assets.filter((asset) => asset.sceneId === semanticScene.sceneId) : [];
+          const qa = finalPlan.sourceGroundedVisualQa.scenes[index];
+          return {
+            wrapperSceneId: wrapper.id,
+            canonicalNarrationBeat: wrapper.canonicalNarration,
+            semanticSceneId: semanticScene?.sceneId ?? null,
+            canonicalTreatment: semanticScene?.treatment ?? null,
+            assets: assets.map((asset) => ({
+              assetId: asset.assetId,
+              compilerInput: asset.promptCompilation?.input ?? null,
+              fullProviderPrompt: asset.prompt,
+              compilerResult: asset.promptCompilation?.result ?? null,
+              compilerProvenance: asset.projectionProvenance ?? null,
+              sameSnapshot: Boolean(
+                asset.promptCompilation
+                && asset.promptCompilation.result.imagePrompt === asset.prompt
+                && asset.promptCompilation.input.provenance.materializationRevisionId === asset.projectionProvenance?.materializationRevisionId
+                && asset.promptCompilation.input.provenance.treatmentHash === asset.projectionProvenance?.sourceTreatmentHash
+                && asset.promptCompilation.input.provenance.propositionHash === asset.projectionProvenance?.sourcePropositionHash
+              ),
+            })),
+            qaResult: qa ?? null,
+            readinessIssues: finalPlan.providerReadiness.issues.filter((issue) => issue.sceneId === semanticScene?.sceneId),
+            remediationHistory: finalPlan.sourceGroundedVisualQa.remediationHistory.filter((entry) => entry.sceneId === semanticScene?.sceneId),
+          };
+        }),
+      }, null, 2)}\n`,
+      "utf8",
+    ),
   ]);
   const artifactFiles: readonly (readonly [string, string])[] = [
     ["chatgpt-pre-image-review-request.md", promptPath],
     ["provider-image-prompts.md", promptsPath],
+    ["provider-image-prompts.v1.json", promptsJsonPath],
     ["semantic-quality-review.md", qualityReviewPath],
     ["audio-integrity.json", audioIntegrityPath],
+    ["prompt-compilation-evidence.json", compilationEvidencePath],
   ];
   const artifactHashes = Object.fromEntries(await Promise.all(artifactFiles.map(async ([name, artifactPath]) => [name, await fileHash(artifactPath)] as const)));
   const sourceFiles: readonly (readonly [string, string])[] = [
@@ -1060,6 +1159,7 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
     ["episode-manifest.json", manifestPath],
     ["pre-image-semantic-reviews.v1.json", semanticReviewPath],
     ["source-grounded-visual-qa.v1.json", sourceGroundedQaPath],
+    ...optionalAuditFiles,
     ...(input.variant === "short" ? [["pacing-calibration.v1.json", pacingCalibrationPath] as const] : []),
   ];
   const sources = await Promise.all(
@@ -1076,7 +1176,9 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
       ...(preview.embedded ? [["narration-review.opus", await fileHash(path.join(outputDir, "narration-review.opus"))] as const] : []),
       ["chatgpt-pre-image-review-request.md", await fileHash(promptPath)] as const,
       ["provider-image-prompts.md", await fileHash(promptsPath)] as const,
+      ["provider-image-prompts.v1.json", await fileHash(promptsJsonPath)] as const,
       ["semantic-quality-review.md", await fileHash(qualityReviewPath)] as const,
+      ["prompt-compilation-evidence.json", await fileHash(compilationEvidencePath)] as const,
     ]),
   );
   const reviewManifestPath = path.join(outputDir, "review-manifest.json");
@@ -1155,6 +1257,8 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
 - Word count / approximate WPM: \`${diagnostic.wordCount}\` / \`${diagnostic.approximateWordsPerMinute}\`${diagnostic.mode === "short-adaptive" ? ` (natural-pacing \`${diagnostic.pacingStatus}\`${diagnostic.preferredWpmRange ? `; locale/profile WPM guidance \`${diagnostic.preferredWpmRange.join("–")}\`` : ""}; editorial duration \`${diagnostic.editorialDurationStatus}\`)\n- TTS pacing: initial \`${diagnostic.initialTtsSpeed}\`, selected \`${diagnostic.ttsSpeed}\`, \`${diagnostic.calibrationAttemptCount}\` cached measured attempt(s), normalization \`${diagnostic.speedNormalizationApplied}\`, calibration \`${diagnostic.calibrationStatus}\`; policy \`${diagnostic.calibrationPolicyVersion}\`${diagnostic.legacyCalibrationPolicy ? " (legacy cached audio reused; future generation uses current natural-pacing policy)" : ""}` : "\n- TTS pacing: full-form current policy preserved; no Short adaptive calibration."}
 - Canonical timing source: \`${timing.timingSource}\`
 - Scene count: \`${scenePlan.scenes.length}\`
+- Image prompt generation: \`${finalPlan.imagePromptGenerationStrategy ?? "legacy-deterministic"}\`${finalPlan.imagePromptCompilation ? `; compiler \`${finalPlan.imagePromptCompilation.compilerModel}\` / \`${finalPlan.imagePromptCompilation.reasoningEffort}\`; requests \`${finalPlan.imagePromptCompilation.requestCount}\`; cache hits/misses \`${finalPlan.imagePromptCompilation.cacheHits}/${finalPlan.imagePromptCompilation.cacheMisses}\`; tokens input/cached/output \`${finalPlan.imagePromptCompilation.inputTokens}/${finalPlan.imagePromptCompilation.cachedInputTokens}/${finalPlan.imagePromptCompilation.outputTokens}\`; estimated cost \`$${(finalPlan.imagePromptCompilation.estimatedCostUsd ?? 0).toFixed(4)}\`` : ""}
+- Prompt compilation evidence: \`prompt-compilation-evidence.json\`
 - Selected recurring motif: \`${finalPlan.selectedRecurringMotif?.concept ?? "none"}\`
 - Continuity strategy: \`${finalPlan.continuity?.mode ?? "not recorded"}\`
 - Automated semantic gate: review-required (\`${warningCount}\` warnings; \`${blockerCount}\` blockers); human pre-image approval is not recorded.
@@ -1170,7 +1274,7 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
 - PACK_HASH_VALIDATION: **PASS**.
 - PACK_CROSS_ARTIFACT_INTEGRITY: **${integrity.status}** (technical epsilon \`${integrity.epsilonSeconds}s\`).
 
-Review \`chatgpt-pre-image-review-request.md\`, \`semantic-quality-review.md\`, \`visual-plan.json\`, \`retimed-scene-plan.json\`, \`canonical-locale-timing.v1.json\`, and \`retimed-visual-events.json\`; respond scene-by-scene, then record human approval through the normal workflow. \`provider-image-prompts.md\` is **UNAPPROVED / DO NOT SUBMIT**.\n`,
+Review \`chatgpt-pre-image-review-request.md\`, \`semantic-quality-review.md\`, \`visual-plan.json\`, \`retimed-scene-plan.json\`, \`canonical-locale-timing.v1.json\`, and \`retimed-visual-events.json\`; respond scene-by-scene, then record human approval through the normal workflow. \`provider-image-prompts.md\` and \`provider-image-prompts.v1.json\` are exact copies of the persisted episode artifacts and are **UNAPPROVED / DO NOT SUBMIT**.\n`,
     "utf8",
   );
   await fs.writeFile(path.join(packRoot(input), "latest.json"), `${JSON.stringify({ schemaVersion: "veronica-pre-image-review-pack-latest.v1", packDir: path.basename(outputDir) })}\n`, "utf8");
@@ -1189,6 +1293,112 @@ Review \`chatgpt-pre-image-review-request.md\`, \`semantic-quality-review.md\`, 
     generatedAtMs,
     reviewPackMode,
   };
+}
+
+/** Planning-only prompt audit pack. It never requires or creates audio. */
+export async function createVeronicaPromptCompilationReviewPack(input: {
+  readonly episodeDir: string;
+  readonly language: string;
+  readonly variant: "full" | "short";
+}) {
+  const generatedAtMs = Date.now();
+  const root = path.join(input.episodeDir, "review-packs", "pre-image-planning", `${input.language}-${input.variant}`);
+  const outputDir = path.join(root, `run-${generatedAtMs}`);
+  const sourcePlanPath = path.join(input.episodeDir, "source", "pre-image-semantic-plan.v1.json");
+  const scenePlanPath = path.join(input.episodeDir, "shared", "scenes.json");
+  const qaPath = path.join(input.episodeDir, "shared", "source-grounded-visual-qa.v1.json");
+  const semanticReviewsPath = path.join(input.episodeDir, "shared", "pre-image-semantic-reviews.v1.json");
+  const runTelemetryPath = path.join(input.episodeDir, "shared", "openai-planning-run.v1.json");
+  const scriptPath = path.join(input.episodeDir, "locales", input.language, input.variant, "script.md");
+  const [planRaw, scenePlanRaw, qaRaw, reviewsRaw, script] = await Promise.all([
+    fs.readFile(sourcePlanPath, "utf8"), fs.readFile(scenePlanPath, "utf8"),
+    fs.readFile(qaPath, "utf8"), fs.readFile(semanticReviewsPath, "utf8"), fs.readFile(scriptPath, "utf8"),
+  ]);
+  const exactRunTelemetry = await fs.readFile(runTelemetryPath, "utf8")
+    .then((value) => JSON.parse(value) as unknown)
+    .catch(() => null);
+  const plan = positioningProductionPlanSchema.parse(JSON.parse(planRaw) as unknown) as unknown as PositioningVisualPlanV2;
+  const scenePlan = scenePlanSchema.parse(JSON.parse(scenePlanRaw) as unknown);
+  if (plan.imagePromptGenerationStrategy !== "deterministic-v1" || !plan.imagePromptCompilation) {
+    throw new Error("PROMPT_COMPILATION_REVIEW_PACK_REQUIRES_DETERMINISTIC_COMPILATION");
+  }
+  const persistedPromptArtifact = await loadVeronicaProviderImagePromptArtifact({
+    episodeDir: input.episodeDir,
+    language: input.language,
+    variant: input.variant,
+    expectedCanonicalImagePlanHash: plan.canonicalImagePlanHash ?? "",
+  });
+  await fs.mkdir(outputDir, { recursive: true });
+  const evidence = {
+    schemaVersion: "veronica-prompt-compilation-review-evidence.v1",
+    episodeId: path.basename(input.episodeDir),
+    contentId: plan.contentId,
+    strategy: plan.imagePromptGenerationStrategy,
+    compilationTelemetry: plan.imagePromptCompilation,
+    exactRunTelemetry,
+    providerReadiness: plan.providerReadiness,
+    hierarchicalReadiness: plan.hierarchicalReadiness,
+    scenes: scenePlan.scenes.map((wrapper, index) => {
+      const scene = plan.scenes[index];
+      const assets = scene ? plan.assets.filter((asset) => asset.sceneId === scene.sceneId) : [];
+      return {
+        wrapperScene: wrapper,
+        canonicalSemanticProposition: scene?.semanticProposition ?? null,
+        canonicalTreatment: scene?.treatment ?? null,
+        materializationRevision: scene?.materializationRevision ?? null,
+        assets: assets.map((asset) => ({
+          assetId: asset.assetId,
+          compilerInput: asset.promptCompilation?.input ?? null,
+          fullProviderPrompt: asset.prompt,
+          compilerResult: asset.promptCompilation?.result ?? null,
+          compilerProvenance: asset.projectionProvenance ?? null,
+          sameSnapshot: Boolean(asset.promptCompilation
+            && asset.promptCompilation.result.imagePrompt === asset.prompt
+            && asset.promptCompilation.input.provenance.materializationRevisionId === scene?.materializationRevision?.revisionId
+            && asset.promptCompilation.input.provenance.treatmentHash === scene?.treatment.treatmentHash
+            && asset.promptCompilation.input.provenance.propositionHash === scene?.semanticProposition?.propositionHash),
+        })),
+        qaResult: plan.sourceGroundedVisualQa?.scenes.find((entry) => entry.sceneId === scene?.sceneId) ?? null,
+        readinessIssues: plan.providerReadiness?.issues.filter((issue) => issue.sceneId === scene?.sceneId) ?? [],
+        remediationHistory: plan.sourceGroundedVisualQa?.remediationHistory.filter((entry) => entry.sceneId === scene?.sceneId) ?? [],
+      };
+    }),
+  };
+  const evidencePath = path.join(outputDir, "prompt-compilation-evidence.json");
+  const promptsPath = path.join(outputDir, "provider-image-prompts.md");
+  const promptsJsonPath = path.join(outputDir, "provider-image-prompts.v1.json");
+  const readmePath = path.join(outputDir, "README.md");
+  await Promise.all([
+    fs.writeFile(evidencePath, `${JSON.stringify(evidence, null, 2)}\n`, "utf8"),
+    fs.writeFile(promptsPath, persistedPromptArtifact.markdown, "utf8"),
+    fs.writeFile(promptsJsonPath, persistedPromptArtifact.json, "utf8"),
+    fs.writeFile(readmePath, `# Veronica planning-only pre-image audit pack\n\n- Episode: \`${path.basename(input.episodeDir)}\`\n- Scenes: \`${plan.scenes.length}\`\n- Prompt strategy: \`deterministic-v1\`\n- Compiler: \`${plan.imagePromptCompilation.compilerModel}\` / \`${plan.imagePromptCompilation.reasoningEffort}\`\n- Provider readiness: \`${plan.providerReadiness?.status ?? "FAIL"}\`\n- Source-fidelity readiness: \`${plan.sourceGroundedVisualQa?.sourceFidelityReady ? "PASS" : "BLOCKED"}\`\n- Image calls: \`0\`\n- TTS calls: \`0\`\n- Audio is intentionally absent; canonical timing remains in the pre-TTS planned phase.\n- This pack is unapproved and cannot authorize provider submission.\n\nInspect \`prompt-compilation-evidence.json\`, \`provider-image-prompts.md\`, and \`provider-image-prompts.v1.json\`. The prompt files are exact copies of the persisted episode artifacts.\n`, "utf8"),
+    fs.copyFile(sourcePlanPath, path.join(outputDir, "visual-plan.json")),
+    fs.copyFile(scenePlanPath, path.join(outputDir, "scene-plan.json")),
+    fs.copyFile(qaPath, path.join(outputDir, "source-grounded-visual-qa.v1.json")),
+    fs.copyFile(semanticReviewsPath, path.join(outputDir, "pre-image-semantic-reviews.v1.json")),
+    ...(exactRunTelemetry ? [fs.copyFile(runTelemetryPath, path.join(outputDir, "openai-planning-run.v1.json"))] : []),
+    fs.writeFile(path.join(outputDir, "script.md"), script, "utf8"),
+  ]);
+  const names = ["README.md", "prompt-compilation-evidence.json", "provider-image-prompts.md", "provider-image-prompts.v1.json", "visual-plan.json", "scene-plan.json", "source-grounded-visual-qa.v1.json", "pre-image-semantic-reviews.v1.json", "script.md", ...(exactRunTelemetry ? ["openai-planning-run.v1.json"] : [])];
+  const hashes = Object.fromEntries(await Promise.all(names.map(async (name) => [name, await fileHash(path.join(outputDir, name))] as const)));
+  const manifestPath = path.join(outputDir, "review-manifest.json");
+  await fs.writeFile(manifestPath, `${JSON.stringify({
+    schemaVersion: "veronica-prompt-compilation-review-pack.v1",
+    episodeId: path.basename(input.episodeDir), generatedAtMs, planningOnly: true,
+    providerRequestsAllowed: false, imageCalls: 0, ttsCalls: 0,
+    promptGenerationStrategy: "deterministic-v1", compilationTelemetry: plan.imagePromptCompilation,
+    persistedPromptArtifactHash: persistedPromptArtifact.artifact.artifactHash,
+    exactRunTelemetry,
+    providerReadiness: plan.providerReadiness?.status ?? "FAIL",
+    sourceFidelityReady: plan.sourceGroundedVisualQa?.sourceFidelityReady ?? false,
+    fileHashes: hashes,
+  }, null, 2)}\n`, "utf8");
+  await fs.writeFile(path.join(root, "latest.json"), `${JSON.stringify({ schemaVersion: "veronica-prompt-compilation-review-pack-latest.v1", packDir: path.basename(outputDir) })}\n`, "utf8");
+  const zipPath = path.join(root, `veronica-prompt-compilation-review-pack-${generatedAtMs}.zip`);
+  await execFileAsync("zip", ["-X", "-q", "-r", zipPath, path.basename(outputDir)], { cwd: root });
+  await execFileAsync("unzip", ["-t", zipPath], { cwd: root });
+  return { packDir: outputDir, manifestPath, evidencePath, promptsPath, promptsJsonPath, zipPath, zipSha256: await fileHash(zipPath), generatedAtMs };
 }
 
 export async function assertVeronicaPreImageReviewPackCurrent(input: PackInput): Promise<void> {

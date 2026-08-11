@@ -1,0 +1,35 @@
+{
+  "version": "youtube-optimized-v2",
+  "episodes": 8,
+  "languages": [
+    "it-IT",
+    "de-DE",
+    "en-US",
+    "es-ES",
+    "pt-BR"
+  ],
+  "localizedLongs": 40,
+  "localizedShorts": 80,
+  "totalNarrationAssets": 120,
+  "editorialGate": {
+    "minimumScore": 9.5,
+    "longPass": 8,
+    "shortPass": 16
+  },
+  "englishShortWpm": {
+    "target": 155,
+    "preferred": [
+      145,
+      165
+    ],
+    "soft": [
+      135,
+      175
+    ]
+  },
+  "timingAuthority": {
+    "current": "mock_audio_emulation",
+    "production": "selected_real_tts_audio"
+  },
+  "status": "PASS"
+}

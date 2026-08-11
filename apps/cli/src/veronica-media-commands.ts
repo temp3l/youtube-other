@@ -5,8 +5,7 @@ import { Command } from "commander";
 import { loadRuntimeConfig } from "@mediaforge/config";
 import { YOUTUBE_METADATA_PROMPT_VERSION, type YoutubeMetadataGenerationOptions } from "@mediaforge/metadata";
 import { runCommand } from "@mediaforge/process-runner";
-import { buildSemanticImagePromptCacheKey, inspectSemanticImagePromptCache } from "@mediaforge/shared";
-import { createOpenAiStoryClientWithOptions } from "@mediaforge/story-localization";
+import { inspectSemanticImagePromptCache } from "@mediaforge/shared";
 import {
   createVeronicaPilotFixtures,
   executeVeronicaRender,
@@ -21,17 +20,14 @@ import {
   generatePositioningVisualPlans,
   generatePositioningVisualPlanCalibration,
   generateVeronicaBeniniReviewPacks,
-  buildVeronicaSemanticImagePromptPlanInput,
-  deriveVeronicaSemanticImagePromptBrief,
-  persistVeronicaSemanticImagePromptReview,
   preparePositioningProductionEpisode,
   positioningProductionPlanSchema,
   resolveVeronicaSemanticImagePromptPaths,
   runStrategicSupplementalMediaBridge,
-  VERONICA_SEMANTIC_IMAGE_PROMPT_PLANNER_VERSION,
   type PositioningVisualPlanV2,
 } from "@mediaforge/strategic-reinvention";
-import { createVeronicaPreImageReviewPack, reviewPackModeSchema } from "./veronica-pre-image-review-pack.js";
+import { createVeronicaImagePromptCompilerComposition } from "./veronica-image-prompt-compiler-composition.js";
+import { createVeronicaPreImageReviewPack, createVeronicaPromptCompilationReviewPack, reviewPackModeSchema } from "./veronica-pre-image-review-pack.js";
 import {
   createVeronicaSourceGroundedVisualQaComposition,
   VERONICA_SOURCE_GROUNDED_QA_DEFAULT_CEILINGS,
@@ -302,6 +298,10 @@ export function registerVeronicaMediaCommands(program: Command): void {
           episodeId: options.episodeId,
           language: options.language,
           variant: options.variant,
+          imagePromptCompiler: await createVeronicaImagePromptCompilerComposition({
+            workspaceRoot,
+            episodeDir,
+          }),
           sourceGroundedVisualQa: await createVeronicaSourceGroundedVisualQaComposition({
             workspaceRoot,
             episodeDir,
@@ -326,7 +326,7 @@ export function registerVeronicaMediaCommands(program: Command): void {
   const images = veronica.command("images").description("Generate Veronica positioning images through the canonical image pipeline");
   images
     .command("derive-image-prompts")
-    .description("Derive one cached semantic image-prompt brief for a Veronica content ID")
+    .description("Verify the atomically compiled Veronica provider prompts")
     .requiredOption("--workspace <path>", "Episode workspace root")
     .requiredOption("--episode-id <id>", "Episode identifier")
     .option("--variant <full|short>", "Canonical narration variant", "full")
@@ -355,68 +355,32 @@ export function registerVeronicaMediaCommands(program: Command): void {
           ...(options.plan ? { planPath: options.plan } : {}),
           ...(options.canonicalNarration ? { narrationPath: options.canonicalNarration } : {}),
         });
-        const runtime = await loadRuntimeConfig({
-          workspaceDir: path.resolve(options.workspace),
-        });
-        const model = options.fixtureResponse ? "veronica-semantic-fixture-v1" : (process.env["VERONICA_IMAGE_PROMPT_PLANNER_MODEL"] ?? runtime.openAiStoryModel ?? "");
-        const normalized = buildVeronicaSemanticImagePromptPlanInput({
-          plan: source.plan,
-          canonicalNarration: source.canonicalNarration,
-        });
         const dryRun = options.dryRun || program.opts<{ readonly dryRun?: boolean }>().dryRun;
+        if (source.plan.imagePromptGenerationStrategy !== "deterministic-v1" || !source.plan.imagePromptCompilation) {
+          throw new Error("VERONICA_DETERMINISTIC_IMAGE_PROMPTS_NOT_COMPILED: run prepare-production to compile canonical provider prompts before image generation.");
+        }
+        const incoherent = source.plan.assets.filter((asset) =>
+          !asset.promptCompilation
+          || asset.promptCompilation.result.imagePrompt !== asset.prompt
+          || asset.promptCompilation.input.provenance.materializationRevisionId
+            !== source.plan.scenes.find((scene) => scene.sceneId === asset.sceneId)?.materializationRevision?.revisionId
+        );
+        if (incoherent.length > 0) throw new Error(`VERONICA_COMPILED_PROMPT_SNAPSHOT_MISMATCH:${incoherent.map((asset) => asset.assetId).join(",")}`);
         if (dryRun) {
-          const identity = buildSemanticImagePromptCacheKey({
-            plan: normalized,
-            plannerPromptVersion: VERONICA_SEMANTIC_IMAGE_PROMPT_PLANNER_VERSION,
-            plannerModel: model,
-          });
-          process.stdout.write(`${JSON.stringify({ dryRun: true, contentId: source.plan.contentId, assetCount: normalized.assets.length, ...identity }, null, 2)}\n`);
+          process.stdout.write(`${JSON.stringify({ dryRun: true, contentId: source.plan.contentId, ...source.plan.imagePromptCompilation }, null, 2)}\n`);
           return;
         }
-        const fixtureValue = options.fixtureResponse ? (JSON.parse(await fs.readFile(path.resolve(options.fixtureResponse), "utf8")) as unknown) : undefined;
-        const client = options.fixtureResponse
-          ? {
-              responses: {
-                create: async () => ({
-                  id: "veronica-semantic-fixture",
-                  status: "completed",
-                  output_text: JSON.stringify(fixtureValue),
-                }),
-              },
-            }
-          : createOpenAiStoryClientWithOptions({
-              apiKey: runtime.openAiCompatibleApiKey ?? undefined,
-              baseUrl: runtime.openAiCompatibleBaseUrl ?? undefined,
-              maxRetries: 0,
-            });
-        const derived = await deriveVeronicaSemanticImagePromptBrief({
-          ...source,
-          client,
-          model,
-          ...(options.refreshImagePromptBrief ? { refresh: true } : {}),
-        });
-        const persisted = await persistVeronicaSemanticImagePromptReview({
-          episodeDir: source.episodeDir,
-          plan: source.plan,
-          artifact: derived.artifact,
-          cacheStatus: derived.cacheStatus,
-          previousArtifact: derived.previousArtifact,
-          findings: derived.findings,
-        });
-        const reviewPack = await createVeronicaPreImageReviewPack({
+        const reviewPack = await createVeronicaPromptCompilationReviewPack({
           episodeDir: source.episodeDir,
           language: "en",
           variant: options.variant,
-          reviewPackMode: "compact",
         });
         const payload = {
           contentId: source.plan.contentId,
-          cacheStatus: derived.cacheStatus,
-          cachePath: resolveVeronicaSemanticImagePromptPaths(source.episodeDir).cachePath,
-          reviewPath: persisted.reviewPath,
-          semanticBriefHash: derived.artifact.briefHash,
-          finalPromptSetHash: persisted.finalPromptSetHash,
-          staleAssetIds: persisted.staleAssetIds,
+          strategy: source.plan.imagePromptGenerationStrategy,
+          compilation: source.plan.imagePromptCompilation,
+          finalPromptSetHash: source.plan.canonicalImagePlanHash,
+          staleAssetIds: [],
           preImageReviewPack: reviewPack.packDir,
           imageGenerationCalls: 0,
         };
@@ -482,6 +446,10 @@ export function registerVeronicaMediaCommands(program: Command): void {
           language: options.language,
           variant: options.variant,
           reviewPackMode: reviewPackModeSchema.parse(options.reviewPackMode),
+          imagePromptCompiler: await createVeronicaImagePromptCompilerComposition({
+            workspaceRoot,
+            episodeDir,
+          }),
           sourceGroundedVisualQa: await createVeronicaSourceGroundedVisualQaComposition({
             workspaceRoot,
             episodeDir,

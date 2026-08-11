@@ -1,0 +1,9 @@
+Non devi essere su ogni piattaforma. Devi essere dove si trova il cliente giusto. Aprire Instagram, TikTok, una newsletter e un gruppo solo perché “bisogna esserci” non è una strategia. Prima definisci la persona. Poi chiediti dove passa davvero attenzione quando il tuo messaggio può essere rilevante. Se il cliente è altrove, la piattaforma di moda non ti salva. Il canale viene dopo il cliente. Non il contrario.
+
+Fai un audit dei tuoi canali. Per ogni piattaforma scrivi: quale cliente sto raggiungendo qui? Che comportamento mi fa pensare che sia presente? E riesco davvero a gestire bene questo canale? Se non hai una risposta, forse stai mantenendo una piattaforma per abitudine. Meglio due luoghi pertinenti e seguiti bene che cinque profili abbandonati. La distribuzione non parte dalla piattaforma. Parte dal comportamento della persona che vuoi raggiungere.
+
+E non confondere presenza con efficacia. Un profilo aperto ma trascurato non ti rende più raggiungibile. Scegli i canali che puoi alimentare, ascoltare e usare per creare una relazione reale con il pubblico giusto.
+
+Prima di aprire il prossimo account, prova invece a chiuderne mentalmente uno: se sparisse domani, perderesti davvero clienti rilevanti? Se no, forse stai distribuendo energia senza distribuire valore.
+
+Scegli un canale da mantenere e uno da mettere in pausa in base al comportamento reale dei clienti.

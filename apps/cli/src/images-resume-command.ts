@@ -3,7 +3,6 @@ import path from "node:path";
 import { loadRuntimeConfig } from "@mediaforge/config";
 import {
   episodeManifestSchema,
-  sceneIdSchema,
   scenePlanSchema,
   type EpisodeManifest,
   type ScenePlan,
@@ -27,8 +26,6 @@ import {
   createOpenAiStoryClientWithOptions,
 } from "@mediaforge/story-localization";
 import {
-  deriveVeronicaSemanticImagePromptBrief,
-  persistVeronicaSemanticImagePromptReview,
   positioningProductionPlanSchema,
   type PositioningVisualPlanV2,
 } from "@mediaforge/strategic-reinvention";
@@ -37,7 +34,6 @@ import {
   fileExists,
   normalizeWhitespace,
   writeJsonAtomic,
-  type SemanticImagePromptCacheArtifact,
 } from "@mediaforge/shared";
 import { assertVeronicaPreImageReviewPackCurrent } from "./veronica-pre-image-review-pack.js";
 import { assertPreImageReviewPackCurrent } from "./pre-image-review-pack.js";
@@ -73,96 +69,45 @@ function nowIso(): string {
 }
 
 function buildVeronicaVisualQaBriefs(input: {
-  readonly artifact: SemanticImagePromptCacheArtifact;
+  readonly plan: PositioningVisualPlanV2;
   readonly scenePlan: ScenePlan;
   readonly variant: "short" | "full";
 }): readonly VeronicaVisualQaBrief[] {
-  if (input.artifact.brief.genre !== "veronicaBenini")
-    throw new Error("Veronica visual QA requires a Veronica semantic brief.");
-  const sceneIds = new Set(input.scenePlan.scenes.map((scene) => scene.id));
+  if (input.plan.imagePromptGenerationStrategy !== "deterministic-v1" || !input.plan.imagePromptCompilation) {
+    throw new Error("Veronica visual QA requires the canonical deterministic prompt-compilation artifact.");
+  }
+  const compilation = input.plan.imagePromptCompilation;
   const rules = [
-    ...input.artifact.brief.visualDirection.overallVisualLanguage,
-    ...input.artifact.brief.visualDirection.forbiddenDrift,
-    ...input.artifact.brief.genreContext.antiDriftRules,
+    "The generated image must depict the canonical actor, action owner, polarity, state relation, cause, and consequence.",
+    "Required evidence must be visible and forbidden evidence must be absent.",
     "Muted narration must still reveal the principal relationship in one to two seconds.",
   ];
-  return input.artifact.brief.assets.map((asset) => {
-    const sceneId = sceneIdSchema.parse(asset.beatId);
-    if (!sceneIds.has(sceneId))
-      throw new Error(
-        `Veronica semantic asset ${asset.assetId} has no scene ${asset.beatId}.`
-      );
+  return input.scenePlan.scenes.map((wrapper, index) => {
+    const scene = input.plan.scenes[index];
+    const asset = scene ? input.plan.assets.find((candidate) => candidate.sceneId === scene.sceneId) : undefined;
+    if (!scene?.semanticProposition || !asset?.promptCompilation) {
+      throw new Error(`Veronica compiled prompt evidence is missing for ${wrapper.id}.`);
+    }
     return {
-      contentId: input.artifact.brief.contentId,
-      assetId: asset.beatId,
+      contentId: input.plan.contentId,
+      assetId: wrapper.id,
       locale: "en",
       variant: input.variant,
-      canonicalNarration: "",
-      spokenMeaning: asset.spokenMeaning,
-      viewerTakeaway: asset.viewerTakeaway,
-      narrativePurpose: asset.narrativePurpose,
-      visualRelationship: asset.visualRelationship,
-      mustShow: asset.mustShow,
-      mustNotShow: asset.mustNotShow,
-      relevanceAnchors: asset.relevanceAnchors,
-      genericDriftRisks: asset.genericDriftRisks,
-      finalPrompt: "",
+      canonicalNarration: wrapper.canonicalNarration,
+      spokenMeaning: scene.semanticProposition.narrationClaim,
+      viewerTakeaway: scene.visibleThesis,
+      narrativePurpose: scene.treatment.communicationIntent,
+      visualRelationship: `${scene.semanticProposition.cause ?? scene.semanticProposition.narrationClaim} -> ${scene.semanticProposition.consequence}`,
+      mustShow: asset.promptCompilation.input.treatment.requiredEvidence,
+      mustNotShow: asset.promptCompilation.input.treatment.forbiddenEvidence,
+      relevanceAnchors: scene.semanticProposition.evidenceAnchors,
+      genericDriftRisks: asset.promptCompilation.input.treatment.forbiddenEvidence,
+      finalPrompt: asset.prompt,
       visualDirectionRules: rules,
-      semanticBriefHash: input.artifact.briefHash,
-      visualDirectionVersion: input.artifact.genreVisualDirectionVersion,
+      semanticBriefHash: asset.promptCompilation.inputHash,
+      visualDirectionVersion: compilation.compilerVersion,
     };
   });
-}
-
-async function resolveVeronicaCanonicalNarration(
-  episodeDir: string,
-  variant: "full" | "short",
-  canonicalNarrationSource?: string
-): Promise<string> {
-  let manifestCanonicalNarration: string | null = null;
-  if (canonicalNarrationSource) {
-    try {
-      const manifest = JSON.parse(
-        await fs.readFile(path.join(episodeDir, "manifest.json"), "utf8")
-      ) as { readonly source?: { readonly filePath?: unknown } };
-      const sourcePath = manifest.source?.filePath;
-      if (typeof sourcePath === "string" && !path.isAbsolute(sourcePath)) {
-        const normalized = sourcePath.replaceAll("\\", "/");
-        const packageBoundary = normalized.indexOf("/shorts/");
-        if (packageBoundary >= 0) {
-          manifestCanonicalNarration = path.resolve(
-            episodeDir,
-            "..",
-            "..",
-            normalized.slice(0, packageBoundary),
-            canonicalNarrationSource
-          );
-        }
-      }
-    } catch {
-      // Fall through to legacy canonical-only locations.
-    }
-  }
-  const candidates =
-    variant === "short"
-      ? [
-          ...(manifestCanonicalNarration ? [manifestCanonicalNarration] : []),
-          path.join(episodeDir, "source", "canonical-narration.md"),
-          path.join(episodeDir, "languages", "short", "script-en.md"),
-          path.join(episodeDir, "locales", "en", "short", "script.md"),
-        ]
-      : [
-          ...(manifestCanonicalNarration ? [manifestCanonicalNarration] : []),
-          path.join(episodeDir, "source", "canonical-narration.md"),
-          path.join(episodeDir, "languages", "script-en.md"),
-          path.join(episodeDir, "locales", "en", "full", "script.md"),
-        ];
-  for (const candidate of candidates) {
-    if (await fileExists(candidate)) return fs.readFile(candidate, "utf8");
-  }
-  throw new Error(
-    `Veronica semantic image-prompt preflight requires canonical narration at one of: ${candidates.join(", ")}.`
-  );
 }
 
 async function readJsonIfExists<T>(
@@ -492,35 +437,14 @@ export async function commandImagesResume(
       timeoutMs: settings.timeoutMs,
     });
     if (isVeronica) {
-      const planPath = path.join(episodeDir, "source", "visual-plan.json");
+      const planPath = path.join(episodeDir, "source", "pre-image-semantic-plan.v1.json");
       const rawPlan = positioningProductionPlanSchema.parse(
         JSON.parse(await fs.readFile(planPath, "utf8")) as unknown
       ) as unknown as PositioningVisualPlanV2;
-      const canonicalNarration = await resolveVeronicaCanonicalNarration(
-        episodeDir,
-        options.variant ?? (rawPlan.format === "short" ? "short" : "full"),
-        rawPlan.canonicalNarrationSource
-      );
-      const derived = await deriveVeronicaSemanticImagePromptBrief({
-        episodeDir,
-        plan: rawPlan,
-        canonicalNarration,
-        client,
-        model:
-          process.env["VERONICA_IMAGE_PROMPT_PLANNER_MODEL"] ??
-          runtime.openAiStoryModel ??
-          "",
-      });
-      semanticScenePlan = (
-        await persistVeronicaSemanticImagePromptReview({
-          episodeDir,
-          plan: rawPlan,
-          artifact: derived.artifact,
-          cacheStatus: derived.cacheStatus,
-          previousArtifact: derived.previousArtifact,
-          findings: derived.findings,
-        })
-      ).scenePlan;
+      if (rawPlan.imagePromptGenerationStrategy !== "deterministic-v1" || !rawPlan.imagePromptCompilation) {
+        throw new Error("VERONICA_DETERMINISTIC_IMAGE_PROMPTS_NOT_COMPILED: rerun prepare-production before image generation.");
+      }
+      semanticScenePlan = manifest.scenePlan;
       veronicaVisualQaEvaluator = createOpenAiVeronicaVisualQaEvaluator({
         client,
         model:
@@ -530,7 +454,7 @@ export async function commandImagesResume(
           "",
       });
       veronicaVisualQaBriefs = buildVeronicaVisualQaBriefs({
-        artifact: derived.artifact,
+        plan: rawPlan,
         scenePlan: semanticScenePlan,
         variant:
           options.variant ?? (rawPlan.format === "short" ? "short" : "full"),

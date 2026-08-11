@@ -1,0 +1,31 @@
+{
+  "title": "Smetti di migliorare il marketing. Sistema il prodotto.",
+  "thumbnail": "FORSE NON È IL MARKETING",
+  "description": "Più traffico non salva un prodotto debole. Validazione, semplificazione, competitor, costi operativi e rischio di inventario aiutano a capire cosa sistemare prima di comprare altra attenzione.",
+  "cta": "Nel prossimo episodio vediamo perché attenzione e conversione sono due lavori diversi — e come trovare il punto in cui perdi le vendite.",
+  "alternativeTitles": [
+    "Prima di spendere di più in marketing, testa il prodotto",
+    "Più traffico può peggiorare un problema di prodotto"
+  ],
+  "thumbnailOptions": [
+    "FORSE NON È IL MARKETING",
+    "FORSE È IL PRODOTTO",
+    "NON COMPRARE ALTRO TRAFFICO"
+  ],
+  "youtubeOptimizationVersion": "v2-retention-localization",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  },
+  "shortA": {
+    "title": "Forse non hai un problema di marketing",
+    "alternateHook": "Più traffico non salva un prodotto che non regge l’interesse reale dei clienti."
+  },
+  "shortB": {
+    "title": "Troppe scelte possono ridurre le vendite",
+    "alternateHook": "Più opzioni possono creare più confusione, inventario, errori e decisioni lente."
+  }
+}

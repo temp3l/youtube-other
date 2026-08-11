@@ -2594,8 +2594,18 @@ function resolveCharactersForScene(
     `${scene.canonicalNarration} ${scene.subject} ${scene.action} ${scene.setting}`
   ).toLowerCase();
   const usages: SceneCharacterUsage[] = [];
+  for (const characterId of scene.referenceCharacterIds) {
+    const character = registry.characters.find((candidate) => candidate.id === characterId);
+    if (!character) {
+      throw new Error(`EXPLICIT_SCENE_REFERENCE_CHARACTER_NOT_FOUND:${scene.id}:${characterId}`);
+    }
+    usages.push({
+      characterId: character.id,
+      visibleFeatures: character.continuityTraits.slice(0, 3),
+    });
+  }
   for (const character of registry.characters) {
-    if (hasCharacterLabelMatch(haystack, character)) {
+    if (!usages.some((usage) => usage.characterId === character.id) && hasCharacterLabelMatch(haystack, character)) {
       usages.push({
         characterId: character.id,
         expression: haystack.includes("reaction") ? "tense" : undefined,

@@ -1,0 +1,31 @@
+{
+  "title": "Your Ideal Customer Is Not Everyone",
+  "thumbnail": "NOT FOR EVERYONE",
+  "description": "If your target is “anyone who could buy,” the real problem is not advertising yet—it is definition. Learn how needs, context, channels, and observed behavior turn a buyer persona into an operating tool.",
+  "cta": "Next: what customers are really buying beyond the product itself.",
+  "alternativeTitles": [
+    "Your Customer Is Not Everyone — Here's How to Get Specific",
+    "The Buyer Persona Test That Actually Changes Marketing"
+  ],
+  "thumbnailOptions": [
+    "NOT FOR EVERYONE",
+    "STOP TARGETING EVERYONE",
+    "WHO IS THIS REALLY FOR?"
+  ],
+  "youtubeOptimizationVersion": "v2-retention-localization",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  },
+  "shortA": {
+    "title": "Stop Targeting Everyone",
+    "alternateHook": "If your ideal customer is “everyone,” your message has nobody specific to recognize."
+  },
+  "shortB": {
+    "title": "You Do Not Need Every Platform",
+    "alternateHook": "The right channel is where the right customer actually pays attention."
+  }
+}

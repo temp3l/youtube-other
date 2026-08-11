@@ -147,13 +147,16 @@ describe("Veronica L01 full semantic remediation", () => {
       scriptPath: l01NarrationPath,
     });
     const reviewPack = await createVeronicaPreImageReviewPack({ episodeDir, language: "en", variant: "full" });
-    const [planRaw, reviewsRaw, timingRaw, eventsRaw, reviewRequest, providerPrompts, manifestRaw] = await Promise.all([
+    const [planRaw, reviewsRaw, timingRaw, eventsRaw, reviewRequest, providerPrompts, providerPromptsJson, episodeProviderPrompts, episodeProviderPromptsJson, manifestRaw] = await Promise.all([
       fs.readFile(path.join(episodeDir, "source/pre-image-semantic-plan.v1.json"), "utf8"),
       fs.readFile(path.join(episodeDir, "shared/pre-image-semantic-reviews.v1.json"), "utf8"),
       fs.readFile(path.join(episodeDir, "locales/en/full/canonical-timing.v1.json"), "utf8"),
       fs.readFile(path.join(episodeDir, "locales/en/full/retimed-visual-events.json"), "utf8"),
       fs.readFile(reviewPack.promptPath, "utf8"),
       fs.readFile(path.join(reviewPack.packDir, "provider-image-prompts.md"), "utf8"),
+      fs.readFile(path.join(reviewPack.packDir, "provider-image-prompts.v1.json"), "utf8"),
+      fs.readFile(path.join(episodeDir, "locales/en/full/image-prompts/provider-image-prompts.md"), "utf8"),
+      fs.readFile(path.join(episodeDir, "locales/en/full/image-prompts/provider-image-prompts.v1.json"), "utf8"),
       fs.readFile(reviewPack.manifestPath, "utf8"),
     ]);
     const plan = JSON.parse(planRaw) as {
@@ -168,6 +171,9 @@ describe("Veronica L01 full semantic remediation", () => {
     const timing = JSON.parse(timingRaw) as { readonly narrationDurationSeconds: number; readonly timingSource: string };
     const events = JSON.parse(eventsRaw) as { readonly events: readonly { readonly startMs: number; readonly durationMs: number }[] };
     const manifest = JSON.parse(manifestRaw) as { readonly providerRequestsAllowed: boolean; readonly narrationDiagnostic: { readonly mode: string; readonly wordCount: number }; readonly packFileHashes: Readonly<Record<string, string>> };
+    expect(providerPrompts).toBe(episodeProviderPrompts);
+    expect(providerPromptsJson).toBe(episodeProviderPromptsJson);
+    expect(JSON.parse(providerPromptsJson)).toMatchObject({ schemaVersion: "veronica-provider-image-prompts.v1" });
     expect(reviews.reviews.flatMap((review) => review.findings).filter((finding) => finding.severity === "blocker" || finding.severity === "error")).toHaveLength(0);
     expect(plan.scenes).toHaveLength(8);
     expect(plan.scenes.every((scene) => scene.visibleThesis.trim().length >= 28)).toBe(true);

@@ -107,6 +107,11 @@ export async function calibrateVeronicaShortNarration(input: {
     try {
       const stored = veronicaShortPacingCalibrationSchema.parse(rawCalibration);
       if (stored.inputFingerprint === inputFingerprint && stored.selectedAudioHash === await hashFile(selectedAudioPath)) {
+        await Promise.all([
+          fs.copyFile(selectedAudioPath, path.join(audioRoot, "narration.wav")),
+          fs.copyFile(selectedAudioPath, path.join(narrationRoot, "clean-narration.wav")),
+          fs.copyFile(selectedAudioPath, path.join(narrationRoot, "mastered-narration.wav")),
+        ]);
         return { selectedSpeed: stored.selectedSpeed, selectedAudioPath, calibrationPath, calibration: stored, providerCalls: 0, cacheHits: stored.attempts.length };
       }
     } catch {

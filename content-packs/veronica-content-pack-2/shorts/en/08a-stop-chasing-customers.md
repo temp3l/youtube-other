@@ -1,0 +1,5 @@
+Prospecting does not mean bothering more people. It means creating opportunities for the right people to discover you, understand what you do, and move closer. Opening a profile and waiting is not a strategy, but neither is messaging everyone. Build a path: discovery, understanding, interest, contact, and what happens if the person does not buy today. That is more useful than choosing an arbitrary number of DMs to send. If one of those stages does not exist, do not compensate by sending more messages. Build the missing stage. A useful piece of content, a clear page, a fast response, or a simple follow-up sequence can do more work than one hundred random contacts. Good prospecting does not feel like a hunt. It feels like a well-built path where the right person knows what the next step can be.
+
+Design the next step after discovery. If it does not exist, more prospecting only amplifies the gap.
+
+Prospecting becomes calmer when each stage has a job. Content can create discovery, a page can create understanding, a reply can create contact, and follow-up can create clarity. You do not need one tactic to perform the entire journey.

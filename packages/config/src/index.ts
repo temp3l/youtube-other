@@ -599,6 +599,11 @@ const configSchema = z.object({
     .enum(["none", "minimal", "low", "medium", "high", "xhigh"])
     .optional(),
   openAiValidatorMaxOutputTokens: z.number().int().positive().optional(),
+  openAiImagePromptCompilerModel: z.string().min(1),
+  openAiImagePromptCompilerReasoningEffort: z.enum([
+    "none", "minimal", "low", "medium", "high", "xhigh",
+  ]),
+  openAiImagePromptCompilerMaxOutputTokens: z.number().int().positive(),
   openAiMetadataModel: z.string().optional(),
   openAiMetadataReasoningEffort: z
     .enum(["none", "minimal", "low", "medium", "high", "xhigh"])
@@ -957,6 +962,15 @@ const envSchema = z.object({
     .enum(["none", "minimal", "low", "medium", "high", "xhigh"])
     .optional(),
   MEDIAFORGE_OPENAI_VALIDATOR_MAX_OUTPUT_TOKENS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional(),
+  MEDIAFORGE_OPENAI_IMAGE_PROMPT_COMPILER_MODEL: z.string().min(1).optional(),
+  MEDIAFORGE_OPENAI_IMAGE_PROMPT_COMPILER_REASONING_EFFORT: z
+    .enum(["none", "minimal", "low", "medium", "high", "xhigh"])
+    .optional(),
+  MEDIAFORGE_OPENAI_IMAGE_PROMPT_COMPILER_MAX_OUTPUT_TOKENS: z.coerce
     .number()
     .int()
     .positive()
@@ -1559,6 +1573,21 @@ export async function loadRuntimeConfig(
       env.MEDIAFORGE_OPENAI_METADATA_MAX_OUTPUT_TOKENS ??
       env.OPENAI_METADATA_MAX_OUTPUT_TOKENS ??
       5_000,
+    openAiImagePromptCompilerModel:
+      overrides.openAiImagePromptCompilerModel ??
+      episodeOverrides.openAiImagePromptCompilerModel ??
+      env.MEDIAFORGE_OPENAI_IMAGE_PROMPT_COMPILER_MODEL ??
+      "gpt-5.6-terra",
+    openAiImagePromptCompilerReasoningEffort:
+      overrides.openAiImagePromptCompilerReasoningEffort ??
+      episodeOverrides.openAiImagePromptCompilerReasoningEffort ??
+      env.MEDIAFORGE_OPENAI_IMAGE_PROMPT_COMPILER_REASONING_EFFORT ??
+      "low",
+    openAiImagePromptCompilerMaxOutputTokens:
+      overrides.openAiImagePromptCompilerMaxOutputTokens ??
+      episodeOverrides.openAiImagePromptCompilerMaxOutputTokens ??
+      env.MEDIAFORGE_OPENAI_IMAGE_PROMPT_COMPILER_MAX_OUTPUT_TOKENS ??
+      8_000,
     openAiMetadataModel:
       overrides.openAiMetadataModel ??
       episodeOverrides.openAiMetadataModel ??

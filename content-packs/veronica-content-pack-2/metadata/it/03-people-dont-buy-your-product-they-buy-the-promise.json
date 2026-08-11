@@ -1,0 +1,31 @@
+{
+  "title": "Le persone non comprano il tuo prodotto. Comprano la promessa.",
+  "thumbnail": "COSA COMPRANO DAVVERO?",
+  "description": "Il cliente non compra solo caratteristiche: compra ciò che crede che il prodotto possa cambiare nella sua vita. Qui trasformiamo valore, servizio e risultato in una promessa chiara e credibile.",
+  "cta": "Nel prossimo episodio trasformiamo questa promessa in un’offerta semplice da capire, credibile e facile da comprare.",
+  "alternativeTitles": [
+    "Le persone non comprano il prodotto. Comprano il cambiamento.",
+    "Smetti di spiegare caratteristiche. Vendi il risultato."
+  ],
+  "thumbnailOptions": [
+    "COSA COMPRANO DAVVERO?",
+    "VENDI IL CAMBIAMENTO",
+    "LE CARATTERISTICHE NON BASTANO"
+  ],
+  "youtubeOptimizationVersion": "v2-retention-localization",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  },
+  "shortA": {
+    "title": "Cosa sta comprando davvero il cliente?",
+    "alternateHook": "Togli il nome del prodotto: riesci ancora a spiegare perché il risultato conta?"
+  },
+  "shortB": {
+    "title": "Una promessa non è uno slogan",
+    "alternateHook": "Una promessa più forte rende il valore reale più chiaro, non la realtà più grande."
+  }
+}

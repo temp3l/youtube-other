@@ -64,6 +64,24 @@ describe("positioning production adapter", () => {
     expect(result.scenes.every((scene) => scene.qualityStatus === "semantic-review-required")).toBe(true);
   });
 
+  it("uses the primary provider asset consistently for a multi-asset scene wrapper", () => {
+    const source = plan();
+    const primary = source.assets[0]!;
+    const result = compilePositioningProductionScenePlan({
+      episodeId: "generic-multi-asset",
+      narration: "One scene establishes the cause. Another scene shows the result.",
+      plan: positioningProductionPlanSchema.parse({
+        ...source,
+        assets: [
+          ...source.assets,
+          { ...primary, prompt: "Text-free 9:16 secondary provider asset." },
+        ],
+      }),
+    });
+
+    expect(result.scenes[0]?.imagePrompt).toBe(primary.prompt);
+  });
+
   it("writes the shared scene plan and locale/variant script used by existing pipelines", async () => {
     const workspaceRoot = await fs.mkdtemp(path.join(os.tmpdir(), "veronica-production-"));
     const episodeId = "l01-s01-being-good-isnt-enough";
@@ -91,13 +109,27 @@ describe("positioning production adapter", () => {
     ).resolves.toContain("Zeig den Beweis");
     const manifest = JSON.parse(await fs.readFile(result.manifestPath, "utf8")) as {
       sourceMetadata: Record<string, unknown>;
+      artifacts: readonly { readonly path: string; readonly kind: string }[];
       scenePlan: ReturnType<typeof compilePositioningProductionScenePlan>;
     };
     expect(manifest.sourceMetadata).toMatchObject({
       genre: "veronicabenini",
       positioningPlanHash: "a".repeat(64),
       syntheticCreatorLikenessAllowed: false,
+      providerImagePromptsArtifactPath: "locales/de/short/image-prompts/provider-image-prompts.v1.json",
+      providerImagePromptsMarkdownPath: "locales/de/short/image-prompts/provider-image-prompts.md",
     });
+    const promptArtifact = JSON.parse(await fs.readFile(result.providerImagePromptsJsonPath, "utf8")) as {
+      readonly promptCount: number;
+      readonly prompts: readonly { readonly imagePrompt: string; readonly sameSnapshot: boolean }[];
+    };
+    expect(promptArtifact.promptCount).toBe(2);
+    expect(promptArtifact.prompts.every((prompt) => prompt.sameSnapshot)).toBe(true);
+    await expect(fs.readFile(result.providerImagePromptsMarkdownPath, "utf8")).resolves.toContain(promptArtifact.prompts[0]!.imagePrompt);
+    expect(manifest.artifacts.filter((artifact) => artifact.kind === "provider-image-prompts").map((artifact) => artifact.path)).toEqual([
+      "locales/de/short/image-prompts/provider-image-prompts.v1.json",
+      "locales/de/short/image-prompts/provider-image-prompts.md",
+    ]);
     const canonical = JSON.parse(await fs.readFile(path.join(episodeDir, "source", "pre-image-semantic-plan.v1.json"), "utf8"));
     expect(positioningScenePlanMaterializationReasons({ plan: canonical, scenePlan: manifest.scenePlan })).toEqual([]);
     expect(manifest.scenePlan.scenes[0]).toMatchObject({

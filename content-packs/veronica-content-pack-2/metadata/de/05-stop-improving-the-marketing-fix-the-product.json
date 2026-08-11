@@ -1,0 +1,31 @@
+{
+  "title": "Hör auf, das Marketing zu optimieren. Repariere das Produkt.",
+  "thumbnail": "VIELLEICHT IST ES DAS PRODUKT",
+  "description": "Mehr Traffic rettet kein schwaches Produkt. Validierung, Vereinfachung, Wettbewerb, operative Kosten und Bestandsrisiko zeigen, was du vor weiterer Werbung verbessern solltest.",
+  "cta": "In der nächsten Folge sehen wir, warum Aufmerksamkeit und Conversion zwei verschiedene Aufgaben sind — und wie du den Punkt findest, an dem Verkäufe verloren gehen.",
+  "alternativeTitles": [
+    "Bevor du mehr für Marketing ausgibst, teste das Produkt",
+    "Mehr Traffic kann ein Produktproblem verschlimmern"
+  ],
+  "thumbnailOptions": [
+    "VIELLEICHT IST ES DAS PRODUKT",
+    "KAUF NICHT MEHR TRAFFIC",
+    "ERST TESTEN, DANN SKALIEREN"
+  ],
+  "youtubeOptimizationVersion": "v2-retention-localization",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  },
+  "shortA": {
+    "title": "Vielleicht hast du kein Marketingproblem",
+    "alternateHook": "Mehr Traffic rettet kein Produkt, das echtes Kundeninteresse nicht trägt."
+  },
+  "shortB": {
+    "title": "Zu viele Optionen können Verkäufe bremsen",
+    "alternateHook": "Mehr Auswahl kann mehr Verwirrung, Bestand, Fehler und langsamere Entscheidungen erzeugen."
+  }
+}

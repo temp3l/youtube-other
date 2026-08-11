@@ -1,0 +1,1202 @@
+[
+  {
+    "episode": "OSC-01",
+    "locale": "it-IT",
+    "asset": "long",
+    "wordCount": 1546,
+    "mockDurationSeconds": 598.5,
+    "actualDurationSeconds": 598.528,
+    "effectiveWpm": 155.0,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-01",
+    "locale": "it-IT",
+    "asset": "short-a",
+    "wordCount": 184,
+    "mockDurationSeconds": 73.6,
+    "actualDurationSeconds": 73.6,
+    "effectiveWpm": 150.0,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-01",
+    "locale": "it-IT",
+    "asset": "short-b",
+    "wordCount": 177,
+    "mockDurationSeconds": 70.8,
+    "actualDurationSeconds": 70.827,
+    "effectiveWpm": 149.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-01",
+    "locale": "de-DE",
+    "asset": "long",
+    "wordCount": 1589,
+    "mockDurationSeconds": 615.1,
+    "actualDurationSeconds": 615.125,
+    "effectiveWpm": 155.0,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-01",
+    "locale": "de-DE",
+    "asset": "short-a",
+    "wordCount": 176,
+    "mockDurationSeconds": 70.4,
+    "actualDurationSeconds": 70.4,
+    "effectiveWpm": 150.0,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-01",
+    "locale": "de-DE",
+    "asset": "short-b",
+    "wordCount": 189,
+    "mockDurationSeconds": 75.6,
+    "actualDurationSeconds": 75.605,
+    "effectiveWpm": 150.0,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-01",
+    "locale": "en-US",
+    "asset": "long",
+    "wordCount": 1595,
+    "mockDurationSeconds": 617.4,
+    "actualDurationSeconds": 617.429,
+    "effectiveWpm": 155.0,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-01",
+    "locale": "en-US",
+    "asset": "short-a",
+    "wordCount": 184,
+    "mockDurationSeconds": 71.2,
+    "actualDurationSeconds": 71.211,
+    "effectiveWpm": 155.0,
+    "calibration": "configured_english_short_155_wpm"
+  },
+  {
+    "episode": "OSC-01",
+    "locale": "en-US",
+    "asset": "short-b",
+    "wordCount": 192,
+    "mockDurationSeconds": 74.3,
+    "actualDurationSeconds": 74.325,
+    "effectiveWpm": 155.0,
+    "calibration": "configured_english_short_155_wpm"
+  },
+  {
+    "episode": "OSC-01",
+    "locale": "es-ES",
+    "asset": "long",
+    "wordCount": 1650,
+    "mockDurationSeconds": 630,
+    "actualDurationSeconds": 630.0,
+    "effectiveWpm": 157.1,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-01",
+    "locale": "es-ES",
+    "asset": "short-a",
+    "wordCount": 182,
+    "mockDurationSeconds": 72.8,
+    "actualDurationSeconds": 72.832,
+    "effectiveWpm": 149.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-01",
+    "locale": "es-ES",
+    "asset": "short-b",
+    "wordCount": 179,
+    "mockDurationSeconds": 71.6,
+    "actualDurationSeconds": 71.637,
+    "effectiveWpm": 149.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-01",
+    "locale": "pt-BR",
+    "asset": "long",
+    "wordCount": 1660,
+    "mockDurationSeconds": 630,
+    "actualDurationSeconds": 630.0,
+    "effectiveWpm": 158.1,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-01",
+    "locale": "pt-BR",
+    "asset": "short-a",
+    "wordCount": 193,
+    "mockDurationSeconds": 77.2,
+    "actualDurationSeconds": 77.227,
+    "effectiveWpm": 149.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-01",
+    "locale": "pt-BR",
+    "asset": "short-b",
+    "wordCount": 177,
+    "mockDurationSeconds": 70.8,
+    "actualDurationSeconds": 70.827,
+    "effectiveWpm": 149.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-02",
+    "locale": "it-IT",
+    "asset": "long",
+    "wordCount": 1533,
+    "mockDurationSeconds": 593.4,
+    "actualDurationSeconds": 593.408,
+    "effectiveWpm": 155.0,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-02",
+    "locale": "it-IT",
+    "asset": "short-a",
+    "wordCount": 216,
+    "mockDurationSeconds": 86.4,
+    "actualDurationSeconds": 86.4,
+    "effectiveWpm": 150.0,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-02",
+    "locale": "it-IT",
+    "asset": "short-b",
+    "wordCount": 216,
+    "mockDurationSeconds": 86.4,
+    "actualDurationSeconds": 86.4,
+    "effectiveWpm": 150.0,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-02",
+    "locale": "de-DE",
+    "asset": "long",
+    "wordCount": 1481,
+    "mockDurationSeconds": 573.3,
+    "actualDurationSeconds": 573.312,
+    "effectiveWpm": 155.0,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-02",
+    "locale": "de-DE",
+    "asset": "short-a",
+    "wordCount": 152,
+    "mockDurationSeconds": 60.8,
+    "actualDurationSeconds": 60.8,
+    "effectiveWpm": 150.0,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-02",
+    "locale": "de-DE",
+    "asset": "short-b",
+    "wordCount": 141,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 140.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-02",
+    "locale": "en-US",
+    "asset": "long",
+    "wordCount": 1533,
+    "mockDurationSeconds": 593.4,
+    "actualDurationSeconds": 593.408,
+    "effectiveWpm": 155.0,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-02",
+    "locale": "en-US",
+    "asset": "short-a",
+    "wordCount": 216,
+    "mockDurationSeconds": 83.6,
+    "actualDurationSeconds": 83.627,
+    "effectiveWpm": 155.0,
+    "calibration": "configured_english_short_155_wpm"
+  },
+  {
+    "episode": "OSC-02",
+    "locale": "en-US",
+    "asset": "short-b",
+    "wordCount": 195,
+    "mockDurationSeconds": 75.5,
+    "actualDurationSeconds": 75.52,
+    "effectiveWpm": 154.9,
+    "calibration": "configured_english_short_155_wpm"
+  },
+  {
+    "episode": "OSC-02",
+    "locale": "es-ES",
+    "asset": "long",
+    "wordCount": 1521,
+    "mockDurationSeconds": 588.8,
+    "actualDurationSeconds": 588.8,
+    "effectiveWpm": 155.0,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-02",
+    "locale": "es-ES",
+    "asset": "short-a",
+    "wordCount": 150,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 149.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-02",
+    "locale": "es-ES",
+    "asset": "short-b",
+    "wordCount": 144,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 143.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-02",
+    "locale": "pt-BR",
+    "asset": "long",
+    "wordCount": 1517,
+    "mockDurationSeconds": 587.2,
+    "actualDurationSeconds": 587.221,
+    "effectiveWpm": 155.0,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-02",
+    "locale": "pt-BR",
+    "asset": "short-a",
+    "wordCount": 152,
+    "mockDurationSeconds": 60.8,
+    "actualDurationSeconds": 60.8,
+    "effectiveWpm": 150.0,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-02",
+    "locale": "pt-BR",
+    "asset": "short-b",
+    "wordCount": 147,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 146.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-03",
+    "locale": "it-IT",
+    "asset": "long",
+    "wordCount": 1527,
+    "mockDurationSeconds": 591.1,
+    "actualDurationSeconds": 591.104,
+    "effectiveWpm": 155.0,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-03",
+    "locale": "it-IT",
+    "asset": "short-a",
+    "wordCount": 238,
+    "mockDurationSeconds": 90,
+    "actualDurationSeconds": 90.0,
+    "effectiveWpm": 158.7,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-03",
+    "locale": "it-IT",
+    "asset": "short-b",
+    "wordCount": 213,
+    "mockDurationSeconds": 85.2,
+    "actualDurationSeconds": 85.205,
+    "effectiveWpm": 150.0,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-03",
+    "locale": "de-DE",
+    "asset": "long",
+    "wordCount": 1484,
+    "mockDurationSeconds": 574.5,
+    "actualDurationSeconds": 574.507,
+    "effectiveWpm": 155.0,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-03",
+    "locale": "de-DE",
+    "asset": "short-a",
+    "wordCount": 132,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 131.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-03",
+    "locale": "de-DE",
+    "asset": "short-b",
+    "wordCount": 132,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 131.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-03",
+    "locale": "en-US",
+    "asset": "long",
+    "wordCount": 1507,
+    "mockDurationSeconds": 583.4,
+    "actualDurationSeconds": 583.424,
+    "effectiveWpm": 155.0,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-03",
+    "locale": "en-US",
+    "asset": "short-a",
+    "wordCount": 194,
+    "mockDurationSeconds": 75.1,
+    "actualDurationSeconds": 75.136,
+    "effectiveWpm": 154.9,
+    "calibration": "configured_english_short_155_wpm"
+  },
+  {
+    "episode": "OSC-03",
+    "locale": "en-US",
+    "asset": "short-b",
+    "wordCount": 169,
+    "mockDurationSeconds": 65.4,
+    "actualDurationSeconds": 65.408,
+    "effectiveWpm": 155.0,
+    "calibration": "configured_english_short_155_wpm"
+  },
+  {
+    "episode": "OSC-03",
+    "locale": "es-ES",
+    "asset": "long",
+    "wordCount": 1517,
+    "mockDurationSeconds": 587.2,
+    "actualDurationSeconds": 587.221,
+    "effectiveWpm": 155.0,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-03",
+    "locale": "es-ES",
+    "asset": "short-a",
+    "wordCount": 138,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 137.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-03",
+    "locale": "es-ES",
+    "asset": "short-b",
+    "wordCount": 141,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 140.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-03",
+    "locale": "pt-BR",
+    "asset": "long",
+    "wordCount": 1477,
+    "mockDurationSeconds": 571.7,
+    "actualDurationSeconds": 571.733,
+    "effectiveWpm": 155.0,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-03",
+    "locale": "pt-BR",
+    "asset": "short-a",
+    "wordCount": 143,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 142.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-03",
+    "locale": "pt-BR",
+    "asset": "short-b",
+    "wordCount": 139,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 138.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-04",
+    "locale": "it-IT",
+    "asset": "long",
+    "wordCount": 1506,
+    "mockDurationSeconds": 583.0,
+    "actualDurationSeconds": 583.04,
+    "effectiveWpm": 155.0,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-04",
+    "locale": "it-IT",
+    "asset": "short-a",
+    "wordCount": 226,
+    "mockDurationSeconds": 90,
+    "actualDurationSeconds": 90.0,
+    "effectiveWpm": 150.7,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-04",
+    "locale": "it-IT",
+    "asset": "short-b",
+    "wordCount": 216,
+    "mockDurationSeconds": 86.4,
+    "actualDurationSeconds": 86.4,
+    "effectiveWpm": 150.0,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-04",
+    "locale": "de-DE",
+    "asset": "long",
+    "wordCount": 1532,
+    "mockDurationSeconds": 593.0,
+    "actualDurationSeconds": 593.024,
+    "effectiveWpm": 155.0,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-04",
+    "locale": "de-DE",
+    "asset": "short-a",
+    "wordCount": 130,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 129.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-04",
+    "locale": "de-DE",
+    "asset": "short-b",
+    "wordCount": 127,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 126.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-04",
+    "locale": "en-US",
+    "asset": "long",
+    "wordCount": 1521,
+    "mockDurationSeconds": 588.8,
+    "actualDurationSeconds": 588.8,
+    "effectiveWpm": 155.0,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-04",
+    "locale": "en-US",
+    "asset": "short-a",
+    "wordCount": 206,
+    "mockDurationSeconds": 79.7,
+    "actualDurationSeconds": 79.701,
+    "effectiveWpm": 155.1,
+    "calibration": "configured_english_short_155_wpm"
+  },
+  {
+    "episode": "OSC-04",
+    "locale": "en-US",
+    "asset": "short-b",
+    "wordCount": 178,
+    "mockDurationSeconds": 68.9,
+    "actualDurationSeconds": 68.907,
+    "effectiveWpm": 155.0,
+    "calibration": "configured_english_short_155_wpm"
+  },
+  {
+    "episode": "OSC-04",
+    "locale": "es-ES",
+    "asset": "long",
+    "wordCount": 1514,
+    "mockDurationSeconds": 586.1,
+    "actualDurationSeconds": 586.112,
+    "effectiveWpm": 155.0,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-04",
+    "locale": "es-ES",
+    "asset": "short-a",
+    "wordCount": 134,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 133.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-04",
+    "locale": "es-ES",
+    "asset": "short-b",
+    "wordCount": 139,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 138.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-04",
+    "locale": "pt-BR",
+    "asset": "long",
+    "wordCount": 1534,
+    "mockDurationSeconds": 593.8,
+    "actualDurationSeconds": 593.835,
+    "effectiveWpm": 155.0,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-04",
+    "locale": "pt-BR",
+    "asset": "short-a",
+    "wordCount": 136,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 135.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-04",
+    "locale": "pt-BR",
+    "asset": "short-b",
+    "wordCount": 143,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 142.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-05",
+    "locale": "it-IT",
+    "asset": "long",
+    "wordCount": 1517,
+    "mockDurationSeconds": 587.2,
+    "actualDurationSeconds": 587.221,
+    "effectiveWpm": 155.0,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-05",
+    "locale": "it-IT",
+    "asset": "short-a",
+    "wordCount": 233,
+    "mockDurationSeconds": 90,
+    "actualDurationSeconds": 90.0,
+    "effectiveWpm": 155.3,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-05",
+    "locale": "it-IT",
+    "asset": "short-b",
+    "wordCount": 214,
+    "mockDurationSeconds": 85.6,
+    "actualDurationSeconds": 85.632,
+    "effectiveWpm": 149.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-05",
+    "locale": "de-DE",
+    "asset": "long",
+    "wordCount": 1421,
+    "mockDurationSeconds": 570,
+    "actualDurationSeconds": 570.027,
+    "effectiveWpm": 149.6,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-05",
+    "locale": "de-DE",
+    "asset": "short-a",
+    "wordCount": 136,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 135.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-05",
+    "locale": "de-DE",
+    "asset": "short-b",
+    "wordCount": 130,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 129.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-05",
+    "locale": "en-US",
+    "asset": "long",
+    "wordCount": 1501,
+    "mockDurationSeconds": 581.0,
+    "actualDurationSeconds": 581.035,
+    "effectiveWpm": 155.0,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-05",
+    "locale": "en-US",
+    "asset": "short-a",
+    "wordCount": 203,
+    "mockDurationSeconds": 78.6,
+    "actualDurationSeconds": 78.635,
+    "effectiveWpm": 154.9,
+    "calibration": "configured_english_short_155_wpm"
+  },
+  {
+    "episode": "OSC-05",
+    "locale": "en-US",
+    "asset": "short-b",
+    "wordCount": 185,
+    "mockDurationSeconds": 71.6,
+    "actualDurationSeconds": 71.637,
+    "effectiveWpm": 154.9,
+    "calibration": "configured_english_short_155_wpm"
+  },
+  {
+    "episode": "OSC-05",
+    "locale": "es-ES",
+    "asset": "long",
+    "wordCount": 1485,
+    "mockDurationSeconds": 574.8,
+    "actualDurationSeconds": 574.805,
+    "effectiveWpm": 155.0,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-05",
+    "locale": "es-ES",
+    "asset": "short-a",
+    "wordCount": 149,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 148.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-05",
+    "locale": "es-ES",
+    "asset": "short-b",
+    "wordCount": 135,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 134.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-05",
+    "locale": "pt-BR",
+    "asset": "long",
+    "wordCount": 1457,
+    "mockDurationSeconds": 570,
+    "actualDurationSeconds": 570.027,
+    "effectiveWpm": 153.4,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-05",
+    "locale": "pt-BR",
+    "asset": "short-a",
+    "wordCount": 151,
+    "mockDurationSeconds": 60.4,
+    "actualDurationSeconds": 60.416,
+    "effectiveWpm": 150.0,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-05",
+    "locale": "pt-BR",
+    "asset": "short-b",
+    "wordCount": 140,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 139.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-06",
+    "locale": "it-IT",
+    "asset": "long",
+    "wordCount": 1492,
+    "mockDurationSeconds": 577.5,
+    "actualDurationSeconds": 577.536,
+    "effectiveWpm": 155.0,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-06",
+    "locale": "it-IT",
+    "asset": "short-a",
+    "wordCount": 211,
+    "mockDurationSeconds": 84.4,
+    "actualDurationSeconds": 84.437,
+    "effectiveWpm": 149.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-06",
+    "locale": "it-IT",
+    "asset": "short-b",
+    "wordCount": 225,
+    "mockDurationSeconds": 90,
+    "actualDurationSeconds": 90.0,
+    "effectiveWpm": 150.0,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-06",
+    "locale": "de-DE",
+    "asset": "long",
+    "wordCount": 1392,
+    "mockDurationSeconds": 570,
+    "actualDurationSeconds": 570.027,
+    "effectiveWpm": 146.5,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-06",
+    "locale": "de-DE",
+    "asset": "short-a",
+    "wordCount": 123,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 122.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-06",
+    "locale": "de-DE",
+    "asset": "short-b",
+    "wordCount": 138,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 137.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-06",
+    "locale": "en-US",
+    "asset": "long",
+    "wordCount": 1519,
+    "mockDurationSeconds": 588.0,
+    "actualDurationSeconds": 588.032,
+    "effectiveWpm": 155.0,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-06",
+    "locale": "en-US",
+    "asset": "short-a",
+    "wordCount": 184,
+    "mockDurationSeconds": 71.2,
+    "actualDurationSeconds": 71.211,
+    "effectiveWpm": 155.0,
+    "calibration": "configured_english_short_155_wpm"
+  },
+  {
+    "episode": "OSC-06",
+    "locale": "en-US",
+    "asset": "short-b",
+    "wordCount": 192,
+    "mockDurationSeconds": 74.3,
+    "actualDurationSeconds": 74.325,
+    "effectiveWpm": 155.0,
+    "calibration": "configured_english_short_155_wpm"
+  },
+  {
+    "episode": "OSC-06",
+    "locale": "es-ES",
+    "asset": "long",
+    "wordCount": 1445,
+    "mockDurationSeconds": 570,
+    "actualDurationSeconds": 570.027,
+    "effectiveWpm": 152.1,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-06",
+    "locale": "es-ES",
+    "asset": "short-a",
+    "wordCount": 125,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 124.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-06",
+    "locale": "es-ES",
+    "asset": "short-b",
+    "wordCount": 136,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 135.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-06",
+    "locale": "pt-BR",
+    "asset": "long",
+    "wordCount": 1415,
+    "mockDurationSeconds": 570,
+    "actualDurationSeconds": 570.027,
+    "effectiveWpm": 148.9,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-06",
+    "locale": "pt-BR",
+    "asset": "short-a",
+    "wordCount": 140,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 139.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-06",
+    "locale": "pt-BR",
+    "asset": "short-b",
+    "wordCount": 129,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 128.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-07",
+    "locale": "it-IT",
+    "asset": "long",
+    "wordCount": 1481,
+    "mockDurationSeconds": 573.3,
+    "actualDurationSeconds": 573.312,
+    "effectiveWpm": 155.0,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-07",
+    "locale": "it-IT",
+    "asset": "short-a",
+    "wordCount": 217,
+    "mockDurationSeconds": 86.8,
+    "actualDurationSeconds": 86.827,
+    "effectiveWpm": 150.0,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-07",
+    "locale": "it-IT",
+    "asset": "short-b",
+    "wordCount": 231,
+    "mockDurationSeconds": 90,
+    "actualDurationSeconds": 90.0,
+    "effectiveWpm": 154.0,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-07",
+    "locale": "de-DE",
+    "asset": "long",
+    "wordCount": 1507,
+    "mockDurationSeconds": 583.4,
+    "actualDurationSeconds": 583.424,
+    "effectiveWpm": 155.0,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-07",
+    "locale": "de-DE",
+    "asset": "short-a",
+    "wordCount": 142,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 141.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-07",
+    "locale": "de-DE",
+    "asset": "short-b",
+    "wordCount": 123,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 122.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-07",
+    "locale": "en-US",
+    "asset": "long",
+    "wordCount": 1502,
+    "mockDurationSeconds": 581.4,
+    "actualDurationSeconds": 581.419,
+    "effectiveWpm": 155.0,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-07",
+    "locale": "en-US",
+    "asset": "short-a",
+    "wordCount": 192,
+    "mockDurationSeconds": 74.3,
+    "actualDurationSeconds": 74.325,
+    "effectiveWpm": 155.0,
+    "calibration": "configured_english_short_155_wpm"
+  },
+  {
+    "episode": "OSC-07",
+    "locale": "en-US",
+    "asset": "short-b",
+    "wordCount": 180,
+    "mockDurationSeconds": 69.7,
+    "actualDurationSeconds": 69.717,
+    "effectiveWpm": 154.9,
+    "calibration": "configured_english_short_155_wpm"
+  },
+  {
+    "episode": "OSC-07",
+    "locale": "es-ES",
+    "asset": "long",
+    "wordCount": 1501,
+    "mockDurationSeconds": 581.0,
+    "actualDurationSeconds": 581.035,
+    "effectiveWpm": 155.0,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-07",
+    "locale": "es-ES",
+    "asset": "short-a",
+    "wordCount": 147,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 146.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-07",
+    "locale": "es-ES",
+    "asset": "short-b",
+    "wordCount": 135,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 134.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-07",
+    "locale": "pt-BR",
+    "asset": "long",
+    "wordCount": 1507,
+    "mockDurationSeconds": 583.4,
+    "actualDurationSeconds": 583.424,
+    "effectiveWpm": 155.0,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-07",
+    "locale": "pt-BR",
+    "asset": "short-a",
+    "wordCount": 148,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 147.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-07",
+    "locale": "pt-BR",
+    "asset": "short-b",
+    "wordCount": 133,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 132.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-08",
+    "locale": "it-IT",
+    "asset": "long",
+    "wordCount": 1525,
+    "mockDurationSeconds": 590.3,
+    "actualDurationSeconds": 590.336,
+    "effectiveWpm": 155.0,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-08",
+    "locale": "it-IT",
+    "asset": "short-a",
+    "wordCount": 216,
+    "mockDurationSeconds": 86.4,
+    "actualDurationSeconds": 86.4,
+    "effectiveWpm": 150.0,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-08",
+    "locale": "it-IT",
+    "asset": "short-b",
+    "wordCount": 203,
+    "mockDurationSeconds": 81.2,
+    "actualDurationSeconds": 81.237,
+    "effectiveWpm": 149.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-08",
+    "locale": "de-DE",
+    "asset": "long",
+    "wordCount": 1510,
+    "mockDurationSeconds": 584.5,
+    "actualDurationSeconds": 584.533,
+    "effectiveWpm": 155.0,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-08",
+    "locale": "de-DE",
+    "asset": "short-a",
+    "wordCount": 142,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 141.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-08",
+    "locale": "de-DE",
+    "asset": "short-b",
+    "wordCount": 132,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 131.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-08",
+    "locale": "en-US",
+    "asset": "long",
+    "wordCount": 1515,
+    "mockDurationSeconds": 586.5,
+    "actualDurationSeconds": 586.539,
+    "effectiveWpm": 155.0,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-08",
+    "locale": "en-US",
+    "asset": "short-a",
+    "wordCount": 194,
+    "mockDurationSeconds": 75.1,
+    "actualDurationSeconds": 75.136,
+    "effectiveWpm": 154.9,
+    "calibration": "configured_english_short_155_wpm"
+  },
+  {
+    "episode": "OSC-08",
+    "locale": "en-US",
+    "asset": "short-b",
+    "wordCount": 173,
+    "mockDurationSeconds": 67.0,
+    "actualDurationSeconds": 67.029,
+    "effectiveWpm": 154.9,
+    "calibration": "configured_english_short_155_wpm"
+  },
+  {
+    "episode": "OSC-08",
+    "locale": "es-ES",
+    "asset": "long",
+    "wordCount": 1478,
+    "mockDurationSeconds": 572.1,
+    "actualDurationSeconds": 572.117,
+    "effectiveWpm": 155.0,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-08",
+    "locale": "es-ES",
+    "asset": "short-a",
+    "wordCount": 142,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 141.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-08",
+    "locale": "es-ES",
+    "asset": "short-b",
+    "wordCount": 126,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 125.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-08",
+    "locale": "pt-BR",
+    "asset": "long",
+    "wordCount": 1527,
+    "mockDurationSeconds": 591.1,
+    "actualDurationSeconds": 591.104,
+    "effectiveWpm": 155.0,
+    "calibration": "nominal_155_wpm_clamped_to_long_window"
+  },
+  {
+    "episode": "OSC-08",
+    "locale": "pt-BR",
+    "asset": "short-a",
+    "wordCount": 151,
+    "mockDurationSeconds": 60.4,
+    "actualDurationSeconds": 60.416,
+    "effectiveWpm": 150.0,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  },
+  {
+    "episode": "OSC-08",
+    "locale": "pt-BR",
+    "asset": "short-b",
+    "wordCount": 124,
+    "mockDurationSeconds": 60,
+    "actualDurationSeconds": 60.032,
+    "effectiveWpm": 123.9,
+    "calibration": "localized_mock_density_nominal_150_wpm"
+  }
+]

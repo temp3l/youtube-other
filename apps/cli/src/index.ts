@@ -80,7 +80,10 @@ import {
   assertScriptScoreGate,
   createOpenAiStoryClientWithOptions,
 } from "@mediaforge/story-localization";
-import { preparePositioningProductionEpisode } from "@mediaforge/strategic-reinvention";
+import {
+  preparePositioningProductionEpisode,
+  reconcileExistingVeronicaProductionTiming,
+} from "@mediaforge/strategic-reinvention";
 import {
   buildSrt,
   createEpisodePathResolver,
@@ -244,11 +247,12 @@ import {
 import { registerImagesBatchCommands } from "./images-batch-commands.js";
 import { MathCliSemanticError, registerMathCommands } from "./math-commands.js";
 import { registerVeronicaMediaCommands } from "./veronica-media-commands.js";
+import { createVeronicaImagePromptCompilerComposition } from "./veronica-image-prompt-compiler-composition.js";
 import { buildImageStatusOutput } from "./images-status-output.js";
 import { commandImagesResume } from "./images-resume-command.js";
 import { assertVeronicaPreImageReviewPackCurrent } from "./veronica-pre-image-review-pack.js";
 import { assertPreImageReviewPackCurrent, createPreImageReviewPack, type PreImageReviewGenre } from "./pre-image-review-pack.js";
-import { runArchitectureReviewPack } from "./architecture-review-pack.js";
+import { buildArchitectureReviewPack, runArchitectureReviewPack, type ArchitectureReviewScope } from "./architecture-review-pack.js";
 import { registerImagesSyncSharedCommand } from "./images-sync-shared-command.js";
 import {
   summarizeRemoteStatusJob,
@@ -3783,7 +3787,7 @@ async function runAudioNarrationPipeline(
             // Promotion changes the canonical media identity even when the
             // selected attempt misses a legacy target. Reconcile every
             // downstream timing artifact from that selected WAV now.
-            await preparePositioningProductionEpisode({
+            await reconcileExistingVeronicaProductionTiming({
               workspaceRoot: path.dirname(episodeDir),
               episodeId,
               language: language as "en" | "de" | "es" | "fr" | "pt" | "it",
@@ -4249,7 +4253,7 @@ async function commandRenderRemoteStatus(
   const config = await loadRuntimeConfig(configOverridesFromCli(options));
   const remote = buildRemoteRenderSettings(config);
   if (!remote.enabled) {
-    if (options.json) {
+    if (options.json ?? program.opts<CliOptions>().json) {
       printJson({ enabled: false, jobs: [] });
     } else {
       process.stdout.write("Remote rendering is disabled.\n");
@@ -5232,6 +5236,58 @@ architectureCommand
       `Files: ${result.fileCount}; excluded: ${result.excludedCount}`,
       ...(result.archive ? [`Archive: ${result.archive}`, `SHA-256: ${result.sha256}`, `Compressed bytes: ${result.compressedBytes}`] : []),
       ...(result.contentUnchanged ? ["Architecture-review content is unchanged from a previous pack."] : []),
+    ].join("\n") + "\n");
+  });
+
+const auditCommand = program
+  .command("audit")
+  .description("Source-grounded repository audit utilities");
+auditCommand
+  .command("build-review-pack")
+  .description("Build an unpacked and ZIP architecture review pack without provider calls")
+  .option("--scope <scope>", "repository, image, speech, localization, publishing, qa, or episode-pipeline", "repository")
+  .option("--output <directory>", "output directory inside the repository", "artifacts/review-packs")
+  .option("--zip", "create a ZIP beside the unpacked directory")
+  .option("--max-source-bytes <bytes>", "bounded total bytes for non-mandatory selected evidence")
+  .option("--max-file-bytes <bytes>", "maximum bytes for each non-mandatory selected evidence file")
+  .option("--json", "emit stable machine-readable result")
+  .action(async (options: {
+    scope?: string;
+    output?: string;
+    zip?: boolean;
+    maxSourceBytes?: string;
+    maxFileBytes?: string;
+    json?: boolean;
+  }) => {
+    const scopes = new Set<ArchitectureReviewScope>(["repository", "image", "speech", "localization", "publishing", "qa", "episode-pipeline"]);
+    const scope = options.scope ?? "repository";
+    if (!scopes.has(scope as ArchitectureReviewScope)) throw new Error(`Unsupported review-pack scope: ${scope}`);
+    const parseBytes = (value: string | undefined, option: string): number | undefined => {
+      if (value === undefined) return undefined;
+      const parsed = Number.parseInt(value, 10);
+      if (!Number.isSafeInteger(parsed) || parsed < 1) throw new Error(`${option} must be a positive integer number of bytes.`);
+      return parsed;
+    };
+    const maxSourceBytes = parseBytes(options.maxSourceBytes, "--max-source-bytes");
+    const maxFileBytes = parseBytes(options.maxFileBytes, "--max-file-bytes");
+    const result = await buildArchitectureReviewPack({
+      repositoryRoot: process.cwd(),
+      scope: scope as ArchitectureReviewScope,
+      ...(options.output !== undefined ? { output: options.output } : {}),
+      ...(options.zip !== undefined ? { zip: options.zip } : {}),
+      ...(maxSourceBytes !== undefined ? { maxSourceBytes } : {}),
+      ...(maxFileBytes !== undefined ? { maxFileBytes } : {}),
+    });
+    if (options.json ?? program.opts<CliOptions>().json) {
+      process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+      return;
+    }
+    process.stdout.write([
+      "Architecture review pack: READY",
+      `Directory: ${result.packDirectory}`,
+      ...(result.zipPath ? [`ZIP: ${result.zipPath}`] : []),
+      `Files: ${result.totalFiles}; source: ${result.sourceFilesIncluded}; excluded: ${result.excludedFiles}; truncations: ${result.truncations}`,
+      `Bytes: ${result.totalBytes}${result.zipBytes !== undefined ? `; ZIP bytes: ${result.zipBytes}` : ""}`,
     ].join("\n") + "\n");
   });
 

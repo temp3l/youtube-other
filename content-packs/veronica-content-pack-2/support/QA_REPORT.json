@@ -1,0 +1,43 @@
+{
+  "verdict": "PASS_MOCK_TIMING_READY",
+  "publicationReady": false,
+  "counts": {
+    "episodeDirs": 8,
+    "languageDirs": 40,
+    "narrationScripts": 120,
+    "packagingFiles": 40,
+    "mockAudioFiles": 120
+  },
+  "timing": {
+    "longActualRangeSeconds": [
+      570.0,
+      630.0
+    ],
+    "shortActualRangeSeconds": [
+      60.0,
+      88.0
+    ],
+    "longTargetSeconds": [
+      570,
+      630
+    ],
+    "shortTargetSeconds": [
+      60,
+      90
+    ],
+    "allMockDurationsWithinTarget": true,
+    "durationToleranceSeconds": 0.02
+  },
+  "density": {
+    "longImpliedEffectiveWpmRange": [
+      128.2,
+      155.0
+    ],
+    "shortImpliedEffectiveWpmRange": [
+      110.0,
+      150.8
+    ]
+  },
+  "errors": [],
+  "criticalWarning": "Mock audio validates only duration-dependent pipeline behavior. It cannot validate real TTS duration, pronunciation, prosody, naturalness, or native-listening quality."
+}

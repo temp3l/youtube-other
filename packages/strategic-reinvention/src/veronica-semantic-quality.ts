@@ -18,7 +18,7 @@ type Mechanism = VeronicaSemanticProposition["visualMechanism"];
 
 const internalLanguage = /\b(?:tied to the narrated|at causal step|recognizes? the consequence|chooses? accordingly|changes? the available evidence|occupation-neutral evidence and comparison setting|the narrated claim|weaker condition|stronger condition|semantic(?:[- ](?:gate|remediation|quality))?|remediation|validator)\b/iu;
 const malformedCauseTemplate = /^because\s+.+\s+changes?\s+the\s+available\s+evidence\b/iu;
-const finitePredicate = /\b(?:is|are|has|have|do(?:es)?|need(?:s)?|want(?:s)?|ask(?:s)?|must|may|should|will|means?|can|know\w*|begin\w*|write\w*|click\w*|read\w*|tell\w*|collapse\w*|introduc\w*|gives?|makes?|shows?|lets?|leaves?|connects?|reinforces?|builds?|creates?|reduces?|keeps?|becomes?|remains?|sits?|scans?|stops?|ignores?|notices?|recognizes?|remembers?|categorizes?|understands?|trusts?|hesitates?|chooses?|commits?|crosses?|opens?|refers?|enters?|leaves?|follows?|compares?|points?|accumulates?|supports?|weakens?|strengthens?|explains?|demonstrates?|reveals?|matches?|fits?|presents?|identif\w*|repeats?|combines?|forms?|aligns?|moves?|arranges?|groups?|places?|inspects?|traces?|contributes?|uses?|arriv\w*|widen\w*|rescues?)\b/iu;
+const finitePredicate = /\b(?:is|are|has|have|do(?:es)?|need(?:s)?|want(?:s)?|ask(?:s)?|must|may|should|will|means?|can|know\w*|begin\w*|continue\w*|write\w*|click\w*|read\w*|tell\w*|collapse\w*|introduc\w*|gives?|makes?|shows?|lets?|leaves?|connects?|reinforces?|builds?|creates?|reduces?|keeps?|becomes?|remains?|sits?|scans?|stops?|ignores?|notices?|recognizes?|remembers?|categorizes?|understands?|trusts?|hesitates?|chooses?|commits?|crosses?|opens?|refers?|enters?|leaves?|follows?|compares?|points?|accumulates?|supports?|weakens?|strengthens?|explains?|demonstrates?|reveals?|matches?|fits?|presents?|identif\w*|repeats?|combines?|forms?|aligns?|moves?|arranges?|groups?|places?|inspects?|traces?|contributes?|uses?|arriv\w*|widen\w*|rescues?)\b/iu;
 const abstractOnly = /^(?:positioning|clarity|evidence|expertise|recognition|relevance|value|trust|growth|success|transformation)[\s,;/&-]*$/iu;
 const stopWords = new Set(["about", "after", "again", "because", "before", "being", "could", "every", "from", "have", "into", "just", "more", "only", "other", "should", "than", "that", "their", "them", "then", "there", "these", "they", "this", "through", "when", "where", "which", "while", "with", "would", "your"]);
 
@@ -271,8 +271,9 @@ function sourceGroundedCausalFields(claim: string, polarity: VeronicaSemanticPol
   }
   if (temporal) return { stateRelation: "SEQUENTIAL_PROGRESSION", cause: temporal[1]!, consequence: temporal[2]!, contrast: { relation: "SEQUENTIAL_PROGRESSION", initialState: temporal[1]!, desiredState: temporal[2]!, failureState: temporal[1]!, consequence: temporal[2]! } };
   if (beforeAfter) return { stateRelation: "CAUSAL_BEFORE_AFTER", cause: beforeAfter[1]!, consequence: beforeAfter[2]!, contrast: { relation: "CAUSAL_BEFORE_AFTER", initialState: beforeAfter[1]!, desiredState: beforeAfter[2]!, failureState: beforeAfter[1]!, consequence: beforeAfter[2]! } };
-  if (corrective && (polarity === "CONTRAST" || polarity === "TRANSITION_NEGATIVE_TO_POSITIVE" || polarity === "TRANSITION_POSITIVE_TO_NEGATIVE")) {
-    const relation = /\b(?:first|before)\b[\s\S]*\b(?:later|after|then|eventually)\b/iu.test(source) ? "SEQUENTIAL_PROGRESSION" as const : "CONTRAST" as const;
+  const correctiveIsTemporal = /\b(?:first|before)\b[\s\S]*\b(?:later|after|then|eventually)\b/iu.test(source);
+  if (corrective && (correctiveIsTemporal || polarity === "CONTRAST" || polarity === "TRANSITION_NEGATIVE_TO_POSITIVE" || polarity === "TRANSITION_POSITIVE_TO_NEGATIVE")) {
+    const relation = correctiveIsTemporal ? "SEQUENTIAL_PROGRESSION" as const : "CONTRAST" as const;
     return { stateRelation: relation, cause: corrective[1]!, consequence: corrective[2]!, contrast: { relation, initialState: corrective[1]!, desiredState: corrective[2]!, failureState: corrective[1]!, consequence: corrective[2]! } };
   }
   return { stateRelation: "STABLE", cause: source, consequence: source };
@@ -333,7 +334,8 @@ export function deriveVeronicaSemanticProposition(input: { readonly scene: Plann
     : classifyVeronicaSemanticPolarity(narrationClaim);
   const buyer = buyerConsequence(narrationClaim, resolved.mechanism, polarity);
   if (resolved.mechanism === "UNRESOLVED") {
-    const base = { schemaVersion: VERONICA_SEMANTIC_PROPOSITION_VERSION, narrationClaim, evidenceSpans: narrationAnchors, polarity, stateRelation: "STABLE" as const, actorRole: owner.role, actorAction: input.scene.treatment.action, consequence: input.scene.treatment.narrativeBeat, visualMechanism: "UNRESOLVED" as const, evidenceAnchors: narrationAnchors.map((span) => span.text), buyerConsequenceFamily: buyer.family, confidence: { proposition: "LOW" as const, actorOwnership: owner.confidence, consequence: buyer.confidence, visualMechanism: "LOW" as const } };
+    const grounded = sourceGroundedCausalFields(narrationClaim, polarity);
+    const base = { schemaVersion: VERONICA_SEMANTIC_PROPOSITION_VERSION, narrationClaim, evidenceSpans: narrationAnchors, polarity, stateRelation: grounded.stateRelation, cause: grounded.cause, actorRole: owner.role, actorAction: input.scene.treatment.action, consequence: grounded.consequence, ...(grounded.contrast ? { contrast: grounded.contrast } : {}), visualMechanism: "UNRESOLVED" as const, evidenceAnchors: narrationAnchors.map((span) => span.text), buyerConsequenceFamily: buyer.family, confidence: { proposition: "LOW" as const, actorOwnership: owner.confidence, consequence: buyer.confidence, visualMechanism: "LOW" as const } };
     return { ...base, propositionHash: stableHash(base) };
   }
   // Visual mechanisms are grammar selectors, never semantic templates.  Keep
@@ -612,7 +614,7 @@ export function providerPromptInternalLanguageReasons(prompt: string): readonly 
 }
 
 export function providerPromptLexicalIntegrityReasons(prompt: string): readonly string[] {
-  const visibleThesis = prompt.match(/Visible thesis:\s*([^\n]*?)(?=\s+(?:No readable|Render this|Capture |Prior context:|Primary actor:|Current action:|Emerging consequence:|$))/iu)?.[1]?.trim() ?? "";
+  const visibleThesis = prompt.match(/Visible thesis:\s*([^\n]*?)(?=\s+(?:No readable|Render this|Capture |Prior context:|Primary actor:|Current action:|Emerging consequence:)|$)/iu)?.[1]?.trim() ?? "";
   const openCurlyQuotes = (prompt.match(/“/gu) ?? []).length;
   const closeCurlyQuotes = (prompt.match(/”/gu) ?? []).length;
   return [

@@ -1,0 +1,31 @@
+{
+  "title": "Por qué vender se siente tan difícil",
+  "thumbnail": "¿TE INCOMODA VENDER?",
+  "description": "El malestar con dinero, precio y seguimiento entra directamente en el negocio. Separamos persuasión de coacción y convertimos la venta en un proceso estructurado, medible y respetuoso.",
+  "cta": "En el próximo episodio convertimos la venta en un sistema de descubrimiento, contacto y seguimiento sin perseguir a todo el mundo.",
+  "alternativeTitles": [
+    "Por qué cuesta tanto decir el precio",
+    "Vender sin manipular: un proceso mejor"
+  ],
+  "thumbnailOptions": [
+    "¿TE INCOMODA VENDER?",
+    "¿POR QUÉ INCOMODA EL PRECIO?",
+    "VENDE SIN PRESIÓN"
+  ],
+  "youtubeOptimizationVersion": "v2-retention-localization",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  },
+  "shortA": {
+    "title": "¿Por qué cuesta tanto decir el precio?",
+    "alternateHook": "Si tu comportamiento cambia cuando entra el dinero, también cambia el proceso de venta."
+  },
+  "shortB": {
+    "title": "Vender no es manipular",
+    "alternateHook": "La persuasión sana mantiene al cliente informado y libre para decir que no."
+  }
+}

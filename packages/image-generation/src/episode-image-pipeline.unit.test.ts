@@ -637,6 +637,15 @@ describe("episode image pipeline helpers", () => {
     expect(spec.unresolvedRecurringCharacterMentions).toBeUndefined();
   });
 
+  it("uses explicit canonical reference identities without leaking them through scene chaining", () => {
+    const registry = makeRegistry();
+    const expert = makeScenePlan([{ canonicalNarration: "A professional arranges the evidence.", subject: "the professional", action: "arranges evidence", referenceCharacterIds: ["daniel-mercer"] }]).scenes[0]!;
+    const observer = makeScenePlan([{ canonicalNarration: "A loyal follower looks confused.", subject: "a loyal follower", action: "looks between conflicting cues", continuityReferences: ["scene-000"], referenceCharacterIds: [] }]).scenes[0]!;
+    expect(buildSceneVisualSpec(expert, registry).characters).toEqual([expect.objectContaining({ characterId: "daniel-mercer" })]);
+    expect(buildSceneVisualSpec(observer, registry).characters).toEqual([]);
+    expect(() => buildSceneVisualSpec({ ...expert, referenceCharacterIds: ["missing-reference"] }, registry)).toThrow("EXPLICIT_SCENE_REFERENCE_CHARACTER_NOT_FOUND");
+  });
+
   it("resolves collective character labels without requiring literal names", () => {
     const registry = makeRegistry();
     registry.characters[0] = {

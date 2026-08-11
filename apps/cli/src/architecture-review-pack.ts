@@ -633,3 +633,371 @@ export async function runArchitectureReviewPack(options: ArchitectureReviewPackO
     await fs.rm(stageRoot, { recursive: true, force: true });
   }
 }
+
+/**
+ * The forensic pack is deliberately a separate output shape from the older
+ * archive-only review pack above. It reuses its safe discovery and redaction
+ * primitives, but has no episode, scene, or content-pack semantics.
+ */
+export type ArchitectureReviewScope =
+  | "repository"
+  | "image"
+  | "speech"
+  | "localization"
+  | "publishing"
+  | "qa"
+  | "episode-pipeline";
+
+export interface BuildArchitectureReviewPackOptions {
+  readonly repositoryRoot?: string;
+  readonly scope?: ArchitectureReviewScope;
+  readonly output?: string;
+  readonly zip?: boolean;
+  readonly maxSourceBytes?: number;
+  readonly maxFileBytes?: number;
+  /** Test-only clock injection; it is not exposed by the CLI. */
+  readonly generatedAt?: Date;
+}
+
+export interface BuildArchitectureReviewPackResult {
+  readonly packDirectory: string;
+  readonly zipPath?: string;
+  readonly sourceFilesIncluded: number;
+  readonly totalFiles: number;
+  readonly excludedFiles: number;
+  readonly truncations: number;
+  readonly totalBytes: number;
+  readonly zipBytes?: number;
+  readonly validation: readonly string[];
+}
+
+interface ForensicSourceRecord {
+  readonly path: string;
+  readonly size: number;
+  readonly sha256: string;
+  readonly category: ReviewFileCategory;
+  readonly symbols: readonly string[];
+  readonly referencedBy: readonly string[];
+}
+
+interface SourceText {
+  readonly file: SelectedFile;
+  readonly content: string;
+}
+
+const FORENSIC_REQUIRED_FILES = [
+  "README.md", "REVIEW-INSTRUCTIONS.md", "COMPLETENESS.md", "manifest.json", "repository-summary.md",
+  "architecture/current-architecture.md", "architecture/contracts.md", "architecture/artifact-lifecycle.md", "architecture/concurrency.md", "architecture/cache-and-reuse.md", "architecture/type-safety.md", "architecture/legacy-and-deprecation.md", "architecture/execution-paths.md", "architecture/pipeline-versions.md", "architecture/behavioral-surface.md", "architecture/execution-variations.md", "architecture/workflow-state-machine.md", "architecture/genre-variation-matrix.md", "architecture/locale-variation-matrix.md", "architecture/provider-matrix.md", "architecture/feature-flags.md", "architecture/uncertainties.md", "architecture/findings.md", "architecture/performance.md",
+  "flows/end-to-end-production.md", "flows/image-generation.md", "flows/speech-generation.md", "flows/localization.md",
+  "quality/gate-inventory.md", "quality/gate-matrix.md", "quality/gate-dependencies.md", "quality/remediation-flow.md", "quality/readiness-state-machine.md",
+  "dependency-analysis/module-graph.md", "dependency-analysis/module-graph.json", "configuration/runtime-config.md", "configuration/config-precedence.md", "configuration/ai-models.md", "testing/test-architecture.md", "testing/behavioral-contracts.md", "operations/error-handling.md", "operations/observability.md", "operations/reliability.md", "operations/security.md",
+  "indexes/packages.json", "indexes/source-index.json", "indexes/symbols.md", "indexes/entrypoints.json", "indexes/cli-commands.json", "indexes/cli-options.json", "indexes/feature-flags.json", "indexes/quality-gates.json", "indexes/execution-paths.json", "indexes/pipeline-versions.json", "indexes/config-values.json",
+] as const;
+
+const SCOPE_HINTS: Readonly<Record<Exclude<ArchitectureReviewScope, "repository">, readonly string[]>> = {
+  image: ["image", "visual", "prompt", "scene"],
+  speech: ["speech", "narration", "tts", "audio"],
+  localization: ["local", "locale", "translation", "language"],
+  publishing: ["youtube", "publish", "metadata", "upload"],
+  qa: ["quality", "gate", "approval", "readiness", "validation", "remediat"],
+  "episode-pipeline": ["episode", "workflow", "scene", "render", "artifact"],
+};
+
+function forensicJson(value: unknown): string {
+  return `${JSON.stringify(value, null, 2)}\n`;
+}
+
+function lineMatches(sources: readonly SourceText[], terms: readonly RegExp[], limit = 48): string[] {
+  const matches: string[] = [];
+  for (const source of sources) {
+    const lines = source.content.split("\n");
+    for (let index = 0; index < lines.length; index += 1) {
+      if (terms.some((term) => term.test(lines[index] ?? ""))) {
+        matches.push(`- \`source/${source.file.relativePath}:${index + 1}\` — ${(lines[index] ?? "").trim().slice(0, 220)}`);
+        if (matches.length >= limit) return matches;
+      }
+    }
+  }
+  return matches;
+}
+
+function sourceReferences(sources: readonly SourceText[], terms: readonly RegExp[], limit = 80): string[] {
+  const paths = sources.filter((source) => terms.some((term) => term.test(source.file.relativePath) || term.test(source.content))).map((source) => `- \`source/${source.file.relativePath}\``);
+  return [...new Set(paths)].sort().slice(0, limit);
+}
+
+function symbolsFrom(content: string): string[] {
+  const symbols = new Set<string>();
+  for (const match of content.matchAll(/(?:export\s+)?(?:abstract\s+)?(?:class|interface|type|enum|function|const)\s+([A-Za-z_$][\w$]*)/gu)) {
+    if (match[1]) symbols.add(match[1]);
+  }
+  return [...symbols].sort().slice(0, 80);
+}
+
+function markdownEvidence(title: string, purpose: string, sources: readonly SourceText[], terms: readonly RegExp[], extra: readonly string[] = []): string {
+  const evidence = lineMatches(sources, terms);
+  const references = sourceReferences(sources, terms);
+  return [`# ${title}`, "", purpose, "", "## Evidence", "", ...(evidence.length ? evidence : ["- No matching static evidence was found in the selected scope; see the uncertainty register."]), "", "## Related source", "", ...(references.length ? references : ["- None discovered."]), ...(extra.length ? ["", "## Reconstruction notes", "", ...extra] : []), "", "This report is generated from static source evidence. It is secondary evidence; inspect the cited source before drawing a runtime conclusion.", ""].join("\n");
+}
+
+function commandInventory(sources: readonly SourceText[]): Array<Record<string, unknown>> {
+  const commands: Array<Record<string, unknown>> = [];
+  for (const source of sources.filter((candidate) => candidate.file.relativePath.startsWith("apps/cli/src/"))) {
+    for (const match of source.content.matchAll(/\.command\(\s*["']([^"']+)["']/gu)) {
+      const command = match[1] ?? "";
+      const position = match.index ?? 0;
+      const nearby = source.content.slice(position, position + 1800);
+      const options = [...nearby.matchAll(/\.option\(\s*["']([^"']+)/gu)].map((option) => option[1]).filter((option): option is string => Boolean(option));
+      commands.push({ id: `cli:${command}`, command, aliases: [], sourcePath: source.file.relativePath, status: /legacy|deprecated|v\d/iu.test(nearby) ? "legacy" : "unknown", options: [...new Set(options)].sort(), sideEffects: /upload|generate|write|delete|render/iu.test(nearby) ? ["implementation-dependent; inspect action"] : [], qualityGates: [], featureFlags: [], configDependencies: [] });
+    }
+  }
+  return commands.sort((left, right) => String(left["command"]).localeCompare(String(right["command"])) || String(left["sourcePath"]).localeCompare(String(right["sourcePath"])));
+}
+
+function environmentInventory(sources: readonly SourceText[]): Array<Record<string, unknown>> {
+  const values = new Map<string, Set<string>>();
+  for (const source of sources) {
+    for (const match of source.content.matchAll(/process\.env(?:\.([A-Z][A-Z0-9_]+)|\[\s*["']([A-Z][A-Z0-9_]+)["']\s*\])/gu)) {
+      const name = match[1] ?? match[2];
+      if (!name) continue;
+      const paths = values.get(name) ?? new Set<string>();
+      paths.add(source.file.relativePath);
+      values.set(name, paths);
+    }
+  }
+  return [...values.entries()].map(([name, consumers]) => ({ name, definition: "process.env", default: "not statically determined", required: "not statically determined", legacy: /LEGACY|DEPRECATED/iu.test(name), overrideSources: ["environment"], consumers: [...consumers].sort(), runtimeEffect: "inspect consumers" })).sort((left, right) => String(left.name).localeCompare(String(right.name)));
+}
+
+function featureFlags(config: readonly Record<string, unknown>[]): Array<Record<string, unknown>> {
+  return config.filter((value) => /ENABLE|FORCE|OFFLINE|FIXTURE|PAID|CACHE|REUSE|EXPERIMENT|RENDER/iu.test(String(value["name"]))).map((value) => ({ name: value["name"], definition: value["definition"], default: value["default"], source: value["consumers"], consumers: value["consumers"], enabledBehavior: "inspect cited consumers", disabledBehavior: "inspect cited consumers", status: "unknown" }));
+}
+
+function qualityGates(sources: readonly SourceText[]): Array<Record<string, unknown>> {
+  return sources.filter((source) => /(?:quality|gate|readiness|approval|remediat|validation)/iu.test(source.file.relativePath)).map((source) => ({ id: `gate:${source.file.relativePath.replace(/[^a-z0-9]+/giu, "-").replace(/^-|-$/gu, "").toLowerCase()}`, name: path.posix.basename(source.file.relativePath), sourcePath: source.file.relativePath, scope: /scene/iu.test(source.file.relativePath) ? "scene" : /publish|youtube/iu.test(source.file.relativePath) ? "publishing" : "other", inputs: [], outputs: [], outcome: "unknown", canSkip: /skip|optional|bypass/iu.test(source.content), skipConditions: lineMatches([source], [/skip|optional|bypass/iu], 8), canRetry: /retry|attempt/iu.test(source.content), retryPolicy: /retry|attempt/iu.test(source.content) ? "see cited source" : undefined, remediation: /remediat|repair/iu.test(source.content) ? "see cited source" : undefined, escalation: /escalat/iu.test(source.content) ? "see cited source" : undefined, legacy: /legacy|v\d/iu.test(source.file.relativePath) }));
+}
+
+function importGraph(sources: readonly SourceText[]): { readonly nodes: readonly string[]; readonly edges: readonly Record<string, unknown>[] } {
+  const edges: Array<Record<string, unknown>> = [];
+  for (const source of sources) {
+    for (const match of source.content.matchAll(/from\s+["']([^"']+)["']/gu)) {
+      const target = match[1] ?? "";
+      if (target.startsWith("@mediaforge/")) edges.push({ from: source.file.relativePath, to: target, kind: "static-import" });
+    }
+  }
+  return { nodes: sources.map((source) => source.file.relativePath).sort(), edges: edges.sort((left, right) => `${left["from"]}:${left["to"]}`.localeCompare(`${right["from"]}:${right["to"]}`)) };
+}
+
+function packageRecords(sources: readonly SourceText[]): Array<Record<string, unknown>> {
+  return sources.filter((source) => /(^|\/)package\.json$/u.test(source.file.relativePath)).flatMap((source) => {
+    try {
+      const value = JSON.parse(source.content) as Record<string, unknown>;
+      const dependencies = Object.keys((value["dependencies"] as Record<string, unknown> | undefined) ?? {}).sort();
+      const devDependencies = Object.keys((value["devDependencies"] as Record<string, unknown> | undefined) ?? {}).sort();
+      return [{ name: String(value["name"] ?? path.posix.dirname(source.file.relativePath)), path: path.posix.dirname(source.file.relativePath), packageType: source.file.relativePath.startsWith("apps/") ? "application" : "library", dependencies, devDependencies, internalDependencies: dependencies.filter((dependency) => dependency.startsWith("@mediaforge/")), entrypoints: typeof value["bin"] === "string" ? [value["bin"]] : Object.values((value["bin"] as Record<string, string> | undefined) ?? {}).sort(), scripts: value["scripts"] ?? {}, tsconfigs: sources.filter((candidate) => path.posix.dirname(candidate.file.relativePath) === path.posix.dirname(source.file.relativePath) && path.posix.basename(candidate.file.relativePath).startsWith("tsconfig")).map((candidate) => candidate.file.relativePath).sort() }];
+    } catch { return []; }
+  }).sort((left, right) => String(left.path).localeCompare(String(right.path)));
+}
+
+function selectedForScope(files: readonly SelectedFile[], scope: ArchitectureReviewScope): SelectedFile[] {
+  if (scope === "repository") return [...files];
+  const hints = SCOPE_HINTS[scope];
+  const mandatory = new Set<string>(MANDATORY_ARCHITECTURE_SURFACES.map((surface) => surface.path));
+  return files.filter((file) => mandatory.has(file.relativePath) || hints.some((hint) => file.relativePath.toLowerCase().includes(hint))).sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+}
+
+async function writeForensicFile(root: string, relativePath: string, value: string): Promise<void> {
+  assertSafeRelative(relativePath);
+  const target = path.join(root, relativePath);
+  await fs.mkdir(path.dirname(target), { recursive: true });
+  await fs.writeFile(target, value, "utf8");
+}
+
+async function bytesIn(directory: string): Promise<number> {
+  const files = await listFiles(directory, "", []);
+  const sizes = await Promise.all(files.map(async (file) => (await fs.stat(path.join(directory, file))).size));
+  return sizes.reduce((total, size) => total + size, 0);
+}
+
+async function validateForensicPack(root: string, sources: readonly ForensicSourceRecord[]): Promise<string[]> {
+  const checks: string[] = [];
+  for (const required of FORENSIC_REQUIRED_FILES) await fs.access(path.join(root, required));
+  checks.push("required reports and indexes present");
+  const manifest = JSON.parse(await fs.readFile(path.join(root, "manifest.json"), "utf8")) as Record<string, unknown>;
+  if (manifest["schemaVersion"] !== "architecture-review-pack.v1") throw new ArchitectureReviewPackError("Forensic manifest schema is invalid.");
+  for (const source of sources) {
+    const target = path.join(root, "source", source.path);
+    if (await sha256(target) !== source.sha256) throw new ArchitectureReviewPackError(`Source hash mismatch: ${source.path}`);
+    if (path.isAbsolute(source.path) || source.path.includes("..")) throw new ArchitectureReviewPackError(`Unsafe source index path: ${source.path}`);
+  }
+  checks.push("source index paths and hashes verified");
+  for (const surface of MANDATORY_ARCHITECTURE_SURFACES) await fs.access(path.join(root, "source", surface.path));
+  checks.push("mandatory image, OpenAI adapter, CLI, upload, and legacy speech evidence present");
+  for (const file of await listFiles(root, "", [])) {
+    if (/(^|\/)\.env(?:\.|$)/u.test(file) && !isSafeExample(file)) throw new ArchitectureReviewPackError(`Secret file leaked: ${file}`);
+  }
+  checks.push("secret-file denylist and relative-path validation passed");
+  return checks;
+}
+
+async function collectSafeCliHelp(repositoryRoot: string, packDirectory: string): Promise<void> {
+  const binary = path.join(repositoryRoot, "apps", "cli", "bin", "mediaforge.js");
+  try {
+    await fs.access(binary);
+    const commands: ReadonlyArray<readonly string[]> = [["--help"], ["audit", "--help"], ["audit", "build-review-pack", "--help"]];
+    for (const args of commands) {
+      const result = await execFileAsync(process.execPath, [binary, ...args], { cwd: repositoryRoot, maxBuffer: 1024 * 1024 });
+      const name = args.length === 1 ? "root.txt" : `${args.join("-").replace(/--/gu, "")}.txt`;
+      await writeForensicFile(packDirectory, `indexes/cli-help/${name}`, result.stdout);
+    }
+  } catch (error: unknown) {
+    const detail = error instanceof Error ? error.message.replaceAll(repositoryRoot, "[repository]") : "unknown error";
+    await writeForensicFile(packDirectory, "indexes/cli-help/README.md", `# Safe CLI help snapshots\n\nThe packaged CLI was unavailable during generation: ${detail}\n\nCommand and option indexes remain source-derived; regenerate after building apps/cli to capture help snapshots.\n`);
+  }
+}
+
+function reviewPackReadme(input: { readonly repositoryName: string; readonly commit: string | null; readonly branch: string | null; readonly dirty: boolean; readonly generatedAt: string; readonly scope: ArchitectureReviewScope; readonly sourceCount: number; readonly excludedCount: number; readonly packBytes: number; readonly zipBytes?: number }): string {
+  return ["# Architecture review pack", "", `- Repository: \`${input.repositoryName}\``, "- Repository path: `.` (pack-relative; absolute path omitted)", `- Commit: \`${input.commit ?? "unavailable"}\``, `- Branch: \`${input.branch ?? "unavailable"}\``, `- Dirty working tree: \`${input.dirty}\``, `- Generated at: \`${input.generatedAt}\``, "- Generator version: `1.0.0`", `- Requested scope: \`${input.scope}\``, `- Included source count: \`${input.sourceCount}\``, `- Excluded file count: \`${input.excludedCount}\``, "- Truncation count: `0` (oversize files are excluded, never silently truncated)", `- Total pack size: \`${input.packBytes}\` bytes`, `- ZIP size: \`${input.zipBytes ?? "created after this metadata pass"}\` bytes`, "- Generated artifacts included: `false` (only bounded metadata evidence where selected)", "- Secrets scanned/redacted: `true`", "", "## Limitations", "", "This pack is static, source-grounded evidence. It excludes media, dependencies, build outputs, credentials, and runtime-only state. Dynamic registry/configuration resolution and runtime gate ordering must be verified from cited source and safe runtime evidence.", ""].join("\n");
+}
+
+export async function buildArchitectureReviewPack(options: BuildArchitectureReviewPackOptions = {}): Promise<BuildArchitectureReviewPackResult> {
+  const repositoryRoot = path.resolve(options.repositoryRoot ?? process.cwd());
+  const scope = options.scope ?? "repository";
+  const outputRoot = path.resolve(repositoryRoot, options.output ?? "artifacts/review-packs");
+  if (!isInside(repositoryRoot, outputRoot)) throw new ArchitectureReviewPackError("Output directory must be inside the repository root.");
+  const discovery = await discoverArchitectureReviewPack({ repositoryRoot, profile: "full" });
+  const exclusions = [...discovery.exclusions];
+  const candidates = selectedForScope(discovery.files, scope);
+  const mandatoryPaths = new Set<string>(MANDATORY_ARCHITECTURE_SURFACES.map((surface) => surface.path));
+  const maxFileBytes = options.maxFileBytes;
+  const maxSourceBytes = options.maxSourceBytes;
+  if (maxFileBytes !== undefined && (!Number.isSafeInteger(maxFileBytes) || maxFileBytes < 1)) throw new ArchitectureReviewPackError("maxFileBytes must be a positive safe integer.");
+  if (maxSourceBytes !== undefined && (!Number.isSafeInteger(maxSourceBytes) || maxSourceBytes < 1)) throw new ArchitectureReviewPackError("maxSourceBytes must be a positive safe integer.");
+  let usedBytes = 0;
+  const selected: SelectedFile[] = [];
+  for (const file of candidates) {
+    const essential = mandatoryPaths.has(file.relativePath);
+    if (!essential && maxFileBytes !== undefined && file.sizeBytes > maxFileBytes) { exclusions.push({ path: file.relativePath, reason: "excluded by --max-file-bytes" }); continue; }
+    if (!essential && maxSourceBytes !== undefined && usedBytes + file.sizeBytes > maxSourceBytes) { exclusions.push({ path: file.relativePath, reason: "excluded by --max-source-bytes" }); continue; }
+    selected.push(file); usedBytes += file.sizeBytes;
+  }
+  for (const surface of MANDATORY_ARCHITECTURE_SURFACES) if (!selected.some((file) => file.relativePath === surface.path)) throw new ArchitectureReviewPackError(`Mandatory source excluded by scope: ${surface.path}`, "ARCHITECTURE_REVIEW_SURFACE_INCOMPLETE");
+  const sourceTexts: SourceText[] = [];
+  for (const file of selected) sourceTexts.push({ file, content: await fs.readFile(file.absolutePath, "utf8") });
+  const generatedAt = (options.generatedAt ?? new Date()).toISOString();
+  const timestamp = generatedAt.replace(/[-:.]/gu, "").replace("Z", "Z");
+  const packName = `youtube-architecture-review-${timestamp}`;
+  const packDirectory = path.join(outputRoot, packName);
+  await fs.mkdir(outputRoot, { recursive: true });
+  try { await fs.access(packDirectory); throw new ArchitectureReviewPackError(`Refusing to overwrite existing pack: ${packDirectory}`); } catch (error) { if (!(error instanceof ArchitectureReviewPackError) && (error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
+  await fs.mkdir(packDirectory, { recursive: true });
+  try {
+    const sourceIndex: ForensicSourceRecord[] = [];
+    for (const source of sourceTexts) {
+      const analysis = analyzeSecrets(source.content);
+      if (analysis.hasSecrets && source.file.criticalSurface === null) throw new ArchitectureReviewPackError(`Secret-bearing non-mandatory file reached forensic staging: ${source.file.relativePath}`);
+      const staged = analysis.hasSecrets ? analysis.sanitized : source.content;
+      await writeForensicFile(packDirectory, `source/${source.file.relativePath}`, staged);
+      sourceIndex.push({ path: source.file.relativePath, size: Buffer.byteLength(staged), sha256: sha256Text(staged), category: source.file.category, symbols: symbolsFrom(staged), referencedBy: [] });
+    }
+    sourceIndex.sort((left, right) => left.path.localeCompare(right.path));
+    const packages = packageRecords(sourceTexts);
+    const commands = commandInventory(sourceTexts);
+    const configValues = environmentInventory(sourceTexts);
+    const flags = featureFlags(configValues);
+    const gates = qualityGates(sourceTexts).sort((left, right) => String(left["id"]).localeCompare(String(right["id"])));
+    const graph = importGraph(sourceTexts);
+    const entrypoints = commands.map((command) => ({ id: command["id"], kind: "cli-command", path: command["sourcePath"], command: command["command"] }));
+    const executionPaths = MANDATORY_ARCHITECTURE_SURFACES.map((surface) => ({ id: surface.id, implementation: [surface.path], callers: sourceReferences(sourceTexts, [new RegExp(path.posix.basename(surface.path).replace(/\.[^.]+$/u, ""), "iu")]).map((value) => value.replace(/^- `source\//u, "").replace(/`$/u, "")), conditions: [], status: "included-evidence", replacement: null, remainingConsumers: [], reachabilityConfidence: "high for inclusion; caller analysis is static" }));
+    const versions = sourceTexts.filter((source) => /legacy|v[0-9]|experimental|beta|next/iu.test(source.file.relativePath)).map((source) => ({ id: `version:${source.file.relativePath}`, path: source.file.relativePath, status: /legacy/iu.test(source.file.relativePath) ? "legacy-or-compatibility-candidate" : "versioned-or-experimental-candidate", differences: "inspect included source", callers: [], migrationPath: "unknown" })).sort((left, right) => String(left.path).localeCompare(String(right.path)));
+
+    const reportSpecs: Array<{ path: string; title: string; purpose: string; terms: RegExp[]; extra?: string[] }> = [
+      { path: "architecture/current-architecture.md", title: "Current architecture", purpose: "Static reconstruction of domains, composition roots, ports/adapters, artifacts, and dependency direction.", terms: [/register.*command|create.*provider|workflow|artifact|adapter/iu] },
+      { path: "architecture/contracts.md", title: "Public contracts", purpose: "Interfaces, schemas, ports, adapters, and DTO boundaries discovered in selected source.", terms: [/\b(interface|type|schema|adapter|port|contract)\b/iu] },
+      { path: "architecture/artifact-lifecycle.md", title: "Artifact lifecycle", purpose: "Artifact, manifest, cache, timing, hash, and persistence evidence.", terms: [/artifact|manifest|cache|fingerprint|hash|timing|persist/iu] },
+      { path: "architecture/concurrency.md", title: "Concurrency", purpose: "Promise, queue, throttle, lock, and atomic-write evidence; no runtime safety conclusion is implied.", terms: [/Promise\.all|Promise\.allSettled|concurren|queue|semaphore|lock|atomic/iu] },
+      { path: "architecture/cache-and-reuse.md", title: "Cache and reuse", purpose: "Cache keys, semantic hashes, reuse, invalidation, and provider/model identity evidence.", terms: [/cache|reuse|semantic.*hash|fingerprint|invalidation/iu] },
+      { path: "architecture/type-safety.md", title: "Type safety", purpose: "Risk-oriented evidence for assertions, unknown/any, JSON parsing, and dynamic configuration.", terms: [/\bany\b|as unknown as|JSON\.parse|\bunknown\b|process\.env/iu] },
+      { path: "architecture/legacy-and-deprecation.md", title: "Legacy and deprecation", purpose: "Legacy, compatibility, and competing version candidates, including the speech adapter.", terms: [/legacy|deprecated|compatibility|v[0-9]/iu] },
+      { path: "architecture/execution-paths.md", title: "Execution paths", purpose: "Entry points, orchestration targets, and static call-site evidence.", terms: [/\.command\(|register.*command|create.*provider|dynamic import|import\(/iu] },
+      { path: "architecture/pipeline-versions.md", title: "Pipeline versions", purpose: "Versioned, legacy, next, beta, and experimental implementation candidates.", terms: [/legacy|v[0-9]|experimental|beta|next/iu] },
+      { path: "architecture/behavioral-surface.md", title: "Behavioral surface", purpose: "Reachable CLI registrations, options, flags, and operation candidates derived from source.", terms: [/\.command\(|\.option\(|--(?:force|resume|refresh|offline|fixture|skip|provider|model)/iu] },
+      { path: "architecture/execution-variations.md", title: "Execution variations", purpose: "Options and conditional branches that may alter providers, artifacts, gates, retries, or cache behavior.", terms: [/\.option\(|--(?:force|resume|refresh|offline|fixture|skip|provider|model)|if \(/iu] },
+      { path: "architecture/workflow-state-machine.md", title: "Workflow state machine", purpose: "States and transitions inferred from types, manifests, workflow stores, and CLI behavior.", terms: [/status|state|transition|approved|blocked|failed|ready/iu] },
+      { path: "architecture/genre-variation-matrix.md", title: "Genre variation matrix", purpose: "Genre-specific code and configuration evidence. Unlisted cells remain unknown rather than inferred.", terms: [/genre|history|veronica|dark.?truth|math/iu] },
+      { path: "architecture/locale-variation-matrix.md", title: "Locale variation matrix", purpose: "Locale, language, translation, localized metadata, voice, and timing evidence.", terms: [/locale|language|localiz|translation|voice|wpm/iu] },
+      { path: "architecture/provider-matrix.md", title: "Provider matrix", purpose: "Provider selection, registry, adapter, retry, timeout, and offline-fixture evidence.", terms: [/provider|registry|adapter|retry|timeout|fixture/iu] },
+      { path: "architecture/feature-flags.md", title: "Feature flags", purpose: "Environment/configuration-controlled behavioral branch candidates.", terms: [/process\.env|ENABLE_|FORCE_|OFFLINE|FIXTURE|PAID_|CACHE/iu] },
+      { path: "architecture/uncertainties.md", title: "Behavioral uncertainty register", purpose: "Static analysis limitations, dynamic-dispatch caveats, and evidence that needs runtime confirmation.", terms: [/import\(|registry|factory|process\.env|JSON\.parse/iu], extra: ["Question: Which registry-selected implementation runs for a given production configuration?", "Resolution: capture the effective configuration and safe CLI help/runtime diagnostics; static imports alone are insufficient."] },
+      { path: "architecture/findings.md", title: "Architectural findings", purpose: "Conservative findings queue. Entries are evidence pointers, not automated PASS/FAIL judgments.", terms: [/legacy|TODO|FIXME|catch \(|process\.exit|Promise\.all/iu] },
+      { path: "architecture/performance.md", title: "Performance", purpose: "Filesystem traversal, hashing, serial/parallel provider calls, and cache evidence. Findings require profiling unless explicitly measured.", terms: [/readFile|readdir|hash|cache|Promise\.all|await/iu] },
+      { path: "flows/end-to-end-production.md", title: "End-to-end production", purpose: "Static stage reconstruction from CLI through localization, speech, planning, images, rendering, QA, metadata, and upload.", terms: [/localiz|narration|speech|scene|image|render|quality|upload|publish/iu], extra: ["```mermaid", "flowchart LR", "  CLI --> Localization --> Speech --> Planning --> Images --> Rendering --> QA --> Publishing", "```", "The diagram is a navigation hypothesis; cited implementation determines the actual optional ordering and branches."] },
+      { path: "flows/image-generation.md", title: "Image generation", purpose: "Image caller, orchestration, prompt/cache/reuse, provider, validation, persistence, and manifest evidence.", terms: [/generateEpisodeImages|OpenAIImage|image.*cache|image.*provider|image.*manifest|technical.*qa/iu] },
+      { path: "flows/speech-generation.md", title: "Speech generation", purpose: "Current providers, legacy adapter, voices/models, storage, timing, retries, and offline behavior evidence.", terms: [/speech|narration|tts|legacy.*speech|voice|timing/iu] },
+      { path: "flows/localization.md", title: "Localization", purpose: "Master/localized scripts, localized metadata, TTS settings, timing, visual and upload evidence.", terms: [/localiz|locale|language|translation|caption|subtitle/iu] },
+      { path: "quality/gate-inventory.md", title: "Quality gate inventory", purpose: "Gate/readiness/approval/remediation implementations selected by static path and symbol evidence.", terms: [/quality.*gate|readiness|approval|remediat|assert.*allowed/iu] },
+      { path: "quality/gate-matrix.md", title: "Quality gate matrix", purpose: "Genre/mode gate evidence. Absence is marked unknown, not disabled.", terms: [/quality|gate|history|veronica|math|dark/iu] },
+      { path: "quality/gate-dependencies.md", title: "Quality gate dependencies", purpose: "Precondition, evaluation, retry, remediation, and escalation evidence.", terms: [/gate|precondition|retry|remediat|escalat|ready/iu] },
+      { path: "quality/remediation-flow.md", title: "Remediation flow", purpose: "Failure, repair/regeneration, re-evaluation, escalation, and stop-condition evidence.", terms: [/remediat|repair|retry|attempt|escalat|regenerat/iu] },
+      { path: "quality/readiness-state-machine.md", title: "Readiness state machine", purpose: "Approval/readiness/blocking state and transition evidence.", terms: [/readiness|production.?ready|approved|blocked|transition|status/iu] },
+      { path: "configuration/runtime-config.md", title: "Runtime configuration", purpose: "Environment, schema/default, provider/model, genre, locale, and CLI option evidence.", terms: [/process\.env|config|default|provider|model|locale|genre/iu] },
+      { path: "configuration/config-precedence.md", title: "Configuration precedence", purpose: "Assignment, merge, fallback, environment, CLI, and override evidence. No universal precedence is inferred without a cited resolver.", terms: [/process\.env|\?\?|Object\.assign|\.merge\(|override|default|options\./iu] },
+      { path: "configuration/ai-models.md", title: "AI models", purpose: "LLM, image, speech, escalation, fallback, caching, and model override evidence.", terms: [/model|reasoning|openai|elevenlabs|provider|escalat/iu] },
+      { path: "testing/test-architecture.md", title: "Test architecture", purpose: "Unit/integration/E2E/fixture/offline/provider test evidence included in the pack.", terms: [/describe\(|it\(|fixture|offline|integration|e2e/iu] },
+      { path: "testing/behavioral-contracts.md", title: "Behavioral contracts", purpose: "Test-derived contracts for flags, failures, retries, cache, state, and compatibility.", terms: [/expect\(|retry|cache|legacy|approval|resume|force/iu] },
+      { path: "operations/error-handling.md", title: "Error handling", purpose: "Error normalization, catches, retryability, exits, partial failures, and provider errors.", terms: [/catch \(|throw new|Error|process\.exit|retry/iu] },
+      { path: "operations/observability.md", title: "Observability", purpose: "Logging, telemetry, request IDs, costs, retry and duration evidence.", terms: [/logger|telemetry|requestId|cost|duration|metrics/iu] },
+      { path: "operations/reliability.md", title: "Reliability", purpose: "Resumability, idempotency, retries, recovery, cache/stale artifacts, and upload behavior evidence.", terms: [/resume|idempoten|retry|checkpoint|stale|reconcile|atomic/iu] },
+      { path: "operations/security.md", title: "Security", purpose: "Credential, token, shell/process, filesystem, path, archive, URL, and output-validation evidence.", terms: [/credential|token|api.?key|execFile|spawn|path|sanitize|validate/iu] },
+    ];
+    for (const report of reportSpecs) await writeForensicFile(packDirectory, report.path, markdownEvidence(report.title, report.purpose, sourceTexts, report.terms, report.extra));
+    await writeForensicFile(packDirectory, "indexes/packages.json", forensicJson(packages));
+    await writeForensicFile(packDirectory, "indexes/source-index.json", forensicJson(sourceIndex));
+    await writeForensicFile(packDirectory, "indexes/cli-commands.json", forensicJson(commands));
+    const cliOptions = commands.flatMap((command) => (command["options"] as string[]).map((option) => ({ command: command["command"], sourcePath: command["sourcePath"], option })));
+    await writeForensicFile(packDirectory, "indexes/cli-options.json", forensicJson(cliOptions));
+    await writeForensicFile(packDirectory, "indexes/feature-flags.json", forensicJson(flags));
+    await writeForensicFile(packDirectory, "indexes/quality-gates.json", forensicJson(gates));
+    await writeForensicFile(packDirectory, "indexes/entrypoints.json", forensicJson(entrypoints));
+    await writeForensicFile(packDirectory, "indexes/execution-paths.json", forensicJson(executionPaths));
+    await writeForensicFile(packDirectory, "indexes/pipeline-versions.json", forensicJson(versions));
+    await writeForensicFile(packDirectory, "indexes/config-values.json", forensicJson(configValues));
+    await writeForensicFile(packDirectory, "indexes/symbols.md", ["# Important symbols", "", ...sourceIndex.flatMap((source) => source.symbols.map((symbol) => `- \`${symbol}\` — \`source/${source.path}\``)), ""].join("\n"));
+    await writeForensicFile(packDirectory, "dependency-analysis/module-graph.json", forensicJson(graph));
+    await writeForensicFile(packDirectory, "dependency-analysis/module-graph.md", markdownEvidence("Module dependency graph", "Static workspace-package import graph. Dynamic imports, registries, and configuration factories are separately surfaced as uncertainties.", sourceTexts, [/from\s+["']@mediaforge|import\(|registry|factory/iu]));
+    await writeForensicFile(packDirectory, "architecture/packages.md", ["# Package inventory", "", ...packages.flatMap((record) => [`## ${record["name"]}`, `- Path: \`source/${record["path"]}\``, `- Internal dependencies: ${((record["internalDependencies"] as string[]) ?? []).join(", ") || "none"}`, ""]), ""].join("\n"));
+    await writeForensicFile(packDirectory, "repository-summary.md", ["# Repository summary", "", "This bounded tree contains selected architecture-relevant source, configuration, tests, scripts, and CI evidence. Generated media, dependencies, caches, credentials, and build outputs are excluded.", "", "## Selected repository tree", "", ...selected.map((file) => `- \`source/${file.relativePath}\``), ""].join("\n"));
+    await writeForensicFile(packDirectory, "REVIEW-INSTRUCTIONS.md", ["# Review instructions", "", "Treat generated summaries as secondary evidence. Prioritize `source/` and verify every claim against implementation; inspect tests when behavior is ambiguous.", "", "Distinguish intended from actual architecture, reachable code from merely existing code, and legacy compatibility from active production paths. Check configuration-dependent and dynamically dispatched paths, mark unsupported conclusions uncertain, and never treat an automated PASS as proof that implementation is correct.", ""] .join("\n"));
+    const completeness = ["# Completeness", "", "| Area | Status | Rationale |", "| --- | --- | --- |", "| packages, source selection, mandatory source areas | COMPLETE | Deterministic selected source and required-surface validation. |", "| commands, aliases, options, feature flags | HIGH CONFIDENCE | Static registration/environment extraction; runtime help snapshots are bounded. |", "| configuration precedence, gate ordering, remediation, readiness | PARTIAL | Source evidence is present; static extraction does not prove every runtime combination. |", "| pipeline versions, legacy, genres, locales, providers, cache/reuse, tests, dynamic dispatch | HIGH CONFIDENCE | Matching evidence is indexed; dynamic resolution remains explicitly uncertain. |", "", "Pack integrity is not architectural completeness.", ""];
+    await writeForensicFile(packDirectory, "COMPLETENESS.md", completeness.join("\n"));
+    await fs.mkdir(path.join(packDirectory, "indexes", "cli-help"), { recursive: true });
+    await collectSafeCliHelp(repositoryRoot, packDirectory);
+    const [commit, branch, status] = await Promise.all([git(repositoryRoot, ["rev-parse", "HEAD"]), git(repositoryRoot, ["branch", "--show-current"]), git(repositoryRoot, ["status", "--porcelain"])]);
+    const sourceManifest = sourceIndex.map((source) => ({ path: source.path, sha256: source.sha256, size: source.size, category: source.category }));
+    const manifest = { schemaVersion: "architecture-review-pack.v1", generatorVersion: "1.0.0", generatedAt, repository: { name: path.basename(repositoryRoot), commit, branch, dirty: Boolean(status) }, scope: { id: scope }, files: sourceManifest, hashes: Object.fromEntries(sourceManifest.map((source) => [source.path, source.sha256])), warnings: ["Generated reports are static secondary evidence."], exclusions: exclusions.sort((left, right) => left.path.localeCompare(right.path)), truncations: [], coverage: { mandatoryArchitectureSurfaces: MANDATORY_ARCHITECTURE_SURFACES.map((surface) => surface.id), sources: sourceIndex.length, commands: commands.length, configurationValues: configValues.length, qualityGateCandidates: gates.length } };
+    await writeForensicFile(packDirectory, "manifest.json", forensicJson(manifest));
+    await writeForensicFile(packDirectory, "README.md", reviewPackReadme({ repositoryName: path.basename(repositoryRoot), commit, branch, dirty: Boolean(status), generatedAt, scope, sourceCount: sourceIndex.length, excludedCount: exclusions.length, packBytes: 0 }));
+    let packBytes = await bytesIn(packDirectory);
+    await writeForensicFile(packDirectory, "README.md", reviewPackReadme({ repositoryName: path.basename(repositoryRoot), commit, branch, dirty: Boolean(status), generatedAt, scope, sourceCount: sourceIndex.length, excludedCount: exclusions.length, packBytes }));
+    packBytes = await bytesIn(packDirectory);
+    const validation = await validateForensicPack(packDirectory, sourceIndex);
+    let zipPath: string | undefined;
+    let zipBytes: number | undefined;
+    if (options.zip ?? true) {
+      zipPath = path.join(outputRoot, `${packName}.zip`);
+      await execFileAsync("zip", ["-X", "-q", "-r", zipPath, packName], { cwd: outputRoot, maxBuffer: 8 * 1024 * 1024 });
+      await execFileAsync("unzip", ["-t", zipPath], { maxBuffer: 8 * 1024 * 1024 });
+      const listing = (await execFileAsync("unzip", ["-Z1", zipPath], { maxBuffer: 8 * 1024 * 1024 })).stdout.split("\n");
+      if (!listing.includes(`${packName}/manifest.json`) || !listing.includes(`${packName}/source/${MANDATORY_ARCHITECTURE_SURFACES[0].path}`)) throw new ArchitectureReviewPackError("ZIP root structure validation failed.");
+      zipBytes = (await fs.stat(zipPath)).size;
+      await writeForensicFile(packDirectory, "README.md", reviewPackReadme({ repositoryName: path.basename(repositoryRoot), commit, branch, dirty: Boolean(status), generatedAt, scope, sourceCount: sourceIndex.length, excludedCount: exclusions.length, packBytes, zipBytes }));
+      await execFileAsync("zip", ["-X", "-q", "-r", zipPath, packName], { cwd: outputRoot, maxBuffer: 8 * 1024 * 1024 });
+      await execFileAsync("unzip", ["-t", zipPath], { maxBuffer: 8 * 1024 * 1024 });
+      zipBytes = (await fs.stat(zipPath)).size;
+      validation.push("ZIP root structure and archive integrity verified");
+    }
+    return { packDirectory, ...(zipPath ? { zipPath } : {}), sourceFilesIncluded: sourceIndex.length, totalFiles: (await listFiles(packDirectory, "", [])).length, excludedFiles: exclusions.length, truncations: 0, totalBytes: await bytesIn(packDirectory), ...(zipBytes !== undefined ? { zipBytes } : {}), validation };
+  } catch (error) {
+    await fs.rm(packDirectory, { recursive: true, force: true });
+    throw error;
+  }
+}

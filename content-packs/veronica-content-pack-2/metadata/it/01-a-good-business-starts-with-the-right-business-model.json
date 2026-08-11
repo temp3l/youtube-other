@@ -1,0 +1,42 @@
+{
+  "title": "Il fatturato può crescere mentre il tuo business peggiora",
+  "alternativeTitles": [
+    "Vendere di più non sistema un modello di business debole",
+    "Il tuo business è davvero sano o è soltanto molto occupato?",
+    "Il test sul modello di business che molti saltano"
+  ],
+  "thumbnail": "PIÙ VENDITE. BUSINESS PEGGIORE?",
+  "thumbnailOptions": [
+    "PIÙ VENDITE. BUSINESS PEGGIORE?",
+    "FATTURATO ≠ MARGINE",
+    "E SE VENDESSI IL DOPPIO?"
+  ],
+  "description": "Più fatturato non significa automaticamente un business più sano. In questo episodio analizziamo la struttura che sta dietro a un modello sostenibile: margine, costi variabili e fissi, tempo di consegna, scalabilità, economia dei canali e differenza tra proteggere il formato del prodotto e proteggere il bisogno del cliente. Alla fine trovi anche un audit pratico in cinque punti e una domanda di stress test: se domani vendessi il doppio, il business diventerebbe davvero più forte?\n\nNel prossimo episodio: perché il tuo cliente ideale non è “tutti”.",
+  "cta": "Fai l'audit in cinque righe del tuo modello e scegli una sola ipotesi strutturale da testare nelle prossime settimane.",
+  "chapters": [
+    "Il fatturato non è il modello",
+    "I costi nascosti del cambio di canale",
+    "Formato del prodotto e bisogno del cliente",
+    "Il test del tempo",
+    "Cosa significa davvero scalabilità",
+    "Il test di adattamento",
+    "Il tuo audit in cinque righe",
+    "La prossima ipotesi da testare"
+  ],
+  "shortA": {
+    "title": "Più fatturato può peggiorare un business debole",
+    "alternateHook": "Se domani vendessi il doppio, il tuo business starebbe davvero meglio?"
+  },
+  "shortB": {
+    "title": "Se smetti di lavorare, si ferma anche il fatturato?",
+    "alternateHook": "Il limite alla tua crescita potrebbe essere nascosto nel calendario."
+  },
+  "youtubeOptimizationVersion": "v2-retention-localization",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  }
+}

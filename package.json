@@ -35,6 +35,7 @@
     "format:check": "prettier --check .",
     "doctor": "node scripts/run-with-telemetry.mjs doctor -- node apps/cli/bin/mediaforge.js doctor",
     "mediaforge": "node scripts/run-with-telemetry.mjs mediaforge -- node apps/cli/bin/mediaforge.js",
+    "youtube": "node scripts/run-with-telemetry.mjs youtube -- node apps/cli/bin/mediaforge.js",
     "episode:inspect": "node scripts/run-with-telemetry.mjs episode:inspect -- node apps/cli/bin/mediaforge.js episode inspect",
     "episode:dry-run": "node scripts/run-with-telemetry.mjs episode:dry-run -- node apps/cli/bin/mediaforge.js episode dry-run",
     "episode:analyze": "node scripts/run-with-telemetry.mjs episode:analyze -- node apps/cli/bin/mediaforge.js episode analyze",

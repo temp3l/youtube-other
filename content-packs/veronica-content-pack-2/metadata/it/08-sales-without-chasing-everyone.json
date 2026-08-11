@@ -1,0 +1,31 @@
+{
+  "title": "Vendere senza inseguire tutti",
+  "thumbnail": "SMETTI DI INSEGUIRE",
+  "description": "Prospecting non significa disturbare più persone. Disegna un sistema di scoperta, interesse, contatto, follow-up e retention che renda semplice per le persone giuste arrivare fino a te.",
+  "cta": "Chiudi il cerchio: modello di business, cliente, promessa, offerta, prodotto, conversione, vendita e prospecting devono funzionare come un unico sistema.",
+  "alternativeTitles": [
+    "Smetti di inseguire clienti. Costruisci un percorso di vendita.",
+    "Follow-up senza inseguire: il sistema di vendita"
+  ],
+  "thumbnailOptions": [
+    "SMETTI DI INSEGUIRE",
+    "COSTRUISCI IL PERCORSO",
+    "FOLLOW-UP ≠ INSEGUIRE"
+  ],
+  "youtubeOptimizationVersion": "v2-retention-localization",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  },
+  "shortA": {
+    "title": "Smetti di inseguire clienti",
+    "alternateHook": "Un buon prospecting costruisce un percorso invece di dipendere da contatti casuali."
+  },
+  "shortB": {
+    "title": "Follow-up o inseguimento?",
+    "alternateHook": "Il follow-up aggiunge chiarezza o informazione. Inseguire chiede soltanto altra attenzione."
+  }
+}

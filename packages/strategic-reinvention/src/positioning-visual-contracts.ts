@@ -59,6 +59,18 @@ export type VisualStrategy =
 
 /** The semantic owner of the scene's primary visible action. */
 export type VeronicaActionOwnerRole = "expert" | "buyer" | "shared" | "none";
+export type VeronicaNarrativeActorRole =
+  | "expert"
+  | "observer"
+  | "existing-follower"
+  | "prospective-buyer";
+export interface VeronicaActorAssignment {
+  readonly actorId: string;
+  readonly role: VeronicaNarrativeActorRole;
+  readonly actionOwnership: "primary" | "supporting" | "context";
+  readonly identityAuthority: "canonical-protagonist" | "distinct-scene-actor";
+  readonly visibleAction: string;
+}
 export type VeronicaSemanticConfidence = "HIGH" | "MEDIUM" | "LOW";
 export type VeronicaSemanticPolarity = "POSITIVE_STATE" | "NEGATIVE_STATE" | "CONTRAST" | "TRANSITION_NEGATIVE_TO_POSITIVE" | "TRANSITION_POSITIVE_TO_NEGATIVE" | "NEUTRAL";
 export type VeronicaSemanticStateRelation = "STABLE" | "CAUSAL_BEFORE_AFTER" | "CONTRAST" | "CONDITIONAL_ALTERNATIVES" | "SEQUENTIAL_PROGRESSION";
@@ -324,6 +336,9 @@ export interface PositioningVisualTreatment {
   readonly action: string;
   /** Explicit when remediation knows who performs the action; never inferred from buyer perspective. */
   readonly actionOwnerRole?: VeronicaActionOwnerRole;
+  /** Concrete scene cast. Broad buyer/expert mechanism families never own identity. */
+  readonly actors?: readonly VeronicaActorAssignment[];
+  readonly actionOwnerActorId?: string;
   readonly props: readonly string[];
   readonly motionOpportunities: readonly VisualEventKind[];
   readonly diagram: DiagramTopology | null;
@@ -361,6 +376,10 @@ export interface GeneratedVisualAsset {
   readonly nativeAspectRatio: AspectRatio;
   readonly ratioAdaptations: readonly RatioAdaptation[];
   readonly subjectIdentityId: string | null;
+  /** Canonical identity authority; never replaced by a generated scene image. */
+  readonly canonicalReferenceAssetId?: string | null;
+  /** Optional generated continuity evidence in addition to the canonical authority. */
+  readonly continuityReferenceAssetIds?: readonly string[];
   readonly referenceAssetId: string | null;
   readonly semanticFingerprint: string;
   readonly generatedAssetCacheKey: string;
@@ -377,7 +396,45 @@ export interface GeneratedVisualAsset {
     readonly projectedStateRelation: VeronicaSemanticStateRelation;
     readonly projectedActorRole: VeronicaActionOwnerRole | "unresolved";
     readonly projectedConsequencePolarity: VeronicaSemanticPolarity;
+    readonly promptCompilerVersion?: string;
+    readonly promptCompilationInputHash?: string;
+    readonly promptCompilationResultHash?: string;
+    readonly promptCompilerModel?: string;
+    readonly promptCompilerReasoningEffort?: string;
   };
+  readonly promptCompilation?: {
+    readonly input: import("./veronica-image-prompt-compiler.js").VeronicaImagePromptCompilationInput;
+    readonly result: import("./veronica-image-prompt-compiler.js").VeronicaImagePromptCompilationResult;
+    readonly inputHash: string;
+    readonly resultHash: string;
+    readonly semanticQa?: VeronicaProviderPromptSemanticQa;
+  };
+}
+
+export interface VeronicaProviderPromptSemanticBlocker {
+  readonly code:
+    | "NARRATION_PROPOSITION_INVERSION"
+    | "VISUAL_PURPOSE_INVERSION"
+    | "ACTOR_OWNERSHIP_INVERSION"
+    | "REQUIRED_STATE_INVERSION"
+    | "COMPOSITION_HIERARCHY_INVERSION"
+    | "ESSENTIAL_RELATIONSHIP_INVERSION"
+    | "NEGATIVE_CONSTRAINT_VIOLATION"
+    | "CONTINUITY_REFERENCE_VIOLATION";
+  readonly canonicalField: string;
+  readonly expected: string;
+  readonly actual: string;
+  readonly message: string;
+}
+
+export interface VeronicaProviderPromptSemanticQa {
+  readonly schemaVersion: "veronica-provider-prompt-semantic-qa.v1";
+  readonly status: "PASS" | "BLOCKED";
+  readonly sceneId: string;
+  readonly assetId: string;
+  readonly canonicalContractHash: string;
+  readonly providerPromptHash: string;
+  readonly blockers: readonly VeronicaProviderPromptSemanticBlocker[];
 }
 
 export type VisualEventKind =
@@ -404,6 +461,8 @@ export interface VisualEvent {
   readonly durationMs: number;
   readonly aspectRatio: AspectRatio;
   readonly safeRegionIds: readonly SafeRegion["id"][];
+  /** The distinct information revealed by this crop/reframe. */
+  readonly semanticFocus?: string;
   readonly deterministicParameters: {
     readonly startScale: number;
     readonly endScale: number;
@@ -486,7 +545,7 @@ export interface VeronicaProviderReadinessResult {
   readonly lexicalCorruptionCount: number;
   readonly motifLeakageCount: number;
   readonly harmfulRepetitionCount: number;
-  readonly issues: readonly { readonly sceneId: string; readonly assetId?: string; readonly code: "VISIBLE_THESIS_REQUIRED" | "MALFORMED_VISIBLE_THESIS" | "SEMANTIC_PROVIDER_PROJECTION_INCONSISTENCY" | "PROVIDER_PROMPT_NOT_READY" | "INCOMPLETE_NARRATION_CLAIM" | "SEMANTIC_POLARITY_MISMATCH" | "SEMANTIC_PROPOSITION_INTERNAL_CONTRADICTION" | "TREATMENT_PROPOSITION_COMPATIBILITY" | "PROVIDER_PROJECTION_SEMANTIC_MISMATCH" | "PROVIDER_PROMPT_LEXICAL_CORRUPTION" | "CROSS_EPISODE_MOTIF_LEAKAGE" | "HARMFUL_REPETITION"; readonly reason: string }[];
+  readonly issues: readonly { readonly sceneId: string; readonly assetId?: string; readonly code: "VISIBLE_THESIS_REQUIRED" | "MALFORMED_VISIBLE_THESIS" | "SEMANTIC_PROVIDER_PROJECTION_INCONSISTENCY" | "PROVIDER_PROMPT_NOT_READY" | "INCOMPLETE_NARRATION_CLAIM" | "SEMANTIC_POLARITY_MISMATCH" | "SEMANTIC_PROPOSITION_INTERNAL_CONTRADICTION" | "TREATMENT_PROPOSITION_COMPATIBILITY" | "PROVIDER_PROJECTION_SEMANTIC_MISMATCH" | "PROVIDER_PROMPT_SEMANTIC_BLOCKER" | "PROVIDER_PROMPT_LEXICAL_CORRUPTION" | "CROSS_EPISODE_MOTIF_LEAKAGE" | "HARMFUL_REPETITION"; readonly reason: string }[];
 }
 
 export interface DiversityMetrics {
@@ -666,6 +725,28 @@ export interface PositioningVisualPlanV2 {
   };
   readonly semanticQuality?: VeronicaSemanticQualityMetrics;
   readonly providerReadiness?: VeronicaProviderReadinessResult;
+  readonly imagePromptGenerationStrategy?: "deterministic-v1" | "openai" | "legacy-deterministic";
+  readonly imagePromptCompilation?: {
+    readonly schemaVersion: "veronica-image-prompt-compilation-telemetry.v1";
+    readonly episodeId: string;
+    readonly sceneCount: number;
+    readonly assetCount: number;
+    readonly invalidatedAssetCount: number;
+    readonly compilerModel: string;
+    readonly reasoningEffort: string;
+    readonly requestCount: number;
+    readonly inputTokens: number;
+    readonly outputTokens: number;
+    readonly cachedInputTokens: number;
+    readonly latencyMs: number;
+    readonly compilerVersion: string;
+    readonly compilationHashes: readonly string[];
+    readonly cacheHits: number;
+    readonly cacheMisses: number;
+    readonly reasonForRegeneration: string;
+    readonly estimatedCostUsd?: number;
+    readonly requestId?: string;
+  };
   /** Independent narration-to-final-artifact gate; never authored by generation. */
   readonly sourceGroundedVisualQa?: SourceGroundedVisualQaResult;
   readonly hierarchicalReadiness?: {

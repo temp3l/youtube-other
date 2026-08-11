@@ -45,7 +45,7 @@ const OPENAI_QA_MODEL_PRICING: NonNullable<
   },
 };
 
-const VERONICA_ROUTINE_QA_ESCALATION_MODEL = "gpt-5.6-terra";
+const VERONICA_ROUTINE_QA_ESCALATION_MODEL = "gpt-5.6-sol";
 const VERONICA_ROUTINE_QA_ESCALATION_REASONING = "medium" as const;
 
 export interface VeronicaPaidOpenAiQaAuthorization {

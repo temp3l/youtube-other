@@ -1,0 +1,31 @@
+{
+  "title": "Menschen kaufen nicht dein Produkt. Sie kaufen das Versprechen.",
+  "thumbnail": "WAS KAUFEN SIE WIRKLICH?",
+  "description": "Kunden kaufen nicht nur Merkmale, sondern die erwartete Veränderung. Dieses Video zeigt, wie Produktwert, Service und Ergebnis in ein klares, glaubwürdiges Versprechen übersetzt werden.",
+  "cta": "In der nächsten Folge machen wir aus diesem Versprechen ein Angebot, das leicht zu verstehen, glaubwürdig und einfach zu kaufen ist.",
+  "alternativeTitles": [
+    "Menschen kaufen nicht das Produkt. Sie kaufen die Veränderung.",
+    "Hör auf, Features zu erklären. Verkaufe das Ergebnis."
+  ],
+  "thumbnailOptions": [
+    "WAS KAUFEN SIE WIRKLICH?",
+    "VERKAUF DIE VERÄNDERUNG",
+    "FEATURES SIND NICHT DER WERT"
+  ],
+  "youtubeOptimizationVersion": "v2-retention-localization",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  },
+  "shortA": {
+    "title": "Was kauft der Kunde wirklich?",
+    "alternateHook": "Entferne den Produktnamen: Kannst du trotzdem erklären, warum das Ergebnis wichtig ist?"
+  },
+  "shortB": {
+    "title": "Ein Versprechen ist kein Slogan",
+    "alternateHook": "Ein stärkeres Versprechen macht echten Wert klarer, nicht die Realität größer."
+  }
+}

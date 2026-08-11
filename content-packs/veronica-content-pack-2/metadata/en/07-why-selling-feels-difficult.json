@@ -1,0 +1,31 @@
+{
+  "title": "Why Selling Feels Difficult",
+  "thumbnail": "WHY DOES SELLING FEEL WRONG?",
+  "description": "Discomfort around money, price, and follow-up changes how you sell. Separate persuasion from coercion and turn selling into a structured, measurable process that respects the customer’s freedom.",
+  "cta": "Next, we turn selling into a discovery, contact, and follow-up system that does not require chasing everyone.",
+  "alternativeTitles": [
+    "Why Saying the Price Feels So Hard",
+    "Selling Without Manipulation: A Better Sales Process"
+  ],
+  "thumbnailOptions": [
+    "WHY DOES SELLING FEEL WRONG?",
+    "WHY DOES PRICE FEEL AWKWARD?",
+    "SELL WITHOUT PRESSURE"
+  ],
+  "youtubeOptimizationVersion": "v2-retention-localization",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  },
+  "shortA": {
+    "title": "Why Saying the Price Feels So Hard",
+    "alternateHook": "If your behavior changes when money enters the conversation, the sales process changes too."
+  },
+  "shortB": {
+    "title": "Selling Is Not Manipulation",
+    "alternateHook": "Healthy persuasion keeps the customer informed and free to say no."
+  }
+}

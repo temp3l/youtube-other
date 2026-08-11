@@ -1,0 +1,74 @@
+{
+  "packId": "veronica-content-pack-2",
+  "version": "v2-youtube-optimized-restructured",
+  "languages": [
+    "it",
+    "en",
+    "de",
+    "es",
+    "pt"
+  ],
+  "localeMap": {
+    "it": "it-IT",
+    "en": "en-US",
+    "de": "de-DE",
+    "es": "es-ES",
+    "pt": "pt-BR"
+  },
+  "counts": {
+    "longPerLanguage": 8,
+    "shortsPerLanguage": 16,
+    "totalLong": 40,
+    "totalShorts": 80
+  },
+  "timingTargets": {
+    "longSeconds": [
+      570,
+      630
+    ],
+    "shortsSeconds": [
+      60,
+      90
+    ],
+    "englishShortsWpm": {
+      "target": 155,
+      "preferred": [
+        145,
+        165
+      ],
+      "soft": [
+        135,
+        175
+      ]
+    }
+  },
+  "long": {
+    "osc-01": "01-a-good-business-starts-with-the-right-business-model",
+    "osc-02": "02-your-ideal-customer-is-not-everyone",
+    "osc-03": "03-people-dont-buy-your-product-they-buy-the-promise",
+    "osc-04": "04-how-to-build-an-offer-people-actually-want",
+    "osc-05": "05-stop-improving-the-marketing-fix-the-product",
+    "osc-06": "06-attention-is-not-conversion",
+    "osc-07": "07-why-selling-feels-difficult",
+    "osc-08": "08-sales-without-chasing-everyone"
+  },
+  "shorts": {
+    "osc-01-a": "01a-revenue-is-not-a-good-business",
+    "osc-01-b": "01b-if-you-stop-working-does-your-revenue-stop-too",
+    "osc-02-a": "02a-stop-targeting-everyone",
+    "osc-02-b": "02b-stop-posting-where-your-customers-arent",
+    "osc-03-a": "03a-what-does-your-customer-really-buy",
+    "osc-03-b": "03b-the-promise-formula",
+    "osc-04-a": "04a-why-good-products-still-dont-sell",
+    "osc-04-b": "04b-make-your-offer-easier-to-buy",
+    "osc-05-a": "05a-marketing-may-not-be-the-problem",
+    "osc-05-b": "05b-too-many-choices-kill-the-offer",
+    "osc-06-a": "06a-views-are-not-sales",
+    "osc-06-b": "06b-trust-comes-before-conversion",
+    "osc-07-a": "07a-why-selling-feels-uncomfortable",
+    "osc-07-b": "07b-selling-isnt-manipulation",
+    "osc-08-a": "08a-stop-chasing-customers",
+    "osc-08-b": "08b-prospecting-without-being-annoying"
+  },
+  "mockAudio": true
+}

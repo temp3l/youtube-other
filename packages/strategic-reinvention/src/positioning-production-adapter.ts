@@ -28,6 +28,25 @@ import {
   type SourceGroundedVisualQaPolicy,
 } from "./source-grounded-visual-qa.js";
 import type { SourceGroundedQaScheduler } from "./source-grounded-qa-scheduler.js";
+import {
+  compileVeronicaImagePrompts,
+  type VeronicaImagePromptCompilationCachePort,
+  type VeronicaImagePromptCompilerModel,
+  type VeronicaImagePromptCompilerPort,
+} from "./veronica-image-prompt-compiler.js";
+import { persistVeronicaProviderImagePromptArtifact } from "./veronica-provider-image-prompt-artifact.js";
+import {
+  resolveVeronicaCanonicalTiming,
+  veronicaTimedNarrationUnitSchema,
+  type VeronicaResolvedCanonicalTiming,
+  type VeronicaTimedNarrationUnit,
+} from "./veronica-canonical-timing.js";
+import { persistVeronicaVisualArtifacts } from "./veronica-visual-artifacts.js";
+import {
+  veronicaVisualBibleV1Schema,
+  veronicaVisualTreatmentsArtifactSchema,
+} from "./veronica-visual-artifacts.js";
+import { persistVeronicaLocalizedProduction } from "./veronica-localized-production.js";
 
 export const POSITIONING_PRODUCTION_ADAPTER_VERSION = "veronicabenini-positioning-production-adapter.v4" as const;
 export const VERONICA_LONG_FORM_SEMANTIC_SEGMENTATION_VERSION = "veronica-long-form-semantic-segmentation.v3" as const;
@@ -91,6 +110,12 @@ export interface PreparePositioningProductionEpisodeInput {
   readonly scriptPath?: string;
   readonly language: "en" | "de" | "es" | "fr" | "pt" | "it";
   readonly variant: "full" | "short";
+  readonly imagePromptCompiler?: {
+    readonly strategy: "deterministic-v1" | "openai";
+    readonly compiler: VeronicaImagePromptCompilerPort;
+    readonly cache: VeronicaImagePromptCompilationCachePort;
+    readonly model: VeronicaImagePromptCompilerModel;
+  };
   readonly sourceGroundedVisualQa?: {
     readonly policy: SourceGroundedVisualQaPolicy;
     readonly primaryJudge: SourceGroundedSceneJudgePort;
@@ -114,6 +139,11 @@ export interface PreparePositioningProductionEpisodeResult {
   readonly scriptPath: string;
   readonly manifestPath: string;
   readonly scenePlanPath: string;
+  readonly providerImagePromptsJsonPath: string;
+  readonly providerImagePromptsMarkdownPath: string;
+  readonly visualTreatmentsPath: string;
+  readonly visualBiblePath: string;
+  readonly localizedProductionPath: string;
   readonly sceneCount: number;
   readonly semanticRemediationRounds: number;
   readonly semanticRemediationStatus: "CONVERGED" | "NO_OP" | "SEMANTIC_REMEDIATION_EXHAUSTED";
@@ -425,7 +455,13 @@ export function compilePositioningProductionScenePlan(input: {
   const orderedScenes = [...input.plan.scenes].sort((left, right) => left.startMs - right.startMs);
   const narrationChunks = input.narrationByScene ?? splitNarration(input.narration, orderedScenes.length);
   if (narrationChunks.length !== orderedScenes.length) throw new Error("Veronica semantic narration segmentation must match the visual scene count.");
-  const assets = new Map(input.plan.assets.map((asset) => [asset.sceneId, asset]));
+  // A semantic scene may own several provider assets. The scene wrapper has a
+  // single imagePrompt slot, so materialize the first (primary) asset exactly as
+  // the coherence validator and review surfaces do.
+  const assets = new Map<string, PositioningProductionPlan["assets"][number]>();
+  for (const asset of input.plan.assets) {
+    if (!assets.has(asset.sceneId)) assets.set(asset.sceneId, asset);
+  }
   return scenePlanSchema.parse({
     sourceId: episodeId,
     scenes: orderedScenes.map((planned, index) => {
@@ -436,6 +472,11 @@ export function compilePositioningProductionScenePlan(input: {
       const sceneId = `scene-${String(index + 1).padStart(3, "0")}`;
       const startSeconds = planned.startMs / 1_000;
       const endSeconds = (planned.startMs + planned.durationMs) / 1_000;
+      const actorAssignments = (planned.treatment as { readonly actors?: readonly { readonly role: string; readonly identityAuthority: string }[] }).actors ?? [];
+      const hasCanonicalProtagonist = actorAssignments.some((actor) => actor.role === "expert" && actor.identityAuthority === "canonical-protagonist");
+      const previousActors = index > 0 ? ((orderedScenes[index - 1]!.treatment as { readonly actors?: readonly { readonly role: string; readonly identityAuthority: string }[] }).actors ?? []) : [];
+      const previousHasCanonicalProtagonist = previousActors.some((actor) => actor.role === "expert" && actor.identityAuthority === "canonical-protagonist");
+      const subjectIdentityId = (asset as { readonly subjectIdentityId?: string | null }).subjectIdentityId ?? null;
       return {
         id: sceneId,
         sequenceNumber: index + 1,
@@ -451,12 +492,14 @@ export function compilePositioningProductionScenePlan(input: {
         composition: planned.treatment.composition,
         cameraFraming: planned.treatment.camera,
         mood: `${planned.treatment.lighting}; ${planned.progressionStage.toLowerCase()}`,
-        continuityReferences: index > 0 ? [`scene-${String(index).padStart(3, "0")}`] : [],
+        continuityReferences: index > 0 && hasCanonicalProtagonist && previousHasCanonicalProtagonist ? [`scene-${String(index).padStart(3, "0")}`] : [],
+        referenceCharacterIds: hasCanonicalProtagonist && subjectIdentityId ? [subjectIdentityId] : [],
         onScreenText: "",
         negativeConstraints: [
           "no readable text, letters, numbers, logos, UI, or watermarks",
           "no depiction or synthetic likeness of Veronica Benini",
           "no generic motivational stock montage, laptop-at-desk pose, or stock handshake",
+          "observer, follower, and customer identities must remain distinct from the canonical professional",
         ],
         aspectRatios: [asset.nativeAspectRatio],
         imagePrompt: asset.prompt,
@@ -510,28 +553,62 @@ function waveDurationSeconds(bytes: Buffer): number | null {
   return byteRate && dataSize !== null && byteRate > 0 ? dataSize / byteRate : null;
 }
 
-function reconcileScenePlan(scenePlan: ScenePlan, narrationDurationSeconds: number): ScenePlan {
-  const plannedTotal = scenePlan.scenes.at(-1)?.timing.endSeconds ?? 0;
-  if (plannedTotal <= 0) throw new Error("Veronica scene timing must have a positive planned duration.");
-  let cursor = 0;
-  return scenePlanSchema.parse({
-    ...scenePlan,
-    scenes: scenePlan.scenes.map((scene, index) => {
+export function reconcileScenePlanToCanonicalAudio(input: {
+  readonly scenePlan: ScenePlan;
+  readonly selectedAudioHash: string;
+  readonly selectedAudioDurationSeconds: number;
+  readonly selectedAudioBytes?: Buffer;
+  readonly timedNarrationUnits?: readonly VeronicaTimedNarrationUnit[];
+}): { readonly scenePlan: ScenePlan; readonly timing: VeronicaResolvedCanonicalTiming } {
+  const timing = resolveVeronicaCanonicalTiming({
+    selectedAudioHash: input.selectedAudioHash,
+    selectedAudioDurationSeconds: input.selectedAudioDurationSeconds,
+    ...(input.selectedAudioBytes ? { selectedAudioBytes: input.selectedAudioBytes } : {}),
+    ...(input.timedNarrationUnits ? { timedNarrationUnits: input.timedNarrationUnits } : {}),
+    scenes: input.scenePlan.scenes.map((scene) => ({
+      sceneId: scene.id,
+      narration: scene.canonicalNarration,
+      plannedDurationSeconds: scene.timing.endSeconds - scene.timing.startSeconds,
+    })),
+  });
+  const byScene = new Map(timing.scenes.map((scene) => [scene.sceneId, scene] as const));
+  const scenePlan = scenePlanSchema.parse({
+    ...input.scenePlan,
+    scenes: input.scenePlan.scenes.map((scene) => {
       const planned = scene.timing.endSeconds - scene.timing.startSeconds;
-      const reconciled = index === scenePlan.scenes.length - 1 ? narrationDurationSeconds - cursor : (planned * narrationDurationSeconds) / plannedTotal;
-      const timing = { startSeconds: cursor, endSeconds: cursor + reconciled };
-      cursor = timing.endSeconds;
+      const aligned = byScene.get(scene.id);
+      if (!aligned) throw new Error(`Veronica canonical timing omitted ${scene.id}.`);
+      const reconciled = aligned.endSeconds - aligned.startSeconds;
       return {
         ...scene,
         estimatedDurationSeconds: reconciled,
         plannedDurationSeconds: planned,
         reconciledDurationSeconds: reconciled,
-        timingSource: "proportional-total-audio-reconciliation" as const,
-        timingConfidence: "estimated" as const,
-        timing,
+        ...(timing.timingConfidence === "actual" ? { actualAudioDurationSeconds: reconciled } : {}),
+        timingSource: timing.timingSource,
+        timingConfidence: timing.timingConfidence,
+        timing: { startSeconds: aligned.startSeconds, endSeconds: aligned.endSeconds },
       };
     }),
   });
+  return { scenePlan, timing };
+}
+
+async function loadSelectedAudioTimedNarrationUnits(input: {
+  readonly episodeDir: string;
+  readonly language: string;
+  readonly variant: "full" | "short";
+  readonly selectedAudioHash: string;
+}): Promise<readonly VeronicaTimedNarrationUnit[] | undefined> {
+  const artifactPath = path.join(input.episodeDir, "locales", input.language, input.variant, "audio", "narration", "alignment.v1.json");
+  if (!(await fileExists(artifactPath))) return undefined;
+  const artifact = z.strictObject({
+    schemaVersion: z.literal("veronica-selected-audio-alignment.v1"),
+    selectedAudioHash: z.string().regex(/^[a-f0-9]{64}$/u),
+    units: z.array(veronicaTimedNarrationUnitSchema).min(1),
+  }).parse(JSON.parse(await fs.readFile(artifactPath, "utf8")) as unknown);
+  if (artifact.selectedAudioHash !== input.selectedAudioHash) return undefined;
+  return artifact.units;
 }
 
 function retimeVisualEvents(input: { readonly events: readonly VisualEvent[]; readonly plan: PositioningVisualPlanV2; readonly scenePlan: ScenePlan }): readonly VisualEvent[] {
@@ -559,6 +636,285 @@ function stableEventHash(event: Omit<VisualEvent, "renderCacheKey">): string {
   return createHash("sha256").update(JSON.stringify(event)).digest("hex");
 }
 
+async function prepareLocalizedPositioningProduction(input: PreparePositioningProductionEpisodeInput & {
+  readonly workspaceRoot: string;
+  readonly episodeDir: string;
+  readonly episodeId: string;
+  readonly scriptPath: string;
+  readonly narration: string;
+}): Promise<PreparePositioningProductionEpisodeResult> {
+  const canonicalPlanPath = path.join(input.episodeDir, "source", "pre-image-semantic-plan.v1.json");
+  if (!(await fileExists(canonicalPlanPath))) {
+    throw new Error("VERONICA_MASTER_SEMANTIC_PLAN_REQUIRED: prepare the English master before a localized production.");
+  }
+  const canonicalPlan = positioningProductionPlanSchema.parse(
+    JSON.parse(await fs.readFile(canonicalPlanPath, "utf8")) as unknown,
+  ) as unknown as PositioningVisualPlanV2;
+  const expectedFormat = input.variant === "short" ? "short" : "long";
+  if (canonicalPlan.format !== expectedFormat) {
+    throw new Error(`Veronica canonical plan format ${canonicalPlan.format} does not match requested ${input.variant} production.`);
+  }
+  const localizedChunks = splitNarration(input.narration, canonicalPlan.scenes.length);
+  const provisional = compilePositioningProductionScenePlan({
+    episodeId: input.episodeId,
+    narration: input.narration,
+    plan: canonicalPlan as unknown as PositioningProductionPlan,
+    narrationByScene: localizedChunks,
+  });
+  const narrationPath = path.join(input.episodeDir, "locales", input.language, input.variant, "audio", "narration.wav");
+  let selectedAudioHash: string | null = null;
+  let selectedAudioDurationSeconds: number | null = null;
+  let selectedAudioBytes: Buffer | null = null;
+  try {
+    selectedAudioBytes = await fs.readFile(narrationPath);
+    selectedAudioDurationSeconds = waveDurationSeconds(selectedAudioBytes);
+    selectedAudioHash = createHash("sha256").update(selectedAudioBytes).digest("hex");
+  } catch {
+    // Localized preparation may remain provisional until localized TTS is selected.
+  }
+  const timedNarrationUnits = selectedAudioHash
+    ? await loadSelectedAudioTimedNarrationUnits({
+        episodeDir: input.episodeDir,
+        language: input.language,
+        variant: input.variant,
+        selectedAudioHash,
+      })
+    : undefined;
+  const reconciliation = selectedAudioHash && selectedAudioDurationSeconds
+    ? reconcileScenePlanToCanonicalAudio({
+        scenePlan: provisional,
+        selectedAudioHash,
+        selectedAudioDurationSeconds,
+        ...(selectedAudioBytes ? { selectedAudioBytes } : {}),
+        ...(timedNarrationUnits ? { timedNarrationUnits } : {}),
+      })
+    : null;
+  const scenePlan = reconciliation?.scenePlan ?? provisional;
+  const visualEvents = retimeVisualEvents({
+    events: canonicalPlan.visualEvents,
+    plan: canonicalPlan,
+    scenePlan,
+  });
+  const timingFingerprint = reconciliation?.timing.timingFingerprint ?? stableHash({
+    locale: input.language,
+    variant: input.variant,
+    narrationHash: stableHash(input.narration),
+    timingAlgorithmVersion: "veronica-planned-timing.v1",
+    scenes: scenePlan.scenes.map((scene) => scene.timing),
+  });
+  const visualArtifacts = await persistVeronicaVisualArtifacts({
+    workspaceRoot: input.workspaceRoot,
+    episodeDir: input.episodeDir,
+    plan: canonicalPlan,
+  });
+  const localized = await persistVeronicaLocalizedProduction({
+    episodeDir: input.episodeDir,
+    episodeId: input.episodeId,
+    locale: input.language,
+    variant: input.variant,
+    narration: input.narration,
+    selectedAudioHash,
+    timingHash: timingFingerprint,
+    plan: canonicalPlan,
+    scenePlan,
+    visualEvents,
+    treatments: visualArtifacts.treatments,
+    bible: visualArtifacts.bible,
+  });
+  const localeRoot = path.join(input.episodeDir, "locales", input.language, input.variant);
+  const scenePlanPath = path.join(localeRoot, "scene-plan.json");
+  await Promise.all([
+    writeJsonAtomic(scenePlanPath, scenePlan),
+    writeJsonAtomic(path.join(localeRoot, "canonical-timing.v1.json"), {
+      schemaVersion: "veronica-canonical-locale-timing.v3",
+      locale: input.language,
+      variant: input.variant,
+      timingAlgorithmVersion: reconciliation?.timing.timingAlgorithmVersion ?? "veronica-planned-timing.v1",
+      timingPhase: selectedAudioHash ? "post-tts-reconciled" : "pre-tts-planning",
+      timingSource: reconciliation?.timing.timingSource ?? "planned",
+      timingConfidence: reconciliation?.timing.timingConfidence ?? "planned",
+      narrationHash: stableHash(input.narration),
+      selectedAudioHash,
+      timingFingerprint,
+      narrationDurationSeconds: selectedAudioDurationSeconds ?? scenePlan.scenes.at(-1)?.timing.endSeconds ?? 0,
+      scenes: scenePlan.scenes.map((scene) => ({
+        sceneId: scene.id,
+        semanticSceneId: canonicalPlan.scenes[scene.sequenceNumber - 1]?.sceneId,
+        plannedDurationSeconds: scene.plannedDurationSeconds ?? scene.estimatedDurationSeconds,
+        reconciledDurationSeconds: scene.reconciledDurationSeconds ?? scene.estimatedDurationSeconds,
+        startSeconds: scene.timing.startSeconds,
+        endSeconds: scene.timing.endSeconds,
+      })),
+    }),
+    writeJsonAtomic(path.join(localeRoot, "retimed-visual-events.json"), {
+      schemaVersion: "veronica-retimed-visual-events.v3",
+      locale: input.language,
+      timingSource: reconciliation?.timing.timingSource ?? "planned",
+      timingConfidence: reconciliation?.timing.timingConfidence ?? "planned",
+      selectedAudioHash,
+      timingFingerprint,
+      events: visualEvents,
+    }),
+    writeTextAtomic(path.join(localeRoot, "script.md"), input.narration),
+    writeTextAtomic(defaultScriptPath(input.episodeDir, input.language, input.variant), input.narration),
+  ]);
+  const promptRoot = path.join(input.episodeDir, "locales", "en", input.variant, "image-prompts");
+  return {
+    schemaVersion: POSITIONING_PRODUCTION_ADAPTER_VERSION,
+    episodeId: input.episodeId,
+    contentId: canonicalPlan.contentId,
+    language: input.language,
+    variant: input.variant,
+    planPath: canonicalPlanPath,
+    scriptPath: input.scriptPath,
+    manifestPath: path.join(input.episodeDir, "manifest.json"),
+    scenePlanPath,
+    providerImagePromptsJsonPath: path.join(promptRoot, "provider-image-prompts.v1.json"),
+    providerImagePromptsMarkdownPath: path.join(promptRoot, "provider-image-prompts.md"),
+    visualTreatmentsPath: visualArtifacts.treatmentsPath,
+    visualBiblePath: visualArtifacts.biblePath,
+    localizedProductionPath: localized.productionPath,
+    sceneCount: scenePlan.scenes.length,
+    semanticRemediationRounds: 0,
+    semanticRemediationStatus: "NO_OP",
+    sourceGroundedVisualQaStatus: canonicalPlan.sourceGroundedVisualQa?.sourceFidelityReady ? "PASS" : "BLOCKED",
+  };
+}
+
+export interface ReconcileExistingVeronicaProductionTimingInput {
+  readonly workspaceRoot: string;
+  readonly episodeId: string;
+  readonly language: "en" | "de" | "es" | "fr" | "pt" | "it";
+  readonly variant: "full" | "short";
+}
+
+export interface ReconcileExistingVeronicaProductionTimingResult {
+  readonly episodeId: string;
+  readonly language: string;
+  readonly variant: "full" | "short";
+  readonly selectedAudioHash: string;
+  readonly narrationDurationSeconds: number;
+  readonly timingSource: string;
+  readonly timingConfidence: string;
+  readonly timingPath: string;
+  readonly scenePlanPath: string;
+  readonly localizedProductionPath: string;
+}
+
+/**
+ * Reconciles only locale-owned delivery artifacts after staged narration has
+ * promoted a selected WAV. The persisted semantic plan, VisualTreatmentV1,
+ * VisualBibleV1, and provider prompts are deliberately read-only inputs.
+ */
+export async function reconcileExistingVeronicaProductionTiming(
+  input: ReconcileExistingVeronicaProductionTimingInput,
+): Promise<ReconcileExistingVeronicaProductionTimingResult> {
+  const workspaceRoot = path.resolve(input.workspaceRoot);
+  const episodeId = normalizeEpisodeId(input.episodeId);
+  const episodeDir = path.join(workspaceRoot, episodeId);
+  const localeRoot = path.join(episodeDir, "locales", input.language, input.variant);
+  const sourcePlanPath = path.join(episodeDir, "source", "pre-image-semantic-plan.v1.json");
+  const scenePlanPath = path.join(localeRoot, "scene-plan.json");
+  const scriptPath = path.join(localeRoot, "script.md");
+  const narrationPath = path.join(localeRoot, "audio", "narration.wav");
+  const timingPath = path.join(localeRoot, "canonical-timing.v1.json");
+  const retimedEventsPath = path.join(localeRoot, "retimed-visual-events.json");
+  const [planRaw, scenePlanRaw, narration, audioBytes, treatmentsRaw, bibleRaw] = await Promise.all([
+    fs.readFile(sourcePlanPath, "utf8"),
+    fs.readFile(scenePlanPath, "utf8"),
+    fs.readFile(scriptPath, "utf8"),
+    fs.readFile(narrationPath),
+    fs.readFile(path.join(episodeDir, "shared", "visual-treatments.v1.json"), "utf8"),
+    fs.readFile(path.join(episodeDir, "shared", "visual-bible.v1.json"), "utf8"),
+  ]);
+  const plan = positioningProductionPlanSchema.parse(JSON.parse(planRaw) as unknown) as unknown as PositioningVisualPlanV2;
+  const scenePlan = scenePlanSchema.parse(JSON.parse(scenePlanRaw) as unknown);
+  const selectedAudioHash = createHash("sha256").update(audioBytes).digest("hex");
+  const selectedAudioDurationSeconds = waveDurationSeconds(audioBytes);
+  if (selectedAudioDurationSeconds === null) {
+    throw new Error(`VERONICA_SELECTED_AUDIO_DURATION_UNAVAILABLE:${narrationPath}`);
+  }
+  const timedNarrationUnits = await loadSelectedAudioTimedNarrationUnits({
+    episodeDir,
+    language: input.language,
+    variant: input.variant,
+    selectedAudioHash,
+  });
+  const reconciliation = reconcileScenePlanToCanonicalAudio({
+    scenePlan,
+    selectedAudioHash,
+    selectedAudioDurationSeconds,
+    selectedAudioBytes: audioBytes,
+    ...(timedNarrationUnits ? { timedNarrationUnits } : {}),
+  });
+  const visualEvents = retimeVisualEvents({
+    events: plan.visualEvents,
+    plan,
+    scenePlan: reconciliation.scenePlan,
+  });
+  const treatments = veronicaVisualTreatmentsArtifactSchema.parse(JSON.parse(treatmentsRaw) as unknown);
+  const bible = veronicaVisualBibleV1Schema.parse(JSON.parse(bibleRaw) as unknown);
+  const localized = await persistVeronicaLocalizedProduction({
+    episodeDir,
+    episodeId,
+    locale: input.language,
+    variant: input.variant,
+    narration,
+    selectedAudioHash,
+    timingHash: reconciliation.timing.timingFingerprint,
+    plan,
+    scenePlan: reconciliation.scenePlan,
+    visualEvents,
+    treatments,
+    bible,
+  });
+  await Promise.all([
+    writeJsonAtomic(scenePlanPath, reconciliation.scenePlan),
+    writeJsonAtomic(timingPath, {
+      schemaVersion: "veronica-canonical-locale-timing.v3",
+      locale: input.language,
+      variant: input.variant,
+      timingAlgorithmVersion: reconciliation.timing.timingAlgorithmVersion,
+      timingPhase: "post-tts-reconciled",
+      timingSource: reconciliation.timing.timingSource,
+      timingConfidence: reconciliation.timing.timingConfidence,
+      narrationHash: stableHash(narration),
+      selectedAudioHash,
+      timingFingerprint: reconciliation.timing.timingFingerprint,
+      narrationDurationSeconds: selectedAudioDurationSeconds,
+      scenes: reconciliation.scenePlan.scenes.map((scene, index) => ({
+        sceneId: scene.id,
+        semanticSceneId: plan.scenes[index]?.sceneId,
+        plannedDurationSeconds: scene.plannedDurationSeconds ?? scene.estimatedDurationSeconds,
+        reconciledDurationSeconds: scene.reconciledDurationSeconds ?? scene.estimatedDurationSeconds,
+        startSeconds: scene.timing.startSeconds,
+        endSeconds: scene.timing.endSeconds,
+      })),
+    }),
+    writeJsonAtomic(retimedEventsPath, {
+      schemaVersion: "veronica-retimed-visual-events.v3",
+      locale: input.language,
+      timingSource: reconciliation.timing.timingSource,
+      timingConfidence: reconciliation.timing.timingConfidence,
+      selectedAudioHash,
+      timingFingerprint: reconciliation.timing.timingFingerprint,
+      events: visualEvents,
+    }),
+  ]);
+  return {
+    episodeId,
+    language: input.language,
+    variant: input.variant,
+    selectedAudioHash,
+    narrationDurationSeconds: selectedAudioDurationSeconds,
+    timingSource: reconciliation.timing.timingSource,
+    timingConfidence: reconciliation.timing.timingConfidence,
+    timingPath,
+    scenePlanPath,
+    localizedProductionPath: localized.productionPath,
+  };
+}
+
 export async function preparePositioningProductionEpisode(input: PreparePositioningProductionEpisodeInput): Promise<PreparePositioningProductionEpisodeResult> {
   const workspaceRoot = path.resolve(input.workspaceRoot);
   const episodeId = normalizeEpisodeId(input.episodeId);
@@ -568,6 +924,16 @@ export async function preparePositioningProductionEpisode(input: PreparePosition
   const manifestPath = path.join(episodeDir, "manifest.json");
   const scenePlanPath = path.join(episodeDir, "shared", "scenes.json");
   const [planRaw, narration] = await Promise.all([fs.readFile(planPath, "utf8"), fs.readFile(scriptPath, "utf8")]);
+  if (input.language !== "en") {
+    return prepareLocalizedPositioningProduction({
+      ...input,
+      workspaceRoot,
+      episodeDir,
+      episodeId,
+      scriptPath,
+      narration,
+    });
+  }
   const plan = positioningProductionPlanSchema.parse(JSON.parse(planRaw) as unknown);
   const expectedFormat = input.variant === "short" ? "short" : "long";
   if (plan.format !== expectedFormat) {
@@ -598,24 +964,51 @@ export async function preparePositioningProductionEpisode(input: PreparePosition
   const narrationPath = path.join(episodeDir, "locales", input.language, input.variant, "audio", "narration.wav");
   let measuredNarrationDurationSeconds: number | null = null;
   let selectedAudioHash: string | null = null;
+  let selectedAudioBytes: Buffer | null = null;
   try {
     const narrationAudio = await fs.readFile(narrationPath);
     measuredNarrationDurationSeconds = waveDurationSeconds(narrationAudio);
     selectedAudioHash = createHash("sha256").update(narrationAudio).digest("hex");
+    selectedAudioBytes = narrationAudio;
   } catch {
     /* TTS has not run yet; planning timing remains explicit. */
   }
-  const scenePlan = measuredNarrationDurationSeconds === null ? compiledScenePlan : reconcileScenePlan(compiledScenePlan, measuredNarrationDurationSeconds);
+  const timedNarrationUnits = selectedAudioHash
+    ? await loadSelectedAudioTimedNarrationUnits({ episodeDir, language: input.language, variant: input.variant, selectedAudioHash })
+    : undefined;
+  const reconciliation = measuredNarrationDurationSeconds === null || selectedAudioHash === null
+    ? null
+    : reconcileScenePlanToCanonicalAudio({
+        scenePlan: compiledScenePlan,
+        selectedAudioHash,
+        selectedAudioDurationSeconds: measuredNarrationDurationSeconds,
+        ...(selectedAudioBytes ? { selectedAudioBytes } : {}),
+        ...(timedNarrationUnits ? { timedNarrationUnits } : {}),
+      });
+  const scenePlan = reconciliation?.scenePlan ?? compiledScenePlan;
   // The final treatment owns all derived state. Rebuild, rather than retime a
   // prior event list, after narration timing becomes canonical.
-  let canonicalPlan = rebuildVeronicaFinalTreatmentState({
+  const compilePrompts = async (
+    candidate: PositioningVisualPlanV2,
+    reasonForRegeneration: string,
+  ): Promise<PositioningVisualPlanV2> => input.imagePromptCompiler
+    ? compileVeronicaImagePrompts({
+        episodeId,
+        plan: candidate,
+        compiler: input.imagePromptCompiler.compiler,
+        cache: input.imagePromptCompiler.cache,
+        model: input.imagePromptCompiler.model,
+        reasonForRegeneration,
+      })
+    : ({ ...candidate, imagePromptGenerationStrategy: "legacy-deterministic" } as PositioningVisualPlanV2);
+  let canonicalPlan = await compilePrompts(rebuildVeronicaFinalTreatmentState({
     plan: hardened.plan,
     sceneTimings: scenePlan.scenes.map((scene) => ({
       id: scene.id,
       timing: scene.timing,
     })),
     narrationByScene: scenePlan.scenes.map((scene) => scene.canonicalNarration),
-  });
+  }), "canonical-semantic-snapshot");
   const sourceGroundedDependencies = input.sourceGroundedVisualQa;
   const sourceGrounded = await runSourceGroundedVisualQaController({
     plan: canonicalPlan,
@@ -636,14 +1029,14 @@ export async function preparePositioningProductionEpisode(input: PreparePosition
         narrationByScene: scenePlan.scenes.map((scene) => scene.canonicalNarration),
         round,
       });
-      return rebuildVeronicaFinalTreatmentState({
+      return compilePrompts(rebuildVeronicaFinalTreatmentState({
         plan: remediated,
         sceneTimings: scenePlan.scenes.map((scene) => ({
           id: scene.id,
           timing: scene.timing,
         })),
         narrationByScene: scenePlan.scenes.map((scene) => scene.canonicalNarration),
-      });
+      }), `semantic-remediation-round-${round}`);
     },
   });
   const sourcePlan = sourceGrounded.plan;
@@ -746,8 +1139,49 @@ export async function preparePositioningProductionEpisode(input: PreparePosition
   if (materializationReasons.length > 0) {
     throw new Error(`PROVIDER_SCENE_MATERIALIZATION_INCOHERENT:${materializationReasons.join(",")}`);
   }
+  const visualArtifacts = await persistVeronicaVisualArtifacts({
+    workspaceRoot,
+    episodeDir,
+    plan: canonicalPlan,
+  });
+  const persistedPrompts = await persistVeronicaProviderImagePromptArtifact({
+    episodeDir,
+    episodeId,
+    language: input.language,
+    variant: input.variant,
+    plan: canonicalPlan,
+    scenePlan: finalScenePlan,
+    visualTreatmentsHash: visualArtifacts.treatments.artifactHash,
+    visualBible: visualArtifacts.bible,
+    selectedAudioHash,
+  });
+  const timingFingerprint = reconciliation?.timing.timingFingerprint ?? stableHash({
+    narrationHash: stableHash(narration),
+    locale: input.language,
+    variant: input.variant,
+    timingAlgorithmVersion: "veronica-planned-timing.v1",
+    scenes: finalScenePlan.scenes.map((scene) => scene.timing),
+  });
+  const localizedProduction = await persistVeronicaLocalizedProduction({
+    episodeDir,
+    episodeId,
+    locale: input.language,
+    variant: input.variant,
+    narration,
+    selectedAudioHash,
+    timingHash: timingFingerprint,
+    plan: canonicalPlan,
+    scenePlan: finalScenePlan,
+    visualEvents: retimedEvents,
+    treatments: visualArtifacts.treatments,
+    bible: visualArtifacts.bible,
+  });
   const existing = (await fileExists(manifestPath)) ? episodeManifestSchema.parse(JSON.parse(await fs.readFile(manifestPath, "utf8")) as unknown) : null;
   const now = new Date().toISOString();
+  const promptArtifactIds = new Set([
+    `artifact-provider-image-prompts-${input.language}-${input.variant}-json`,
+    `artifact-provider-image-prompts-${input.language}-${input.variant}-markdown`,
+  ]);
   const manifest = episodeManifestSchema.parse({
     ...(existing ?? {
       episodeId,
@@ -759,6 +1193,27 @@ export async function preparePositioningProductionEpisode(input: PreparePosition
       createdAt: now,
     }),
     scenePlan: finalScenePlan,
+    artifacts: [
+      ...(existing?.artifacts ?? []).filter((artifact) => !promptArtifactIds.has(artifact.id)),
+      {
+        id: `artifact-provider-image-prompts-${input.language}-${input.variant}-json`,
+        kind: "provider-image-prompts",
+        path: path.relative(episodeDir, persistedPrompts.jsonPath).replace(/\\/gu, "/"),
+        mimeType: "application/json",
+        sizeBytes: persistedPrompts.jsonSizeBytes,
+        checksumSha256: persistedPrompts.jsonSha256,
+        createdAt: now,
+      },
+      {
+        id: `artifact-provider-image-prompts-${input.language}-${input.variant}-markdown`,
+        kind: "provider-image-prompts",
+        path: path.relative(episodeDir, persistedPrompts.markdownPath).replace(/\\/gu, "/"),
+        mimeType: "text/markdown",
+        sizeBytes: persistedPrompts.markdownSizeBytes,
+        checksumSha256: persistedPrompts.markdownSha256,
+        createdAt: now,
+      },
+    ],
     sourceMetadata: {
       ...(existing?.sourceMetadata && typeof existing.sourceMetadata === "object" ? existing.sourceMetadata : {}),
       genre: "veronicabenini",
@@ -769,6 +1224,9 @@ export async function preparePositioningProductionEpisode(input: PreparePosition
       positioningPlanHash: plan.planHash,
       canonicalPreImagePlanHash: canonicalPlan.planHash,
       canonicalLocaleTimingArtifactPath: `locales/${input.language}/${input.variant}/canonical-timing.v1.json`,
+      providerImagePromptsArtifactPath: path.relative(episodeDir, persistedPrompts.jsonPath).replace(/\\/gu, "/"),
+      providerImagePromptsMarkdownPath: path.relative(episodeDir, persistedPrompts.markdownPath).replace(/\\/gu, "/"),
+      providerImagePromptsArtifactHash: persistedPrompts.artifact.artifactHash,
       timingPhase: measuredNarrationDurationSeconds === null ? "pre-tts-planning" : "post-tts-reconciled",
       syntheticCreatorLikenessAllowed: false,
     },
@@ -799,25 +1257,16 @@ export async function preparePositioningProductionEpisode(input: PreparePosition
     }),
     writeJsonAtomic(path.join(episodeDir, "shared", "source-grounded-visual-qa.v1.json"), canonicalPlan.sourceGroundedVisualQa),
     writeJsonAtomic(path.join(episodeDir, "locales", input.language, input.variant, "canonical-timing.v1.json"), {
-      schemaVersion: "veronica-canonical-locale-timing.v2",
+      schemaVersion: "veronica-canonical-locale-timing.v3",
       locale: input.language,
       variant: input.variant,
-      timingAlgorithmVersion: "proportional-total-audio-reconciliation.v2",
+      timingAlgorithmVersion: reconciliation?.timing.timingAlgorithmVersion ?? "veronica-planned-timing.v1",
       timingPhase: measuredNarrationDurationSeconds === null ? "pre-tts-planning" : "post-tts-reconciled",
-      timingSource: measuredNarrationDurationSeconds === null ? "planned" : "selected-canonical-audio",
+      timingSource: reconciliation?.timing.timingSource ?? "planned",
+      timingConfidence: reconciliation?.timing.timingConfidence ?? "planned",
       narrationHash: createHash("sha256").update(narration).digest("hex"),
       selectedAudioHash,
-      timingFingerprint: createHash("sha256")
-        .update(
-          JSON.stringify({
-            selectedAudioHash,
-            narrationHash: createHash("sha256").update(narration).digest("hex"),
-            locale: input.language,
-            variant: input.variant,
-            timingAlgorithmVersion: "proportional-total-audio-reconciliation.v2",
-          }),
-        )
-        .digest("hex"),
+      timingFingerprint,
       narrationDurationSeconds: measuredNarrationDurationSeconds ?? finalScenePlan.scenes.at(-1)?.timing.endSeconds ?? 0,
       scenes: finalScenePlan.scenes.map((scene) => ({
         sceneId: scene.id,
@@ -828,18 +1277,11 @@ export async function preparePositioningProductionEpisode(input: PreparePosition
       })),
     }),
     writeJsonAtomic(path.join(episodeDir, "locales", input.language, input.variant, "retimed-visual-events.json"), {
-      schemaVersion: "veronica-retimed-visual-events.v2",
-      timingSource: measuredNarrationDurationSeconds === null ? "planned" : "selected-canonical-audio",
+      schemaVersion: "veronica-retimed-visual-events.v3",
+      timingSource: reconciliation?.timing.timingSource ?? "planned",
+      timingConfidence: reconciliation?.timing.timingConfidence ?? "planned",
       selectedAudioHash,
-      timingFingerprint: createHash("sha256")
-        .update(
-          JSON.stringify({
-            selectedAudioHash,
-            duration: measuredNarrationDurationSeconds,
-            semanticPlanHash: canonicalPlan.planHash,
-          }),
-        )
-        .digest("hex"),
+      timingFingerprint: stableHash({ canonicalTimingFingerprint: timingFingerprint, semanticPlanHash: canonicalPlan.planHash, events: retimedEvents }),
       events: retimedEvents,
     }),
     writeTextAtomic(canonicalScriptPath, narration),
@@ -855,6 +1297,11 @@ export async function preparePositioningProductionEpisode(input: PreparePosition
     scriptPath,
     manifestPath,
     scenePlanPath,
+    providerImagePromptsJsonPath: persistedPrompts.jsonPath,
+    providerImagePromptsMarkdownPath: persistedPrompts.markdownPath,
+    visualTreatmentsPath: visualArtifacts.treatmentsPath,
+    visualBiblePath: visualArtifacts.biblePath,
+    localizedProductionPath: localizedProduction.productionPath,
     sceneCount: scenePlan.scenes.length,
     semanticRemediationRounds: hardened.rounds,
     semanticRemediationStatus: finalConvergenceStatus,

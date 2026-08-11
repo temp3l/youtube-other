@@ -333,6 +333,8 @@ export interface SourceGroundedSceneJudgementInput {
     readonly consequence?: string;
     readonly polarity?: string;
     readonly visualMechanism?: VeronicaSemanticProposition["visualMechanism"];
+    readonly requiredVisibleEvidence?: readonly string[];
+    readonly forbiddenEvidence?: readonly string[];
   };
   readonly structuredState?: {
     readonly relation?: string;
@@ -922,6 +924,11 @@ function inputForScene(
       ...(proposition?.visualMechanism
         ? { visualMechanism: proposition.visualMechanism }
         : {}),
+      requiredVisibleEvidence: providerAssets[0]?.promptCompilation?.input.treatment.requiredEvidence
+        ?? proposition?.evidenceAnchors
+        ?? scene.treatment.props,
+      forbiddenEvidence: providerAssets[0]?.promptCompilation?.input.treatment.forbiddenEvidence
+        ?? [],
     },
     structuredState: {
       ...(proposition?.stateRelation
@@ -952,9 +959,14 @@ function inputForScene(
     providerPrompt: providerAssets.map((asset) => asset.prompt).join("\n---\n"),
     providerProjection: {
       treatmentPolarity: classifyVeronicaSemanticPolarity(`${scene.treatment.composition} ${scene.treatment.action} ${scene.treatment.props.join(" ")}`),
-      promptPolarity: classifyVeronicaSemanticPolarity(promptWithoutThesisAndConstraints),
+      promptPolarity: projectionProvenance[0]?.projectedPolarity
+        ?? classifyVeronicaSemanticPolarity(promptWithoutThesisAndConstraints),
       actorRole: visibleOwner,
-      ...(ownerRole(promptWithoutThesisAndConstraints) ? { promptActorRole: ownerRole(promptWithoutThesisAndConstraints)! } : {}),
+      ...(projectionProvenance[0]?.projectedActorRole
+        ? { promptActorRole: projectionProvenance[0].projectedActorRole }
+        : ownerRole(promptWithoutThesisAndConstraints)
+          ? { promptActorRole: ownerRole(promptWithoutThesisAndConstraints)! }
+          : {}),
       ...(projectionProvenance[0]?.projectedStateRelation ? { stateRelation: projectionProvenance[0].projectedStateRelation } : {}),
       ...(projectionProvenance[0]?.projectedConsequencePolarity ? { consequencePolarity: projectionProvenance[0].projectedConsequencePolarity } : {}),
       treatmentHash: scene.treatment.treatmentHash,
