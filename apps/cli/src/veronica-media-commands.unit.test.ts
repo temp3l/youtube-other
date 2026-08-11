@@ -47,6 +47,8 @@ describe("veronica media commands", () => {
     expect(veronica?.commands.map((command) => command.name())).toEqual([
       "metadata",
       "prepare-production",
+      "source-grounded-qa",
+      "remediate-pre-image",
       "images",
       "speech",
       "pilot",
@@ -59,6 +61,7 @@ describe("veronica media commands", () => {
     ]);
     const images = veronica?.commands.find((command) => command.name() === "images");
     const preparation = veronica?.commands.find((command) => command.name() === "prepare-production");
+    const sourceGroundedQa = veronica?.commands.find((command) => command.name() === "source-grounded-qa");
     expect(preparation?.options.map((option) => option.flags)).toContain("-L, --language <code>");
     expect(images?.commands.map((command) => command.name())).toEqual([
       "derive-image-prompts",
@@ -86,6 +89,13 @@ describe("veronica media commands", () => {
         "--max-estimated-input-tokens",
         "--max-estimated-output-tokens",
         "--max-automatic-remediation-rounds",
+      ]),
+    );
+    expect(sourceGroundedQa?.options.map((option) => option.long)).toEqual(
+      expect.arrayContaining([
+        "--allow-paid-openai-qa",
+        "--max-provider-calls",
+        "--max-estimated-cost-usd",
       ]),
     );
     const speech = veronica?.commands.find((command) => command.name() === "speech");

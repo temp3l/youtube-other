@@ -22,6 +22,7 @@ import {
   generateVeronicaBeniniReviewPacks,
   preparePositioningProductionEpisode,
   remediateExistingVeronicaPreImagePlan,
+  runExistingVeronicaSourceGroundedPreImageQa,
   positioningProductionPlanSchema,
   resolveVeronicaSemanticImagePromptPaths,
   runStrategicSupplementalMediaBridge,
@@ -323,6 +324,70 @@ export function registerVeronicaMediaCommands(program: Command): void {
         process.stdout.write(`Prepared ${result.episodeId} (${result.language}/${result.variant}) with ${result.sceneCount} canonical scenes.\nManifest: ${result.manifestPath}\n`);
       },
     );
+
+  addSourceGroundedQaCostControls(
+    veronica
+      .command("source-grounded-qa")
+      .description("Run source-grounded QA for an existing Veronica plan without replanning or producing media")
+      .requiredOption("--workspace <path>", "Episode workspace root")
+      .requiredOption("--episode-id <id>", "Episode identifier")
+      .option("-L, --language <code>", "Canonical narration language", "en")
+      .option("--variant <full|short>", "Narration variant", "short")
+      .option("--source-grounded-fixture <path>", "Offline strict source-grounded QA fixture")
+      .option("--source-grounded-qa-profile <profile>", "interactive, cost-optimized, or bulk", "interactive")
+      .option("--json", "Emit machine-readable output", false)
+  ).action(
+    async (options: {
+      workspace: string;
+      episodeId: string;
+      language: VeronicaLanguage;
+      variant: VeronicaVariant;
+      sourceGroundedFixture?: string;
+      sourceGroundedQaProfile: string;
+      allowPaidOpenaiQa?: boolean;
+      maxProviderCalls?: number;
+      maxEstimatedCostUsd?: number;
+      maxFlagshipCallsPerPack?: number;
+      maxEstimatedInputTokens?: number;
+      maxEstimatedOutputTokens?: number;
+      maxAutomaticRemediationRounds?: number;
+      json: boolean;
+    }) => {
+      const workspaceRoot = path.resolve(options.workspace);
+      const episodeDir = path.join(workspaceRoot, options.episodeId);
+      const paidOpenAiQa = resolveVeronicaPaidQaAuthorization(
+        options,
+        options.variant
+      );
+      const maxAutomaticRemediationRounds = remediationRounds(
+        options.maxAutomaticRemediationRounds
+      );
+      const result = await runExistingVeronicaSourceGroundedPreImageQa({
+        workspaceRoot,
+        episodeId: options.episodeId,
+        language: options.language,
+        variant: options.variant,
+        sourceGroundedVisualQa:
+          await createVeronicaSourceGroundedVisualQaComposition({
+            workspaceRoot,
+            episodeDir,
+            ...(options.sourceGroundedFixture
+              ? { fixturePath: options.sourceGroundedFixture }
+              : {}),
+            executionProfile: parseSourceGroundedQaProfile(
+              options.sourceGroundedQaProfile
+            ),
+            ...(paidOpenAiQa ? { paidOpenAiQa } : {}),
+            ...(maxAutomaticRemediationRounds
+              ? { maxAutomaticRemediationRounds }
+              : {}),
+          }),
+      });
+      process.stdout.write(
+        `${JSON.stringify(result, options.json ? null : undefined, options.json ? 2 : undefined)}\n`
+      );
+    }
+  );
 
   veronica
     .command("remediate-pre-image")

@@ -1,10 +1,16 @@
 import path from "node:path";
 
-import { WorkflowStore } from "@mediaforge/workflow-engine";
+import {
+  WorkflowStore,
+  canonicalPublishEpisodeInputSchema,
+  publicationAssetHash,
+  publicationMetadataHash,
+} from "@mediaforge/workflow-engine";
 import { describe, expect, it, vi } from "vitest";
 
 import {
   DARK_TRUTH_SAFE_CANONICAL_EXECUTABLE_TASK_IDS,
+  createDarkTruthCanonicalTaskImplementations,
   createDarkTruthSafeCanonicalTaskImplementations,
 } from "./canonical-task-composition.js";
 import {
@@ -147,5 +153,126 @@ describe("canonical Dark Truth task composition", () => {
         },
       })
     ).toThrow(/Missing source-authoritative service for darktruth\.render/u);
+  });
+
+  it("binds darktruth.publish only through the canonical publication executor", async () => {
+    const { story, media } = fixture();
+    const metadata = {
+      title: "Canonical publication",
+      description: "Approved",
+      tags: ["dark-truth"],
+      categoryId: "27",
+      privacyStatus: "private" as const,
+      madeForKids: false,
+      notifySubscribers: false,
+      publishAt: null,
+    };
+    const bindings = [
+      { assetId: "video-1", role: "video", contentHash: "a".repeat(64) },
+      {
+        assetId: "metadata-1",
+        role: "metadata",
+        contentHash: publicationMetadataHash(metadata),
+      },
+    ];
+    const input = canonicalPublishEpisodeInputSchema.parse({
+      workspaceId: "workspace-1",
+      projectId: "project-1",
+      workflowRunId: "workflow-1",
+      episodeId: "episode-composition-1",
+      taskId: "darktruth.publish",
+      attemptId: "attempt-1",
+      publicationId: "publication-1",
+      approval: {
+        id: "approval-1",
+        revision: 1,
+        artifactHash: "b".repeat(64),
+        policy: "scoped-v1",
+      },
+      actor: { principalId: "principal-1", revision: 1 },
+      credentialVersion: "credential-v1",
+      artifacts: {
+        aggregateHash: publicationAssetHash(bindings),
+        bindings,
+      },
+      target: {
+        channelId: "channel-1",
+        visibility: "private",
+        scheduledAt: null,
+        playlistIds: [],
+      },
+      recoveryIdentity: "recovery-1",
+      providerRequest: {
+        expectedChannelId: "channel-1",
+        recoveryIdentity: "recovery-1",
+        video: {
+          absolutePath: "/fixture/video.mp4",
+          contentHash: "a".repeat(64),
+        },
+        metadata,
+        metadataContentHash: publicationMetadataHash(metadata),
+      },
+      leaseSeconds: 60,
+    });
+    const resolve = vi.fn(async () => input);
+    const executePublication = vi.fn(async () => ({
+      kind: "published" as const,
+      publicationId: "publication-1",
+      providerObjectId: "youtube-1",
+      reconciled: false,
+    }));
+    const implementations = createDarkTruthCanonicalTaskImplementations({
+      story,
+      media,
+      publication: {
+        context: { resolve },
+        executor: { execute: executePublication },
+      },
+    });
+    const result = await implementations["darktruth.publish"]({
+      unitId: "episode-composition-1",
+      profileId: "dark-truth",
+      locale: "en",
+      variant: "full",
+      dryRun: false,
+      runId: input.workflowRunId,
+      attemptId: input.attemptId,
+      fingerprint: "c".repeat(64),
+      dependencyFingerprints: ["d".repeat(64)],
+      control: {
+        signal: new AbortController().signal,
+        deadlineAt: "2026-08-11T12:10:00.000Z",
+        leaseFence: 9,
+        dispatchAttempt: 1,
+      },
+    });
+    expect(executePublication).toHaveBeenCalledOnce();
+    expect(result.outputArtifacts).toEqual([
+      expect.objectContaining({
+        taskId: "darktruth.publish",
+        publicationId: "publication-1",
+      }),
+    ]);
+
+    await expect(
+      implementations["darktruth.publish"]({
+        unitId: "episode-composition-1",
+        profileId: "dark-truth",
+        locale: "en",
+        variant: "full",
+        dryRun: false,
+        runId: input.workflowRunId,
+        attemptId: input.attemptId,
+        fingerprint: "c".repeat(64),
+        dependencyFingerprints: ["d".repeat(64)],
+        control: {
+          signal: new AbortController().signal,
+          deadlineAt: null,
+          leaseFence: null,
+          dispatchAttempt: 1,
+        },
+      })
+    ).rejects.toThrow(/filesystem-legacy execution is forbidden/u);
+    expect(resolve).toHaveBeenCalledOnce();
   });
 });

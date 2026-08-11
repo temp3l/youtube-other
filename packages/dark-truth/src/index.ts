@@ -92,6 +92,7 @@ export * from "./profile-fixture.js";
 export * from "./profile-bindings.js";
 export * from "./canonical-story-task-adapters.js";
 export * from "./canonical-media-task-adapters.js";
+export * from "./canonical-publication-task-adapter.js";
 export * from "./canonical-task-composition.js";
 export * from "./production-hardening.js";
 

@@ -1,4 +1,9 @@
+import { createReadStream } from "node:fs";
 import { setTimeout as delay } from "node:timers/promises";
+
+import { hashFile, hashProductionValue } from "@mediaforge/shared";
+
+import { youtubePublicationRecoveryMarker } from "./publication-reconciliation.js";
 
 export interface YoutubeMutationClient {
   channels: { list: (request: unknown) => Promise<{ data: { items?: Array<{ id?: string | null }> }; headers?: Record<string, unknown> }> };
@@ -33,6 +38,250 @@ export interface YoutubeMutationProgress {
   verificationRetryable: boolean | null;
   blockers: string[];
   mutations: number;
+}
+
+export interface CanonicalYoutubePublicationRequest {
+  readonly expectedChannelId: string;
+  readonly recoveryIdentity: string;
+  readonly video: {
+    readonly absolutePath: string;
+    readonly contentHash: string;
+  };
+  readonly metadata: {
+    readonly title: string;
+    readonly description: string;
+    readonly tags: readonly string[];
+    readonly categoryId: string;
+    readonly privacyStatus: "private" | "unlisted" | "public";
+    readonly madeForKids: boolean;
+    readonly containsSyntheticMedia?: boolean;
+    readonly notifySubscribers: boolean;
+    readonly defaultLanguage?: string;
+    readonly publishAt: string | null;
+  };
+  readonly metadataContentHash: string;
+  readonly thumbnail?: {
+    readonly absolutePath: string;
+    readonly contentHash: string;
+  };
+}
+
+export type YoutubeVideoPublishOnceOutcome =
+  | {
+      readonly kind: "succeeded";
+      readonly receipt: {
+        readonly providerObjectId: string;
+        readonly recoveryIdentity: string;
+        readonly evidence: unknown;
+      };
+    }
+  | {
+      readonly kind: "failed-before-effect";
+      readonly evidence: unknown;
+    }
+  | {
+      readonly kind: "ambiguous";
+      readonly evidence: unknown;
+    };
+
+interface YoutubeVideoInsertRequest {
+  readonly part: readonly string[];
+  readonly notifySubscribers: boolean;
+  readonly requestBody: {
+    readonly snippet: Readonly<Record<string, unknown>> & {
+      readonly description: string;
+    };
+    readonly status: Readonly<Record<string, unknown>>;
+  };
+  readonly media: unknown;
+  readonly uploadType: "resumable";
+}
+
+/**
+ * Executes the publication-create boundary exactly once. Once videos.insert is
+ * invoked, every rejected or malformed response is conservatively ambiguous.
+ */
+export async function publishYoutubeVideoOnce(input: {
+  readonly client: YoutubeMutationClient;
+  readonly expectedChannelId: string;
+  readonly recoveryIdentity: string;
+  readonly channelRequest: unknown;
+  readonly uploadRequest: YoutubeVideoInsertRequest;
+  readonly timeoutMs?: number;
+}): Promise<YoutubeVideoPublishOnceOutcome> {
+  const marker = youtubePublicationRecoveryMarker(input.recoveryIdentity);
+  if (!input.recoveryIdentity.trim()) {
+    return {
+      kind: "failed-before-effect",
+      evidence: { category: "missing-recovery-identity" },
+    };
+  }
+  const suffix = input.uploadRequest.requestBody.snippet.description.includes(marker)
+    ? ""
+    : `\n\n<!-- ${marker} -->`;
+  const description = `${input.uploadRequest.requestBody.snippet.description}${suffix}`;
+  if (description.length > 5_000) {
+    return {
+      kind: "failed-before-effect",
+      evidence: { category: "description-limit" },
+    };
+  }
+  let channelId: string | null = null;
+  try {
+    const response = await withYoutubeRetry(
+      () => input.client.channels.list(input.channelRequest),
+      { maxRetries: 2, label: "channels.list" }
+    );
+    channelId = response.data.items?.[0]?.id ?? null;
+  } catch (error) {
+    return {
+      kind: "failed-before-effect",
+      evidence: {
+        category: "channel-validation-failed",
+        error: describeYoutubeError(error),
+      },
+    };
+  }
+  if (channelId !== input.expectedChannelId) {
+    return {
+      kind: "failed-before-effect",
+      evidence: {
+        category: "channel-identity-mismatch",
+        expectedChannelId: input.expectedChannelId,
+        observedChannelId: channelId,
+      },
+    };
+  }
+  const request: YoutubeVideoInsertRequest = {
+    ...input.uploadRequest,
+    requestBody: {
+      ...input.uploadRequest.requestBody,
+      snippet: {
+        ...input.uploadRequest.requestBody.snippet,
+        description,
+      },
+    },
+  };
+  try {
+    // Deliberately no withYoutubeRetry: rejection cannot prove that YouTube did
+    // not accept the resumable upload.
+    const response = await input.client.videos.insert(
+      request,
+      input.timeoutMs === undefined ? undefined : { timeout: input.timeoutMs }
+    );
+    const videoId = response.data.id;
+    if (!videoId) {
+      return {
+        kind: "ambiguous",
+        evidence: {
+          category: "provider-response-missing-video-id",
+          requestId: readYoutubeRequestId(response) ?? null,
+        },
+      };
+    }
+    return {
+      kind: "succeeded",
+      receipt: {
+        providerObjectId: videoId,
+        recoveryIdentity: input.recoveryIdentity,
+        evidence: {
+          channelId,
+          requestId: readYoutubeRequestId(response) ?? null,
+          marker,
+        },
+      },
+    };
+  } catch (error) {
+    return {
+      kind: "ambiguous",
+      evidence: {
+        category: "videos-insert-outcome-uncertain",
+        error: describeYoutubeError(error),
+      },
+    };
+  }
+}
+
+/** Concrete infrastructure adapter for CanonicalPublishEpisodeExecutor. */
+export class CanonicalYoutubePublicationMutation {
+  public constructor(
+    private readonly client: YoutubeMutationClient,
+    private readonly timeoutMs = 180_000
+  ) {}
+
+  public async publishOnce(
+    request: CanonicalYoutubePublicationRequest
+  ): Promise<YoutubeVideoPublishOnceOutcome> {
+    try {
+      const [videoHash, metadataHash] = await Promise.all([
+        hashFile(request.video.absolutePath),
+        Promise.resolve(hashProductionValue(request.metadata)),
+      ]);
+      if (videoHash !== request.video.contentHash) {
+        return {
+          kind: "failed-before-effect",
+          evidence: { category: "video-content-hash-mismatch" },
+        };
+      }
+      if (metadataHash !== request.metadataContentHash) {
+        return {
+          kind: "failed-before-effect",
+          evidence: { category: "metadata-content-hash-mismatch" },
+        };
+      }
+    } catch (error) {
+      return {
+        kind: "failed-before-effect",
+        evidence: {
+          category: "publication-preflight-failed",
+          error: describeYoutubeError(error),
+        },
+      };
+    }
+    // Keep the effect call outside the preflight catch. Any unexpected throw
+    // from this point is allowed to escape so the application conservatively
+    // records an ambiguous outcome rather than a definitely-pre-effect failure.
+    return publishYoutubeVideoOnce({
+      client: this.client,
+      expectedChannelId: request.expectedChannelId,
+      recoveryIdentity: request.recoveryIdentity,
+      channelRequest: { part: ["id"], mine: true },
+      uploadRequest: {
+        part: ["snippet", "status"],
+        notifySubscribers: request.metadata.notifySubscribers,
+        requestBody: {
+          snippet: {
+            title: request.metadata.title,
+            description: request.metadata.description,
+            tags: request.metadata.tags,
+            categoryId: request.metadata.categoryId,
+            ...(request.metadata.defaultLanguage
+              ? { defaultLanguage: request.metadata.defaultLanguage }
+              : {}),
+          },
+          status: {
+            privacyStatus: request.metadata.privacyStatus,
+            selfDeclaredMadeForKids: request.metadata.madeForKids,
+            ...(request.metadata.containsSyntheticMedia === undefined
+              ? {}
+              : {
+                  containsSyntheticMedia:
+                    request.metadata.containsSyntheticMedia,
+                }),
+            ...(request.metadata.publishAt
+              ? { publishAt: request.metadata.publishAt }
+              : {}),
+          },
+        },
+        media: {
+          mimeType: "video/mp4",
+          body: createReadStream(request.video.absolutePath),
+        },
+        uploadType: "resumable",
+      },
+      timeoutMs: this.timeoutMs,
+    });
+  }
 }
 
 export function readYoutubeRequestId(response: {

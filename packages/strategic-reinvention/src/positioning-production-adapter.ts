@@ -150,6 +150,146 @@ export interface PreparePositioningProductionEpisodeResult {
   readonly sourceGroundedVisualQaStatus: "PASS" | "BLOCKED";
 }
 
+/**
+ * Re-evaluate an already approved semantic image plan without re-entering
+ * planning, prompt compilation, or any media-producing stage. This is the
+ * operational boundary for a paid, source-grounded pre-image audit.
+ */
+export async function runExistingVeronicaSourceGroundedPreImageQa(input: {
+  readonly workspaceRoot: string;
+  readonly episodeId: string;
+  readonly language: "en" | "de" | "es" | "fr" | "pt" | "it";
+  readonly variant: "full" | "short";
+  readonly sourceGroundedVisualQa: NonNullable<PreparePositioningProductionEpisodeInput["sourceGroundedVisualQa"]>;
+}): Promise<{
+  readonly episodeId: string;
+  readonly language: string;
+  readonly variant: "full" | "short";
+  readonly sceneCount: number;
+  readonly sourceGroundedVisualQaStatus: "PASS" | "BLOCKED";
+  readonly planPath: string;
+  readonly qaPath: string;
+}> {
+  const workspaceRoot = path.resolve(input.workspaceRoot);
+  const episodeId = normalizeEpisodeId(input.episodeId);
+  const episodeDir = path.join(workspaceRoot, episodeId);
+  const planPath = path.join(episodeDir, "source", "pre-image-semantic-plan.v1.json");
+  const scenePlanPath = path.join(
+    episodeDir,
+    "locales",
+    input.language,
+    input.variant,
+    "scene-plan.json"
+  );
+  const [storedPlan, scenePlan] = await Promise.all([
+    fs.readFile(planPath, "utf8").then((value) =>
+      positioningProductionPlanSchema.parse(JSON.parse(value) as unknown)
+    ),
+    fs.readFile(scenePlanPath, "utf8").then((value) =>
+      scenePlanSchema.parse(JSON.parse(value) as unknown)
+    ),
+  ]);
+  const plan = storedPlan as unknown as PositioningVisualPlanV2;
+  if (scenePlan.scenes.length !== plan.scenes.length) {
+    throw new Error(
+      `VERONICA_SOURCE_GROUNDED_QA_SCENE_COUNT_MISMATCH:${scenePlan.scenes.length}:${plan.scenes.length}`
+    );
+  }
+  const qaRun = await runSourceGroundedVisualQaController({
+    plan,
+    narrationByScene: scenePlan.scenes.map((scene) => scene.canonicalNarration),
+    policy: input.sourceGroundedVisualQa.policy,
+    primaryJudge: input.sourceGroundedVisualQa.primaryJudge,
+    ...(input.sourceGroundedVisualQa.escalationJudge
+      ? { escalationJudge: input.sourceGroundedVisualQa.escalationJudge }
+      : {}),
+    ...(input.sourceGroundedVisualQa.finalJudge
+      ? { finalJudge: input.sourceGroundedVisualQa.finalJudge }
+      : {}),
+    ...(input.sourceGroundedVisualQa.remediationAdvisor
+      ? { remediationAdvisor: input.sourceGroundedVisualQa.remediationAdvisor }
+      : {}),
+    sequenceJudge: input.sourceGroundedVisualQa.sequenceJudge,
+    cache:
+      input.sourceGroundedVisualQa.cache ??
+      new InMemorySourceGroundedVisualQaCache(),
+    ...(input.sourceGroundedVisualQa.scheduler
+      ? { scheduler: input.sourceGroundedVisualQa.scheduler }
+      : {}),
+    ...(input.sourceGroundedVisualQa.onProgress
+      ? { onProgress: input.sourceGroundedVisualQa.onProgress }
+      : {}),
+    // Intentionally no `regenerate`: this command is an audit, never a replan.
+  });
+  const visualReady =
+    plan.semanticQuality?.status === "PASS" &&
+    plan.providerReadiness?.status === "PASS";
+  const technicalReady = plan.validation.status === "pass";
+  const hierarchicalReadiness = {
+    schemaVersion: "veronica-hierarchical-readiness.v1" as const,
+    sourceFidelityReady: qaRun.qa.sourceFidelityReady,
+    visualReady,
+    technicalReady,
+    providerCandidate:
+      qaRun.qa.sourceFidelityReady && visualReady && technicalReady,
+    providerRequestsAllowed: false as const,
+    blockers: [
+      ...qaRun.qa.blockers,
+      ...(!visualReady ? ["VISUAL_READINESS_FAILED"] : []),
+      ...(!technicalReady ? ["TECHNICAL_READINESS_FAILED"] : []),
+      "HUMAN_PRE_IMAGE_APPROVAL_REQUIRED",
+    ],
+  };
+  const planBase = {
+    ...plan,
+    sourceGroundedVisualQa: qaRun.qa,
+    hierarchicalReadiness,
+  };
+  const auditedPlan = {
+    ...planBase,
+    planHash: stableHash(planBase),
+  } as PositioningVisualPlanV2;
+  const qaPath = path.join(
+    episodeDir,
+    "shared",
+    "source-grounded-visual-qa.v1.json"
+  );
+  const semanticReviewsPath = path.join(
+    episodeDir,
+    "shared",
+    "pre-image-semantic-reviews.v1.json"
+  );
+  const reviews = await fs
+    .readFile(semanticReviewsPath, "utf8")
+    .then((value) => JSON.parse(value) as Record<string, unknown>)
+    .catch(() => null);
+  await Promise.all([
+    writeJsonAtomic(planPath, auditedPlan),
+    writeJsonAtomic(qaPath, qaRun.qa),
+    ...(reviews
+      ? [
+          writeJsonAtomic(semanticReviewsPath, {
+            ...reviews,
+            semanticPlanHash: auditedPlan.planHash,
+            sourceGroundedVisualQa: qaRun.qa,
+            hierarchicalReadiness,
+          }),
+        ]
+      : []),
+  ]);
+  return {
+    episodeId,
+    language: input.language,
+    variant: input.variant,
+    sceneCount: plan.scenes.length,
+    sourceGroundedVisualQaStatus: qaRun.qa.sourceFidelityReady
+      ? "PASS"
+      : "BLOCKED",
+    planPath,
+    qaPath,
+  };
+}
+
 function defaultScriptPath(episodeDir: string, language: string, variant: "full" | "short"): string {
   return variant === "short" ? path.join(episodeDir, "languages", "short", `script-${language}.md`) : path.join(episodeDir, "languages", `script-${language}.md`);
 }

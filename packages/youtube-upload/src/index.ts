@@ -86,6 +86,12 @@ export {
   type YoutubePublicationReceipt,
   type YoutubeReconciliationClient,
 } from "./publication-reconciliation.js";
+export {
+  CanonicalYoutubePublicationMutation,
+  publishYoutubeVideoOnce,
+  type CanonicalYoutubePublicationRequest,
+  type YoutubeVideoPublishOnceOutcome,
+} from "./youtube-mutation-seam.js";
 import type { YoutubeReconciliationClient } from "./publication-reconciliation.js";
 
 const uploadStatusSchema = z.enum(["planned", "uploaded", "failed", "skipped"]);

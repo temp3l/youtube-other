@@ -3,6 +3,11 @@ import path from "node:path";
 import type { TaskImplementation } from "@mediaforge/workflow-engine";
 
 import {
+  createDarkTruthPublicationTaskImplementation,
+  type DarkTruthCanonicalPublicationAdapterOptions,
+} from "./canonical-publication-task-adapter.js";
+
+import {
   DARK_TRUTH_MEDIA_EXECUTABLE_TASK_IDS,
   createDarkTruthMediaTaskImplementations,
   type DarkTruthCanonicalMediaAdapterOptions,
@@ -30,6 +35,23 @@ export type DarkTruthSafeCanonicalTaskImplementations = Readonly<
 export interface DarkTruthCanonicalTaskCompositionOptions {
   readonly story: DarkTruthCanonicalStoryAdapterOptions;
   readonly media: DarkTruthCanonicalMediaAdapterOptions;
+}
+
+export const DARK_TRUTH_CANONICAL_EXECUTABLE_TASK_IDS = [
+  ...DARK_TRUTH_SAFE_CANONICAL_EXECUTABLE_TASK_IDS,
+  "darktruth.publish",
+] as const;
+
+export type DarkTruthCanonicalExecutableTaskId =
+  (typeof DARK_TRUTH_CANONICAL_EXECUTABLE_TASK_IDS)[number];
+
+export type DarkTruthCanonicalTaskImplementations = Readonly<
+  Record<DarkTruthCanonicalExecutableTaskId, TaskImplementation>
+>;
+
+export interface DarkTruthCanonicalPublicationCompositionOptions
+  extends DarkTruthCanonicalTaskCompositionOptions {
+  readonly publication: DarkTruthCanonicalPublicationAdapterOptions;
 }
 
 function assertSameIdentity(
@@ -85,4 +107,19 @@ export function createDarkTruthSafeCanonicalTaskImplementations(
     DarkTruthStoryExecutableTaskId | DarkTruthMediaExecutableTaskId,
     TaskImplementation
   >;
+}
+
+/**
+ * Full production composition. Manual approval remains unbound, while the
+ * irreversible task is owned by the dedicated canonical publication executor.
+ */
+export function createDarkTruthCanonicalTaskImplementations(
+  options: DarkTruthCanonicalPublicationCompositionOptions
+): DarkTruthCanonicalTaskImplementations {
+  return {
+    ...createDarkTruthSafeCanonicalTaskImplementations(options),
+    "darktruth.publish": createDarkTruthPublicationTaskImplementation(
+      options.publication
+    ),
+  } satisfies Record<DarkTruthCanonicalExecutableTaskId, TaskImplementation>;
 }
