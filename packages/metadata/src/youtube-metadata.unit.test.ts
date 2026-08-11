@@ -635,6 +635,40 @@ describe("youtube metadata generation", () => {
     expect(uploadAttempts).toBe(2);
   });
 
+  it("bounds model fallbacks independently from transport retries", async () => {
+    const workspaceDir = createWorkspace();
+    const episodeDir = path.join(workspaceDir, "episode-001");
+    await fs.mkdir(episodeDir, { recursive: true });
+    await fs.writeFile(path.join(episodeDir, "scenes.json"), makeScenariosJson(), "utf8");
+    const client: OpenAiMetadataClient = {
+      files: {
+        create: vi.fn(async () => ({ id: "file_123" })),
+        delete: vi.fn(async () => ({ deleted: true })),
+      },
+      responses: {
+        create: vi.fn(async () => {
+          throw new Error("provider should not be called");
+        }),
+      },
+    };
+
+    await expect(
+      generateYoutubeMetadataForTarget(makeTarget(workspaceDir), {
+        apiKey: "sk-test",
+        model: "gpt-primary",
+        fallbackModels: ["gpt-fallback-1", "gpt-fallback-2", "gpt-fallback-3"],
+        language: "en",
+        promptText: "Prompt",
+        maxRetries: 3,
+        timeoutMs: 10_000,
+        keepFile: false,
+        client,
+      })
+    ).rejects.toBeInstanceOf(ConfigurationError);
+    expect(client.files.create).not.toHaveBeenCalled();
+    expect(client.responses.create).not.toHaveBeenCalled();
+  });
+
   it("falls back to the next configured model when the elected metadata model is at capacity", async () => {
     const workspaceDir = createWorkspace();
     const episodeDir = path.join(workspaceDir, "episode-001");

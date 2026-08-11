@@ -100,7 +100,10 @@ type MockResponse = {
 
 function makeMockClient(responses: readonly MockResponse[]) {
   const queue = [...responses];
-  const responseFn = vi.fn(async () => {
+  const responseFn = vi.fn(async (
+    _request?: unknown,
+    _options?: { readonly maxRetries?: number }
+  ) => {
     const next = queue.shift();
     if (!next) {
       throw new Error("No mock response left.");
@@ -744,6 +747,9 @@ describe("story localization helpers", () => {
     expect(result.failure).not.toContain("Short word count");
     expect(result.repairAttempts).toBe(0);
     expect(client.responses.create).toHaveBeenCalledTimes(2);
+    expect(client.responses.create.mock.calls.every((call) =>
+      (call[1] as { readonly maxRetries?: number } | undefined)?.maxRetries === 0
+    )).toBe(true);
     expect(requestText).toContain(
       "Rewrite the validated source story into Spanish narration only."
     );

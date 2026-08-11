@@ -39,10 +39,13 @@ export type ApiOperation =
 export interface UsageData {
   readonly inputTokens?: number;
   readonly cachedInputTokens?: number;
+  readonly cacheWriteInputTokens?: number;
+  readonly reasoningTokens?: number;
   readonly outputTokens?: number;
   readonly audioInputTokens?: number;
   readonly audioOutputTokens?: number;
   readonly durationSeconds?: number;
+  readonly transcriptionDurationSeconds?: number;
   readonly imageCount?: number;
 }
 
@@ -462,6 +465,7 @@ export function estimateTextGenerationCost(
     readonly model: string;
     readonly inputTokens?: number;
     readonly cachedInputTokens?: number;
+    readonly cacheWriteInputTokens?: number;
     readonly outputTokens?: number;
   }
 ): CostComputation {

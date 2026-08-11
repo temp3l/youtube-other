@@ -175,7 +175,11 @@ export class OpenAiBoundedLlmRelationProviderV36 implements BoundedLlmRelationPr
             schema: boundedLlmRelationProposerOutputJsonSchemaV36,
           },
         },
-      }, { signal: AbortSignal.timeout(this.timeoutMs) }),
+      }, {
+        signal: AbortSignal.timeout(this.timeoutMs),
+        // retryHistoryProviderCallV33 is the sole transport retry owner.
+        maxRetries: 0,
+      }),
     });
     const response = executed.value;
     let output: unknown;

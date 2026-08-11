@@ -113,7 +113,10 @@ function buildAcceptedEnglishNarration(): string {
 
 function makeMockClient(responses: readonly MockResponse[] = []) {
   const queue = [...responses];
-  const responseFn = vi.fn(async () => {
+  const responseFn = vi.fn(async (
+    _request?: unknown,
+    _options?: { readonly maxRetries?: number }
+  ) => {
     const next = queue.shift();
     if (!next) {
       throw new Error("No mock response available.");
@@ -850,6 +853,9 @@ describe("short rewrite service", () => {
     ).rejects.toThrow("English short prerequisite failed");
 
     expect(client.responses.create).toHaveBeenCalledTimes(2);
+    expect(client.responses.create.mock.calls.every((call) =>
+      (call[1] as { readonly maxRetries?: number } | undefined)?.maxRetries === 0
+    )).toBe(true);
     await expect(
       fs.access(
         path.join(

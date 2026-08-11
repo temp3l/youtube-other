@@ -5,6 +5,7 @@ import path from "node:path";
 import { mkdtempSync } from "node:fs";
 import sharp from "sharp";
 import { describe, expect, it, vi } from "vitest";
+import { AmbiguousPaidOpenAiEffectError } from "@mediaforge/shared";
 import {
   THUMBNAIL_DEFAULT_STYLE,
   THUMBNAIL_FONT_FAMILY,
@@ -312,6 +313,29 @@ describe("thumbnail adapter and compositor", () => {
 });
 
 describe("thumbnail persistence and reuse", () => {
+  it("does not retry an ambiguous image edit", async () => {
+    const workspaceRoot = mkdtempSync(path.join(os.tmpdir(), "thumb-ambiguous-"));
+    const settings = loadThumbnailGenerationConfig({
+      OPENAI_API_KEY: "test-key",
+      THUMBNAIL_MAX_RETRIES: "2",
+    });
+    const edit = vi.fn(async (
+      _request?: unknown,
+      _options?: { readonly maxRetries?: number }
+    ) => {
+      throw new Error("Connection timed out after dispatch.");
+    });
+
+    await expect(
+      generateStoryThumbnail(makeInput(workspaceRoot), {
+        settings,
+        client: { images: { edit } },
+      })
+    ).rejects.toBeInstanceOf(AmbiguousPaidOpenAiEffectError);
+    expect(edit).toHaveBeenCalledTimes(1);
+    expect(edit.mock.calls[0]?.[1]).toMatchObject({ maxRetries: 0 });
+  });
+
   it("writes background and final manifests, then reuses the background on text-only changes", async () => {
     const workspaceRoot = mkdtempSync(path.join(os.tmpdir(), "thumb-persist-"));
     const settings = loadThumbnailGenerationConfig({

@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   HISTORY_LONG_FORM_DURATION_POLICY_V33,
   assertCanonicalNarrationV33,
@@ -11,6 +11,7 @@ import {
 } from "./history-narration-v33.js";
 import {
   OpenAiWebSearchRetrievalProviderV33,
+  OpenAiClaimExtractionProviderV33,
   ResilientClaimExtractionProviderV33,
   alignClaimProposalsV33,
   appendHumanOverrideV33,
@@ -204,6 +205,27 @@ describe("History V3.3 claims and timing", () => {
 });
 
 describe("History V3.3 source and provenance authority", () => {
+  it("disables SDK retries when resilient claim extraction owns retries", async () => {
+    const { narration } = narrationAndClaim();
+    const create = vi.fn(async () => ({
+      id: "response",
+      output_text: JSON.stringify({ proposals: [] }),
+      usage: { input_tokens: 10, output_tokens: 2 },
+    }));
+    const provider = new OpenAiClaimExtractionProviderV33(
+      { responses: { create } },
+      "gpt-test"
+    );
+
+    await provider.extract({
+      episodeId: "episode",
+      narrationSha256: narration.normalizedTextSha256,
+      units: narration.units,
+    });
+
+    expect(create.mock.calls[0]?.[1]).toMatchObject({ maxRetries: 0 });
+  });
+
   it("bounds retries and caches successful claim extraction by canonical inputs", async () => {
     const { narration } = narrationAndClaim();
     let calls = 0;

@@ -5,6 +5,7 @@ import path from "node:path";
 import sharp from "sharp";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { scenePlanSchema } from "@mediaforge/domain";
+import { AmbiguousPaidOpenAiEffectError } from "@mediaforge/shared";
 import {
   buildOpenAiImageRequestBody,
   generateOpenAiSceneImages,
@@ -643,5 +644,70 @@ describe("OpenAI image generation", () => {
     );
     await expect(generation).rejects.toThrowError(/hard_limit/);
     await expect(generation).rejects.toThrowError(/hard limit/i);
+  });
+
+  it("does not retry a statusless failure after legacy image dispatch", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "mediaforge-image-ambiguous-"));
+    const episodeDir = path.join(tempDir, "episode");
+    await fs.mkdir(episodeDir, { recursive: true });
+    const plan = scenePlanSchema.parse({
+      sourceId: "episode-fixture",
+      scenes: [{
+        id: "scene-001",
+        sequenceNumber: 1,
+        canonicalNarration: "First scene.",
+        sourceSegmentIds: ["scene-001"],
+        estimatedDurationSeconds: 4,
+        timing: { startSeconds: 0, endSeconds: 4 },
+        visualPurpose: "introduce",
+        subject: "mouse",
+        action: "eating",
+        setting: "habitat",
+        composition: "centered",
+        cameraFraming: "medium shot",
+        mood: "calm",
+        continuityReferences: [],
+        onScreenText: "",
+        negativeConstraints: ["no text"],
+        aspectRatios: ["16:9"],
+        imagePrompt: "mouse eating in a habitat",
+        expectedImageFilenames: ["scene-001__000000-000004__16x9.png"],
+        qualityStatus: "draft",
+      }],
+    });
+    const settings = loadOpenAiImageGenerationSettings({
+      OPENAI_API_KEY: "test-key",
+      OPENAI_IMAGE_CONCURRENCY: "1",
+      OPENAI_IMAGE_MAX_RETRIES: "2",
+      OPENAI_IMAGE_TIMEOUT_MS: "1000",
+    });
+    let calls = 0;
+    const client = {
+      images: {
+        async generate(_body: unknown, options?: { readonly maxRetries?: number }) {
+          calls += 1;
+          expect(options?.maxRetries).toBe(0);
+          throw new Error("Connection timed out after dispatch.");
+        },
+      },
+    };
+
+    await expect(
+      generateOpenAiSceneImages(
+        [{
+          scene: plan.scenes[0]!,
+          prompt: plan.scenes[0]!.imagePrompt,
+          episodeSlug: "episode-fixture",
+          language: "en",
+          episodeDir,
+          normalizedFilename: plan.scenes[0]!.expectedImageFilenames[0]!,
+          videoKind: "full",
+          creatorMedia: { syntheticLikeness: false },
+        }],
+        settings,
+        { client }
+      )
+    ).rejects.toBeInstanceOf(AmbiguousPaidOpenAiEffectError);
+    expect(calls).toBe(1);
   });
 });

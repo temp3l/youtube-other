@@ -7,6 +7,8 @@ import {
   type Scene,
 } from "@mediaforge/domain";
 import {
+  AmbiguousPaidOpenAiEffectError,
+  classifyPaidOpenAiFailure,
   ensureDir,
   hashFile,
   hashText,
@@ -93,7 +95,7 @@ export interface OpenAiImageClientLike {
         readonly n: number;
         readonly background?: "opaque";
       },
-      options?: { readonly signal?: AbortSignal }
+      options?: { readonly signal?: AbortSignal; readonly maxRetries?: number }
     ): Promise<{
       readonly data?: Array<{
         readonly b64_json?: string;
@@ -104,6 +106,16 @@ export interface OpenAiImageClientLike {
 
 type ImageGenerationEnv = Readonly<Record<string, string | undefined>>;
 const execFile = promisify(execFileCallback);
+
+class OpenAiImageProviderRejection extends ProviderResponseError {
+  public constructor(
+    message: string,
+    public readonly status: number
+  ) {
+    super(message);
+    this.name = "OpenAiImageProviderRejection";
+  }
+}
 
 function parseEnvInt(value: string | undefined, fallback: number): number {
   if (!value) return fallback;
@@ -678,6 +690,7 @@ async function generateSingleImage(
     const requestBody = buildOpenAiImageRequestBody(job, settings);
     const endpoint = "/v1/images/generations";
     const baseUrl = new URL(endpoint, settings.baseUrl ?? "https://api.openai.com").toString();
+    let dispatchStarted = false;
     try {
       await writeOpenAIDebugLog({
         episodeRoot: job.episodeDir,
@@ -705,48 +718,41 @@ async function generateSingleImage(
         status: "pre-dispatch",
       }).catch(() => undefined);
       if (client) {
+        dispatchStarted = true;
         response = await client.images.generate(
           requestBody,
-          { signal: AbortSignal.timeout(settings.timeoutMs) }
+          { signal: AbortSignal.timeout(settings.timeoutMs), maxRetries: 0 }
         );
       } else {
         logOpenAiImageRequest(job, settings, baseUrl);
-        try {
-          const responseBody = await fetch(baseUrl, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${settings.apiKey}`,
-              "Content-Type": "application/json",
-              ...(settings.organization ? { "OpenAI-Organization": settings.organization } : {}),
-              ...(settings.project ? { "OpenAI-Project": settings.project } : {}),
-            },
-            body: JSON.stringify(requestBody),
-            signal: AbortSignal.timeout(settings.timeoutMs),
-          });
+        dispatchStarted = true;
+        const responseBody = await fetch(baseUrl, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${settings.apiKey}`,
+            "Content-Type": "application/json",
+            ...(settings.organization ? { "OpenAI-Organization": settings.organization } : {}),
+            ...(settings.project ? { "OpenAI-Project": settings.project } : {}),
+          },
+          body: JSON.stringify(requestBody),
+          signal: AbortSignal.timeout(settings.timeoutMs),
+        });
 
-          const parsed = await readJsonResponse(responseBody);
-          if (!responseBody.ok) {
-            throw new ProviderResponseError(
-              formatJsonValue({
-                message: "OpenAI image generation request failed.",
-                status: responseBody.status,
-                statusText: responseBody.statusText,
-                body: parsed,
-                retryable: isRetryableOpenAiError(parsed),
-              })
-            );
-          }
-
-          response = parsed as Awaited<ReturnType<OpenAiImageClientLike["images"]["generate"]>>;
-        } catch (error) {
-          if (!shouldFallbackToCurl(error)) {
-            throw error;
-          }
-
-          const parsed = await requestOpenAiImageWithCurl(requestBody, settings, baseUrl);
-
-          response = parsed as Awaited<ReturnType<OpenAiImageClientLike["images"]["generate"]>>;
+        const parsed = await readJsonResponse(responseBody);
+        if (!responseBody.ok) {
+          throw new OpenAiImageProviderRejection(
+            formatJsonValue({
+              message: "OpenAI image generation request failed.",
+              status: responseBody.status,
+              statusText: responseBody.statusText,
+              body: parsed,
+              retryable: false,
+            }),
+            responseBody.status
+          );
         }
+
+        response = parsed as Awaited<ReturnType<OpenAiImageClientLike["images"]["generate"]>>;
       }
 
       lastError = undefined;
@@ -805,11 +811,15 @@ async function generateSingleImage(
       });
       break;
     } catch (error) {
+      const paidOutcome = classifyPaidOpenAiFailure({
+        dispatchStarted,
+        error,
+      });
       await writeOpenAIDebugLog({
         episodeRoot: job.episodeDir,
         operation: "image-generation",
         mode: "real",
-        paidProviderCalled: true,
+        paidProviderCalled: dispatchStarted,
         model: settings.model,
         endpoint,
         request: {
@@ -835,18 +845,31 @@ async function generateSingleImage(
         durationMs: 0,
         attempt: attempt + 1,
         success: false,
-        retryable: isRetryableOpenAiError(error),
+        retryable:
+          paidOutcome.kind === "definitely-failed-before-provider-effect" &&
+          isRetryableOpenAiError(error),
         details: {
           size: settings.requestedSize,
           quality: settings.quality,
+          paidOutcome: paidOutcome.kind,
         },
         error: {
           message: error instanceof Error ? error.message : String(error),
         },
       });
-      lastError = error;
+      lastError =
+        paidOutcome.kind === "ambiguous-provider-effect"
+          ? new AmbiguousPaidOpenAiEffectError(
+              `OpenAI image generation outcome is ambiguous: ${paidOutcome.error.message}`,
+              paidOutcome.error.providerRequestId,
+              error
+            )
+          : error;
 
-      if (!isRetryableOpenAiError(error) || attempt >= settings.maxRetries) {
+      const safeToRetry =
+        paidOutcome.kind === "definitely-failed-before-provider-effect" &&
+        isRetryableOpenAiError(error);
+      if (!safeToRetry || attempt >= settings.maxRetries) {
         break;
       }
 
@@ -856,6 +879,9 @@ async function generateSingleImage(
   }
 
   if (!response) {
+    if (lastError instanceof AmbiguousPaidOpenAiEffectError) {
+      throw lastError;
+    }
     throw new ProviderResponseError(formatOpenAiError(lastError));
   }
 

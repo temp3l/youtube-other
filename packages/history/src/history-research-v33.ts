@@ -999,7 +999,7 @@ export interface OpenAiResponsesClientV3_3 {
   readonly responses: {
     create(
       body: Record<string, unknown>,
-      options: { readonly signal: AbortSignal }
+      options: { readonly signal: AbortSignal; readonly maxRetries?: number }
     ): Promise<{
       readonly id: string;
       readonly output_text?: string;
@@ -1086,7 +1086,11 @@ export class OpenAiClaimExtractionProviderV33 implements ClaimExtractionProvider
           },
         },
       },
-      { signal }
+      {
+        signal,
+        // ResilientClaimExtractionProviderV33 owns transport retries.
+        maxRetries: 0,
+      }
     );
     let parsed: { proposals: ClaimProposalV3_3[] };
     try {

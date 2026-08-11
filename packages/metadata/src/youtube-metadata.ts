@@ -546,8 +546,15 @@ function uniqueModels(models: ReadonlyArray<string>): string[] {
   return [...new Set(models.map((model) => model.trim()).filter((model) => model.length > 0))];
 }
 
+export const MAX_METADATA_FALLBACK_MODELS = 2;
+
 function resolveMetadataFallbackModels(model: string, fallbackModels?: ReadonlyArray<string>): string[] {
   const configuredFallbacks = uniqueModels(fallbackModels ?? []);
+  if (configuredFallbacks.length > MAX_METADATA_FALLBACK_MODELS) {
+    throw new ConfigurationError(
+      `Metadata generation supports at most ${MAX_METADATA_FALLBACK_MODELS} fallback models.`
+    );
+  }
   if (configuredFallbacks.length > 0) {
     return configuredFallbacks.filter((fallbackModel) => fallbackModel !== model);
   }

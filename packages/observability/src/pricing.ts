@@ -7,6 +7,7 @@ export type MoneyMicros = number;
 export interface TokenPricing {
   readonly inputTokensMicros?: MoneyMicros;
   readonly cachedInputTokensMicros?: MoneyMicros;
+  readonly cacheWriteInputTokensMicros?: MoneyMicros;
   readonly outputTokensMicros?: MoneyMicros;
   readonly audioInputMicros?: MoneyMicros;
   readonly audioOutputMicros?: MoneyMicros;
@@ -60,6 +61,7 @@ const catalogSchema = z.object({
             .object({
               inputTokensMicros: z.number().int().nonnegative().optional(),
               cachedInputTokensMicros: z.number().int().nonnegative().optional(),
+              cacheWriteInputTokensMicros: z.number().int().nonnegative().optional(),
               outputTokensMicros: z.number().int().nonnegative().optional(),
               audioInputMicros: z.number().int().nonnegative().optional(),
               audioOutputMicros: z.number().int().nonnegative().optional(),
@@ -131,6 +133,7 @@ export function estimateTokenCostMicros(
   usage: {
     readonly inputTokens?: number;
     readonly cachedInputTokens?: number;
+    readonly cacheWriteInputTokens?: number;
     readonly outputTokens?: number;
     readonly audioInputTokens?: number;
     readonly audioOutputTokens?: number;
@@ -143,6 +146,41 @@ export function estimateTokenCostMicros(
       warning: "Missing token pricing.",
     };
   }
+  const inputTokens = usage.inputTokens ?? 0;
+  const cachedInputTokens = usage.cachedInputTokens ?? 0;
+  const cacheWriteInputTokens = usage.cacheWriteInputTokens ?? 0;
+  if (
+    inputTokens < 0 ||
+    cachedInputTokens < 0 ||
+    cacheWriteInputTokens < 0 ||
+    cachedInputTokens + cacheWriteInputTokens > inputTokens
+  ) {
+    return {
+      pricingVersion: "configured",
+      costMicros: null,
+      warning: "Invalid mutually exclusive input-token usage categories.",
+    };
+  }
+  const uncachedInputTokens =
+    inputTokens - cachedInputTokens - cacheWriteInputTokens;
+  const requiredPrices: ReadonlyArray<readonly [string, number, number | undefined]> = [
+    ["uncached input", uncachedInputTokens, pricing.inputTokensMicros],
+    ["cached input", cachedInputTokens, pricing.cachedInputTokensMicros],
+    ["cache-write input", cacheWriteInputTokens, pricing.cacheWriteInputTokensMicros],
+    ["output", usage.outputTokens ?? 0, pricing.outputTokensMicros],
+    ["audio input", usage.audioInputTokens ?? 0, pricing.audioInputMicros],
+    ["audio output", usage.audioOutputTokens ?? 0, pricing.audioOutputMicros],
+  ];
+  const missingCategory = requiredPrices.find(
+    ([, quantity, unitPrice]) => quantity > 0 && unitPrice === undefined
+  );
+  if (missingCategory) {
+    return {
+      pricingVersion: "configured",
+      costMicros: null,
+      warning: `Missing ${missingCategory[0]} token pricing entry.`,
+    };
+  }
   let total = 0;
   let available = false;
   const add = (unitPrice: number | undefined, quantity: number | undefined) => {
@@ -152,8 +190,9 @@ export function estimateTokenCostMicros(
     available = true;
     total += Math.trunc(unitPrice * quantity);
   };
-  add(pricing.inputTokensMicros, usage.inputTokens);
-  add(pricing.cachedInputTokensMicros, usage.cachedInputTokens);
+  add(pricing.inputTokensMicros, uncachedInputTokens);
+  add(pricing.cachedInputTokensMicros, cachedInputTokens);
+  add(pricing.cacheWriteInputTokensMicros, cacheWriteInputTokens);
   add(pricing.outputTokensMicros, usage.outputTokens);
   add(pricing.audioInputMicros, usage.audioInputTokens);
   add(pricing.audioOutputMicros, usage.audioOutputTokens);

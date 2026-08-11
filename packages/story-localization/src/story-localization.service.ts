@@ -244,7 +244,7 @@ type ResponseMessageLike = {
 type StructuredResponsesClient = {
   readonly parse?: (
     request: ResponseCreateRequest,
-    options?: { readonly signal?: AbortSignal }
+    options?: { readonly signal?: AbortSignal; readonly maxRetries?: number }
   ) => Promise<{
     readonly id: string;
     readonly output_parsed?: unknown | null;
@@ -1268,9 +1268,12 @@ async function callOpenAiStructured(
       const response = structuredResponses.parse
         ? await structuredResponses.parse(request, {
             signal: controller.signal,
+            // The application loop is the sole transport retry owner.
+            maxRetries: 0,
           })
         : await structuredResponses.create(request, {
             signal: controller.signal,
+            maxRetries: 0,
           });
       const responseRecord = response as unknown as {
         readonly status?: string;

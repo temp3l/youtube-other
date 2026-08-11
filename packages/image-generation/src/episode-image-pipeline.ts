@@ -18,6 +18,8 @@ import {
   estimateImageGenerationCost,
 } from "@mediaforge/observability";
 import {
+  AmbiguousPaidOpenAiEffectError,
+  classifyPaidOpenAiFailure,
   collapseRepeatedTokenRuns,
   copyAtomic,
   ensureDir,
@@ -4100,6 +4102,8 @@ export class OpenAIImageGenerator implements ImageGenerator {
         organization: settings.organization,
         project: settings.project,
         timeout: settings.timeoutMs,
+        // The application loop owns only proven pre-dispatch retries.
+        maxRetries: 0,
       });
   }
 
@@ -4148,6 +4152,7 @@ export class OpenAIImageGenerator implements ImageGenerator {
       attempts = attempt + 1;
       const attemptStartedAt = new Date().toISOString();
       const attemptStartedMs = Date.now();
+      let dispatchStarted = false;
       try {
         const endpoint =
           request.referenceImages.length === 0
@@ -4177,26 +4182,33 @@ export class OpenAIImageGenerator implements ImageGenerator {
           },
           status: "pre-dispatch",
         }).catch(() => undefined);
+        const referenceFiles =
+          request.referenceImages.length === 0
+            ? []
+            : await Promise.all(
+                request.referenceImages.map(async (reference) =>
+                  toFile(
+                    await fsPromises.readFile(reference.filePath),
+                    path.basename(reference.filePath),
+                    { type: reference.mimeType }
+                  )
+                )
+              );
+        dispatchStarted = true;
         const apiPromise =
           request.referenceImages.length === 0
             ? this.client.images.generate(requestBodyBase, {
                 signal: AbortSignal.timeout(this.settings.timeoutMs),
+                maxRetries: 0,
               })
             : this.client.images.edit(
                 {
                   ...requestBodyBase,
-                  image: await Promise.all(
-                    request.referenceImages.map(async (reference) =>
-                      toFile(
-                        await fsPromises.readFile(reference.filePath),
-                        path.basename(reference.filePath),
-                        { type: reference.mimeType }
-                      )
-                    )
-                  ),
+                  image: referenceFiles,
                 },
                 {
                   signal: AbortSignal.timeout(this.settings.timeoutMs),
+                  maxRetries: 0,
                 }
               );
         let responseData:
@@ -4207,23 +4219,9 @@ export class OpenAIImageGenerator implements ImageGenerator {
             }
           | undefined;
         let requestId: string | undefined;
-        try {
-          const sdkResponse = await apiPromise.withResponse();
-          responseData = sdkResponse.data;
-          requestId = sdkResponse.request_id ?? undefined;
-        } catch (error) {
-          if (
-            request.referenceImages.length > 0 ||
-            !shouldFallbackToCurl(error)
-          ) {
-            throw error;
-          }
-          responseData = await requestOpenAiTextOnlyImage(
-            requestBodyBase,
-            this.settings,
-            endpoint
-          );
-        }
+        const sdkResponse = await apiPromise.withResponse();
+        responseData = sdkResponse.data;
+        requestId = sdkResponse.request_id ?? undefined;
         await writeOpenAIDebugLog({
           ...(episodeRoot ? { episodeRoot } : {}),
           operation,
@@ -4342,6 +4340,10 @@ export class OpenAIImageGenerator implements ImageGenerator {
           referenceHashes,
         } as GeneratedImageResult;
       } catch (error) {
+        const paidOutcome = classifyPaidOpenAiFailure({
+          dispatchStarted,
+          error,
+        });
         const endpoint =
           request.referenceImages.length === 0
             ? "/v1/images/generations"
@@ -4350,7 +4352,7 @@ export class OpenAIImageGenerator implements ImageGenerator {
           ...(episodeRoot ? { episodeRoot } : {}),
           operation,
           mode: "real",
-          paidProviderCalled: true,
+          paidProviderCalled: dispatchStarted,
           model: this.settings.model,
           endpoint,
           request: {
@@ -4380,18 +4382,31 @@ export class OpenAIImageGenerator implements ImageGenerator {
           durationMs: Date.now() - attemptStartedMs,
           attempt: attempt + 1,
           success: false,
-          retryable: isRetryableError(error),
+          retryable:
+            paidOutcome.kind === "definitely-failed-before-provider-effect" &&
+            isRetryableError(error),
           details: {
             generationMode,
             size: this.settings.size,
             quality: this.settings.quality,
+            paidOutcome: paidOutcome.kind,
           },
           error: {
             message: error instanceof Error ? error.message : String(error),
           },
         });
-        lastError = error;
-        if (!isRetryableError(error) || attempt >= this.settings.maxRetries) {
+        lastError =
+          paidOutcome.kind === "ambiguous-provider-effect"
+            ? new AmbiguousPaidOpenAiEffectError(
+                `OpenAI image generation outcome is ambiguous: ${paidOutcome.error.message}`,
+                paidOutcome.error.providerRequestId,
+                error
+              )
+            : error;
+        const safeToRetry =
+          paidOutcome.kind === "definitely-failed-before-provider-effect" &&
+          isRetryableError(error);
+        if (!safeToRetry || attempt >= this.settings.maxRetries) {
           break;
         }
         const delayMs = Math.min(
@@ -4400,6 +4415,9 @@ export class OpenAIImageGenerator implements ImageGenerator {
         );
         await delay(delayMs);
       }
+    }
+    if (lastError instanceof AmbiguousPaidOpenAiEffectError) {
+      throw lastError;
     }
     throw new Error(
       `OpenAI image generation failed: ${formatError(lastError)}`

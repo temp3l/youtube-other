@@ -4,6 +4,10 @@ import path from "node:path";
 import sharp from "sharp";
 import OpenAI from "openai";
 import {
+  AmbiguousPaidOpenAiEffectError,
+  classifyPaidOpenAiFailure,
+} from "@mediaforge/shared";
+import {
   currentExecutionTelemetry,
   estimateImageGenerationCost,
 } from "@mediaforge/observability";
@@ -53,7 +57,7 @@ export interface ThumbnailOpenAiClientLike {
         readonly background: "opaque";
         readonly n: 1;
       },
-      options?: { readonly signal?: AbortSignal }
+      options?: { readonly signal?: AbortSignal; readonly maxRetries?: number }
     ): Promise<ThumbnailOpenAiImageResponse>;
   };
 }
@@ -240,6 +244,8 @@ export class ThumbnailImageGenerator {
       baseURL: config.baseUrl,
       organization: config.organization,
       project: config.project,
+      // The generator loop owns only proven pre-dispatch retries.
+      maxRetries: 0,
     }) as unknown as ThumbnailOpenAiClientLike
   ) {}
 
@@ -260,9 +266,12 @@ export class ThumbnailImageGenerator {
     });
     for (let attempt = 0; attempt <= this.config.maxRetries; attempt += 1) {
       const startedAt = new Date().toISOString();
+      let dispatchStarted = false;
       try {
+        dispatchStarted = true;
         const response = await this.client.images.edit(body, {
           signal: AbortSignal.timeout(this.config.timeoutMs),
+          maxRetries: 0,
         });
         const buffer = await decodeResponseImage({
           response,
@@ -313,7 +322,13 @@ export class ThumbnailImageGenerator {
         };
       } catch (error) {
         const endedAt = new Date().toISOString();
-        const retryable = isRetryable(error);
+        const paidOutcome = classifyPaidOpenAiFailure({
+          dispatchStarted,
+          error,
+        });
+        const retryable =
+          paidOutcome.kind === "definitely-failed-before-provider-effect" &&
+          isRetryable(error);
         const requestId = getRequestId(error);
         telemetry?.recordApiCall({
           provider: "openai",
@@ -325,7 +340,11 @@ export class ThumbnailImageGenerator {
           attempt: attempt + 1,
           success: false,
           retryable,
-          details: { size: body.size, quality: body.quality },
+          details: {
+            size: body.size,
+            quality: body.quality,
+            paidOutcome: paidOutcome.kind,
+          },
           ...(requestId ? { requestId } : {}),
           error: {
             message: getErrorMessage(error),
@@ -333,6 +352,21 @@ export class ThumbnailImageGenerator {
         });
         if (error instanceof StoryThumbnailError && !error.retryable) {
           throw error;
+        }
+        if (paidOutcome.kind === "ambiguous-provider-effect") {
+          throw new AmbiguousPaidOpenAiEffectError(
+            `OpenAI thumbnail generation outcome is ambiguous: ${paidOutcome.error.message}`,
+            paidOutcome.error.providerRequestId,
+            error
+          );
+        }
+        if (paidOutcome.kind === "provider-rejection") {
+          throw classifyError({
+            error,
+            input: args.input,
+            model: this.config.model,
+            backgroundFingerprint: args.backgroundFingerprint,
+          });
         }
         if (!retryable || attempt >= this.config.maxRetries) {
           throw classifyError({
