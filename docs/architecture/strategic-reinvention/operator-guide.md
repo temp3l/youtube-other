@@ -87,6 +87,24 @@ pnpm mediaforge -- veronica-media images review-pack --workspace episodes --epis
 pnpm mediaforge -- images generate --episode <episode-id> --variant short
 ```
 
+Source-grounded OpenAI QA is cache-only unless the command includes
+`--allow-paid-openai-qa`. That opt-in applies hard defaults by format: Short
+uses 4 requests, $0.40 estimated spend, 1 flagship request, 60,000 estimated
+input tokens, and 15,000 estimated output tokens; full uses 10 requests, $0.60,
+1 flagship request, 150,000 input tokens, and 40,000 output tokens. The
+individual `--max-*` options can only tighten or explicitly replace those
+ceilings for an authorized run.
+
+Every episode-local terminal OpenAI call refreshes
+`episodes/<episode-id>/openai-cost-summary.json`. It aggregates calls, token or
+duration usage, and model/operation cost estimates from durable debug logs. An
+unknown model, usage record, or service tier leaves the total `null` rather
+than understating it. Rebuild summaries without provider calls with:
+
+```bash
+node scripts/rebuild-openai-episode-cost-summaries.mjs episodes
+```
+
 `compact` is the normal semantic/image-prompt review mode; `listening` includes
 `narration-review.opus` for intelligibility checks; `forensic` embeds
 `narration.wav` for waveform and timing investigation.

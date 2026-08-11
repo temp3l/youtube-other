@@ -1,8 +1,45 @@
 import { describe, expect, it } from "vitest";
 import { Command } from "commander";
-import { registerVeronicaMediaCommands } from "./veronica-media-commands.js";
+import {
+  registerVeronicaMediaCommands,
+  resolveVeronicaPaidQaAuthorization,
+} from "./veronica-media-commands.js";
 
 describe("veronica media commands", () => {
+  it("applies format-aware paid-QA ceilings only after explicit authorization", () => {
+    expect(resolveVeronicaPaidQaAuthorization({}, "short")).toBeUndefined();
+    expect(
+      resolveVeronicaPaidQaAuthorization(
+        { allowPaidOpenaiQa: true },
+        "short"
+      )
+    ).toEqual({
+      maxProviderCalls: 4,
+      maxEstimatedCostUsd: 0.4,
+      maxFlagshipCallsPerPack: 1,
+      maxEstimatedInputTokens: 60_000,
+      maxEstimatedOutputTokens: 15_000,
+    });
+    expect(
+      resolveVeronicaPaidQaAuthorization(
+        { allowPaidOpenaiQa: true },
+        "full"
+      )
+    ).toEqual({
+      maxProviderCalls: 10,
+      maxEstimatedCostUsd: 0.6,
+      maxFlagshipCallsPerPack: 1,
+      maxEstimatedInputTokens: 150_000,
+      maxEstimatedOutputTokens: 40_000,
+    });
+    expect(
+      resolveVeronicaPaidQaAuthorization(
+        { allowPaidOpenaiQa: true, maxProviderCalls: 2 },
+        "full"
+      )?.maxProviderCalls
+    ).toBe(2);
+  });
+
   it("registers the isolated Veronica media subcommands", () => {
     const program = new Command();
     registerVeronicaMediaCommands(program);
@@ -40,6 +77,17 @@ describe("veronica media commands", () => {
       ]),
     );
     expect(reviewPack?.options.find((option) => option.long === "--review-pack-mode")?.defaultValue).toBe("compact");
+    expect(preparation?.options.map((option) => option.long)).toEqual(
+      expect.arrayContaining([
+        "--allow-paid-openai-qa",
+        "--max-provider-calls",
+        "--max-estimated-cost-usd",
+        "--max-flagship-calls-per-pack",
+        "--max-estimated-input-tokens",
+        "--max-estimated-output-tokens",
+        "--max-automatic-remediation-rounds",
+      ]),
+    );
     const speech = veronica?.commands.find((command) => command.name() === "speech");
     expect(speech?.commands.map((command) => command.name())).toEqual([
       "plan",

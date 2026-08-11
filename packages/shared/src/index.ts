@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 export * from "./openai-debug-logger.js";
+export * from "./openai-cost-summary.js";
 export * from "./narration-audio.js";
 export * from "./production-hardening.js";
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { PlannedScene, PositioningVisualPlanV2, PositioningVisualTreatment } from "./positioning-visual-contracts.js";
 import { stableHash } from "./positioning-visual-semantics.js";
-import { calculateVeronicaSemanticQuality, classifyVeronicaStillStateComplexity, normalizeProviderPromptSentence, normalizeVeronicaViewerVisibleFamilies, projectVeronicaProviderPrompt, reviewVeronicaPreImageTreatment, runVeronicaSemanticRemediation, validateVeronicaProviderReadiness } from "./veronica-pre-image-semantic-gate.js";
+import { applyVeronicaSourceGroundedRemediationDirectives, calculateVeronicaSemanticQuality, classifyVeronicaStillStateComplexity, normalizeProviderPromptSentence, normalizeVeronicaViewerVisibleFamilies, projectVeronicaProviderPrompt, rebuildVeronicaFinalTreatmentState, reviewVeronicaPreImageTreatment, runVeronicaSemanticRemediation, validateVeronicaProviderReadiness } from "./veronica-pre-image-semantic-gate.js";
 import { assessVeronicaNarrationClaimIntegrity, assessVeronicaPropositionInternalCoherence, assessVeronicaSourceGroundedSemanticConsistency, assessVeronicaTreatmentPropositionCompatibility, classifyVeronicaSemanticPolarity, deriveVeronicaSemanticProposition, providerPromptInternalLanguageReasons, providerPromptLexicalIntegrityReasons, renderVeronicaVisibleThesis, visualTreatmentFromProposition } from "./veronica-semantic-quality.js";
 
 function treatment(overrides: Partial<PositioningVisualTreatment> = {}): PositioningVisualTreatment {
@@ -24,6 +24,173 @@ function plan(scenes: readonly PlannedScene[]): PositioningVisualPlanV2 {
 }
 
 describe("Veronica pre-image semantic gate", () => {
+  it("replaces rejected semantic ownership and propagates the replacement through provider projection", () => {
+    const narration = "Doing substantive professional work develops actual expertise. External recognition of that expertise is a separate problem.";
+    const stale = scene({
+      sceneId: "generic-semantic-repair",
+      narrationAnchor: narration,
+      treatment: treatment({
+        sceneId: "generic-semantic-repair",
+        actionOwnerRole: "buyer",
+        action: "a buyer inspects proof and decides that the professional is an expert",
+        environment: "buyer proof-review wall",
+        composition: "title badge beside proof cards",
+        props: ["title badge", "proof cards"],
+      }),
+    });
+    const unaffected = scene({
+      sceneId: "unaffected-passing-scene",
+      narrationAnchor: "A buyer chooses one clear doorway.",
+      treatment: treatment({ sceneId: "unaffected-passing-scene" }),
+    });
+    const timings = [
+      { id: stale.sceneId, timing: { startSeconds: 0, endSeconds: 5 } },
+      { id: unaffected.sceneId, timing: { startSeconds: 5, endSeconds: 10 } },
+    ];
+    const narrationByScene = [narration, unaffected.narrationAnchor];
+    const canonical = rebuildVeronicaFinalTreatmentState({
+      plan: plan([stale, unaffected]),
+      sceneTimings: timings,
+      narrationByScene,
+    });
+    const originalTarget = canonical.scenes[0]!;
+    const originalUnaffected = canonical.scenes[1]!;
+    const directive = {
+      schemaVersion: "veronica-source-grounded-remediation-directive.v3" as const,
+      repairBoundary: "SEMANTIC_EXTRACTION" as const,
+      visualMechanism: "work-expertise-separation" as const,
+      actionOwnerRole: "expert" as const,
+      sourceSemantics: {
+        actorRole: "professional",
+        actionOwner: "professional through their work",
+        causalDirection: "professional work develops actual expertise; external recognition remains a separate problem",
+        polarity: "NEUTRAL",
+      },
+      requiredVisibleEvidence: [
+        "professional performing substantive work",
+        "clear distinction between producing expertise and making it perceptible",
+      ],
+      requiredDomainObjects: [
+        "substantive work process",
+        "expert work result",
+        "separate external observer",
+      ],
+      forbiddenMisinterpretations: [
+        "buyer evaluates proof to establish expertise",
+      ],
+      reason: "Restore professional-owned work and the separate recognition state.",
+    };
+    const remediated = applyVeronicaSourceGroundedRemediationDirectives({
+      plan: canonical,
+      directives: [{ sceneId: stale.sceneId, directive }],
+      narrationByScene,
+      round: 1,
+    });
+    const replacement = remediated.scenes[0]!;
+    expect(replacement.semanticProposition).toMatchObject({
+      actorRole: "expert",
+      actorAction: "professional work develops actual expertise",
+      cause: "professional work develops actual expertise",
+      consequence: "external recognition remains a separate problem",
+      stateRelation: "CONTRAST",
+      visualMechanism: "work-expertise-separation",
+      buyerConsequenceFamily: "NONE",
+    });
+    expect(replacement.semanticProposition?.buyerInterpretation).toBeUndefined();
+    expect(replacement.treatment.actionOwnerRole).toBe("expert");
+    expect(replacement.treatment.action).toMatch(/^the professional performs substantive work/iu);
+    expect(`${replacement.treatment.environment} ${replacement.treatment.composition} ${replacement.treatment.action} ${replacement.treatment.props.join(" ")}`).not.toMatch(/title badge|buyer inspects proof/iu);
+    expect(remediated.scenes[1]).toBe(originalUnaffected);
+
+    const rebuilt = rebuildVeronicaFinalTreatmentState({
+      plan: remediated,
+      sceneTimings: timings,
+      narrationByScene,
+    });
+    const finalTarget = rebuilt.scenes[0]!;
+    const finalAsset = rebuilt.assets.find((asset) => asset.sceneId === stale.sceneId)!;
+    const finalUnaffectedAsset = rebuilt.assets.find((asset) => asset.sceneId === unaffected.sceneId)!;
+    const originalUnaffectedAsset = canonical.assets.find((asset) => asset.sceneId === unaffected.sceneId)!;
+    expect(finalTarget.semanticProposition?.visualMechanism).toBe("work-expertise-separation");
+    expect(finalTarget.treatment.actionOwnerRole).toBe("expert");
+    expect(finalAsset.prompt).toContain("Primary actor: the recurring professional.");
+    expect(finalAsset.prompt).toContain("the professional performs substantive work");
+    expect(finalAsset.prompt).not.toMatch(/Primary actor: the buyer|title badge|buyer inspects proof/iu);
+    expect(finalTarget.semanticProposition?.propositionHash).not.toBe(originalTarget.semanticProposition?.propositionHash);
+    expect(finalTarget.treatment.treatmentHash).not.toBe(originalTarget.treatment.treatmentHash);
+    expect(finalAsset.generatedAssetCacheKey).not.toBe(canonical.assets.find((asset) => asset.sceneId === stale.sceneId)?.generatedAssetCacheKey);
+    expect(rebuilt.scenes[1]?.semanticProposition?.propositionHash).toBe(originalUnaffected.semanticProposition?.propositionHash);
+    expect(rebuilt.scenes[1]?.treatment.treatmentHash).toBe(originalUnaffected.treatment.treatmentHash);
+    expect(finalUnaffectedAsset.generatedAssetCacheKey).toBe(originalUnaffectedAsset.generatedAssetCacheKey);
+  });
+
+  it("uses the typed mechanism owner when rebuilding a state model", () => {
+    const narration = "When a buyer cannot understand a consultant's specialty, there is no reason to choose that consultant for it.";
+    const target = scene({
+      sceneId: "generic-state-model-repair",
+      narrationAnchor: narration,
+      treatment: treatment({
+        sceneId: "generic-state-model-repair",
+        strategy: "abstract-conceptual",
+        actionOwnerRole: "expert",
+        action: "abstract light resolves into a positive consequence",
+        environment: "architectural light laboratory",
+        props: ["prism", "shadow grid"],
+      }),
+    });
+    const timings = [{ id: target.sceneId, timing: { startSeconds: 0, endSeconds: 5 } }];
+    const canonical = rebuildVeronicaFinalTreatmentState({
+      plan: plan([target]),
+      sceneTimings: timings,
+      narrationByScene: [narration],
+    });
+    const remediated = applyVeronicaSourceGroundedRemediationDirectives({
+      plan: canonical,
+      directives: [{
+        sceneId: target.sceneId,
+        directive: {
+          schemaVersion: "veronica-source-grounded-remediation-directive.v3",
+          repairBoundary: "STATE_MODEL",
+          visualMechanism: "audience-fit-signal",
+          actionOwnerRole: "buyer",
+          sourceSemantics: {
+            actorRole: "consultant",
+            actionOwner: "consultant",
+            action: "fails to make a particular strength understandable",
+            causalDirection: "unclear specialty causes no reason to choose",
+            polarity: "NEGATIVE_STATE",
+            consequence: "the buyer lacks a selection reason",
+          },
+          requiredVisibleEvidence: [
+            "buyer cannot identify one consultant's specialty",
+            "selection remains unresolved",
+          ],
+          requiredDomainObjects: ["two consultants", "buyer", "specific specialty cue"],
+          forbiddenMisinterpretations: ["abstract light resolves the problem"],
+          stateModel: {
+            relation: "CAUSAL_BEFORE_AFTER",
+            failureState: "the specialty is unclear to the buyer",
+            outcomeState: "the buyer has no reason to choose that consultant",
+          },
+          reason: "Restore the unresolved buyer-choice state.",
+        },
+      }],
+      narrationByScene: [narration],
+      round: 1,
+    });
+    const rebuilt = rebuildVeronicaFinalTreatmentState({
+      plan: remediated,
+      sceneTimings: timings,
+      narrationByScene: [narration],
+    });
+    const replacement = rebuilt.scenes[0]!;
+    expect(replacement.semanticProposition?.visualMechanism).toBe("audience-fit-signal");
+    expect(replacement.semanticProposition?.actorRole).toBe("buyer");
+    expect(replacement.treatment.actionOwnerRole).toBe("buyer");
+    expect(replacement.treatment.action).toMatch(/intended person stops/iu);
+    expect(`${replacement.treatment.environment} ${replacement.treatment.props.join(" ")}`).not.toMatch(/light laboratory|prism|shadow grid/iu);
+  });
+
   it("re-derives source semantics before accepting a previously clean plan", () => {
     const clean = plan([scene()]);
     const result = runVeronicaSemanticRemediation({ plan: clean, narrationByScene: ["A buyer chooses a doorway."] });
@@ -33,15 +200,15 @@ describe("Veronica pre-image semantic gate", () => {
     expect(result.decisions).not.toEqual([]);
   });
 
-  it("remediates only blocked scenes, reruns the gate, and reconciles action ownership", () => {
+  it("fails closed when generic remediation cannot reconcile source action ownership", () => {
     const blocked = scene({ visibleThesis: "topic", treatment: treatment({ actionOwnerRole: "expert", action: "the expert opens a doorway while a buyer compares and chooses" }) });
     const passing = scene({ sceneId: "scene-002", treatment: treatment({ sceneId: "scene-002", actionOwnerRole: "buyer", action: "a buyer compares the evidence, recognizes the difference, and chooses the clear route" }), visibleThesis: "Clear evidence lets the buyer recognize the difference and choose the relevant route.", newInformation: "This second scene adds the buyer's final evidence comparison and selection." });
     const original = plan([blocked, passing]);
     const result = runVeronicaSemanticRemediation({ plan: original, narrationByScene: ["The expert makes positioning evidence visible so a buyer can choose.", "The buyer compares the final evidence and chooses."] });
-    expect(result.convergenceStatus).toBe("CONVERGED");
-    expect(result.reviews.flatMap((review) => review.findings).filter((finding) => finding.severity === "blocker")).toEqual([]);
+    expect(result.convergenceStatus).toBe("SEMANTIC_REMEDIATION_EXHAUSTED");
+    expect(result.remainingFindings).toContainEqual(expect.objectContaining({ code: "NARRATION_RELATIONSHIP_MISMATCH", severity: "blocker" }));
     expect(result.plan.scenes[1]).toBe(passing);
-    expect(result.plan.scenes[0]!.treatment.actionOwnerRole).toBe("buyer");
+    expect(result.plan.validation.status).toBe("fail");
     expect([...new Set(result.decisions.map((decision) => decision.sceneId))]).toEqual(["scene-001"]);
     expect(result.plan.planHash).not.toBe(original.planHash);
   });
@@ -228,9 +395,110 @@ describe("Veronica pre-image semantic gate", () => {
 
   it("blocks proposition contradictions and stale treatment environments", () => {
     const negative = deriveVeronicaSemanticProposition({ scene: scene(), narration: "Conflicting website identities make the visitor hesitate because no category is clear." });
-    const contradictory = { ...negative, buyerConsequenceFamily: "RECOGNIZES" as const, buyerInterpretation: "the visitor recognizes a clear fit" };
+    const contradictory = { ...negative, consequence: "the affected professional wins the client because the buyer recognizes a clear fit", buyerConsequenceFamily: "RECOGNIZES" as const, buyerInterpretation: "the visitor recognizes a clear fit" };
     expect(assessVeronicaPropositionInternalCoherence(contradictory).status).toBe("FAIL");
     expect(assessVeronicaTreatmentPropositionCompatibility({ treatment: treatment({ environment: "podcast booth with microphone and backstage camera rig" }), proposition: negative, narration: negative.narrationClaim }).status).toBe("FAIL");
+  });
+
+  it("keeps an explicit negative outcome authoritative when the buyer action is positive", () => {
+    const base = deriveVeronicaSemanticProposition({ scene: scene(), narration: "The competing professional loses the client because the buyer selects the more memorable option." });
+    const actorRelative = {
+      ...base,
+      polarity: "NEGATIVE_STATE" as const,
+      actorRole: "expert" as const,
+      buyerConsequenceFamily: "REMEMBERS" as const,
+      buyerInterpretation: "the buyer remembers and selects the competing option",
+      consequence: "the affected professional loses the client",
+    };
+    expect(assessVeronicaPropositionInternalCoherence(actorRelative)).toEqual({ status: "PASS", reasons: [] });
+    expect(assessVeronicaPropositionInternalCoherence({
+      ...actorRelative,
+      consequence: "the affected professional succeeds and wins the client",
+    }).status).toBe("FAIL");
+  });
+
+  it("preserves a negative signal state and atomically replaces incompatible treatment fields", () => {
+    const narration = "A broad undifferentiated offer leaves the visitor without a clear category.";
+    const target = scene({
+      sceneId: "generic-negative-remediation",
+      narrationAnchor: narration,
+      treatment: treatment({
+        sceneId: "generic-negative-remediation",
+        strategy: "transformation",
+        environment: "career-transition studio",
+        action: "the professional places a transferable skill beside a new role marker",
+        props: ["prior-work artifact", "transferable-skill evidence", "new-service result"],
+      }),
+    });
+    const canonical = rebuildVeronicaFinalTreatmentState({
+      plan: plan([target]),
+      sceneTimings: [{ id: target.sceneId, timing: { startSeconds: 0, endSeconds: 5 } }],
+      narrationByScene: [narration],
+    });
+    const remediated = applyVeronicaSourceGroundedRemediationDirectives({
+      plan: canonical,
+      narrationByScene: [narration],
+      round: 1,
+      directives: [{
+        sceneId: target.sceneId,
+        directive: {
+          schemaVersion: "veronica-source-grounded-remediation-directive.v3",
+          repairBoundary: "STATE_MODEL",
+          visualMechanism: "signal-coherence",
+          actionOwnerRole: "buyer",
+          sourceSemantics: { polarity: "NEGATIVE_STATE", consequence: "the visitor cannot identify a clear category" },
+          requiredVisibleEvidence: ["broad undifferentiated offer", "visitor hesitation"],
+          requiredDomainObjects: ["offer evidence"],
+          forbiddenMisinterpretations: ["successful focused coherence"],
+          stateModel: { relation: "STABLE", failureState: "the offer remains broad", outcomeState: "the visitor cannot identify a clear category" },
+          reason: "Keep the failed state visible.",
+        },
+      }],
+    });
+    const final = rebuildVeronicaFinalTreatmentState({
+      plan: remediated,
+      sceneTimings: [{ id: target.sceneId, timing: { startSeconds: 0, endSeconds: 5 } }],
+      narrationByScene: [narration],
+    });
+    const repaired = final.scenes[0]!;
+    const visual = `${repaired.treatment.environment} ${repaired.treatment.action} ${repaired.treatment.composition} ${repaired.treatment.props.join(" ")}`;
+    expect(repaired.semanticProposition?.polarity).toBe("NEGATIVE_STATE");
+    expect(classifyVeronicaSemanticPolarity(visual)).not.toBe("POSITIVE_STATE");
+    expect(visual).toMatch(/conflicting|undifferentiated|without finding/iu);
+    expect(visual).not.toMatch(/career-transition|prior-work|transferable-skill|new-service/iu);
+    expect(repaired.treatment.grammar.environment).toBe(repaired.treatment.environment);
+    expect(repaired.treatment.viewerVisibleFingerprint.environmentArchetype).toBe(repaired.treatment.environment);
+  });
+
+  it("materializes scene and provider projection from one revision and blocks a mixed revision", () => {
+    const narration = "A buyer cannot identify a clear fit from conflicting evidence.";
+    const rebuilt = rebuildVeronicaFinalTreatmentState({
+      plan: plan([scene({ narrationAnchor: narration })]),
+      sceneTimings: [{ id: "scene-001", timing: { startSeconds: 0, endSeconds: 5 } }],
+      narrationByScene: [narration],
+    });
+    const finalScene = rebuilt.scenes[0]!;
+    const finalAsset = rebuilt.assets[0]!;
+    expect(finalAsset.projectionProvenance).toMatchObject({
+      sourceTreatmentHash: finalScene.treatment.treatmentHash,
+      sourcePropositionHash: finalScene.semanticProposition?.propositionHash,
+      materializationRevisionId: finalScene.materializationRevision?.revisionId,
+    });
+    expect(finalAsset.prompt).toContain(`Subject: ${finalScene.treatment.subjectRequirement}.`);
+    expect(finalAsset.prompt).toContain(`Environment: ${finalScene.treatment.environment}.`);
+    const mixed = {
+      ...rebuilt,
+      assets: [{
+        ...finalAsset,
+        projectionProvenance: {
+          ...finalAsset.projectionProvenance!,
+          sourceTreatmentHash: "0".repeat(64),
+        },
+      }],
+    } as PositioningVisualPlanV2;
+    const readiness = validateVeronicaProviderReadiness(mixed);
+    expect(readiness.status).toBe("FAIL");
+    expect(readiness.issues.some((issue) => issue.reason.includes("stale-source-treatment-hash"))).toBe(true);
   });
 
   it("preserves ordinary first/first-time prose and rejects lexical corruption", () => {
@@ -266,14 +534,16 @@ describe("Veronica pre-image semantic gate", () => {
     const interfacePrompt = projectVeronicaProviderPrompt({ aspectRatio: "9:16", format: "short" }, scene({ treatment: treatment({ environment: "website opening-screen review", composition: "visitor beside a mobile page frame", props: ["text-free website opening screen", "mobile page frame"], action: "a visitor scans the opening screen", actionOwnerRole: "buyer" }) }));
     expect(interfacePrompt).toContain("No readable UI copy");
     expect(interfacePrompt).not.toMatch(/No readable text, logos, UI/iu);
-    const sequence = scene({ stateComplexity: "MULTI_STATE_REQUIRED", narrationAnchor: "The theme switches first, but a recurring cue later lets recognition accumulate.", semanticProposition: deriveVeronicaSemanticProposition({ scene: scene(), narration: "The theme switches first, but a recurring cue later lets recognition accumulate." }), treatment: treatment({ action: "an observer groups the recurring cue after seeing the switching theme", props: ["switching-theme evidence", "recurring cue"] }) });
+    const derivedSequence = deriveVeronicaSemanticProposition({ scene: scene(), narration: "The theme switches first, but a recurring cue later lets recognition accumulate." });
+    const sequence = scene({ stateComplexity: "MULTI_STATE_REQUIRED", narrationAnchor: "The theme switches first, but a recurring cue later lets recognition accumulate.", semanticProposition: { ...derivedSequence, stateRelation: "SEQUENTIAL_PROGRESSION", contrast: { relation: "SEQUENTIAL_PROGRESSION", initialState: "the theme switches", failureState: "recognition resets", desiredState: "a recurring cue repeats", consequence: "recognition accumulates" } }, treatment: treatment({ action: "an observer groups the recurring cue after seeing the switching theme", props: ["switching-theme evidence", "recurring cue"] }) });
     const first = projectVeronicaProviderPrompt({ aspectRatio: "16:9", format: "long" }, sequence, { ordinal: 1, total: 2 });
     const second = projectVeronicaProviderPrompt({ aspectRatio: "16:9", format: "long" }, sequence, { ordinal: 2, total: 2 });
     expect(first).toContain("Depict the earlier causal state:");
     expect(second).toContain("Depict the later causal state:");
     expect(first).not.toBe(second);
     expect(first).toContain("Must show: visible evidence of");
-    expect(second).toContain("Must show: switching-theme evidence, recurring cue");
+    expect(second).toContain("Must show: recurring cue");
+    expect(second).not.toContain("Must show: switching-theme evidence");
     expect(first).not.toMatch(/Sequence asset|causal role|State condition|State action|Observer response/iu);
     expect(providerPromptInternalLanguageReasons("Sequence asset 1 of 2. State action: unresolved.")).toContain("internal-projection-language");
   });

@@ -1,10 +1,10 @@
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { rebuildOpenAIEpisodeCostSummary } from "./openai-cost-summary.js";
 
 const REDACTED_SECRET = "[REDACTED_SECRET]";
 const REDACTED_BASE64_IMAGE_RESPONSE = "[REDACTED_BASE64_IMAGE_RESPONSE]";
-const LARGE_STRING_THRESHOLD = 4096;
 const BASE64_LIKE_THRESHOLD = 512;
 
 export type OpenAIDebugMode =
@@ -24,6 +24,7 @@ export interface OpenAIDebugLogEntry {
   readonly provider: "openai";
   readonly mode?: OpenAIDebugMode;
   readonly paidProviderCalled: boolean;
+  readonly status?: "success" | "error" | "simulation" | "skipped" | "pre-dispatch";
   readonly model?: string;
   readonly endpoint?: string;
   readonly request: unknown;
@@ -54,9 +55,9 @@ export interface WriteOpenAIDebugLogInput
   readonly id?: string;
   readonly timestamp?: string;
   readonly status?: "success" | "error" | "simulation" | "skipped" | "pre-dispatch";
-  /** Content is excluded unless this is explicitly enabled for a non-protected source. */
+  /** @deprecated Request and response content is retained in debug logs by default. */
   readonly allowContentLogging?: boolean;
-  /** Protected-source content is never durable debug output. */
+  /** @deprecated Content retention is no longer controlled by source classification. */
   readonly protectedSource?: boolean;
 }
 
@@ -88,7 +89,7 @@ function looksLikeBase64(value: string): boolean {
   if (trimmed.startsWith("data:image/")) {
     return true;
   }
-  if (trimmed.length < LARGE_STRING_THRESHOLD && !/^[A-Za-z0-9+/=\r\n]+$/u.test(trimmed)) {
+  if (!/^[A-Za-z0-9+/=\r\n]+$/u.test(trimmed)) {
     return false;
   }
   const compact = trimmed.replace(/\s+/gu, "");
@@ -99,11 +100,7 @@ function looksLikeBase64(value: string): boolean {
   return base64Chars / compact.length > 0.98;
 }
 
-function isContentKey(key?: string): boolean {
-  return key !== undefined && /(?:content|prompt|input|output_text|transcript|source|message|body)/iu.test(key);
-}
-
-function sanitizeString(value: string, key?: string, allowContent = false): string {
+function sanitizeString(value: string, key?: string): string {
   if (key && isImageBase64Key(key)) {
     return REDACTED_BASE64_IMAGE_RESPONSE;
   }
@@ -116,28 +113,25 @@ function sanitizeString(value: string, key?: string, allowContent = false): stri
   if (/(?:\bsk-[A-Za-z0-9_-]+\b|\b(?:api[-_]?key|token|secret|password)\s*[=:]\s*\S+)/iu.test(value)) {
     return "[REDACTED_SECRET]";
   }
-  if ((key === undefined || isContentKey(key)) && !allowContent) {
-    return "[REDACTED_CONTENT]";
-  }
   return value;
 }
 
-export function redactOpenAIDebugValue(value: unknown, key?: string, allowContent = false): unknown {
+export function redactOpenAIDebugValue(value: unknown, key?: string): unknown {
   if (key && isSecretKey(key)) {
     return REDACTED_SECRET;
   }
   if (typeof value === "string") {
-    return sanitizeString(value, key, allowContent && key !== undefined);
+    return sanitizeString(value, key);
   }
   if (Array.isArray(value)) {
-    return value.map((entry) => redactOpenAIDebugValue(entry, key, allowContent));
+    return value.map((entry) => redactOpenAIDebugValue(entry, key));
   }
   if (!isPlainRecord(value)) {
     return value;
   }
   const redacted: Record<string, unknown> = {};
   for (const [entryKey, entryValue] of Object.entries(value)) {
-    redacted[entryKey] = redactOpenAIDebugValue(entryValue, entryKey, allowContent);
+    redacted[entryKey] = redactOpenAIDebugValue(entryValue, entryKey);
   }
   return redacted;
 }
@@ -191,14 +185,17 @@ function resolveOpenAIDebugDirectory(episodeRoot?: string): string {
 
 export async function writeOpenAIDebugLog(
   input: WriteOpenAIDebugLogInput
-): Promise<{ readonly id: string; readonly filePath: string }> {
+): Promise<{
+  readonly id: string;
+  readonly filePath: string;
+  readonly costSummaryPath?: string;
+}> {
   const id = input.id ?? crypto.randomUUID();
   const timestamp = input.timestamp ?? new Date().toISOString();
   const redactedError =
     input.error === undefined
       ? undefined
       : (redactOpenAIDebugValue(input.error) as OpenAIDebugLogEntry["error"]);
-  const allowContent = input.allowContentLogging === true && input.protectedSource !== true;
   const entry: OpenAIDebugLogEntry = {
     id,
     timestamp,
@@ -207,18 +204,19 @@ export async function writeOpenAIDebugLog(
     provider: "openai",
     ...(input.mode ? { mode: input.mode } : {}),
     paidProviderCalled: input.paidProviderCalled,
+    ...(input.status ? { status: input.status } : {}),
     ...(input.model ? { model: input.model } : {}),
     ...(input.endpoint ? { endpoint: input.endpoint } : {}),
-    request: redactOpenAIDebugValue(input.request, undefined, allowContent),
+    request: redactOpenAIDebugValue(input.request),
     ...(input.response !== undefined
-      ? { response: redactOpenAIDebugValue(input.response, undefined, allowContent) }
+      ? { response: redactOpenAIDebugValue(input.response) }
       : {}),
     ...(input.simulatedResponse !== undefined
-      ? { simulatedResponse: redactOpenAIDebugValue(input.simulatedResponse, undefined, allowContent) }
+      ? { simulatedResponse: redactOpenAIDebugValue(input.simulatedResponse) }
       : {}),
     ...(input.skippedReason ? { skippedReason: input.skippedReason } : {}),
     ...(redactedError !== undefined ? { error: redactedError } : {}),
-    ...(input.usage !== undefined ? { usage: redactOpenAIDebugValue(input.usage, undefined, allowContent) } : {}),
+    ...(input.usage !== undefined ? { usage: redactOpenAIDebugValue(input.usage) } : {}),
     durationMs: input.durationMs,
     ...(input.attempt !== undefined ? { attempt: input.attempt } : {}),
     ...(input.caller ? { caller: input.caller } : {}),
@@ -237,5 +235,13 @@ export async function writeOpenAIDebugLog(
     encoding: "utf8",
     flag: "wx",
   });
+  if (input.episodeRoot && input.paidProviderCalled) {
+    await rebuildOpenAIEpisodeCostSummary({ episodeRoot: input.episodeRoot });
+    return {
+      id,
+      filePath,
+      costSummaryPath: path.join(input.episodeRoot, "openai-cost-summary.json"),
+    };
+  }
   return { id, filePath };
 }

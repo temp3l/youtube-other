@@ -145,7 +145,7 @@ export function classifyVeronicaSemanticPolarity(claim: string): VeronicaSemanti
   if (/\b(?:withholds? recognition|missing work evidence|empty proof stations?)\b/iu.test(claim)) return "NEGATIVE_STATE";
   if (/\b(?:motion without accumulation|resets? instead of accumulat|no (?:recognition|association) accumulat|fails? to accumulat)\b/iu.test(claim)) return "NEGATIVE_STATE";
   if (/\b(?:conflicting|unrelated|different)\b/iu.test(claim) && /\b(?:cannot|hesitat\w*|no .{0,30}(?:clear|category|coherent))\b/iu.test(claim)) return "NEGATIVE_STATE";
-  const negative = /\b(?:cannot|can't|may not|do not (?:become|show|support|explain|help|resolve|create|build)|does not (?:become|show|support|explain|help|resolve|create|build)|doesn't (?:become|show|support|explain|help|resolve|create|build)|not (?:clear|coherent|enough|recognizable)|without (?:evidence|clarity|recognition|a clear|a recurring)|conflict\w*|different stor\w*|unrelated|collapse\w*|confus\w*|vague|fuzzy|hesitat\w*|ignore\w*|reset\w*|motion without accumulation|no visible|fails? to|weakens?)\b/iu.test(claim);
+  const negative = /\b(?:cannot|can't|may not|do not (?:become|show|support|explain|help|resolve|create|build)|does not (?:become|show|support|explain|help|resolve|create|build)|doesn't (?:become|show|support|explain|help|resolve|create|build)|not (?:clear|coherent|enough|recognizable)|without (?:evidence|clarity|recognition|a clear|a recurring)|conflict\w*|different stor\w*|unrelated|collapse\w*|confus\w*|vague|fuzzy|hesitat\w*|ignore\w*|reset\w*|motion without accumulation|no (?:visible|reason|fit|selection|client|customer)|fails? to|weakens?|los(?:e|es|t|ing)|rejected?|turns? away|chooses? another)\b/iu.test(claim);
   const positive = /\b(?:can become|clear|coheren\w*|recogniz\w*|recognit\w*|remember\w*|accumulat\w*|compound\w*|trust\w*|understand\w*|alignment|matching|credible|strengthen\w*)\b/iu.test(claim);
   const corrective = /\b(?:but|instead|rather|while|from .+ to|first.+then|after alignment|once aligned)\b/iu.test(claim);
   if (negative && positive && corrective) return "TRANSITION_NEGATIVE_TO_POSITIVE";
@@ -313,6 +313,7 @@ const mechanismVisuals: Readonly<Record<Exclude<Mechanism, "UNRESOLVED">, {
   "relevant-context-participation": { cause: "The expertise appears inside a conversation where the relevant people already gather", action: "the professional contributes a concrete example while nearby participants inspect it and respond", consequence: "participants connect the contribution to the claimed expertise", environment: "small professional roundtable with an active topic-specific demonstration", composition: "contribution and evidence at the center; participants' attention converges on the demonstrated detail", props: ["demonstration artifact", "participant response", "shared evidence surface"] },
   "recognition-accumulation": { cause: "Varied public signals repeat one consistent area of expertise", action: "another person groups several different proof artifacts around the same professional and recalls the shared association", consequence: "the repeated association becomes easier to remember when the topic appears", environment: "public evidence wall assembled from varied but related work outputs", composition: "different proof formats form one coherent cluster around a single expertise cue", props: ["related proof artifacts", "recognition gesture", "single recurring expertise cue"] },
   "claim-to-proof": { cause: "A claimed title is separated from concrete work, reasoning, and results", action: "an observer ignores the title badge and instead inspects a work example, a decision artifact, and a visible result", consequence: "the observer infers the expertise from proof rather than instruction", environment: "evidence-review setting with a professional, an observer, and three concrete proof artifacts", composition: "empty title badge remains peripheral; work example, reasoning artifact, and outcome lead the frame", props: ["blank title badge", "work example", "reasoning artifact", "visible outcome"] },
+  "work-expertise-separation": { cause: "Substantive professional work creates actual expertise while external recognition remains a separate state", action: "the professional performs substantive work that produces an expert result while a separate observer remains outside the work context without evaluating proof", consequence: "actual expertise exists through the work even though external recognition is still unresolved", environment: "professional work setting with a clear boundary to a separate external-observer context", composition: "the professional and substantive work process dominate the frame; the completed expert result remains on the work side while the observer stays visibly separate without a proof-inspection gesture", props: ["substantive work process", "expert work result", "clear separation from external observer"] },
   "signal-coherence": { cause: "Offer, profile, website, and content repeat one expertise cue instead of competing stories", action: "a visitor follows the same visual evidence cue across several distinct touchpoints", consequence: "the separate encounters combine into one credible impression", environment: "customer journey review with distinct profile, site, offer, and content touchpoints", composition: "four separate touchpoints share one visible evidence cue while unrelated cues remain absent", props: ["profile touchpoint", "website touchpoint", "focused offer artifact", "content example"] },
   "audience-fit-signal": { cause: "A broad message gives a mixed crowd no visible sign of fit while a specific cue matches one person's situation", action: "people pass the broad display; the intended person stops at the specific situation cue", consequence: "relevance becomes visible without asking the whole crowd to interpret the offer", environment: "public choice space with a mixed flow of people and two differently focused service displays", composition: "broad display recedes beside an uninterested crowd; one specific situation cue stops the intended person", props: ["broad undifferentiated display", "specific situation cue", "mixed crowd", "stopping gesture"] },
   "customer-context-interpretation": { cause: "Concrete details from the customer's situation guide the professional's explanation", action: "the professional arranges the customer's observed frustrations, priorities, and attempted solutions into one causal view", consequence: "the customer recognizes their own situation in the explanation", environment: "one-to-one discovery setting with physical evidence from the customer's real context", composition: "customer evidence in the foreground; professional groups cause, failed attempt, and consequence without readable labels", props: ["context evidence", "failed-attempt artifact", "visible consequence", "customer recognition gesture"] },
@@ -449,24 +450,43 @@ export function visualTreatmentFromProposition(input: { readonly scene: PlannedS
       : input.proposition.polarity === "NEGATIVE_STATE" && input.proposition.visualMechanism === "claim-to-proof"
         ? "a new title marker stands alone beside visibly empty proof stations while the observer withholds recognition"
       : visual.composition;
-  const negativeProps = input.proposition.polarity === "NEGATIVE_STATE" && input.proposition.visualMechanism === "claim-to-proof"
-    ? ["new title marker without readable text", "empty proof stations", "observer withholding gesture"]
+  const negativeProps = input.proposition.polarity === "NEGATIVE_STATE"
+    ? input.proposition.visualMechanism === "claim-to-proof"
+      ? ["new title marker without readable text", "empty proof stations", "observer withholding gesture"]
+      : input.proposition.visualMechanism === "signal-coherence"
+        ? ["conflicting profile cue", "unrelated website cue", "undifferentiated offer artifacts", "disconnected content cue"]
+        : visual.props
     : visual.props;
   const baseVisibleOwner = resolveVeronicaVisiblePrimaryActionOwner({ ...input.scene.treatment, action: visual.action });
-  const action = input.proposition.actorRole === "buyer" && consequenceAction
-    ? baseVisibleOwner === "buyer" ? concreteAction : consequenceAction
-    : specificVisual?.action ?? negativeAction;
-  return { narrativeBeat: thesis, subjectRequirement: input.proposition.actorRole === "none" ? "people responding to two simultaneous visible conditions" : "professional and relevant observer with visually distinct roles", environment: input.preserveEnvironment ? input.scene.treatment.environment : specificVisual?.environment ?? visual.environment, composition: specificVisual?.composition ?? negativeComposition, camera: "documentary eye-level view with the evidence, action, and visible response legible in one frame", action, actionOwnerRole: input.proposition.actorRole, props: specificVisual?.props ?? negativeProps, diagram: null, strategy: input.proposition.visualMechanism === "peer-referral" || input.proposition.visualMechanism === "relevant-context-participation" ? "social-interaction" : input.proposition.visualMechanism === "audience-fit-signal" || input.proposition.visualMechanism === "problem-first-sequence" ? "client-decision" : "evidence-proof" };
+  const action = input.proposition.polarity === "NEGATIVE_STATE"
+    ? negativeAction
+    : input.proposition.actorRole === "buyer" && consequenceAction
+      ? baseVisibleOwner === "buyer" ? concreteAction : consequenceAction
+      : specificVisual?.action ?? negativeAction;
+  const samePropositionRevision = input.scene.treatment.sourcePropositionHash === input.proposition.propositionHash;
+  return {
+    narrativeBeat: thesis,
+    subjectRequirement: input.proposition.actorRole === "none" ? "people responding to two simultaneous visible conditions" : "professional and relevant observer with visually distinct roles",
+    environment: input.preserveEnvironment && samePropositionRevision ? input.scene.treatment.environment : specificVisual?.environment ?? visual.environment,
+    composition: input.proposition.polarity === "NEGATIVE_STATE" ? negativeComposition : specificVisual?.composition ?? negativeComposition,
+    camera: "documentary eye-level view with the evidence, action, and visible response legible in one frame",
+    action,
+    actionOwnerRole: input.proposition.actorRole,
+    props: input.proposition.polarity === "NEGATIVE_STATE" ? negativeProps : specificVisual?.props ?? negativeProps,
+    diagram: null,
+    strategy: input.proposition.visualMechanism === "peer-referral" || input.proposition.visualMechanism === "relevant-context-participation" ? "social-interaction" : input.proposition.visualMechanism === "audience-fit-signal" || input.proposition.visualMechanism === "problem-first-sequence" ? "client-decision" : "evidence-proof",
+  };
 }
 
 export function assessVeronicaPropositionInternalCoherence(proposition: VeronicaSemanticProposition): { readonly status: "PASS" | "FAIL"; readonly reasons: readonly string[] } {
-  const combined = `${proposition.buyerInterpretation ?? ""} ${proposition.consequence}`;
-  const positiveFamily = new Set<VeronicaSemanticProposition["buyerConsequenceFamily"]>(["REMEMBERS", "CATEGORIZES", "TRUSTS", "RECOGNIZES", "UNDERSTANDS", "CONNECTS"]);
-  const negativeFamily = new Set<VeronicaSemanticProposition["buyerConsequenceFamily"]>(["HESITATES", "IGNORES", "FAILS_TO_ACCUMULATE", "REJECTS"]);
+  const explicitOutcome = `${proposition.consequence} ${proposition.contrast?.failureState ?? ""} ${proposition.contrast?.consequence ?? ""}`;
+  const outcomePolarity = classifyVeronicaSemanticPolarity(explicitOutcome);
+  const negativeOutcome = outcomePolarity === "NEGATIVE_STATE" || outcomePolarity === "CONTRAST" || outcomePolarity === "TRANSITION_POSITIVE_TO_NEGATIVE";
+  const positiveOutcome = outcomePolarity === "POSITIVE_STATE" || outcomePolarity === "TRANSITION_NEGATIVE_TO_POSITIVE";
   const reasons = [
-    ...(proposition.polarity === "NEGATIVE_STATE" && positiveFamily.has(proposition.buyerConsequenceFamily) ? ["negative-polarity-positive-consequence-family"] : []),
-    ...(proposition.polarity === "POSITIVE_STATE" && negativeFamily.has(proposition.buyerConsequenceFamily) ? ["positive-polarity-negative-consequence-family"] : []),
-    ...(proposition.polarity === "NEGATIVE_STATE" && !/\b(?:cannot|does not|no |without|hesitat\w*|ignore\w*|reset\w*|fails?|conflict\w*|unrelated|separate)\b/iu.test(combined) ? ["negative-polarity-missing-negative-consequence"] : []),
+    ...(proposition.polarity === "NEGATIVE_STATE" && positiveOutcome && !negativeOutcome ? ["negative-polarity-positive-explicit-outcome"] : []),
+    ...(proposition.polarity === "POSITIVE_STATE" && negativeOutcome && !positiveOutcome ? ["positive-polarity-negative-explicit-outcome"] : []),
+    ...(proposition.polarity === "NEGATIVE_STATE" && !negativeOutcome ? ["negative-polarity-missing-negative-consequence"] : []),
     ...(proposition.polarity === "TRANSITION_NEGATIVE_TO_POSITIVE" && (!proposition.contrast?.initialState || !proposition.contrast.desiredState) ? ["transition-missing-contrast-states"] : []),
     ...(proposition.stateRelation === "STABLE" && proposition.contrast ? ["stable-relation-has-multiple-states"] : []),
     ...(proposition.stateRelation !== "STABLE" && proposition.contrast?.relation !== proposition.stateRelation ? ["state-relation-does-not-match-structured-states"] : []),
@@ -485,6 +505,7 @@ export function assessVeronicaTreatmentPropositionCompatibility(input: { readonl
     "audience-fit-signal": /\b(?:broad|specific|audience|crowd|fit|message|relevance)\b/iu,
     "customer-context-interpretation": /\b(?:customer|context|frustration|priority|situation|explanation)\b/iu,
     "claim-to-proof": /\b(?:proof|evidence|work example|result|reasoning)\b/iu,
+    "work-expertise-separation": /\b(?:professional work|work process|substantive work|expert result|actual expertise|external observer|external recognition)\b/iu,
     "market-problem-solution-chain": /\b(?:market|problem|response|solution|group)\b/iu,
     "problem-first-sequence": /\b(?:problem|package|feature|response|customer)\b/iu,
     "peer-referral": /\b(?:peer|refer|introduc|recommend)\b/iu,

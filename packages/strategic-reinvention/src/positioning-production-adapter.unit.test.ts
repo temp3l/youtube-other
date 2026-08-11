@@ -6,6 +6,7 @@ import {
   compilePositioningProductionScenePlan,
   expandVeronicaLongFormSemanticScenes,
   preparePositioningProductionEpisode,
+  positioningScenePlanMaterializationReasons,
   positioningProductionPlanSchema,
 } from "./positioning-production-adapter.js";
 
@@ -90,11 +91,22 @@ describe("positioning production adapter", () => {
     ).resolves.toContain("Zeig den Beweis");
     const manifest = JSON.parse(await fs.readFile(result.manifestPath, "utf8")) as {
       sourceMetadata: Record<string, unknown>;
+      scenePlan: ReturnType<typeof compilePositioningProductionScenePlan>;
     };
     expect(manifest.sourceMetadata).toMatchObject({
       genre: "veronicabenini",
       positioningPlanHash: "a".repeat(64),
       syntheticCreatorLikenessAllowed: false,
+    });
+    const canonical = JSON.parse(await fs.readFile(path.join(episodeDir, "source", "pre-image-semantic-plan.v1.json"), "utf8"));
+    expect(positioningScenePlanMaterializationReasons({ plan: canonical, scenePlan: manifest.scenePlan })).toEqual([]);
+    expect(manifest.scenePlan.scenes[0]).toMatchObject({
+      subject: canonical.scenes[0].treatment.subjectRequirement,
+      action: canonical.scenes[0].treatment.action,
+      setting: canonical.scenes[0].treatment.environment,
+      composition: canonical.scenes[0].treatment.composition,
+      cameraFraming: canonical.scenes[0].treatment.camera,
+      imagePrompt: canonical.assets[0].prompt,
     });
   });
 

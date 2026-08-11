@@ -4,6 +4,10 @@ import type {
   VeronicaVisualFamily,
   VeronicaVisualStoryBible,
 } from "./veronica-visual-language.js";
+import type {
+  SourceGroundedVisualQaResult,
+  SemanticFaultBoundary,
+} from "./source-grounded-visual-qa.js";
 
 export const POSITIONING_PLANNER_VERSION =
   "veronicabenini-positioning-visual-planner.v2.2" as const;
@@ -58,6 +62,41 @@ export type VeronicaActionOwnerRole = "expert" | "buyer" | "shared" | "none";
 export type VeronicaSemanticConfidence = "HIGH" | "MEDIUM" | "LOW";
 export type VeronicaSemanticPolarity = "POSITIVE_STATE" | "NEGATIVE_STATE" | "CONTRAST" | "TRANSITION_NEGATIVE_TO_POSITIVE" | "TRANSITION_POSITIVE_TO_NEGATIVE" | "NEUTRAL";
 export type VeronicaSemanticStateRelation = "STABLE" | "CAUSAL_BEFORE_AFTER" | "CONTRAST" | "CONDITIONAL_ALTERNATIVES" | "SEQUENTIAL_PROGRESSION";
+export const VERONICA_RESOLVED_VISUAL_MECHANISMS = [
+  "website-first-impression",
+  "market-problem-solution-chain",
+  "problem-first-sequence",
+  "identity-bridge",
+  "relevant-context-participation",
+  "recognition-accumulation",
+  "claim-to-proof",
+  "work-expertise-separation",
+  "signal-coherence",
+  "audience-fit-signal",
+  "customer-context-interpretation",
+  "peer-referral",
+] as const;
+export type VeronicaResolvedVisualMechanism =
+  (typeof VERONICA_RESOLVED_VISUAL_MECHANISMS)[number];
+export type VeronicaVisualMechanism =
+  | VeronicaResolvedVisualMechanism
+  | "UNRESOLVED";
+export const VERONICA_VISUAL_MECHANISM_ACTION_OWNER = {
+  "website-first-impression": "buyer",
+  "market-problem-solution-chain": "buyer",
+  "problem-first-sequence": "expert",
+  "identity-bridge": "expert",
+  "relevant-context-participation": "expert",
+  "recognition-accumulation": "buyer",
+  "claim-to-proof": "buyer",
+  "work-expertise-separation": "expert",
+  "signal-coherence": "buyer",
+  "audience-fit-signal": "buyer",
+  "customer-context-interpretation": "expert",
+  "peer-referral": "buyer",
+} as const satisfies Readonly<
+  Record<VeronicaResolvedVisualMechanism, Extract<VeronicaActionOwnerRole, "expert" | "buyer">>
+>;
 
 export interface VeronicaNarrationEvidenceSpan {
   readonly sentenceId: string;
@@ -80,7 +119,7 @@ export interface VeronicaSemanticProposition {
   readonly consequence: string;
   readonly contrast?: { readonly relation: Exclude<VeronicaSemanticStateRelation, "STABLE">; readonly initialState?: string; readonly desiredState?: string; readonly failureState?: string; readonly consequence?: string };
   readonly narrationNativeMetaphor?: string;
-  readonly visualMechanism: "website-first-impression" | "market-problem-solution-chain" | "problem-first-sequence" | "identity-bridge" | "relevant-context-participation" | "recognition-accumulation" | "claim-to-proof" | "signal-coherence" | "audience-fit-signal" | "customer-context-interpretation" | "peer-referral" | "UNRESOLVED";
+  readonly visualMechanism: VeronicaVisualMechanism;
   readonly evidenceAnchors: readonly string[];
   readonly buyerConsequenceFamily: "REMEMBERS" | "CATEGORIZES" | "CHOOSES" | "HESITATES" | "TRUSTS" | "IGNORES" | "NOTICES" | "REFERS" | "RECOGNIZES" | "UNDERSTANDS" | "CONNECTS" | "FAILS_TO_ACCUMULATE" | "REJECTS" | "NONE";
   readonly confidence: { readonly proposition: VeronicaSemanticConfidence; readonly actorOwnership: VeronicaSemanticConfidence; readonly consequence: VeronicaSemanticConfidence; readonly visualMechanism: VeronicaSemanticConfidence };
@@ -328,10 +367,16 @@ export interface GeneratedVisualAsset {
   readonly projectionProvenance?: {
     readonly sourceTreatmentHash: string;
     readonly sourcePropositionHash: string | null;
+    readonly materializationRevisionId: string;
+    readonly projectionRevisionId: string;
     readonly stateProjectionPolicyVersion: string;
     readonly motifId: string | null;
     readonly projectionStrategy: "SINGLE_STATE" | "DECISIVE_TRANSITION" | "MULTI_STATE_SEQUENCE";
     readonly providerPromptHash: string;
+    readonly projectedPolarity: VeronicaSemanticPolarity;
+    readonly projectedStateRelation: VeronicaSemanticStateRelation;
+    readonly projectedActorRole: VeronicaActionOwnerRole | "unresolved";
+    readonly projectedConsequencePolarity: VeronicaSemanticPolarity;
   };
 }
 
@@ -395,6 +440,19 @@ export interface PlannedScene {
     readonly polarityCoherence: "PASS" | "FAIL";
     readonly propositionInternalCoherence: "PASS" | "FAIL";
     readonly treatmentPropositionCompatibility: "PASS" | "FAIL";
+  };
+  /** Canonical-pipeline application provenance for an advisor directive. */
+  readonly sourceGroundedRemediation?: {
+    readonly directiveHash: string;
+    readonly repairBoundary: Exclude<SemanticFaultBoundary, "UNKNOWN">;
+    readonly regenerationRound: number;
+  };
+  /** One revision identity shared by final wrapper fields and provider projections. */
+  readonly materializationRevision?: {
+    readonly revisionId: string;
+    readonly treatmentHash: string;
+    readonly propositionHash: string | null;
+    readonly projectionPolicyVersion: string;
   };
 }
 
@@ -608,6 +666,17 @@ export interface PositioningVisualPlanV2 {
   };
   readonly semanticQuality?: VeronicaSemanticQualityMetrics;
   readonly providerReadiness?: VeronicaProviderReadinessResult;
+  /** Independent narration-to-final-artifact gate; never authored by generation. */
+  readonly sourceGroundedVisualQa?: SourceGroundedVisualQaResult;
+  readonly hierarchicalReadiness?: {
+    readonly schemaVersion: "veronica-hierarchical-readiness.v1";
+    readonly sourceFidelityReady: boolean;
+    readonly visualReady: boolean;
+    readonly technicalReady: boolean;
+    readonly providerCandidate: boolean;
+    readonly providerRequestsAllowed: false;
+    readonly blockers: readonly string[];
+  };
   readonly planHash: string;
 }
 
