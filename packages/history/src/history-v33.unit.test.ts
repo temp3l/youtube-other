@@ -217,13 +217,16 @@ describe("History V3.3 source and provenance authority", () => {
       "gpt-test"
     );
 
-    await provider.extract({
+    const result = await provider.extract({
       episodeId: "episode",
       narrationSha256: narration.normalizedTextSha256,
       units: narration.units,
     });
 
     expect(create.mock.calls[0]?.[1]).toMatchObject({ maxRetries: 0 });
+    expect(create.mock.calls[0]?.[0]).not.toHaveProperty("prompt_cache_key");
+    expect(create.mock.calls[0]?.[0]).not.toHaveProperty("prompt_cache_options");
+    expect(result.metadata.promptCacheKey).toBeNull();
   });
 
   it("bounds retries and caches successful claim extraction by canonical inputs", async () => {

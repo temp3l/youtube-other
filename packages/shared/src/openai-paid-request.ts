@@ -400,23 +400,36 @@ export interface PaidOpenAiCallRecord {
   readonly outcome: PaidOpenAiOutcomeKind;
   readonly usage: NormalizedOpenAiUsage;
   readonly promptCacheRoutingKey?: PromptCacheRoutingKey;
+  readonly promptPolicyVersion?: string;
   readonly retryReason?: string;
   readonly repairReason?: string;
   readonly escalationReason?: string;
   readonly estimatedUncachedCostMicros?: number;
   readonly estimatedActualCostMicros?: number;
+  readonly estimatedCacheWritePremiumMicros?: number;
+  readonly estimatedCachedReadSavingsMicros?: number;
 }
 
 export interface PromptCacheRoutingThroughput {
   readonly routingKey: PromptCacheRoutingKey;
+  readonly models: readonly string[];
+  readonly operationIds: readonly string[];
+  readonly callFamilies: readonly string[];
+  readonly promptPolicyVersions: readonly string[];
   readonly requestCount: number;
   readonly peakRequestsPerMinute: number;
   readonly cacheReadRequests: number;
   readonly cacheWriteRequests: number;
   readonly cacheHitRate: number;
+  readonly inputTokens: number;
   readonly cachedInputTokens: number;
   readonly cacheWriteInputTokens: number;
-  readonly estimatedSavingsMicros: number | null;
+  readonly estimatedEquivalentUncachedCostMicros: number | null;
+  readonly estimatedActualCostMicros: number | null;
+  readonly estimatedCacheWritePremiumMicros: number | null;
+  readonly estimatedCachedReadSavingsMicros: number | null;
+  readonly estimatedNetSavingsMicros: number | null;
+  readonly cacheRoi: number | null;
 }
 
 export function summarizePromptCacheRoutingThroughput(
@@ -448,13 +461,65 @@ export function summarizePromptCacheRoutingThroughput(
           record.estimatedUncachedCostMicros !== undefined &&
           record.estimatedActualCostMicros !== undefined
       );
+      const economicsComparable = group.every(
+        (record) =>
+          record.estimatedCacheWritePremiumMicros !== undefined &&
+          record.estimatedCachedReadSavingsMicros !== undefined,
+      );
+      const equivalentUncachedCostMicros = costComparable
+        ? group.reduce(
+            (total, record) => total + (record.estimatedUncachedCostMicros ?? 0),
+            0,
+          )
+        : null;
+      const actualCostMicros = costComparable
+        ? group.reduce(
+            (total, record) => total + (record.estimatedActualCostMicros ?? 0),
+            0,
+          )
+        : null;
+      const cacheWritePremiumMicros = economicsComparable
+        ? group.reduce(
+            (total, record) =>
+              total + (record.estimatedCacheWritePremiumMicros ?? 0),
+            0,
+          )
+        : null;
+      const cachedReadSavingsMicros = economicsComparable
+        ? group.reduce(
+            (total, record) =>
+              total + (record.estimatedCachedReadSavingsMicros ?? 0),
+            0,
+          )
+        : null;
+      const netSavingsMicros = costComparable
+        ? (equivalentUncachedCostMicros ?? 0) - (actualCostMicros ?? 0)
+        : null;
       return {
         routingKey,
+        models: [...new Set(group.map((record) => record.descriptor.model))].sort(),
+        operationIds: [
+          ...new Set(group.map((record) => record.descriptor.operationId)),
+        ].sort(),
+        callFamilies: [
+          ...new Set(group.map((record) => record.descriptor.callFamily)),
+        ].sort(),
+        promptPolicyVersions: [
+          ...new Set(
+            group.flatMap((record) =>
+              record.promptPolicyVersion ? [record.promptPolicyVersion] : [],
+            ),
+          ),
+        ].sort(),
         requestCount: group.length,
         peakRequestsPerMinute: Math.max(0, ...minuteCounts.values()),
         cacheReadRequests,
         cacheWriteRequests,
         cacheHitRate: group.length === 0 ? 0 : cacheReadRequests / group.length,
+        inputTokens: group.reduce(
+          (total, record) => total + record.usage.inputTokens,
+          0,
+        ),
         cachedInputTokens: group.reduce(
           (total, record) => total + record.usage.cachedInputTokens,
           0
@@ -463,15 +528,15 @@ export function summarizePromptCacheRoutingThroughput(
           (total, record) => total + record.usage.cacheWriteInputTokens,
           0
         ),
-        estimatedSavingsMicros: costComparable
-          ? group.reduce(
-              (total, record) =>
-                total +
-                (record.estimatedUncachedCostMicros ?? 0) -
-                (record.estimatedActualCostMicros ?? 0),
-              0
-            )
-          : null,
+        estimatedEquivalentUncachedCostMicros: equivalentUncachedCostMicros,
+        estimatedActualCostMicros: actualCostMicros,
+        estimatedCacheWritePremiumMicros: cacheWritePremiumMicros,
+        estimatedCachedReadSavingsMicros: cachedReadSavingsMicros,
+        estimatedNetSavingsMicros: netSavingsMicros,
+        cacheRoi:
+          netSavingsMicros === null || actualCostMicros === null || actualCostMicros === 0
+            ? null
+            : netSavingsMicros / actualCostMicros,
       };
     });
 }

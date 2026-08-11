@@ -1,8 +1,29 @@
 import crypto from "node:crypto";
 
 import { contentProfileIdSchema } from "@mediaforge/domain";
+import {
+  createPromptCacheRoutingKey,
+  createPromptPrefixFingerprint,
+  type PromptCacheRoutingKey,
+  type PromptPrefixFingerprint,
+} from "./openai-paid-request.js";
 
 export type PromptCacheMode = "disabled" | "implicit" | "explicit";
+
+export type OpenAiPromptCacheProjectionStrategy =
+  | "gpt-5.6-explicit"
+  | "legacy-automatic"
+  | "unsupported";
+
+export interface OpenAiPromptCacheCapability {
+  readonly model: string;
+  readonly strategy: OpenAiPromptCacheProjectionStrategy;
+  readonly supportsExplicitBreakpoints: boolean;
+  readonly supportsRequestWideOptions: boolean;
+  readonly minimumPrefixTokens: number | null;
+  readonly retentionMechanism: "prompt_cache_options" | "prompt_cache_retention" | "none";
+  readonly ttl: "30m" | "in_memory" | "24h" | null;
+}
 
 export type PromptCacheDowngradeReason =
   | "EXPLICIT_CACHE_DISABLED"
@@ -12,15 +33,39 @@ export type PromptCacheDowngradeReason =
   | "INSUFFICIENT_EXPECTED_REUSE"
   | "REPAIR_CACHE_DISABLED";
 
-/** The subset of the installed Responses request type used for prompt caching. */
-export interface OpenAiResponsesPromptCacheFields {
-  readonly prompt_cache_key: string;
+export interface OpenAiResponsesExplicitPromptCacheFields {
+  readonly prompt_cache_key: PromptCacheRoutingKey;
+  readonly prompt_cache_options: {
+    readonly mode: "explicit";
+    readonly ttl: "30m";
+  };
+}
+
+export interface OpenAiResponsesLegacyPromptCacheFields {
+  readonly prompt_cache_key: PromptCacheRoutingKey;
   readonly prompt_cache_retention: "in_memory" | "24h";
+}
+
+export interface OpenAiResponsesImplicitPromptCacheFields {
+  readonly prompt_cache_key: PromptCacheRoutingKey;
+}
+
+export type OpenAiResponsesPromptCacheFields =
+  | OpenAiResponsesExplicitPromptCacheFields
+  | OpenAiResponsesLegacyPromptCacheFields
+  | OpenAiResponsesImplicitPromptCacheFields;
+
+export interface OpenAiPromptCacheBreakpoint {
+  readonly mode: "explicit";
 }
 
 export interface PromptCachePlan {
   readonly mode: PromptCacheMode;
+  /** @deprecated Read-only compatibility for existing manifests. */
   readonly cacheKey?: string;
+  readonly promptPrefixFingerprint?: PromptPrefixFingerprint;
+  readonly promptCacheRoutingKey?: PromptCacheRoutingKey;
+  readonly projectionStrategy?: OpenAiPromptCacheProjectionStrategy;
   /** `30m` is retained solely to read legacy batch manifests. New plans use SDK-supported values. */
   readonly ttl?: "in_memory" | "24h" | "30m";
   readonly breakpointAfterBlock?: string;
@@ -117,6 +162,73 @@ function sha256(value: string): string {
   return crypto.createHash("sha256").update(value, "utf8").digest("hex");
 }
 
+const GPT_56_EXPLICIT_MODELS = new Set([
+  "gpt-5.6",
+  "gpt-5.6-luna",
+  "gpt-5.6-sol",
+  "gpt-5.6-terra",
+]);
+
+const LEGACY_AUTOMATIC_MODEL_PREFIXES = [
+  "gpt-4.1",
+  "gpt-5.4",
+  "gpt-5.5",
+] as const;
+
+function isDatedSnapshotOf(model: string, base: string): boolean {
+  return new RegExp(`^${base.replaceAll(".", "\\.")}-\\d{4}-\\d{2}-\\d{2}$`, "u").test(
+    model,
+  );
+}
+
+/**
+ * Resolve only provider capabilities that the repository has explicitly audited.
+ * Unknown/custom model names fail closed instead of inheriting cache fields from
+ * a similarly named model.
+ */
+export function resolveOpenAiPromptCacheCapability(
+  inputModel: string,
+): OpenAiPromptCacheCapability {
+  const model = inputModel.trim().toLowerCase();
+  const explicitBase = [...GPT_56_EXPLICIT_MODELS].find(
+    (candidate) => model === candidate || isDatedSnapshotOf(model, candidate),
+  );
+  if (explicitBase) {
+    return {
+      model,
+      strategy: "gpt-5.6-explicit",
+      supportsExplicitBreakpoints: true,
+      supportsRequestWideOptions: true,
+      minimumPrefixTokens: 1_024,
+      retentionMechanism: "prompt_cache_options",
+      ttl: "30m",
+    };
+  }
+  const legacyBase = LEGACY_AUTOMATIC_MODEL_PREFIXES.find(
+    (candidate) => model === candidate || model.startsWith(`${candidate}-`),
+  );
+  if (legacyBase) {
+    return {
+      model,
+      strategy: "legacy-automatic",
+      supportsExplicitBreakpoints: false,
+      supportsRequestWideOptions: false,
+      minimumPrefixTokens: 1_024,
+      retentionMechanism: "prompt_cache_retention",
+      ttl: legacyBase === "gpt-5.5" ? "24h" : "in_memory",
+    };
+  }
+  return {
+    model,
+    strategy: "unsupported",
+    supportsExplicitBreakpoints: false,
+    supportsRequestWideOptions: false,
+    minimumPrefixTokens: null,
+    retentionMechanism: "none",
+    ttl: null,
+  };
+}
+
 export function renderCacheablePrompt(args: {
   readonly stableBlocks: readonly { readonly id: string; readonly content: string }[];
   readonly dynamicBlocks: readonly { readonly id: string; readonly content: string }[];
@@ -181,22 +293,21 @@ export function buildPromptCacheKey(
  */
 export function buildOpenAiResponsesPromptCacheKey(
   contract: OpenAiResponsesPromptCacheContract,
-  shard: number,
-): string {
-  return buildPromptCacheKey(
-    {
-      namespace: contract.namespace ?? "youtube",
-      family: contract.genre,
-      version: contract.contractVersion,
-      operation: contract.planner,
-      format: contract.schemaVersion,
-      language: "shared",
-      languageIndependent: true,
-      modelTier: contract.modelFamily,
-      referenceBundleClass: sha256(normalizePromptText(contract.stablePrefix)),
-    },
-    shard,
-  );
+  _legacyShard: number,
+): PromptCacheRoutingKey {
+  const promptPrefixFingerprint = createPromptPrefixFingerprint({
+    provider: "openai",
+    modelFamily: contract.modelFamily,
+    promptFamily: `${contract.genre}.${contract.planner}`,
+    promptPolicyVersion: contract.contractVersion,
+    outputContractVersion: contract.schemaVersion,
+    stablePrefix: contract.stablePrefix,
+  });
+  return createPromptCacheRoutingKey({
+    promptFamily: `${contract.genre}.${contract.planner}`,
+    modelFamily: contract.modelFamily,
+    promptPrefixFingerprint,
+  });
 }
 
 export function planPromptCache(args: {
@@ -217,7 +328,7 @@ export function planPromptCache(args: {
   const requestedShardCount = args.shardCount ?? "auto";
   const shardCount =
     requestedShardCount === "auto"
-      ? Math.max(1, Math.min(4, Math.ceil(args.expectedReuseCount / 50)))
+      ? 1
       : requestedShardCount;
   const shard = stablePromptCacheShard(args.itemIdentity, shardCount);
   if (args.requestedMode === "disabled" || args.requestedMode === "implicit") {
@@ -275,61 +386,196 @@ export function planOpenAiResponsesPromptCache(args: {
   readonly minimumPrefixTokens?: number;
   readonly minimumReuseCount?: number;
 }): PromptCachePlan {
-  const model = args.model.trim().toLowerCase();
-  const modelSupportsExplicitCaching =
-    model.length > 0 && !model.startsWith("gpt-image") && !model.startsWith("dall-e");
-  const base = planPromptCache({
-    ...(args.requestedMode ? { requestedMode: args.requestedMode } : {}),
-    modelSupportsExplicitCaching,
-    reusablePrefix: args.reusablePrefix,
-    expectedReuseCount: args.expectedReuseCount,
-    itemIdentity: args.itemIdentity,
-    keyParts: {
-      namespace: args.contract.namespace ?? "youtube",
-      family: args.contract.genre,
-      version: args.contract.contractVersion,
-      operation: args.contract.planner,
-      format: args.contract.schemaVersion,
-      language: "shared",
-      languageIndependent: true,
-      modelTier: args.contract.modelFamily,
-      referenceBundleClass: sha256(normalizePromptText(args.contract.stablePrefix)),
-    },
-    breakpointAfterBlock: args.breakpointAfterBlock,
-    ...(args.minimumPrefixTokens !== undefined
-      ? { minimumPrefixTokens: args.minimumPrefixTokens }
-      : {}),
-    ...(args.minimumReuseCount !== undefined
-      ? { minimumReuseCount: args.minimumReuseCount }
-      : {}),
+  if (
+    args.reusablePrefix !== args.contract.stablePrefix
+  ) {
+    throw new Error("Prompt cache contract stablePrefix must match the rendered reusable prefix.");
+  }
+  const capability = resolveOpenAiPromptCacheCapability(args.model);
+  const estimatedReusablePrefixTokens = estimatePromptTokens(args.reusablePrefix);
+  const minimumPrefixTokens =
+    args.minimumPrefixTokens ?? capability.minimumPrefixTokens ?? Number.POSITIVE_INFINITY;
+  const minimumReuseCount = args.minimumReuseCount ?? 2;
+  const requestedMode = args.requestedMode ?? "explicit";
+  const promptPrefixFingerprint = createPromptPrefixFingerprint({
+    provider: "openai",
+    modelFamily: args.contract.modelFamily,
+    promptFamily: `${args.contract.genre}.${args.contract.planner}`,
+    promptPolicyVersion: args.contract.contractVersion,
+    outputContractVersion: args.contract.schemaVersion,
+    stablePrefix: args.reusablePrefix,
   });
-  return base.mode === "explicit"
-    ? { ...base, cacheKey: buildOpenAiResponsesPromptCacheKey(args.contract, base.shard) }
-    : base;
+  const promptCacheRoutingKey = createPromptCacheRoutingKey({
+    promptFamily: `${args.contract.genre}.${args.contract.planner}`,
+    modelFamily: args.contract.modelFamily,
+    promptPrefixFingerprint,
+  });
+  const common = {
+    estimatedReusablePrefixTokens,
+    expectedReuseCount: args.expectedReuseCount,
+    shard: 0,
+    promptPrefixFingerprint,
+    projectionStrategy: capability.strategy,
+    cacheSupported: capability.strategy !== "unsupported",
+  } as const;
+  if (requestedMode === "disabled") {
+    return {
+      ...common,
+      mode: "disabled",
+      cacheEligible: false,
+      downgradeReason: "EXPLICIT_CACHE_DISABLED",
+    };
+  }
+  if (capability.strategy === "unsupported") {
+    return {
+      ...common,
+      mode: "disabled",
+      cacheEligible: false,
+      downgradeReason: "MODEL_UNSUPPORTED",
+    };
+  }
+  if (estimatedReusablePrefixTokens < minimumPrefixTokens) {
+    return {
+      ...common,
+      mode: capability.strategy === "legacy-automatic" ? "implicit" : "disabled",
+      cacheEligible: false,
+      downgradeReason: "PREFIX_TOO_SHORT",
+    };
+  }
+  if (args.expectedReuseCount < minimumReuseCount) {
+    return {
+      ...common,
+      mode: capability.strategy === "legacy-automatic" ? "implicit" : "disabled",
+      cacheEligible: false,
+      downgradeReason: "INSUFFICIENT_EXPECTED_REUSE",
+    };
+  }
+  const mode =
+    capability.strategy === "gpt-5.6-explicit" && requestedMode === "explicit"
+      ? "explicit"
+      : "implicit";
+  return {
+    ...common,
+    mode,
+    cacheKey: promptCacheRoutingKey,
+    promptCacheRoutingKey,
+    ttl: mode === "explicit" ? "30m" : capability.ttl ?? "in_memory",
+    ...(mode === "explicit" ? { breakpointAfterBlock: args.breakpointAfterBlock } : {}),
+    cacheEligible: true,
+  };
 }
 
 export function openAiPromptCacheFields(
   plan: PromptCachePlan
 ): Readonly<OpenAiResponsesPromptCacheFields> | Record<string, never> {
-  return plan.mode === "explicit" && plan.cacheKey
-    ? {
-        prompt_cache_key: plan.cacheKey,
-        prompt_cache_retention: plan.ttl === "24h" ? "24h" : "in_memory",
-      }
-    : {};
+  if (!plan.cacheEligible || !plan.promptCacheRoutingKey) return {};
+  if (plan.mode === "explicit" && plan.projectionStrategy === "gpt-5.6-explicit") {
+    return {
+      prompt_cache_key: plan.promptCacheRoutingKey,
+      prompt_cache_options: { mode: "explicit", ttl: "30m" },
+    };
+  }
+  if (plan.mode === "implicit" && plan.projectionStrategy === "legacy-automatic") {
+    return {
+      prompt_cache_key: plan.promptCacheRoutingKey,
+      prompt_cache_retention: plan.ttl === "24h" ? "24h" : "in_memory",
+    };
+  }
+  if (plan.mode === "implicit" && plan.projectionStrategy === "gpt-5.6-explicit") {
+    return { prompt_cache_key: plan.promptCacheRoutingKey };
+  }
+  return {};
+}
+
+type OpenAiResponsesInputContent = Readonly<Record<string, unknown>> & {
+  readonly type: string;
+};
+
+type OpenAiResponsesInputMessage = Readonly<Record<string, unknown>> & {
+  readonly role: string;
+  readonly content: readonly OpenAiResponsesInputContent[];
+};
+
+function isOpenAiResponsesInputMessage(value: unknown): value is OpenAiResponsesInputMessage {
+  if (!value || typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record["role"] === "string" &&
+    Array.isArray(record["content"]) &&
+    record["content"].every(
+      (entry) =>
+        !!entry &&
+        typeof entry === "object" &&
+        typeof (entry as Record<string, unknown>)["type"] === "string",
+    )
+  );
+}
+
+/**
+ * Project provider cache fields and the explicit breakpoint into the actual
+ * serialized Responses body. The stable prefix is verified before projection so
+ * a caller cannot accidentally mark a dynamic block as reusable.
+ */
+export function projectOpenAiResponsesPromptCache<TBody extends Record<string, unknown>>(
+  body: TBody,
+  plan: PromptCachePlan,
+  stablePrefix: string,
+): TBody & Partial<OpenAiResponsesExplicitPromptCacheFields & OpenAiResponsesLegacyPromptCacheFields> {
+  const fields = openAiPromptCacheFields(plan);
+  if (plan.mode !== "explicit") return { ...body, ...fields };
+  const input = body["input"];
+  if (!Array.isArray(input) || !input.every(isOpenAiResponsesInputMessage)) {
+    throw new Error("Explicit prompt caching requires a typed Responses input message array.");
+  }
+  const systemIndex = input.findIndex((message) => message.role === "system");
+  if (systemIndex < 0) {
+    throw new Error("Explicit prompt caching requires a stable system prefix.");
+  }
+  const system = input[systemIndex]!;
+  let prefixIndex = -1;
+  system.content.forEach((block, index) => {
+    if (block.type === "input_text" && block["text"] === stablePrefix) {
+      prefixIndex = index;
+    }
+  });
+  if (prefixIndex < 0) {
+    throw new Error("The rendered stable prefix does not match the provider request body.");
+  }
+  if (prefixIndex !== system.content.length - 1) {
+    throw new Error("The prompt cache breakpoint must terminate the stable system prefix.");
+  }
+  const content = system.content.map((block, index) =>
+    index === prefixIndex
+      ? { ...block, prompt_cache_breakpoint: { mode: "explicit" } satisfies OpenAiPromptCacheBreakpoint }
+      : block,
+  );
+  const projectedInput = input.map((message, index) =>
+    index === systemIndex ? { ...message, content } : message,
+  );
+  return { ...body, input: projectedInput, ...fields };
 }
 
 export function normalizeOpenAiResponsesPromptCacheUsage(input: {
   readonly inputTokens?: number;
   readonly cachedInputTokens?: number;
+  readonly cacheWriteInputTokens?: number;
 }): {
   readonly inputTokens: number;
   readonly cachedInputTokens: number;
+  readonly cacheWriteInputTokens: number;
   readonly cacheRead: boolean;
+  readonly cacheWrite: boolean;
 } {
   const inputTokens = input.inputTokens ?? 0;
   const cachedInputTokens = input.cachedInputTokens ?? 0;
-  return { inputTokens, cachedInputTokens, cacheRead: cachedInputTokens > 0 };
+  const cacheWriteInputTokens = input.cacheWriteInputTokens ?? 0;
+  return {
+    inputTokens,
+    cachedInputTokens,
+    cacheWriteInputTokens,
+    cacheRead: cachedInputTokens > 0,
+    cacheWrite: cacheWriteInputTokens > 0,
+  };
 }
 
 export function aggregatePromptCacheUsage(

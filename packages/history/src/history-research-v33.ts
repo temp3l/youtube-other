@@ -1,5 +1,9 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
+import {
+  planOpenAiResponsesPromptCache,
+  projectOpenAiResponsesPromptCache,
+} from "@mediaforge/shared";
 import type {
   CanonicalNarrationUnitV3_3,
   CanonicalNarrationV3_3,
@@ -8,7 +12,6 @@ import type {
 import {
   CLAIM_EXTRACTION_STABLE_PREFIX_V33,
   EVIDENCE_ASSESSMENT_STABLE_PREFIX_V33,
-  HISTORY_PROMPT_CACHE_KEYS_V33,
   VISUAL_SEMANTICS_STABLE_PREFIX_V33,
   compactClaimEvidenceAssessmentV33Schema,
   expandCompactAssessmentV33,
@@ -1054,15 +1057,25 @@ export class OpenAiClaimExtractionProviderV33 implements ClaimExtractionProvider
       `${CLAIM_EXTRACTION_STABLE_PREFIX_V33}\n${dynamicPayload}`
     );
     const schemaHash = hashCanonicalV33(this.#schema);
-    const promptCacheKey = this.enablePromptCaching
-      ? HISTORY_PROMPT_CACHE_KEYS_V33.claimExtraction(
-          promptVersion,
-          HISTORY_CLAIM_SCHEMA_V33
-        )
-      : null;
+    const promptCachePlan = planOpenAiResponsesPromptCache({
+      requestedMode: this.enablePromptCaching ? "explicit" : "disabled",
+      model: this.model,
+      reusablePrefix: CLAIM_EXTRACTION_STABLE_PREFIX_V33,
+      expectedReuseCount: 2,
+      itemIdentity: "history-v33-claim-extraction",
+      contract: {
+        genre: "history-v33",
+        planner: "claim-extraction",
+        contractVersion: promptVersion,
+        schemaVersion: HISTORY_CLAIM_SCHEMA_V33,
+        modelFamily: this.model,
+        stablePrefix: CLAIM_EXTRACTION_STABLE_PREFIX_V33,
+      },
+      breakpointAfterBlock: "claim-extraction-policy",
+    });
     const signal = input.signal ?? AbortSignal.timeout(this.timeoutMs);
     const response = await this.client.responses.create(
-      {
+      projectOpenAiResponsesPromptCache({
         model: this.model,
         max_output_tokens: this.maxOutputTokens,
         input: [
@@ -1085,7 +1098,7 @@ export class OpenAiClaimExtractionProviderV33 implements ClaimExtractionProvider
             schema: this.#schema,
           },
         },
-      },
+      }, promptCachePlan, CLAIM_EXTRACTION_STABLE_PREFIX_V33),
       {
         signal,
         // ResilientClaimExtractionProviderV33 owns transport retries.
@@ -1137,7 +1150,7 @@ export class OpenAiClaimExtractionProviderV33 implements ClaimExtractionProvider
         cacheKey: sha256(
           `${input.narrationSha256}\u0000${promptHash}\u0000${schemaHash}\u0000${this.model}`
         ),
-        promptCacheKey,
+        promptCacheKey: promptCachePlan.promptCacheRoutingKey ?? null,
       },
     };
   }
@@ -1295,14 +1308,24 @@ export class OpenAiEvidenceAssessmentProviderV33 implements EvidenceAssessmentPr
       `${EVIDENCE_ASSESSMENT_STABLE_PREFIX_V33}\n${dynamicPayload}`
     );
     const schemaHash = hashCanonicalV33(this.#schema);
-    const promptCacheKey = this.enablePromptCaching
-      ? HISTORY_PROMPT_CACHE_KEYS_V33.evidenceAssessment(
-          promptVersion,
-          "history-claim-evidence-assessment.v3.3"
-        )
-      : null;
+    const promptCachePlan = planOpenAiResponsesPromptCache({
+      requestedMode: this.enablePromptCaching ? "explicit" : "disabled",
+      model: this.model,
+      reusablePrefix: EVIDENCE_ASSESSMENT_STABLE_PREFIX_V33,
+      expectedReuseCount: 2,
+      itemIdentity: "history-v33-evidence-assessment",
+      contract: {
+        genre: "history-v33",
+        planner: "evidence-assessment",
+        contractVersion: promptVersion,
+        schemaVersion: "history-claim-evidence-assessment.v3.3",
+        modelFamily: this.model,
+        stablePrefix: EVIDENCE_ASSESSMENT_STABLE_PREFIX_V33,
+      },
+      breakpointAfterBlock: "evidence-assessment-policy",
+    });
     const response = await this.client.responses.create(
-      {
+      projectOpenAiResponsesPromptCache({
         model: this.model,
         max_output_tokens: this.maxOutputTokens,
         input: [
@@ -1328,7 +1351,7 @@ export class OpenAiEvidenceAssessmentProviderV33 implements EvidenceAssessmentPr
             schema: this.#schema,
           },
         },
-      },
+      }, promptCachePlan, EVIDENCE_ASSESSMENT_STABLE_PREFIX_V33),
       { signal: input.signal ?? AbortSignal.timeout(this.timeoutMs) }
     );
     const compact = this.#batchSchema.parse(
@@ -1360,7 +1383,7 @@ export class OpenAiEvidenceAssessmentProviderV33 implements EvidenceAssessmentPr
         cacheKey: sha256(
           `${hashCanonicalV33(payload)}\u0000${promptHash}\u0000${schemaHash}\u0000${this.model}`
         ),
-        promptCacheKey,
+        promptCacheKey: promptCachePlan.promptCacheRoutingKey ?? null,
       },
     };
   }
@@ -1413,14 +1436,24 @@ export class OpenAiVisualPurposeProviderV33 implements VisualPurposeProviderV3_3
       `${VISUAL_SEMANTICS_STABLE_PREFIX_V33}\n${dynamicPayload}`
     );
     const schemaHash = hashCanonicalV33(this.#schema);
-    const promptCacheKey = this.enablePromptCaching
-      ? HISTORY_PROMPT_CACHE_KEYS_V33.visualSemantics(
-          promptVersion,
-          "history-visual-purpose-proposal.v3.3"
-        )
-      : null;
+    const promptCachePlan = planOpenAiResponsesPromptCache({
+      requestedMode: this.enablePromptCaching ? "explicit" : "disabled",
+      model: this.model,
+      reusablePrefix: VISUAL_SEMANTICS_STABLE_PREFIX_V33,
+      expectedReuseCount: 2,
+      itemIdentity: "history-v33-visual-semantics",
+      contract: {
+        genre: "history-v33",
+        planner: "visual-semantics",
+        contractVersion: promptVersion,
+        schemaVersion: "history-visual-purpose-proposal.v3.3",
+        modelFamily: this.model,
+        stablePrefix: VISUAL_SEMANTICS_STABLE_PREFIX_V33,
+      },
+      breakpointAfterBlock: "visual-semantics-policy",
+    });
     const response = await this.client.responses.create(
-      {
+      projectOpenAiResponsesPromptCache({
         model: this.model,
         input: [
           {
@@ -1442,7 +1475,7 @@ export class OpenAiVisualPurposeProviderV33 implements VisualPurposeProviderV3_3
             schema: this.#schema,
           },
         },
-      },
+      }, promptCachePlan, VISUAL_SEMANTICS_STABLE_PREFIX_V33),
       { signal: input.signal ?? AbortSignal.timeout(this.timeoutMs) }
     );
     const proposals = this.#batchSchema.parse(
@@ -1475,7 +1508,7 @@ export class OpenAiVisualPurposeProviderV33 implements VisualPurposeProviderV3_3
         cacheKey: sha256(
           `${input.narration.normalizedTextSha256}\u0000${promptHash}\u0000${schemaHash}\u0000${this.model}`
         ),
-        promptCacheKey,
+        promptCacheKey: promptCachePlan.promptCacheRoutingKey ?? null,
       },
     };
   }

@@ -6,8 +6,8 @@ import {
   ensureDir,
   fileExists,
   hashFile,
-  openAiPromptCacheFields,
-  planPromptCache,
+  planOpenAiResponsesPromptCache,
+  projectOpenAiResponsesPromptCache,
   type PromptCachePlan,
   writeJsonAtomic,
   writeTextAtomic,
@@ -989,25 +989,25 @@ export function buildStoryBatchPromptCachePlans(
         reusablePrefix,
       ].join("\u0000");
       const model = String(item.body["model"] ?? "unknown");
-      const plan = planPromptCache({
+      const plan = planOpenAiResponsesPromptCache({
         ...(settings?.promptCacheMode
           ? { requestedMode: settings.promptCacheMode }
           : {}),
-        modelSupportsExplicitCaching: model.startsWith("gpt-5.6-"),
+        model,
         reusablePrefix,
         expectedReuseCount: counts.get(groupKey) ?? 1,
         itemIdentity: item.customId,
-        shardCount: settings?.promptCacheShardCount ?? "auto",
-        keyParts: {
-          family: "story",
-          version: item.metadata.promptVersion,
-          operation: item.metadata.operation,
-          format: item.metadata.operation.includes("short") ? "short" : "full",
-          language: item.metadata.language ?? "en",
-          modelTier: model.replace(/^gpt-/u, ""),
+        contract: {
+          genre: "story",
+          planner: item.metadata.operation,
+          contractVersion: item.metadata.promptVersion,
+          schemaVersion:
+            item.metadata.responseSchemaVersion ??
+            (item.metadata.operation.includes("short") ? "short" : "full"),
+          modelFamily: model,
+          stablePrefix: reusablePrefix,
         },
         breakpointAfterBlock: "system-contract",
-        repair: item.metadata.operation.includes("repair"),
       });
       return [item.customId, plan] as const;
     })
@@ -1022,17 +1022,16 @@ export function applyStoryBatchPromptCachePlans(
 ): readonly StoryBatchItem[] {
   return items.map((item) => ({
     ...item,
-    body: {
-      ...item.body,
-      ...openAiPromptCacheFields(
-        plans.get(item.customId) ?? {
-          mode: "disabled",
-          estimatedReusablePrefixTokens: 0,
-          expectedReuseCount: 0,
-          shard: 0,
-        }
-      ),
-    },
+    body: projectOpenAiResponsesPromptCache(
+      item.body,
+      plans.get(item.customId) ?? {
+        mode: "disabled",
+        estimatedReusablePrefixTokens: 0,
+        expectedReuseCount: 0,
+        shard: 0,
+      },
+      stableSystemPrefix(item),
+    ),
   }));
 }
 
@@ -3670,6 +3669,7 @@ export async function importStoryLocalizationBatch(
                 readonly total_tokens?: number;
                 readonly input_tokens_details?: {
                   readonly cached_tokens?: number;
+                  readonly cache_write_tokens?: number;
                 };
                 readonly output_tokens_details?: {
                   readonly reasoning_tokens?: number;
@@ -3690,6 +3690,13 @@ export async function importStoryLocalizationBatch(
                       ? {
                           cachedInputTokens:
                             persistedUsage.input_tokens_details.cached_tokens,
+                        }
+                      : {}),
+                    ...(persistedUsage.input_tokens_details?.cache_write_tokens !==
+                    undefined
+                      ? {
+                          cacheWriteInputTokens:
+                            persistedUsage.input_tokens_details.cache_write_tokens,
                         }
                       : {}),
                     ...(persistedUsage.output_tokens_details
@@ -3782,13 +3789,13 @@ export async function importStoryLocalizationBatch(
               format: item.operation.includes("short") ? "short" : "full",
               stage: item.operation,
               batch: refreshed.localBatchId,
-              ...(item.promptCachePlan?.cacheKey
-                ? { cacheKey: item.promptCachePlan.cacheKey }
+              ...(item.promptCachePlan?.promptCacheRoutingKey
+                ? { cacheKey: item.promptCachePlan.promptCacheRoutingKey }
                 : {}),
               date: refreshed.createdAt.slice(0, 10),
               inputTokens: item.usage?.inputTokens ?? 0,
               cachedInputTokens: item.usage?.cachedInputTokens ?? 0,
-              cacheWriteTokens: 0,
+              cacheWriteTokens: item.usage?.cacheWriteInputTokens ?? 0,
               outputTokens: item.usage?.outputTokens ?? 0,
               reasoningTokens: item.usage?.reasoningTokens ?? 0,
               estimatedActualCostUsd: item.usage?.estimatedCostUsd ?? 0,

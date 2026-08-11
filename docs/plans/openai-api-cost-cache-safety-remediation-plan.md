@@ -1,6 +1,6 @@
 # OpenAI API Cost, Cache, and Effect-Safety Remediation Plan
 
-Status: Phase 0 and Phase 1 implemented; later phases proposed
+Status: Phase 0, Phase 1, and bounded Phase 2A implemented; later phases proposed
 Created: 2026-08-11
 Scope: OpenAI request infrastructure and directly affected production call paths
 Source: static implementation audit; no paid verification calls were made
@@ -195,7 +195,25 @@ Exit criteria:
 - Timeout/statusless image failures cannot generate an automatic second image.
 - Output-quality repair remains distinct from transport retry.
 
-## Phase 2 — Durable request claims for demonstrated races
+## Phase 2A — Correct GPT-5.6 prompt-cache projection
+
+Goal: make provider cache configuration real, measurable, and model-aware before
+adding distributed coordination.
+
+Implemented scope:
+
+1. Central audited model capabilities fail closed for unknown/custom models.
+2. GPT-5.6 explicit requests project a typed routing key, a breakpoint on the
+   final stable `input_text` block, and request-wide explicit mode with `30m` TTL.
+3. Legacy models retain only supported routing/retention fields.
+4. Story Batch is enabled only when the exact rendered prefix is at least 1,024
+   conservatively estimated tokens and repeats at least twice in the same batch.
+5. History V3.3 routes through the planner but its short prefixes produce no
+   provider cache key or misleading provider-cache metadata.
+6. Provider cache reads/writes, throughput, cost deltas, net savings, and ROI can
+   be represented without prompt contents. No routing-key sharding was added.
+
+## Phase 2B — Durable request claims for demonstrated races
 
 Goal: prevent two workers from paying for the same deterministic request.
 
@@ -218,30 +236,20 @@ Exit criteria:
 - A crashed owner is recoverable without permanent deadlock.
 - Changed semantic inputs create a new claim and cannot reuse the old result.
 
-## Phase 3 — Correct GPT-5.6 prompt-cache projection
+## Phase 3 — Expand provider-cache projection from runtime evidence
 
 Goal: make provider cache configuration real, measurable, and model-aware.
 
 Tasks:
 
-1. Upgrade the OpenAI SDK to a version whose request types support the current
-   GPT-5.6 breakpoint and cache-options fields, or add one narrow validated raw
-   request projection if upgrading is independently unsafe.
-2. Evolve `packages/shared/src/prompt-cache.ts` to project:
-   - stable `prompt_cache_key`;
-   - `prompt_cache_breakpoint: { mode: "explicit" }` on the final stable block;
-   - `prompt_cache_options: { mode: "explicit", ttl: "30m" }` for supported models.
-3. Retain legacy retention behavior only for models where it remains supported.
-4. Add capability dispatch keyed by actual model family, not string fragments
-   scattered across call sites.
-5. Migrate semantic prompts and Story Batch first, then source-grounded QA and
-   synchronous story calls after prefix/reuse measurement.
-6. Fix History V3.3 so the calculated key reaches the request or remove the claim
-   that provider caching is configured.
-7. Do not cache prefixes under the minimum length or without likely reuse of at
-   least two requests inside the provider cache lifetime/workload burst.
-8. Aggregate request throughput by `PromptCacheRoutingKey` before considering any
-   deterministic routing-key partitioning. Do not shard speculatively.
+1. Measure rendered prefix length, routing throughput, writes, reads, and ROI for
+   Story Batch with a separately approved bounded live experiment.
+2. Enable source-grounded QA or synchronous story only when two-request reuse is
+   likely inside the effective provider cache lifetime/workload burst.
+3. Keep semantic prompts and short History prefixes disabled unless their prompt
+   contracts materially change; never pad them to meet the minimum.
+4. Consider deterministic routing-key partitioning only if measured throughput
+   approaches provider concentration guidance.
 
 Exit criteria:
 
@@ -424,8 +432,8 @@ The remediation is complete when:
 
 1. Phase 0: measurement contracts.
 2. Phase 1: retry ownership and ambiguous media safety.
-3. Phase 2: durable request claims.
-4. Phase 3: GPT-5.6 cache projection.
+3. Phase 2A: GPT-5.6 cache projection.
+4. Phase 2B: evidence-backed durable request claims.
 5. Phase 4: metadata, transcription, and legacy TTS migration.
 6. Phase 5: Batch/Flex recovery and expansion.
 7. Phase 6: model and FinOps validation.

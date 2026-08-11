@@ -650,6 +650,7 @@ export interface LocalBatchManifestItem {
   readonly usage?: {
     readonly inputTokens: number;
     readonly cachedInputTokens?: number;
+    readonly cacheWriteInputTokens?: number;
     readonly outputTokens: number;
     readonly reasoningTokens?: number;
     readonly totalTokens?: number;

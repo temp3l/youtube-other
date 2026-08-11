@@ -1,6 +1,6 @@
 # OpenAI Paid-Call Characterization
 
-Status: Phase 0 baseline after Phase 1 retry-owner changes
+Status: Phase 0 baseline plus Phase 2A provider-cache projection
 Date: 2026-08-11
 Method: static source inspection and offline tests; no paid calls
 
@@ -70,13 +70,51 @@ same-process duplicates; canonical speech keeps its demonstrated Postgres claim.
 Normalized usage makes uncached, cached, and cache-write input mutually exclusive.
 Routing telemetry can calculate request count and peak requests/minute per routing
 key, reads, writes, hit rate, token totals, and ROI once adapters emit the records.
-Provider cache projection and routing-key sharding remain Phase 3 work.
+Story Batch now emits an actual GPT-5.6 explicit breakpoint and request-wide
+cache options. Routing-key sharding remains deferred pending throughput evidence.
+
+## Phase 2A prompt-cache eligibility
+
+Prefix sizes are the conservative offline estimate from `estimatePromptTokens`;
+runtime planning remains fail-closed at 1,024 estimated tokens and requires at
+least two requests in the same effective 30-minute workload burst.
+
+| Text/reasoning family | Stable prefix evidence | Classification | Status |
+|---|---|---|---|
+| Story Batch full/localization/short | Compiled system contract; grouped exact bytes and model, often >1,024 estimated tokens | EXPLICIT_CACHE_ELIGIBLE when group count >=2 | **ENABLED** for audited GPT-5.6 models |
+| Story synchronous full/localization | Same large contracts, but no proven repeated prefix inside one cache lifetime | NEEDS_RUNTIME_MEASUREMENT | Deferred |
+| Story short synchronous | Stable system contract; burst reuse not established | NEEDS_RUNTIME_MEASUREMENT | Deferred |
+| Semantic image-prompt derivation | Stable instruction is roughly 120 estimated tokens | NOT_CURRENTLY_CACHE_WORTHWHILE | Deferred; no padding |
+| Source-grounded visual QA | Stable rubric and same-process batching exist; rendered prefix size varies by policy | NEEDS_RUNTIME_MEASUREMENT | Deferred |
+| History V3.3 claim/evidence/visual | Stable prefixes are roughly 70–100 estimated tokens | NOT_CURRENTLY_CACHE_WORTHWHILE | Canonical planner emits no provider-cache claim |
+| History V3.3 web search | Dynamic query/tool work has no sufficiently large reusable prefix | NOT_CACHEABLE | Disabled |
+| History V3.6 relation proposer | Short policy prefix and bounded shadow use | NOT_CURRENTLY_CACHE_WORTHWHILE | Deferred |
+| History visual direction V1 | Stable direction policy is roughly 130 estimated tokens; default is legacy GPT-4.1 | AUTOMATIC_OR_LEGACY_CACHE_ONLY | No GPT-5.6 fields |
+| Story production analysis | Stable schema/instructions, but call reuse in a 30-minute burst is unproven | NEEDS_RUNTIME_MEASUREMENT | Deferred |
+| Dynamic genre | Stable instructions but normally one artifact-producing call | NOT_CURRENTLY_CACHE_WORTHWHILE | Durable result reuse preferred |
+| Metadata | Raw Responses client, dynamic instructions, default GPT-5.4-mini | AUTOMATIC_OR_LEGACY_CACHE_ONLY | No GPT-5.6 projection |
+| Veronica post-image QA | Multimodal request with changing image and short reusable instructions | NOT_CURRENTLY_CACHE_WORTHWHILE | Durable artifact cache retained |
+
+Image generation, speech, transcription, and image Batch endpoints are not
+Responses prompt-prefix-cache families.
+
+### SDK projection decision
+
+The installed OpenAI 6.44/6.45 typings expose legacy
+`prompt_cache_retention` but not GPT-5.6 `prompt_cache_options`, content-block
+breakpoints, or `cache_write_tokens`. OpenAI 7.4 contains those types, but a major
+upgrade would span four provider packages and dozens of SDK references. The
+initial enabled path is Story Batch JSONL, so Phase 2A uses one narrow typed raw
+Responses projection rather than broad casts or a repository-wide SDK upgrade.
+SDK-backed families remain deferred until their eligibility independently
+justifies that upgrade. The raw shape is based on the official Prompt Caching
+guide and is structurally tested without a provider call.
 
 ## Next-phase cache recommendation
 
-- **A — explicit prefix caching:** Story Batch and semantic image-prompt derivation
-  first; source-grounded QA and History visual direction after routing throughput
-  is emitted; synchronous story only after burst reuse is measured.
+- **A — explicit prefix caching:** Story Batch is enabled. Source-grounded QA and
+  synchronous story require rendered-prefix and same-burst measurements first.
+  Semantic prompts and History V3.3 are below the minimum and should not be padded.
 - **B — durable application reuse:** transcription needs a result identity/cache;
   legacy speech should migrate to canonical speech reuse rather than copy it.
   Metadata already has durable artifacts but needs safer cache-fill coordination

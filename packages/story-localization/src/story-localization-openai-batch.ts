@@ -39,7 +39,10 @@ export interface OpenAiStoryClient {
           readonly effort?: ReasoningEffort;
         };
       },
-      options?: { readonly signal?: AbortSignal }
+      options?: {
+        readonly signal?: AbortSignal;
+        readonly maxRetries?: number;
+      }
     ): Promise<{
       readonly id: string;
       readonly output_text?: string;
@@ -77,7 +80,10 @@ export interface OpenAiStoryClient {
           readonly effort?: ReasoningEffort;
         };
       },
-      options?: { readonly signal?: AbortSignal }
+      options?: {
+        readonly signal?: AbortSignal;
+        readonly maxRetries?: number;
+      }
     ): Promise<{
       readonly id: string;
       readonly output_parsed: ParsedT | null;

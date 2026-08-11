@@ -5,7 +5,7 @@ Date of execution: 2026-08-11
 
 ## Summary
 
-Implemented corrected Phase 0 and Phase 1 only. The shared layer now distinguishes
+Implemented corrected Phase 0, Phase 1, and bounded Phase 2A. The shared layer now distinguishes
 complete logical identity, result-cache identity, reusable prompt-prefix identity,
 provider cache-routing identity, and Batch submission identity. It also defines a
 privacy-safe paid-request descriptor, normalized mutually exclusive usage, paid
@@ -17,6 +17,15 @@ retry: full story, short rewrite, History claim/V3.6, and injected speech SDK ca
 Metadata fallback cardinality is bounded. Current, legacy, and thumbnail image
 generation disable SDK retries and treat a statusless/timeout result after dispatch
 as ambiguous, with no second generation or curl fallback.
+
+Phase 2A adds audited model capabilities and a typed Responses projection. Story
+Batch is the only initial GPT-5.6 explicit-cache family: qualifying requests now
+carry a stable routing key, a real breakpoint on the final system `input_text`,
+and request-wide explicit mode with `30m` TTL. Older/unknown models fail closed.
+History V3.3’s sub-threshold prefixes no longer claim a provider cache key.
+The installed SDK lacks these request types; because the enabled path is raw
+Story Batch JSONL and an SDK 7 major upgrade would touch four provider packages,
+the implementation uses a narrow typed projection with no unsafe cast.
 
 ## Files changed
 
@@ -34,6 +43,8 @@ as ambiguous, with no second generation or curl fallback.
   `openai-image.ts`, `thumbnail-image-generator.ts`, and their focused unit tests.
 - Documentation: source plan and
   `docs/architecture/openai-paid-call-characterization.md`.
+- Phase 2A: `packages/shared/src/prompt-cache.ts`, Story Batch service/types and
+  focused test, History provider/test, and routing economics telemetry.
 
 ## Tasks completed
 
@@ -46,6 +57,8 @@ as ambiguous, with no second generation or curl fallback.
 - One transport retry owner for the changed structured text and injected speech paths.
 - Fail-closed metadata fallback ceiling.
 - No blind retry of ambiguous scene-image, legacy-image, or thumbnail effects.
+- Actual GPT-5.6 explicit provider projection for eligible Story Batch groups.
+- Cache-write usage import plus routing-key rate/read/write/net-savings/ROI fields.
 
 ## Tasks partially completed
 
@@ -56,7 +69,6 @@ as ambiguous, with no second generation or curl fallback.
 
 ## Tasks not completed
 
-- Provider prompt-cache projection or routing changes.
 - Distributed claims/locks or new durable reuse.
 - Batch/Flex expansion, model/reasoning changes, prompt shortening, raw-client
   consolidation, and live paid verification.
@@ -81,11 +93,24 @@ lifetime/workload-burst probability. No speculative routing-key sharding was add
   prevented another typecheck.
 - No paid requests were made.
 
+Phase 2A verification:
+
+- Story package typecheck initially exposed stale custom-client mock signatures;
+  corrected centrally, then passed.
+- Exact short-rewrite Phase 0/1 safety test passed. Two full-story tests remain
+  blocked before provider dispatch by stale Story IR fixtures.
+- Shared build exposed and then passed after correcting the legacy `24h` TTL
+  capability union. History/Story builds passed.
+- Shared cache/identity tests passed (20). The combined final run then stopped on
+  a pre-existing missing History episode fixture before the new Story Batch file.
+- A compiled Story Batch projection smoke check passed the breakpoint, explicit
+  options, and cross-suffix routing-key invariants.
+- No paid requests were made.
+
 ## Risks and next steps
 
-Re-run the exact speech/story assertions after the unrelated story fixture contract
-is repaired, then run one affected-package typecheck. The planned cache-projection
-phase should instrument high-reuse text families before tuning keys. Durable claims
-should target only demonstrated multi-process races. Canonical speech needs no new
-claim. Image Batch submission is the strongest currently evidenced future claim/
-reconciliation candidate.
+Repair the unrelated Story IR and History episode fixtures, then execute the new
+Story Batch projection test file. A separately approved two-call Story Batch live
+experiment is required before expanding caching. Durable claims should target only
+demonstrated multi-process races; Image Batch submission remains the strongest
+evidenced future claim/reconciliation candidate.

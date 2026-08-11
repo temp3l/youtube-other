@@ -284,8 +284,11 @@ describe("OpenAI usage normalization", () => {
         outcome: "success",
         usage,
         promptCacheRoutingKey: routingKey,
+        promptPolicyVersion: "story-prompt.v5",
         estimatedUncachedCostMicros: 100,
         estimatedActualCostMicros: 40,
+        estimatedCacheWritePremiumMicros: 0,
+        estimatedCachedReadSavingsMicros: 60,
       },
       {
         descriptor,
@@ -295,8 +298,11 @@ describe("OpenAI usage normalization", () => {
         outcome: "success",
         usage,
         promptCacheRoutingKey: routingKey,
+        promptPolicyVersion: "story-prompt.v5",
         estimatedUncachedCostMicros: 100,
         estimatedActualCostMicros: 40,
+        estimatedCacheWritePremiumMicros: 0,
+        estimatedCachedReadSavingsMicros: 60,
       },
     ]);
     expect(summary[0]).toMatchObject({
@@ -304,7 +310,11 @@ describe("OpenAI usage normalization", () => {
       peakRequestsPerMinute: 2,
       cacheReadRequests: 2,
       cacheHitRate: 1,
-      estimatedSavingsMicros: 120,
+      estimatedNetSavingsMicros: 120,
+      estimatedCacheWritePremiumMicros: 0,
+      estimatedCachedReadSavingsMicros: 120,
+      cacheRoi: 1.5,
+      promptPolicyVersions: ["story-prompt.v5"],
     });
     expect(JSON.stringify(summary)).not.toContain("stable rubric");
   });
