@@ -6,7 +6,9 @@ import { hashText } from "@mediaforge/shared";
 import { segmentNarration } from "./narration-segmentation.js";
 
 async function createEpisode(): Promise<string> {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-segmentation-"));
+  const root = await fs.mkdtemp(
+    path.join(os.tmpdir(), "mediaforge-segmentation-")
+  );
   const episodeDir = path.join(root, "009-mary-gloria-the-christmas-doll");
   await fs.mkdir(episodeDir, { recursive: true });
   return episodeDir;
@@ -47,9 +49,15 @@ describe("deterministic narration segmentation", () => {
       "narr-chunk-003",
     ]);
     expect(first.manifest.chunks[0]?.role).toBe("hook");
-    expect(first.manifest.chunks[1]?.previousContextExcerpt).toContain("above her bed.");
-    expect(first.manifest.chunks[1]?.nextContextExcerpt).toContain("By morning");
-    expect(JSON.parse(await fs.readFile(first.paths.chunkManifest, "utf8"))).toEqual(first.manifest);
+    expect(first.manifest.chunks[1]?.previousContextExcerpt).toContain(
+      "above her bed."
+    );
+    expect(first.manifest.chunks[1]?.nextContextExcerpt).toContain(
+      "By morning"
+    );
+    expect(
+      JSON.parse(await fs.readFile(first.paths.chunkManifest, "utf8"))
+    ).toEqual(first.manifest);
   });
 
   it("falls back to sentence packing when one paragraph exceeds preferred limits", async () => {
@@ -65,12 +73,31 @@ describe("deterministic narration segmentation", () => {
       language: "en",
       spokenText,
       createdAt: "2026-01-02T03:04:05.000Z",
-      config: { maxWordsPerChunk: 12, hardMaxWordsPerChunk: 20, targetWordsPerChunk: 10 },
+      config: {
+        maxWordsPerChunk: 12,
+        hardMaxWordsPerChunk: 20,
+        targetWordsPerChunk: 10,
+      },
     });
 
     expect(result.fallbackUsed).toBe(true);
     expect(result.fallbackReason).toBe("paragraph-overflow");
     expect(result.manifest.chunks.length).toBeGreaterThan(1);
-    expect(result.manifest.chunks.every((chunk) => chunk.estimatedWordCount <= 20)).toBe(true);
+    expect(
+      result.manifest.chunks.every((chunk) => chunk.estimatedWordCount <= 20)
+    ).toBe(true);
+  });
+
+  it("uses the supplied Veronica target WPM only for pre-TTS duration estimates", async () => {
+    const result = await segmentNarration({
+      episodeDir: await createEpisode(),
+      language: "en",
+      variant: "short",
+      spokenText: "One two three four five.",
+      targetWpm: 150,
+      createdAt: "2026-01-02T03:04:05.000Z",
+    });
+    expect(result.manifest.segmentationConfig.targetWpm).toBe(150);
+    expect(result.manifest.chunks[0]?.estimatedDurationSeconds).toBe(2);
   });
 });

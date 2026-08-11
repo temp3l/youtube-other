@@ -148,6 +148,12 @@ describe("OpenAiCompatibleSpeechProvider", () => {
   it("writes the audio returned by the OpenAI speech client", async () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-speech-"));
     const outputPath = path.join(tempDir, "scene-001.wav");
+    const create = vi.fn(async (
+      _request?: unknown,
+      _options?: { readonly maxRetries?: number }
+    ) =>
+      new Response(buildWavBytes(2, 24000, { includeInfoChunk: true }))
+    );
     const provider = new OpenAiCompatibleSpeechProvider({
       apiKey: "test-key",
       model: "gpt-4o-mini-tts",
@@ -155,9 +161,7 @@ describe("OpenAiCompatibleSpeechProvider", () => {
       client: {
         audio: {
           speech: {
-            async create() {
-              return new Response(buildWavBytes(2, 24000, { includeInfoChunk: true }));
-            }
+            create
           }
         }
       }
@@ -178,6 +182,8 @@ describe("OpenAiCompatibleSpeechProvider", () => {
     expect(result.sampleRate).toBe(24000);
     expect(result.channels).toBe(1);
     expect(result.durationSeconds).toBeGreaterThan(1.9);
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(create.mock.calls[0]?.[1]).toMatchObject({ maxRetries: 0 });
     expect((await fs.stat(outputPath)).size).toBeGreaterThan(44);
   });
 

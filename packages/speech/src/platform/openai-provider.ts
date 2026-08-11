@@ -14,6 +14,7 @@ export interface OpenAiSpeechTransport {
     readonly voice: string;
     readonly instructions?: string;
     readonly outputFormat: string;
+    readonly targetWpm?: number;
     readonly speed: number;
     readonly abortSignal?: AbortSignal;
   }): Promise<ProviderSpeechResult>;
@@ -73,6 +74,9 @@ export class OpenAiSpeechProviderAdapter implements SpeechProvider {
           ? { instructions: configuration.instructions }
           : {}),
         outputFormat: configuration.outputFormat ?? "wav",
+        ...(configuration.targetWpm !== undefined
+          ? { targetWpm: configuration.targetWpm }
+          : {}),
         speed: configuration.speed,
         ...(request.abortSignal ? { abortSignal: request.abortSignal } : {}),
       });

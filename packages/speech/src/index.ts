@@ -57,6 +57,7 @@ export * from "./narration-telemetry.js";
 export * from "./narration-pacing.js";
 export * from "./adaptive-pacing.js";
 export * from "./veronica-short-pacing.js";
+export * from "./veronica-speech-rate-policy.js";
 export {
   loadSpeechVoiceInstructionTemplate,
   loadSpeechVoiceSettings,
@@ -182,7 +183,7 @@ interface SpeechClientLike {
             | "pcm";
           readonly speed?: number;
         },
-        options?: { readonly signal?: AbortSignal }
+        options?: { readonly signal?: AbortSignal; readonly maxRetries?: number }
       ): Promise<Response>;
     };
   };
@@ -406,6 +407,8 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
         }).catch(() => undefined);
         const response = await this.client.audio.speech.create(speechOptions, {
           signal,
+          // SpeechGenerationService owns transport retries for canonical and legacy facades.
+          maxRetries: 0,
         });
         const data = Buffer.from(await response.arrayBuffer());
         if (data.byteLength === 0) {

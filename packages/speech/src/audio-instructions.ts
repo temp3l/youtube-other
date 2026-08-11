@@ -2,8 +2,7 @@ import { hashText, normalizeWhitespace } from "@mediaforge/shared";
 import { z } from "zod";
 
 export const AUDIO_INSTRUCTION_OWNER = "audio" as const;
-export const AUDIO_INSTRUCTION_SCHEMA_VERSION =
-  "audio-instruction-artifact-v1";
+export const AUDIO_INSTRUCTION_SCHEMA_VERSION = "audio-instruction-artifact-v1";
 export const TTS_GENERATION_SCHEMA_VERSION = "tts-generation-record-v1";
 
 const hashSchema = z.string().regex(/^[a-f0-9]{64}$/iu);
@@ -85,9 +84,25 @@ export const ttsGenerationRecordSchema = z
     modelId: z.string().min(1).optional(),
     speed: z.number().positive().optional(),
     pacingPresetId: z.string().min(1).optional(),
+    speechRatePolicyVersion: z.string().min(1).optional(),
     targetWpm: z.number().positive().optional(),
+    softMinWpm: z.number().positive().optional(),
+    softMaxWpm: z.number().positive().optional(),
+    hardMinWpm: z.number().positive().optional(),
+    hardMaxWpm: z.number().positive().optional(),
     actualDurationSeconds: z.number().positive().optional(),
     estimatedWpm: z.number().positive().optional(),
+    observedWpm: z.number().nonnegative().optional(),
+    speechRateStatus: z
+      .enum([
+        "within-target",
+        "soft-low",
+        "soft-high",
+        "hard-low",
+        "hard-high",
+        "unavailable",
+      ])
+      .optional(),
     generatedAt: z.string().min(1),
     failureMessage: z.string().min(1).optional(),
   })
@@ -119,7 +134,9 @@ export function computeSpeechModelConfigFingerprint(
   );
 }
 
-export function computeAudioInstructionFingerprint(instructions: string): string {
+export function computeAudioInstructionFingerprint(
+  instructions: string
+): string {
   return hashText(normalizeWhitespace(instructions));
 }
 
@@ -170,9 +187,8 @@ export function buildAudioInstructionArtifact(input: {
     .map((entry) => normalizeWhitespace(entry))
     .filter((entry) => entry.length > 0)
     .join(" ");
-  const instructionFingerprint = computeAudioInstructionFingerprint(
-    instructions
-  );
+  const instructionFingerprint =
+    computeAudioInstructionFingerprint(instructions);
   return audioInstructionArtifactSchema.parse({
     schemaVersion: AUDIO_INSTRUCTION_SCHEMA_VERSION,
     owner: AUDIO_INSTRUCTION_OWNER,

@@ -65,7 +65,9 @@ export class LegacyOpenAiSpeechTransport implements OpenAiSpeechTransport {
             label: "Resolved speech profile",
             gender: "neutral",
             style: "resolved",
-            paceWpm: Math.max(1, Math.round(180 * input.speed)),
+            // Target WPM and provider speed are independent controls. The
+            // caller's production policy survives this compatibility bridge.
+            paceWpm: input.targetWpm ?? 180,
             providerVoiceId: input.voice,
           },
           outputPath,

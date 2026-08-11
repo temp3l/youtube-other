@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { calculateAdaptiveWordsPerMinute } from "./adaptive-pacing.js";
+import { getVeronicaSpeechRatePolicy } from "./veronica-speech-rate-policy.js";
 
 export const VERONICA_SHORT_PACING_POLICY_VERSION =
   "veronica-short-natural-pacing-v3" as const;
@@ -39,22 +40,15 @@ export interface VeronicaShortPacingPolicy {
   readonly fallbackBehavior: "select-best-safe-natural-candidate";
 }
 
-const localeGuidance: Readonly<Record<string, {
-  readonly preferred: readonly [number, number];
-  readonly soft: readonly [number, number];
-} | undefined>> = {
-  en: { preferred: [145, 165], soft: [135, 175] },
-  de: undefined,
-  it: undefined,
-  fr: undefined,
-  pt: undefined,
-  es: undefined,
-};
-
-export function resolveVeronicaShortPacingPolicy(locale: string): VeronicaShortPacingPolicy | undefined {
-  const normalized = locale.trim().toLowerCase().split("-", 1)[0] ?? "";
-  if (!(normalized in localeGuidance)) return undefined;
-  const guidance = localeGuidance[normalized];
+export function resolveVeronicaShortPacingPolicy(
+  locale: string
+): VeronicaShortPacingPolicy | undefined {
+  let guidance: ReturnType<typeof getVeronicaSpeechRatePolicy>;
+  try {
+    guidance = getVeronicaSpeechRatePolicy({ locale, variant: "short" });
+  } catch {
+    return undefined;
+  }
   return {
     enabled: true,
     mode: "pacing-first-content-length-aware",
@@ -64,11 +58,15 @@ export function resolveVeronicaShortPacingPolicy(locale: string): VeronicaShortP
     editorialLongShortReviewThresholdSeconds: 120,
     preferredDurationRangeSeconds: [0.001, 180],
     targetDurationSeconds: 120,
-    ...(guidance ? { preferredWpmRange: guidance.preferred, softAcceptableWpmRange: guidance.soft } : {}),
+    preferredWpmRange: [guidance.softMinWpm, guidance.softMaxWpm],
+    softAcceptableWpmRange: [guidance.hardMinWpm, guidance.hardMaxWpm],
     minimumSpeed: 0.75,
-    maximumSpeed: 1.25,
+    // Covers the configured provider baselines (German Shorts currently use
+    // 1.6) while observed WPM, not this provider-specific value, controls QA.
+    maximumSpeed: 2,
     maximumAdjustmentPerAttempt: 0.12,
-    maxCalibrationAttempts: 3,
+    // One initial synthesis plus at most one measured, controlled remediation.
+    maxCalibrationAttempts: 2,
     durationToleranceSeconds: 0.02,
     fallbackBehavior: "select-best-safe-natural-candidate",
   };
@@ -89,45 +87,126 @@ export interface VeronicaShortPacingAttempt {
   readonly selected: boolean;
 }
 
-const currentAttemptSchema = z.object({
-  attemptIndex: z.number().int().positive(), requestedSpeed: z.number().positive(), speedSource: z.enum(["baseline", "measured-correction"]), cacheHit: z.boolean(), audioHash: z.string().regex(/^[a-f0-9]{64}$/u), measuredDurationSeconds: z.number().positive(), measuredWpm: z.number().nonnegative(), durationDeltaSeconds: z.number(), speedClampApplied: z.boolean(), pacingStatus: z.enum(["NATURAL", "SLIGHTLY_FAST", "FAST", "VERY_FAST", "SLIGHTLY_SLOW", "SLOW"]), durationAcceptanceStatus: z.enum(["NORMAL_SHORT", "LONG_SHORT_EDITORIAL_REVIEW", "SHORT_PLATFORM_DURATION_EXCEEDED"]), selected: z.boolean(),
-}).strict();
+const currentAttemptSchema = z
+  .object({
+    attemptIndex: z.number().int().positive(),
+    requestedSpeed: z.number().positive(),
+    speedSource: z.enum(["baseline", "measured-correction"]),
+    cacheHit: z.boolean(),
+    audioHash: z.string().regex(/^[a-f0-9]{64}$/u),
+    measuredDurationSeconds: z.number().positive(),
+    measuredWpm: z.number().nonnegative(),
+    durationDeltaSeconds: z.number(),
+    speedClampApplied: z.boolean(),
+    pacingStatus: z.enum([
+      "NATURAL",
+      "SLIGHTLY_FAST",
+      "FAST",
+      "VERY_FAST",
+      "SLIGHTLY_SLOW",
+      "SLOW",
+    ]),
+    durationAcceptanceStatus: z.enum([
+      "NORMAL_SHORT",
+      "LONG_SHORT_EDITORIAL_REVIEW",
+      "SHORT_PLATFORM_DURATION_EXCEEDED",
+    ]),
+    selected: z.boolean(),
+  })
+  .strict();
 
-const legacyAttemptSchema = z.object({
-  attemptIndex: z.number().int().positive(), requestedSpeed: z.number().positive(), speedSource: z.enum(["baseline", "measured-correction"]), cacheHit: z.boolean(), audioHash: z.string().regex(/^[a-f0-9]{64}$/u), measuredDurationSeconds: z.number().positive(), measuredWpm: z.number().nonnegative(), durationDeltaSeconds: z.number(), speedClampApplied: z.boolean(), pacingStatus: z.enum(["within-target", "slightly-fast", "fast", "very-fast", "slightly-slow", "slow"]), durationAcceptanceStatus: z.enum(["WITHIN_PREFERRED_RANGE", "WITHIN_ACCEPTANCE_TOLERANCE", "PACING_TARGET_MISSED"]), selected: z.boolean(),
-}).strict();
+const legacyAttemptSchema = z
+  .object({
+    attemptIndex: z.number().int().positive(),
+    requestedSpeed: z.number().positive(),
+    speedSource: z.enum(["baseline", "measured-correction"]),
+    cacheHit: z.boolean(),
+    audioHash: z.string().regex(/^[a-f0-9]{64}$/u),
+    measuredDurationSeconds: z.number().positive(),
+    measuredWpm: z.number().nonnegative(),
+    durationDeltaSeconds: z.number(),
+    speedClampApplied: z.boolean(),
+    pacingStatus: z.enum([
+      "within-target",
+      "slightly-fast",
+      "fast",
+      "very-fast",
+      "slightly-slow",
+      "slow",
+    ]),
+    durationAcceptanceStatus: z.enum([
+      "WITHIN_PREFERRED_RANGE",
+      "WITHIN_ACCEPTANCE_TOLERANCE",
+      "PACING_TARGET_MISSED",
+    ]),
+    selected: z.boolean(),
+  })
+  .strict();
 
 const sharedCalibrationShape = {
-  contentId: z.string().min(1), locale: z.string().min(1), variant: z.literal("short"), provider: z.string().min(1), model: z.string().min(1), voice: z.string().min(1), narrationHash: z.string().regex(/^[a-f0-9]{64}$/u), targetDurationRange: z.tuple([z.number().positive(), z.number().positive()]), preferredWpmRange: z.tuple([z.number().positive(), z.number().positive()]).optional(), wordCount: z.number().int().nonnegative(), selectedAttempt: z.number().int().positive(), selectedSpeed: z.number().positive(), selectedDurationSeconds: z.number().positive(), selectedWpm: z.number().nonnegative(), speedNormalizationApplied: z.boolean(), artifactHash: z.string().regex(/^[a-f0-9]{64}$/u), selectedAudioHash: z.string().regex(/^[a-f0-9]{64}$/u), inputFingerprint: z.string().regex(/^[a-f0-9]{64}$/u),
+  contentId: z.string().min(1),
+  locale: z.string().min(1),
+  variant: z.literal("short"),
+  provider: z.string().min(1),
+  model: z.string().min(1),
+  voice: z.string().min(1),
+  narrationHash: z.string().regex(/^[a-f0-9]{64}$/u),
+  targetDurationRange: z.tuple([z.number().positive(), z.number().positive()]),
+  preferredWpmRange: z
+    .tuple([z.number().positive(), z.number().positive()])
+    .optional(),
+  wordCount: z.number().int().nonnegative(),
+  selectedAttempt: z.number().int().positive(),
+  selectedSpeed: z.number().positive(),
+  selectedDurationSeconds: z.number().positive(),
+  selectedWpm: z.number().nonnegative(),
+  speedNormalizationApplied: z.boolean(),
+  artifactHash: z.string().regex(/^[a-f0-9]{64}$/u),
+  selectedAudioHash: z.string().regex(/^[a-f0-9]{64}$/u),
+  inputFingerprint: z.string().regex(/^[a-f0-9]{64}$/u),
 } as const;
 
-const currentCalibrationSchema = z.object({
-  schemaVersion: z.literal(VERONICA_SHORT_PACING_CALIBRATION_SCHEMA_VERSION),
-  ...sharedCalibrationShape,
-  pacingPolicyVersion: z.literal(VERONICA_SHORT_PACING_POLICY_VERSION),
-  pacingProfileId: z.literal("conceptual-explainer"),
-  platformMaximumDurationSeconds: z.literal(180),
-  editorialLongShortReviewThresholdSeconds: z.literal(120),
-  attempts: z.array(currentAttemptSchema).min(1).max(3),
-  selectedPacingStatus: currentAttemptSchema.shape.pacingStatus,
-  selectedDurationAcceptanceStatus: currentAttemptSchema.shape.durationAcceptanceStatus,
-  calibrationStatus: currentAttemptSchema.shape.durationAcceptanceStatus,
-}).strict();
+const currentCalibrationSchema = z
+  .object({
+    schemaVersion: z.literal(VERONICA_SHORT_PACING_CALIBRATION_SCHEMA_VERSION),
+    ...sharedCalibrationShape,
+    pacingPolicyVersion: z.literal(VERONICA_SHORT_PACING_POLICY_VERSION),
+    pacingProfileId: z.literal("conceptual-explainer"),
+    platformMaximumDurationSeconds: z.literal(180),
+    editorialLongShortReviewThresholdSeconds: z.literal(120),
+    attempts: z.array(currentAttemptSchema).min(1).max(3),
+    selectedPacingStatus: currentAttemptSchema.shape.pacingStatus,
+    selectedDurationAcceptanceStatus:
+      currentAttemptSchema.shape.durationAcceptanceStatus,
+    calibrationStatus: currentAttemptSchema.shape.durationAcceptanceStatus,
+  })
+  .strict();
 
-const legacyCalibrationSchema = z.object({
-  schemaVersion: z.literal("veronica-short-pacing-calibration-v2"),
-  ...sharedCalibrationShape,
-  pacingPolicyVersion: z.literal("veronica-short-adaptive-pacing-v2"),
-  attempts: z.array(legacyAttemptSchema).min(1).max(3),
-  selectedPacingStatus: legacyAttemptSchema.shape.pacingStatus,
-  selectedDurationAcceptanceStatus: legacyAttemptSchema.shape.durationAcceptanceStatus,
-  calibrationStatus: legacyAttemptSchema.shape.durationAcceptanceStatus,
-}).strict();
+const legacyCalibrationSchema = z
+  .object({
+    schemaVersion: z.literal("veronica-short-pacing-calibration-v2"),
+    ...sharedCalibrationShape,
+    pacingPolicyVersion: z.literal("veronica-short-adaptive-pacing-v2"),
+    attempts: z.array(legacyAttemptSchema).min(1).max(3),
+    selectedPacingStatus: legacyAttemptSchema.shape.pacingStatus,
+    selectedDurationAcceptanceStatus:
+      legacyAttemptSchema.shape.durationAcceptanceStatus,
+    calibrationStatus: legacyAttemptSchema.shape.durationAcceptanceStatus,
+  })
+  .strict();
 
-export const veronicaShortPacingCalibrationSchema = z.union([currentCalibrationSchema, legacyCalibrationSchema]);
-export type VeronicaShortPacingCalibration = z.infer<typeof veronicaShortPacingCalibrationSchema>;
+export const veronicaShortPacingCalibrationSchema = z.union([
+  currentCalibrationSchema,
+  legacyCalibrationSchema,
+]);
+export type VeronicaShortPacingCalibration = z.infer<
+  typeof veronicaShortPacingCalibrationSchema
+>;
 
-export function calculateWordsPerMinute(wordCount: number, durationSeconds: number): number {
+export function calculateWordsPerMinute(
+  wordCount: number,
+  durationSeconds: number
+): number {
   return calculateAdaptiveWordsPerMinute(wordCount, durationSeconds);
 }
 
@@ -136,8 +215,15 @@ export function assessVeronicaShortDurationAcceptance(input: {
   readonly policy: VeronicaShortPacingPolicy;
   readonly hardConstraintsPassed: boolean;
 }): VeronicaShortDurationAcceptanceStatus {
-  if (!input.hardConstraintsPassed || input.durationSeconds > input.policy.platformMaximumDurationSeconds) return "SHORT_PLATFORM_DURATION_EXCEEDED";
-  return input.durationSeconds > input.policy.editorialLongShortReviewThresholdSeconds ? "LONG_SHORT_EDITORIAL_REVIEW" : "NORMAL_SHORT";
+  if (
+    !input.hardConstraintsPassed ||
+    input.durationSeconds > input.policy.platformMaximumDurationSeconds
+  )
+    return "SHORT_PLATFORM_DURATION_EXCEEDED";
+  return input.durationSeconds >
+    input.policy.editorialLongShortReviewThresholdSeconds
+    ? "LONG_SHORT_EDITORIAL_REVIEW"
+    : "NORMAL_SHORT";
 }
 
 export function assessVeronicaShortPacing(input: {
@@ -150,7 +236,12 @@ export function assessVeronicaShortPacing(input: {
   const soft = input.policy.softAcceptableWpmRange;
   if (!preferred || !soft) return "NATURAL";
   if (wpm >= preferred[0] && wpm <= preferred[1]) return "NATURAL";
-  if (wpm > preferred[1]) return wpm <= soft[1] ? "SLIGHTLY_FAST" : wpm <= soft[1] + 10 ? "FAST" : "VERY_FAST";
+  if (wpm > preferred[1])
+    return wpm <= soft[1]
+      ? "SLIGHTLY_FAST"
+      : wpm <= soft[1] + 10
+        ? "FAST"
+        : "VERY_FAST";
   return wpm >= soft[0] ? "SLIGHTLY_SLOW" : "SLOW";
 }
 
@@ -161,15 +252,28 @@ export function estimateVeronicaShortPacingSpeed(input: {
   readonly policy: VeronicaShortPacingPolicy;
 }): { readonly speed: number; readonly clampApplied: boolean } {
   const guidance = input.policy.preferredWpmRange;
-  if (!guidance || input.wordCount === 0) return { speed: input.currentSpeed, clampApplied: false };
+  if (!guidance || input.wordCount === 0)
+    return { speed: input.currentSpeed, clampApplied: false };
   const targetWpm = (guidance[0] + guidance[1]) / 2;
-  const desiredDuration = input.wordCount / targetWpm * 60;
-  const proportional = input.currentSpeed * input.actualDurationSeconds / desiredDuration;
-  const attemptMin = input.currentSpeed * (1 - input.policy.maximumAdjustmentPerAttempt);
-  const attemptMax = input.currentSpeed * (1 + input.policy.maximumAdjustmentPerAttempt);
-  const bounded = Math.min(input.policy.maximumSpeed, Math.max(input.policy.minimumSpeed, Math.min(attemptMax, Math.max(attemptMin, proportional))));
+  const desiredDuration = (input.wordCount / targetWpm) * 60;
+  const proportional =
+    (input.currentSpeed * input.actualDurationSeconds) / desiredDuration;
+  const attemptMin =
+    input.currentSpeed * (1 - input.policy.maximumAdjustmentPerAttempt);
+  const attemptMax =
+    input.currentSpeed * (1 + input.policy.maximumAdjustmentPerAttempt);
+  const bounded = Math.min(
+    input.policy.maximumSpeed,
+    Math.max(
+      input.policy.minimumSpeed,
+      Math.min(attemptMax, Math.max(attemptMin, proportional))
+    )
+  );
   const speed = Math.round(bounded * 10_000) / 10_000;
-  return { speed, clampApplied: speed !== Math.round(proportional * 10_000) / 10_000 };
+  return {
+    speed,
+    clampApplied: speed !== Math.round(proportional * 10_000) / 10_000,
+  };
 }
 
 export interface VeronicaShortPacingCandidate {
@@ -183,31 +287,105 @@ export async function calibrateVeronicaShortPacing(input: {
   readonly initialSpeed: number;
   readonly wordCount: number;
   readonly policy: VeronicaShortPacingPolicy;
-  readonly synthesize: (request: { readonly attemptIndex: number; readonly requestedSpeed: number; readonly speedSource: "baseline" | "measured-correction" }) => Promise<VeronicaShortPacingCandidate>;
-}): Promise<{ readonly attempts: readonly VeronicaShortPacingAttempt[]; readonly selectedAttempt: VeronicaShortPacingAttempt; readonly calibrationStatus: VeronicaShortDurationAcceptanceStatus }> {
+  readonly synthesize: (request: {
+    readonly attemptIndex: number;
+    readonly requestedSpeed: number;
+    readonly speedSource: "baseline" | "measured-correction";
+  }) => Promise<VeronicaShortPacingCandidate>;
+}): Promise<{
+  readonly attempts: readonly VeronicaShortPacingAttempt[];
+  readonly selectedAttempt: VeronicaShortPacingAttempt;
+  readonly calibrationStatus: VeronicaShortDurationAcceptanceStatus;
+}> {
   const attempts: VeronicaShortPacingAttempt[] = [];
   let speed = input.initialSpeed;
   let speedSource: "baseline" | "measured-correction" = "baseline";
   let clampApplied = false;
-  for (let attemptIndex = 1; attemptIndex <= input.policy.maxCalibrationAttempts; attemptIndex += 1) {
-    const candidate = await input.synthesize({ attemptIndex, requestedSpeed: speed, speedSource });
-    const pacingStatus = assessVeronicaShortPacing({ durationSeconds: candidate.durationSeconds, wordCount: input.wordCount, policy: input.policy });
-    const durationAcceptanceStatus = assessVeronicaShortDurationAcceptance({ durationSeconds: candidate.durationSeconds, policy: input.policy, hardConstraintsPassed: candidate.hardConstraintsPassed });
-    attempts.push({ attemptIndex, requestedSpeed: speed, speedSource, cacheHit: candidate.cacheHit, audioHash: candidate.audioHash, measuredDurationSeconds: candidate.durationSeconds, measuredWpm: calculateWordsPerMinute(input.wordCount, candidate.durationSeconds), durationDeltaSeconds: candidate.durationSeconds - input.policy.editorialLongShortReviewThresholdSeconds, speedClampApplied: clampApplied, pacingStatus, durationAcceptanceStatus, selected: false });
+  for (
+    let attemptIndex = 1;
+    attemptIndex <= input.policy.maxCalibrationAttempts;
+    attemptIndex += 1
+  ) {
+    const candidate = await input.synthesize({
+      attemptIndex,
+      requestedSpeed: speed,
+      speedSource,
+    });
+    const pacingStatus = assessVeronicaShortPacing({
+      durationSeconds: candidate.durationSeconds,
+      wordCount: input.wordCount,
+      policy: input.policy,
+    });
+    const durationAcceptanceStatus = assessVeronicaShortDurationAcceptance({
+      durationSeconds: candidate.durationSeconds,
+      policy: input.policy,
+      hardConstraintsPassed: candidate.hardConstraintsPassed,
+    });
+    attempts.push({
+      attemptIndex,
+      requestedSpeed: speed,
+      speedSource,
+      cacheHit: candidate.cacheHit,
+      audioHash: candidate.audioHash,
+      measuredDurationSeconds: candidate.durationSeconds,
+      measuredWpm: calculateWordsPerMinute(
+        input.wordCount,
+        candidate.durationSeconds
+      ),
+      durationDeltaSeconds:
+        candidate.durationSeconds -
+        input.policy.editorialLongShortReviewThresholdSeconds,
+      speedClampApplied: clampApplied,
+      pacingStatus,
+      durationAcceptanceStatus,
+      selected: false,
+    });
     // Duration alone never triggers acceleration. Unknown-locale guidance also
     // accepts the baseline, while a >180s result is an editorial hard stop.
-    if (durationAcceptanceStatus === "SHORT_PLATFORM_DURATION_EXCEEDED" || pacingStatus === "NATURAL" || pacingStatus === "SLIGHTLY_FAST" || pacingStatus === "SLIGHTLY_SLOW" || !input.policy.preferredWpmRange) break;
-    const estimate = estimateVeronicaShortPacingSpeed({ currentSpeed: speed, actualDurationSeconds: candidate.durationSeconds, wordCount: input.wordCount, policy: input.policy });
+    if (
+      durationAcceptanceStatus === "SHORT_PLATFORM_DURATION_EXCEEDED" ||
+      pacingStatus === "NATURAL" ||
+      pacingStatus === "SLIGHTLY_FAST" ||
+      pacingStatus === "SLIGHTLY_SLOW" ||
+      !input.policy.preferredWpmRange
+    )
+      break;
+    const estimate = estimateVeronicaShortPacingSpeed({
+      currentSpeed: speed,
+      actualDurationSeconds: candidate.durationSeconds,
+      wordCount: input.wordCount,
+      policy: input.policy,
+    });
     if (estimate.speed === speed) break;
     speed = estimate.speed;
     clampApplied = estimate.clampApplied;
     speedSource = "measured-correction";
   }
-  const safe = attempts.map((attempt, index) => ({ attempt, index })).filter(({ attempt }) => attempt.durationAcceptanceStatus !== "SHORT_PLATFORM_DURATION_EXCEEDED");
+  const safe = attempts
+    .map((attempt, index) => ({ attempt, index }))
+    .filter(
+      ({ attempt }) =>
+        attempt.durationAcceptanceStatus !== "SHORT_PLATFORM_DURATION_EXCEEDED"
+    );
   const guidance = input.policy.preferredWpmRange;
   const targetWpm = guidance ? (guidance[0] + guidance[1]) / 2 : 0;
-  const pool = safe.length > 0 ? safe : attempts.map((attempt, index) => ({ attempt, index }));
-  const selectedIndex = pool.reduce((best, current) => Math.abs(current.attempt.measuredWpm - targetWpm) < Math.abs(best.attempt.measuredWpm - targetWpm) ? current : best).index;
+  const pool =
+    safe.length > 0
+      ? safe
+      : attempts.map((attempt, index) => ({ attempt, index }));
+  const selectedIndex = pool.reduce((best, current) =>
+    Math.abs(current.attempt.measuredWpm - targetWpm) <
+    Math.abs(best.attempt.measuredWpm - targetWpm)
+      ? current
+      : best
+  ).index;
   const selectedAttempt = { ...attempts[selectedIndex]!, selected: true };
-  return { attempts: attempts.map((attempt, index) => ({ ...attempt, selected: index === selectedIndex })), selectedAttempt, calibrationStatus: selectedAttempt.durationAcceptanceStatus };
+  return {
+    attempts: attempts.map((attempt, index) => ({
+      ...attempt,
+      selected: index === selectedIndex,
+    })),
+    selectedAttempt,
+    calibrationStatus: selectedAttempt.durationAcceptanceStatus,
+  };
 }

@@ -125,6 +125,7 @@ class ProviderNeutralLegacyOpenAiSpeechProvider implements LegacySpeechProvider 
       outputFormat: this.input.mock
         ? "wav"
         : (this.input.options.responseFormat ?? "wav"),
+      targetWpm: request.voiceProfile.paceWpm,
       speed: request.speed ?? this.input.options.speed ?? 1,
       chunking: {
         targetCharacters: 100_000,
@@ -251,13 +252,14 @@ export function createProviderNeutralLegacyOpenAiSpeechProvider(
   options: OpenAiCompatibleSpeechOptions
 ): LegacySpeechProvider {
   warnLegacyFacade();
-  return new ProviderNeutralLegacyOpenAiSpeechProvider({ options, mock: false });
+  return new ProviderNeutralLegacyOpenAiSpeechProvider({
+    options,
+    mock: false,
+  });
 }
 
 class ProviderNeutralLegacyElevenLabsSpeechProvider implements LegacySpeechProvider {
-  public constructor(
-    private readonly options: LegacyElevenLabsSpeechOptions
-  ) {}
+  public constructor(private readonly options: LegacyElevenLabsSpeechOptions) {}
 
   public async synthesize(
     request: LegacySpeechSynthesisRequest,
@@ -276,8 +278,7 @@ class ProviderNeutralLegacyElevenLabsSpeechProvider implements LegacySpeechProvi
     const configuration = {
       provider: "elevenlabs" as const,
       modelId: this.options.modelId,
-      voiceId:
-        request.voiceProfile.providerVoiceId ?? this.options.voiceId,
+      voiceId: request.voiceProfile.providerVoiceId ?? this.options.voiceId,
       outputFormat: this.options.outputFormat ?? "mp3_44100_128",
       settings: {
         ...DEFAULT_LEGACY_ELEVENLABS_SETTINGS,

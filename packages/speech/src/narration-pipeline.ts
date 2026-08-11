@@ -3,6 +3,7 @@ import path from "node:path";
 import {
   copyAtomic,
   fileExists,
+  hashFile,
   hashText,
   readJsonIfExists,
   writeJsonAtomic,
@@ -20,9 +21,7 @@ import {
   buildOpenAiTtsChunkRequest,
   type OpenAiSpeechOutputFormat,
 } from "./openai-tts-request.js";
-import {
-  buildPerformanceDirections,
-} from "./performance-direction.js";
+import { buildPerformanceDirections } from "./performance-direction.js";
 import {
   computeNarrationChunkFingerprintFromRequest,
   generateNarrationChunkWithCache,
@@ -60,24 +59,24 @@ import {
   masterNarration,
   type NarrationMasteringProfile,
 } from "./mastering.js";
-import {
-  prepareSpokenNarration,
-} from "./spoken-narration.js";
-import {
-  segmentNarration,
-} from "./narration-segmentation.js";
+import { prepareSpokenNarration } from "./spoken-narration.js";
+import { segmentNarration } from "./narration-segmentation.js";
 import {
   assessNarrationPacing,
   resolveSpeechNarrationPacingPreset,
 } from "./narration-pacing.js";
 import {
+  assessVeronicaSpeechRate,
+  estimateVeronicaSpeechDurationSeconds,
+  getVeronicaScriptLengthGuidance,
+  type VeronicaSpeechRatePolicy,
+} from "./veronica-speech-rate-policy.js";
+import {
   validateChunkAudio,
   probeAudioWithFfprobe,
   type ProbeAudioMetadata,
 } from "./audio-validation.js";
-import {
-  runNarrationQualityGate,
-} from "./narration-quality-gate.js";
+import { runNarrationQualityGate } from "./narration-quality-gate.js";
 import { recordNarrationTelemetry } from "./narration-telemetry.js";
 import { DEFAULT_SPEECH_VOICE } from "./voice-settings.js";
 
@@ -94,7 +93,9 @@ export const narrationPipelineStageSchema = z.enum([
   "inspect",
   "all",
 ]);
-export type NarrationPipelineStage = z.infer<typeof narrationPipelineStageSchema>;
+export type NarrationPipelineStage = z.infer<
+  typeof narrationPipelineStageSchema
+>;
 
 /**
  * Machine-readable narration pipeline exit codes used by CLI adapters.
@@ -140,10 +141,14 @@ export interface NarrationPipelineRequest {
   readonly speed?: number;
   readonly outputFormat?: OpenAiSpeechOutputFormat;
   readonly baseVoiceInstructions?: string;
+  /** Veronica-only planning and delivery-quality policy; never a timing authority. */
+  readonly speechRatePolicy?: VeronicaSpeechRatePolicy;
   readonly masteringProfile?: NarrationMasteringProfile;
   readonly runFfmpeg?: (args: readonly string[]) => Promise<void>;
   readonly probeAudio?: (filePath: string) => Promise<ProbeAudioMetadata>;
-  readonly synthesizeChunk?: (request: NarrationChunkSynthesisRequest) => Promise<void>;
+  readonly synthesizeChunk?: (
+    request: NarrationChunkSynthesisRequest
+  ) => Promise<void>;
   readonly logger?: {
     info(value: Record<string, unknown>, message?: string): void;
     warn?(value: Record<string, unknown>, message?: string): void;
@@ -177,7 +182,10 @@ const generatedStages = [
   "generate",
   "assemble",
   "validate",
-] as const satisfies readonly Exclude<NarrationPipelineStage, "all" | "status" | "inspect">[];
+] as const satisfies readonly Exclude<
+  NarrationPipelineStage,
+  "all" | "status" | "inspect"
+>[];
 
 function localeForLanguage(language: string): string {
   const normalized = language.trim().toLowerCase();
@@ -187,7 +195,9 @@ function localeForLanguage(language: string): string {
   return normalized.split("-", 1)[0] ?? normalized;
 }
 
-function normalizeStage(stage: NarrationPipelineStage): readonly Exclude<NarrationPipelineStage, "all">[] {
+function normalizeStage(
+  stage: NarrationPipelineStage
+): readonly Exclude<NarrationPipelineStage, "all">[] {
   if (stage === "all") {
     return generatedStages;
   }
@@ -198,7 +208,9 @@ function normalizeStage(stage: NarrationPipelineStage): readonly Exclude<Narrati
   return generatedStages.slice(0, index + 1);
 }
 
-function stageResult(input: NarrationPipelineStageResult): NarrationPipelineStageResult {
+function stageResult(
+  input: NarrationPipelineStageResult
+): NarrationPipelineStageResult {
   return input;
 }
 
@@ -217,7 +229,10 @@ function spokenNarrationFailureIsBlocked(
   );
 }
 
-async function readRequiredText(filePath: string, label: string): Promise<string> {
+async function readRequiredText(
+  filePath: string,
+  label: string
+): Promise<string> {
   try {
     return await fs.readFile(filePath, "utf8");
   } catch {
@@ -237,7 +252,9 @@ async function readRequiredJson<T>(
   return parsed;
 }
 
-async function existingStatus(paths: NarrationArtifactPathSet): Promise<NarrationPipelineStageResult[]> {
+async function existingStatus(
+  paths: NarrationArtifactPathSet
+): Promise<NarrationPipelineStageResult[]> {
   const checks = [
     ["plan", paths.chunkManifest],
     ["plan", paths.performanceDirections],
@@ -251,18 +268,16 @@ async function existingStatus(paths: NarrationArtifactPathSet): Promise<Narratio
       grouped.set(stage, [...(grouped.get(stage) ?? []), filePath]);
     }
   }
-  const spokenArtifact = await readJsonIfExists(
-    paths.spokenTextJson,
-    (value) => spokenNarrationArtifactSchema.parse(value)
+  const spokenArtifact = await readJsonIfExists(paths.spokenTextJson, (value) =>
+    spokenNarrationArtifactSchema.parse(value)
   );
   const results: NarrationPipelineStageResult[] = [];
   if (spokenArtifact) {
-    const prepareStatus =
-      spokenNarrationFailureIsBlocked(spokenArtifact)
-        ? "blocked"
-        : spokenArtifact.status === "failed"
-          ? "failed"
-          : "completed";
+    const prepareStatus = spokenNarrationFailureIsBlocked(spokenArtifact)
+      ? "blocked"
+      : spokenArtifact.status === "failed"
+        ? "failed"
+        : "completed";
     results.push(
       stageResult({
         stage: "prepare",
@@ -291,9 +306,8 @@ async function existingStatus(paths: NarrationArtifactPathSet): Promise<Narratio
       })
     );
   }
-  const qualityGate = await readJsonIfExists(
-    paths.qualityGateJson,
-    (value) => narrationQualityGateReportSchema.parse(value)
+  const qualityGate = await readJsonIfExists(paths.qualityGateJson, (value) =>
+    narrationQualityGateReportSchema.parse(value)
   );
   if (qualityGate) {
     results.push(
@@ -312,7 +326,9 @@ function completed(result: NarrationPipelineStageResult | undefined): boolean {
   return result?.status === "completed" || result?.status === "skipped";
 }
 
-function resultExitCode(stages: readonly NarrationPipelineStageResult[]): number {
+function resultExitCode(
+  stages: readonly NarrationPipelineStageResult[]
+): number {
   if (stages.some((stage) => stage.status === "failed")) {
     return narrationPipelineExitCode.generationFailed;
   }
@@ -384,7 +400,10 @@ function buildGenerationMetadata(input: {
     usageCounters: {
       chunksRequested: input.chunkManifest.chunks.length,
       chunksGenerated: input.records.length,
-      chunksFailed: Math.max(0, input.chunkManifest.chunks.length - input.records.length),
+      chunksFailed: Math.max(
+        0,
+        input.chunkManifest.chunks.length - input.records.length
+      ),
       retries: 0,
       cacheHits: 0,
       cacheMisses: input.records.length,
@@ -393,10 +412,22 @@ function buildGenerationMetadata(input: {
     startedAt: input.startedAt,
     completedAt: input.completedAt,
     finalOutputs: {
-      cleanNarrationPath: path.relative(input.paths.localeVariantRoot, input.paths.cleanNarration),
-      masteredNarrationPath: path.relative(input.paths.localeVariantRoot, input.paths.masteredNarration),
-      compatibilityNarrationPath: path.relative(input.paths.localeVariantRoot, input.paths.compatibilityNarration),
-      rootCompatibilityNarrationPath: path.relative(input.paths.episodeRoot, input.paths.rootCompatibilityNarration),
+      cleanNarrationPath: path.relative(
+        input.paths.localeVariantRoot,
+        input.paths.cleanNarration
+      ),
+      masteredNarrationPath: path.relative(
+        input.paths.localeVariantRoot,
+        input.paths.masteredNarration
+      ),
+      compatibilityNarrationPath: path.relative(
+        input.paths.localeVariantRoot,
+        input.paths.compatibilityNarration
+      ),
+      rootCompatibilityNarrationPath: path.relative(
+        input.paths.episodeRoot,
+        input.paths.rootCompatibilityNarration
+      ),
     },
   });
 }
@@ -413,12 +444,16 @@ function requireCore(request: NarrationPipelineRequest): RequiredCoreRequest {
   const episodeId = request.episodeId ?? path.basename(episodeDir);
   const locale = request.locale ?? localeForLanguage(request.language);
   const variant = request.variant ?? "full";
-  const rolloutMode = narrationPipelineModeSchema.parse(request.rolloutMode ?? "legacy");
+  const rolloutMode = narrationPipelineModeSchema.parse(
+    request.rolloutMode ?? "legacy"
+  );
   return { ...request, episodeDir, episodeId, locale, variant, rolloutMode };
 }
 
 export class NarrationPipeline {
-  public async run(requestInput: NarrationPipelineRequest): Promise<NarrationPipelineResult> {
+  public async run(
+    requestInput: NarrationPipelineRequest
+  ): Promise<NarrationPipelineResult> {
     const request = requireCore(requestInput);
     const stage = narrationPipelineStageSchema.parse(request.stage);
     const paths = createNarrationArtifactPaths({
@@ -445,11 +480,14 @@ export class NarrationPipeline {
         paths,
         [
           stageResult({
-          stage,
-          status: "completed",
-          outputPaths: stage === "inspect" ? outputsForStage("inspect", paths) : [],
-          ...(status.length === 0 ? { message: "No staged narration artifacts found." } : {}),
-        }),
+            stage,
+            status: "completed",
+            outputPaths:
+              stage === "inspect" ? outputsForStage("inspect", paths) : [],
+            ...(status.length === 0
+              ? { message: "No staged narration artifacts found." }
+              : {}),
+          }),
           ...status,
         ],
         status.some((item) => item.stage === "validate") ? "ready" : "blocked"
@@ -464,7 +502,8 @@ export class NarrationPipeline {
             stage: selectedStages[selectedStages.length - 1] ?? "status",
             status: "blocked",
             outputPaths: [],
-            message: "Staged narration requires narrationPipelineMode=new or shadow.",
+            message:
+              "Staged narration requires narrationPipelineMode=new or shadow.",
           }),
         ],
         "blocked"
@@ -511,7 +550,13 @@ export class NarrationPipeline {
       }
     }
     const completedAt = new Date().toISOString();
-    await this.maybeWriteMetadata(request, paths, results, startedAt, completedAt);
+    await this.maybeWriteMetadata(
+      request,
+      paths,
+      results,
+      startedAt,
+      completedAt
+    );
     return this.result(request, paths, results, undefined);
   }
 
@@ -534,7 +579,10 @@ export class NarrationPipeline {
       exitCode,
       status:
         statusOverride ??
-        (exitCode === 0 && stages.some((stage) => stage.stage === "validate" && stage.status === "completed")
+        (exitCode === 0 &&
+        stages.some(
+          (stage) => stage.stage === "validate" && stage.status === "completed"
+        )
           ? "ready"
           : exitCode === 0
             ? "planned"
@@ -546,19 +594,18 @@ export class NarrationPipeline {
     request: RequiredCoreRequest,
     paths: NarrationArtifactPathSet
   ): Promise<NarrationPipelineStageResult> {
-    if (!request.force && await fileExists(paths.spokenTextJson)) {
+    if (!request.force && (await fileExists(paths.spokenTextJson))) {
       const spokenArtifact = await readJsonIfExists(
         paths.spokenTextJson,
         (value) => spokenNarrationArtifactSchema.parse(value)
       );
       return stageResult({
         stage: "prepare",
-        status:
-          spokenNarrationFailureIsBlocked(spokenArtifact)
-            ? "blocked"
-            : spokenArtifact?.status === "failed"
-              ? "failed"
-              : "skipped",
+        status: spokenNarrationFailureIsBlocked(spokenArtifact)
+          ? "blocked"
+          : spokenArtifact?.status === "failed"
+            ? "failed"
+            : "skipped",
         outputPaths:
           spokenArtifact?.status === "failed"
             ? [paths.spokenTextJson]
@@ -582,13 +629,18 @@ export class NarrationPipeline {
         stage: "prepare",
         status: blocked ? "blocked" : "failed",
         outputPaths: [paths.spokenTextJson],
-        message: result.artifact.failureMessage ?? "Spoken narration validation failed.",
+        message:
+          result.artifact.failureMessage ??
+          "Spoken narration validation failed.",
       });
     }
     return stageResult({
       stage: "prepare",
       status: "completed",
-      outputPaths: [paths.spokenTextJson, ...(result.spokenText ? [paths.spokenTextMarkdown] : [])],
+      outputPaths: [
+        paths.spokenTextJson,
+        ...(result.spokenText ? [paths.spokenTextMarkdown] : []),
+      ],
     });
   }
 
@@ -598,21 +650,38 @@ export class NarrationPipeline {
   ): Promise<NarrationPipelineStageResult> {
     if (
       !request.force &&
-      await fileExists(paths.chunkManifest) &&
-      await fileExists(paths.performanceDirections) &&
-      await fileExists(paths.pronunciationTransforms)
+      (await fileExists(paths.chunkManifest)) &&
+      (await fileExists(paths.performanceDirections)) &&
+      (await fileExists(paths.pronunciationTransforms))
     ) {
       return stageResult({
         stage: "plan",
         status: "skipped",
-        outputPaths: [paths.chunkManifest, paths.performanceDirections, paths.pronunciationTransforms],
+        outputPaths: [
+          paths.chunkManifest,
+          paths.performanceDirections,
+          paths.pronunciationTransforms,
+        ],
       });
     }
-    const spokenArtifact = await readRequiredJson(paths.spokenTextJson, (value) => spokenNarrationArtifactSchema.parse(value), "Spoken narration artifact");
+    const spokenArtifact = await readRequiredJson(
+      paths.spokenTextJson,
+      (value) => spokenNarrationArtifactSchema.parse(value),
+      "Spoken narration artifact"
+    );
     if (spokenArtifact.status !== "completed") {
-      return stageResult({ stage: "plan", status: "blocked", outputPaths: [paths.spokenTextJson], message: spokenArtifact.failureMessage ?? "Spoken narration is not completed." });
+      return stageResult({
+        stage: "plan",
+        status: "blocked",
+        outputPaths: [paths.spokenTextJson],
+        message:
+          spokenArtifact.failureMessage ?? "Spoken narration is not completed.",
+      });
     }
-    const spokenText = await readRequiredText(paths.spokenTextMarkdown, "Spoken narration text");
+    const spokenText = await readRequiredText(
+      paths.spokenTextMarkdown,
+      "Spoken narration text"
+    );
     const segmented = await segmentNarration({
       episodeDir: request.episodeDir,
       episodeId: request.episodeId,
@@ -621,6 +690,15 @@ export class NarrationPipeline {
       variant: request.variant,
       spokenText,
       spokenTextHash: spokenArtifact.spokenTextHash,
+      ...(request.speechRatePolicy
+        ? {
+            targetWpm: request.speechRatePolicy.targetWpm,
+            planningWordCountRange: getVeronicaScriptLengthGuidance({
+              locale: request.locale,
+              variant: request.variant,
+            }).spokenWordCountRange,
+          }
+        : {}),
       ...(request.logger ? { logger: request.logger } : {}),
     });
     const directions = await buildPerformanceDirections({
@@ -644,7 +722,11 @@ export class NarrationPipeline {
     return stageResult({
       stage: "plan",
       status: "completed",
-      outputPaths: [paths.chunkManifest, paths.performanceDirections, paths.pronunciationTransforms],
+      outputPaths: [
+        paths.chunkManifest,
+        paths.performanceDirections,
+        paths.pronunciationTransforms,
+      ],
       message: `Planned ${directions.directionSet.directions.length} narration chunks.`,
     });
   }
@@ -654,23 +736,37 @@ export class NarrationPipeline {
     paths: NarrationArtifactPathSet
   ): Promise<NarrationPipelineStageResult> {
     if (request.validationOnly) {
-      return stageResult({ stage: "generate", status: "skipped", outputPaths: [], message: "Validation-only mode skipped generation." });
+      return stageResult({
+        stage: "generate",
+        status: "skipped",
+        outputPaths: [],
+        message: "Validation-only mode skipped generation.",
+      });
     }
-    const manifest = await readRequiredJson(paths.chunkManifest, (value) => narrationChunkManifestSchema.parse(value), "Chunk manifest");
-    const directions = await readRequiredJson(paths.performanceDirections, (value) => narrationDirectionSetSchema.parse(value), "Performance directions");
+    const manifest = await readRequiredJson(
+      paths.chunkManifest,
+      (value) => narrationChunkManifestSchema.parse(value),
+      "Chunk manifest"
+    );
+    const directions = await readRequiredJson(
+      paths.performanceDirections,
+      (value) => narrationDirectionSetSchema.parse(value),
+      "Performance directions"
+    );
     const transforms = await readPronunciationTransforms(paths, manifest);
     const model = request.model ?? "gpt-4o-mini-tts";
     const voice = request.voice ?? DEFAULT_SPEECH_VOICE;
     const speed =
       request.speed ??
-      resolveSpeechNarrationPacingPreset(
-        request.language,
-        request.variant
-      ).providerSpeed;
+      resolveSpeechNarrationPacingPreset(request.language, request.variant)
+        .providerSpeed;
     const outputFormat = request.outputFormat ?? "wav";
     const outputPaths: string[] = [];
     const failures: string[] = [];
-    const concurrency = Math.min(Math.max(1, request.concurrency ?? 1), Math.max(1, manifest.chunks.length));
+    const concurrency = Math.min(
+      Math.max(1, request.concurrency ?? 1),
+      Math.max(1, manifest.chunks.length)
+    );
     let nextIndex = 0;
     const workers = Array.from({ length: concurrency }, async () => {
       while (nextIndex < manifest.chunks.length) {
@@ -680,7 +776,9 @@ export class NarrationPipeline {
         if (!chunk) {
           continue;
         }
-        const direction = directions.directions.find((entry) => entry.chunkId === chunk.chunkId);
+        const direction = directions.directions.find(
+          (entry) => entry.chunkId === chunk.chunkId
+        );
         if (!direction) {
           failures.push(`Missing direction for ${chunk.chunkId}.`);
           continue;
@@ -701,13 +799,20 @@ export class NarrationPipeline {
           outputPaths.push(decision.outputPath);
         }
         if (!decision.reusable && decision.reason === "provider_failure") {
-          failures.push(decision.message ?? `Generation failed for ${chunk.chunkId}.`);
+          failures.push(
+            decision.message ?? `Generation failed for ${chunk.chunkId}.`
+          );
         }
       }
     });
     await Promise.all(workers);
     if (failures.length > 0) {
-      return stageResult({ stage: "generate", status: "failed", outputPaths, message: failures.join("; ") });
+      return stageResult({
+        stage: "generate",
+        status: "failed",
+        outputPaths,
+        message: failures.join("; "),
+      });
     }
     return stageResult({ stage: "generate", status: "completed", outputPaths });
   }
@@ -735,7 +840,9 @@ export class NarrationPipeline {
     const requestBuild = buildOpenAiTtsChunkRequest({
       chunk: input.chunk,
       direction: input.direction,
-      ...(input.transformedText ? { transformedText: input.transformedText } : {}),
+      ...(input.transformedText
+        ? { transformedText: input.transformedText }
+        : {}),
       config: {
         model: input.model,
         voice: input.voice,
@@ -744,7 +851,9 @@ export class NarrationPipeline {
         language: input.request.language,
         locale: input.request.locale,
         variant: input.request.variant,
-        baseVoiceInstructions: input.request.baseVoiceInstructions ?? "Natural, restrained narration.",
+        baseVoiceInstructions:
+          input.request.baseVoiceInstructions ??
+          "Natural, restrained narration.",
       },
     });
     const chunkFingerprint = computeNarrationChunkFingerprintFromRequest({
@@ -753,7 +862,10 @@ export class NarrationPipeline {
       requestBuildResult: requestBuild,
       pronunciationHints: [],
     });
-    const outputPath = path.join(input.paths.chunkAudioDir, `${input.chunk.chunkId}.${input.outputFormat}`);
+    const outputPath = path.join(
+      input.paths.chunkAudioDir,
+      `${input.chunk.chunkId}.${input.outputFormat}`
+    );
     const startedAt = Date.now();
     const decision = await generateNarrationChunkWithCache({
       narrationRoot: input.paths.narrationRoot,
@@ -788,10 +900,15 @@ export class NarrationPipeline {
           expectedText: requestBuild.request.input,
           language: input.request.language,
           variant: input.request.variant,
+          ...(input.request.speechRatePolicy
+            ? { targetWpm: input.request.speechRatePolicy.targetWpm }
+            : {}),
           expectedDurationMs: input.chunk.estimatedDurationMs,
           requestFingerprint: requestBuild.requestFingerprint,
           generationFingerprint: chunkFingerprint,
-          ...(input.request.probeAudio ? { probeAudio: input.request.probeAudio } : {}),
+          ...(input.request.probeAudio
+            ? { probeAudio: input.request.probeAudio }
+            : {}),
           ...(input.request.logger ? { logger: input.request.logger } : {}),
         });
         return { validationReport };
@@ -799,7 +916,9 @@ export class NarrationPipeline {
     });
     let outputBytes = 0;
     if (decision.outputPath) {
-      outputBytes = (await fs.stat(decision.outputPath).catch(() => ({ size: 0 }))).size;
+      outputBytes = (
+        await fs.stat(decision.outputPath).catch(() => ({ size: 0 }))
+      ).size;
     }
     recordNarrationTelemetry({
       episodeId: input.request.episodeId,
@@ -813,13 +932,17 @@ export class NarrationPipeline {
       latencyMs: Math.max(0, Date.now() - startedAt),
       inputCharacters: requestBuild.request.input.length,
       outputBytes,
-      ...(decision.record?.durationMs !== undefined ? { generatedSeconds: decision.record.durationMs / 1000 } : {}),
+      ...(decision.record?.durationMs !== undefined
+        ? { generatedSeconds: decision.record.durationMs / 1000 }
+        : {}),
       cacheDecision: decision.reason,
       validationResult:
         decision.reason === "provider_failure"
           ? "failed"
-          : decision.record?.validationStatus ?? (decision.reason === "hit" ? "passed" : "skipped"),
-      failureClass: decision.reason === "provider_failure" ? "provider_failure" : undefined,
+          : (decision.record?.validationStatus ??
+            (decision.reason === "hit" ? "passed" : "skipped")),
+      failureClass:
+        decision.reason === "provider_failure" ? "provider_failure" : undefined,
       regeneration: decision.reason !== "hit" && decision.reason !== "miss",
       fallbackUsed: false,
       details: {
@@ -835,13 +958,34 @@ export class NarrationPipeline {
     paths: NarrationArtifactPathSet
   ): Promise<NarrationPipelineStageResult> {
     if (request.validationOnly) {
-      return stageResult({ stage: "assemble", status: "skipped", outputPaths: [], message: "Validation-only mode skipped assembly." });
+      return stageResult({
+        stage: "assemble",
+        status: "skipped",
+        outputPaths: [],
+        message: "Validation-only mode skipped assembly.",
+      });
     }
-    if (!request.force && await fileExists(paths.assemblyManifest) && await fileExists(paths.cleanNarration)) {
-      return stageResult({ stage: "assemble", status: "skipped", outputPaths: [paths.assemblyManifest, paths.cleanNarration] });
+    if (
+      !request.force &&
+      (await fileExists(paths.assemblyManifest)) &&
+      (await fileExists(paths.cleanNarration))
+    ) {
+      return stageResult({
+        stage: "assemble",
+        status: "skipped",
+        outputPaths: [paths.assemblyManifest, paths.cleanNarration],
+      });
     }
-    const manifest = await readRequiredJson(paths.chunkManifest, (value) => narrationChunkManifestSchema.parse(value), "Chunk manifest");
-    const directions = await readRequiredJson(paths.performanceDirections, (value) => narrationDirectionSetSchema.parse(value), "Performance directions");
+    const manifest = await readRequiredJson(
+      paths.chunkManifest,
+      (value) => narrationChunkManifestSchema.parse(value),
+      "Chunk manifest"
+    );
+    const directions = await readRequiredJson(
+      paths.performanceDirections,
+      (value) => narrationDirectionSetSchema.parse(value),
+      "Performance directions"
+    );
     const records = await readCacheRecords(paths, manifest);
     const validations = await readValidationReports(paths, manifest);
     const assembly = await assembleNarration({
@@ -857,10 +1001,24 @@ export class NarrationPipeline {
       ...(request.logger ? { logger: request.logger } : {}),
     });
     if (assembly.status === "blocked") {
-      return stageResult({ stage: "assemble", status: "blocked", outputPaths: [], message: assembly.errors.join("; ") });
+      return stageResult({
+        stage: "assemble",
+        status: "blocked",
+        outputPaths: [],
+        message: assembly.errors.join("; "),
+      });
     }
     await this.masterAndPromote(request, paths, assembly);
-    return stageResult({ stage: "assemble", status: "completed", outputPaths: [paths.assemblyManifest, paths.cleanNarration, paths.masteredNarration, paths.compatibilityNarration] });
+    return stageResult({
+      stage: "assemble",
+      status: "completed",
+      outputPaths: [
+        paths.assemblyManifest,
+        paths.cleanNarration,
+        paths.masteredNarration,
+        paths.compatibilityNarration,
+      ],
+    });
   }
 
   private async masterAndPromote(
@@ -884,7 +1042,10 @@ export class NarrationPipeline {
     }
     if (request.rolloutMode === "new") {
       await copyAtomic(paths.masteredNarration, paths.compatibilityNarration);
-      await copyAtomic(paths.masteredNarration, paths.rootCompatibilityNarration);
+      await copyAtomic(
+        paths.masteredNarration,
+        paths.rootCompatibilityNarration
+      );
     }
   }
 
@@ -892,11 +1053,23 @@ export class NarrationPipeline {
     request: RequiredCoreRequest,
     paths: NarrationArtifactPathSet
   ): Promise<NarrationPipelineStageResult> {
-    const manifest = await readRequiredJson(paths.chunkManifest, (value) => narrationChunkManifestSchema.parse(value), "Chunk manifest");
+    const manifest = await readRequiredJson(
+      paths.chunkManifest,
+      (value) => narrationChunkManifestSchema.parse(value),
+      "Chunk manifest"
+    );
     const validations = await readValidationReports(paths, manifest);
-    const assembly = await readJsonIfExists(paths.assemblyManifest, (value) => narrationAssemblyManifestSchema.parse(value));
-    const mastering = await readJsonIfExists(path.join(paths.narrationRoot, "mastering-metadata.json"), (value) => narrationMasteringMetadataSchema.parse(value));
-    const generation = await readJsonIfExists(paths.generationMetadata, (value) => narrationGenerationMetadataSchema.parse(value));
+    const assembly = await readJsonIfExists(paths.assemblyManifest, (value) =>
+      narrationAssemblyManifestSchema.parse(value)
+    );
+    const mastering = await readJsonIfExists(
+      path.join(paths.narrationRoot, "mastering-metadata.json"),
+      (value) => narrationMasteringMetadataSchema.parse(value)
+    );
+    const generation = await readJsonIfExists(
+      paths.generationMetadata,
+      (value) => narrationGenerationMetadataSchema.parse(value)
+    );
     const pacingSummary = await buildPacingSummary({
       request,
       paths,
@@ -950,10 +1123,19 @@ export class NarrationPipeline {
     startedAt: string,
     completedAt: string
   ): Promise<void> {
-    if (!results.some((result) => result.stage === "generate" || result.stage === "assemble" || result.stage === "validate")) {
+    if (
+      !results.some(
+        (result) =>
+          result.stage === "generate" ||
+          result.stage === "assemble" ||
+          result.stage === "validate"
+      )
+    ) {
       return;
     }
-    const manifest = await readJsonIfExists(paths.chunkManifest, (value) => narrationChunkManifestSchema.parse(value));
+    const manifest = await readJsonIfExists(paths.chunkManifest, (value) =>
+      narrationChunkManifestSchema.parse(value)
+    );
     if (!manifest) {
       return;
     }
@@ -971,18 +1153,30 @@ export class NarrationPipeline {
   }
 }
 
-function outputsForStage(stage: Exclude<NarrationPipelineStage, "all">, paths: NarrationArtifactPathSet): readonly string[] {
+function outputsForStage(
+  stage: Exclude<NarrationPipelineStage, "all">,
+  paths: NarrationArtifactPathSet
+): readonly string[] {
   if (stage === "prepare") {
     return [paths.spokenTextMarkdown, paths.spokenTextJson];
   }
   if (stage === "plan") {
-    return [paths.chunkManifest, paths.performanceDirections, paths.pronunciationTransforms];
+    return [
+      paths.chunkManifest,
+      paths.performanceDirections,
+      paths.pronunciationTransforms,
+    ];
   }
   if (stage === "generate") {
     return [paths.chunkAudioDir];
   }
   if (stage === "assemble") {
-    return [paths.assemblyManifest, paths.cleanNarration, paths.masteredNarration, paths.compatibilityNarration];
+    return [
+      paths.assemblyManifest,
+      paths.cleanNarration,
+      paths.masteredNarration,
+      paths.compatibilityNarration,
+    ];
   }
   if (stage === "validate") {
     return [paths.qualityGateJson, paths.qualityGateMarkdown];
@@ -1008,8 +1202,22 @@ async function readPronunciationTransforms(
   if (!(await fileExists(paths.pronunciationTransforms))) {
     return new Map();
   }
-  await readRequiredJson(paths.pronunciationTransforms, (value) => value, "Pronunciation transform report");
-  return new Map(manifest.chunks.map((chunk) => [chunk.chunkId, { chunkId: chunk.chunkId, text: chunk.text, textHash: chunk.textHash, appliedEntryIds: [] }]));
+  await readRequiredJson(
+    paths.pronunciationTransforms,
+    (value) => value,
+    "Pronunciation transform report"
+  );
+  return new Map(
+    manifest.chunks.map((chunk) => [
+      chunk.chunkId,
+      {
+        chunkId: chunk.chunkId,
+        text: chunk.text,
+        textHash: chunk.textHash,
+        appliedEntryIds: [],
+      },
+    ])
+  );
 }
 
 async function readCacheRecords(
@@ -1070,7 +1278,7 @@ async function runQualityGate(input: {
     compatibilityOutputStatus:
       input.request.rolloutMode === "shadow"
         ? "skipped"
-        : await fileExists(input.paths.compatibilityNarration)
+        : (await fileExists(input.paths.compatibilityNarration))
           ? "written"
           : "not_written",
     ...(input.pacingSummary ? { pacingSummary: input.pacingSummary } : {}),
@@ -1083,16 +1291,20 @@ async function buildPacingSummary(input: {
   readonly paths: NarrationArtifactPathSet;
   readonly mastering: NarrationMasteringMetadata | null;
 }) {
-  const spoken = await readJsonIfExists(
-    input.paths.spokenTextJson,
-    (value) => spokenNarrationArtifactSchema.parse(value)
+  const spoken = await readJsonIfExists(input.paths.spokenTextJson, (value) =>
+    spokenNarrationArtifactSchema.parse(value)
   );
   if (!spoken || spoken.status !== "completed") {
     return undefined;
   }
-  const targetPath =
-    input.mastering?.status === "completed" &&
-    input.paths.masteredNarration
+  // Once promoted, compatibilityNarration is the selected canonical asset.
+  // Shadow mode must not read a possibly stale compatibility artifact.
+  const promotedNarrationAvailable =
+    input.request.rolloutMode === "new" &&
+    (await fileExists(input.paths.compatibilityNarration));
+  const targetPath = promotedNarrationAvailable
+    ? input.paths.compatibilityNarration
+    : input.mastering?.status === "completed" && input.paths.masteredNarration
       ? input.paths.masteredNarration
       : input.paths.cleanNarration;
   if (!(await fileExists(targetPath))) {
@@ -1100,31 +1312,93 @@ async function buildPacingSummary(input: {
   }
   const probeAudio = input.request.probeAudio ?? probeAudioWithFfprobe;
   const metadata = await probeAudio(targetPath);
+  const measuredAudioPath = path
+    .relative(input.paths.localeVariantRoot, targetPath)
+    .replace(/\\/gu, "/");
+  const measuredAudioHash = await hashFile(targetPath);
   const actualDurationMs = metadata.durationSeconds * 1000;
   const preset = resolveSpeechNarrationPacingPreset(
     input.request.language,
     input.request.variant
   );
-  const assessment = assessNarrationPacing({
+  const veronicaPolicy = input.request.speechRatePolicy;
+  if (veronicaPolicy) {
+    const durationGuidance = getVeronicaScriptLengthGuidance({
+      locale: input.request.locale,
+      variant: input.request.variant,
+    });
+    const targetDurationRangeMs = {
+      minMs: durationGuidance.durationRangeSeconds[0] * 1_000,
+      maxMs: durationGuidance.durationRangeSeconds[1] * 1_000,
+    };
+    const assessment = assessVeronicaSpeechRate({
+      spokenWordCount: spoken.wordCount,
+      audioDurationSeconds: actualDurationMs / 1_000,
+      policy: veronicaPolicy,
+    });
+    const status =
+      assessment.status === "within-target"
+        ? "passed"
+        : assessment.status.startsWith("soft-")
+          ? "warning"
+          : "failed";
+    return {
+      presetId: `veronica-speech-rate-${assessment.policyVersion}`,
+      language: input.request.locale,
+      variant: input.request.variant,
+      wordCount: assessment.spokenWordCount,
+      targetWpm: assessment.targetWpm,
+      expectedDurationMs:
+        estimateVeronicaSpeechDurationSeconds({
+          spokenWordCount: assessment.spokenWordCount,
+          policy: veronicaPolicy,
+        }) * 1_000,
+      warningDurationRangeMs: { minMs: 0, maxMs: Number.MAX_SAFE_INTEGER },
+      failDurationRangeMs: { minMs: 0, maxMs: Number.MAX_SAFE_INTEGER },
+      actualDurationMs,
+      actualWpm: assessment.observedWpm ?? 0,
+      model: input.request.model ?? "gpt-4o-mini-tts",
+      voice: input.request.voice ?? DEFAULT_SPEECH_VOICE,
+      speed: input.request.speed ?? preset.providerSpeed,
+      status,
+      policyVersion: assessment.policyVersion,
+      softMinWpm: assessment.softMinWpm,
+      softMaxWpm: assessment.softMaxWpm,
+      hardMinWpm: assessment.hardMinWpm,
+      hardMaxWpm: assessment.hardMaxWpm,
+      targetDurationRangeMs,
+      durationStatus:
+        actualDurationMs >= targetDurationRangeMs.minMs &&
+        actualDurationMs <= targetDurationRangeMs.maxMs
+          ? "within-target"
+          : "outside-target",
+      speechRateStatus: assessment.status,
+      measuredAudioPath,
+      measuredAudioHash,
+    } as const;
+  }
+  const genericAssessment = assessNarrationPacing({
     language: input.request.language,
     artifactType: input.request.variant,
     wordCount: spoken.wordCount,
     actualDurationMs,
   });
   return {
-    presetId: assessment.presetId,
+    presetId: genericAssessment.presetId,
     language: input.request.locale,
-    variant: assessment.artifactType,
-    wordCount: assessment.wordCount,
-    targetWpm: assessment.targetWpm,
-    expectedDurationMs: assessment.expectedDurationMs,
-    warningDurationRangeMs: assessment.warningDurationRangeMs,
-    failDurationRangeMs: assessment.failDurationRangeMs,
-    actualDurationMs: assessment.actualDurationMs,
-    actualWpm: assessment.actualWpm,
+    variant: genericAssessment.artifactType,
+    wordCount: genericAssessment.wordCount,
+    targetWpm: genericAssessment.targetWpm,
+    expectedDurationMs: genericAssessment.expectedDurationMs,
+    warningDurationRangeMs: genericAssessment.warningDurationRangeMs,
+    failDurationRangeMs: genericAssessment.failDurationRangeMs,
+    actualDurationMs: genericAssessment.actualDurationMs,
+    measuredAudioPath,
+    measuredAudioHash,
+    actualWpm: genericAssessment.actualWpm,
     model: input.request.model ?? "gpt-4o-mini-tts",
     voice: input.request.voice ?? DEFAULT_SPEECH_VOICE,
     speed: input.request.speed ?? preset.providerSpeed,
-    status: assessment.status,
+    status: genericAssessment.status,
   } as const;
 }

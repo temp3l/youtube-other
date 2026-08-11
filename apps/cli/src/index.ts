@@ -144,6 +144,9 @@ import {
   loadSpeechVoiceSettings,
   splitEpisodeScriptMarkdown,
   probeAudioWithFfprobe,
+  assessVeronicaSpeechRate,
+  getVeronicaSpeechRatePolicy,
+  VERONICA_SPEECH_RATE_POLICY_VERSION,
 } from "@mediaforge/speech";
 import {
   assertNarrationTtsConfigured,
@@ -251,8 +254,16 @@ import { createVeronicaImagePromptCompilerComposition } from "./veronica-image-p
 import { buildImageStatusOutput } from "./images-status-output.js";
 import { commandImagesResume } from "./images-resume-command.js";
 import { assertVeronicaPreImageReviewPackCurrent } from "./veronica-pre-image-review-pack.js";
-import { assertPreImageReviewPackCurrent, createPreImageReviewPack, type PreImageReviewGenre } from "./pre-image-review-pack.js";
-import { buildArchitectureReviewPack, runArchitectureReviewPack, type ArchitectureReviewScope } from "./architecture-review-pack.js";
+import {
+  assertPreImageReviewPackCurrent,
+  createPreImageReviewPack,
+  type PreImageReviewGenre,
+} from "./pre-image-review-pack.js";
+import {
+  buildArchitectureReviewPack,
+  runArchitectureReviewPack,
+  type ArchitectureReviewScope,
+} from "./architecture-review-pack.js";
 import { registerImagesSyncSharedCommand } from "./images-sync-shared-command.js";
 import {
   summarizeRemoteStatusJob,
@@ -2075,10 +2086,21 @@ async function commandAudioGenerate(
   assertNarrationTtsConfigured(config);
   const language =
     config.scriptLanguage ?? episodeConfig?.scriptLanguage ?? "en";
+  const episodeGenre =
+    resolveEpisodeGenre(manifest?.sourceMetadata) ?? "dark-truth";
+  const isVeronica =
+    episodeGenre === "veronicabenini" ||
+    episodeGenre === "strategic-reinvention";
   const narrationDependency = await loadValidatedNarrationDependency(
     episodeDir,
     language
   );
+  const veronicaSpeechRatePolicy = isVeronica
+    ? getVeronicaSpeechRatePolicy({
+        locale: language,
+        variant: narrationDependency.variant,
+      })
+    : undefined;
   const audioBaseDir = localizedAudioBaseDir(episodeDir, language);
   const rewrittenChunks =
     manifest?.rewrittenScript?.sections
@@ -2121,22 +2143,32 @@ async function commandAudioGenerate(
       narrationPath,
       segmentsDir,
       segmentCount: chunks.length,
+      ...(veronicaSpeechRatePolicy
+        ? {
+            targetWpm: veronicaSpeechRatePolicy.targetWpm,
+            acceptedWpm: [
+              veronicaSpeechRatePolicy.softMinWpm,
+              veronicaSpeechRatePolicy.softMaxWpm,
+            ],
+          }
+        : {}),
       dryRun: true,
     });
     return;
   }
   const runtime = await loadCliRuntime(options, episodeDir, {
-    genre: resolveEpisodeGenre(manifest?.sourceMetadata) ?? "dark-truth",
+    genre: episodeGenre,
   });
   const speechVoicePreset: SpeechVoicePreset =
     config.speechVoicePreset ?? episodeConfig?.speechVoicePreset ?? "fast";
   const speechSettings = loadSpeechVoiceSettings({
     preset: speechVoicePreset,
     ...(language ? { language } : {}),
-    artifactType: "full",
+    artifactType: narrationDependency.variant,
+    ...(veronicaSpeechRatePolicy
+      ? { paceWpm: veronicaSpeechRatePolicy.targetWpm }
+      : {}),
   });
-  const episodeGenre =
-    resolveEpisodeGenre(manifest?.sourceMetadata) ?? "dark-truth";
   const resolvedTts = resolveTtsConfig({
     genre: episodeGenre,
     provider: config.ttsProvider,
@@ -2260,6 +2292,13 @@ async function commandAudioGenerate(
       totalDurationSeconds > 0
         ? (totalWordCount / totalDurationSeconds) * 60
         : undefined;
+    const speechRateAssessment = veronicaSpeechRatePolicy
+      ? assessVeronicaSpeechRate({
+          spokenWordCount: totalWordCount,
+          audioDurationSeconds: totalDurationSeconds,
+          policy: veronicaSpeechRatePolicy,
+        })
+      : undefined;
     const completeSegmentPaths = segmentPaths.filter(
       (segmentPath): segmentPath is string => segmentPath.length > 0
     );
@@ -2340,6 +2379,7 @@ async function commandAudioGenerate(
       targetWpm: speechSettings.paceWpm,
       totalDurationSeconds,
       estimatedWpm: estimatedWpm ?? null,
+      ...(speechRateAssessment ? { speechRate: speechRateAssessment } : {}),
       generatedAt,
     });
     const ttsProviderMetadata =
@@ -2374,6 +2414,19 @@ async function commandAudioGenerate(
         ? { pacingPresetId: speechSettings.narrationPacingPreset.id }
         : {}),
       targetWpm: speechSettings.paceWpm,
+      ...(speechRateAssessment
+        ? {
+            speechRatePolicyVersion: speechRateAssessment.policyVersion,
+            softMinWpm: speechRateAssessment.softMinWpm,
+            softMaxWpm: speechRateAssessment.softMaxWpm,
+            hardMinWpm: speechRateAssessment.hardMinWpm,
+            hardMaxWpm: speechRateAssessment.hardMaxWpm,
+            ...(speechRateAssessment.observedWpm !== null
+              ? { observedWpm: speechRateAssessment.observedWpm }
+              : {}),
+            speechRateStatus: speechRateAssessment.status,
+          }
+        : {}),
       ...(totalDurationSeconds > 0
         ? { actualDurationSeconds: totalDurationSeconds }
         : {}),
@@ -2428,6 +2481,15 @@ async function commandAudioGenerate(
         ? { pacingPresetId: speechSettings.narrationPacingPreset.id }
         : {}),
       targetWpm: speechSettings.paceWpm,
+      ...(veronicaSpeechRatePolicy
+        ? {
+            speechRatePolicyVersion: VERONICA_SPEECH_RATE_POLICY_VERSION,
+            softMinWpm: veronicaSpeechRatePolicy.softMinWpm,
+            softMaxWpm: veronicaSpeechRatePolicy.softMaxWpm,
+            hardMinWpm: veronicaSpeechRatePolicy.hardMinWpm,
+            hardMaxWpm: veronicaSpeechRatePolicy.hardMaxWpm,
+          }
+        : {}),
       generatedAt,
       failureMessage: error instanceof Error ? error.message : String(error),
     } satisfies TtsGenerationRecord);
@@ -3135,19 +3197,35 @@ async function commandImagesGenerate(
     episodeId
   );
   await assertImageGenerationGate(episodeDir, manifest);
-  if (resolveEpisodeImageMediaContext(manifest.episodeId, manifest).contentGenre === "veronicabenini") {
+  if (
+    resolveEpisodeImageMediaContext(manifest.episodeId, manifest)
+      .contentGenre === "veronicabenini"
+  ) {
     await assertVeronicaPreImageReviewPackCurrent({
       episodeDir,
       language: "en",
-      variant: scenePlan.scenes.some((scene) => scene.aspectRatios.includes("9:16")) ? "short" : "full",
+      variant: scenePlan.scenes.some((scene) =>
+        scene.aspectRatios.includes("9:16")
+      )
+        ? "short"
+        : "full",
     });
   } else {
     const metadata = manifest.sourceMetadata;
-    const genre: PreImageReviewGenre = metadata !== null && typeof metadata === "object" && Reflect.get(metadata, "genre") === "history" ? "history" : "dark-truth";
+    const genre: PreImageReviewGenre =
+      metadata !== null &&
+      typeof metadata === "object" &&
+      Reflect.get(metadata, "genre") === "history"
+        ? "history"
+        : "dark-truth";
     await assertPreImageReviewPackCurrent({
       episodeDir,
       language: "en",
-      variant: scenePlan.scenes.some((scene) => scene.aspectRatios.includes("9:16")) ? "short" : "full",
+      variant: scenePlan.scenes.some((scene) =>
+        scene.aspectRatios.includes("9:16")
+      )
+        ? "short"
+        : "full",
       genre,
     });
   }
@@ -3645,10 +3723,16 @@ async function runAudioNarrationPipeline(
         variant,
         rolloutMode,
       };
+      const veronicaSpeechRatePolicy = isVeronica
+        ? getVeronicaSpeechRatePolicy({ locale: language, variant })
+        : undefined;
       const speechSettings = loadSpeechVoiceSettings({
         preset: speechVoicePreset,
         ...(language ? { language } : {}),
         artifactType: variant,
+        ...(veronicaSpeechRatePolicy
+          ? { paceWpm: veronicaSpeechRatePolicy.targetWpm }
+          : {}),
       });
       try {
         if (narrationStageRequiresTts(stage) && !isVeronica) {
@@ -3686,6 +3770,9 @@ async function runAudioNarrationPipeline(
             : {}),
           outputFormat: "wav",
           baseVoiceInstructions: speechSettings.instructions,
+          ...(veronicaSpeechRatePolicy
+            ? { speechRatePolicy: veronicaSpeechRatePolicy }
+            : {}),
           synthesizeChunk: async (request) => {
             const runtime = await loadTargetRuntime();
             const idMatch = request.chunkId.match(/([0-9]+)$/u);
@@ -3783,17 +3870,27 @@ async function runAudioNarrationPipeline(
               speed: pacing.selectedSpeed,
               outputFormat: "wav",
               baseVoiceInstructions: speechSettings.instructions,
-            });
-            // Promotion changes the canonical media identity even when the
-            // selected attempt misses a legacy target. Reconcile every
-            // downstream timing artifact from that selected WAV now.
-            await reconcileExistingVeronicaProductionTiming({
-              workspaceRoot: path.dirname(episodeDir),
-              episodeId,
-              language: language as "en" | "de" | "es" | "fr" | "pt" | "it",
-              variant: "short",
+              ...(veronicaSpeechRatePolicy
+                ? { speechRatePolicy: veronicaSpeechRatePolicy }
+                : {}),
             });
           }
+        }
+        // Selected audio is the sole post-TTS timing authority. Reconcile both
+        // Veronica variants only after its final selected WAV is available.
+        if (
+          isVeronica &&
+          rolloutMode === "new" &&
+          narrationStageRequiresTts(stage) &&
+          !(commandOptions.dryRun ?? options.dryRun) &&
+          result.exitCode === 0
+        ) {
+          await reconcileExistingVeronicaProductionTiming({
+            workspaceRoot: path.dirname(episodeDir),
+            episodeId,
+            language: language as "en" | "de" | "es" | "fr" | "pt" | "it",
+            variant,
+          });
         }
         results.push(result);
         targetStatuses.push(
@@ -5199,97 +5296,158 @@ architectureCommand
   .option("--profile <full|code|delta>", "pack profile", "full")
   .option("--base <git-ref>", "base revision required by the delta profile")
   .option("--output <directory>", "output directory inside the repository")
-  .option("--max-binary-size <bytes>", "maximum representative binary size in bytes")
+  .option(
+    "--max-binary-size <bytes>",
+    "maximum representative binary size in bytes"
+  )
   .option("--dry-run", "select and report evidence without writing an archive")
   .option("--json", "emit stable machine-readable result")
-  .action(async (options: {
-    profile?: "full" | "code" | "delta";
-    base?: string;
-    output?: string;
-    maxBinarySize?: string;
-    dryRun?: boolean;
-    json?: boolean;
-  }) => {
-    const globalOptions = program.opts<CliOptions>();
-    const dryRun = options.dryRun ?? globalOptions.dryRun;
-    const json = options.json ?? globalOptions.json;
-    const maxBinarySize = options.maxBinarySize === undefined ? undefined : Number.parseInt(options.maxBinarySize, 10);
-    if (maxBinarySize !== undefined && (!Number.isSafeInteger(maxBinarySize) || maxBinarySize < 0)) {
-      throw new Error("--max-binary-size must be a non-negative integer number of bytes.");
+  .action(
+    async (options: {
+      profile?: "full" | "code" | "delta";
+      base?: string;
+      output?: string;
+      maxBinarySize?: string;
+      dryRun?: boolean;
+      json?: boolean;
+    }) => {
+      const globalOptions = program.opts<CliOptions>();
+      const dryRun = options.dryRun ?? globalOptions.dryRun;
+      const json = options.json ?? globalOptions.json;
+      const maxBinarySize =
+        options.maxBinarySize === undefined
+          ? undefined
+          : Number.parseInt(options.maxBinarySize, 10);
+      if (
+        maxBinarySize !== undefined &&
+        (!Number.isSafeInteger(maxBinarySize) || maxBinarySize < 0)
+      ) {
+        throw new Error(
+          "--max-binary-size must be a non-negative integer number of bytes."
+        );
+      }
+      const result = await runArchitectureReviewPack({
+        repositoryRoot: process.cwd(),
+        ...(options.profile !== undefined ? { profile: options.profile } : {}),
+        ...(options.base !== undefined ? { base: options.base } : {}),
+        ...(options.output !== undefined ? { output: options.output } : {}),
+        ...(maxBinarySize !== undefined ? { maxBinarySize } : {}),
+        ...(dryRun !== undefined ? { dryRun } : {}),
+      });
+      if (json) {
+        process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+        return;
+      }
+      process.stdout.write(
+        [
+          `Architecture review pack: ${result.status}`,
+          `Profile: ${result.profile}`,
+          `Content hash: ${result.contentHash}`,
+          `Files: ${result.fileCount}; excluded: ${result.excludedCount}`,
+          ...(result.archive
+            ? [
+                `Archive: ${result.archive}`,
+                `SHA-256: ${result.sha256}`,
+                `Compressed bytes: ${result.compressedBytes}`,
+              ]
+            : []),
+          ...(result.contentUnchanged
+            ? ["Architecture-review content is unchanged from a previous pack."]
+            : []),
+        ].join("\n") + "\n"
+      );
     }
-    const result = await runArchitectureReviewPack({
-      repositoryRoot: process.cwd(),
-      ...(options.profile !== undefined ? { profile: options.profile } : {}),
-      ...(options.base !== undefined ? { base: options.base } : {}),
-      ...(options.output !== undefined ? { output: options.output } : {}),
-      ...(maxBinarySize !== undefined ? { maxBinarySize } : {}),
-      ...(dryRun !== undefined ? { dryRun } : {}),
-    });
-    if (json) {
-      process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
-      return;
-    }
-    process.stdout.write([
-      `Architecture review pack: ${result.status}`,
-      `Profile: ${result.profile}`,
-      `Content hash: ${result.contentHash}`,
-      `Files: ${result.fileCount}; excluded: ${result.excludedCount}`,
-      ...(result.archive ? [`Archive: ${result.archive}`, `SHA-256: ${result.sha256}`, `Compressed bytes: ${result.compressedBytes}`] : []),
-      ...(result.contentUnchanged ? ["Architecture-review content is unchanged from a previous pack."] : []),
-    ].join("\n") + "\n");
-  });
+  );
 
 const auditCommand = program
   .command("audit")
   .description("Source-grounded repository audit utilities");
 auditCommand
   .command("build-review-pack")
-  .description("Build an unpacked and ZIP architecture review pack without provider calls")
-  .option("--scope <scope>", "repository, image, speech, localization, publishing, qa, or episode-pipeline", "repository")
-  .option("--output <directory>", "output directory inside the repository", "artifacts/review-packs")
+  .description(
+    "Build an unpacked and ZIP architecture review pack without provider calls"
+  )
+  .option(
+    "--scope <scope>",
+    "repository, image, speech, localization, publishing, qa, or episode-pipeline",
+    "repository"
+  )
+  .option(
+    "--output <directory>",
+    "output directory inside the repository",
+    "artifacts/review-packs"
+  )
   .option("--zip", "create a ZIP beside the unpacked directory")
-  .option("--max-source-bytes <bytes>", "bounded total bytes for non-mandatory selected evidence")
-  .option("--max-file-bytes <bytes>", "maximum bytes for each non-mandatory selected evidence file")
+  .option(
+    "--max-source-bytes <bytes>",
+    "bounded total bytes for non-mandatory selected evidence"
+  )
+  .option(
+    "--max-file-bytes <bytes>",
+    "maximum bytes for each non-mandatory selected evidence file"
+  )
   .option("--json", "emit stable machine-readable result")
-  .action(async (options: {
-    scope?: string;
-    output?: string;
-    zip?: boolean;
-    maxSourceBytes?: string;
-    maxFileBytes?: string;
-    json?: boolean;
-  }) => {
-    const scopes = new Set<ArchitectureReviewScope>(["repository", "image", "speech", "localization", "publishing", "qa", "episode-pipeline"]);
-    const scope = options.scope ?? "repository";
-    if (!scopes.has(scope as ArchitectureReviewScope)) throw new Error(`Unsupported review-pack scope: ${scope}`);
-    const parseBytes = (value: string | undefined, option: string): number | undefined => {
-      if (value === undefined) return undefined;
-      const parsed = Number.parseInt(value, 10);
-      if (!Number.isSafeInteger(parsed) || parsed < 1) throw new Error(`${option} must be a positive integer number of bytes.`);
-      return parsed;
-    };
-    const maxSourceBytes = parseBytes(options.maxSourceBytes, "--max-source-bytes");
-    const maxFileBytes = parseBytes(options.maxFileBytes, "--max-file-bytes");
-    const result = await buildArchitectureReviewPack({
-      repositoryRoot: process.cwd(),
-      scope: scope as ArchitectureReviewScope,
-      ...(options.output !== undefined ? { output: options.output } : {}),
-      ...(options.zip !== undefined ? { zip: options.zip } : {}),
-      ...(maxSourceBytes !== undefined ? { maxSourceBytes } : {}),
-      ...(maxFileBytes !== undefined ? { maxFileBytes } : {}),
-    });
-    if (options.json ?? program.opts<CliOptions>().json) {
-      process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
-      return;
+  .action(
+    async (options: {
+      scope?: string;
+      output?: string;
+      zip?: boolean;
+      maxSourceBytes?: string;
+      maxFileBytes?: string;
+      json?: boolean;
+    }) => {
+      const scopes = new Set<ArchitectureReviewScope>([
+        "repository",
+        "image",
+        "speech",
+        "localization",
+        "publishing",
+        "qa",
+        "episode-pipeline",
+      ]);
+      const scope = options.scope ?? "repository";
+      if (!scopes.has(scope as ArchitectureReviewScope))
+        throw new Error(`Unsupported review-pack scope: ${scope}`);
+      const parseBytes = (
+        value: string | undefined,
+        option: string
+      ): number | undefined => {
+        if (value === undefined) return undefined;
+        const parsed = Number.parseInt(value, 10);
+        if (!Number.isSafeInteger(parsed) || parsed < 1)
+          throw new Error(
+            `${option} must be a positive integer number of bytes.`
+          );
+        return parsed;
+      };
+      const maxSourceBytes = parseBytes(
+        options.maxSourceBytes,
+        "--max-source-bytes"
+      );
+      const maxFileBytes = parseBytes(options.maxFileBytes, "--max-file-bytes");
+      const result = await buildArchitectureReviewPack({
+        repositoryRoot: process.cwd(),
+        scope: scope as ArchitectureReviewScope,
+        ...(options.output !== undefined ? { output: options.output } : {}),
+        ...(options.zip !== undefined ? { zip: options.zip } : {}),
+        ...(maxSourceBytes !== undefined ? { maxSourceBytes } : {}),
+        ...(maxFileBytes !== undefined ? { maxFileBytes } : {}),
+      });
+      if (options.json ?? program.opts<CliOptions>().json) {
+        process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+        return;
+      }
+      process.stdout.write(
+        [
+          "Architecture review pack: READY",
+          `Directory: ${result.packDirectory}`,
+          ...(result.zipPath ? [`ZIP: ${result.zipPath}`] : []),
+          `Files: ${result.totalFiles}; source: ${result.sourceFilesIncluded}; excluded: ${result.excludedFiles}; truncations: ${result.truncations}`,
+          `Bytes: ${result.totalBytes}${result.zipBytes !== undefined ? `; ZIP bytes: ${result.zipBytes}` : ""}`,
+        ].join("\n") + "\n"
+      );
     }
-    process.stdout.write([
-      "Architecture review pack: READY",
-      `Directory: ${result.packDirectory}`,
-      ...(result.zipPath ? [`ZIP: ${result.zipPath}`] : []),
-      `Files: ${result.totalFiles}; source: ${result.sourceFilesIncluded}; excluded: ${result.excludedFiles}; truncations: ${result.truncations}`,
-      `Bytes: ${result.totalBytes}${result.zipBytes !== undefined ? `; ZIP bytes: ${result.zipBytes}` : ""}`,
-    ].join("\n") + "\n");
-  });
+  );
 
 const transcriptCommand = program
   .command("transcript")
@@ -5535,13 +5693,34 @@ imagesCommand
   .requiredOption("--episode <episode-id>")
   .option("--language <code>", "review language", "en")
   .option("--variant <full|short>", "media variant", "full")
-  .action(async (opts: { episode: string; language: string; variant: "full" | "short" }) => {
-    const { manifest, episodeDir } = await readManifestForEpisode(program.opts<CliOptions>(), opts.episode);
-    const metadata = manifest.sourceMetadata;
-    const genre: PreImageReviewGenre = metadata !== null && typeof metadata === "object" && Reflect.get(metadata, "genre") === "history" ? "history" : "dark-truth";
-    const result = await createPreImageReviewPack({ episodeDir, language: opts.language, variant: opts.variant, genre });
-    process.stdout.write(`Created pre-image review pack: ${result.packDir}\n`);
-  });
+  .action(
+    async (opts: {
+      episode: string;
+      language: string;
+      variant: "full" | "short";
+    }) => {
+      const { manifest, episodeDir } = await readManifestForEpisode(
+        program.opts<CliOptions>(),
+        opts.episode
+      );
+      const metadata = manifest.sourceMetadata;
+      const genre: PreImageReviewGenre =
+        metadata !== null &&
+        typeof metadata === "object" &&
+        Reflect.get(metadata, "genre") === "history"
+          ? "history"
+          : "dark-truth";
+      const result = await createPreImageReviewPack({
+        episodeDir,
+        language: opts.language,
+        variant: opts.variant,
+        genre,
+      });
+      process.stdout.write(
+        `Created pre-image review pack: ${result.packDir}\n`
+      );
+    }
+  );
 imagesCommand
   .command("plan")
   .requiredOption("--episode <episode-id>")
@@ -5941,7 +6120,8 @@ registerHistoryCommands(program, {
       request.outputRoot ?? path.join(process.cwd(), "episodes")
     );
     const runtime = await loadRuntimeConfig({ workspaceDir: outputRoot });
-    const baseUrl = runtime.openAiCompatibleBaseUrl ?? process.env["OPENAI_BASE_URL"];
+    const baseUrl =
+      runtime.openAiCompatibleBaseUrl ?? process.env["OPENAI_BASE_URL"];
     return generateHistoryYoutubeMetadata({
       outputRoot,
       episodeId: request.episodeId,

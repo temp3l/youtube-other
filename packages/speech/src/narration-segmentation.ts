@@ -43,6 +43,9 @@ export interface SegmentNarrationRequest {
   readonly spokenTextHash?: string;
   readonly outputPath?: string;
   readonly createdAt?: string;
+  /** Pre-TTS planning estimate only; selected audio supersedes this duration. */
+  readonly targetWpm?: number;
+  readonly planningWordCountRange?: readonly [number, number];
   readonly config?: NarrationSegmentationConfig;
   readonly logger?: {
     info(value: Record<string, unknown>, message?: string): void;
@@ -80,9 +83,14 @@ const sentenceBoundaryPattern = /(?<=[.!?…]["'»”)]*)\s+/u;
 
 function localeForLanguage(language: string): string {
   const normalized = language.toLowerCase();
-  return normalized === "en" || normalized === "de" || normalized === "es" || normalized === "fr" || normalized === "it" || normalized === "pt"
+  return normalized === "en" ||
+    normalized === "de" ||
+    normalized === "es" ||
+    normalized === "fr" ||
+    normalized === "it" ||
+    normalized === "pt"
     ? normalized
-    : normalized.split("-", 1)[0] ?? normalized;
+    : (normalized.split("-", 1)[0] ?? normalized);
 }
 
 function languageWpm(language: string, variant: NarrationVariant): number {
@@ -133,25 +141,39 @@ function resolvedConfig(
   config: NarrationSegmentationConfig | undefined,
   wpm: number
 ): Required<NarrationSegmentationConfig> {
-  const targetDurationMs = config?.targetDurationMs ?? defaultConfig.targetDurationMs;
+  const targetDurationMs =
+    config?.targetDurationMs ?? defaultConfig.targetDurationMs;
   const maxDurationMs = config?.maxDurationMs ?? defaultConfig.maxDurationMs;
-  const targetWordsPerChunk = config?.targetWordsPerChunk ?? wordsForDuration(targetDurationMs, wpm);
-  const maxWordsPerChunk = config?.maxWordsPerChunk ?? wordsForDuration(maxDurationMs, wpm);
+  const targetWordsPerChunk =
+    config?.targetWordsPerChunk ?? wordsForDuration(targetDurationMs, wpm);
+  const maxWordsPerChunk =
+    config?.maxWordsPerChunk ?? wordsForDuration(maxDurationMs, wpm);
   return {
     mode: config?.mode ?? "deterministic",
     version: config?.version ?? defaultConfig.version,
     minDurationMs: config?.minDurationMs ?? defaultConfig.minDurationMs,
     targetDurationMs,
     maxDurationMs,
-    minWordsPerChunk: config?.minWordsPerChunk ?? wordsForDuration(config?.minDurationMs ?? defaultConfig.minDurationMs, wpm),
+    minWordsPerChunk:
+      config?.minWordsPerChunk ??
+      wordsForDuration(
+        config?.minDurationMs ?? defaultConfig.minDurationMs,
+        wpm
+      ),
     targetWordsPerChunk,
     maxWordsPerChunk,
-    hardMaxWordsPerChunk: config?.hardMaxWordsPerChunk ?? Math.max(maxWordsPerChunk + 20, Math.ceil(maxWordsPerChunk * 1.25)),
+    hardMaxWordsPerChunk:
+      config?.hardMaxWordsPerChunk ??
+      Math.max(maxWordsPerChunk + 20, Math.ceil(maxWordsPerChunk * 1.25)),
     contextWords: config?.contextWords ?? defaultConfig.contextWords,
   };
 }
 
-function packSentenceUnits(sentences: readonly SentenceUnit[], maxWords: number, targetWords: number): ChunkDraft[] {
+function packSentenceUnits(
+  sentences: readonly SentenceUnit[],
+  maxWords: number,
+  targetWords: number
+): ChunkDraft[] {
   const chunks: ChunkDraft[] = [];
   let buffer: SentenceUnit[] = [];
   let bufferWords = 0;
@@ -165,7 +187,10 @@ function packSentenceUnits(sentences: readonly SentenceUnit[], maxWords: number,
   for (const sentence of sentences) {
     const sentenceWords = countSpokenWords(sentence.text);
     const candidateWords = bufferWords + sentenceWords;
-    if (buffer.length > 0 && (candidateWords > maxWords || bufferWords >= targetWords)) {
+    if (
+      buffer.length > 0 &&
+      (candidateWords > maxWords || bufferWords >= targetWords)
+    ) {
       flush();
     }
     buffer.push(sentence);
@@ -175,7 +200,11 @@ function packSentenceUnits(sentences: readonly SentenceUnit[], maxWords: number,
   return chunks;
 }
 
-function preferredParagraphChunks(sentences: readonly SentenceUnit[], maxWords: number, targetWords: number): ChunkDraft[] {
+function preferredParagraphChunks(
+  sentences: readonly SentenceUnit[],
+  maxWords: number,
+  targetWords: number
+): ChunkDraft[] {
   const chunks: ChunkDraft[] = [];
   let paragraphBuffer: SentenceUnit[] = [];
   let paragraphIndex = -1;
@@ -183,7 +212,9 @@ function preferredParagraphChunks(sentences: readonly SentenceUnit[], maxWords: 
     if (paragraphBuffer.length === 0) {
       return;
     }
-    const wordCount = countSpokenWords(paragraphBuffer.map((sentence) => sentence.text).join(" "));
+    const wordCount = countSpokenWords(
+      paragraphBuffer.map((sentence) => sentence.text).join(" ")
+    );
     if (wordCount <= maxWords) {
       chunks.push({ sentences: paragraphBuffer, fallback: false });
     } else {
@@ -202,19 +233,35 @@ function preferredParagraphChunks(sentences: readonly SentenceUnit[], maxWords: 
   return chunks;
 }
 
-function roleForPosition(index: number, total: number, text: string): NarrationRole {
+function roleForPosition(
+  index: number,
+  total: number,
+  text: string
+): NarrationRole {
   const lower = text.toLowerCase();
   if (index === 0) {
     return "hook";
   }
   if (index === total - 1) {
-    return /after|finally|ending|never again|seitdem|finalmente|enfin|por fim/u.test(lower) ? "closing" : "aftermath";
+    return /after|finally|ending|never again|seitdem|finalmente|enfin|por fim/u.test(
+      lower
+    )
+      ? "closing"
+      : "aftermath";
   }
   const ratio = index / Math.max(1, total - 1);
-  if (/found|discovered|saw|realized|gefunden|descubri|trouv|descobriu/u.test(lower)) {
+  if (
+    /found|discovered|saw|realized|gefunden|descubri|trouv|descobriu/u.test(
+      lower
+    )
+  ) {
     return "discovery";
   }
-  if (/but then|suddenly|worse|schlimmer|de pronto|soudain|de repente/u.test(lower)) {
+  if (
+    /but then|suddenly|worse|schlimmer|de pronto|soudain|de repente/u.test(
+      lower
+    )
+  ) {
     return "escalation";
   }
   if (/truth|reveal|secret|wahrheit|verdad|verite|segredo/u.test(lower)) {
@@ -229,7 +276,11 @@ function roleForPosition(index: number, total: number, text: string): NarrationR
   return "climax";
 }
 
-function flowIntentFor(index: number, total: number, text: string): NarrationFlowIntent {
+function flowIntentFor(
+  index: number,
+  total: number,
+  text: string
+): NarrationFlowIntent {
   if (index === total - 1) {
     return "concludes";
   }
@@ -237,7 +288,9 @@ function flowIntentFor(index: number, total: number, text: string): NarrationFlo
 }
 
 function excerpt(text: string, words: number, fromEnd: boolean): string {
-  const parts = normalizeWhitespace(text).split(/\s+/u).filter((part) => part.length > 0);
+  const parts = normalizeWhitespace(text)
+    .split(/\s+/u)
+    .filter((part) => part.length > 0);
   const selected = fromEnd ? parts.slice(-words) : parts.slice(0, words);
   return selected.join(" ");
 }
@@ -248,14 +301,22 @@ function createChunks(
   config: Required<NarrationSegmentationConfig>
 ): NarrationChunk[] {
   return drafts.map((draft, index) => {
-    const text = normalizeWhitespace(draft.sentences.map((sentence) => sentence.text).join(" "));
+    const text = normalizeWhitespace(
+      draft.sentences.map((sentence) => sentence.text).join(" ")
+    );
     const wordCount = countSpokenWords(text);
     const estimatedDurationMs = estimateDurationMs(wordCount, wpm);
     const previous = drafts[index - 1];
     const next = drafts[index + 1];
     const warnings =
-      wordCount > config.maxWordsPerChunk || estimatedDurationMs > config.maxDurationMs
-        ? [{ code: "CHUNK_SOFT_LIMIT_EXCEEDED", message: "Chunk exceeds preferred word or duration limits." }]
+      wordCount > config.maxWordsPerChunk ||
+      estimatedDurationMs > config.maxDurationMs
+        ? [
+            {
+              code: "CHUNK_SOFT_LIMIT_EXCEEDED",
+              message: "Chunk exceeds preferred word or duration limits.",
+            },
+          ]
         : undefined;
     return {
       chunkId: `narr-chunk-${String(index + 1).padStart(3, "0")}`,
@@ -266,8 +327,20 @@ function createChunks(
       estimatedWordCount: wordCount,
       estimatedDurationMs,
       estimatedDurationSeconds: estimatedDurationMs / 1000,
-      previousContextExcerpt: previous ? excerpt(previous.sentences.map((sentence) => sentence.text).join(" "), config.contextWords, true) : "",
-      nextContextExcerpt: next ? excerpt(next.sentences.map((sentence) => sentence.text).join(" "), config.contextWords, false) : "",
+      previousContextExcerpt: previous
+        ? excerpt(
+            previous.sentences.map((sentence) => sentence.text).join(" "),
+            config.contextWords,
+            true
+          )
+        : "",
+      nextContextExcerpt: next
+        ? excerpt(
+            next.sentences.map((sentence) => sentence.text).join(" "),
+            config.contextWords,
+            false
+          )
+        : "",
       sourceParagraphRange: {
         start: draft.sentences[0]?.paragraphIndex ?? 0,
         end: draft.sentences[draft.sentences.length - 1]?.paragraphIndex ?? 0,
@@ -282,10 +355,17 @@ function createChunks(
   });
 }
 
-function validateHardLimits(chunks: readonly NarrationChunk[], config: Required<NarrationSegmentationConfig>): void {
-  const oversized = chunks.find((chunk) => chunk.estimatedWordCount > config.hardMaxWordsPerChunk);
+function validateHardLimits(
+  chunks: readonly NarrationChunk[],
+  config: Required<NarrationSegmentationConfig>
+): void {
+  const oversized = chunks.find(
+    (chunk) => chunk.estimatedWordCount > config.hardMaxWordsPerChunk
+  );
   if (oversized) {
-    throw new Error(`Narration chunk ${oversized.chunkId} exceeds hard word limit.`);
+    throw new Error(
+      `Narration chunk ${oversized.chunkId} exceeds hard word limit.`
+    );
   }
 }
 
@@ -310,15 +390,27 @@ export async function segmentNarration(
   if (sentences.length === 0) {
     throw new Error("Cannot segment empty spoken narration text.");
   }
-  const wpm = languageWpm(request.language, variant);
+  const wpm = request.targetWpm ?? languageWpm(request.language, variant);
+  if (!Number.isFinite(wpm) || wpm <= 0)
+    throw new Error("Narration target WPM must be positive.");
   const config = resolvedConfig(request.config, wpm);
-  let drafts = preferredParagraphChunks(sentences, config.maxWordsPerChunk, config.targetWordsPerChunk);
+  let drafts = preferredParagraphChunks(
+    sentences,
+    config.maxWordsPerChunk,
+    config.targetWordsPerChunk
+  );
   let fallbackUsed = drafts.some((draft) => draft.fallback);
-  let fallbackReason: string | undefined = fallbackUsed ? "paragraph-overflow" : undefined;
+  let fallbackReason: string | undefined = fallbackUsed
+    ? "paragraph-overflow"
+    : undefined;
   try {
     validateHardLimits(createChunks(drafts, wpm, config), config);
   } catch {
-    drafts = packSentenceUnits(sentences, config.maxWordsPerChunk, config.targetWordsPerChunk);
+    drafts = packSentenceUnits(
+      sentences,
+      config.maxWordsPerChunk,
+      config.targetWordsPerChunk
+    );
     fallbackUsed = true;
     fallbackReason = "sentence-packing";
   }
@@ -336,6 +428,12 @@ export async function segmentNarration(
       version: config.version,
       maxWordsPerChunk: config.maxWordsPerChunk,
       targetDurationMs: config.targetDurationMs,
+      ...(request.targetWpm !== undefined
+        ? { targetWpm: request.targetWpm }
+        : {}),
+      ...(request.planningWordCountRange
+        ? { planningWordCountRange: request.planningWordCountRange }
+        : {}),
       fingerprint: configFingerprint,
     },
     chunks,
@@ -358,7 +456,8 @@ export async function segmentNarration(
       chunkCount: chunks.length,
       minEstimatedDurationSeconds: Math.min(...durations),
       maxEstimatedDurationSeconds: Math.max(...durations),
-      avgEstimatedDurationSeconds: durations.reduce((sum, value) => sum + value, 0) / durations.length,
+      avgEstimatedDurationSeconds:
+        durations.reduce((sum, value) => sum + value, 0) / durations.length,
       fallbackUsed,
       fallbackReason,
       manifestFingerprint: manifest.manifestFingerprint,

@@ -5,7 +5,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { sceneIdSchema } from "@mediaforge/domain";
 import { makeWavHeader } from "../wav-analysis.js";
 import { probeAudioWithFfprobe } from "../audio-validation.js";
-import { createProviderNeutralLegacyOpenAiSpeechProvider } from "./legacy-application-adapter.js";
+import {
+  createProviderNeutralLegacyMockSpeechProvider,
+  createProviderNeutralLegacyOpenAiSpeechProvider,
+} from "./legacy-application-adapter.js";
 
 const roots: string[] = [];
 
@@ -87,5 +90,36 @@ describe("provider-neutral legacy file facade", () => {
       sampleRate: 48_000,
       channels: 1,
     });
+  });
+
+  it("preserves target WPM independently from provider speed", async () => {
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "speech-legacy-facade-")
+    );
+    roots.push(root);
+    const outputPath = path.join(root, "policy-paced-output.wav");
+    const provider = createProviderNeutralLegacyMockSpeechProvider();
+
+    const result = await provider.synthesize(
+      {
+        contentProfileId: "dark-truth",
+        sceneId: sceneIdSchema.parse("scene-001"),
+        text: Array.from({ length: 16 }, () => "word").join(" "),
+        voiceProfile: {
+          id: "policy-paced",
+          label: "Policy paced",
+          gender: "neutral",
+          style: "narration",
+          paceWpm: 160,
+          providerVoiceId: "coral",
+        },
+        outputPath,
+        speed: 1.6,
+        dispatchContext: { kind: "legacy-noncreator" },
+      },
+      new AbortController().signal
+    );
+
+    expect(result.durationSeconds).toBeCloseTo(6, 2);
   });
 });

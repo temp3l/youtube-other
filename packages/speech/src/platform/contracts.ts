@@ -39,6 +39,8 @@ export const openAiSpeechProviderConfigurationSchema = z
     voice: boundedString(200),
     instructions: z.string().max(8_000).optional(),
     outputFormat: boundedString(40).optional(),
+    /** Planning/QA metadata only; never derive provider speed from this value. */
+    targetWpm: z.number().finite().positive().max(400).optional(),
     speed: speedSchema.default(1),
     chunking: speechChunkingConfigurationSchema.optional(),
   })

@@ -31,7 +31,10 @@ export interface AudioValidationFinding {
 
 export interface AudioValidationMetrics {
   readonly durationMs?: number;
-  readonly expectedDurationRangeMs?: { readonly minMs: number; readonly maxMs: number };
+  readonly expectedDurationRangeMs?: {
+    readonly minMs: number;
+    readonly maxMs: number;
+  };
   readonly sampleRate?: number;
   readonly channels?: number;
   readonly silencePercentage?: number;
@@ -57,6 +60,8 @@ export interface ValidateChunkAudioRequest {
   readonly expectedText?: string;
   readonly language?: string;
   readonly variant?: NarrationVariant;
+  /** Optional production-policy target; provider speed remains independent. */
+  readonly targetWpm?: number;
   readonly expectedDurationMs?: number;
   readonly requestFingerprint?: string;
   readonly generationFingerprint?: string;
@@ -88,7 +93,10 @@ const ffprobeSchema = z
           .passthrough()
       )
       .optional(),
-    format: z.object({ duration: z.string().optional() }).passthrough().optional(),
+    format: z
+      .object({ duration: z.string().optional() })
+      .passthrough()
+      .optional(),
   })
   .passthrough();
 
@@ -96,14 +104,19 @@ function isPathUnderRoot(root: string, candidate: string): boolean {
   const resolvedRoot = path.resolve(root);
   const resolvedCandidate = path.resolve(candidate);
   const relative = path.relative(resolvedRoot, resolvedCandidate);
-  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+  return (
+    relative === "" ||
+    (!relative.startsWith("..") && !path.isAbsolute(relative))
+  );
 }
 
 function relativePath(root: string, target: string): string {
   return path.relative(root, target).replace(/\\/gu, "/");
 }
 
-export async function probeAudioWithFfprobe(filePath: string): Promise<ProbeAudioMetadata> {
+export async function probeAudioWithFfprobe(
+  filePath: string
+): Promise<ProbeAudioMetadata> {
   const probe = await runCommandJson(
     "ffprobe",
     [
@@ -119,7 +132,9 @@ export async function probeAudioWithFfprobe(filePath: string): Promise<ProbeAudi
     (value: unknown) => ffprobeSchema.parse(value)
   );
   const audio = probe.streams?.find((stream) => stream.codec_type === "audio");
-  const durationSeconds = Number.parseFloat(audio?.duration ?? probe.format?.duration ?? "0");
+  const durationSeconds = Number.parseFloat(
+    audio?.duration ?? probe.format?.duration ?? "0"
+  );
   const sampleRate = Number.parseInt(audio?.sample_rate ?? "", 10);
   return {
     durationSeconds,
@@ -129,14 +144,24 @@ export async function probeAudioWithFfprobe(filePath: string): Promise<ProbeAudi
   };
 }
 
-function languageWpm(language: string | undefined, variant: NarrationVariant | undefined): number {
-  return resolveSpeechNarrationPacingPreset(
-    language ?? "en",
-    variant ?? "full"
-  ).targetWpm;
+function languageWpm(
+  language: string | undefined,
+  variant: NarrationVariant | undefined,
+  targetWpm: number | undefined
+): number {
+  if (targetWpm !== undefined) {
+    if (!Number.isFinite(targetWpm) || targetWpm <= 0) {
+      throw new Error("Target WPM must be a finite positive number.");
+    }
+    return targetWpm;
+  }
+  return resolveSpeechNarrationPacingPreset(language ?? "en", variant ?? "full")
+    .targetWpm;
 }
 
-function expectedRange(expectedDurationMs: number | undefined): { readonly minMs: number; readonly maxMs: number } | undefined {
+function expectedRange(
+  expectedDurationMs: number | undefined
+): { readonly minMs: number; readonly maxMs: number } | undefined {
   if (expectedDurationMs === undefined) {
     return undefined;
   }
@@ -146,7 +171,10 @@ function expectedRange(expectedDurationMs: number | undefined): { readonly minMs
   };
 }
 
-function wavSilenceMetrics(buffer: Buffer, metadata: WavMetadata): {
+function wavSilenceMetrics(
+  buffer: Buffer,
+  metadata: WavMetadata
+): {
   readonly silencePercentage: number;
   readonly leadingSilenceMs: number;
   readonly trailingSilenceMs: number;
@@ -155,19 +183,29 @@ function wavSilenceMetrics(buffer: Buffer, metadata: WavMetadata): {
   const threshold = 256;
   let silentSamples = 0;
   let leading = 0;
-  while (leading < sampleCount && Math.abs(buffer.readInt16LE(metadata.dataOffset + leading * 2)) <= threshold) {
+  while (
+    leading < sampleCount &&
+    Math.abs(buffer.readInt16LE(metadata.dataOffset + leading * 2)) <= threshold
+  ) {
     leading += 1;
   }
   let trailing = 0;
-  while (trailing < sampleCount - leading && Math.abs(buffer.readInt16LE(metadata.dataOffset + (sampleCount - 1 - trailing) * 2)) <= threshold) {
+  while (
+    trailing < sampleCount - leading &&
+    Math.abs(
+      buffer.readInt16LE(metadata.dataOffset + (sampleCount - 1 - trailing) * 2)
+    ) <= threshold
+  ) {
     trailing += 1;
   }
   for (let index = 0; index < sampleCount; index += 1) {
-    if (Math.abs(buffer.readInt16LE(metadata.dataOffset + index * 2)) <= threshold) {
+    if (
+      Math.abs(buffer.readInt16LE(metadata.dataOffset + index * 2)) <= threshold
+    ) {
       silentSamples += 1;
     }
   }
-  const samplesPerMs = metadata.sampleRate * metadata.channels / 1000;
+  const samplesPerMs = (metadata.sampleRate * metadata.channels) / 1000;
   return {
     silencePercentage: silentSamples / Math.max(1, sampleCount),
     leadingSilenceMs: leading / samplesPerMs,
@@ -193,12 +231,13 @@ function addDurationFindings(
     });
     return;
   }
-  const center = (range.minMs / 0.45);
+  const center = range.minMs / 0.45;
   if (Math.abs(durationMs - center) > center * 0.15) {
     findings.push({
       code: "AUDIO_DURATION_DRIFT",
       severity: "warning",
-      message: "Audio duration differs from the expected duration but remains usable.",
+      message:
+        "Audio duration differs from the expected duration but remains usable.",
       measuredValue: durationMs,
       expectedBound: center,
     });
@@ -210,13 +249,14 @@ function addWpmFindings(
   text: string | undefined,
   durationMs: number | undefined,
   language: string | undefined,
-  variant: NarrationVariant | undefined
+  variant: NarrationVariant | undefined,
+  targetWpm: number | undefined
 ): void {
   if (text === undefined || durationMs === undefined || durationMs <= 0) {
     return;
   }
   const wpm = (countSpokenWords(text) / (durationMs / 1000)) * 60;
-  const expected = languageWpm(language, variant);
+  const expected = languageWpm(language, variant, targetWpm);
   if (wpm < 40 || wpm > 360) {
     findings.push({
       code: "AUDIO_WPM_IMPLAUSIBLE",
@@ -236,7 +276,9 @@ function addWpmFindings(
   }
 }
 
-function validationStatus(findings: readonly AudioValidationFinding[]): "passed" | "warning" | "failed" {
+function validationStatus(
+  findings: readonly AudioValidationFinding[]
+): "passed" | "warning" | "failed" {
   if (findings.some((finding) => finding.severity === "error")) {
     return "failed";
   }
@@ -247,11 +289,20 @@ function validationStatus(findings: readonly AudioValidationFinding[]): "passed"
 }
 
 function reportPathFor(request: ValidateChunkAudioRequest): string {
-  return request.outputPath ?? path.join(request.narrationRoot, "chunks", `${request.chunkId}.validation.json`);
+  return (
+    request.outputPath ??
+    path.join(
+      request.narrationRoot,
+      "chunks",
+      `${request.chunkId}.validation.json`
+    )
+  );
 }
 
 function reportAudioPath(root: string, audioPath: string): string {
-  return isPathUnderRoot(root, audioPath) ? relativePath(root, audioPath) : path.basename(audioPath);
+  return isPathUnderRoot(root, audioPath)
+    ? relativePath(root, audioPath)
+    : path.basename(audioPath);
 }
 
 export async function validateChunkAudio(
@@ -262,18 +313,27 @@ export async function validateChunkAudio(
   const metrics: MutableAudioValidationMetrics = { decodable: false };
   let audioHash = hashText("");
 
-  if (!isPathUnderRoot(request.narrationRoot, request.audioPath) || !isPathUnderRoot(request.narrationRoot, outputPath)) {
+  if (
+    !isPathUnderRoot(request.narrationRoot, request.audioPath) ||
+    !isPathUnderRoot(request.narrationRoot, outputPath)
+  ) {
     findings.push({
       code: "AUDIO_PATH_OUTSIDE_ARTIFACT_ROOT",
       severity: "error",
-      message: "Audio validation paths must remain under the narration artifact root.",
+      message:
+        "Audio validation paths must remain under the narration artifact root.",
     });
   } else {
     try {
       await fs.access(request.audioPath);
       audioHash = await hashFile(request.audioPath);
-      const probed = await (request.probeAudio ?? probeAudioWithFfprobe)(request.audioPath);
-      if (!Number.isFinite(probed.durationSeconds) || probed.durationSeconds <= 0) {
+      const probed = await (request.probeAudio ?? probeAudioWithFfprobe)(
+        request.audioPath
+      );
+      if (
+        !Number.isFinite(probed.durationSeconds) ||
+        probed.durationSeconds <= 0
+      ) {
         findings.push({
           code: "AUDIO_DURATION_UNREADABLE",
           severity: "error",
@@ -319,7 +379,14 @@ export async function validateChunkAudio(
         metrics.expectedDurationRangeMs = range;
       }
       addDurationFindings(findings, metrics.durationMs, range);
-      addWpmFindings(findings, request.expectedText, metrics.durationMs, request.language, request.variant);
+      addWpmFindings(
+        findings,
+        request.expectedText,
+        metrics.durationMs,
+        request.language,
+        request.variant,
+        request.targetWpm
+      );
 
       if (path.extname(request.audioPath).toLowerCase() === ".wav") {
         const buffer = await fs.readFile(request.audioPath);
@@ -360,7 +427,8 @@ export async function validateChunkAudio(
         findings.push({
           code: "AUDIO_WAVEFORM_SCAN_SKIPPED",
           severity: "info",
-          message: "Waveform scan skipped because metadata was sufficient for a non-WAV file.",
+          message:
+            "Waveform scan skipped because metadata was sufficient for a non-WAV file.",
         });
       }
     } catch (error) {
@@ -375,8 +443,12 @@ export async function validateChunkAudio(
   const report = narrationChunkValidationReportSchema.parse({
     schemaVersion: NARRATION_ARTIFACT_SCHEMA_VERSION,
     chunkId: request.chunkId,
-    ...(request.requestFingerprint ? { requestFingerprint: request.requestFingerprint } : {}),
-    ...(request.generationFingerprint ? { generationFingerprint: request.generationFingerprint } : {}),
+    ...(request.requestFingerprint
+      ? { requestFingerprint: request.requestFingerprint }
+      : {}),
+    ...(request.generationFingerprint
+      ? { generationFingerprint: request.generationFingerprint }
+      : {}),
     audioPath: reportAudioPath(request.narrationRoot, request.audioPath),
     audioHash,
     validationStatus: validationStatus(findings),
@@ -390,8 +462,12 @@ export async function validateChunkAudio(
       chunkId: request.chunkId,
       validationStatus: report.validationStatus,
       durationMs: report.metrics.durationMs,
-      warningCount: report.findings.filter((finding) => finding.severity === "warning").length,
-      errorCount: report.findings.filter((finding) => finding.severity === "error").length,
+      warningCount: report.findings.filter(
+        (finding) => finding.severity === "warning"
+      ).length,
+      errorCount: report.findings.filter(
+        (finding) => finding.severity === "error"
+      ).length,
     },
     "Validated narration chunk audio."
   );

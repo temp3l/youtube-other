@@ -6,20 +6,36 @@ import { makeWavHeader } from "./wav-analysis.js";
 import { validateChunkAudio } from "./audio-validation.js";
 
 async function createNarrationRoot(): Promise<string> {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-audio-validation-"));
-  const narrationRoot = path.join(root, "009-mary-gloria-the-christmas-doll", "en", "full", "audio", "narration");
+  const root = await fs.mkdtemp(
+    path.join(os.tmpdir(), "mediaforge-audio-validation-")
+  );
+  const narrationRoot = path.join(
+    root,
+    "009-mary-gloria-the-christmas-doll",
+    "en",
+    "full",
+    "audio",
+    "narration"
+  );
   await fs.mkdir(path.join(narrationRoot, "chunks"), { recursive: true });
   return narrationRoot;
 }
 
-async function writeToneWav(filePath: string, durationSeconds: number, sampleRate = 24_000): Promise<void> {
+async function writeToneWav(
+  filePath: string,
+  durationSeconds: number,
+  sampleRate = 24_000
+): Promise<void> {
   const frames = Math.floor(durationSeconds * sampleRate);
   const pcm = Buffer.alloc(frames * 2);
   for (let index = 0; index < frames; index += 1) {
     const sample = Math.round(Math.sin(index * 0.05) * 8_000);
     pcm.writeInt16LE(sample, index * 2);
   }
-  await fs.writeFile(filePath, Buffer.concat([makeWavHeader(sampleRate, 1, 16, pcm.byteLength), pcm]));
+  await fs.writeFile(
+    filePath,
+    Buffer.concat([makeWavHeader(sampleRate, 1, 16, pcm.byteLength), pcm])
+  );
 }
 
 describe("chunk audio validation", () => {
@@ -38,7 +54,12 @@ describe("chunk audio validation", () => {
       expectedDurationMs: 2_700,
       createdAt: "2026-01-02T03:04:05.000Z",
       async probeAudio() {
-        return { durationSeconds: 2, sampleRate: 24_000, channels: 1, codecName: "pcm_s16le" };
+        return {
+          durationSeconds: 2,
+          sampleRate: 24_000,
+          channels: 1,
+          codecName: "pcm_s16le",
+        };
       },
     });
 
@@ -49,9 +70,22 @@ describe("chunk audio validation", () => {
       sampleRate: 24_000,
       channels: 1,
     });
-    expect(report.findings.some((finding) => finding.code === "AUDIO_DURATION_OUTSIDE_HARD_RANGE")).toBe(false);
-    expect(report.findings.map((finding) => finding.severity)).toContain("warning");
-    expect(JSON.parse(await fs.readFile(path.join(narrationRoot, "chunks", "narr-chunk-001.validation.json"), "utf8"))).toEqual(report);
+    expect(
+      report.findings.some(
+        (finding) => finding.code === "AUDIO_DURATION_OUTSIDE_HARD_RANGE"
+      )
+    ).toBe(false);
+    expect(report.findings.map((finding) => finding.severity)).toContain(
+      "warning"
+    );
+    expect(
+      JSON.parse(
+        await fs.readFile(
+          path.join(narrationRoot, "chunks", "narr-chunk-001.validation.json"),
+          "utf8"
+        )
+      )
+    ).toEqual(report);
   });
 
   it("fails safely when a probed path escapes the narration artifact root", async () => {
@@ -73,5 +107,40 @@ describe("chunk audio validation", () => {
     expect(probed).toBe(false);
     expect(report.validationStatus).toBe("failed");
     expect(report.findings[0]?.code).toBe("AUDIO_PATH_OUTSIDE_ARTIFACT_ROOT");
+  });
+
+  it("uses a supplied production-policy WPM instead of the generic locale preset", async () => {
+    const narrationRoot = await createNarrationRoot();
+    const expectedText = Array.from({ length: 100 }, () => "wort").join(" ");
+    const validate = async (chunkId: string, targetWpm?: number) => {
+      const audioPath = path.join(narrationRoot, "chunks", `${chunkId}.wav`);
+      await writeToneWav(audioPath, 1);
+      return validateChunkAudio({
+        chunkId,
+        audioPath,
+        narrationRoot,
+        expectedText,
+        language: "de",
+        variant: "short",
+        ...(targetWpm !== undefined ? { targetWpm } : {}),
+        async probeAudio() {
+          return {
+            durationSeconds: 60,
+            sampleRate: 24_000,
+            channels: 1,
+            codecName: "pcm_s16le",
+          };
+        },
+      });
+    };
+
+    const generic = await validate("narr-chunk-010");
+    const veronica = await validate("narr-chunk-011", 150);
+    expect(generic.findings.map((finding) => finding.code)).toContain(
+      "AUDIO_WPM_UNUSUAL"
+    );
+    expect(veronica.findings.map((finding) => finding.code)).not.toContain(
+      "AUDIO_WPM_UNUSUAL"
+    );
   });
 });

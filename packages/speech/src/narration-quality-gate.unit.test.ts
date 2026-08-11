@@ -16,8 +16,18 @@ import {
 const createdAt = "2026-01-02T03:04:05.000Z";
 
 async function createRoot(): Promise<string> {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), "narration-quality-gate-"));
-  const narrationRoot = path.join(root, "009-mary-gloria-the-christmas-doll", "locales", "en", "full", "audio", "narration");
+  const root = await fs.mkdtemp(
+    path.join(os.tmpdir(), "narration-quality-gate-")
+  );
+  const narrationRoot = path.join(
+    root,
+    "009-mary-gloria-the-christmas-doll",
+    "locales",
+    "en",
+    "full",
+    "audio",
+    "narration"
+  );
   await fs.mkdir(narrationRoot, { recursive: true });
   return narrationRoot;
 }
@@ -52,7 +62,9 @@ function manifest(): NarrationChunkManifest {
   return { ...base, manifestFingerprint: hashText(JSON.stringify(base)) };
 }
 
-function validation(status: "passed" | "warning" | "failed" = "passed"): NarrationChunkValidationReport {
+function validation(
+  status: "passed" | "warning" | "failed" = "passed"
+): NarrationChunkValidationReport {
   return {
     schemaVersion: NARRATION_ARTIFACT_SCHEMA_VERSION,
     chunkId: "narr-chunk-001",
@@ -67,7 +79,16 @@ function validation(status: "passed" | "warning" | "failed" = "passed"): Narrati
       channels: 1,
       decodable: true,
     },
-    findings: status === "warning" ? [{ code: "AUDIO_DURATION_DRIFT", severity: "warning", message: "duration drift" }] : [],
+    findings:
+      status === "warning"
+        ? [
+            {
+              code: "AUDIO_DURATION_DRIFT",
+              severity: "warning",
+              message: "duration drift",
+            },
+          ]
+        : [],
     createdAt,
   };
 }
@@ -98,7 +119,9 @@ function assembly(source: NarrationChunkManifest): NarrationAssemblyManifest {
   };
 }
 
-function mastering(status: "completed" | "failed" = "completed"): NarrationMasteringMetadata {
+function mastering(
+  status: "completed" | "failed" = "completed"
+): NarrationMasteringMetadata {
   return {
     schemaVersion: NARRATION_ARTIFACT_SCHEMA_VERSION,
     inputPath: "clean-narration.wav",
@@ -106,7 +129,12 @@ function mastering(status: "completed" | "failed" = "completed"): NarrationMaste
     masteringProfileName: "render-ready",
     masteringProfileVersion: "mastering-render-ready-v1",
     masteringConfigurationFingerprint: hashText("mastering-config"),
-    ...(status === "completed" ? { outputPath: "mastered-narration.wav", outputHash: hashText("mastered") } : {}),
+    ...(status === "completed"
+      ? {
+          outputPath: "mastered-narration.wav",
+          outputHash: hashText("mastered"),
+        }
+      : {}),
     inputDurationMs: 1_000,
     ...(status === "completed" ? { outputDurationMs: 1_000 } : {}),
     targetLoudnessLufs: -16,
@@ -119,7 +147,10 @@ function mastering(status: "completed" | "failed" = "completed"): NarrationMaste
   };
 }
 
-function pacing(status: "passed" | "warning" | "failed" = "passed"): NarrationPacingSummary {
+function pacing(
+  status: "passed" | "warning" | "failed" = "passed",
+  durationStatus?: "within-target" | "outside-target"
+): NarrationPacingSummary {
   return {
     presetId: "dark-truth-en-full-pace-v1",
     language: "en",
@@ -137,6 +168,12 @@ function pacing(status: "passed" | "warning" | "failed" = "passed"): NarrationPa
     voice: "onyx",
     speed: 1.12,
     status,
+    ...(durationStatus
+      ? {
+          targetDurationRangeMs: { minMs: 570_000, maxMs: 630_000 },
+          durationStatus,
+        }
+      : {}),
   };
 }
 
@@ -146,13 +183,15 @@ async function gate(input: {
   readonly masteringStatus?: "completed" | "failed";
   readonly fallbackUsed?: boolean;
   readonly pacingStatus?: "passed" | "warning" | "failed";
+  readonly durationStatus?: "within-target" | "outside-target";
 }) {
   const narrationRoot = await createRoot();
   const chunkManifest = manifest();
   return runNarrationQualityGate({
     chunkManifest,
     validationReports: [validation(input.validationStatus)],
-    assemblyManifest: input.includeAssembly === false ? undefined : assembly(chunkManifest),
+    assemblyManifest:
+      input.includeAssembly === false ? undefined : assembly(chunkManifest),
     masteringMetadata: mastering(input.masteringStatus),
     cleanNarrationPath: path.join(narrationRoot, "clean-narration.wav"),
     masteredNarrationPath: path.join(narrationRoot, "mastered-narration.wav"),
@@ -162,7 +201,14 @@ async function gate(input: {
     compatibilityOutputStatus: "written",
     fallbackUsed: input.fallbackUsed,
     fallbackReasons: input.fallbackUsed ? ["provider retry"] : [],
-    ...(input.pacingStatus ? { pacingSummary: pacing(input.pacingStatus) } : {}),
+    ...(input.pacingStatus || input.durationStatus
+      ? {
+          pacingSummary: pacing(
+            input.pacingStatus ?? "passed",
+            input.durationStatus
+          ),
+        }
+      : {}),
     createdAt,
   });
 }
@@ -191,7 +237,9 @@ describe("narration quality gate", () => {
     const report = await gate({ validationStatus: "failed" });
 
     expect(report.outcome).toBe("REGENERATION_RECOMMENDED");
-    expect(report.checks.map((item) => item.code)).toContain("VALIDATION_FAILED");
+    expect(report.checks.map((item) => item.code)).toContain(
+      "VALIDATION_FAILED"
+    );
   });
 
   it("returns REGENERATION_RECOMMENDED when narration pacing is outside the hard range", async () => {
@@ -202,6 +250,21 @@ describe("narration quality gate", () => {
       "NARRATION_PACING_FAILED"
     );
     expect(report.pacing?.status).toBe("failed");
+  });
+
+  it("reports selected-audio runtime independently from speech-rate status", async () => {
+    const report = await gate({
+      pacingStatus: "passed",
+      durationStatus: "outside-target",
+    });
+
+    expect(report.outcome).toBe("READY_WITH_WARNINGS");
+    expect(report.checks.map((item) => item.code)).toContain(
+      "NARRATION_DURATION_WARNING"
+    );
+    expect(report.checks.map((item) => item.code)).not.toContain(
+      "NARRATION_PACING_WARNING"
+    );
   });
 
   it("returns BLOCKED for missing assembly and persists JSON plus Markdown", async () => {
@@ -221,7 +284,11 @@ describe("narration quality gate", () => {
     });
 
     expect(report.outcome).toBe("BLOCKED");
-    expect(JSON.parse(await fs.readFile(jsonPath, "utf8"))).toMatchObject({ outcome: "BLOCKED" });
-    expect(await fs.readFile(markdownPath, "utf8")).toContain("Outcome: BLOCKED");
+    expect(JSON.parse(await fs.readFile(jsonPath, "utf8"))).toMatchObject({
+      outcome: "BLOCKED",
+    });
+    expect(await fs.readFile(markdownPath, "utf8")).toContain(
+      "Outcome: BLOCKED"
+    );
   });
 });

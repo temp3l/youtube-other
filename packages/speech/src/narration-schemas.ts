@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-export const NARRATION_ARTIFACT_SCHEMA_VERSION = "narration-artifact-v1" as const;
+export const NARRATION_ARTIFACT_SCHEMA_VERSION =
+  "narration-artifact-v1" as const;
 
 const sha256Pattern = /^[a-f0-9]{64}$/u;
 const episodeIdPattern = /^[a-z0-9][a-z0-9-]{2,127}$/u;
@@ -9,7 +10,8 @@ const portablePathPattern = /^(?!\/)(?!.*(?:^|\/)\.\.?(?:\/|$))(?!.*\/\/).+$/u;
 const chunkIdPattern = /^narr-chunk-[0-9]{3,}$/u;
 const codePattern = /^[A-Z][A-Z0-9_:-]{1,63}$/u;
 const identifierPattern = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/u;
-const secretKeyPattern = /(?:api[_-]?key|authorization|bearer|token|secret|password|credential)/iu;
+const secretKeyPattern =
+  /(?:api[_-]?key|authorization|bearer|token|secret|password|credential)/iu;
 
 const boundedString = (max: number) => z.string().min(1).max(max);
 const optionalNote = z.string().max(1000).optional();
@@ -24,7 +26,12 @@ const nonNegativeIntegerSchema = z.number().int().nonnegative();
 const nonNegativeNumberSchema = z.number().finite().nonnegative();
 const positiveNumberSchema = z.number().finite().positive();
 const unitIntervalSchema = z.number().finite().min(0).max(1);
-const artifactStatusSchema = z.enum(["pending", "completed", "failed", "skipped"]);
+const artifactStatusSchema = z.enum([
+  "pending",
+  "completed",
+  "failed",
+  "skipped",
+]);
 const checkStatusSchema = z.enum(["passed", "warning", "failed", "skipped"]);
 
 export const narrationRoleSchema = z.enum([
@@ -62,7 +69,13 @@ export const narrationMoodSchema = z.enum([
 ]);
 export type NarrationMood = z.infer<typeof narrationMoodSchema>;
 
-export const narrationPaceSchema = z.enum(["slow", "measured", "normal", "brisk", "fast"]);
+export const narrationPaceSchema = z.enum([
+  "slow",
+  "measured",
+  "normal",
+  "brisk",
+  "fast",
+]);
 export type NarrationPace = z.infer<typeof narrationPaceSchema>;
 
 export const narrationFlowIntentSchema = z.enum([
@@ -82,7 +95,9 @@ export const narrationQualityOutcomeSchema = z.enum([
   "REGENERATION_RECOMMENDED",
   "BLOCKED",
 ]);
-export type NarrationQualityOutcome = z.infer<typeof narrationQualityOutcomeSchema>;
+export type NarrationQualityOutcome = z.infer<
+  typeof narrationQualityOutcomeSchema
+>;
 
 export const narrationVariantSchema = z.enum(["full", "short"]);
 export type NarrationVariant = z.infer<typeof narrationVariantSchema>;
@@ -93,9 +108,16 @@ export const narrationGenerationStatusSchema = z.enum([
   "failed",
   "skipped",
 ]);
-export type NarrationGenerationStatus = z.infer<typeof narrationGenerationStatusSchema>;
+export type NarrationGenerationStatus = z.infer<
+  typeof narrationGenerationStatusSchema
+>;
 
-export const narrationCacheStatusSchema = z.enum(["hit", "miss", "bypass", "stale"]);
+export const narrationCacheStatusSchema = z.enum([
+  "hit",
+  "miss",
+  "bypass",
+  "stale",
+]);
 export type NarrationCacheStatus = z.infer<typeof narrationCacheStatusSchema>;
 
 const artifactReferenceSchema = z
@@ -221,7 +243,8 @@ export const spokenNarrationArtifactSchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["sourceStoryPath"],
-        message: "A source story path or source artifact reference is required.",
+        message:
+          "A source story path or source artifact reference is required.",
       });
     }
     if (value.status === "failed" && value.failureMessage === undefined) {
@@ -232,7 +255,9 @@ export const spokenNarrationArtifactSchema = z
       });
     }
   });
-export type SpokenNarrationArtifact = z.infer<typeof spokenNarrationArtifactSchema>;
+export type SpokenNarrationArtifact = z.infer<
+  typeof spokenNarrationArtifactSchema
+>;
 
 const narrationChunkSchema = z
   .object({
@@ -268,6 +293,10 @@ export const narrationChunkManifestSchema = z
         version: boundedString(80),
         maxWordsPerChunk: nonNegativeIntegerSchema.optional(),
         targetDurationMs: nonNegativeNumberSchema.optional(),
+        targetWpm: positiveNumberSchema.optional(),
+        planningWordCountRange: z
+          .tuple([nonNegativeNumberSchema, nonNegativeNumberSchema])
+          .optional(),
         fingerprint: sha256Schema.optional(),
       })
       .strict(),
@@ -301,7 +330,9 @@ export const narrationChunkManifestSchema = z
       });
     }
   });
-export type NarrationChunkManifest = z.infer<typeof narrationChunkManifestSchema>;
+export type NarrationChunkManifest = z.infer<
+  typeof narrationChunkManifestSchema
+>;
 
 const pronunciationGuidanceReferenceSchema = z
   .object({
@@ -338,7 +369,13 @@ export const narrationDirectionSetSchema = z
   .object({
     schemaVersion: z.literal(NARRATION_ARTIFACT_SCHEMA_VERSION),
     manifestFingerprint: sha256Schema,
-    plannerMode: z.enum(["deterministic", "openai", "openai-assisted", "manual", "fallback"]),
+    plannerMode: z.enum([
+      "deterministic",
+      "openai",
+      "openai-assisted",
+      "manual",
+      "fallback",
+    ]),
     plannerVersion: boundedString(80),
     promptVersion: boundedString(80).optional(),
     schemaVersionFingerprint: sha256Schema.optional(),
@@ -352,7 +389,9 @@ export const narrationDirectionSetSchema = z
   })
   .strict()
   .superRefine((value, ctx) => {
-    if (!uniqueStrings(value.directions.map((direction) => direction.chunkId))) {
+    if (
+      !uniqueStrings(value.directions.map((direction) => direction.chunkId))
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["directions"],
@@ -390,7 +429,12 @@ const pronunciationSkippedEntrySchema = z
   })
   .strict();
 
-const pronunciationScopeSchema = z.enum(["global", "language", "profile", "episode"]);
+const pronunciationScopeSchema = z.enum([
+  "global",
+  "language",
+  "profile",
+  "episode",
+]);
 const pronunciationLiteralSchema = z
   .string()
   .min(1)
@@ -451,7 +495,9 @@ export const pronunciationDictionarySchema = z
       });
     }
   });
-export type PronunciationDictionary = z.infer<typeof pronunciationDictionarySchema>;
+export type PronunciationDictionary = z.infer<
+  typeof pronunciationDictionarySchema
+>;
 
 /** Audit report for TTS-only pronunciation text transformations. */
 export const pronunciationTransformationReportSchema = z
@@ -460,7 +506,9 @@ export const pronunciationTransformationReportSchema = z
     sourceManifestFingerprint: sha256Schema,
     dictionaryFingerprint: sha256Schema,
     language: localeSchema,
-    appliedTransformations: z.array(pronunciationTransformationSchema).max(5000),
+    appliedTransformations: z
+      .array(pronunciationTransformationSchema)
+      .max(5000),
     collisions: z.array(pronunciationCollisionSchema).max(500),
     skippedEntries: z.array(pronunciationSkippedEntrySchema).max(1000),
     warnings: z.array(warningSchema).max(100),
@@ -512,11 +560,15 @@ export const narrationChunkGenerationRecordSchema = z
   })
   .strict()
   .superRefine((value, ctx) => {
-    if (value.status === "completed" && (value.outputPath === undefined || value.outputHash === undefined)) {
+    if (
+      value.status === "completed" &&
+      (value.outputPath === undefined || value.outputHash === undefined)
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["outputHash"],
-        message: "Completed generation records require output path and output hash.",
+        message:
+          "Completed generation records require output path and output hash.",
       });
     }
     if (!validateStartedCompletedOrder(value.startedAt, value.completedAt)) {
@@ -531,7 +583,11 @@ export type NarrationChunkGenerationRecord = z.infer<
   typeof narrationChunkGenerationRecordSchema
 >;
 
-const measuredValueSchema = z.union([z.number().finite(), z.boolean(), boundedString(120)]);
+const measuredValueSchema = z.union([
+  z.number().finite(),
+  z.boolean(),
+  boundedString(120),
+]);
 
 const validationFindingSchema = z
   .object({
@@ -598,7 +654,11 @@ const assemblyEntrySchema = z
     retainedTrailingSilenceMs: nonNegativeNumberSchema,
     insertedPauseMs: nonNegativeNumberSchema,
     crossfade: crossfadeSettingsSchema.optional(),
-    validationAcceptanceStatus: z.enum(["accepted", "accepted_with_warnings", "rejected"]),
+    validationAcceptanceStatus: z.enum([
+      "accepted",
+      "accepted_with_warnings",
+      "rejected",
+    ]),
   })
   .strict();
 
@@ -640,7 +700,9 @@ export const narrationAssemblyManifestSchema = z
       });
     }
   });
-export type NarrationAssemblyManifest = z.infer<typeof narrationAssemblyManifestSchema>;
+export type NarrationAssemblyManifest = z.infer<
+  typeof narrationAssemblyManifestSchema
+>;
 
 /** Mastered narration audio metadata and reproducibility inputs. */
 export const narrationMasteringMetadataSchema = z
@@ -668,15 +730,21 @@ export const narrationMasteringMetadataSchema = z
   })
   .strict()
   .superRefine((value, ctx) => {
-    if (value.status === "completed" && (value.outputPath === undefined || value.outputHash === undefined)) {
+    if (
+      value.status === "completed" &&
+      (value.outputPath === undefined || value.outputHash === undefined)
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["outputHash"],
-        message: "Completed mastering metadata requires output path and output hash.",
+        message:
+          "Completed mastering metadata requires output path and output hash.",
       });
     }
   });
-export type NarrationMasteringMetadata = z.infer<typeof narrationMasteringMetadataSchema>;
+export type NarrationMasteringMetadata = z.infer<
+  typeof narrationMasteringMetadataSchema
+>;
 
 const qualityGateCheckSchema = z
   .object({
@@ -709,6 +777,25 @@ const narrationPacingSummarySchema = z
     failDurationRangeMs: durationRangeMsSchema,
     actualDurationMs: nonNegativeNumberSchema,
     actualWpm: nonNegativeNumberSchema,
+    policyVersion: boundedString(120).optional(),
+    softMinWpm: positiveNumberSchema.optional(),
+    softMaxWpm: positiveNumberSchema.optional(),
+    hardMinWpm: positiveNumberSchema.optional(),
+    hardMaxWpm: positiveNumberSchema.optional(),
+    targetDurationRangeMs: durationRangeMsSchema.optional(),
+    durationStatus: z.enum(["within-target", "outside-target"]).optional(),
+    measuredAudioPath: pathSchema.optional(),
+    measuredAudioHash: sha256Schema.optional(),
+    speechRateStatus: z
+      .enum([
+        "within-target",
+        "soft-low",
+        "soft-high",
+        "hard-low",
+        "hard-high",
+        "unavailable",
+      ])
+      .optional(),
     model: boundedString(120),
     voice: boundedString(120),
     speed: positiveNumberSchema.min(0.25).max(4),
@@ -732,7 +819,12 @@ export const narrationQualityGateReportSchema = z
     warningCount: nonNegativeIntegerSchema,
     errorCount: nonNegativeIntegerSchema,
     fallbackSummary: fallbackSummarySchema,
-    compatibilityOutputStatus: z.enum(["not_written", "written", "failed", "skipped"]),
+    compatibilityOutputStatus: z.enum([
+      "not_written",
+      "written",
+      "failed",
+      "skipped",
+    ]),
     cleanNarrationPath: pathSchema,
     masteredNarrationPath: pathSchema.optional(),
     pacing: narrationPacingSummarySchema.optional(),
@@ -741,8 +833,12 @@ export const narrationQualityGateReportSchema = z
   })
   .strict()
   .superRefine((value, ctx) => {
-    const warningCount = value.checks.filter((check) => check.severity === "warning").length;
-    const errorCount = value.checks.filter((check) => check.severity === "error").length;
+    const warningCount = value.checks.filter(
+      (check) => check.severity === "warning"
+    ).length;
+    const errorCount = value.checks.filter(
+      (check) => check.severity === "error"
+    ).length;
     if (value.warningCount !== warningCount) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -761,11 +857,14 @@ export const narrationQualityGateReportSchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["outcome"],
-        message: "READY quality reports must not contain error-severity checks.",
+        message:
+          "READY quality reports must not contain error-severity checks.",
       });
     }
   });
-export type NarrationQualityGateReport = z.infer<typeof narrationQualityGateReportSchema>;
+export type NarrationQualityGateReport = z.infer<
+  typeof narrationQualityGateReportSchema
+>;
 
 const languageOverrideSchema = z
   .object({
@@ -810,7 +909,9 @@ const chunkingConfigurationSchema = z
     }
   });
 
-const safeIdentifierArraySchema = z.array(z.string().regex(identifierPattern)).max(100);
+const safeIdentifierArraySchema = z
+  .array(z.string().regex(identifierPattern))
+  .max(100);
 
 /** Whitelisted non-secret configuration snapshot for reproducible narration runs. */
 export const narrationConfigurationSnapshotSchema = z
@@ -829,8 +930,14 @@ export const narrationConfigurationSnapshotSchema = z
     chunking: chunkingConfigurationSchema,
     instructionProfileIds: safeIdentifierArraySchema,
     masteringProfileId: z.string().regex(identifierPattern),
-    schemaVersions: z.record(z.string().regex(identifierPattern), boundedString(80)),
-    promptVersions: z.record(z.string().regex(identifierPattern), boundedString(80)),
+    schemaVersions: z.record(
+      z.string().regex(identifierPattern),
+      boundedString(80)
+    ),
+    promptVersions: z.record(
+      z.string().regex(identifierPattern),
+      boundedString(80)
+    ),
     snapshotFingerprint: sha256Schema,
     createdAt: isoTimestampSchema,
   })
@@ -840,7 +947,8 @@ export const narrationConfigurationSnapshotSchema = z
     if (secretKeyPattern.test(json)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Configuration snapshots must not contain secret-bearing keys or values.",
+        message:
+          "Configuration snapshots must not contain secret-bearing keys or values.",
       });
     }
   });
@@ -936,6 +1044,8 @@ export const narrationGenerationMetadataSchema = z
       });
     }
   });
-export type NarrationGenerationMetadata = z.infer<typeof narrationGenerationMetadataSchema>;
+export type NarrationGenerationMetadata = z.infer<
+  typeof narrationGenerationMetadataSchema
+>;
 
 export type NarrationWarning = z.infer<typeof warningSchema>;
