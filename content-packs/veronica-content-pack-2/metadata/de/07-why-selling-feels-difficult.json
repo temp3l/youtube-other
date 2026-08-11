@@ -1,6 +1,6 @@
 {
   "title": "Warum sich Verkaufen so schwierig anfühlt",
-  "thumbnail": "WARUM FÜHLT SICH VERKAUF FALSCH AN?",
+  "thumbnail": "WARUM BLOCKIERT DER PREIS?",
   "description": "Unsicherheit bei Geld, Preis und Follow-up beeinflusst das Geschäft direkt. Dieses Video trennt Überzeugung von Zwang und macht Verkauf zu einem strukturierten, messbaren und respektvollen Prozess.",
   "cta": "In der nächsten Folge bauen wir aus Verkauf ein System aus Discovery, Kontakt und Follow-up, ohne jedem hinterherzulaufen.",
   "alternativeTitles": [
@@ -8,11 +8,11 @@
     "Verkaufen ohne Manipulation: ein besserer Prozess"
   ],
   "thumbnailOptions": [
+    "WARUM BLOCKIERT DER PREIS?",
     "WARUM FÜHLT SICH VERKAUF FALSCH AN?",
-    "WARUM IST PREIS SO UNANGENEHM?",
-    "VERKAUF OHNE DRUCK"
+    "WARUM IST PREIS SO UNANGENEHM?"
   ],
-  "youtubeOptimizationVersion": "v2-retention-localization",
+  "youtubeOptimizationVersion": "v4-editorial-continuity-remediation",
   "packagingQA": {
     "titlePromiseAligned": true,
     "nativeLanguageCTA": true,

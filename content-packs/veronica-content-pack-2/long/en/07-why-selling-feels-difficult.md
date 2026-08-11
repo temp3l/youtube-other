@@ -1,12 +1,10 @@
 If you want more sales but your voice changes the moment you have to say the price, this is not only a sales-technique problem. Discomfort around money, judgment, and rejection enters directly into decisions: discounting too early, avoiding follow-up, giving away value, and never clearly asking for the purchase. Here we separate healthy persuasion from pressure and turn an emotional moment into a process you can prepare.
 
-Or ask someone to buy.
+Notice where the discomfort appears: saying the price, asking for the sale, following up, or speaking openly about money. Those moments are related, but they are not identical.
 
-Or speak openly about money.
+Separate discomfort from ethics. The feeling can be real even when the sale is fair. Your job is to make the process clear enough that neither you nor the customer has to rely on pressure or improvisation.
 
-That is not a small psychological detail.
-
-If you run a business, that tension enters directly into how you present the offer, follow up, price, negotiate, and make decisions.
+That feeling is not a small psychological detail. If you run a business, it enters directly into pricing, follow-up, negotiation, and whether you ask clearly for a decision.
 
 Money carries an enormous amount of cultural meaning.
 
@@ -174,35 +172,7 @@ Selling is not an embarrassing accident that happens after marketing.
 
 It is the point where a business turns value into economic exchange.
 
-You can see your relationship with selling in small daily decisions.
-
-How long do you wait before saying the price?
-
-How often do you add something for free because you are afraid the existing offer is not enough?
-
-How quickly do you discount when someone hesitates?
-
-How often do you avoid a follow-up because you do not want to look pushy?
-
-Those can look like sales-technique problems.
-
-Sometimes they are signals of how money and fear of judgment are entering the process.
-
-That is another reason measurement helps.
-
-Revenue.
-
-Costs.
-
-Margin.
-
-Targets.
-
-Not because numbers magically remove fear, but because they turn money into something observable.
-
-When you refuse to look, it can become vague and threatening.
-
-When you measure it, it can become a decision tool.
+Watch four behaviors: delaying the price, adding free extras, discounting at the first hesitation, and avoiding follow-up. They are useful diagnostics because they show where discomfort enters the process. Measure revenue, margin, and targets too—not to remove fear, but to turn money from a vague judgment into observable business information.
 
 There is also a simple distinction between a hobby and a business.
 

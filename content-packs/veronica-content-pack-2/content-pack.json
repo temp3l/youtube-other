@@ -1,11 +1,12 @@
 {
   "packId": "veronica-content-pack-2",
-  "version": "v2-youtube-optimized-restructured",
+  "version": "v4-editorial-continuity-remediation",
   "languages": [
     "it",
     "en",
     "de",
     "es",
+    "fr",
     "pt"
   ],
   "localeMap": {
@@ -13,13 +14,14 @@
     "en": "en-US",
     "de": "de-DE",
     "es": "es-ES",
+    "fr": "fr-FR",
     "pt": "pt-BR"
   },
   "counts": {
     "longPerLanguage": 8,
     "shortsPerLanguage": 16,
-    "totalLong": 40,
-    "totalShorts": 80
+    "totalLong": 48,
+    "totalShorts": 96
   },
   "timingTargets": {
     "longSeconds": [
@@ -30,17 +32,37 @@
       60,
       90
     ],
-    "englishShortsWpm": {
-      "target": 155,
-      "preferred": [
-        145,
-        165
+    "centralWpm": {
+      "long": {
+        "en": 150,
+        "es": 150,
+        "it": 150,
+        "fr": 150,
+        "pt": 150,
+        "de": 145
+      },
+      "shorts": {
+        "en": 155,
+        "es": 155,
+        "it": 155,
+        "fr": 155,
+        "pt": 155,
+        "de": 150
+      }
+    },
+    "timingAuthority": "selected-audio",
+    "scriptPlanningRule": "word-count / central WPM is pre-TTS planning only; selected audio duration is canonical for production QA",
+    "scriptPlanningGuardSeconds": {
+      "long": [
+        580,
+        620
       ],
-      "soft": [
-        135,
-        175
+      "shorts": [
+        65,
+        85
       ]
-    }
+    },
+    "scriptPlanningGuardRule": "internal pre-TTS guard only; public acceptance remains 9:30–10:30 long and 1:00–1:30 shorts; selected audio is canonical"
   },
   "long": {
     "osc-01": "01-a-good-business-starts-with-the-right-business-model",
@@ -70,5 +92,13 @@
     "osc-08-a": "08a-stop-chasing-customers",
     "osc-08-b": "08b-prospecting-without-being-annoying"
   },
-  "mockAudio": true
+  "mockAudio": false,
+  "mockAudioCanonical": false,
+  "audioIncluded": false,
+  "productionStatus": "SCRIPT_PRODUCTION_READY_SELECTED_AUDIO_PENDING",
+  "editorialGate": {
+    "minimumStoryScore": 9.5,
+    "status": "PASS",
+    "continuityLintRequired": true
+  }
 }

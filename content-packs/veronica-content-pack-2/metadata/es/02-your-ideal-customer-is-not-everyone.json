@@ -1,6 +1,6 @@
 {
-  "title": "Tu cliente ideal no es «todo el mundo»",
-  "thumbnail": "NO ES PARA TODOS",
+  "title": "El test de buyer persona que sí cambia tu marketing",
+  "thumbnail": "¿CAMBIA UNA DECISIÓN?",
   "description": "Si tu público es “cualquiera que podría comprar”, tu problema todavía no es la publicidad: es la definición. Este episodio convierte necesidad, contexto, canales y comportamiento real en decisiones de marketing útiles.",
   "cta": "En el próximo episodio: qué compra realmente el cliente más allá del producto.",
   "alternativeTitles": [
@@ -8,11 +8,11 @@
     "El test de buyer persona que sí cambia tu marketing"
   ],
   "thumbnailOptions": [
+    "¿CAMBIA UNA DECISIÓN?",
     "NO ES PARA TODOS",
-    "DEJA DE HABLAR A TODOS",
-    "¿PARA QUIÉN ES?"
+    "DEJA DE HABLAR A TODOS"
   ],
-  "youtubeOptimizationVersion": "v2-retention-localization",
+  "youtubeOptimizationVersion": "v4-editorial-continuity-remediation",
   "packagingQA": {
     "titlePromiseAligned": true,
     "nativeLanguageCTA": true,

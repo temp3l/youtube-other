@@ -1,0 +1,11 @@
+# Veronica source-pack ingestion
+
+Veronica source packs are translated at the ingestion boundary, not in visual, speech, image, or render code.
+
+`VeronicaContentPack2Adapter` discovers `content-packs/vero/veronica-content-pack-2/shorts/<locale>/<authored-key>.md`, groups equal authored keys across locales, hashes the exact source bytes, and emits a canonical source episode. Its stable episode identity is the Pack 2 authored key (for example, `01a-revenue-is-not-a-good-business`), which already satisfies the shared opaque episode-ID contract.
+
+Preparation writes the canonical episode workspace under `episodes/<episode-id>/`, a provenance descriptor, a planner-input artifact, and the current pipeline's canonical locale script. The script is an automatically materialized derived copy; the descriptor retains the external Pack 2 path, SHA-256, locale, pack identity, and adapter version for invalidation.
+
+Use `mediaforge veronica-media source-pack prepare --pack <pack-root> --workspace episodes --episode-id <authored-key> --language en` to perform this prepare-only boundary. It does not invoke planning or any provider.
+
+Pack 2 provides neither a source visual plan nor visual-reuse metadata. Both are intentionally represented as absent/empty in the canonical planner input. Visual planning remains downstream derived production work. The legacy positioning-pack adapter remains unchanged and continues to own `meta/visual-reuse-manifest.json`.

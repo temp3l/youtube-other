@@ -1,3 +1,13 @@
-Du musst nicht auf jeder Plattform präsent sein. Du musst dort sein, wo der richtige Kunde tatsächlich Aufmerksamkeit hat. Instagram, TikTok, Newsletter und Gruppen nur deshalb zu eröffnen, weil man „dort sein muss“, ist keine Strategie. Definiere zuerst die Person. Dann frage: Wo verbringt sie Aufmerksamkeit, wenn dein Thema relevant wird? Mach einen Kanal-Audit. Schreib für jede Plattform auf: Welchen Kunden erreiche ich hier? Welches Verhalten zeigt mir, dass er wirklich dort ist? Und kann ich diesen Kanal zuverlässig betreuen? Wenn du darauf keine klare Antwort hast, hältst du den Kanal vielleicht nur aus Gewohnheit am Leben. Zwei relevante, gut betreute Orte sind oft wertvoller als fünf verwaiste Profile. Präsenz allein ist keine Wirkung. Der Kanal folgt dem Verhalten des Kunden – nicht dem Trend der Woche.
+Mehr Plattformen können dein Marketing schwächer machen. Jeder Kanal kostet Ideen, Antworten, Moderation, Messung und Follow-up. Wenn dabei kein beobachtbares Kaufsignal entsteht, zahlst du möglicherweise nur einen Aufmerksamkeits-Zoll, um überall präsent zu wirken.
 
-Wähle einen Kanal, den du behältst, und einen, den du auf Basis echten Kundenverhaltens pausierst.
+Frag nicht: „Welche Plattform muss ein Unternehmen nutzen?“ Frag: „Wo verhält sich dieser Kunde bereits wie jemand mit genau diesem Problem?“ Suche nach Belegen: Suchanfragen, Antworten, Empfehlungen, Kundengespräche, Profilbesuche, qualifizierte Fragen und Verkaufsgespräche.
+
+Prüfe jeden Kanal mit drei Fragen. Welchen Kunden erreiche ich hier? Welches Verhalten zeigt, dass die Aufmerksamkeit relevant ist? Kann ich den Kanal gut genug betreuen, um zu reagieren, wenn jemand die Hand hebt?
+
+Ein vernachlässigtes Profil ist keine Distribution. Es ist eine offene Tür, hinter der niemand steht.
+
+Zwei Kanäle mit echten Kundensignalen und zuverlässigem Follow-up können viel wertvoller sein als fünf Profile, die du nur aus Angst vor dem Verpassen pflegst.
+
+Wenn die Pause keinen messbaren Verlust erzeugt, ist auch das eine nützliche Erkenntnis.
+
+Wähle einen Kanal zum Verstärken und einen zum Pausieren. Entscheide nach Kundenverhalten, nicht nach Plattform-Trend.

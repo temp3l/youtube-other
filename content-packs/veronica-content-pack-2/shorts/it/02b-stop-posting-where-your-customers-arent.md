@@ -1,9 +1,13 @@
-Non devi essere su ogni piattaforma. Devi essere dove si trova il cliente giusto. Aprire Instagram, TikTok, una newsletter e un gruppo solo perché “bisogna esserci” non è una strategia. Prima definisci la persona. Poi chiediti dove passa davvero attenzione quando il tuo messaggio può essere rilevante. Se il cliente è altrove, la piattaforma di moda non ti salva. Il canale viene dopo il cliente. Non il contrario.
+Essere su più piattaforme può rendere il marketing più debole. Ogni canale consuma idee, risposte, moderazione, misurazione e follow-up. Se non produce nessun segnale osservabile di acquisto, potresti pagare una tassa di attenzione soltanto per sembrare presente.
 
-Fai un audit dei tuoi canali. Per ogni piattaforma scrivi: quale cliente sto raggiungendo qui? Che comportamento mi fa pensare che sia presente? E riesco davvero a gestire bene questo canale? Se non hai una risposta, forse stai mantenendo una piattaforma per abitudine. Meglio due luoghi pertinenti e seguiti bene che cinque profili abbandonati. La distribuzione non parte dalla piattaforma. Parte dal comportamento della persona che vuoi raggiungere.
+Non chiederti: “Quale piattaforma dovrebbe usare un business?”. Chiediti: “Dove questo cliente si comporta già come una persona che ha questo problema?”. Cerca prove: ricerche, risposte, referral, interviste, visite al profilo, domande qualificate e conversazioni di vendita.
 
-E non confondere presenza con efficacia. Un profilo aperto ma trascurato non ti rende più raggiungibile. Scegli i canali che puoi alimentare, ascoltare e usare per creare una relazione reale con il pubblico giusto.
+Fai l’audit di ogni canale con tre domande. Quale cliente raggiungo qui? Quale comportamento dimostra che l’attenzione è rilevante? Riesco a presidiare il canale abbastanza bene da rispondere quando qualcuno alza la mano?
 
-Prima di aprire il prossimo account, prova invece a chiuderne mentalmente uno: se sparisse domani, perderesti davvero clienti rilevanti? Se no, forse stai distribuendo energia senza distribuire valore.
+Un account trascurato non è distribuzione. È una porta aperta senza nessuno dietro.
 
-Scegli un canale da mantenere e uno da mettere in pausa in base al comportamento reale dei clienti.
+Due canali con segnali reali e follow-up affidabile possono valere molto più di cinque profili mantenuti solo per paura di perdere qualcosa.
+
+Se metterlo in pausa non produce una perdita misurabile, anche questa è evidenza utile.
+
+Scegli un canale da rafforzare e uno da mettere in pausa. Decidi in base al comportamento dei clienti, non alla moda della piattaforma.

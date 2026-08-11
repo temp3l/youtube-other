@@ -78,6 +78,7 @@ import {
 import { z } from "zod";
 import { commandImagesResume } from "./images-resume-command.js";
 import { registerEpisodeLayoutMigrationCommand } from "./episode-layout-migration-command.js";
+import { registerEpisodeReviewPackCommand } from "./episode-review-pack.js";
 import { validateEpisodeCrossManifestIntegrity } from "./episode-cross-manifest-validator.js";
 
 export interface EpisodeCommandOptions {
@@ -2561,6 +2562,7 @@ export function registerEpisodeCommands(program: Command): void {
     .alias("episodes")
     .description("Dark Truth multilingual workflow");
   registerEpisodeLayoutMigrationCommand(episode);
+  registerEpisodeReviewPackCommand(episode);
   episode
     .command("inspect")
     .option("--episode <number-or-slug>", "episode number or slug")

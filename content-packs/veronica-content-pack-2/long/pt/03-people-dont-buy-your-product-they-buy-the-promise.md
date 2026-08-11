@@ -78,37 +78,7 @@ Essa parte muitas vezes não aparece na ficha do produto.
 
 Mas pode ser exatamente o motivo pelo qual alguém escolhe você em vez de um concorrente.
 
-Se você vende um creme, não está comunicando apenas um pote.
-
-Se vende uma camiseta, não está comunicando apenas tecido, cor e tamanho.
-
-Se vende consultoria, não está comunicando apenas sessenta minutos de chamada.
-
-Pergunte: o que existe ao redor?
-
-O que a pessoa realmente recebe?
-
-O que fica mais fácil?
-
-O que ela entende melhor?
-
-O que sente?
-
-Que tipo de experiência vive?
-
-Se essa camada fica invisível, o cliente compara aquilo que consegue ver.
-
-Preço.
-
-Quantidade.
-
-Duração.
-
-Características.
-
-E quando todo mundo parece vender praticamente a mesma coisa, muitas vezes vence quem cobra menos.
-
-Quando você torna visível o valor completo, a comparação muda.
+Essa camada de serviço importa porque valor invisível fica fora da comparação. Se o cliente enxerga apenas preço, quantidade, duração e características, vai comparar apenas isso. Torne visíveis a experiência e o critério ao redor do produto, e a comparação muda.
 
 É aqui que chegamos à promessa.
 
@@ -225,6 +195,8 @@ Pode tornar sua competência mais visível.
 Pode explicar melhor por que aquela solução faz sentido para aquele tipo de cliente.
 
 Mas existe uma condição.
+
+Use mais uma regra: a força da afirmação precisa combinar com a força da prova. Uma promessa modesta pode exigir uma demonstração clara; uma transformação grande exige evidência mais forte, contexto e limites. Copy melhor não compensa prova fraca demais para a promessa.
 
 A promessa precisa ser verdadeira.
 

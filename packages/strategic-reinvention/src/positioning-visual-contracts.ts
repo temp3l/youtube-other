@@ -860,6 +860,22 @@ export interface PositioningVisualPlanV2 {
     readonly legacyV1Plan: "inspect-only-replan-required";
     readonly legacyAssetReuse: "eligible-only-after-semantic-fingerprint-match";
   };
+  /**
+   * Present when the compatibility-path artifact was derived from a canonical
+   * source planner input. Legacy authored plans intentionally omit it.
+   */
+  readonly derivation?: {
+    readonly schemaVersion: "veronica-visual-plan-derivation.v1";
+    readonly artifactOwnership: "derived-compatibility-artifact";
+    readonly visualPlanSource: "derived_from_planner_input";
+    readonly plannerInputSchemaVersion: "veronica-canonical-source-planner-input.v1";
+    readonly plannerInputHash: string;
+    readonly sourceRevisionHash: string;
+    readonly sourceNarrationSha256: string;
+    readonly plannerVersion: typeof POSITIONING_PLANNER_VERSION;
+    readonly configurationHash: string;
+    readonly planRevisionHash: string;
+  };
   readonly validation: {
     readonly status: "pass" | "fail";
     readonly failures: readonly string[];

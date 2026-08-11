@@ -1,12 +1,10 @@
-Wenn du mehr verkaufen willst, aber beim Preis plötzlich leiser wirst, ist das nicht nur ein Problem der Verkaufstechnik. Unsicherheit bei Geld, Bewertung und Ablehnung fließt direkt in Entscheidungen ein: zu frühe Rabatte, vermiedenes Follow-up, verschenkter Wert, nie klar gestellte Kauf-Fragen. Hier trennen wir gesunden Verkauf von Druck und machen aus einem emotionalen Moment einen vorbereitbaren Prozess.
+Wenn du mehr verkaufen willst, aber beim Preis plötzlich leiser wirst, ist das nicht nur ein Problem der Verkaufstechnik. Unsicherheit bei Geld, Bewertung und Ablehnung fließt direkt in Entscheidungen ein: zu frühe Rabatte, vermiedenes Follow-up, verschenkter Wert und Kauf-Fragen, die nie klar gestellt werden. Hier trennen wir gesunden Verkauf von Druck und machen aus einem emotionalen Moment einen vorbereitbaren Prozess.
 
-Oder jemanden konkret zum Kauf auffordern.
+Achte darauf, wo das Unbehagen auftaucht: beim Preis, bei der konkreten Kauf-Frage, beim Follow-up oder beim offenen Gespräch über Geld. Diese Momente hängen zusammen, sind aber nicht identisch.
 
-Oder offen über Geld sprechen.
+Trenne Unbehagen von Ethik. Das Gefühl kann real sein, obwohl der Verkauf fair ist. Deine Aufgabe ist ein Prozess, der klar genug ist, dass weder du noch der Kunde Druck oder Improvisation braucht.
 
-Das ist kein nebensächliches psychologisches Detail.
-
-Wenn du ein Unternehmen führst, beeinflusst diese Spannung direkt, wie du dein Angebot präsentierst, nachfasst, Preise setzt und Entscheidungen triffst.
+Dieses Gefühl ist kein nebensächliches psychologisches Detail. Im Unternehmen beeinflusst es Preise, Follow-up, Verhandlungen und die Frage, ob du überhaupt klar um eine Entscheidung bittest.
 
 Geld trägt sehr viele kulturelle Bedeutungen.
 
@@ -178,37 +176,7 @@ Probier eine konkrete Übung. Vor dem nächsten Verkaufsgespräch schreibst du d
 
 Es ist der Punkt, an dem ein Unternehmen Wert in wirtschaftlichen Austausch verwandelt.
 
-Du kannst deine Beziehung zum Verkaufen in kleinen täglichen Entscheidungen beobachten.
-
-Wie lange wartest du, bevor du den Preis nennst?
-
-Wie oft gibst du etwas kostenlos dazu, weil du Angst hast, das Angebot reiche nicht aus?
-
-Wie schnell rabattierst du, sobald jemand zögert?
-
-Wie oft vermeidest du ein Follow-up, um nicht aufdringlich zu wirken?
-
-Das sieht nach Verkaufstechnik aus.
-
-Manchmal zeigt sich darin aber die persönliche Beziehung zu Geld und Bewertung.
-
-Deshalb hilft Messen.
-
-Einnahmen.
-
-Ausgaben.
-
-Marge.
-
-Ziele.
-
-Nicht weil Zahlen Angst automatisch entfernen.
-
-Sondern weil sie Geld beobachtbar machen.
-
-Wenn du es nicht ansiehst, kann es diffus und bedrohlich werden.
-
-Wenn du es misst, wird es eher zu einem Entscheidungsinstrument.
+Beobachte vier Verhaltensweisen: den Preis hinauszögern, kostenlos etwas drauflegen, beim ersten Zögern rabattieren und Follow-up vermeiden. Sie zeigen, wo Unbehagen in den Prozess eintritt. Miss außerdem Umsatz, Marge und Ziele – nicht um Angst zu löschen, sondern um Geld von einem diffusen Urteil in beobachtbare Geschäftsinformation zu verwandeln.
 
 Und dann gibt es eine einfache, wichtige Trennung.
 

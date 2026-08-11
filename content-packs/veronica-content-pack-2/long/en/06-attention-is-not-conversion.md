@@ -208,6 +208,8 @@ The mistake is buying awareness and declaring it a failure because it did not cr
 
 The objective has to be clear before you see the result.
 
+Before declaring an activity a failure, set an observation window that matches the buying cycle. A two-day campaign cannot fairly judge a decision customers normally make over six weeks.
+
 Then map the path.
 
 Conversion does not start at the button.
@@ -215,8 +217,6 @@ Conversion does not start at the button.
 The person sees something.
 
 Recognizes that the topic matters.
-
-The advantage of this map is that it stops you from changing everything at once. Choose the transition with the most abnormal loss and write one hypothesis. Then change one thing capable of influencing that exact transition. Conversion becomes much easier to improve when you stop treating it like magic and start treating it like an observable sequence.
 
 Starts to recognize you.
 
@@ -229,6 +229,8 @@ Reads a page.
 Compares alternatives.
 
 And eventually considers buying.
+
+The advantage of this map is that it stops you from changing everything at once. Choose the transition with the most abnormal loss and write one hypothesis. Then change one thing capable of influencing that exact transition. Conversion becomes much easier to improve when you stop treating it like magic and start treating it like an observable sequence.
 
 That is why community and relationship can contribute to conversion.
 

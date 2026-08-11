@@ -168,39 +168,9 @@ Você não está correndo atrás de pessoas desinteressadas.
 
 Está construindo um ambiente em que pessoas relevantes podem chegar, entender e decidir.
 
-Transforme isso em um mapa do caminho atual.
+Transforme agora essa jornada em um sistema operacional comercial. Para cada etapa, defina um objetivo, um responsável, um sinal observável e a próxima ação. Se uma etapa não tem responsável ou próximo passo, os leads ficam entregues à memória.
 
-Como uma pessoa nova descobre você?
-
-O que vê depois?
-
-Qual conteúdo ajuda a entender melhor?
-
-Onde pode seguir você?
-
-Como pede informação?
-
-Quanto tempo demora para receber resposta?
-
-O que acontece se não comprar hoje?
-
-Existe uma forma útil de manter a relação?
-
-E, considerando o ciclo de compra, qual parte da receita deveria vir de clientes novos e qual de clientes existentes?
-
-Essas perguntas são muito mais úteis do que “quantos DMs devo mandar por dia?”.
-
-Porque vender sem perseguir não significa ser passivo.
-
-Significa prospecting focado.
-
-Comunicação útil.
-
-Presença.
-
-Follow-up disciplinado.
-
-E retenção.
+Para contato e follow-up, adicione três controles: SLA de resposta, motivo para o próximo contato e regra de parada. Registre de forma visível a origem do lead e a etapa atual. Assim a próxima ação não depende de quem lembra por acaso.
 
 Desenhe o sistema em cinco colunas.
 

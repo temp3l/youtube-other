@@ -2,6 +2,8 @@ Cem mil visualizações e zero vendas não são uma contradição. São um sinal
 
 São duas métricas medindo dois trabalhos diferentes.
 
+Antes de mudar a campanha inteira, identifique qual transição deveria ter acontecido depois da atenção e não aconteceu.
+
 E, se você confunde as duas, pode tomar decisões de marketing completamente erradas.
 
 A primeira distinção é entre awareness e conversão.
@@ -209,6 +211,8 @@ Se o objetivo era conversão direta, você precisa observar outro comportamento.
 O erro é comprar awareness e declarar fracasso porque não houve venda imediata, ou chamar de “brand awareness” uma campanha que, na verdade, precisava se pagar com conversões.
 
 Os objetivos precisam estar claros antes dos resultados.
+
+Antes de declarar uma atividade fracassada, escolha uma janela de observação compatível com o ciclo de compra. Uma campanha de dois dias não avalia corretamente uma decisão que normalmente leva seis semanas.
 
 Depois vem o caminho.
 

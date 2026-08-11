@@ -1,12 +1,10 @@
-Si quieres vender más pero cambias la voz en cuanto tienes que decir el precio, no es solo un problema de técnica comercial. El malestar con el dinero, el juicio y el rechazo entra directamente en tus decisiones: descuentos demasiado pronto, seguimientos evitados, valor regalado y compras que nunca pides con claridad. Aquí separamos persuasión sana de presión y convertimos un momento emocional en un proceso que puedes preparar.
+Si quieres vender más pero cambias la voz en cuanto tienes que decir el precio, no es solo un problema de técnica comercial. El malestar con el dinero, el juicio y el rechazo entra directamente en decisiones: descuentos demasiado pronto, seguimientos evitados, valor regalado y compras que nunca pides con claridad. Aquí separamos persuasión sana de presión y convertimos un momento emocional en un proceso que puedes preparar.
 
-O pedir a alguien que compre.
+Observa dónde aparece el malestar: al decir el precio, pedir la compra, hacer seguimiento o hablar abiertamente de dinero. Esos momentos están relacionados, pero no son lo mismo.
 
-O hablar abiertamente de dinero.
+Separa incomodidad de ética. El sentimiento puede ser real aunque la venta sea justa. Tu trabajo es construir un proceso suficientemente claro para que ni tú ni el cliente dependáis de presión o improvisación.
 
-No es un pequeño detalle psicológico.
-
-Si tienes un negocio, esa tensión entra directamente en la forma de presentar la oferta, hacer seguimiento, poner precios y tomar decisiones.
+Esa incomodidad no es un detalle psicológico menor. En un negocio entra directamente en precios, seguimiento, negociación y en si pides o no una decisión de forma clara.
 
 El dinero lleva encima una enorme cantidad de significados culturales.
 
@@ -178,37 +176,7 @@ Prueba un ejercicio concreto. Antes de tu próxima conversación de venta, escri
 
 Es la parte en la que un negocio transforma valor en intercambio económico.
 
-Puedes observar tu relación con la venta en pequeñas decisiones diarias.
-
-¿Cuánto tardas en decir el precio?
-
-¿Cuántas veces añades algo gratis porque temes que lo que ya ofreces no sea suficiente?
-
-¿Con qué rapidez haces un descuento cuando percibes una duda?
-
-¿Cuántas veces evitas el seguimiento porque no quieres parecer insistente?
-
-Pueden parecer problemas técnicos de venta.
-
-A veces son señales de cómo la relación con el dinero y el juicio está entrando en el proceso.
-
-Por eso medir ayuda.
-
-Ingresos.
-
-Gastos.
-
-Margen.
-
-Objetivos.
-
-No porque los números eliminen automáticamente el miedo.
-
-Sino porque convierten el dinero en algo observable.
-
-Cuando no lo miras, puede volverse vago y amenazante.
-
-Cuando lo mides, puede convertirse en una herramienta de decisión.
+Observa cuatro comportamientos: retrasar el precio, añadir extras gratis, descontar ante la primera duda y evitar el seguimiento. Sirven para ver dónde entra la incomodidad en el proceso. Mide también ingresos, margen y objetivos, no para eliminar el miedo, sino para convertir el dinero de un juicio vago en información observable.
 
 También existe una distinción simple entre hobby y negocio.
 

@@ -1,0 +1,42 @@
+{
+  "title": "100 000 vues et zéro vente ? Trouvez la fuite réelle.",
+  "alternativeTitles": [
+    "Les vues ne sont pas des ventes — diagnostiquez la transition",
+    "Attention ≠ conversion",
+    "Arrêtez de juger tout le funnel avec une seule métrique"
+  ],
+  "thumbnail": "VUES ≠ VENTES",
+  "thumbnailOptions": [
+    "VUES ≠ VENTES",
+    "Les vues ne sont pas des ventes — diagnostiquez la transition",
+    "Attention ≠ conversion"
+  ],
+  "description": "Cent mille vues peuvent être excellentes et produire peu de ventes directes. La question est de savoir où l’attention devait aller ensuite. Cet épisode reconstruit le chemin vues → profil → page → checkout → achat, distingue notoriété, confiance et conversion, et ajoute un contrôle essentiel : mesurer dans une fenêtre cohérente avec le cycle d’achat.",
+  "cta": "Choisissez une seule transition de votre funnel et mesurez-la avant de changer le contenu, l’offre ou le checkout.",
+  "chapters": [
+    "Notoriété et conversion",
+    "Une métrique par objectif",
+    "Cartographier les transitions",
+    "La confiance avant le CTA",
+    "Conversion immédiate vs cycle d’achat",
+    "Attribuer un rôle au contenu",
+    "Trouver la fuite",
+    "Tester une seule transition"
+  ],
+  "shortA": {
+    "title": "100K vues et zéro vente ?",
+    "alternateHook": "Ne blâmez pas les vues avant d’avoir trouvé la transition où les gens arrêtent réellement d’avancer."
+  },
+  "shortB": {
+    "title": "Un CTA plus fort ne répare pas un manque de confiance",
+    "alternateHook": "Une demande plus forte ne remplace ni crédibilité, ni clarté, ni preuve."
+  },
+  "youtubeOptimizationVersion": "v3-production-ready-editorial",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  }
+}

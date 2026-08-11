@@ -1,3 +1,13 @@
-No necesitas estar en todas las plataformas. Necesitas estar donde está el cliente adecuado. Abrir Instagram, TikTok, una newsletter y un grupo solo porque «hay que estar» no es una estrategia. Define primero a la persona y después pregunta dónde presta atención cuando tu mensaje puede ser relevante. Haz una auditoría de canales. Para cada plataforma escribe: ¿qué cliente estoy alcanzando aquí?, ¿qué comportamiento me hace pensar que realmente está presente?, ¿puedo gestionar bien este canal? Si no tienes una respuesta clara, quizá lo mantienes por costumbre. Es mejor cuidar bien dos lugares relevantes que tener cinco perfiles abandonados. Y no confundas presencia con eficacia. Un perfil abierto pero descuidado no te hace más accesible. La distribución empieza por el comportamiento del cliente, no por la plataforma de moda.
+Estar en más plataformas puede debilitar tu marketing. Cada canal consume ideas, respuestas, moderación, medición y seguimiento. Si no produce ninguna señal observable de compra, quizá estás pagando un impuesto de atención solo para parecer presente.
 
-Elige un canal que mantener y uno que pausar según el comportamiento real del cliente.
+No preguntes: «¿Qué plataforma debería usar un negocio?». Pregunta: «¿Dónde se comporta ya este cliente como alguien que tiene este problema?». Busca evidencia: búsquedas, respuestas, recomendaciones, entrevistas, visitas al perfil, preguntas cualificadas y conversaciones de venta.
+
+Audita cada canal con tres preguntas. ¿Qué cliente alcanzo aquí? ¿Qué comportamiento demuestra que esa atención es relevante? ¿Puedo atender este canal lo bastante bien como para responder cuando alguien levanta la mano?
+
+Una cuenta abandonada no es distribución. Es una puerta abierta sin nadie detrás.
+
+Dos canales con señales reales de clientes y buen seguimiento pueden valer mucho más que cinco perfiles mantenidos por miedo a perderse algo.
+
+Si pausarlo no produce una pérdida medible, eso también es evidencia útil.
+
+Elige un canal que reforzar y otro que pausar. Decide por comportamiento del cliente, no por moda de plataforma.

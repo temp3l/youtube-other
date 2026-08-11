@@ -1,3 +1,5 @@
 Una promesa no es un eslogan creativo. Es una traducción del valor. Haz cuatro preguntas: ¿qué vendes?, ¿qué resultado, deseo o emoción importa de verdad?, ¿existe un tiempo relevante?, ¿hay un valor añadido o un obstáculo que puedas eliminar? No hace falta meter todo en una frase. La estructura sirve para salir de la descripción técnica. «Curso de marketing» es una categoría. «Aprende a hacer más clara tu oferta» empieza a describir un resultado. Y después llega la prueba importante: ¿la experiencia real puede cumplir esa expectativa? Si la respuesta es no, no necesitas una promesa más ruidosa. Necesitas una promesa más honesta o un producto mejor. El objetivo no es sonar más grande, sino hacer visible el valor esperado de una forma concreta y creíble.
 
+La promesa también crea un estándar que debes cumplir. Si el mensaje se vuelve más atractivo pero la experiencia no puede sostenerlo, quizá conviertas una vez y pierdas confianza después. Un buen posicionamiento aumenta la claridad sin pedir prestada credibilidad a un resultado que todavía no puedes entregar.
+
 Una promesa fuerte no es más grande que la realidad: hace la realidad más clara.

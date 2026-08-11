@@ -1,48 +1,31 @@
-# QA Report — Veronica YouTube-Optimized v2
+# Final Production QA Report
 
-## Result
+**Status: PASS — SCRIPT PRODUCTION READY**
 
-**PASS**
+## Hard gates
 
-## Coverage
+- Long scripts: **48/48**
+- Shorts scripts: **96/96**
+- Metadata files: **48/48**
+- Public WPM planning timing: **144/144 PASS**
+- Internal pre-TTS guard band: **144/144 PASS**
+- Story editorial gate: **24/24 PASS at >= 9.5/10**
+- Minimum story score: **9.5/10**
+- Average story score: **9.65/10**
+- Known orphan-fragment continuity defects: **0**
+- Exact duplicate narrative paragraphs: **0**
+- JSON validation errors: **0**
+- Oversized primary title/thumbnail packaging checks: **0**
+- Mock audio: **not included / not canonical**
 
-- 40 localized long narrations
-- 80 localized Shorts
-- 40 localized packaging files
-- 120 mock audio fixtures
-- 24 canonical editorial ratings
+## Timing policy
 
-## Timing
+Public targets remain **9:30–10:30** for long form and **1:00–1:30** for Shorts. This revision also uses an internal planning buffer of approximately **9:40–10:20** and **1:05–1:25** to reduce avoidable TTS retiming.
 
-- Long target: 570–630 s
-- Observed mock long range: 570.0–630.0 s
-- Short target: 60–90 s
-- Observed mock Short range: 60.0–90.0 s
+Central WPM: EN/ES/IT/FR/PT **150 long / 155 short**; DE **145 long / 150 short**.
 
-## English Shorts calibration
+**Selected TTS audio remains the canonical timing authority.** A script passing this report is ready to enter TTS and visual production, but final duration certification happens only after the selected narration asset is persisted and measured.
 
-Configured target: **155 WPM**
+## Continuity remediation
 
-- Preferred range: 145–165 WPM
-- Soft range: 135–175 WPM
-- Observed effective mock-calibrated range: **154.9–155.1 WPM**
-- Preferred-range passes: **16/16**
-
-## Localization QA
-
-- CTA English-leak check outside `en-US`: PASS
-- Packaging carries localized title/thumbnail options and a native CTA.
-- Italian remains the semantic source; localized scripts are transcreated rather than forced into sentence-level equivalence.
-
-## Editorial gate
-
-- Long-form stories passing ≥9.5/10: **8/8**
-- Shorts passing ≥9.5/10: **16/16**
-
-## Important limitation
-
-Mock audio is synthetic silence. It validates timing-dependent pipeline behavior only. Before publication, replace it with real selected TTS, re-measure exact duration, run native listening/pronunciation/prosody QA, and perform bounded retiming if necessary. Never add dead air or unnaturally slow speech merely to satisfy the target duration.
-
-## Issues
-
-- None.
+Long 06's misplaced diagnostic insertion was moved after the complete conversion-path sequence. Long 07's orphaned opening fragments were removed in EN/DE/ES/IT/PT. Repeated teaching loops in 01/02/03/05/08 were compressed and replaced only where new decision-grade material increased utility.

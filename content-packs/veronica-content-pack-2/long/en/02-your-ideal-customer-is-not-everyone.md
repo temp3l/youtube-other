@@ -1,5 +1,7 @@
 If your ideal customer is “anyone who could buy,” your problem is not lack of reach. It is lack of a decision. Without that decision, your title, examples, channels, and offer become generic. In this episode, we are not building a decorative persona. We are building a customer definition that actually changes what you say, where you say it, and which behavior tells you that the right person is paying attention.
 
+Use a three-part test: need, context, signal. What does the customer need, in which situation does that need become urgent, and what observable behavior proves the interest is real? If a persona cannot improve one of those decisions, it is too vague.
+
 You have avoided making a choice.
 
 And when you do not choose who the message is for, it becomes almost impossible to know what to say, where to say it, or even which part of the product deserves attention.
@@ -184,20 +186,6 @@ It becomes useful when that characteristic changes the need, the behavior, the c
 
 That is why a buyer persona should remain a simplification, not become a caricature.
 
-The Red Bull example makes the same point.
-
-If you want to reach a particular type of student or young adult, giving that person an imaginary name and favorite color does not help very much.
-
-You need to understand where the moment of need lives.
-
-When do they want more energy?
-
-Where are they?
-
-What situation makes the product relevant?
-
-The value of the persona is in the message and placement decisions, not in how many fields you completed in a template.
-
 Then compare your hypothesis with behavior.
 
 People can be grouped by profile characteristics, but also by what they do.
@@ -259,6 +247,8 @@ If you discover that the purchase motivation is different from what you assumed,
 And when a pattern appears, turn it into one concrete business decision: rewrite a message, leave a channel, create a piece of content, or treat one segment differently.
 
 Analysis creates value only when it changes what the business does.
+
+Keep a one-line decision log: “Because this is our customer, we changed this message, channel, example, objection, or offer.” If the definition never produces a sentence like that, it is still too decorative.
 
 Once this is clear, you can move to the next question: what does this person believe they are actually buying?
 

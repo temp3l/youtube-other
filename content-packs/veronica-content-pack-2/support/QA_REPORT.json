@@ -1,43 +1,40 @@
 {
-  "verdict": "PASS_MOCK_TIMING_READY",
-  "publicationReady": false,
+  "status": "PASS",
+  "version": "v4-editorial-continuity-remediation",
   "counts": {
-    "episodeDirs": 8,
-    "languageDirs": 40,
-    "narrationScripts": 120,
-    "packagingFiles": 40,
-    "mockAudioFiles": 120
+    "long": 48,
+    "shorts": 96,
+    "metadata": 48
   },
   "timing": {
-    "longActualRangeSeconds": [
-      570.0,
-      630.0
-    ],
-    "shortActualRangeSeconds": [
-      60.0,
-      88.0
-    ],
-    "longTargetSeconds": [
-      570,
-      630
-    ],
-    "shortTargetSeconds": [
-      60,
-      90
-    ],
-    "allMockDurationsWithinTarget": true,
-    "durationToleranceSeconds": 0.02
+    "publicPass": 144,
+    "internalGuardPass": 144,
+    "total": 144,
+    "authority": "selected-audio after TTS; WPM estimates are planning only"
   },
-  "density": {
-    "longImpliedEffectiveWpmRange": [
-      128.2,
-      155.0
-    ],
-    "shortImpliedEffectiveWpmRange": [
-      110.0,
-      150.8
-    ]
+  "editorial": {
+    "storyPass": 24,
+    "storyTotal": 24,
+    "minimumScore": 9.5,
+    "averageScore": 9.65,
+    "requiredMinimum": 9.5
   },
-  "errors": [],
-  "criticalWarning": "Mock audio validates only duration-dependent pipeline behavior. It cannot validate real TTS duration, pronunciation, prosody, naturalness, or native-listening quality."
+  "continuity": {
+    "knownOrphanFragments": [],
+    "exactDuplicateParagraphs": [],
+    "pass": true
+  },
+  "json": {
+    "errors": [],
+    "pass": true
+  },
+  "packaging": {
+    "oversizedPrimaryTitleOrThumbnail": [],
+    "pass": true
+  },
+  "mockAudio": {
+    "included": false,
+    "canonical": false,
+    "pass": true
+  }
 }

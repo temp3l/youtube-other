@@ -70,8 +70,6 @@ Der Kauf ist einfach.
 
 Die Lieferung ist vorhersehbar.
 
-Das bedeutet nicht, dass jedes Unternehmen Amazon werden muss.
-
 Es bedeutet, dass jeder unnötige Schritt eine weitere Gelegenheit schafft, den Prozess abzubrechen.
 
 Wie viele Fragen muss jemand stellen, bevor er kaufen kann?
@@ -89,8 +87,6 @@ Reibung zu reduzieren bedeutet nicht, Menschen gegen ihren Willen zum Kauf zu dr
 Es bedeutet, eine Entscheidung einfacher zu machen, die sie ohnehin bereits prüfen.
 
 Fragen vor dem Kauf zu beantworten ist Teil des Services.
-
-Keine Zeitverschwendung.
 
 Es gehört zum Angebot.
 
@@ -214,11 +210,7 @@ Du solltest aber wissen, ob der Kunde einen Weg sieht oder nur einen Haufen unve
 
 Dasselbe gilt für Produktfolgen.
 
-Drucker und Toner sind das einfache Beispiel: Eine erste Wahl erzeugt später weitere Bedürfnisse.
-
 Mach deshalb den Dreißig-Sekunden-Test. Öffne deine Seite, als würdest du die Marke nicht kennen. Innerhalb von dreißig Sekunden solltest du vier Fragen beantworten können: Ist das für mich? Was bekomme ich? Was kostet es oder wie erfahre ich den Preis? Was ist der nächste Schritt? Jede Antwort, die Suche, DMs oder Interpretation verlangt, ist Reibung. Entferne unnötige Denkarbeit, bevor du weiteren wahrgenommenen Wert hinzufügst.
-
-Ein zugänglicheres Produkt kann den Einstieg in eine Marke ermöglichen und irgendwann zu einer Premium- oder personalisierten Lösung führen.
 
 Aber bei jeder Stufe musst du fragen, ob sie für den Kunden logisch ist – nicht nur, ob sie den durchschnittlichen Bestellwert erhöht.
 

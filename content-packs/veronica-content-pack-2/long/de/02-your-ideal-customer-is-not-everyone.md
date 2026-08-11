@@ -182,20 +182,6 @@ Wertvoll wird die Information erst dann, wenn sie Bedürfnis, Verhalten, Kontext
 
 Deshalb sollte eine Buyer Persona eine Vereinfachung bleiben und keine Karikatur werden.
 
-Auch das Red-Bull-Beispiel zeigt das gut.
-
-Wenn du einen bestimmten Studenten oder jungen Erwachsenen erreichen willst, reicht es nicht, ihm einen erfundenen Namen und eine Lieblingsfarbe zu geben.
-
-Du musst verstehen, in welchem Moment das Bedürfnis entsteht.
-
-Wann braucht die Person Energie?
-
-Wo befindet sie sich?
-
-Welche Situation macht das Produkt plötzlich relevant?
-
-Der Wert der Persona liegt in Entscheidungen über Botschaft und Platzierung, nicht in der Anzahl ausgefüllter Felder in einem Template.
-
 Danach überprüfst du die Hypothese am Verhalten.
 
 Menschen lassen sich über Merkmale gruppieren, aber auch über das, was sie tun.
@@ -257,6 +243,8 @@ Wenn du entdeckst, dass der Kaufgrund anders ist als gedacht, verteidige nicht d
 Und wenn du ein Muster erkennst, übersetze es in eine konkrete Entscheidung: eine Botschaft umschreiben, einen Kanal verlassen, einen Inhalt erstellen oder ein Segment anders ansprechen.
 
 Analyse wird erst dann wertvoll, wenn sie das Verhalten des Unternehmens verändert.
+
+Führe ein Ein-Zeilen-Entscheidungslog: „Weil das unser Kunde ist, haben wir Botschaft, Kanal, Beispiel, Einwand oder Angebot so verändert.“ Wenn die Definition nie zu einem solchen Satz führt, ist sie noch zu dekorativ.
 
 Und wenn diese Grundlage klar ist, kommt die nächste Frage: Was glaubt dieser Kunde eigentlich wirklich zu kaufen?
 

@@ -78,37 +78,7 @@ Esa parte muchas veces no aparece en la ficha de producto.
 
 Pero puede ser exactamente la razón por la que alguien te elige frente a un competidor.
 
-Si vendes una crema, no estás comunicando solo un tarro.
-
-Si vendes una camiseta, no estás comunicando únicamente tejido, color y talla.
-
-Si vendes consultoría, no estás comunicando solamente sesenta minutos de videollamada.
-
-Pregúntate: ¿qué existe alrededor?
-
-¿Qué recibe realmente la persona?
-
-¿Qué se vuelve más fácil?
-
-¿Qué entiende mejor?
-
-¿Qué siente?
-
-¿Qué experiencia vive?
-
-Si esa capa permanece invisible, el cliente compara lo que sí puede ver.
-
-Precio.
-
-Cantidad.
-
-Duración.
-
-Características.
-
-Y cuando todos parecen vender aproximadamente lo mismo, muchas veces gana quien cuesta menos.
-
-Cuando haces visible el valor completo, la comparación cambia.
+Esa capa de servicio importa porque el valor invisible queda fuera de la comparación. Si el cliente solo ve precio, cantidad, duración y características, comparará únicamente eso. Haz visibles la experiencia y el criterio que rodean al producto y la comparación cambia.
 
 Y aquí llegamos a la promesa.
 
@@ -225,6 +195,8 @@ Puedes hacer más visible tu experiencia.
 Puedes explicar mejor por qué la solución encaja con esa persona.
 
 Pero existe una condición.
+
+Añade una regla: la fuerza de la afirmación debe corresponder a la fuerza de la prueba. Una promesa modesta puede necesitar una demostración clara; una gran transformación exige evidencia más fuerte, contexto y límites. Un mejor copy no compensa una prueba demasiado débil.
 
 La promesa tiene que ser verdadera.
 

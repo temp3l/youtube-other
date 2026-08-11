@@ -184,20 +184,6 @@ Se vuelve útil cuando esa característica cambia la necesidad, el comportamient
 
 Por eso una buyer persona debe seguir siendo una simplificación, no una caricatura.
 
-El ejemplo de Red Bull ayuda a entenderlo.
-
-Si quieres llegar a cierto tipo de estudiante o adulto joven, no basta con ponerle un nombre imaginario y elegir su color favorito.
-
-Tienes que entender dónde vive el momento de necesidad.
-
-¿Cuándo busca energía?
-
-¿Dónde está?
-
-¿Qué situación hace que el producto sea relevante?
-
-El valor de la persona está en la decisión de mensaje y de placement, no en la cantidad de detalles que hayas rellenado en una plantilla.
-
 Después tienes que comparar la hipótesis con el comportamiento.
 
 Las personas se pueden agrupar por características, pero también por lo que hacen.
@@ -261,6 +247,8 @@ Y cuando encuentres un patrón, conviértelo en una decisión concreta: reescrib
 El valor del análisis llega cuando modifica el comportamiento del negocio.
 
 Y cuando esta parte está clara, puedes dar el siguiente paso: entender qué cree esa persona que está comprando realmente.
+
+Mantén un registro de una sola línea: «Como este es nuestro cliente, cambiamos este mensaje, canal, ejemplo, objeción u oferta». Si la definición nunca produce una frase así, todavía es demasiado decorativa.
 
 Porque conocer al cliente no basta.
 

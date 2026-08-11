@@ -8,6 +8,8 @@ El problema está en la estructura.
 
 Así que, antes de preguntarte cómo vender más, merece la pena hacerte una pregunta bastante menos atractiva, pero mucho más importante: ¿cómo gana dinero de verdad este negocio?
 
+La regla central es simple: el crecimiento amplifica la economía que ya existe. Si la estructura es débil, el volumen amplifica la debilidad; si es sólida, el volumen tiene algo valioso que amplificar.
+
 Empecemos por lo básico.
 
 La facturación es lo que entra.
@@ -56,23 +58,7 @@ Puedes venderla simplemente como un objeto físico.
 
 Pero esa agenda también puede revelar un problema más profundo: la gente no quiere únicamente comprar papel. Quiere organizarse mejor, sentirse menos saturada y avanzar en lo que realmente le importa.
 
-A partir de ahí aparecen otras posibilidades.
-
-La agenda puede llevar a un taller de planificación.
-
-El taller puede convertirse en un curso.
-
-El curso puede incluir plantillas o herramientas.
-
-Y alguna de esas herramientas puede terminar convirtiéndose en un producto independiente.
-
-No significa que todos los negocios tengan que construir un ecosistema complicado de productos.
-
-Significa que un producto puede generar un servicio y un servicio puede generar nuevos productos.
-
-No tienes que ser fiel al formato original.
-
-Tienes que ser fiel al problema del cliente.
+La lección no es multiplicar formatos porque sí. Sé fiel al problema del cliente y elige después la forma de entrega que lo resuelve sin debilitar la economía del negocio.
 
 Y eso nos lleva a la escalabilidad.
 
@@ -144,14 +130,6 @@ La lección más amplia no es simplemente que una empresa famosa fracasó y otra
 
 Es que incluso las empresas grandes y consolidadas pueden volverse vulnerables cuando defienden el formato con más fuerza de la que defienden la necesidad del cliente.
 
-Y lo mismo puede ocurrir a pequeña escala.
-
-Un consultor puede defender una reunión de dos horas porque el servicio siempre se ha prestado así.
-
-Un comercio puede defender un proceso de compra físico porque antes los clientes lo aceptaban.
-
-Una empresa de software puede seguir añadiendo funciones cuando sus clientes en realidad están pidiendo un resultado más sencillo.
-
 Cuando cambia la forma en la que las personas quieren comprar, utilizar o recibir valor, el modelo tiene que ser capaz de reaccionar.
 
 Así que prueba a mirar tu negocio sin empezar por el producto.
@@ -167,8 +145,6 @@ Tercero: ¿qué costes existen incluso cuando no vendes nada?
 Cuarto: ¿cuánto tiempo humano necesitas para entregar lo que has prometido?
 
 Y quinto: ¿qué parte del negocio podría seguir creando valor sin otra hora de tu tiempo personal?
-
-Este ejercicio importa porque solemos mirar el negocio desde el producto, cuando en realidad el modelo vive en las relaciones entre ingresos, costes, tiempo, entrega y comportamiento del cliente.
 
 Después elige un producto o un servicio y calcula la economía de una sola venta.
 
@@ -190,8 +166,6 @@ Apunta todas las actividades sin las que hoy no puedes facturar o completar una 
 
 Si cada cliente adicional siempre requiere un bloque completamente nuevo de tu tiempo, sabes exactamente dónde está el límite de capacidad.
 
-Eso puede ser perfectamente válido.
-
 Pero debería ser una decisión consciente, no algo que descubres solamente cuando aumenta la demanda.
 
 Después mira la oferta.
@@ -203,10 +177,6 @@ Después mira la oferta.
 ¿Podría un producto fácil de comprar convertirse en la puerta de entrada a un servicio más profundo?
 
 ¿Podría un servicio muy personalizado revelar una herramienta o un método útil para muchas más personas?
-
-No cambies todo a la vez.
-
-Elige una sola hipótesis.
 
 Quizá puedas mejorar el margen sin empeorar la experiencia del cliente.
 
@@ -221,10 +191,6 @@ Margen por venta.
 Horas necesarias para entregar.
 
 Porcentaje de ingresos que no requiere trabajo uno a uno.
-
-Tasa de devoluciones.
-
-Tiempo de soporte.
 
 Elige el dato que te diga si la estructura está mejorando de verdad.
 

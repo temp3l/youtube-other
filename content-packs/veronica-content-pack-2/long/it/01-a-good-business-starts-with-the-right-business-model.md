@@ -56,23 +56,7 @@ Puoi vendere l'agenda come oggetto fisico.
 
 Ma quell'agenda può anche rivelare un problema più profondo: le persone non vogliono semplicemente della carta. Vogliono organizzarsi meglio, sentirsi meno sopraffatte e fare progressi sulle cose che contano.
 
-A quel punto si aprono altre possibilità.
-
-L'agenda può portare a un workshop sulla pianificazione.
-
-Il workshop può diventare un corso.
-
-Il corso può includere template o strumenti.
-
-E uno di quegli strumenti, col tempo, potrebbe perfino diventare un prodotto autonomo.
-
-Il punto non è che ogni business debba costruire un ecosistema complicato.
-
-Il punto è che un prodotto può generare un servizio e un servizio può generare nuovi prodotti.
-
-Non devi per forza restare fedele alla forma originale.
-
-Devi restare fedele al problema del cliente.
+La lezione non è moltiplicare i formati per il gusto di farlo. Resta fedele al problema del cliente e scegli poi la forma di consegna che lo risolve senza indebolire l’economia del business.
 
 E questo ci porta alla scalabilità.
 

@@ -52,6 +52,7 @@ transitive dependencies.
 - `pnpm mediaforge -- episode english --episode <episode-id>`
 - `pnpm mediaforge -- episode localized --episode <episode-id>`
 - `pnpm mediaforge -- episode short --episode <episode-id>`
+- `pnpm mediaforge -- episode review-pack <episode-folder> [--max-file-bytes <bytes>] [--max-pack-bytes <bytes>] [--probe-concurrency <count>] [--json]`
 - `pnpm mediaforge -- audio generate <episode-id>`
 - `pnpm mediaforge -- audio generate-localized <episode-id> [--languages en,de] [--dry-run] [--strict]`
 - `pnpm mediaforge -- --narration-pipeline-mode shadow audio narration status --episode <episode-id> --language en --variant full --json`
@@ -89,6 +90,13 @@ transitive dependencies.
 - `pnpm mediaforge -- math batch resume ... [--render-executor local|remote|hybrid]`
 - `pnpm mediaforge -- metadata youtube --episode <episode-id>`
 - `pnpm mediaforge -- youtube upload --episode <episode-id>`
+
+`episode review-pack` writes only a ZIP under the episode workspace's shared
+`reviews/` directory (for example, `episodes/reviews/<episode>-chatgpt-review-<timestamp>.zip`). It copies bounded non-media episode evidence,
+excludes nested review outputs and likely credential files, and represents all
+recognized audio/video files through normalized `ffprobe` metadata instead of
+including the media payloads. The command requires local `ffprobe`, `zip`, and
+`unzip`; it performs no provider calls. Episode review output is ignored by Git.
 
 Math scene-worker operations reuse the `REMOTE_RENDER_*` SSH, timeout, retry,
 retention, and fallback settings. They additionally accept

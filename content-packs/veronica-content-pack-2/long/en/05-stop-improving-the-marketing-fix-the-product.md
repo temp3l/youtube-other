@@ -1,5 +1,7 @@
 When sales slow down, more marketing is almost an automatic reaction. But if the problem is the product, more traffic does not fix it; it simply exposes the weakness to more people. Before buying more attention, separate a distribution problem from a value, demand, complexity, or format problem. That diagnosis is less comfortable, but it is often dramatically cheaper.
 
+Diagnose in this order: demand, fit, complexity, distribution. Marketing comes last because it is often the most expensive place to discover a defect that started upstream.
+
 Post more.
 
 Change the creative.
@@ -194,95 +196,19 @@ If you keep calling it a marketing problem, you may spend time and money persuad
 
 Before buying more attention, make sure the product deserves it.
 
-You can turn this into a concrete diagnostic sequence.
+Now make validation decision-grade instead of anecdotal. Write one hypothesis in a form that can fail: “Busy freelancers will pay X for Y because it removes Z.” Then define three things before you test it: the evidence you will accept, the threshold that matters, and the stop condition that makes you reconsider the idea. This prevents every weak result from being explained away after the fact.
 
-First: does the need exist?
+Choose the cheapest test capable of changing the decision. A customer interview can reveal language and alternatives, but it does not prove willingness to pay. A landing page can test interest, but not whether delivery works. A deposit or preorder can test commitment, but only when the offer, timing, and refund terms are clear. Match the test to the uncertainty instead of treating every signal as proof.
 
-Not, “I love this idea.”
+Then read where failure occurs. If qualified people do not engage at all, demand, relevance, message, or channel may still be uncertain. If they engage but refuse the offer, inspect fit, value, price, or the alternative they already use. If they buy but support, returns, exceptions, and delivery work explode, the product may sell while the operating model still fails.
 
-Not, “I am good at making it.”
+Include complexity in the test. Count variants, suppliers, manual exceptions, support time, and inventory exposure. A product that creates revenue while multiplying hidden work can still weaken the business.
 
-Is there someone already trying to solve this problem?
+After every test, record four things: what you expected, what happened, what you learned, and what decision changes because of it. Validation is not a ritual for proving that you were right. It is a system for becoming less wrong before amplification becomes expensive.
 
-Then study the competitors.
+Only when demand, fit, and delivery economics survive those tests should distribution become the next bottleneck to solve.
 
-Competitors are not automatically bad news.
-
-They may confirm that demand exists.
-
-They show how the market currently presents the solution.
-
-They reveal what customers consider normal.
-
-And they can show where there is room for a meaningful difference.
-
-The absence of competitors deserves the same skepticism.
-
-You may have discovered a valuable gap.
-
-Or you may have discovered something very few people want.
-
-Validate it. Do not fall in love with the empty space.
-
-Then ask whether the need has changed.
-
-The lockdown example matters because people did not simply stop having needs.
-
-Their conditions changed.
-
-Their emotions changed.
-
-What they were able to do changed.
-
-Products connected to DIY, repair, or making things by hand could become more relevant because they matched the new context.
-
-The lesson is not “sell kits during a crisis.”
-
-The lesson is: do not confuse the old form of the need with the need itself.
-
-Next, inspect the complexity you have accumulated.
-
-A restaurant with a huge menu has to buy more ingredients, carry more stock, and support more operational combinations.
-
-Meanwhile the customer has to choose between more alternatives.
-
-What looks like freedom can become waste on one side and confusion on the other.
-
-The same thing happens with products, packages, and services.
-
-If you have thirty variants that do almost the same thing, ask which ones are actually contributing.
-
-Sometimes reducing them to three clear choices improves the customer experience and the operation at the same time.
-
-Then look at costs that do not appear immediately in the unit price.
-
-Your time.
-
-Coordination.
-
-The number of suppliers.
-
-Exceptions.
-
-Small tasks that interrupt the day.
-
-The cheapest supplier is not always the cheapest system if it requires more orders, more checking, and more attention.
-
-Optimization means looking at the whole system.
-
-If inventory is the main risk, test demand before buying everything you might eventually need.
-
-A preorder is only one example.
-
-A waitlist, a smaller pilot, or a structured customer conversation can also provide useful signals.
-
-None of those is absolute proof.
-
-But they are better than internal enthusiasm alone.
-
-The purpose of validation is not to prove that you were right.
-
-It is to discover early enough whether something needs to change.
+Treat evidence as a ladder of commitment. A compliment is weaker than a click. A click is weaker than a qualified question. A question is weaker than a booked call, deposit, preorder, repeat use, or referral. Decide which rung is strong enough for the uncertainty you are testing. Otherwise a hundred low-commitment signals can create false confidence while the one behavior that matters never appears.
 
 Build a product audit around a few dimensions:
 

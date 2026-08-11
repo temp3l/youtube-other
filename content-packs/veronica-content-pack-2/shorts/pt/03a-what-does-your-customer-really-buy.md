@@ -1,3 +1,5 @@
 Se você continua explicando o que vende em vez de explicar por que alguém deveria querer aquilo, pode ter um ótimo produto e continuar vendendo pouco. Pense em um par de brincos. O produto são os brincos, mas a pessoa pode estar comprando se sentir mais bonita, completar um look ou se dar um presente. O cliente não vive dentro do seu catálogo. Vive dentro da própria vida. Então escreva o nome do que vende e apague mentalmente. O que a pessoa compra de verdade? Não invente benefícios. Traduza o que o produto realmente torna possível. E olhe também o que existe ao redor: orientação, suporte, método e cuidado podem ser exatamente o motivo pelo qual alguém escolhe você em vez de uma alternativa quase igual.
 
+Faça o teste mais rápido: descreva o resultado sem citar o produto. Se uma pessoa de fora entende por que esse resultado importa, você está mais perto da linguagem do cliente. Depois conecte o produto novamente e mostre por que ele consegue produzir esse resultado de forma crível, sem inventar benefícios.
+
 Retire o nome do produto da frase. Se o valor desaparecer, você ainda não encontrou a promessa.

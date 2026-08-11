@@ -1,3 +1,13 @@
-Você não precisa estar em todas as plataformas. Precisa estar onde o cliente certo realmente presta atenção. Abrir Instagram, TikTok, newsletter e grupo só porque “todo negócio precisa estar lá” não é estratégia. Defina primeiro a pessoa. Depois pergunte onde ela está quando a sua mensagem se torna relevante. Faça uma auditoria dos canais. Para cada plataforma, anote: qual cliente eu alcanço aqui? Qual comportamento mostra que ele realmente está presente? E eu consigo cuidar bem deste canal? Se não existe uma resposta clara, talvez você esteja mantendo a plataforma por hábito. Dois canais relevantes e bem cuidados costumam valer mais do que cinco perfis abandonados. E não confunda presença com eficácia. Um perfil esquecido não torna você mais acessível. Distribuição começa pelo comportamento do cliente, não pela plataforma da moda.
+Estar em mais plataformas pode enfraquecer seu marketing. Cada canal consome ideias, respostas, moderação, medição e follow-up. Se ele não produz nenhum sinal observável de compra, talvez você esteja pagando um imposto de atenção apenas para parecer presente.
 
-Escolha um canal para manter e outro para pausar com base no comportamento real do cliente.
+Não pergunte: “Qual plataforma um negócio deveria usar?”. Pergunte: “Onde este cliente já se comporta como alguém que tem este problema?”. Procure evidências: buscas, respostas, indicações, entrevistas, visitas ao perfil, perguntas qualificadas e conversas de venda.
+
+Audite cada canal com três perguntas. Qual cliente eu alcanço aqui? Qual comportamento prova que essa atenção é relevante? Consigo cuidar bem deste canal para responder quando alguém levanta a mão?
+
+Uma conta abandonada não é distribuição. É uma porta aberta sem ninguém atrás.
+
+Dois canais com sinais reais de clientes e follow-up confiável podem valer muito mais do que cinco perfis mantidos por medo de ficar de fora.
+
+Se pausar não produz uma perda mensurável, isso também é evidência útil.
+
+Escolha um canal para fortalecer e outro para pausar. Decida pelo comportamento do cliente, não pela moda da plataforma.

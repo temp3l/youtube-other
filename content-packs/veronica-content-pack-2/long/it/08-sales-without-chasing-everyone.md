@@ -166,41 +166,11 @@ Non stai correndo dietro a persone disinteressate.
 
 Stai costruendo un ambiente in cui le persone rilevanti possono arrivare, capire e decidere.
 
-Quindi prova a mappare il tuo percorso attuale.
+Trasforma ora questo percorso in un sistema operativo commerciale. Per ogni fase definisci uno scopo, un responsabile, un segnale osservabile e la prossima azione. Se una fase non ha un owner o un passo successivo, stai affidando i lead alla memoria.
 
-Come ti scopre una persona nuova?
+Per contatto e follow-up aggiungi tre controlli: uno SLA di risposta, una ragione per il prossimo contatto e una regola di stop. Registra in modo visibile la fonte del lead e la fase attuale. Così la prossima azione non dipende da chi si ricorda per caso.
 
-Cosa vede dopo?
-
-Quale contenuto le permette di capire meglio?
-
-Dove può seguirti?
-
-Come può chiedere informazioni?
-
-Quanto rapidamente riceve una risposta?
-
-Che cosa succede se oggi non compra?
-
-Hai un modo per restare in relazione?
-
-E quanto del tuo fatturato dovrebbe arrivare da clienti nuovi rispetto a clienti esistenti, considerando il tuo ciclo d'acquisto?
-
-Queste sono domande di vendita molto più utili di “quanti DM devo mandare al giorno?”.
-
-Perché vendere senza inseguire non significa essere passivi.
-
-Significa prospecting focalizzata.
-
-Comunicazione utile.
-
-Presenza.
-
-Follow-up disciplinato.
-
-Immagina una consulente che pubblica un contenuto utile su un problema specifico. Una persona risponde, visita una pagina chiara, prenota una breve call e riceve una proposta. Tre giorni dopo non arriva un messaggio “hai deciso?”, ma un follow-up con la risposta alla domanda più importante emersa durante la call e una scadenza reale, se esiste. Una settimana dopo, se non c'è risposta, arriva un ultimo contatto rispettoso che chiude il ciclo. Questo è un sistema.
-
-E retention.
+Usa nomi di fase coerenti, così ogni lead ha uno stato leggibile e non rimane sospeso tra messaggi, note personali e memoria.
 
 Puoi trasformare tutto questo in una mappa molto semplice del sistema di prospecting.
 
@@ -326,9 +296,7 @@ Quindi prospecting senza chasing non è meno sistematica.
 
 Perché invece di compensare la mancanza di percorso con più messaggi, costruisci un percorso che rende ogni contatto più sensato.
 
-
 Infine assegna una responsabilità a ogni passaggio. Chi controlla i messaggi? Quando? Dove vengono registrati i contatti da seguire? Quale contenuto invii a chi non è ancora pronto? Quando smetti di fare follow-up? Un sistema semplice ma visibile è meglio di una memoria perfetta che non esiste. Prospecting diventa sostenibile quando non dipende dall'energia del giorno, ma da poche azioni chiare che puoi ripetere e migliorare.
-
 
 E una volta al mese guarda la mappa e chiediti dove si accumulano le persone. Tante scoperte ma pochi contatti? Migliora comprensione e interesse. Tanti contatti ma nessun passo successivo? Controlla risposta, offerta e follow-up. Molti clienti nuovi ma nessun ritorno? Guarda retention e ciclo d'acquisto. Il sistema di prospecting diventa molto più utile quando sai quale passaggio stai cercando di migliorare.
 

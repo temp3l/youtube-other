@@ -1,5 +1,7 @@
 Prospecting does not mean bothering more people. It means creating enough opportunities for the right people to discover you, understand what you do, and know what the next step is. If sales currently depend on random messages, slow replies, or follow-ups with no reason, you do not have an energy problem. You have a system problem — and systems can be designed.
 
+Think of prospecting as a sales operating system, not an outreach quota. Discovery, understanding, interest, contact, follow-up, and retention each need an owner and a purpose.
+
 And it does not mean sending fifty messages a day and hoping someone eventually gives in from exhaustion.
 
 Prospecting means creating enough opportunities for the right people to discover that you exist, understand what you do, and have a reason to move closer.
@@ -166,39 +168,9 @@ You are not running after people who are not interested.
 
 You are building an environment in which relevant people can arrive, understand, and decide.
 
-You can make this operational by mapping the current journey.
+Now turn that journey into an operating system. For each stage, define one purpose, one owner, one observable signal, and one next action. If a stage has no owner or next action, leads are being left to memory.
 
-How does a new person discover you?
-
-What do they see next?
-
-Which content helps them understand more?
-
-Where can they follow you?
-
-How can they ask for information?
-
-How quickly do they receive a response?
-
-What happens if they do not buy today?
-
-Is there a way to stay in a useful relationship?
-
-And given your buying cycle, how much of your revenue should realistically come from new customers versus existing customers?
-
-Those questions are much more useful than “How many DMs should I send every day?”
-
-Because selling without chasing does not mean being passive.
-
-It means focused prospecting.
-
-Useful communication.
-
-Presence.
-
-Disciplined follow-up.
-
-And retention.
+For contact and follow-up, add three controls: a response SLA, a reason for the next touch, and a stop rule. Record the lead source and current stage somewhere visible. This separates an operating system from good intentions: the next action does not depend on who happens to remember it.
 
 Turn the system into five simple columns.
 

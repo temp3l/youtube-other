@@ -1,45 +1,51 @@
-# Editorial Ratings — YouTube-Optimized v2
+# Independent Post-Remediation Story Ratings
 
-**Persona:** Senior Multilingual YouTube Growth Director + Audience-Retention Editor + Sales/Conversion Strategist + Consumer-Psychology Reviewer.
+**Status: PASS — 24/24 stories are >= 9.5/10**
 
-**Gate:** 9.5/10 minimum. Scores assess the canonical story architecture after enhancement; localized variants are separately checked for semantic and packaging consistency.
+- Minimum: **9.5/10**
+- Average: **9.65/10**
+- Review stance: fresh editorial review after remediation; embedded earlier ratings were not reused as the decision gate.
 
 ## Long-form
 
-| Episode | Score | Verdict |
-|---|---:|---|
-| OSC-01 — Your Revenue Can Grow While Your Business Gets Weaker | **9.6/10** | PASS |
-| OSC-02 — Your Ideal Customer Is Not Everyone | **9.5/10** | PASS |
-| OSC-03 — People Don't Buy Your Product. They Buy the Promise. | **9.6/10** | PASS |
-| OSC-04 — How to Build an Offer People Actually Want | **9.7/10** | PASS |
-| OSC-05 — Stop Improving the Marketing. Fix the Product. | **9.8/10** | PASS |
-| OSC-06 — Attention Is Not Conversion | **9.9/10** | PASS |
-| OSC-07 — Why Selling Feels Difficult | **9.8/10** | PASS |
-| OSC-08 — Sales Without Chasing Everyone | **9.7/10** | PASS |
+| # | Story | Score | Verdict |
+|---:|---|---:|---|
+| 01 | Business Model Stress Test | **9.6** | PASS |
+| 02 | Need–Context–Signal Customer Definition | **9.6** | PASS |
+| 03 | Feature → Consequence → Lived Outcome → Proof | **9.6** | PASS |
+| 04 | Offer as Friction-Reduction System | **9.6** | PASS |
+| 05 | Demand → Fit → Complexity → Distribution | **9.8** | PASS |
+| 06 | Attention Is Not Conversion | **9.8** | PASS |
+| 07 | Selling Discomfort Without Manipulation | **9.7** | PASS |
+| 08 | Sales Operating System Without Chasing | **9.7** | PASS |
 
 ## Shorts
 
-| Story | Score | Verdict |
+| Short | Score | Verdict |
 |---|---:|---|
-| OSC-01A — More Revenue Can Make a Weak Business Worse | **9.7/10** | PASS |
-| OSC-01B — Does Your Income Stop When You Stop Working? | **9.7/10** | PASS |
-| OSC-02A — Stop Targeting Everyone | **9.5/10** | PASS |
-| OSC-02B — You Do Not Need Every Platform | **9.5/10** | PASS |
-| OSC-03A — What Is the Customer Really Buying? | **9.7/10** | PASS |
-| OSC-03B — A Promise Is Not a Slogan | **9.6/10** | PASS |
-| OSC-04A — A Good Product Can Still Be Hard to Buy | **9.8/10** | PASS |
-| OSC-04B — The 30-Second Offer Test | **9.7/10** | PASS |
-| OSC-05A — Maybe You Do Not Have a Marketing Problem | **9.8/10** | PASS |
-| OSC-05B — Too Many Choices Can Hurt Sales | **9.7/10** | PASS |
-| OSC-06A — 100K Views and Zero Sales? | **9.9/10** | PASS |
-| OSC-06B — A Stronger CTA Will Not Fix Missing Trust | **9.8/10** | PASS |
-| OSC-07A — Why Saying the Price Feels So Hard | **9.8/10** | PASS |
-| OSC-07B — Selling Is Not Manipulation | **9.9/10** | PASS |
-| OSC-08A — Stop Chasing Customers | **9.8/10** | PASS |
-| OSC-08B — Follow-Up vs Chasing | **9.9/10** | PASS |
+| 01A | **9.6** | PASS |
+| 01B | **9.7** | PASS |
+| 02A | **9.5** | PASS |
+| 02B | **9.6** | PASS |
+| 03A | **9.6** | PASS |
+| 03B | **9.6** | PASS |
+| 04A | **9.6** | PASS |
+| 04B | **9.7** | PASS |
+| 05A | **9.7** | PASS |
+| 05B | **9.5** | PASS |
+| 06A | **9.8** | PASS |
+| 06B | **9.6** | PASS |
+| 07A | **9.7** | PASS |
+| 07B | **9.8** | PASS |
+| 08A | **9.6** | PASS |
+| 08B | **9.7** | PASS |
 
-## Editorial rationale
+## Editorial changes that cleared the previous blockers
 
-All stories now pass because the enhancement removes the main prior weakness: explanatory repetition without sufficient progression. The revised versions use stronger cold opens, concrete decision cases, diagnostic tests, clearer objections/counterpoints, and tighter action payoffs. OSC-02 remains the least novel topic in the series, so its 9.5 depends on execution specificity rather than topic novelty. OSC-06 and OSC-07 remain the strongest discovery episodes.
-
-Ratings do **not** certify real-voice prosody, pronunciation, visual quality, thumbnail CTR, or actual audience retention. Those require production and post-publication evidence.
+- Long 06 narrative insertion moved to the correct position after the conversion-path sequence.
+- Long 07 orphaned opening fragments removed in EN/DE/ES/IT/PT; all locales now open with complete semantic progression.
+- Longs 01/02/03/05/08 compressed where later sections repeated earlier teaching.
+- Long 05 now uses falsifiable hypotheses, evidence thresholds, stop conditions, and a commitment ladder.
+- Long 08 now includes response SLA, lead-stage ownership, next-action and stop-rule controls.
+- Short 02B rebuilt around observable customer behavior and measurable channel value.
+- Episode 02/03 packaging sharpened; oversized French/German thumbnail copy shortened.

@@ -1,9 +1,10 @@
 {
-  "title": "Le persone non comprano il tuo prodotto. Comprano la promessa.",
-  "thumbnail": "COSA COMPRANO DAVVERO?",
+  "title": "Smetti di spiegare le feature. Traduci il valore.",
+  "thumbnail": "VENDI IL CAMBIAMENTO",
   "description": "Il cliente non compra solo caratteristiche: compra ciò che crede che il prodotto possa cambiare nella sua vita. Qui trasformiamo valore, servizio e risultato in una promessa chiara e credibile.",
   "cta": "Nel prossimo episodio trasformiamo questa promessa in un’offerta semplice da capire, credibile e facile da comprare.",
   "alternativeTitles": [
+    "Smetti di spiegare le feature. Traduci il valore.",
     "Le persone non comprano il prodotto. Comprano il cambiamento.",
     "Smetti di spiegare caratteristiche. Vendi il risultato."
   ],
@@ -12,7 +13,7 @@
     "VENDI IL CAMBIAMENTO",
     "LE CARATTERISTICHE NON BASTANO"
   ],
-  "youtubeOptimizationVersion": "v2-retention-localization",
+  "youtubeOptimizationVersion": "v4-editorial-continuity-remediation",
   "packagingQA": {
     "titlePromiseAligned": true,
     "nativeLanguageCTA": true,

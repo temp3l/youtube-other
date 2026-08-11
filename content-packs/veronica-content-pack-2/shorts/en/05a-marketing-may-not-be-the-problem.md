@@ -1,5 +1,5 @@
 If you are not selling, you may not have a marketing problem. You may have a product problem. Putting more advertising in front of a weak offer does not fix it. It simply brings more people to see the weakness. Before you buy more attention, ask three questions. Is there real demand, or do you only like the idea? What do competitors reveal about how the market already buys this type of solution? And has the customer's need changed while your product stayed the same? If the answer is uncomfortable, that is useful. It is much cheaper to discover a product problem before paying to send more traffic to it. If the product is not strong enough yet, that is not a marketing failure. It is information you can use to simplify, change the format, test a smaller version, or stop a larger investment early.
 
-Before buying more traffic, define what evidence would actually prove that marketing is the problem.
-
 Run a small validation before a large campaign. Show the concept, observe what customers choose, and ask for a meaningful commitment when appropriate. Praise is useful, but behavior is stronger evidence. The goal is to buy information cheaply before you buy attention expensively.
+
+Before buying more traffic, define what evidence would actually prove that marketing is the problem.

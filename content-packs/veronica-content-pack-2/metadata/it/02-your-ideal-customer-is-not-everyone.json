@@ -1,18 +1,19 @@
 {
-  "title": "Il tuo cliente ideale non è “tutti”",
-  "thumbnail": "NON È PER TUTTI",
+  "title": "Il test della buyer persona che cambia davvero il marketing",
+  "thumbnail": "CAMBIA UNA DECISIONE?",
   "description": "Se il tuo target è “chiunque potrebbe comprare”, il problema non è ancora la pubblicità: è la definizione. In questo episodio trasformiamo buyer persona, canali e comportamento reale in decisioni operative.",
   "cta": "Nel prossimo episodio: cosa compra davvero il cliente, oltre al prodotto.",
   "alternativeTitles": [
+    "Il test della buyer persona che cambia davvero il marketing",
     "Il tuo cliente non è “tutti”: come diventare davvero specifici",
     "Il test della buyer persona che cambia il marketing"
   ],
   "thumbnailOptions": [
+    "CAMBIA UNA DECISIONE?",
     "NON È PER TUTTI",
-    "SMETTI DI PARLARE A TUTTI",
-    "PER CHI È DAVVERO?"
+    "SMETTI DI PARLARE A TUTTI"
   ],
-  "youtubeOptimizationVersion": "v2-retention-localization",
+  "youtubeOptimizationVersion": "v4-editorial-continuity-remediation",
   "packagingQA": {
     "titlePromiseAligned": true,
     "nativeLanguageCTA": true,

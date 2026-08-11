@@ -15,6 +15,7 @@ debug/openai-calls/
 math-video-examples/
 tools/whisper.cpp
 episodes
+episodes/reviews/
 !.gitkeep
 secrets/youtube-oauth-client.json
 .env

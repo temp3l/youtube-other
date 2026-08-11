@@ -1,5 +1,7 @@
 A product can be excellent and still sell badly when the customer understands exactly what it is but not why they should want it. People do not buy your technical description; they buy a change in their life. So the job is not to invent a louder promise. It is to translate the product's real value into a result the customer immediately recognizes as relevant.
 
+Use a four-step translation: feature, consequence, lived outcome, proof. Start with what the product does, translate that into what changes for the customer, then make sure the result is something the experience can genuinely support.
+
 Because people rarely buy only the object sitting in front of them.
 
 They buy what that object allows them to achieve, feel, avoid, or become.
@@ -74,37 +76,7 @@ How you guide the person through the decision.
 
 That layer may not appear in the product specification, but it can be exactly why someone buys from you instead of a competitor.
 
-If you sell a skincare cream, you are not communicating only a jar.
-
-If you sell a shirt, you are not communicating only fabric, color, and size.
-
-If you sell consulting, you are not communicating only sixty minutes on a video call.
-
-Ask a simple question: what exists around the thing itself?
-
-What does the customer really receive?
-
-What becomes easier?
-
-What do they understand better?
-
-How do they feel?
-
-What kind of experience do they have?
-
-If that value stays invisible, customers compare what they can see.
-
-Price.
-
-Quantity.
-
-Duration.
-
-Features.
-
-And when every competitor appears to sell roughly the same thing, the cheapest option often wins.
-
-When you make the full value visible, the comparison changes.
+That service layer matters because invisible value is excluded from the comparison. If customers can see only price, quantity, duration, and features, they compare only those. Make the surrounding expertise and experience visible, and the comparison changes.
 
 That brings us to the promise.
 
@@ -221,6 +193,8 @@ You can make your expertise easier to see.
 You can explain why this solution fits this type of customer.
 
 But there is one condition.
+
+Use one more rule: the strength of the claim should match the strength of the proof. A modest claim may need a clear demonstration; a large transformation claim needs stronger evidence, context, and limits. Better copy cannot compensate for proof that is too weak for the promise.
 
 The promise has to be true.
 

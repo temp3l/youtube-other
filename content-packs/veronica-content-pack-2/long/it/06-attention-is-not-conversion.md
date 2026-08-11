@@ -216,6 +216,8 @@ Il problema nasce quando compri awareness e poi la dichiari fallita perché non 
 
 Gli obiettivi devono essere chiari prima dei risultati.
 
+Prima di dichiarare fallita un’attività, scegli una finestra di osservazione coerente con il ciclo d’acquisto. Una campagna di due giorni non può giudicare correttamente una decisione che normalmente richiede sei settimane.
+
 Poi arriva il percorso.
 
 La conversione non comincia sul bottone.
@@ -286,9 +288,7 @@ Diventa una diagnosi.
 
 E soprattutto smetti di chiedere a un solo contenuto di fare contemporaneamente awareness, educazione, fiducia e vendita immediata.
 
-
 Poi assegna a ogni contenuto una funzione principale. Alcuni contenuti devono far scoprire. Altri devono far capire. Altri ancora devono costruire fiducia o accompagnare verso l'offerta. Questo non significa che un contenuto possa fare una sola cosa, ma ti impedisce di giudicarlo con una metrica sbagliata. Se sai quale passaggio vuoi migliorare, puoi creare il contenuto per quel passaggio e osservare se la persona avanza davvero.
-
 
 Puoi fare questo audit anche senza numeri perfetti. Prendi gli ultimi dieci contenuti o campagne e assegna a ciascuno un obiettivo principale. Poi chiediti se il passo successivo era evidente. Se un contenuto doveva creare interesse, dove poteva andare la persona dopo? Se doveva convertire, aveva già ricevuto abbastanza contesto e fiducia? Molte perdite di conversione sono semplicemente passaggi mancanti tra un momento e l'altro.
 

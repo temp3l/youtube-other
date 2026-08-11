@@ -1,5 +1,5 @@
 If your ideal customer is “anyone who could buy,” you have not defined a customer. You have avoided making a choice. And if you do not know who you are speaking to, you cannot know which problem belongs in the message, which example will land, or which objection you need to answer. Two people can buy the same product for completely different reasons. So do not start with age and city. Start with the need: what is this person trying to achieve, feel, or avoid? Then test your persona against a real decision. Does it tell you what problem belongs in the title, what objection to address, or where to publish? If nothing changes, the persona is probably marketing decoration. Build it around three things instead: the need, the context in which that need appears, and the behavior that shows real interest. Specificity is not about excluding everyone else. It is about making the message recognizable to someone.
 
-If your persona does not change at least one concrete decision, make it more specific.
-
 A useful customer definition should change the creative before you publish. The problem in the hook, the example in the middle, the objection you answer, and the next step can all change when the buying context changes. That is what makes specificity operational.
+
+If your persona does not change at least one concrete decision, make it more specific.

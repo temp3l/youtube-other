@@ -1,23 +1,28 @@
-# Editorial Changelog — v2
+# Editorial Changelog — v4
 
-## Series-wide changes
+## Continuity remediation
+- Fixed Long 06 misplaced diagnostic insertion in EN.
+- Removed Long 07 orphan opening fragments in EN/DE/ES/IT/PT.
+- Added continuity lint for known orphan fragments and exact duplicate narrative paragraphs.
 
-- Replaced every long-form opening paragraph with a stronger YouTube cold open.
-- Added concrete decision/case sequences where spoken density or progression was weak.
-- Added an actionable payoff to every localized Short.
-- Calibrated every English Short to the configured 155 WPM target.
-- Corrected non-English CTA leakage in OSC-03 through OSC-08.
-- Added localized alternative titles and thumbnail concepts.
-- Added explicit localized Short titles and alternate hooks for all 80 localized Shorts.
-- Preserved semantic ownership boundaries between episodes.
+## Information-density remediation
+- Long 01: compressed planner ecosystem detour.
+- Long 02: removed second Red Bull explanation; added decision log.
+- Long 03: compressed repeated product examples; added claim-to-proof strength rule.
+- Long 05: replaced repeated audit loop with falsifiable validation protocol, thresholds, stop conditions and commitment ladder.
+- Long 08: replaced duplicate journey map with operating-system controls, owner/SLA/next-action/stop-rule discipline.
+- Short 02B: rebuilt around observable buying signals and channel attention cost.
 
-## Episode-specific upgrades
+## Timing engineering
+- Added internal pre-TTS planning guard: ~9:40–10:20 long; ~1:05–1:25 short.
+- All 144 localized scripts pass both internal guard and public timing limits at centralized WPM.
+- Selected audio remains canonical.
 
-- **OSC-01:** stronger double-sales stress test and volume-economics framing.
-- **OSC-02:** concrete same-product/two-buyers example so persona work changes actual messaging decisions.
-- **OSC-03:** “so what?” and product-name subtraction tests to make promise/value translation operational.
-- **OSC-04:** 30-second offer test and explicit cognitive-friction diagnosis.
-- **OSC-05:** small validation/commitment test and marketing-vs-product-vs-operations signal separation.
-- **OSC-06:** numerical funnel-transition diagnosis instead of treating views/conversion as one metric.
-- **OSC-07:** price-statement rehearsal plus an explicit ethical sales test.
-- **OSC-08:** concrete prospecting/follow-up sequence with a clear stop condition and value-adding follow-up distinction.
+## Packaging
+- Strengthened Episode 02 and 03 title/thumbnail pairs.
+- Shortened oversized French and German primary packaging copy.
+
+## Artifact hygiene
+- Removed stale mock-audio README references.
+- Replaced legacy per-episode mock-timing manifests/QA with current mock-free manifests.
+- Regenerated ratings, timing reports, package manifest and SHA-256 integrity file.

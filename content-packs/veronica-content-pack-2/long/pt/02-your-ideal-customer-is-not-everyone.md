@@ -186,20 +186,6 @@ A informação passa a ser útil quando altera a necessidade, o comportamento, o
 
 Por isso a buyer persona deve continuar sendo uma simplificação, e não uma caricatura.
 
-O exemplo da Red Bull mostra isso bem.
-
-Se você quer alcançar certo tipo de estudante ou jovem adulto, não basta dar um nome imaginário e escolher a cor favorita.
-
-Você precisa entender onde vive aquele momento de necessidade.
-
-Quando essa pessoa procura energia?
-
-Onde ela está?
-
-Qual situação torna o produto relevante?
-
-O valor da persona está na decisão de mensagem e de placement, não na quantidade de campos preenchidos em um template.
-
 Depois compare a hipótese com o comportamento.
 
 As pessoas podem ser agrupadas por características, mas também pelo que fazem.
@@ -263,6 +249,8 @@ E quando aparecer um padrão, transforme-o em uma decisão concreta: reescrever 
 A análise só gera valor quando muda o comportamento do negócio.
 
 Quando essa parte estiver clara, vem a próxima pergunta: o que essa pessoa acredita que está comprando de verdade?
+
+Mantenha um registro de decisão em uma linha: “Como este é o nosso cliente, mudamos esta mensagem, canal, exemplo, objeção ou oferta.” Se a definição nunca produz uma frase assim, ainda está decorativa demais.
 
 Porque conhecer o cliente não basta.
 

@@ -1,5 +1,7 @@
 You can have a good product, a clear promise, and interested people — and still lose the sale in the final few steps. A confusing path, too many unanswered questions, or the wrong entry point is enough. The offer is the bridge between “I'm interested” and “I know exactly what to choose and how to start.” In this episode, we treat it as a friction-reduction system, not a pile of bonuses.
 
+Treat friction like a ledger. Every unanswered question, unnecessary step, confusing choice, or credibility gap withdraws a little purchase intent. The job of the offer is to remove those withdrawals without removing the customer’s freedom to decide.
+
 Because the product is not the offer.
 
 The offer is the system that helps someone understand where to start, what to choose, why to trust you, and why acting now makes more sense than postponing the decision forever.
@@ -197,10 +199,6 @@ Where should that person begin?
 If you have ten products, what is the sensible first step?
 
 If you sell a premium service, is there a lower-risk way for someone to understand your method before making a large commitment?
-
-The planner example shows this well.
-
-The product can be an entry point.
 
 A free resource can teach the method.
 

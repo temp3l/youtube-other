@@ -8,6 +8,8 @@ The problem is structural.
 
 So before you ask, “How do I sell more?”, there is a less exciting but much more useful question to ask first: how does this business actually make money?
 
+The core rule is simple: growth amplifies the economics you already have. If the structure is weak, volume magnifies the weakness; if the structure is sound, volume has something worth amplifying.
+
 Start with the basics.
 
 Revenue is what comes in.
@@ -56,23 +58,7 @@ You can sell the planner as a physical object.
 
 But the planner may also reveal a deeper customer problem: people do not simply want paper. They want to plan better, feel less overwhelmed, and make progress on the things that matter to them.
 
-That opens other possibilities.
-
-The planner could lead to a planning workshop.
-
-The workshop could become a course.
-
-The course could include templates or tools.
-
-One of those tools might eventually become a standalone product.
-
-The point is not that every business should build an ecosystem of products.
-
-The point is that a product can generate a service, and a service can generate new products.
-
-You do not need to remain loyal to the original format.
-
-You need to remain loyal to the customer problem.
+The lesson is not to multiply formats for their own sake. Stay loyal to the customer problem, then choose the delivery format that solves it without weakening the economics.
 
 That brings us to scalability.
 
@@ -143,14 +129,6 @@ It changed the delivery model.
 The broader lesson is not simply that one famous company failed and another succeeded.
 
 It is that large, established businesses can become vulnerable when they defend a format more aggressively than they defend the customer need.
-
-The same can happen on a much smaller scale.
-
-A consultant may defend the two-hour meeting because that is how the service has always been delivered.
-
-A retailer may defend a physical buying process because customers used to accept it.
-
-A software company may keep adding features while customers are actually asking for a simpler outcome.
 
 When the way people want to buy, use, or receive value changes, the business model has to be able to react.
 

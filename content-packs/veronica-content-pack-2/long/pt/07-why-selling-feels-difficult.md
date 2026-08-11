@@ -1,12 +1,10 @@
 Se você quer vender mais, mas muda o tom de voz na hora de dizer o preço, isso não é apenas um problema de técnica de vendas. Desconforto com dinheiro, julgamento e rejeição entra diretamente nas decisões: desconto cedo demais, follow-up evitado, valor entregue de graça e pedido de compra que nunca é feito com clareza. Aqui separamos persuasão saudável de pressão e transformamos um momento emocional em um processo que pode ser preparado.
 
-Ou pedir para alguém comprar.
+Observe onde o desconforto aparece: ao dizer o preço, pedir a compra, fazer follow-up ou falar abertamente sobre dinheiro. Esses momentos estão relacionados, mas não são a mesma coisa.
 
-Ou falar abertamente sobre dinheiro.
+Separe desconforto de ética. A sensação pode ser real mesmo quando a venda é justa. Seu trabalho é construir um processo claro o suficiente para que nem você nem o cliente dependam de pressão ou improvisação.
 
-Isso não é um pequeno detalhe psicológico.
-
-Se você tem um negócio, essa tensão entra diretamente na maneira como apresenta a oferta, faz follow-up, coloca preço e toma decisões.
+Esse desconforto não é um detalhe psicológico pequeno. No negócio, ele entra diretamente em preço, follow-up, negociação e na capacidade de pedir uma decisão com clareza.
 
 Dinheiro carrega uma quantidade enorme de significados culturais.
 
@@ -178,37 +176,7 @@ Faça um exercício concreto. Antes da próxima conversa de vendas, escreva o pr
 
 É a parte em que um negócio transforma valor em troca econômica.
 
-Você consegue observar sua relação com venda em pequenas decisões do dia a dia.
-
-Quanto tempo demora para dizer o preço?
-
-Quantas vezes adiciona algo grátis porque teme que o que já ofereceu não seja suficiente?
-
-Com que rapidez oferece desconto quando percebe hesitação?
-
-Quantas vezes evita follow-up para não parecer insistente?
-
-Isso pode parecer problema de técnica de vendas.
-
-Às vezes é a forma como a relação com dinheiro e julgamento entra no processo.
-
-Por isso medir ajuda.
-
-Receita.
-
-Custos.
-
-Margem.
-
-Metas.
-
-Não porque números eliminem automaticamente o medo.
-
-Mas porque tornam dinheiro observável.
-
-Quando você não olha, ele pode ficar vago e ameaçador.
-
-Quando mede, pode virar ferramenta de decisão.
+Observe quatro comportamentos: adiar o preço, adicionar extras grátis, dar desconto na primeira hesitação e evitar follow-up. Eles mostram onde o desconforto entra no processo. Meça também receita, margem e metas, não para eliminar o medo, mas para transformar dinheiro de julgamento vago em informação observável.
 
 Existe também uma diferença simples entre hobby e negócio.
 

@@ -1,8 +1,8 @@
 Se una persona non sa chi sei, non capisce cosa fai e non si fida, una call to action più aggressiva non risolve il problema. La conversione è l'ultimo pezzo di un percorso: contenuti, relazione, credibilità, chiarezza, poi la proposta. Chiedere “compra ora” prima di aver costruito tutto il resto significa chiedere al bottone di fare il lavoro che avresti dovuto fare tu. La fiducia non garantisce la vendita. Ma senza fiducia, stai rendendo la vendita molto più difficile.
 
-La conversione non comincia sul bottone compra. Comincia quando la persona incontra il tuo contenuto, capisce che il problema la riguarda e decide che sei abbastanza credibile da ascoltare ancora. Poi arrivano chiarezza e proposta. Quindi, se le persone arrivano alla pagina ma non agiscono, non aumentare automaticamente la pressione. Controlla cosa non è chiaro, quale domanda resta aperta e se hai costruito abbastanza relazione prima della richiesta.
+La conversione non comincia sul bottone compra. Comincia quando la persona incontra il tuo contenuto, capisce che il problema la riguarda e decide che sei abbastanza credibile da ascoltare ancora. Quindi, se le persone arrivano alla pagina ma non agiscono, non aumentare automaticamente la pressione. Controlla cosa non è chiaro, quale domanda resta aperta e se hai costruito abbastanza relazione prima della richiesta.
 
-La fiducia cresce anche dalla coerenza: ciò che dici, ciò che mostri e ciò che consegni devono combaciare. Se il pubblico percepisce una persona reale, competente e chiara, la richiesta commerciale arriva dentro una relazione già iniziata.
+La fiducia cresce dalla coerenza: ciò che dici, ciò che mostri e ciò che consegni devono combaciare. Se il pubblico percepisce una persona reale, competente e chiara, la richiesta commerciale arriva dentro una relazione già iniziata.
 
 Chiediti cosa vedrebbe una persona prima della call to action. Se non ha ancora trovato una ragione per fidarsi, il problema non è il colore del bottone.
 

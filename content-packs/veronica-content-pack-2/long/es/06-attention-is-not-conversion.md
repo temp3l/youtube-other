@@ -210,6 +210,8 @@ El error es comprar awareness y declararlo un fracaso porque no creó ventas ins
 
 Los objetivos deben estar claros antes de ver los resultados.
 
+Antes de declarar que una actividad ha fracasado, define una ventana de observación acorde con el ciclo de compra. Una campaña de dos días no puede evaluar bien una decisión que normalmente tarda seis semanas.
+
 Después viene el recorrido.
 
 La conversión no empieza en el botón.

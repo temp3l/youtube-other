@@ -76,37 +76,7 @@ Diese Ebene steht oft nicht in der Produktbeschreibung.
 
 Sie kann aber genau der Grund sein, warum jemand bei dir und nicht beim Wettbewerber kauft.
 
-Wenn du eine Creme verkaufst, kommunizierst du nicht nur einen Tiegel.
-
-Wenn du ein T-Shirt verkaufst, kommunizierst du nicht nur Stoff, Farbe und Größe.
-
-Wenn du Beratung verkaufst, kommunizierst du nicht nur sechzig Minuten Videocall.
-
-Frag dich deshalb: Was liegt um das eigentliche Produkt herum?
-
-Was bekommt die Person wirklich?
-
-Was wird einfacher?
-
-Was versteht sie besser?
-
-Was fühlt sie?
-
-Welche Erfahrung macht sie?
-
-Wenn dieser Teil unsichtbar bleibt, vergleicht der Kunde das, was sichtbar ist.
-
-Preis.
-
-Menge.
-
-Dauer.
-
-Funktionen.
-
-Und wenn alle ungefähr dasselbe zu verkaufen scheinen, gewinnt häufig der günstigste Anbieter.
-
-Wenn du dagegen den gesamten Wert sichtbar machst, verändert sich der Vergleich.
+Diese Service-Ebene ist wichtig, weil unsichtbarer Wert aus dem Vergleich verschwindet. Wenn Kunden nur Preis, Menge, Dauer und Funktionen sehen, vergleichen sie genau das. Mach Expertise und Erfahrung rund um das Produkt sichtbar, und der Vergleich verändert sich.
 
 Damit kommen wir zum Versprechen.
 
@@ -225,6 +195,8 @@ Du kannst deine Kompetenz sichtbar machen.
 Du kannst erklären, warum diese Lösung für genau diese Situation geeignet ist.
 
 Aber es gibt eine Bedingung.
+
+Nutze noch eine Regel: Die Stärke der Aussage muss zur Stärke des Belegs passen. Eine kleine Aussage braucht vielleicht nur eine klare Demonstration; ein großes Transformationsversprechen braucht stärkere Evidenz, Kontext und Grenzen. Besserer Text ersetzt keinen Beleg, der für das Versprechen zu schwach ist.
 
 Das Versprechen muss wahr sein.
 

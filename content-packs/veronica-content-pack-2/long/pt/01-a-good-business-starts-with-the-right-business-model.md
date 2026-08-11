@@ -8,6 +8,8 @@ O problema está na estrutura.
 
 Então, antes de se perguntar como vender mais, vale fazer uma pergunta bem menos atraente, mas muito mais importante: como este negócio realmente ganha dinheiro?
 
+A regra central é simples: crescimento amplifica a economia que já existe. Se a estrutura é fraca, o volume amplia a fraqueza; se é sólida, o volume tem algo saudável para ampliar.
+
 Comece pelo básico.
 
 Faturamento é o que entra.
@@ -56,23 +58,7 @@ Você pode vender a agenda simplesmente como um objeto físico.
 
 Mas ela também pode revelar um problema mais profundo: as pessoas não querem apenas comprar papel. Elas querem se organizar melhor, se sentir menos sobrecarregadas e avançar no que realmente importa.
 
-A partir daí surgem outras possibilidades.
-
-A agenda pode levar a um workshop de planejamento.
-
-O workshop pode virar um curso.
-
-O curso pode incluir modelos, materiais ou ferramentas.
-
-E uma dessas ferramentas pode, com o tempo, se transformar em um produto independente.
-
-O ponto não é que todo negócio deva criar um ecossistema complicado.
-
-O ponto é que um produto pode gerar um serviço e um serviço pode gerar novos produtos.
-
-Você não precisa ser fiel ao formato original.
-
-Precisa ser fiel ao problema do cliente.
+A lição não é multiplicar formatos por multiplicar. Continue fiel ao problema do cliente e escolha a forma de entrega que o resolve sem enfraquecer a economia do negócio.
 
 E isso nos leva à escalabilidade.
 
@@ -144,14 +130,6 @@ A lição mais ampla não é simplesmente que uma empresa famosa perdeu e outra 
 
 É que até empresas grandes e consolidadas podem ficar vulneráveis quando defendem o formato com mais força do que defendem a necessidade do cliente.
 
-E isso também acontece em negócios pequenos.
-
-Um consultor pode defender a reunião de duas horas porque o serviço sempre foi entregue dessa forma.
-
-Um lojista pode defender o processo de compra presencial porque os clientes aceitavam isso no passado.
-
-Uma empresa de software pode continuar adicionando funcionalidades enquanto o cliente, na verdade, quer um resultado mais simples.
-
 Quando muda a forma como as pessoas querem comprar, usar ou receber valor, o modelo de negócio precisa conseguir reagir.
 
 Então tente olhar para o seu negócio sem começar pelo produto.
@@ -168,11 +146,7 @@ Quarto: quanto tempo humano é necessário para entregar o que foi prometido?
 
 E quinto: qual parte do negócio poderia continuar gerando valor sem mais uma hora do seu tempo pessoal?
 
-Esse exercício importa porque muitas vezes olhamos para o negócio a partir do produto, enquanto o modelo vive nas relações entre receita, custos, tempo, entrega e comportamento do cliente.
-
 Depois escolha um produto ou serviço e calcule a economia de uma única venda.
-
-Quanto você cobra?
 
 Quanto desaparece em produção, taxas, comissões, pagamento, frete, atendimento, devoluções, software e tempo necessário para entregar?
 
@@ -190,8 +164,6 @@ Liste todas as atividades sem as quais hoje você não consegue faturar ou concl
 
 Se cada cliente adicional sempre exige um novo bloco completo do seu tempo, você sabe exatamente onde está o limite de capacidade.
 
-Isso pode ser totalmente aceitável.
-
 Mas deve ser uma escolha consciente, e não uma surpresa que aparece apenas quando a demanda aumenta.
 
 Em seguida, olhe para a oferta.
@@ -204,10 +176,6 @@ Um produto de entrada mais simples poderia levar a um serviço mais profundo?
 
 Um serviço muito personalizado poderia revelar uma ferramenta ou um método que muitas outras pessoas também poderiam usar?
 
-Não mude tudo de uma vez.
-
-Escolha uma única hipótese.
-
 Talvez você consiga aumentar a margem sem piorar a experiência do cliente.
 
 Talvez uma parte repetitiva da entrega possa sair do seu tempo pessoal.
@@ -216,15 +184,7 @@ Talvez os clientes precisem de uma porta de entrada diferente para o mesmo probl
 
 Faça uma mudança, observe o que acontece e acompanhe por algumas semanas uma métrica simples.
 
-Margem por venda.
-
-Horas necessárias para entregar.
-
 Percentual da receita que não exige trabalho individual.
-
-Taxa de devolução.
-
-Tempo de atendimento.
 
 Escolha o número que mostra se a estrutura está realmente melhorando.
 

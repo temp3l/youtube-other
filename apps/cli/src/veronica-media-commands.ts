@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import { loadRuntimeConfig } from "@mediaforge/config";
+import { supportedLanguageCodeSchema } from "@mediaforge/domain";
 import { YOUTUBE_METADATA_PROMPT_VERSION, type YoutubeMetadataGenerationOptions } from "@mediaforge/metadata";
 import { runCommand } from "@mediaforge/process-runner";
 import { inspectSemanticImagePromptCache, requireOpenAiResponsesPolicy } from "@mediaforge/shared";
@@ -27,6 +28,8 @@ import {
   positioningProductionPlanSchema,
   resolveVeronicaSemanticImagePromptPaths,
   runStrategicSupplementalMediaBridge,
+  discoverVeronicaContentPack2Shorts,
+  prepareCanonicalSourceEpisodeWorkspace,
   type PositioningVisualPlanV2,
 } from "@mediaforge/strategic-reinvention";
 import { createVeronicaImagePromptCompilerComposition } from "./veronica-image-prompt-compiler-composition.js";
@@ -229,6 +232,41 @@ async function loadVeronicaSemanticInputs(input: {
 
 export function registerVeronicaMediaCommands(program: Command): void {
   const veronica = program.command("veronica-media").description("Veronica Benini supplemental media planning and rendering");
+  const sourcePack = veronica
+    .command("source-pack")
+    .description("Discover and prepare canonical Veronica source-pack episodes without media production");
+
+  sourcePack
+    .command("prepare")
+    .description("Prepare one Veronica Content Pack 2 source episode and canonical planner input")
+    .requiredOption("--pack <path>", "Veronica Content Pack 2 root")
+    .requiredOption("--workspace <path>", "Canonical episode workspace root")
+    .requiredOption("--episode-id <id>", "Stable authored Pack 2 episode key")
+    .option("--language <code>", "Locale to materialize", "en")
+    .option("--json", "Emit machine-readable output", false)
+    .action(async (options: { pack: string; workspace: string; episodeId: string; language: string; json: boolean }) => {
+      const language = supportedLanguageCodeSchema.parse(options.language);
+      const episodes = await discoverVeronicaContentPack2Shorts({
+        packDir: path.resolve(options.pack),
+      });
+      const sourceEpisode = episodes.find((episode) => episode.episodeId === options.episodeId);
+      if (!sourceEpisode) {
+        throw new Error(`Veronica Content Pack 2 episode not found: ${options.episodeId}`);
+      }
+      const result = await prepareCanonicalSourceEpisodeWorkspace({
+        workspaceRoot: path.resolve(options.workspace),
+        sourceEpisode,
+        locale: language,
+      });
+      const payload = {
+        ...result,
+        sourcePackId: sourceEpisode.sourcePackId,
+        sourceRevisionHash: sourceEpisode.sourceRevisionHash,
+        sourceLocales: sourceEpisode.localeSources.map((source) => source.locale),
+        providerCalls: 0,
+      };
+      process.stdout.write(`${JSON.stringify(payload, options.json ? null : undefined, options.json ? 2 : undefined)}\n`);
+    });
 
   veronica
     .command("metadata")

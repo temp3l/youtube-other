@@ -186,20 +186,6 @@ Diventa utile quando quella caratteristica cambia il bisogno, il comportamento, 
 
 E per questo una buyer persona deve restare una semplificazione, non una caricatura.
 
-L'esempio di Red Bull aiuta a capirlo.
-
-Se vuoi intercettare un certo tipo di studente o giovane adulto, non basta dargli un nome immaginario e scegliere il colore preferito.
-
-Devi capire dove vive quel momento di bisogno.
-
-Quando cerca energia.
-
-Dove si trova.
-
-Quale situazione rende il prodotto rilevante.
-
-Il valore della persona sta nella decisione di messaggio e di placement, non nella quantità di dettagli che hai compilato in un template.
-
 Poi devi confrontare l'ipotesi con il comportamento.
 
 Qui entra la profilazione.
@@ -263,6 +249,8 @@ Capire che cosa quella persona pensa di comprare davvero.
 Perché conoscere il cliente non basta.
 
 Devi anche saper tradurre il valore del tuo prodotto in una promessa che abbia senso nella sua vita.
+
+Tieni un decision log di una riga: “Dato che questo è il nostro cliente, abbiamo cambiato questo messaggio, canale, esempio, obiezione o offerta”. Se la definizione non produce mai una frase simile, è ancora troppo decorativa.
 
 Puoi anche verificare la definizione parlando con i clienti che hai già. Non per chiedere “ti piace il mio prodotto?”, ma per capire come descrivono il problema, perché hanno scelto, cosa stavano confrontando e dove ti hanno incontrata. Le parole reali dei clienti possono correggere una persona costruita solo dalla tua testa. Se scopri che il motivo d'acquisto è diverso da quello che immaginavi, non difendere il profilo. Aggiornalo. La buyer persona è utile proprio perché può cambiare quando arrivano informazioni migliori.
 

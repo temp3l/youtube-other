@@ -210,6 +210,8 @@ Der Fehler ist, Awareness zu kaufen und sie danach für gescheitert zu erklären
 
 Das Ziel muss vor dem Ergebnis klar sein.
 
+Bevor du eine Aktivität zum Misserfolg erklärst, wähle ein Beobachtungsfenster, das zum Kaufzyklus passt. Eine zweitägige Kampagne kann keine Entscheidung fair bewerten, für die Kunden normalerweise sechs Wochen brauchen.
+
 Dann kommt der Weg.
 
 Conversion beginnt nicht am Button.

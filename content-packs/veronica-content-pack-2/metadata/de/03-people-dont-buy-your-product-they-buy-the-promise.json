@@ -1,9 +1,10 @@
 {
-  "title": "Menschen kaufen nicht dein Produkt. Sie kaufen das Versprechen.",
-  "thumbnail": "WAS KAUFEN SIE WIRKLICH?",
+  "title": "Hör auf, Features zu erklären. Übersetze den Wert.",
+  "thumbnail": "VERKAUF DIE VERÄNDERUNG",
   "description": "Kunden kaufen nicht nur Merkmale, sondern die erwartete Veränderung. Dieses Video zeigt, wie Produktwert, Service und Ergebnis in ein klares, glaubwürdiges Versprechen übersetzt werden.",
   "cta": "In der nächsten Folge machen wir aus diesem Versprechen ein Angebot, das leicht zu verstehen, glaubwürdig und einfach zu kaufen ist.",
   "alternativeTitles": [
+    "Hör auf, Features zu erklären. Übersetze den Wert.",
     "Menschen kaufen nicht das Produkt. Sie kaufen die Veränderung.",
     "Hör auf, Features zu erklären. Verkaufe das Ergebnis."
   ],
@@ -12,7 +13,7 @@
     "VERKAUF DIE VERÄNDERUNG",
     "FEATURES SIND NICHT DER WERT"
   ],
-  "youtubeOptimizationVersion": "v2-retention-localization",
+  "youtubeOptimizationVersion": "v4-editorial-continuity-remediation",
   "packagingQA": {
     "titlePromiseAligned": true,
     "nativeLanguageCTA": true,

@@ -1,0 +1,13 @@
+Comptez le nombre d’étapes nécessaires avant qu’une personne puisse acheter chez vous. Combien de questions ? Combien de pages ? Combien de décisions inutiles ?
+
+Réduire la friction n’est pas manipuler. C’est faciliter une décision que la personne envisage déjà.
+
+Une offre forte donne un point d’entrée logique, des informations claires, des preuves crédibles et un chemin compréhensible. Vérifiez ensuite trois choses : existe-t-il une option d’entrée ou tout le monde doit-il commencer par l’offre la plus chère ? Avez-vous de vraies preuves qui réduisent l’incertitude ? Et votre urgence est-elle réelle, ou est-ce toujours « aujourd’hui seulement » ?
+
+Faites le test des trente secondes. Un nouveau visiteur devrait pouvoir comprendre si l’offre est pour lui, ce qu’il reçoit, quelle est l’étape suivante et où ses doutes peuvent être résolus.
+
+S’il n’y arrive pas, vous avez besoin de clarté avant d’avoir besoin de pression.
+
+Si la personne doit reconstruire seule la logique de l’offre, la difficulté d’achat fait déjà partie du problème.
+
+La meilleure offre n’est pas celle qui contient le plus d’éléments. C’est celle où chaque élément aide le client à comprendre, faire confiance, choisir et agir avec moins de friction.

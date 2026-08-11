@@ -53,6 +53,10 @@ import {
   visualFamilyFor,
 } from "./veronica-visual-language.js";
 import { resolveVeronicaProductionPolicy } from "./veronica-production-policy.js";
+import {
+  canonicalSourcePlannerInputSchema,
+  type CanonicalSourcePlannerInput,
+} from "./veronica-content-pack-2-ingestion.js";
 
 export type {
   AssetReuseDecision,
@@ -805,10 +809,12 @@ async function buildDraft(input: {
   readonly narrationLengthMinutes: number;
   readonly configuration: PositioningPlannerConfiguration;
   readonly priorClusterDiagramTopologies: readonly DiagramTopology["type"][];
+  readonly narration?: string;
+  readonly parentNarration?: string;
 }): Promise<PlanDraft> {
-  const narration = await readContainedPackFile(input.packDir, input.content.narrationFiles.en);
+  const narration = input.narration ?? await readContainedPackFile(input.packDir, input.content.narrationFiles.en);
   const aspectRatio: AspectRatio = input.content.format === "long" ? "16:9" : "9:16";
-  const parentNarration = await readContainedPackFile(input.packDir, input.parent.narrationFiles.en);
+  const parentNarration = input.parentNarration ?? await readContainedPackFile(input.packDir, input.parent.narrationFiles.en);
   const vocabulary = await loadOrBuildVocabulary({
     outputDir: input.outputDir,
     content: input.parent,

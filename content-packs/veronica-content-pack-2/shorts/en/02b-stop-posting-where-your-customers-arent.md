@@ -1,5 +1,13 @@
-You do not need to be on every platform. You need to be where the right customer actually spends attention. Opening Instagram, TikTok, a newsletter, and a community simply because businesses are “supposed to be there” is not a strategy. Define the person first. Then ask where they are when your message becomes relevant. Audit every channel you use: which customer am I reaching here? What behavior tells me they are really present? And can I actually manage this channel well? If you do not have a clear answer, you may be maintaining it out of habit. Two relevant channels that you serve properly are usually better than five abandoned profiles. And do not confuse presence with effectiveness. A neglected account does not make you more reachable. Distribution starts with customer behavior, not with the platform that happens to be fashionable.
+Being on more platforms can make your marketing weaker. Every channel consumes ideas, replies, moderation, measurement, and follow-up. If it produces no observable buying signal, you may be paying an attention tax just to look present.
 
-Choose one channel to keep and one to pause based on actual customer behavior.
+Do not ask, “Which platform should a business use?” Ask, “Where does this customer already behave like someone with this problem?” Look for evidence: search queries, replies, referrals, customer interviews, profile visits, qualified questions, and sales conversations.
 
-Look at evidence, not platform fashion. Search data, replies, customer interviews, referral sources, and sales conversations can tell you where attention already exists. You are not choosing a favorite app. You are choosing where a relevant conversation can happen reliably.
+Then audit each channel with three questions. Which customer am I reaching here? What behavior proves the attention is relevant? Can I serve this channel well enough to respond when someone raises a hand?
+
+A neglected account is not distribution. It is an open door with nobody behind it.
+
+Two channels with real customer signals and reliable follow-up can be worth far more than five profiles maintained from fear of missing out.
+
+If pausing it creates no measurable loss, that is useful evidence too.
+
+Choose one channel to strengthen and one to pause. Make the decision from customer behavior, not platform fashion.

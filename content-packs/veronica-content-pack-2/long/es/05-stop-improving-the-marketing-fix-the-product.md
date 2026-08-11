@@ -196,95 +196,19 @@ Si continúas llamándolo «problema de marketing», corres el riesgo de gastar 
 
 Antes de comprar más atención, asegúrate de que el producto la merece.
 
-Puedes convertirlo en una secuencia de diagnóstico muy concreta.
+Convierte ahora la validación en una herramienta de decisión, no en una colección de señales agradables. Escribe una hipótesis que pueda fallar: «Los freelancers con poco tiempo pagarán X por Y porque elimina Z». Antes de probarla, define tres cosas: qué evidencia aceptarás, qué umbral importa y qué condición de parada te obligará a reconsiderar la idea. Así evitas reinterpretar cada resultado débil después de verlo.
 
-Primero: ¿existe la necesidad?
+Elige el test más barato que pueda cambiar de verdad tu decisión. Una entrevista puede revelar lenguaje y alternativas, pero no demuestra disposición a pagar. Una landing page puede medir interés, pero no si la entrega funciona. Un depósito o una preventa puede medir compromiso, pero solo si la oferta, el plazo y las condiciones de devolución están claros. Ajusta el test a la incertidumbre y no trates cada señal como prueba definitiva.
 
-No «me encanta la idea».
+Después observa dónde falla el sistema. Si las personas adecuadas ni siquiera interactúan, todavía puede haber dudas sobre demanda, relevancia, mensaje o canal. Si interactúan pero rechazan la oferta, revisa encaje, valor, precio o la alternativa que ya usan. Si compran pero explotan el soporte, las devoluciones, las excepciones y el trabajo de entrega, el producto puede vender y el modelo operativo seguir siendo débil.
 
-No «soy muy bueno haciéndolo».
+Incluye la complejidad en el test. Cuenta variantes, proveedores, excepciones manuales, tiempo de soporte y exposición a inventario. Un producto puede generar ingresos mientras multiplica trabajo invisible.
 
-¿Hay alguien intentando ya resolver ese problema?
+Después de cada test registra cuatro cosas: qué esperabas, qué ocurrió, qué aprendiste y qué decisión cambia. Validar no es un ritual para demostrar que tenías razón. Es un sistema para equivocarte menos antes de que amplificar el error se vuelva caro.
 
-Después mira a los competidores.
+Solo cuando demanda, encaje y economía de entrega sobreviven a esos tests debe la distribución convertirse en el siguiente cuello de botella.
 
-La competencia no es automáticamente mala.
-
-Puede demostrar que existe demanda.
-
-Puede enseñarte cómo presenta el mercado la solución.
-
-Puede mostrar lo que se considera normal.
-
-Y puede ayudarte a encontrar espacio para una diferencia real.
-
-La ausencia de competencia también necesita interpretación.
-
-Tal vez has encontrado un hueco interesante.
-
-O algo que casi nadie quiere.
-
-Valida. No te enamores del vacío.
-
-Después pregunta si la necesidad ha cambiado.
-
-El ejemplo del confinamiento es útil porque las personas no dejaron de tener necesidades.
-
-Cambió el contexto.
-
-Cambiaron las emociones.
-
-Cambió lo que podían hacer.
-
-Los productos relacionados con reparar, hacer cosas uno mismo o trabajar con las manos podían volverse más relevantes precisamente por ese nuevo contexto.
-
-La lección no es «vende kits durante una crisis».
-
-La lección es: no confundas la vieja forma de una necesidad con la necesidad en sí.
-
-Después mira la complejidad acumulada.
-
-Un restaurante con una carta enorme compra más ingredientes, mantiene más stock y sostiene más combinaciones operativas.
-
-Y el cliente tiene que elegir entre más alternativas.
-
-Lo que parece libertad puede convertirse en desperdicio por un lado y confusión por el otro.
-
-Lo mismo ocurre con productos, paquetes y servicios.
-
-Si tienes treinta variantes que hacen casi lo mismo, pregunta cuáles contribuyen de verdad.
-
-A veces reducirlas a tres opciones claras mejora tanto la experiencia como la operación.
-
-Después observa los costes que no aparecen directamente en el precio.
-
-Tu tiempo.
-
-Coordinación.
-
-Número de proveedores.
-
-Excepciones.
-
-Pequeñas tareas que interrumpen continuamente el día.
-
-El proveedor más barato no siempre crea el sistema más barato si exige más pedidos, más control y más atención.
-
-Optimizar significa mirar el sistema completo.
-
-Y si el mayor riesgo está en el inventario, recoge señales de demanda antes de comprarlo todo.
-
-Una preventa es solo una posibilidad.
-
-Una lista de espera, una versión reducida o conversaciones estructuradas con clientes reales también pueden darte información.
-
-No son pruebas absolutas.
-
-Pero son mejores que el entusiasmo interno.
-
-El objetivo de validar no es demostrar que tenías razón.
-
-Es descubrir suficientemente pronto si necesitas cambiar algo.
+Trata la evidencia como una escalera de compromiso. Un cumplido vale menos que un clic. Un clic vale menos que una pregunta cualificada. Una pregunta vale menos que una llamada reservada, un depósito, una preventa, el uso repetido o una recomendación. Define qué nivel es suficientemente fuerte para la incertidumbre que pruebas. Si no, cien señales débiles pueden crear falsa confianza mientras nunca aparece el comportamiento que importa.
 
 Construye un audit del producto.
 

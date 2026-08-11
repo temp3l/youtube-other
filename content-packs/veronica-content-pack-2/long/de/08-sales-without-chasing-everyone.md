@@ -168,39 +168,9 @@ Du rennst nicht uninteressierten Menschen hinterher.
 
 Du baust eine Umgebung, in der relevante Menschen ankommen, verstehen und entscheiden können.
 
-Mach daraus eine konkrete Journey-Map.
+Mach aus dieser Journey jetzt ein Betriebssystem. Definiere für jede Stufe einen Zweck, einen Verantwortlichen, ein beobachtbares Signal und die nächste Aktion. Hat eine Stufe keinen Owner oder keinen nächsten Schritt, überlässt du Leads dem Gedächtnis.
 
-Wie entdeckt dich eine neue Person?
-
-Was sieht sie danach?
-
-Welcher Content hilft beim Verständnis?
-
-Wo kann sie dir folgen?
-
-Wie kann sie Informationen anfragen?
-
-Wie schnell bekommt sie eine Antwort?
-
-Was passiert, wenn sie heute nicht kauft?
-
-Gibt es eine Möglichkeit, sinnvoll in Beziehung zu bleiben?
-
-Und wie viel Umsatz sollte aufgrund deines Kaufzyklus realistisch von Neukunden gegenüber Bestandskunden kommen?
-
-Das sind bessere Fragen als „Wie viele DMs muss ich täglich verschicken?“
-
-Denn Verkauf ohne Hinterherlaufen bedeutet nicht Passivität.
-
-Es bedeutet fokussiertes Prospecting.
-
-Nützliche Kommunikation.
-
-Präsenz.
-
-Diszipliniertes Follow-up.
-
-Und Retention.
+Für Kontakt und Follow-up reichen drei Kontrollen: Antwort-SLA, Grund für den nächsten Kontakt und Stop-Regel. Halte Lead-Quelle und aktuelle Stufe sichtbar fest. So hängt die nächste Aktion nicht davon ab, wer sich zufällig erinnert.
 
 Du kannst das System in fünf Spalten zeichnen.
 

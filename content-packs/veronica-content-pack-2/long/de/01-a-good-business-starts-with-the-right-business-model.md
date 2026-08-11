@@ -8,6 +8,8 @@ Dann liegt das Problem in der Struktur.
 
 Bevor du dich also fragst: Wie kann ich mehr verkaufen?, lohnt sich zuerst eine weniger sexy, aber deutlich wichtigere Frage: Wie verdient dieses Business eigentlich wirklich Geld?
 
+Wachstum verstärkt die Wirtschaftlichkeit, die bereits vorhanden ist. Ist die Struktur schwach, vergrößert Volumen die Schwäche; ist sie gesund, hat Wachstum etwas Sinnvolles zu verstärken.
+
 Fangen wir mit den Grundlagen an.
 
 Umsatz ist das, was reinkommt.
@@ -56,23 +58,7 @@ Du kannst ihn einfach als physisches Produkt verkaufen.
 
 Aber vielleicht zeigt dir dieses Produkt ein tieferes Kundenproblem: Die Menschen wollen nicht einfach Papier kaufen. Sie wollen besser planen, weniger überfordert sein und bei wichtigen Dingen tatsächlich vorankommen.
 
-Damit entstehen neue Möglichkeiten.
-
-Aus dem Planer könnte ein Workshop zur Planung werden.
-
-Aus dem Workshop könnte ein Kurs entstehen.
-
-Zum Kurs könnten Vorlagen oder Tools gehören.
-
-Und eines dieser Tools könnte irgendwann selbst zu einem eigenständigen Produkt werden.
-
-Es geht nicht darum, dass jedes Unternehmen unbedingt ein kompliziertes Produktökosystem aufbauen sollte.
-
-Es geht darum, dass aus einem Produkt ein Service entstehen kann und aus einem Service wiederum neue Produkte.
-
-Du musst nicht dem ursprünglichen Format treu bleiben.
-
-Du musst dem Problem des Kunden treu bleiben.
+Die Lektion ist nicht, Formate um ihrer selbst willen zu vervielfachen. Bleib dem Kundenproblem treu und wähle dann die Lieferform, die es löst, ohne die Wirtschaftlichkeit zu schwächen.
 
 Und damit sind wir bei Skalierbarkeit.
 
@@ -144,14 +130,6 @@ Die größere Lektion lautet deshalb nicht einfach: Eine bekannte Firma hat verl
 
 Sie lautet: Selbst große und etablierte Unternehmen werden verwundbar, wenn sie ihr bestehendes Format stärker verteidigen als das eigentliche Kundenbedürfnis.
 
-Dasselbe passiert auch im Kleinen.
-
-Ein Berater verteidigt vielleicht das zweistündige Meeting, weil die Leistung schon immer so erbracht wurde.
-
-Ein Händler verteidigt einen stationären Kaufprozess, weil die Kunden ihn früher akzeptiert haben.
-
-Ein Softwareunternehmen baut weiter neue Funktionen, obwohl die Kunden eigentlich ein einfacheres Ergebnis wollen.
-
 Wenn sich verändert, wie Menschen kaufen, nutzen oder Wert erhalten wollen, muss sich das Geschäftsmodell anpassen können.
 
 Schau deshalb einmal auf dein eigenes Business, ohne beim Produkt anzufangen.
@@ -168,8 +146,6 @@ Viertens: Wie viel menschliche Arbeitszeit brauchst du, um das zu liefern, was d
 
 Und fünftens: Welcher Teil deines Geschäfts könnte weiterhin Wert erzeugen, ohne dass du noch eine weitere persönliche Arbeitsstunde hineinsteckst?
 
-Diese Übung ist wichtig, weil wir ein Business oft vom Produkt aus betrachten, obwohl das Geschäftsmodell eigentlich in den Beziehungen zwischen Umsatz, Kosten, Zeit, Auslieferung und Kundenverhalten steckt.
-
 Nimm anschließend ein konkretes Produkt oder eine konkrete Dienstleistung und rechne einen einzigen Verkauf durch.
 
 Was nimmt der Kunde dir ab?
@@ -184,13 +160,9 @@ Wenn sich deine Verkäufe morgen verdoppeln würden: Wäre dein Business danach 
 
 Wenn doppelte Verkäufe auch doppelt so viel Chaos, Support, Logistikprobleme und persönliche Arbeitszeit verursachen, während kaum zusätzliche Marge übrig bleibt, verstärkt Wachstum möglicherweise deine Schwäche, anstatt sie zu lösen.
 
-Dann schau auf deine Zeit.
-
 Schreibe alle Tätigkeiten auf, ohne die du heute keinen Umsatz machen oder keinen Auftrag abschließen kannst.
 
 Wenn jeder zusätzliche Kunde immer einen komplett neuen Block deiner eigenen Zeit braucht, kennst du deine Kapazitätsgrenze ziemlich genau.
-
-Auch das kann völlig in Ordnung sein.
 
 Aber es sollte eine bewusste Entscheidung sein und keine Überraschung, die erst auftaucht, wenn die Nachfrage steigt.
 
@@ -203,10 +175,6 @@ Gibt es einen Service, den du jedes Mal manuell neu aufbaust, obwohl ein Teil st
 Könnte ein leicht zugängliches Produkt der Einstieg in eine tiefere Dienstleistung sein?
 
 Könnte eine sehr persönliche Dienstleistung ein Tool oder eine Methode hervorbringen, die viel mehr Menschen nutzen könnten?
-
-Ändere nicht alles gleichzeitig.
-
-Wähle eine einzige Hypothese.
 
 Vielleicht kannst du die Marge erhöhen, ohne die Kundenerfahrung zu verschlechtern.
 

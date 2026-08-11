@@ -78,39 +78,7 @@ E questa parte spesso non compare nella scheda prodotto.
 
 Però può essere esattamente la ragione per cui qualcuno compra da te invece che dal concorrente.
 
-Se vendi una crema, non stai comunicando soltanto un barattolo.
-
-Se vendi una maglietta, non stai comunicando soltanto tessuto, colore e taglia.
-
-Se vendi una consulenza, non stai comunicando soltanto sessanta minuti su Zoom.
-
-Quindi fatti una domanda molto semplice.
-
-Che cosa c’è intorno?
-
-Che cosa riceve davvero la persona?
-
-Che cosa diventa più facile?
-
-Che cosa capisce?
-
-Che cosa prova?
-
-Che tipo di esperienza vive?
-
-Perché se questa parte rimane invisibile, il cliente confronta quello che riesce a vedere.
-
-Prezzo.
-
-Quantità.
-
-Durata.
-
-Caratteristiche.
-
-E quando tutti sembrano vendere più o meno la stessa cosa, vince spesso quello che costa meno.
-
-Ma se rendi visibile il valore complessivo, il confronto cambia.
+Questa componente di servizio conta perché il valore invisibile resta fuori dal confronto. Se il cliente vede solo prezzo, quantità, durata e caratteristiche, confronterà soltanto quelle. Rendi visibili competenza ed esperienza intorno al prodotto e cambia anche il confronto.
 
 Ed è qui che arriviamo alla promessa.
 
@@ -231,6 +199,8 @@ Puoi rendere più evidente la tua competenza.
 Puoi spiegare meglio perché quella soluzione è adatta proprio a quella persona.
 
 Ma c’è una condizione.
+
+Aggiungi una regola: la forza della promessa deve corrispondere alla forza della prova. Un’affermazione modesta può richiedere una dimostrazione chiara; una trasformazione importante richiede evidenza più forte, contesto e limiti. Un copy migliore non compensa una prova troppo debole.
 
 La promessa deve essere vera.
 
