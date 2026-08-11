@@ -49,6 +49,7 @@ describe("veronica media commands", () => {
       "prepare-production",
       "source-grounded-qa",
       "remediate-pre-image",
+      "plan-visual-density",
       "images",
       "speech",
       "pilot",

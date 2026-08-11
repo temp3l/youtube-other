@@ -13,7 +13,7 @@ import {
   VERONICA_PRE_IMAGE_SEMANTIC_GATE_VERSION,
 } from "./veronica-pre-image-semantic-gate.js";
 import { resolveVeronicaProductionPolicy } from "./veronica-production-policy.js";
-import type { PositioningVisualPlanV2, PositioningVisualTreatment, VeronicaSemanticProposition, VisualEvent } from "./positioning-visual-contracts.js";
+import type { PositioningVisualPlanV2, PositioningVisualTreatment, VeronicaSemanticProposition, VeronicaVisualDensityMetrics, VisualEvent } from "./positioning-visual-contracts.js";
 import { deriveVeronicaSemanticProposition, visualTreatmentFromProposition } from "./veronica-semantic-quality.js";
 import { stableHash } from "./positioning-visual-semantics.js";
 import {
@@ -47,6 +47,13 @@ import {
   veronicaVisualTreatmentsArtifactSchema,
 } from "./veronica-visual-artifacts.js";
 import { persistVeronicaLocalizedProduction } from "./veronica-localized-production.js";
+import {
+  calculateVeronicaVisualDensityMetrics,
+  deriveVeronicaVisualBeatPlan,
+  materializeVeronicaVisualBeatPlan,
+  persistVeronicaVisualBeatPlan,
+  veronicaVisualBeatOverrideArtifactSchema,
+} from "./veronica-visual-beats.js";
 
 export const POSITIONING_PRODUCTION_ADAPTER_VERSION = "veronicabenini-positioning-production-adapter.v4" as const;
 export const VERONICA_LONG_FORM_SEMANTIC_SEGMENTATION_VERSION = "veronica-long-form-semantic-segmentation.v3" as const;
@@ -764,9 +771,12 @@ function retimeVisualEvents(input: { readonly events: readonly VisualEvent[]; re
     if (!timing || !oldScene) return event;
     const oldEvents = input.events.filter((candidate) => candidate.sceneId === event.sceneId);
     const ordinal = oldEvents.findIndex((candidate) => candidate.eventId === event.eventId);
-    const count = Math.max(1, oldEvents.length);
-    const durationMs = ordinal === count - 1 ? timing.durationMs - Math.floor(timing.durationMs / count) * (count - 1) : Math.floor(timing.durationMs / count);
-    const startMs = timing.startMs + Math.floor(timing.durationMs / count) * ordinal;
+    const oldTotal = oldEvents.reduce((sum, candidate) => sum + candidate.durationMs, 0);
+    const priorWeight = oldEvents.slice(0, ordinal).reduce((sum, candidate) => sum + candidate.durationMs, 0);
+    const startMs = timing.startMs + Math.round(timing.durationMs * (priorWeight / Math.max(1, oldTotal)));
+    const durationMs = ordinal === oldEvents.length - 1
+      ? timing.startMs + timing.durationMs - startMs
+      : Math.max(1, Math.round(timing.durationMs * (event.durationMs / Math.max(1, oldTotal))));
     const base = { ...event, startMs, durationMs };
     return { ...base, renderCacheKey: stableEventHash(base) };
   });
@@ -953,6 +963,7 @@ export interface ReconcileExistingVeronicaProductionTimingResult {
   readonly timingPath: string;
   readonly scenePlanPath: string;
   readonly localizedProductionPath: string;
+  readonly visualDensityMetrics: VeronicaVisualDensityMetrics | null;
 }
 
 const editorialTreatmentOverrideSchema = z.strictObject({
@@ -1025,6 +1036,126 @@ export async function remediateExistingVeronicaPreImagePlan(input: {
 }
 
 /**
+ * Adds an explicit visual-density layer to an approved plan. Semantic scenes
+ * and VisualTreatmentV1 remain read-only parents; only beat assets, prompts,
+ * events, localization timing, and their provenance are rematerialized.
+ */
+export async function planExistingVeronicaVisualDensity(input: {
+  readonly workspaceRoot: string;
+  readonly episodeId: string;
+  readonly overridePath: string;
+  readonly imagePromptCompiler: NonNullable<PreparePositioningProductionEpisodeInput["imagePromptCompiler"]>;
+}): Promise<{
+  readonly episodeId: string;
+  readonly semanticSceneCount: number;
+  readonly visualBeatCount: number;
+  readonly canonicalPlannedImageCount: number;
+  readonly promptInvalidationCount: number;
+  readonly expectedImageCalls: number;
+  readonly retimedLocales: readonly string[];
+  readonly localeDensityMetrics: Readonly<Record<string, VeronicaVisualDensityMetrics>>;
+  readonly beatPlanPath: string;
+  readonly planPath: string;
+  readonly providerPromptsPath: string;
+}> {
+  const workspaceRoot = path.resolve(input.workspaceRoot);
+  const episodeId = normalizeEpisodeId(input.episodeId);
+  const episodeDir = path.join(workspaceRoot, episodeId);
+  const planPath = path.join(episodeDir, "source", "pre-image-semantic-plan.v1.json");
+  const enScenePlanPath = path.join(episodeDir, "locales", "en", "short", "scene-plan.json");
+  const [planRaw, overrideRaw, scenePlanRaw] = await Promise.all([
+    fs.readFile(planPath, "utf8"),
+    fs.readFile(input.overridePath, "utf8"),
+    fs.readFile(enScenePlanPath, "utf8"),
+  ]);
+  const plan = positioningProductionPlanSchema.parse(JSON.parse(planRaw) as unknown) as unknown as PositioningVisualPlanV2;
+  if (plan.format !== "short") throw new Error("VERONICA_VISUAL_DENSITY_SHORT_ONLY");
+  const overrides = veronicaVisualBeatOverrideArtifactSchema.parse(JSON.parse(overrideRaw) as unknown);
+  if (overrides.episodeId !== episodeId) throw new Error("VERONICA_VISUAL_BEAT_OVERRIDE_EPISODE_MISMATCH");
+  const enScenePlan = scenePlanSchema.parse(JSON.parse(scenePlanRaw) as unknown);
+  const beatPlan = deriveVeronicaVisualBeatPlan({ plan, overrides });
+  const beatMaterialized = materializeVeronicaVisualBeatPlan({ plan, beatPlan });
+  const bible = await buildVeronicaVisualBibleArtifact({ workspaceRoot, plan: beatMaterialized });
+  const compiled = await compileVeronicaImagePrompts({
+    episodeId,
+    plan: beatMaterialized,
+    visualBible: bible,
+    compiler: input.imagePromptCompiler.compiler,
+    cache: input.imagePromptCompiler.cache,
+    model: input.imagePromptCompiler.model,
+    reasonForRegeneration: "visual-beat-density-plan",
+  });
+  const visualArtifacts = await persistVeronicaVisualArtifacts({ workspaceRoot, episodeDir, plan: compiled });
+  const enAudio = await fs.readFile(path.join(episodeDir, "locales", "en", "short", "audio", "narration.wav"));
+  const persistedPrompts = await persistVeronicaProviderImagePromptArtifact({
+    episodeDir,
+    episodeId,
+    language: "en",
+    variant: "short",
+    plan: compiled,
+    scenePlan: enScenePlan,
+    visualTreatmentsHash: visualArtifacts.treatments.artifactHash,
+    visualBible: visualArtifacts.bible,
+    selectedAudioHash: createHash("sha256").update(enAudio).digest("hex"),
+  });
+  const unavailableQa = await runSourceGroundedVisualQaController({
+    plan: compiled,
+    narrationByScene: enScenePlan.scenes.map((scene) => scene.canonicalNarration),
+    policy: unavailableSourceGroundedVisualQaPolicy(),
+    cache: new InMemorySourceGroundedVisualQaCache(),
+  });
+  const auditedBase = {
+    ...compiled,
+    sourceGroundedVisualQa: unavailableQa.qa,
+    hierarchicalReadiness: {
+      schemaVersion: "veronica-hierarchical-readiness.v1" as const,
+      sourceFidelityReady: false,
+      visualReady: compiled.semanticQuality?.status === "PASS" && compiled.providerReadiness?.status === "PASS",
+      technicalReady: compiled.validation.status === "pass",
+      providerCandidate: false,
+      providerRequestsAllowed: false as const,
+      blockers: [
+        "SOURCE_GROUNDED_SCENE_JUDGE_UNAVAILABLE",
+        "SOURCE_GROUNDED_BEAT_QA_REQUIRED",
+        "SOURCE_GROUNDED_BEAT_JUDGE_UNAVAILABLE",
+        "SOURCE_GROUNDED_BEAT_SEQUENCE_JUDGE_UNAVAILABLE",
+        "HUMAN_PRE_IMAGE_APPROVAL_REQUIRED",
+      ],
+    },
+  };
+  const auditedPlan = { ...auditedBase, planHash: stableHash(auditedBase) } as PositioningVisualPlanV2;
+  const beatPlanPath = path.join(episodeDir, "shared", "visual-beats.v1.json");
+  await Promise.all([
+    writeJsonAtomic(planPath, auditedPlan),
+    persistVeronicaVisualBeatPlan({ path: beatPlanPath, plan: beatPlan }),
+    writeJsonAtomic(path.join(episodeDir, "shared", "source-grounded-visual-qa.v1.json"), unavailableQa.qa),
+  ]);
+  const supportedLocales = new Set(["en", "de", "es", "fr", "pt", "it"] as const);
+  const localeEntries = await fs.readdir(path.join(episodeDir, "locales"), { withFileTypes: true });
+  const retimedResults = (await Promise.all(localeEntries
+    .filter((entry) => entry.isDirectory() && supportedLocales.has(entry.name as "en" | "de" | "es" | "fr" | "pt" | "it"))
+    .map(async (entry) => {
+      const language = entry.name as "en" | "de" | "es" | "fr" | "pt" | "it";
+      if (!(await fileExists(path.join(episodeDir, "locales", language, "short", "audio", "narration.wav")))) return null;
+      return reconcileExistingVeronicaProductionTiming({ workspaceRoot, episodeId, language, variant: "short" });
+    }))).filter((result): result is ReconcileExistingVeronicaProductionTimingResult => result !== null);
+  const retimedLocales = retimedResults.map((result) => result.language);
+  return {
+    episodeId,
+    semanticSceneCount: auditedPlan.scenes.length,
+    visualBeatCount: beatPlan.beats.length,
+    canonicalPlannedImageCount: auditedPlan.assets.length,
+    promptInvalidationCount: auditedPlan.imagePromptCompilation?.invalidatedAssetCount ?? auditedPlan.assets.length,
+    expectedImageCalls: beatPlan.beats.filter((beat) => beat.assetDecision === "new-image").length,
+    retimedLocales,
+    localeDensityMetrics: Object.fromEntries(retimedResults.flatMap((result) => result.visualDensityMetrics ? [[result.language, result.visualDensityMetrics]] : [])),
+    beatPlanPath,
+    planPath,
+    providerPromptsPath: persistedPrompts.jsonPath,
+  };
+}
+
+/**
  * Reconciles only locale-owned delivery artifacts after staged narration has
  * promoted a selected WAV. The persisted semantic plan, VisualTreatmentV1,
  * VisualBibleV1, and provider prompts are deliberately read-only inputs.
@@ -1075,6 +1206,13 @@ export async function reconcileExistingVeronicaProductionTiming(
     plan,
     scenePlan: reconciliation.scenePlan,
   });
+  const visualDensityMetrics = plan.visualBeatPlan
+    ? calculateVeronicaVisualDensityMetrics({
+        semanticSceneCount: plan.scenes.length,
+        beats: plan.visualBeatPlan.beats,
+        events: visualEvents,
+      })
+    : null;
   const treatments = veronicaVisualTreatmentsArtifactSchema.parse(JSON.parse(treatmentsRaw) as unknown);
   const bible = veronicaVisualBibleV1Schema.parse(JSON.parse(bibleRaw) as unknown);
   const localized = await persistVeronicaLocalizedProduction({
@@ -1121,6 +1259,7 @@ export async function reconcileExistingVeronicaProductionTiming(
       timingConfidence: reconciliation.timing.timingConfidence,
       selectedAudioHash,
       timingFingerprint: reconciliation.timing.timingFingerprint,
+      visualDensityMetrics,
       events: visualEvents,
     }),
   ]);
@@ -1135,6 +1274,7 @@ export async function reconcileExistingVeronicaProductionTiming(
     timingPath,
     scenePlanPath,
     localizedProductionPath: localized.productionPath,
+    visualDensityMetrics,
   };
 }
 

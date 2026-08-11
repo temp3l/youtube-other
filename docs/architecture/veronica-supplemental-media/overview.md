@@ -55,6 +55,38 @@ schema, provenance, actor, polarity, state, evidence, placeholder, and internal-
 language defects before the source-fidelity judge receives the exact prompt.
 Sequence QA remains separate.
 
+### Visual beats
+
+Veronica Shorts may resolve one semantic scene treatment into one or more typed
+`VisualBeatTreatmentV1` records. Semantic scenes still own narrative meaning;
+visual beats express bounded internal progression and pacing. Each beat records its
+role, explicit new information, visible action/state, composition, reference requirements, asset decision,
+and whether its boundary is narration-aligned, semantic-subspan-aligned, or
+editorially allocated.
+
+Provider prompts, prompt provenance, canonical cache identity, and timed visual
+events are beat-scoped. Timing provenance is recorded but excluded from image
+identity, so locale retiming preserves canonical assets. Beat decisions distinguish
+`new-image`, `reuse-with-motion`, `reuse-with-crop`, and `reuse-existing-asset`.
+Existing episodes remain compatible through an implicit single beat per scene.
+Deterministic density QA measures unique canonical assets rather than event count,
+including opening image changes, repeated-asset events, continuous same-image holds,
+and information gain for every paid-image candidate. Multiple crop or motion events
+against one asset therefore cannot be reported as increased image density.
+
+Source-grounded QA remains hierarchical. Parent semantic scenes are judged first;
+each `new-image` beat is then independently judged against its narration evidence,
+parent semantics, adjacent beats, and exact provider prompt. The sequence judge
+receives the ordered beat sequence when a beat plan exists. Scene PASS, every
+required beat PASS, beat-sequence PASS, deterministic provider-prompt PASS, and
+explicit human approval are all non-compensatory generation gates. Beat cache
+identity includes narration, parent scene and treatment, beat semantics, prompt,
+adjacency, model, and QA policy; timing is intentionally excluded.
+
+For an approved episode, `mediaforge veronica-media plan-visual-density --workspace
+<episodes-dir> --episode-id <id> --overrides <visual-beat-overrides.v1.json>` performs
+a no-image planning dry run and retimes every locale that already has selected audio.
+
 The former OpenAI prompt rewrite and the older deterministic assembler are
 compatibility-only. Review evidence records compiler input/result, full prompt,
 hashes, remediation, QA, and same-snapshot status. Passing automation never records

@@ -12,13 +12,16 @@ import type {
   VeronicaSemanticStateRelation,
 } from "./positioning-visual-contracts.js";
 import { stableHash } from "./positioning-visual-semantics.js";
-import { validateVeronicaProviderReadiness } from "./veronica-pre-image-semantic-gate.js";
+import {
+  validateVeronicaProviderReadiness,
+  VERONICA_STATE_AWARE_PROVIDER_PROJECTION_VERSION,
+} from "./veronica-pre-image-semantic-gate.js";
 import type { VeronicaVisualBibleV1 } from "./veronica-visual-artifacts.js";
 
 export const VERONICA_IMAGE_PROMPT_COMPILER_VERSION =
-  "veronica-deterministic-image-prompt-compiler.v2" as const;
+  "veronica-deterministic-image-prompt-compiler.v5" as const;
 export const VERONICA_IMAGE_PROMPT_COMPILER_INSTRUCTION_VERSION =
-  "veronica-deterministic-image-prompt-template.v2" as const;
+  "veronica-deterministic-image-prompt-template.v5" as const;
 export const VERONICA_IMAGE_PROMPT_COMPILATION_SCHEMA_VERSION =
   "veronica-image-prompt-compilation.v1" as const;
 
@@ -48,9 +51,31 @@ export const veronicaReferenceAssetDescriptorSchema = z.strictObject({
   required: z.boolean(),
 });
 
+const visualBeatCompilationSchema = z.strictObject({
+    beatId: z.string().min(1),
+    role: z.enum(["establish", "primary", "progression", "contrast", "reaction", "payoff", "cutaway"]),
+    beatHash: z.string().regex(/^[a-f0-9]{64}$/u),
+    coreMeaning: z.string().min(1),
+    newInformation: z.string().min(1),
+    viewerShouldUnderstand: z.string().min(1),
+    visualThesis: z.string().min(1),
+    subject: z.string().min(1),
+    action: z.string().min(1),
+    state: z.string().min(1),
+    environment: z.string().min(1),
+    assetDecision: z.enum(["new-image", "reuse-with-motion", "reuse-with-crop", "reuse-existing-asset"]),
+    composition: z.strictObject({
+      description: z.string().min(1),
+      camera: z.string().min(1),
+      lighting: z.string().min(1),
+      subtitleSafeAreaRequired: z.literal(true),
+    }),
+  });
+
 export const veronicaImagePromptCompilationInputSchema = z.strictObject({
   sceneId: z.string().min(1),
   assetId: z.string().min(1),
+  visualBeat: visualBeatCompilationSchema.nullable(),
   narrationBeat: z.string().min(1),
   proposition: z.strictObject({
     actorRole: actorRoleSchema,
@@ -133,6 +158,11 @@ export const veronicaImagePromptCompilationInputSchema = z.strictObject({
     propositionHash: z.string().regex(/^[a-f0-9]{64}$/u),
     treatmentHash: z.string().regex(/^[a-f0-9]{64}$/u),
     materializationRevisionId: z.string().regex(/^[a-f0-9]{64}$/u),
+    visualBeatId: z.string().min(1).nullable(),
+    visualBeatHash: z.string().regex(/^[a-f0-9]{64}$/u).nullable(),
+    visualBeatNewInformationHash: z.string().regex(/^[a-f0-9]{64}$/u).nullable(),
+    visualBeatAssetDecision: z.enum(["new-image", "reuse-with-motion", "reuse-with-crop", "reuse-existing-asset"]).nullable(),
+    timingProvenanceHash: z.string().regex(/^[a-f0-9]{64}$/u).nullable(),
   }),
 });
 export type VeronicaImagePromptCompilationInput = z.infer<
@@ -244,6 +274,7 @@ export function compileDeterministicVeronicaImagePrompt(
 ): VeronicaImagePromptCompilationResult {
   const sentence = (value: string) => value.trim().replace(/[.!?]+$/u, "");
   const actionOwner = item.treatment.actors.find((actor) => actor.actorId === item.treatment.actionOwnerActorId);
+  const visual = item.visualBeat;
   const references = item.referenceAssets.length > 0
     ? `Use resolved references in this priority order: ${item.referenceAssets.map((reference) => `${reference.kind} ${reference.assetId}`).join(", ")}. Canonical identity controls facial identity only; scene direction controls wardrobe, pose, background, light, and framing.`
     : "No character identity reference is required for this scene.";
@@ -265,15 +296,15 @@ export function compileDeterministicVeronicaImagePrompt(
   ].join("; ");
   const prompt = [
     `Create one ${item.format.aspectRatio} ${item.format.contentType} editorial still with one immediately legible visual idea.`,
-    `Visual thesis: ${sentence(item.treatment.visibleThesis)}. Core meaning: ${sentence(item.proposition.cause)}. Viewer takeaway: ${sentence(item.proposition.consequence)}.`,
-    `Show ${sentence(item.treatment.subject)} in ${sentence(item.treatment.environment)}. Visible action: ${sentence(actionOwner?.visibleAction ?? item.treatment.actors.map((actor) => actor.visibleAction).join("; "))}. Required state: ${sentence(item.proposition.initialState ?? item.treatment.emotionalState)}.`,
-    `Strategy: ${item.treatment.visualMechanism}. Stage the scene as follows: ${sentence(item.treatment.composition)}. Camera: ${sentence(item.treatment.camera)}. Lighting: ${sentence(item.treatment.lighting)}.`,
+    `Visual thesis: ${sentence(visual?.visualThesis ?? item.treatment.visibleThesis)}. New visual information: ${sentence(visual?.newInformation ?? item.proposition.consequence)}. Core meaning: ${sentence(visual?.coreMeaning ?? item.proposition.cause)}. Viewer takeaway: ${sentence(visual?.viewerShouldUnderstand ?? item.proposition.consequence)}.`,
+    `Show ${sentence(visual?.subject ?? item.treatment.subject)} in ${sentence(visual?.environment ?? item.treatment.environment)}. Visible action: ${sentence(visual?.action ?? actionOwner?.visibleAction ?? item.treatment.actors.map((actor) => actor.visibleAction).join("; "))}. Required state: ${sentence(visual?.state ?? item.proposition.initialState ?? item.treatment.emotionalState)}.`,
+    `Strategy: ${visual?.role ?? item.treatment.visualMechanism}. Stage the scene as follows: ${sentence(visual?.composition.description ?? item.treatment.composition)}. Camera: ${sentence(visual?.composition.camera ?? item.treatment.camera)}. Lighting: ${sentence(visual?.composition.lighting ?? item.treatment.lighting)}.`,
     `Editorial direction: ${sentence(item.visualBible.editorialStyle)}. Palette: ${item.visualBible.palette.join(", ")}. Bible lighting policy: ${sentence(item.visualBible.lighting)}.${actionOwner?.identityAuthority === "canonical-protagonist" ? ` Wardrobe: ${sentence(item.visualBible.wardrobe)}.` : ""}`,
     `Emotional direction: ${sentence(item.treatment.emotionalState)}. Physical evidence: ${evidence}.`,
     references,
     `Keep important faces, actions, and evidence outside the subtitle region x=${item.visualBible.subtitleSafeArea.x}, y=${item.visualBible.subtitleSafeArea.y}, width=${item.visualBible.subtitleSafeArea.width}, height=${item.visualBible.subtitleSafeArea.height}.`,
     `No readable text, letters, numbers, logos, interface copy, internal labels, watermark, storyboard, or panel grid. ${negative}. Continuity policy: ${sentence(item.visualBible.continuityPolicy)}.`,
-  ].join(" ").replace(/\s+/gu, " ").trim();
+  ].join(" ").replace(/\.{2,}/gu, ".").replace(/\s+/gu, " ").trim();
   return veronicaImagePromptCompilationResultSchema.parse({
     schemaVersion: VERONICA_IMAGE_PROMPT_COMPILATION_SCHEMA_VERSION,
     sceneId: item.sceneId,
@@ -283,14 +314,14 @@ export function compileDeterministicVeronicaImagePrompt(
     depictedState: {
       actorRole: item.proposition.actorRole,
       actionOwnerRole: item.proposition.actionOwnerRole,
-      action: item.proposition.action,
+      action: visual?.action ?? item.proposition.action,
       consequence: item.proposition.consequence,
       polarity: item.proposition.polarity,
       stateRelation: item.proposition.stateRelation,
     },
     evidenceIncluded: [...item.treatment.requiredEvidence],
     evidenceIntentionallyOmitted: [...item.treatment.forbiddenEvidence],
-    compositionSummary: `${item.treatment.composition}; ${item.treatment.camera}; protected subtitle safe area.`,
+    compositionSummary: `${visual?.composition.description ?? item.treatment.composition}; ${visual?.composition.camera ?? item.treatment.camera}; protected subtitle safe area.`,
   });
 }
 
@@ -390,9 +421,32 @@ export function buildVeronicaImagePromptCompilationInput(input: {
   const allowedMotifs = input.plan.selectedRecurringMotif?.sceneIds.includes(input.scene.sceneId)
     ? [input.plan.selectedRecurringMotif.concept]
     : [];
+  const beat = input.asset.visualBeatId
+    ? input.plan.visualBeatPlan?.beats.find((candidate) => candidate.beatId === input.asset.visualBeatId)
+    : undefined;
+  const timingProvenanceHash = beat
+    ? input.plan.visualEvents.find((event) => event.visualBeatId === beat.beatId)?.timingProvenanceHash ?? null
+    : null;
   const value = veronicaImagePromptCompilationInputSchema.parse({
     sceneId: input.scene.sceneId,
     assetId: input.asset.assetId,
+    visualBeat: beat
+      ? {
+          beatId: beat.beatId,
+          role: beat.role,
+          beatHash: beat.beatHash,
+          coreMeaning: beat.coreMeaning,
+          newInformation: beat.newInformation,
+          viewerShouldUnderstand: beat.viewerShouldUnderstand,
+          visualThesis: beat.visualThesis,
+          subject: beat.subject,
+          action: beat.action,
+          state: beat.state,
+          environment: beat.environment,
+          assetDecision: beat.assetDecision,
+          composition: beat.composition,
+        }
+      : null,
     narrationBeat: input.scene.narrationAnchor,
     proposition: {
       actorRole: proposition.actorRole,
@@ -407,12 +461,12 @@ export function buildVeronicaImagePromptCompilationInput(input: {
       desiredState: proposition.contrast?.desiredState ?? null,
     },
     treatment: {
-      visibleThesis: input.scene.visibleThesis,
+      visibleThesis: beat?.visualThesis ?? input.scene.visibleThesis,
       visualPurpose: `${input.scene.progressionStage}: ${treatment.communicationIntent}`,
-      subject: treatment.subjectRequirement,
-      environment: treatment.environment,
-      camera: treatment.camera,
-      lighting: treatment.lighting,
+      subject: beat?.subject ?? treatment.subjectRequirement,
+      environment: beat?.environment ?? treatment.environment,
+      camera: beat?.composition.camera ?? treatment.camera,
+      lighting: beat?.composition.lighting ?? treatment.lighting,
       emotionalState: emotionalState(proposition.polarity),
       visualMechanism: proposition.visualMechanism,
       stateComplexity: input.scene.stateComplexity ?? "SINGLE_STATE",
@@ -429,11 +483,11 @@ export function buildVeronicaImagePromptCompilationInput(input: {
           ? [input.plan.selectedRecurringMotif.concept]
           : []),
       ],
-      composition: treatment.composition,
-      compositionHierarchy: compositionHierarchy(treatment.composition, [...proposition.evidenceAnchors, ...treatment.props]),
+      composition: beat?.composition.description ?? treatment.composition,
+      compositionHierarchy: compositionHierarchy(beat?.composition.description ?? treatment.composition, [...proposition.evidenceAnchors, ...treatment.props]),
       essentialRelationships: [...new Set([
         `${proposition.cause ?? proposition.narrationClaim} -> ${proposition.consequence}`,
-        treatment.action,
+        beat?.action ?? treatment.action,
         ...(proposition.contrast?.initialState && proposition.contrast.desiredState ? [`${proposition.contrast.initialState} contrasts with ${proposition.contrast.desiredState}`] : []),
       ])],
       negativeConstraints: [
@@ -493,6 +547,11 @@ export function buildVeronicaImagePromptCompilationInput(input: {
       propositionHash: proposition.propositionHash,
       treatmentHash: treatment.treatmentHash,
       materializationRevisionId: revision.revisionId,
+      visualBeatId: beat?.beatId ?? null,
+      visualBeatHash: beat?.beatHash ?? null,
+      visualBeatNewInformationHash: beat ? stableHash(beat.newInformation) : null,
+      visualBeatAssetDecision: beat?.assetDecision ?? null,
+      timingProvenanceHash,
     },
   });
   return Object.freeze(value);
@@ -502,11 +561,13 @@ export function veronicaImagePromptCompilationInputHash(input: {
   readonly compilationInput: VeronicaImagePromptCompilationInput;
   readonly model: VeronicaImagePromptCompilerModel;
 }): string {
+  const { timingProvenanceHash: _timingOnly, ...semanticProvenance } =
+    input.compilationInput.provenance;
   return stableHash({
     compilerVersion: VERONICA_IMAGE_PROMPT_COMPILER_VERSION,
     instructionVersion: VERONICA_IMAGE_PROMPT_COMPILER_INSTRUCTION_VERSION,
     model: input.model,
-    input: input.compilationInput,
+    input: { ...input.compilationInput, provenance: semanticProvenance },
   });
 }
 
@@ -531,7 +592,8 @@ function clausesContainingConcept(prompt: string, concept: string): readonly str
   const conceptTokens = semanticTokensForComparison(concept);
   return prompt.split(/[.;]\s*/u).filter((clause) => {
     const clauseTokens = new Set(semanticTokensForComparison(clause));
-    return conceptTokens.some((token) => clauseTokens.has(token));
+    const overlap = conceptTokens.filter((token) => clauseTokens.has(token)).length;
+    return overlap >= Math.min(3, conceptTokens.length);
   });
 }
 
@@ -571,7 +633,7 @@ export function adjudicateVeronicaImagePromptCompilation(input: {
       }
     }
   }
-  const expectedState = `${canonical.proposition.action} ${canonical.proposition.cause} ${canonical.proposition.consequence} ${canonical.proposition.failureState ?? ""} ${canonical.treatment.essentialRelationships.join(" ")}`.toLowerCase();
+  const expectedState = `${canonical.visualBeat?.action ?? canonical.proposition.action} ${canonical.visualBeat?.coreMeaning ?? canonical.proposition.cause} ${canonical.visualBeat?.viewerShouldUnderstand ?? canonical.proposition.consequence} ${canonical.proposition.failureState ?? ""} ${canonical.treatment.essentialRelationships.join(" ")}`.toLowerCase();
   const expectsMissingBridge = /\b(?:without|missing|absent|not yet|gap)\b[^.]{0,80}\bbridge\b|\bbridge\b[^.]{0,80}\b(?:without|missing|absent|not yet|gap)\b/iu.test(expectedState);
   if (expectsMissingBridge && /\b(?:completed?|finished|successfully established|fully formed|intact)\s+(?:identity\s+)?bridge\b|\bbridge\b[^.]{0,50}\b(?:completed?|finished|successfully established|fully formed|intact)\b/iu.test(prompt)) {
     add(blocker({ code: "ESSENTIAL_RELATIONSHIP_INVERSION", canonicalField: "treatment.essentialRelationships", expected: "bridge remains absent/incomplete", actual: "provider prompt depicts a completed bridge" }));
@@ -676,7 +738,7 @@ function applyCompilationResults(input: {
       sourceTreatmentHash: scene.treatment.treatmentHash,
       sourcePropositionHash: scene.semanticProposition?.propositionHash ?? null,
       materializationRevisionId: scene.materializationRevision!.revisionId,
-      stateProjectionPolicyVersion: prior?.stateProjectionPolicyVersion ?? "deterministic-structured-compilation",
+      stateProjectionPolicyVersion: VERONICA_STATE_AWARE_PROVIDER_PROJECTION_VERSION,
       motifId: prior?.motifId ?? null,
       projectionStrategy: prior?.projectionStrategy ?? "SINGLE_STATE" as const,
       providerPromptHash,
@@ -689,17 +751,30 @@ function applyCompilationResults(input: {
       promptCompilationResultHash: record.resultHash,
       promptCompilerModel: input.model.model,
       promptCompilerReasoningEffort: input.model.reasoningEffort,
+      ...(asset.visualBeatId ? { visualBeatId: asset.visualBeatId } : {}),
+      ...(asset.visualBeatHash ? { visualBeatHash: asset.visualBeatHash } : {}),
+      ...(compilationInput.provenance.visualBeatNewInformationHash
+        ? { visualBeatNewInformationHash: compilationInput.provenance.visualBeatNewInformationHash }
+        : {}),
+      ...(compilationInput.provenance.visualBeatAssetDecision
+        ? { visualBeatAssetDecision: compilationInput.provenance.visualBeatAssetDecision }
+        : {}),
+      ...(compilationInput.provenance.timingProvenanceHash
+        ? { timingProvenanceHash: compilationInput.provenance.timingProvenanceHash }
+        : {}),
     };
     return {
       ...asset,
       prompt: record.result.imagePrompt,
       semanticFingerprint: stableHash({
         sceneId: scene.sceneId,
+        visualBeatHash: asset.visualBeatHash ?? null,
         materializationRevisionId: scene.materializationRevision!.revisionId,
         promptCompilationInputHash: record.inputHash,
         promptCompilationResultHash: record.resultHash,
       }),
       generatedAssetCacheKey: stableHash({
+        visualBeatHash: asset.visualBeatHash ?? null,
         promptCompilationInputHash: record.inputHash,
         promptCompilationResultHash: record.resultHash,
         providerPromptHash,

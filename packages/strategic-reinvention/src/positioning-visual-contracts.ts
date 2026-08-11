@@ -368,6 +368,10 @@ export interface GeneratedVisualAsset {
   readonly assetId: string;
   readonly contentId: string;
   readonly sceneId: string;
+  /** Present for the explicit visual-density layer; absent means the legacy implicit scene beat. */
+  readonly visualBeatId?: string;
+  readonly visualBeatHash?: string;
+  readonly visualBeatAssetDecision?: VisualBeatAssetDecision;
   readonly semanticPurpose: string;
   readonly strategy: VisualStrategy;
   readonly prompt: string;
@@ -401,6 +405,12 @@ export interface GeneratedVisualAsset {
     readonly promptCompilationResultHash?: string;
     readonly promptCompilerModel?: string;
     readonly promptCompilerReasoningEffort?: string;
+    readonly visualBeatId?: string;
+    readonly visualBeatHash?: string;
+    readonly visualBeatNewInformationHash?: string;
+    readonly visualBeatAssetDecision?: VisualAssetDecision;
+    /** Describes how the beat boundary was resolved; concrete timestamps are intentionally not an image dependency. */
+    readonly timingProvenanceHash?: string;
   };
   readonly promptCompilation?: {
     readonly input: import("./veronica-image-prompt-compiler.js").VeronicaImagePromptCompilationInput;
@@ -456,6 +466,9 @@ export interface VisualEvent {
   readonly eventId: string;
   readonly sceneId: string;
   readonly assetId: string;
+  readonly visualBeatId?: string;
+  readonly beatBoundaryKind?: VisualBeatBoundaryKind;
+  readonly timingProvenanceHash?: string;
   readonly kind: VisualEventKind;
   readonly startMs: number;
   readonly durationMs: number;
@@ -469,6 +482,127 @@ export interface VisualEvent {
     readonly anchor: "center" | "left" | "right" | "subject" | "prop";
   };
   readonly renderCacheKey: string;
+}
+
+export type VisualBeatRole =
+  | "establish"
+  | "primary"
+  | "progression"
+  | "contrast"
+  | "reaction"
+  | "payoff"
+  | "cutaway";
+
+export type VisualAssetDecision =
+  | "new-image"
+  | "reuse-with-motion"
+  | "reuse-with-crop"
+  | "reuse-existing-asset";
+
+/** Backward-compatible name used by the initial visual-beat implementation. */
+export type VisualBeatAssetDecision = VisualAssetDecision;
+
+export type VisualBeatBoundaryKind =
+  | "narration-aligned"
+  | "semantic-subspan-aligned"
+  | "editorially-allocated";
+
+export interface VisualBeatNarrationRef {
+  readonly semanticSceneId: string;
+  readonly sentenceIds: readonly string[];
+  readonly startOffset: number;
+  readonly endOffset: number;
+  readonly spanHash: string;
+}
+
+export interface VisualBeatComposition {
+  readonly description: string;
+  readonly camera: string;
+  readonly lighting: string;
+  readonly subtitleSafeAreaRequired: true;
+}
+
+export interface VisualBeatReferenceRequirement {
+  readonly kind: "canonical-identity" | "episode-anchor" | "scene-reference";
+  readonly assetId: string;
+  readonly required: boolean;
+}
+
+export interface VisualBeatTreatmentV1 {
+  readonly version: 1;
+  readonly beatId: string;
+  readonly sceneId: string;
+  readonly role: VisualBeatRole;
+  readonly narrationRef: VisualBeatNarrationRef;
+  readonly parentTreatmentHash: string;
+  readonly coreMeaning: string;
+  /** The material visual information this beat adds beyond its preceding beat. */
+  readonly newInformation: string;
+  readonly viewerShouldUnderstand: string;
+  readonly visualThesis: string;
+  readonly subject: string;
+  readonly action: string;
+  readonly state: string;
+  readonly environment: string;
+  readonly composition: VisualBeatComposition;
+  readonly continuationOfPreviousBeat: boolean;
+  readonly referenceRequirements: readonly VisualBeatReferenceRequirement[];
+  readonly assetDecision: VisualBeatAssetDecision;
+  readonly reuseSourceBeatId: string | null;
+  /** Relative allocation only; selected audio supplies the actual scene duration. */
+  readonly timingWeight: number;
+  readonly boundaryKind: VisualBeatBoundaryKind;
+  readonly beatHash: string;
+}
+
+export interface VeronicaVisualBeatQuality {
+  readonly status: "PASS" | "WARN" | "FAIL";
+  readonly findings: readonly {
+    readonly code: "REDUNDANT_SIBLING_BEAT" | "REDUNDANT_PAID_IMAGE_CANDIDATE" | "EVENT_ONLY_DENSITY_INCREASE" | "OPENING_STATIC_HOLD" | "LONG_STATIC_OPENING_ASSET_HOLD" | "BEAT_OUTSIDE_PARENT_MEANING" | "INVALID_REUSE_SOURCE";
+    readonly severity: "warning" | "blocker";
+    readonly sceneId: string;
+    readonly beatId: string | null;
+    readonly message: string;
+  }[];
+  readonly beatsInFirst5Seconds: number;
+  readonly beatsInFirst10Seconds: number;
+  readonly beatsInFirst15Seconds: number;
+  readonly density: VeronicaVisualDensityMetrics;
+}
+
+export interface VeronicaVisualDensityMetrics {
+  readonly semanticSceneCount: number;
+  readonly visualBeatCount: number;
+  readonly visualEventCount: number;
+  readonly uniqueCanonicalAssetCount: number;
+  readonly newImageBeatCount: number;
+  readonly reuseWithMotionBeatCount: number;
+  readonly reuseWithCropBeatCount: number;
+  readonly reuseExistingAssetBeatCount: number;
+  readonly sameAssetEventCount: number;
+  readonly firstNewAssetChangeMs: number | null;
+  readonly uniqueAssetsInFirst5Seconds: number;
+  readonly uniqueAssetsInFirst10Seconds: number;
+  readonly uniqueAssetsInFirst15Seconds: number;
+  readonly longestContinuousSameAssetHoldMs: number;
+  readonly averageCanonicalAssetHoldMs: number;
+  readonly redundantPaidImageCandidateBeatIds: readonly string[];
+  readonly informationGain: readonly {
+    readonly beatId: string;
+    readonly newInformationHash: string;
+    readonly addsMaterialInformation: boolean;
+  }[];
+  readonly higherImageDensityThanOnePerScene: boolean;
+}
+
+export interface VeronicaVisualBeatPlanV1 {
+  readonly schemaVersion: "veronica-visual-beat-plan.v1";
+  readonly policyVersion: string;
+  readonly contentId: string;
+  readonly semanticSceneCount: number;
+  readonly beats: readonly VisualBeatTreatmentV1[];
+  readonly quality: VeronicaVisualBeatQuality;
+  readonly beatPlanHash: string;
 }
 
 export interface PlannedScene {
@@ -692,6 +826,8 @@ export interface PositioningVisualPlanV2 {
   readonly scenes: readonly PlannedScene[];
   readonly assets: readonly GeneratedVisualAsset[];
   readonly visualEvents: readonly VisualEvent[];
+  /** Optional during migration. Absence means one implicit visual beat per semantic scene. */
+  readonly visualBeatPlan?: VeronicaVisualBeatPlanV1;
   readonly diagrams: readonly DiagramTopology[];
   readonly assetReuseDecisions: readonly AssetReuseDecision[];
   readonly diversityMetrics: DiversityMetrics;

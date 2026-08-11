@@ -32,6 +32,7 @@ export const veronicaProviderImagePromptArtifactSchema = z.strictObject({
     semanticScenePlanHash: sha256Schema,
     visualTreatmentsHash: sha256Schema,
     visualBibleHash: sha256Schema,
+    visualBeatPlanHash: sha256Schema.nullable(),
     selectedAudioHash: sha256Schema.nullable(),
     canonicalIdentity: z.strictObject({
       characterId: z.literal("veronica-benini"),
@@ -49,6 +50,12 @@ export const veronicaProviderImagePromptArtifactSchema = z.strictObject({
   prompts: z.array(z.strictObject({
     wrapperSceneId: z.string().min(1),
     semanticSceneId: z.string().min(1),
+    visualBeatId: z.string().min(1).nullable(),
+    visualBeatHash: sha256Schema.nullable(),
+    newInformation: z.string().min(1).nullable(),
+    visibleThesis: z.string().min(1),
+    assetDecision: z.enum(["new-image", "reuse-with-motion", "reuse-with-crop", "reuse-existing-asset"]).nullable(),
+    timingProvenanceHash: sha256Schema.nullable(),
     assetId: z.string().min(1),
     imagePrompt: z.string().min(1),
     promptHash: sha256Schema,
@@ -61,6 +68,7 @@ export const veronicaProviderImagePromptArtifactSchema = z.strictObject({
     canonicalReferenceAssetId: z.string().nullable(),
     continuityReferenceAssetIds: z.array(z.string().min(1)),
     referenceAssetId: z.string().nullable(),
+    referenceHashes: z.array(sha256Schema),
     providerSemanticQa: z.strictObject({
       status: z.enum(["PASS", "BLOCKED"]),
       canonicalContractHash: sha256Schema,
@@ -121,7 +129,9 @@ function createArtifact(input: {
       && compilation.result.imagePrompt === asset.prompt
       && compilation.input.provenance.materializationRevisionId === scene.materializationRevision.revisionId
       && compilation.input.provenance.treatmentHash === scene.treatment.treatmentHash
-      && compilation.input.provenance.propositionHash === scene.semanticProposition?.propositionHash,
+      && compilation.input.provenance.propositionHash === scene.semanticProposition?.propositionHash
+      && compilation.input.provenance.visualBeatId === (asset.visualBeatId ?? null)
+      && compilation.input.provenance.visualBeatHash === (asset.visualBeatHash ?? null)
     );
     if (!sameSnapshot) {
       throw new Error(`VERONICA_PROVIDER_PROMPT_ARTIFACT_SNAPSHOT_MISMATCH:${assetId}`);
@@ -129,6 +139,12 @@ function createArtifact(input: {
     return {
       wrapperSceneId: wrapper.id,
       semanticSceneId: scene.sceneId,
+      visualBeatId: asset.visualBeatId ?? null,
+      visualBeatHash: asset.visualBeatHash ?? null,
+      newInformation: compilation?.input.visualBeat?.newInformation ?? null,
+      visibleThesis: compilation?.input.visualBeat?.visualThesis ?? scene.visibleThesis,
+      assetDecision: compilation?.input.visualBeat?.assetDecision ?? null,
+      timingProvenanceHash: compilation?.input.provenance.timingProvenanceHash ?? null,
       assetId,
       imagePrompt: asset.prompt,
       promptHash: stableHash(asset.prompt),
@@ -141,6 +157,7 @@ function createArtifact(input: {
       canonicalReferenceAssetId: asset.canonicalReferenceAssetId ?? null,
       continuityReferenceAssetIds: [...(asset.continuityReferenceAssetIds ?? [])],
       referenceAssetId: asset.referenceAssetId ?? null,
+      referenceHashes: compilation?.input.referenceAssets.map((reference) => reference.fingerprint) ?? [],
       providerSemanticQa: compilation?.semanticQa
         ? {
             status: compilation.semanticQa.status,
@@ -173,6 +190,7 @@ function createArtifact(input: {
       semanticScenePlanHash: input.plan.semanticPlanCacheKey,
       visualTreatmentsHash: input.visualTreatmentsHash,
       visualBibleHash: input.visualBible.artifactHash,
+      visualBeatPlanHash: input.plan.visualBeatPlan?.beatPlanHash ?? null,
       selectedAudioHash: input.selectedAudioHash,
       canonicalIdentity: {
         characterId: input.visualBible.characterIdentity.characterId,

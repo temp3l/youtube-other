@@ -863,7 +863,7 @@ export function applyVeronicaSourceGroundedRemediationDirectives(input: {
     scenes,
     semanticPlanCacheKey: stableHash({
       previous: input.plan.semanticPlanCacheKey,
-      controllerVersion: "veronica-source-grounded-visual-qa-controller.v1",
+      controllerVersion: "veronica-source-grounded-visual-qa-controller.v2",
       round: input.round,
       directives: input.directives.map((entry) => ({
         sceneId: entry.sceneId,
@@ -1257,7 +1257,8 @@ export function validateVeronicaProviderReadiness(plan: PositioningVisualPlanV2)
       if (proposition) {
         reasons.push(...assessVeronicaSourceGroundedSemanticConsistency({ narration: scene.narrationAnchor, proposition, treatment: scene.treatment, visibleThesis: scene.visibleThesis, providerPrompt: asset.prompt }).reasons.map((reason) => `source-grounding:${reason}`));
       }
-      if ((!asset.promptCompilation && !asset.prompt.includes("Visible thesis:")) || asset.semanticPurpose !== scene.visibleThesis) reasons.push("provider-prompt-thesis-does-not-match-final-scene");
+      const expectedVisibleThesis = asset.promptCompilation?.input.visualBeat?.visualThesis ?? scene.visibleThesis;
+      if ((!asset.promptCompilation && !asset.prompt.includes("Visible thesis:")) || asset.semanticPurpose !== expectedVisibleThesis) reasons.push("provider-prompt-thesis-does-not-match-final-scene");
       if (!asset.prompt.includes(plan.aspectRatio)) reasons.push("provider-prompt-aspect-ratio-mismatch");
       if (reasons.length > 0) issues.push({ sceneId: scene.sceneId, assetId: asset.assetId, code: "PROVIDER_PROMPT_NOT_READY", reason: reasons.join(",") });
       const provenance = asset.projectionProvenance;
@@ -1299,6 +1300,11 @@ export function validateVeronicaProviderReadiness(plan: PositioningVisualPlanV2)
           ...(provenance.promptCompilationResultHash ? { promptCompilationResultHash: provenance.promptCompilationResultHash } : {}),
           ...(provenance.promptCompilerModel ? { promptCompilerModel: provenance.promptCompilerModel } : {}),
           ...(provenance.promptCompilerReasoningEffort ? { promptCompilerReasoningEffort: provenance.promptCompilerReasoningEffort } : {}),
+          ...(provenance.visualBeatId ? { visualBeatId: provenance.visualBeatId } : {}),
+          ...(provenance.visualBeatHash ? { visualBeatHash: provenance.visualBeatHash } : {}),
+          ...(provenance.visualBeatNewInformationHash ? { visualBeatNewInformationHash: provenance.visualBeatNewInformationHash } : {}),
+          ...(provenance.visualBeatAssetDecision ? { visualBeatAssetDecision: provenance.visualBeatAssetDecision } : {}),
+          ...(provenance.timingProvenanceHash ? { timingProvenanceHash: provenance.timingProvenanceHash } : {}),
         }) ? ["projection-revision-hash-mismatch"] : []),
         ...(/\b(?:doorway|threshold|foothold|future paths?)\b/iu.test(asset.prompt) && !proposition?.narrationNativeMetaphor && !doorway.test(scene.narrationAnchor) && !episodeMotifSupported ? ["unsupported-doorway-projection"] : []),
         ...(promptPolarityInversion ? ["projection-polarity-inversion"] : []),

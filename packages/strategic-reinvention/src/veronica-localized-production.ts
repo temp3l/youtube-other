@@ -212,15 +212,16 @@ export async function persistVeronicaLocalizedProduction(input: {
     localeVisualOverrideSchema.parse(override),
   );
   const overrideByScene = new Map(overrides.map((override) => [override.semanticSceneId, override]));
-  const visualReuseScenes = input.plan.scenes.map((scene, index) => {
-    const asset = input.plan.assets.find((candidate) => candidate.sceneId === scene.sceneId);
-    const wrapper = input.scenePlan.scenes[index];
-    if (!asset || !wrapper) {
-      throw new Error(`VERONICA_LOCALIZED_VISUAL_REUSE_SCENE_MISSING:${scene.sceneId}`);
+  const visualReuseScenes = input.plan.assets.map((asset) => {
+    const semanticIndex = input.plan.scenes.findIndex((scene) => scene.sceneId === asset.sceneId);
+    const scene = input.plan.scenes[semanticIndex];
+    const wrapper = input.scenePlan.scenes[semanticIndex];
+    if (!scene || !wrapper) {
+      throw new Error(`VERONICA_LOCALIZED_VISUAL_REUSE_SCENE_MISSING:${asset.sceneId}`);
     }
-    const override = overrideByScene.get(scene.sceneId);
+    const override = overrideByScene.get(asset.sceneId);
     return {
-      semanticSceneId: scene.sceneId,
+      semanticSceneId: asset.sceneId,
       wrapperSceneId: wrapper.id,
       assetId: asset.assetId,
       imageCacheKey: override

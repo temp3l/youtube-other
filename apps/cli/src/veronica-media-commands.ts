@@ -21,6 +21,7 @@ import {
   generatePositioningVisualPlanCalibration,
   generateVeronicaBeniniReviewPacks,
   preparePositioningProductionEpisode,
+  planExistingVeronicaVisualDensity,
   remediateExistingVeronicaPreImagePlan,
   runExistingVeronicaSourceGroundedPreImageQa,
   positioningProductionPlanSchema,
@@ -400,6 +401,25 @@ export function registerVeronicaMediaCommands(program: Command): void {
       const workspaceRoot = path.resolve(options.workspace);
       const episodeDir = path.join(workspaceRoot, options.episodeId);
       const result = await remediateExistingVeronicaPreImagePlan({
+        workspaceRoot,
+        episodeId: options.episodeId,
+        overridePath: path.resolve(options.overrides),
+        imagePromptCompiler: await createVeronicaImagePromptCompilerComposition({ workspaceRoot, episodeDir }),
+      });
+      process.stdout.write(`${JSON.stringify(result, options.json ? null : undefined, options.json ? 2 : undefined)}\n`);
+    });
+
+  veronica
+    .command("plan-visual-density")
+    .description("Materialize visual beats for an approved Veronica Short without changing semantic scenes or producing images")
+    .requiredOption("--workspace <path>", "Episode workspace root")
+    .requiredOption("--episode-id <id>", "Episode identifier")
+    .requiredOption("--overrides <path>", "Reviewed visual-beat override artifact")
+    .option("--json", "Emit machine-readable output", false)
+    .action(async (options: { workspace: string; episodeId: string; overrides: string; json: boolean }) => {
+      const workspaceRoot = path.resolve(options.workspace);
+      const episodeDir = path.join(workspaceRoot, options.episodeId);
+      const result = await planExistingVeronicaVisualDensity({
         workspaceRoot,
         episodeId: options.episodeId,
         overridePath: path.resolve(options.overrides),

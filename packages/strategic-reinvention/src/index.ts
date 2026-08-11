@@ -24,6 +24,7 @@ export * from "./semantic-image-prompt.js";
 export * from "./veronica-image-prompt-compiler.js";
 export * from "./veronica-provider-image-prompt-artifact.js";
 export * from "./veronica-visual-artifacts.js";
+export * from "./veronica-visual-beats.js";
 export * from "./veronica-localized-production.js";
 export * from "./veronica-visual-language.js";
 export * from "./veronica-pre-image-semantic-gate.js";

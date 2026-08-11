@@ -69,6 +69,8 @@ const sourceGroundedQaManifestSchema = z.object({
     semanticStateHash: z.string().regex(/^[a-f0-9]{64}$/u),
     treatmentSetHash: z.string().regex(/^[a-f0-9]{64}$/u),
     providerProjectionSetHash: z.string().regex(/^[a-f0-9]{64}$/u),
+    visualBeatSetHash: z.string().regex(/^[a-f0-9]{64}$/u),
+    beatSequenceHash: z.string().regex(/^[a-f0-9]{64}$/u),
     timingHash: z.string().regex(/^[a-f0-9]{64}$/u),
     policyHash: z.string().regex(/^[a-f0-9]{64}$/u),
   }),
@@ -82,11 +84,18 @@ const sourceGroundedQaManifestSchema = z.object({
     sceneUnavailableCount: z.number().int().nonnegative(),
     scenesEscalated: z.number().int().nonnegative(),
     scenesRemediated: z.number().int().nonnegative(),
+    beatPassCount: z.number().int().nonnegative(),
+    beatReviewCount: z.number().int().nonnegative(),
+    beatBlockCount: z.number().int().nonnegative(),
+    beatUnavailableCount: z.number().int().nonnegative(),
+    beatsEscalated: z.number().int().nonnegative(),
+    beatsRemediated: z.number().int().nonnegative(),
     sequenceVerdict: z.enum(["PASS", "REVIEW", "BLOCK", "UNAVAILABLE"]),
     sequenceDefectCount: z.number().int().nonnegative(),
     cacheHits: z.number().int().nonnegative(),
     cacheMisses: z.number().int().nonnegative(),
     primaryApiCalls: z.number().int().nonnegative(),
+    beatPrimaryApiCalls: z.number().int().nonnegative(),
     escalationApiCalls: z.number().int().nonnegative(),
     remediationApiCalls: z.number().int().nonnegative(),
     sequenceApiCalls: z.number().int().nonnegative(),
@@ -118,9 +127,11 @@ const sourceGroundedQaManifestSchema = z.object({
     serviceTier: z.literal("flex").optional(),
     wallClockMs: z.number().int().nonnegative(),
     sceneCount: z.number().int().nonnegative(),
+    beatCount: z.number().int().nonnegative(),
     cacheHits: z.number().int().nonnegative(),
     cacheMisses: z.number().int().nonnegative(),
     primaryCalls: z.number().int().nonnegative(),
+    beatPrimaryCalls: z.number().int().nonnegative(),
     escalations: z.number().int().nonnegative(),
     advisorCalls: z.number().int().nonnegative(),
     sequenceCalls: z.number().int().nonnegative(),
@@ -157,6 +168,31 @@ const sourceGroundedQaManifestSchema = z.object({
       outputHash: z.string(),
     }),
   ),
+  beats: z.array(
+    z.object({
+      beatId: z.string().min(1),
+      sceneId: z.string().min(1),
+      assetId: z.string().min(1),
+      judgement: z.object({
+        verdict: z.enum(["PASS", "REVIEW", "BLOCK", "UNAVAILABLE"]),
+        sourceFidelity: z.enum(["PASS", "UNCERTAIN", "FAIL"]),
+        sourceSupport: z.enum([
+          "SUPPORTED_LITERAL",
+          "SUPPORTED_MATERIALIZATION",
+          "UNSUPPORTED_INFERENCE",
+          "CONTRADICTORY",
+        ]),
+        defectCodes: z.array(z.string()),
+        reason: z.string(),
+      }).passthrough(),
+      escalationStatus: z.string(),
+      modelPolicyIdentity: z.string(),
+      cacheHit: z.boolean(),
+      inputHash: z.string(),
+      outputHash: z.string(),
+    }),
+  ),
+  remediatedBeatIds: z.array(z.string()),
   remediationHistory: z.array(
     z
       .object({
@@ -1267,6 +1303,7 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
 - Provider prompt quality: **${providerPromptQuality.status}** (blocked markers \`${providerPromptQuality.blockedMarkerCount}\`; internal-language findings \`${providerPromptQuality.internalLanguageIssueCount}\`; lexical corruptions \`${providerPromptQuality.lexicalCorruptionCount}\`).
 - Semantic coherence integrity: **${semanticCoherenceIntegrity.status}** (incomplete claims \`${semanticCoherenceIntegrity.incompleteClaimCount}\`; polarity mismatches \`${semanticCoherenceIntegrity.polarityMismatchCount}\`; proposition contradictions \`${semanticCoherenceIntegrity.propositionContradictionCount}\`; treatment incompatibilities \`${semanticCoherenceIntegrity.treatmentIncompatibilityCount}\`; projection mismatches \`${semanticCoherenceIntegrity.projectionMismatchCount}\`; motif leakage \`${semanticCoherenceIntegrity.motifLeakageCount}\`; harmful repetition \`${semanticCoherenceIntegrity.harmfulRepetitionCount}\`).
 - Source-grounded scene QA: **${finalPlan.sourceGroundedVisualQa.sourceFidelityReady ? "PASS" : "BLOCKED"}** (PASS \`${finalPlan.sourceGroundedVisualQa.aggregate.scenePassCount}\`; REVIEW \`${finalPlan.sourceGroundedVisualQa.aggregate.sceneReviewCount}\`; BLOCK \`${finalPlan.sourceGroundedVisualQa.aggregate.sceneBlockCount}\`; UNAVAILABLE \`${finalPlan.sourceGroundedVisualQa.aggregate.sceneUnavailableCount}\`; escalated \`${finalPlan.sourceGroundedVisualQa.aggregate.scenesEscalated}\`; remediated \`${finalPlan.sourceGroundedVisualQa.aggregate.scenesRemediated}\`).
+- Source-grounded visual-beat QA: PASS \`${finalPlan.sourceGroundedVisualQa.aggregate.beatPassCount}\`; REVIEW \`${finalPlan.sourceGroundedVisualQa.aggregate.beatReviewCount}\`; BLOCK \`${finalPlan.sourceGroundedVisualQa.aggregate.beatBlockCount}\`; UNAVAILABLE \`${finalPlan.sourceGroundedVisualQa.aggregate.beatUnavailableCount}\`; escalated \`${finalPlan.sourceGroundedVisualQa.aggregate.beatsEscalated}\`.
 - Source-grounded sequence QA: **${finalPlan.sourceGroundedVisualQa.aggregate.sequenceVerdict}** (defects \`${finalPlan.sourceGroundedVisualQa.aggregate.sequenceDefectCount}\`).
 - Source-grounded QA execution: \`${finalPlan.sourceGroundedVisualQa.sourceGroundedQaExecution.profile}\` / \`${finalPlan.sourceGroundedVisualQa.sourceGroundedQaExecution.transport}\`; wall \`${finalPlan.sourceGroundedVisualQa.sourceGroundedQaExecution.wallClockMs}ms\`; concurrency configured/effective/max \`${finalPlan.sourceGroundedVisualQa.aggregate.configuredConcurrency}/${finalPlan.sourceGroundedVisualQa.aggregate.effectiveConcurrency}/${finalPlan.sourceGroundedVisualQa.aggregate.maxObservedConcurrency}\`; primary/escalation/advisor/sequence \`${finalPlan.sourceGroundedVisualQa.aggregate.primaryApiCalls}/${finalPlan.sourceGroundedVisualQa.aggregate.escalationApiCalls}/${finalPlan.sourceGroundedVisualQa.aggregate.remediationApiCalls}/${finalPlan.sourceGroundedVisualQa.aggregate.sequenceApiCalls}\`; advisor bypass/no-op/rejudge requests/scenes \`${finalPlan.sourceGroundedVisualQa.aggregate.advisorBypassCount}/${finalPlan.sourceGroundedVisualQa.aggregate.noOpRemediationCount}/${finalPlan.sourceGroundedVisualQa.aggregate.rejudgeRequestCount}/${finalPlan.sourceGroundedVisualQa.aggregate.scenesRejudged}\`; hits/misses \`${finalPlan.sourceGroundedVisualQa.aggregate.cacheHits}/${finalPlan.sourceGroundedVisualQa.aggregate.cacheMisses}\`; retries/rate-limits \`${finalPlan.sourceGroundedVisualQa.aggregate.retryCount}/${finalPlan.sourceGroundedVisualQa.aggregate.rateLimitEvents}\`; budget \`${finalPlan.sourceGroundedVisualQa.aggregate.budgetStatus}\` with \`${finalPlan.sourceGroundedVisualQa.aggregate.providerCallsReserved}\` calls / \`$${finalPlan.sourceGroundedVisualQa.aggregate.estimatedCostUsd.toFixed(4)}\` estimated; tokens input/cached/output \`${finalPlan.sourceGroundedVisualQa.aggregate.inputTokens}/${finalPlan.sourceGroundedVisualQa.aggregate.cachedInputTokens}/${finalPlan.sourceGroundedVisualQa.aggregate.outputTokens}\`.
 - Remediation template quality: **${finalPlan.semanticQuality.status}** (fallback \`${finalPlan.semanticQuality.genericFallbackSceneRate}\`; action-family reuse \`${finalPlan.semanticQuality.repeatedActionFamilyRate}\`; environment-family reuse \`${finalPlan.semanticQuality.repeatedEnvironmentFamilyRate}\`).

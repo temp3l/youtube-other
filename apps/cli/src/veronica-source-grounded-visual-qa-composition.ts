@@ -10,13 +10,14 @@ import {
   FileSourceGroundedVisualQaCache,
   FixtureEpisodeSequenceJudge,
   FixtureSemanticRemediationAdvisor,
-  FixtureSourceGroundedSceneJudge,
+  SOURCE_GROUNDED_BEAT_JUDGE_INSTRUCTION_VERSION,
   SourceGroundedQaTransportError,
   episodeSequenceJudgementSchema,
   globalSourceGroundedQaScheduler,
   semanticRemediationDirectiveSchema,
   sourceGroundedQaExecutionPolicy,
   sourceGroundedSceneJudgementSchema,
+  sourceGroundedVisualBeatJudgementSchema,
   type EpisodeSequenceJudgePort,
   type SemanticRemediationAdvisorPort,
   type SourceGroundedModelTier,
@@ -373,13 +374,18 @@ export class OpenAiSourceGroundedVisualQaAdapter
       episodeId: _episodeId,
       ...semanticPayload
     } = input.payload;
+    const beatAware = input.instructionVersion === SOURCE_GROUNDED_BEAT_JUDGE_INSTRUCTION_VERSION;
     return this.call({
       model: input.model,
       instructions: input.instructions,
       payload: semanticPayload,
       jsonSchema: input.jsonSchema,
-      schemaName: "veronica_source_grounded_scene_judgement",
-      operation: "source-grounded-scene-judge",
+      schemaName: beatAware
+        ? "veronica_source_grounded_visual_beat_judgement"
+        : "veronica_source_grounded_scene_judgement",
+      operation: beatAware
+        ? "source-grounded-visual-beat-judge"
+        : "source-grounded-scene-judge",
       cachePolicy: input.cachePolicy,
       execution: input.execution,
       ...(input.signal ? { signal: input.signal } : {}),
@@ -389,6 +395,7 @@ export class OpenAiSourceGroundedVisualQaAdapter
   judgeBatch(
     input: Parameters<NonNullable<SourceGroundedSceneJudgePort["judgeBatch"]>>[0]
   ) {
+    const beatAware = input.instructionVersion === SOURCE_GROUNDED_BEAT_JUDGE_INSTRUCTION_VERSION;
     return this.callBatch({
       model: input.model,
       instructions: input.instructions,
@@ -401,8 +408,12 @@ export class OpenAiSourceGroundedVisualQaAdapter
         return { itemId, payload: semanticPayload };
       }),
       valueSchema: input.jsonSchema,
-      schemaName: "veronica_source_grounded_scene_judgement_batch",
-      operation: "source-grounded-scene-judge-batch",
+      schemaName: beatAware
+        ? "veronica_source_grounded_visual_beat_judgement_batch"
+        : "veronica_source_grounded_scene_judgement_batch",
+      operation: beatAware
+        ? "source-grounded-visual-beat-judge-batch"
+        : "source-grounded-scene-judge-batch",
       cachePolicy: input.cachePolicy,
       execution: input.execution,
       ...(input.signal ? { signal: input.signal } : {}),
@@ -475,8 +486,51 @@ function qaEffort(
 interface FixtureDocument {
   readonly scenes: Readonly<Record<string, unknown>>;
   readonly escalations?: Readonly<Record<string, unknown>>;
+  readonly beats?: Readonly<Record<string, unknown>>;
+  readonly beatEscalations?: Readonly<Record<string, unknown>>;
   readonly remediation?: Readonly<Record<string, unknown>>;
   readonly sequence: unknown;
+}
+
+function fixtureJudge(input: {
+  readonly scenes: Readonly<Record<string, unknown>>;
+  readonly beats: Readonly<Record<string, unknown>>;
+  readonly label: string;
+}): SourceGroundedSceneJudgePort {
+  const outputFor = (
+    payload: Parameters<SourceGroundedSceneJudgePort["judge"]>[0]["payload"],
+    instructionVersion: string
+  ) => {
+    const beatId = "beatId" in payload && typeof payload.beatId === "string"
+      ? payload.beatId
+      : null;
+    const output = instructionVersion === SOURCE_GROUNDED_BEAT_JUDGE_INSTRUCTION_VERSION
+      ? beatId ? input.beats[beatId] : undefined
+      : input.scenes[payload.sceneId];
+    if (!output) {
+      throw new Error(
+        `Missing ${beatId ? "beat" : "scene"} fixture: ${beatId ?? payload.sceneId}`
+      );
+    }
+    return output;
+  };
+  return {
+    async judge(request) {
+      return {
+        output: outputFor(request.payload, request.instructionVersion),
+        requestId: `fixture-${input.label}-single`,
+      };
+    },
+    async judgeBatch(request) {
+      return {
+        outputs: request.items.map((item) => ({
+          itemId: item.itemId,
+          output: outputFor(item.payload, request.instructionVersion),
+        })),
+        requestId: `fixture-${input.label}-batch`,
+      };
+    },
+  };
 }
 
 function sourceGroundedProgressReporter() {
@@ -529,6 +583,20 @@ async function fixtureComposition(input: {
       ([key, value]) => [key, sourceGroundedSceneJudgementSchema.parse(value)]
     )
   );
+  const beats = Object.fromEntries(
+    Object.entries(document.beats ?? {}).map(([key, value]) => [
+      key,
+      sourceGroundedVisualBeatJudgementSchema.parse(value),
+    ])
+  );
+  const beatEscalations = Object.fromEntries(
+    Object.entries(document.beatEscalations ?? document.beats ?? {}).map(
+      ([key, value]) => [
+        key,
+        sourceGroundedVisualBeatJudgementSchema.parse(value),
+      ]
+    )
+  );
   const remediation = Object.fromEntries(
     Object.entries(document.remediation ?? {}).map(([key, value]) => [
       key,
@@ -556,8 +624,12 @@ async function fixtureComposition(input: {
   };
   return {
     policy,
-    primaryJudge: new FixtureSourceGroundedSceneJudge(scenes),
-    escalationJudge: new FixtureSourceGroundedSceneJudge(escalations),
+    primaryJudge: fixtureJudge({ scenes, beats, label: "primary" }),
+    escalationJudge: fixtureJudge({
+      scenes: escalations,
+      beats: beatEscalations,
+      label: "escalation",
+    }),
     ...(Object.keys(remediation).length > 0
       ? {
           remediationAdvisor: new FixtureSemanticRemediationAdvisor(
