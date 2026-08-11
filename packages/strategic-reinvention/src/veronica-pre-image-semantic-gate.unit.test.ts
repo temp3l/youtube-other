@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { PlannedScene, PositioningVisualPlanV2, PositioningVisualTreatment } from "./positioning-visual-contracts.js";
 import { stableHash } from "./positioning-visual-semantics.js";
 import { calculateVeronicaSemanticQuality, classifyVeronicaStillStateComplexity, normalizeProviderPromptSentence, normalizeVeronicaViewerVisibleFamilies, projectVeronicaProviderPrompt, reviewVeronicaPreImageTreatment, runVeronicaSemanticRemediation, validateVeronicaProviderReadiness } from "./veronica-pre-image-semantic-gate.js";
-import { assessVeronicaNarrationClaimIntegrity, assessVeronicaPropositionInternalCoherence, assessVeronicaTreatmentPropositionCompatibility, classifyVeronicaSemanticPolarity, deriveVeronicaSemanticProposition, providerPromptInternalLanguageReasons, providerPromptLexicalIntegrityReasons, visualTreatmentFromProposition } from "./veronica-semantic-quality.js";
+import { assessVeronicaNarrationClaimIntegrity, assessVeronicaPropositionInternalCoherence, assessVeronicaSourceGroundedSemanticConsistency, assessVeronicaTreatmentPropositionCompatibility, classifyVeronicaSemanticPolarity, deriveVeronicaSemanticProposition, providerPromptInternalLanguageReasons, providerPromptLexicalIntegrityReasons, renderVeronicaVisibleThesis, visualTreatmentFromProposition } from "./veronica-semantic-quality.js";
 
 function treatment(overrides: Partial<PositioningVisualTreatment> = {}): PositioningVisualTreatment {
   const base = { treatmentId: "treatment", sceneId: "scene", progressionStage: "PROOF" as const, narrativeBeat: "buyer recognition", communicationIntent: "make-proof-visible" as const, strategy: "client-decision" as const, subjectRequirement: "occupation-neutral expert and buyer", environment: "public threshold", composition: "buyer crosses a clear doorway", camera: "40mm buyer-height", lighting: "daylight", action: "a buyer hesitates, then crosses the doorway", props: ["open doorway", "visible space beyond"], motionOpportunities: ["establishing-crop", "reveal"] as const, diagram: null, grammar: { strategy: "client-decision" as const, subjectArchetype: "buyer", environment: "public threshold", composition: "buyer crosses a clear doorway", camera: "40mm", props: ["open doorway"], topology: "none" as const, semanticTokens: ["niche"], continuityIdentityId: null }, viewerVisibleFingerprint: { strategyFamily: "client-decision" as const, subjectArchetype: "buyer", environmentArchetype: "threshold", compositionArchetype: "crossing", cameraArchetype: "40mm", lightingArchetype: "daylight", actionArchetype: "crosses", dominantObjectArchetype: "doorway", motionArchetype: "reveal" }, treatmentHash: "a".repeat(64) };
@@ -24,16 +24,16 @@ function plan(scenes: readonly PlannedScene[]): PositioningVisualPlanV2 {
 }
 
 describe("Veronica pre-image semantic gate", () => {
-  it("does not rewrite a zero-blocker plan", () => {
+  it("re-derives source semantics before accepting a previously clean plan", () => {
     const clean = plan([scene()]);
     const result = runVeronicaSemanticRemediation({ plan: clean, narrationByScene: ["A buyer chooses a doorway."] });
-    expect(result.convergenceStatus).toBe("NO_OP");
-    expect(result.rounds).toBe(0);
-    expect(result.plan).toBe(clean);
-    expect(result.decisions).toEqual([]);
+    expect(result.convergenceStatus).toBe("CONVERGED");
+    expect(result.rounds).toBeGreaterThan(0);
+    expect(result.plan).not.toBe(clean);
+    expect(result.decisions).not.toEqual([]);
   });
 
-  it("remediates only blocked scenes, reruns the gate, and preserves action ownership", () => {
+  it("remediates only blocked scenes, reruns the gate, and reconciles action ownership", () => {
     const blocked = scene({ visibleThesis: "topic", treatment: treatment({ actionOwnerRole: "expert", action: "the expert opens a doorway while a buyer compares and chooses" }) });
     const passing = scene({ sceneId: "scene-002", treatment: treatment({ sceneId: "scene-002", actionOwnerRole: "buyer", action: "a buyer compares the evidence, recognizes the difference, and chooses the clear route" }), visibleThesis: "Clear evidence lets the buyer recognize the difference and choose the relevant route.", newInformation: "This second scene adds the buyer's final evidence comparison and selection." });
     const original = plan([blocked, passing]);
@@ -41,8 +41,8 @@ describe("Veronica pre-image semantic gate", () => {
     expect(result.convergenceStatus).toBe("CONVERGED");
     expect(result.reviews.flatMap((review) => review.findings).filter((finding) => finding.severity === "blocker")).toEqual([]);
     expect(result.plan.scenes[1]).toBe(passing);
-    expect(result.plan.scenes[0]!.treatment.actionOwnerRole).toBe("expert");
-    expect(result.decisions.map((decision) => decision.sceneId)).toEqual(["scene-001"]);
+    expect(result.plan.scenes[0]!.treatment.actionOwnerRole).toBe("buyer");
+    expect([...new Set(result.decisions.map((decision) => decision.sceneId))]).toEqual(["scene-001"]);
     expect(result.plan.planHash).not.toBe(original.planHash);
   });
   it("prefers a narration-native doorway relationship over abstract props", () => {
@@ -80,7 +80,7 @@ describe("Veronica pre-image semantic gate", () => {
 
   it("projects a decisive transition as one instant without storyboard wording", () => {
     const prompt = projectVeronicaProviderPrompt({ aspectRatio: "9:16" }, scene({ stateComplexity: "DECISIVE_TRANSITION_MOMENT", treatment: treatment({ actionOwnerRole: "expert", action: "buyers cross first, adjacent buyers gather, and the doorway widens after demand appears", props: ["established doorway", "adjacent buyers"], composition: "original buyers visible beyond an opening threshold" }) }));
-    expect(prompt).toContain("Capture the instant");
+    expect(prompt).toContain("Capture the decisive causal change");
     expect(prompt).toContain("Current action: the recurring professional actively opens the established threshold wider");
     expect(prompt).not.toMatch(/\b(?:first.*then|later|eventually|after.*then)\b/iu);
   });
@@ -105,10 +105,12 @@ describe("Veronica pre-image semantic gate", () => {
   });
 
   it("keeps full-form multi-state semantics as a sequence requirement, not a Short still", () => {
-    const multiState = scene({ stateComplexity: "MULTI_STATE_REQUIRED", treatment: treatment({ action: "a buyer first compares evidence and later changes their selection" }) });
+    const narration = "The buyer compares conflicting evidence first, but later selects the coherent proof.";
+    const multiState = scene({ narrationAnchor: narration, stateComplexity: "MULTI_STATE_REQUIRED", semanticProposition: deriveVeronicaSemanticProposition({ scene: scene(), narration }), treatment: treatment({ action: "a buyer first compares evidence and later changes their selection" }) });
     const shortPrompt = projectVeronicaProviderPrompt({ aspectRatio: "9:16", format: "short" }, multiState);
     const fullPrompt = projectVeronicaProviderPrompt({ aspectRatio: "16:9", format: "long" }, multiState);
-    expect(shortPrompt).toContain("MANUAL REVIEW REQUIRED");
+    expect(shortPrompt).toContain("Capture the decisive causal change");
+    expect(shortPrompt).not.toContain("MANUAL REVIEW REQUIRED");
     expect(fullPrompt).toContain("MULTI-ASSET SEQUENCE REQUIRED");
     expect(fullPrompt).toContain("16:9 Veronica long-form editorial sequence");
     expect(fullPrompt).toContain("Visible thesis:");
@@ -221,7 +223,7 @@ describe("Veronica pre-image semantic gate", () => {
     const proposition = deriveVeronicaSemanticProposition({ scene: scene(), narration: "The professional changes theme repeatedly. The result is motion without accumulation." });
     expect(proposition.polarity).toBe("NEGATIVE_STATE");
     expect(proposition.buyerConsequenceFamily).toBe("FAILS_TO_ACCUMULATE");
-    expect(proposition.consequence).toMatch(/resets|instead/iu);
+    expect(proposition.consequence).toMatch(/motion without accumulation/iu);
   });
 
   it("blocks proposition contradictions and stale treatment environments", () => {
@@ -238,5 +240,105 @@ describe("Veronica pre-image semantic gate", () => {
     expect(prompt).toContain("first screen");
     expect(prompt).not.toContain("a -time visitor");
     expect(providerPromptLexicalIntegrityReasons("Visible thesis: : a clear offer. a -time visitor.." )).toEqual(expect.arrayContaining(["orphaned-hyphen", "malformed-visible-thesis-colon", "duplicated-punctuation"]));
+  });
+
+  it("fails closed when a coherent generic strategy replaces the source proposition", () => {
+    const narration = "If your offer is for everyone, your message usually becomes relevant to no one.";
+    const grounded = deriveVeronicaSemanticProposition({ scene: scene(), narration });
+    expect(grounded.cause).toMatch(/offer is for everyone/iu);
+    expect(grounded.consequence).toMatch(/relevant to no one/iu);
+    const injected = { ...grounded, cause: "Offer, profile, website, and content repeat one expertise cue", consequence: "separate encounters combine into one credible impression", visualMechanism: "signal-coherence" as const };
+    const result = assessVeronicaSourceGroundedSemanticConsistency({ narration, proposition: injected, treatment: treatment({ action: "a visitor follows the same cue across profile, website, offer, and content", props: ["profile", "website", "content"] }), visibleThesis: "Repeated touchpoints create one credible impression." });
+    expect(result.status).toBe("FAIL");
+    expect(result.reasons).toContain("consequence-lacks-source-anchor");
+  });
+
+  it("detects stale action ownership from the final visible action", () => {
+    const narration = "A visitor sorts the visible evidence and remembers the recurring association.";
+    const proposition = deriveVeronicaSemanticProposition({ scene: scene(), narration });
+    const review = reviewVeronicaPreImageTreatment({ contentId: "test", sceneId: "stale-owner", plannerVersion: "test", narration, narrationAnchor: narration, visibleThesis: "A visitor sorts visible evidence and remembers one recurring association.", newInformation: "The visitor-led sorting makes the recognition consequence visible.", proposition, treatment: treatment({ actionOwnerRole: "expert", action: "a visitor sorts the visible evidence and remembers the recurring association" }) });
+    expect(review.driftFlags).toContain("NARRATION_RELATIONSHIP_MISMATCH");
+  });
+
+  it("keeps provider prose free of internal labels, contradiction, malformed actions, and duplicate multi-state instructions", () => {
+    expect(providerPromptInternalLanguageReasons("State condition: weaker condition: mixed signals.")).toContain("internal-remediation-language");
+    expect(providerPromptLexicalIntegrityReasons("Current action: the observer inspects proof while independently points.")).toContain("actorless-action-conjunction");
+    const interfacePrompt = projectVeronicaProviderPrompt({ aspectRatio: "9:16", format: "short" }, scene({ treatment: treatment({ environment: "website opening-screen review", composition: "visitor beside a mobile page frame", props: ["text-free website opening screen", "mobile page frame"], action: "a visitor scans the opening screen", actionOwnerRole: "buyer" }) }));
+    expect(interfacePrompt).toContain("No readable UI copy");
+    expect(interfacePrompt).not.toMatch(/No readable text, logos, UI/iu);
+    const sequence = scene({ stateComplexity: "MULTI_STATE_REQUIRED", narrationAnchor: "The theme switches first, but a recurring cue later lets recognition accumulate.", semanticProposition: deriveVeronicaSemanticProposition({ scene: scene(), narration: "The theme switches first, but a recurring cue later lets recognition accumulate." }), treatment: treatment({ action: "an observer groups the recurring cue after seeing the switching theme", props: ["switching-theme evidence", "recurring cue"] }) });
+    const first = projectVeronicaProviderPrompt({ aspectRatio: "16:9", format: "long" }, sequence, { ordinal: 1, total: 2 });
+    const second = projectVeronicaProviderPrompt({ aspectRatio: "16:9", format: "long" }, sequence, { ordinal: 2, total: 2 });
+    expect(first).toContain("Depict the earlier causal state:");
+    expect(second).toContain("Depict the later causal state:");
+    expect(first).not.toBe(second);
+    expect(first).toContain("Must show: visible evidence of");
+    expect(second).toContain("Must show: switching-theme evidence, recurring cue");
+    expect(first).not.toMatch(/Sequence asset|causal role|State condition|State action|Observer response/iu);
+    expect(providerPromptInternalLanguageReasons("Sequence asset 1 of 2. State action: unresolved.")).toContain("internal-projection-language");
+  });
+
+  it("fails provider readiness when canonical validation is already failed", () => {
+    const readiness = validateVeronicaProviderReadiness({ ...plan([scene()]), validation: { status: "fail", failures: ["canonical-semantic-defect"] } });
+    expect(readiness.status).toBe("FAIL");
+    expect(readiness.issues.some((issue) => issue.reason.includes("canonical-validation-failed"))).toBe(true);
+  });
+
+  it("renders a complete stable proposition once instead of duplicating it", () => {
+    const proposition = deriveVeronicaSemanticProposition({ scene: scene(), narration: "Consistent evidence makes the expertise easier to remember." });
+    const thesis = renderVeronicaVisibleThesis(proposition);
+    expect(thesis).toBe("Consistent evidence makes the expertise easier to remember.");
+    expect(thesis).not.toContain(";");
+  });
+
+  it("rejects nested transition grammar and duplicate thesis clauses", () => {
+    expect(providerPromptLexicalIntegrityReasons("Visible thesis: When If the signal changes, the visitor hesitates.")).toContain("nested-semantic-transition-introducer");
+    expect(providerPromptLexicalIntegrityReasons("Visible thesis: One clear cue builds trust; One clear cue builds trust.")).toContain("duplicated-visible-thesis-clause");
+  });
+
+  it("preserves closing quotation punctuation inside the selected evidence span", () => {
+    const narration = "The first person says, “I help every business.” The second person gives one specific promise.";
+    const proposition = deriveVeronicaSemanticProposition({ scene: scene(), narration });
+    expect(proposition.evidenceSpans.every((span) => narration.slice(span.startOffset, span.endOffset) === span.text)).toBe(true);
+    expect(proposition.narrationClaim).not.toMatch(/^”/u);
+  });
+
+  it("rejects negative narration with a corrected positive treatment and the inverse stale state", () => {
+    const negative = deriveVeronicaSemanticProposition({ scene: scene(), narration: "The response appears before the problem, so the customer cannot see why it fits." });
+    expect(assessVeronicaTreatmentPropositionCompatibility({ proposition: negative, narration: negative.narrationClaim, treatment: treatment({ action: "the customer aligns the response after the recognized problem and understands the fit", composition: "clear matching evidence" }) }).reasons).toContain("treatment-polarity-mismatch");
+    const positive = deriveVeronicaSemanticProposition({ scene: scene(), narration: "The customer now understands how the response follows from the recognized problem." });
+    expect(assessVeronicaTreatmentPropositionCompatibility({ proposition: positive, narration: positive.narrationClaim, treatment: treatment({ action: "the customer cannot connect the response to the problem", composition: "conflicting evidence remains unresolved" }) }).reasons).toContain("treatment-polarity-mismatch");
+  });
+
+  it("projects conditional alternatives as branches rather than chronology", () => {
+    const narration = "If the evidence matches, the buyer continues. If the evidence conflicts, the buyer leaves.";
+    const proposition = deriveVeronicaSemanticProposition({ scene: scene(), narration });
+    const conditional = scene({ narrationAnchor: narration, semanticProposition: proposition, stateComplexity: "MULTI_STATE_REQUIRED", treatment: treatment({ actionOwnerRole: "buyer", action: "the buyer compares the evidence and chooses one branch" }) });
+    const first = projectVeronicaProviderPrompt({ aspectRatio: "16:9", format: "long" }, conditional, { ordinal: 1, total: 2 });
+    const second = projectVeronicaProviderPrompt({ aspectRatio: "16:9", format: "long" }, conditional, { ordinal: 2, total: 2 });
+    expect(proposition.stateRelation).toBe("CONDITIONAL_ALTERNATIVES");
+    expect(`${first} ${second}`).toContain("conditional alternative A");
+    expect(`${first} ${second}`).toContain("conditional alternative B");
+    expect(`${first} ${second}`).not.toMatch(/earlier|later|unresolved|resolved/iu);
+  });
+
+  it("retains temporal grammar for a genuine sequential progression", () => {
+    const narration = "The signals scatter first, but later they converge around one recurring cue.";
+    const proposition = deriveVeronicaSemanticProposition({ scene: scene(), narration });
+    const progression = scene({ narrationAnchor: narration, semanticProposition: proposition, stateComplexity: "MULTI_STATE_REQUIRED" });
+    const first = projectVeronicaProviderPrompt({ aspectRatio: "16:9", format: "long" }, progression, { ordinal: 1, total: 2 });
+    const second = projectVeronicaProviderPrompt({ aspectRatio: "16:9", format: "long" }, progression, { ordinal: 2, total: 2 });
+    expect(proposition.stateRelation).toBe("SEQUENTIAL_PROGRESSION");
+    expect(first).toContain("earlier causal state");
+    expect(second).toContain("later causal state");
+  });
+
+  it("propagates concrete adjacent diversity violations while preserving native motif progression", () => {
+    const base = plan([scene({ sceneId: "a" }), scene({ sceneId: "b" })]);
+    const diversity = { visualGrammarDuplicateRate: 1, subjectArchetypeDuplicateRate: 1, environmentDuplicateRate: 1, compositionDuplicateRate: 1, cameraDuplicateRate: 1, propDuplicateRate: 1, diagramTopologyDuplicateRate: 0, consecutiveSceneSimilarity: { mean: 1, maximum: 1, violatingPairs: ["a->b"] }, hookVsScene1Similarity: 1, status: "fail" as const, failures: ["consecutive-scene-similarity:a->b"], harmfulRepetitionPairs: ["a->b"] };
+    const readiness = validateVeronicaProviderReadiness({ ...base, diversityMetrics: diversity });
+    expect(readiness.issues.some((issue) => issue.code === "HARMFUL_REPETITION" && issue.sceneId === "b" && issue.reason.includes("a->b"))).toBe(true);
+    const native = calculateVeronicaSemanticQuality(plan([scene({ narrationAnchor: "A doorway opens.", semanticProposition: deriveVeronicaSemanticProposition({ scene: scene(), narration: "A doorway opens into a wider threshold." }) }), scene({ sceneId: "b", narrationAnchor: "The threshold widens.", semanticProposition: deriveVeronicaSemanticProposition({ scene: scene(), narration: "The threshold widens into a foothold." }) })]));
+    expect(native.findingCodes).not.toContain("REMEDIATION_TEMPLATE_COLLAPSE");
   });
 });

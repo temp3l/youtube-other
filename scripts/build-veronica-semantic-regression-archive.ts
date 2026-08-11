@@ -11,7 +11,6 @@ if (!workspaceArgument || !outputArgument) throw new Error("Usage: build-veronic
 const workspaceRoot = path.resolve(workspaceArgument);
 const outputDir = path.resolve(outputArgument);
 const reviewPackMode = reviewPackModeSchema.parse(reviewPackModeArgument);
-const historicalCompactSourceRoot = path.resolve("artifacts/review/veronica-l02-l03-chatgpt-review-final-coherent-20260810T2119Z");
 await fs.mkdir(outputDir, { recursive: false });
 
 async function sha256(filePath: string): Promise<string> {
@@ -77,9 +76,11 @@ for (const episodeId of episodeNames) {
   const visualPlan = JSON.parse(await fs.readFile(path.join(episodeDir, "source", "pre-image-semantic-plan.v1.json"), "utf8")) as { readonly contentId: string };
   const packId = `${visualPlan.contentId}-${variant}`;
   const destinationDir = path.join(outputDir, packId);
-  const createdPack = reviewPackMode === "compact" ? undefined : await createVeronicaPreImageReviewPack({ episodeDir, language: "en", variant, reviewPackMode });
-  const sourceDir = createdPack?.packDir ?? destinationDir;
-  const compactResult = reviewPackMode === "compact" ? await compactHistoricalPack({ episodeDir, variant, sourceDir: path.join(historicalCompactSourceRoot, packId), destinationDir }) : undefined;
+  // Always create from the current canonical plan. Compact packaging must not
+  // silently reuse a historical semantic review pack.
+  const createdPack = await createVeronicaPreImageReviewPack({ episodeDir, language: "en", variant, reviewPackMode });
+  const sourceDir = reviewPackMode === "compact" ? destinationDir : createdPack.packDir;
+  const compactResult = reviewPackMode === "compact" ? await compactHistoricalPack({ episodeDir, variant, sourceDir: createdPack.packDir, destinationDir }) : undefined;
   const reviewManifest = JSON.parse(await fs.readFile(path.join(sourceDir, "review-manifest.json"), "utf8")) as {
     readonly narrationDurationSeconds: number;
     readonly selectedAudioHash: string;

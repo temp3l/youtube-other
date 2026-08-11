@@ -5,19 +5,20 @@ import type {
   VeronicaSemanticConfidence,
   VeronicaSemanticPolarity,
   VeronicaSemanticProposition,
+  VeronicaSemanticStateRelation,
 } from "./positioning-visual-contracts.js";
 import { stableHash } from "./positioning-visual-semantics.js";
 
-export const VERONICA_SEMANTIC_PROPOSITION_VERSION = "veronica-semantic-proposition.v2" as const;
-export const VERONICA_PROVIDER_PROMPT_QUALITY_VERSION = "veronica-provider-prompt-quality.v2" as const;
+export const VERONICA_SEMANTIC_PROPOSITION_VERSION = "veronica-semantic-proposition.v3" as const;
+export const VERONICA_PROVIDER_PROMPT_QUALITY_VERSION = "veronica-provider-prompt-quality.v3" as const;
 export const VERONICA_TREATMENT_COMPATIBILITY_VERSION = "veronica-treatment-proposition-compatibility.v1" as const;
 export const VERONICA_PROMPT_SANITATION_VERSION = "veronica-provider-prompt-sanitation.v2" as const;
 
 type Mechanism = VeronicaSemanticProposition["visualMechanism"];
 
-const internalLanguage = /\b(?:tied to the narrated|at causal step|recognizes? the consequence|chooses? accordingly|changes? the available evidence|occupation-neutral evidence and comparison setting|the narrated claim)\b/iu;
+const internalLanguage = /\b(?:tied to the narrated|at causal step|recognizes? the consequence|chooses? accordingly|changes? the available evidence|occupation-neutral evidence and comparison setting|the narrated claim|weaker condition|stronger condition|semantic(?:[- ](?:gate|remediation|quality))?|remediation|validator)\b/iu;
 const malformedCauseTemplate = /^because\s+.+\s+changes?\s+the\s+available\s+evidence\b/iu;
-const finitePredicate = /\b(?:is|are|has|have|gives?|makes?|shows?|lets?|leaves?|connects?|reinforces?|builds?|creates?|reduces?|keeps?|becomes?|remains?|sits?|scans?|stops?|ignores?|notices?|recognizes?|remembers?|categorizes?|understands?|trusts?|hesitates?|chooses?|commits?|crosses?|opens?|refers?|enters?|leaves?|follows?|compares?|points?|accumulates?|supports?|weakens?|strengthens?|explains?|demonstrates?|reveals?|matches?|fits?|presents?|identif\w*|repeats?|combines?|forms?|aligns?|moves?|arranges?|groups?|places?|inspects?|traces?|contributes?|uses?|arriv\w*|widen\w*|rescues?)\b/iu;
+const finitePredicate = /\b(?:is|are|has|have|do(?:es)?|need(?:s)?|want(?:s)?|ask(?:s)?|must|may|should|will|means?|can|know\w*|begin\w*|write\w*|click\w*|read\w*|tell\w*|collapse\w*|introduc\w*|gives?|makes?|shows?|lets?|leaves?|connects?|reinforces?|builds?|creates?|reduces?|keeps?|becomes?|remains?|sits?|scans?|stops?|ignores?|notices?|recognizes?|remembers?|categorizes?|understands?|trusts?|hesitates?|chooses?|commits?|crosses?|opens?|refers?|enters?|leaves?|follows?|compares?|points?|accumulates?|supports?|weakens?|strengthens?|explains?|demonstrates?|reveals?|matches?|fits?|presents?|identif\w*|repeats?|combines?|forms?|aligns?|moves?|arranges?|groups?|places?|inspects?|traces?|contributes?|uses?|arriv\w*|widen\w*|rescues?)\b/iu;
 const abstractOnly = /^(?:positioning|clarity|evidence|expertise|recognition|relevance|value|trust|growth|success|transformation)[\s,;/&-]*$/iu;
 const stopWords = new Set(["about", "after", "again", "because", "before", "being", "could", "every", "from", "have", "into", "just", "more", "only", "other", "should", "than", "that", "their", "them", "then", "there", "these", "they", "this", "through", "when", "where", "which", "while", "with", "would", "your"]);
 
@@ -33,7 +34,10 @@ interface SentenceSpan { readonly sentenceId: string; readonly startOffset: numb
 
 function sentenceSpans(value: string): readonly SentenceSpan[] {
   const body = value.replace(/^---[\s\S]*?---\s*/u, "");
-  const matches = [...body.matchAll(/[^.!?…]+(?:[.!?…]+|$)/gu)];
+  // A closing quote belongs to the sentence whose punctuation precedes it.
+  // Keeping it here prevents the next semantic span from starting with an
+  // orphaned quote and preserves exact source offsets/provenance.
+  const matches = [...body.matchAll(/[^.!?…]+(?:[.!?…]+[”"'’)]*|$)/gu)];
   return matches.flatMap((match, index) => {
     const raw = match[0];
     const text = raw.trim();
@@ -58,7 +62,7 @@ export function assessVeronicaNarrationClaimIntegrity(claim: string): { readonly
 }
 
 const mechanismRules: readonly { readonly mechanism: Mechanism; readonly pattern: RegExp; readonly anchors: readonly string[] }[] = [
-  { mechanism: "website-first-impression", pattern: /\b(?:website|site|web page|first screen|five seconds|profile|bio)\b/iu, anchors: ["website", "site", "screen", "visitor", "profile", "bio", "category"] },
+  { mechanism: "website-first-impression", pattern: /\b(?:first screen|opening screen|five seconds|web page)\b|\b(?:website|site|profile|bio)\b.{0,100}\b(?:visitor|first-time|category|opening|screen|five seconds|interpretation)\b/iu, anchors: ["website", "site", "screen", "visitor", "profile", "bio", "category"] },
   { mechanism: "market-problem-solution-chain", pattern: /\b(?:market).{0,100}\bproblem\b|\bproblem\b.{0,120}\bsolution\b|three questions/iu, anchors: ["market", "problem", "solution", "group", "question", "position"] },
   { mechanism: "problem-first-sequence", pattern: /\b(?:package|method|feature).{0,100}\b(?:problem|customer)\b|reverse the (?:order|sequence)/iu, anchors: ["package", "method", "feature", "problem", "customer", "sequence"] },
   { mechanism: "identity-bridge", pattern: /\b(?:past|previous|transferable|professional story|new professional identity|changing direction|evolution)\b/iu, anchors: ["past", "previous", "skills", "story", "identity", "credible", "evolution"] },
@@ -81,7 +85,11 @@ function resolveMechanism(narration: string, treatment: PositioningVisualTreatme
   if (/\b(?:page|first screen).{0,120}\b(?:visitor|interpretation work|three questions)\b/iu.test(narration)) return { mechanism: "website-first-impression", confidence: "HIGH", anchors: ["page", "screen", "visitor", "questions", "answers", "category"] };
   if (/\b(?:identity can change|new professional role|label change|past and your new professional identity|professional story)\b/iu.test(narration)) return { mechanism: "identity-bridge", confidence: "HIGH", anchors: ["identity", "recognition", "role", "evidence", "past", "bridge"] };
   if (/\b(?:different stor|conflicting identit|reconcile (?:three|different)|unrelated services|motion without accumulation|resetting with every|alignment beats volume)\b/iu.test(narration)) return { mechanism: /motion without accumulation|resetting with every/iu.test(narration) ? "recognition-accumulation" : "signal-coherence", confidence: "HIGH", anchors: ["conflict", "different", "unrelated", "accumulation", "resetting", "alignment", "coherent"] };
-  const match = mechanismRules.find((rule) => rule.pattern.test(narration));
+  const narrationTokenSet = new Set(contentTokens(narration));
+  const match = mechanismRules
+    .filter((rule) => rule.pattern.test(narration))
+    .map((rule) => ({ rule, score: rule.anchors.filter((anchor) => contentTokens(anchor).some((token) => narrationTokenSet.has(token))).length }))
+    .sort((left, right) => right.score - left.score)[0]?.rule;
   if (match) return { mechanism: match.mechanism, confidence: "HIGH", anchors: match.anchors };
   const strategyMechanism: Partial<Record<PositioningVisualTreatment["strategy"], Mechanism>> = {
     "comparison-composition": "audience-fit-signal",
@@ -110,7 +118,10 @@ function selectNarrationAnchors(narration: string, anchors: readonly string[]): 
   const scored = candidates.map((span, index) => ({
     span,
     index,
-    score: anchors.filter((anchor) => normalize(span.text).includes(normalize(anchor))).length + (/\b(?:because|so|when|if|but|instead|means?|result|therefore|without|while)\b/iu.test(span.text) ? 1 : 0) - (span.text.endsWith("?") ? 0.5 : 0),
+    score: anchors.filter((anchor) => normalize(span.text).includes(normalize(anchor))).length
+      + (/\b(?:because|so|when|if|but|instead|means?|result|therefore|without|while)\b/iu.test(span.text) ? 1 : 0)
+      - (span.text.endsWith("?") ? 0.5 : 0)
+      - (finitePredicate.test(span.text) ? 0 : 2),
   })).sort((left, right) => right.score - left.score || left.index - right.index);
   const selected = scored[0];
   if (!selected) return [{ sentenceId: "sentence-001", startOffset: 0, endOffset: narration.trim().length, text: narration.trim(), spanHash: stableHash(narration.trim()) }];
@@ -118,7 +129,12 @@ function selectNarrationAnchors(narration: string, anchors: readonly string[]): 
   const selectedPolarity = classifyVeronicaSemanticPolarity(selected.span.text);
   const nextPolarity = next ? classifyVeronicaSemanticPolarity(next.text) : "NEUTRAL";
   const pairedConditional = /^if\b/iu.test(selected.span.text) && Boolean(next && /^if\b/iu.test(next.text));
-  const pairedCorrection = Boolean(next && selectedPolarity === "NEGATIVE_STATE" && (nextPolarity === "POSITIVE_STATE" || /\b(?:needs?|instead|rather|but|with|after)\b/iu.test(next.text)));
+  const pairedCorrection = Boolean(next && (
+    (selectedPolarity === "NEGATIVE_STATE" && (nextPolarity === "POSITIVE_STATE" || /\b(?:needs?|instead|rather|but|with|after)\b/iu.test(next.text)))
+    || (selectedPolarity === "POSITIVE_STATE" && nextPolarity === "NEGATIVE_STATE")
+    || (/\bdo(?:es)? not need\b/iu.test(selected.span.text) && /\bneed\b/iu.test(next.text))
+    || (/\bcan\b/iu.test(selected.span.text) && /\bcannot\b/iu.test(next.text))
+  ));
   const previous = candidates[selected.index - 1];
   const pairedAnaphora = Boolean(previous && /^(?:it|this|that|these|those)\b/iu.test(selected.span.text) && /\b(?:does not have to|doesn't have to|rather than|instead of)\b/iu.test(previous.text));
   if (pairedAnaphora && previous) return [previous, selected.span];
@@ -126,10 +142,11 @@ function selectNarrationAnchors(narration: string, anchors: readonly string[]): 
 }
 
 export function classifyVeronicaSemanticPolarity(claim: string): VeronicaSemanticPolarity {
+  if (/\b(?:withholds? recognition|missing work evidence|empty proof stations?)\b/iu.test(claim)) return "NEGATIVE_STATE";
   if (/\b(?:motion without accumulation|resets? instead of accumulat|no (?:recognition|association) accumulat|fails? to accumulat)\b/iu.test(claim)) return "NEGATIVE_STATE";
   if (/\b(?:conflicting|unrelated|different)\b/iu.test(claim) && /\b(?:cannot|hesitat\w*|no .{0,30}(?:clear|category|coherent))\b/iu.test(claim)) return "NEGATIVE_STATE";
-  const negative = /\b(?:cannot|can't|does not (?:show|support|explain|help|resolve|create|build)|doesn't (?:show|support|explain|help|resolve|create|build)|not (?:clear|coherent|enough|recognizable)|without (?:evidence|clarity|recognition|a clear|a recurring)|conflict\w*|different stor\w*|unrelated|collapse\w*|confus\w*|vague|fuzzy|hesitat\w*|ignore\w*|reset\w*|motion without accumulation|no visible|fails? to|weakens?)\b/iu.test(claim);
-  const positive = /\b(?:clear|coheren\w*|recogniz\w*|recognit\w*|remember\w*|accumulat\w*|compound\w*|trust\w*|understand\w*|alignment|matching|credible|strengthen\w*)\b/iu.test(claim);
+  const negative = /\b(?:cannot|can't|may not|do not (?:become|show|support|explain|help|resolve|create|build)|does not (?:become|show|support|explain|help|resolve|create|build)|doesn't (?:become|show|support|explain|help|resolve|create|build)|not (?:clear|coherent|enough|recognizable)|without (?:evidence|clarity|recognition|a clear|a recurring)|conflict\w*|different stor\w*|unrelated|collapse\w*|confus\w*|vague|fuzzy|hesitat\w*|ignore\w*|reset\w*|motion without accumulation|no visible|fails? to|weakens?)\b/iu.test(claim);
+  const positive = /\b(?:can become|clear|coheren\w*|recogniz\w*|recognit\w*|remember\w*|accumulat\w*|compound\w*|trust\w*|understand\w*|alignment|matching|credible|strengthen\w*)\b/iu.test(claim);
   const corrective = /\b(?:but|instead|rather|while|from .+ to|first.+then|after alignment|once aligned)\b/iu.test(claim);
   if (negative && positive && corrective) return "TRANSITION_NEGATIVE_TO_POSITIVE";
   if (negative && positive) return "CONTRAST";
@@ -145,6 +162,7 @@ function buyerConsequence(claim: string, mechanism: Mechanism, polarity: Veronic
     if (mechanism === "audience-fit-signal") return { value: "the intended customer ignores the broad signal because no specific fit is visible", family: "IGNORES", confidence: "HIGH" };
     if (mechanism === "problem-first-sequence") return { value: "the customer hesitates because the prepared package does not begin from a recognized problem", family: "HESITATES", confidence: "HIGH" };
     if (mechanism === "customer-context-interpretation") return { value: "the customer hesitates because vague answers leave the situation unresolved", family: "HESITATES", confidence: "HIGH" };
+    return { value: "the observer cannot identify a clear fit from the visible condition", family: "HESITATES", confidence: "HIGH" };
   }
   if (/\b(?:remember|association|reputation|repeat what|connect the dots)\b/iu.test(claim)) return { value: "another person remembers the professional for the same specific expertise", family: "REMEMBERS", confidence: "HIGH" };
   if (/\b(?:category|categor\w*|who it is for|what problem|understand\w*|intelligible|clear first impression|five seconds)\b/iu.test(claim)) return { value: "a new visitor categorizes the offer and understands who and what it is for", family: "CATEGORIZES", confidence: "HIGH" };
@@ -172,13 +190,112 @@ function buyerConsequence(claim: string, mechanism: Mechanism, polarity: Veronic
   return fallback ? { ...fallback, confidence: "MEDIUM" } : { family: "NONE", confidence: "LOW" };
 }
 
-function actionOwner(scene: PlannedScene): { readonly role: VeronicaActionOwnerRole; readonly confidence: VeronicaSemanticConfidence } {
-  if (scene.treatment.actionOwnerRole) return { role: scene.treatment.actionOwnerRole, confidence: "HIGH" };
+export function resolveVeronicaVisiblePrimaryActionOwner(treatment: PositioningVisualTreatment): VeronicaActionOwnerRole | undefined {
+  const action = treatment.action.trim();
+  const optionalDescriptor = "(?:(?:relevant|nearby|intended|first-time|prospective|recurring)\\s+)?";
+  if (new RegExp(`^(?:the\\s+|an?\\s+)?${optionalDescriptor}(?:expert|professional|consultant|seller)\\b`, "iu").test(action)) return "expert";
+  if (new RegExp(`^(?:the\\s+|an?\\s+)?${optionalDescriptor}(?:(?:another|one)\\s+person|buyer|customer|visitor|prospect|audience|observer|person|people|peer|participant|intended person)\\b`, "iu").test(action)) return "buyer";
+  if (/^(?:the\s+)?(?:comparison|contrast|split comparison|market)\b/iu.test(action)) return "none";
+  return undefined;
+}
+
+function actionOwner(scene: PlannedScene, narrationEvidence = ""): { readonly role: VeronicaActionOwnerRole; readonly confidence: VeronicaSemanticConfidence } {
+  const buyerLeads = /^\s*(?:the\s+|an?\s+)?(?:buyer|customer|visitor|prospect|audience|observer|participant|intended person|people)\b/iu.test(narrationEvidence)
+    || /^\s*you\b[^.!?]*(?:have|gain|get)\b[^.!?]*(?:idea|understanding|clarity)\b/iu.test(narrationEvidence)
+    || /(?:^|\bwhen\s+)(?:other people|the market|the audience)\b[^.!?]*\b(?:understand|recognize|remember|repeat|notice|choose|decide)\w*\b/iu.test(narrationEvidence);
+  const expertLeads = /^\s*(?:the\s+|an?\s+)?(?:expert|professional|consultant|seller)\b/iu.test(narrationEvidence)
+    || /^\s*you\b[^.!?]*\b(?:become|announce|build|choose|define|introduce|arrange|publish|participate|focus|start|create|show|need)\w*\b/iu.test(narrationEvidence)
+    || /:\s*[^,]+,\s*[^,]+,\s*(?:and\s+)?[^,]+/u.test(narrationEvidence)
+    || /^\s*(?:first|second|third|next|then)?[:,]?\s*(?:show|build|choose|define|introduce|arrange|publish|participate|focus|start|create)\b/iu.test(narrationEvidence);
+  if (buyerLeads) return { role: "buyer", confidence: "HIGH" };
+  if (expertLeads) return { role: "expert", confidence: "HIGH" };
+  const visible = resolveVeronicaVisiblePrimaryActionOwner(scene.treatment);
+  if (visible) return { role: visible, confidence: "HIGH" };
+  if (scene.treatment.actionOwnerRole) return { role: scene.treatment.actionOwnerRole, confidence: "MEDIUM" };
   const source = `${scene.treatment.subjectRequirement} ${scene.treatment.action}`;
   if (/\b(?:expert|professional|consultant|seller)\b/iu.test(source)) return { role: "expert", confidence: "MEDIUM" };
   if (/\b(?:buyer|customer|visitor|prospect|audience)\b/iu.test(source)) return { role: "buyer", confidence: "MEDIUM" };
   if (scene.treatment.strategy === "comparison-composition") return { role: "none", confidence: "MEDIUM" };
   return { role: "shared", confidence: "MEDIUM" };
+}
+
+function withoutTerminalPunctuation(value: string): string {
+  return value.trim().replace(/([.!?…]+)([”"'’)]*)$/u, "$2");
+}
+
+function completeSentence(value: string): string {
+  const trimmed = value.trim();
+  return /[.!?…][”"'’)]?$/u.test(trimmed) ? trimmed : `${trimmed}.`;
+}
+
+function sourceGroundedCausalFields(claim: string, polarity: VeronicaSemanticPolarity): { readonly stateRelation: VeronicaSemanticStateRelation; readonly cause: string; readonly consequence: string; readonly contrast?: NonNullable<VeronicaSemanticProposition["contrast"]> } {
+  const source = withoutTerminalPunctuation(claim);
+  const parseConditional = (value: string): readonly [string, string] | undefined => {
+    const body = value.match(/^if\s+(.+)$/iu)?.[1];
+    if (!body) return undefined;
+    const delimiters = [...body.matchAll(/,/gu)].map((match) => match.index).reverse();
+    for (const index of delimiters) {
+      const cause = body.slice(0, index).trim();
+      const consequence = body.slice(index + 1).trim();
+      if (cause && consequence && finitePredicate.test(consequence)) return [cause, consequence];
+    }
+    return undefined;
+  };
+  const pairedStates = source.split(/\.\s+/u).filter(Boolean);
+  if (pairedStates.length === 2 && (polarity === "CONTRAST" || polarity === "TRANSITION_NEGATIVE_TO_POSITIVE" || polarity === "TRANSITION_POSITIVE_TO_NEGATIVE")) {
+    const temporal = /^(?:then|later|after|next|eventually)\b/iu.test(pairedStates[1]!);
+    const relation = temporal ? "SEQUENTIAL_PROGRESSION" as const : "CONTRAST" as const;
+    return { stateRelation: relation, cause: pairedStates[0]!, consequence: pairedStates[1]!, contrast: { relation, initialState: pairedStates[0]!, failureState: pairedStates[0]!, desiredState: pairedStates[1]!, consequence: pairedStates[1]! } };
+  }
+  const comparative = source.match(/^(.+?)\s+(?:can|will)\s+.+?\s+than\s+(.+)$/iu);
+  if (comparative && polarity === "CONTRAST") {
+    return { stateRelation: "CONTRAST", cause: comparative[2]!, consequence: comparative[1]!, contrast: { relation: "CONTRAST", initialState: comparative[2]!, failureState: comparative[2]!, desiredState: comparative[1]!, consequence: comparative[1]! } };
+  }
+  const sequentialConditionals = source.split(/\.\s+(?=if\s)/iu).map(parseConditional).filter((match): match is readonly [string, string] => match !== undefined);
+  if (sequentialConditionals.length >= 2) {
+    const initial = sequentialConditionals[0]!;
+    const desired = sequentialConditionals[1]!;
+    return { stateRelation: "CONDITIONAL_ALTERNATIVES", cause: initial[0], consequence: initial[1], contrast: { relation: "CONDITIONAL_ALTERNATIVES", initialState: initial[0], failureState: initial[1], desiredState: desired[0], consequence: desired[1] } };
+  }
+  const conditional = parseConditional(source);
+  const causal = source.match(/^(.+?)(?:,?\s+(?:so|therefore|which means|and as a result)\s+)(.+)$/iu);
+  const temporal = source.match(/^(.+?),\s+(?:then|later|afterward|eventually)\s+(.+)$/iu)
+    ?? source.match(/^(first\s+.+?)\s+then\s+(.+)$/iu);
+  const beforeAfter = source.match(/^before\s+(.+?),\s+after\s+(.+)$/iu);
+  const corrective = source.match(/^(.+?)(?:,?\s+(?:but|while|rather than|instead)\s+)(.+)$/iu);
+  if (conditional) return { stateRelation: "STABLE", cause: conditional[0], consequence: conditional[1] };
+  if (causal) {
+    const opposedOutcome = causal[2]!.match(/^(.+?)\s+instead of\s+(.+)$/iu);
+    if (opposedOutcome) return { stateRelation: "CONTRAST", cause: causal[1]!, consequence: opposedOutcome[1]!, contrast: { relation: "CONTRAST", initialState: opposedOutcome[2]!, failureState: opposedOutcome[2]!, desiredState: opposedOutcome[1]!, consequence: opposedOutcome[1]! } };
+    return { stateRelation: "STABLE", cause: causal[1]!, consequence: causal[2]! };
+  }
+  if (temporal) return { stateRelation: "SEQUENTIAL_PROGRESSION", cause: temporal[1]!, consequence: temporal[2]!, contrast: { relation: "SEQUENTIAL_PROGRESSION", initialState: temporal[1]!, desiredState: temporal[2]!, failureState: temporal[1]!, consequence: temporal[2]! } };
+  if (beforeAfter) return { stateRelation: "CAUSAL_BEFORE_AFTER", cause: beforeAfter[1]!, consequence: beforeAfter[2]!, contrast: { relation: "CAUSAL_BEFORE_AFTER", initialState: beforeAfter[1]!, desiredState: beforeAfter[2]!, failureState: beforeAfter[1]!, consequence: beforeAfter[2]! } };
+  if (corrective && (polarity === "CONTRAST" || polarity === "TRANSITION_NEGATIVE_TO_POSITIVE" || polarity === "TRANSITION_POSITIVE_TO_NEGATIVE")) {
+    const relation = /\b(?:first|before)\b[\s\S]*\b(?:later|after|then|eventually)\b/iu.test(source) ? "SEQUENTIAL_PROGRESSION" as const : "CONTRAST" as const;
+    return { stateRelation: relation, cause: corrective[1]!, consequence: corrective[2]!, contrast: { relation, initialState: corrective[1]!, desiredState: corrective[2]!, failureState: corrective[1]!, consequence: corrective[2]! } };
+  }
+  return { stateRelation: "STABLE", cause: source, consequence: source };
+}
+
+export function renderVeronicaVisibleThesis(proposition: VeronicaSemanticProposition): string {
+  const claim = proposition.narrationClaim.trim();
+  const cause = proposition.cause?.trim() ?? "";
+  const consequence = proposition.consequence.trim();
+  if (!cause || normalize(cause) === normalize(consequence)) return completeSentence(claim);
+  const contrast = proposition.contrast;
+  if (contrast?.initialState && contrast.desiredState) {
+    const firstOutcome = contrast.failureState ?? cause;
+    const secondOutcome = contrast.consequence ?? consequence;
+    if (normalize(contrast.initialState) === normalize(firstOutcome)
+      && normalize(contrast.desiredState) === normalize(secondOutcome)) {
+      return completeSentence(claim);
+    }
+    if (contrast.relation === "CONDITIONAL_ALTERNATIVES") return `Alternative A: ${withoutTerminalPunctuation(contrast.initialState)} — ${withoutTerminalPunctuation(firstOutcome)}; alternative B: ${withoutTerminalPunctuation(contrast.desiredState)} — ${withoutTerminalPunctuation(secondOutcome)}.`;
+    if (contrast.relation === "CONTRAST") return `Comparison: ${withoutTerminalPunctuation(contrast.initialState)} — ${withoutTerminalPunctuation(firstOutcome)}; ${withoutTerminalPunctuation(contrast.desiredState)} — ${withoutTerminalPunctuation(secondOutcome)}.`;
+    return `Before: ${withoutTerminalPunctuation(contrast.initialState)}. After: ${withoutTerminalPunctuation(contrast.desiredState)}. Result: ${withoutTerminalPunctuation(secondOutcome)}.`;
+  }
+  return `${withoutTerminalPunctuation(cause)}; as a result, ${withoutTerminalPunctuation(consequence)}.`;
 }
 
 const mechanismVisuals: Readonly<Record<Exclude<Mechanism, "UNRESOLVED">, {
@@ -204,9 +321,9 @@ const mechanismVisuals: Readonly<Record<Exclude<Mechanism, "UNRESOLVED">, {
 
 export function deriveVeronicaSemanticProposition(input: { readonly scene: PlannedScene; readonly narration: string }): VeronicaSemanticProposition {
   const resolved = resolveMechanism(input.narration, input.scene.treatment);
-  const owner = actionOwner(input.scene);
   const narrationAnchors = selectNarrationAnchors(input.narration, resolved.anchors);
   const narrationClaim = narrationAnchors.map((span) => span.text).join(" ");
+  const owner = actionOwner(input.scene, narrationClaim);
   const spanPolarities = narrationAnchors.map((span) => classifyVeronicaSemanticPolarity(span.text));
   const polarity = /\bidentity can change\b/iu.test(narrationClaim) && /\brecognition has to be earned\b/iu.test(narrationClaim)
     ? "CONTRAST"
@@ -215,48 +332,16 @@ export function deriveVeronicaSemanticProposition(input: { readonly scene: Plann
     : classifyVeronicaSemanticPolarity(narrationClaim);
   const buyer = buyerConsequence(narrationClaim, resolved.mechanism, polarity);
   if (resolved.mechanism === "UNRESOLVED") {
-    const base = { schemaVersion: VERONICA_SEMANTIC_PROPOSITION_VERSION, narrationClaim, evidenceSpans: narrationAnchors, polarity, actorRole: owner.role, actorAction: input.scene.treatment.action, consequence: input.scene.treatment.narrativeBeat, visualMechanism: "UNRESOLVED" as const, evidenceAnchors: narrationAnchors.map((span) => span.text), buyerConsequenceFamily: buyer.family, confidence: { proposition: "LOW" as const, actorOwnership: owner.confidence, consequence: buyer.confidence, visualMechanism: "LOW" as const } };
+    const base = { schemaVersion: VERONICA_SEMANTIC_PROPOSITION_VERSION, narrationClaim, evidenceSpans: narrationAnchors, polarity, stateRelation: "STABLE" as const, actorRole: owner.role, actorAction: input.scene.treatment.action, consequence: input.scene.treatment.narrativeBeat, visualMechanism: "UNRESOLVED" as const, evidenceAnchors: narrationAnchors.map((span) => span.text), buyerConsequenceFamily: buyer.family, confidence: { proposition: "LOW" as const, actorOwnership: owner.confidence, consequence: buyer.confidence, visualMechanism: "LOW" as const } };
     return { ...base, propositionHash: stableHash(base) };
   }
-  const visual = mechanismVisuals[resolved.mechanism];
-  const negativeConsequences: Partial<Record<Exclude<Mechanism, "UNRESOLVED">, { readonly cause: string; readonly consequence: string }>> = {
-    "website-first-impression": { cause: "The opening screen presents competing identities without one audience-and-problem cue", consequence: "the visitor cannot identify a clear category and hesitates" },
-    "signal-coherence": { cause: "Profile, website, offer, and content present conflicting identities", consequence: "the visitor cannot reconcile the touchpoints into one credible expertise" },
-    "recognition-accumulation": { cause: "Each new public signal switches to a different theme before the previous association can accumulate", consequence: "the audience sees motion, but the expertise association resets instead of becoming memorable" },
-    "audience-fit-signal": { cause: "The broad signal offers no specific cue for the intended audience", consequence: "the intended person passes without recognizing fit" },
-    "problem-first-sequence": { cause: "A prepared package or feature leads before any recognized customer problem", consequence: "the customer cannot see why the offered response fits their situation" },
-    "customer-context-interpretation": { cause: "Vague answers leave the customer's situation and the offer category unresolved", consequence: "the customer must do the interpretation work and hesitates" },
-  };
-  const polarityVisual = polarity === "NEGATIVE_STATE" || polarity === "CONTRAST" || polarity === "TRANSITION_NEGATIVE_TO_POSITIVE" ? negativeConsequences[resolved.mechanism] : undefined;
-  const claimSpecific = resolved.mechanism === "signal-coherence" && /\b(?:design portfolio|conversion strategist|three different identities)\b/iu.test(narrationClaim)
-    ? { cause: "The profile claims conversion strategy while the website and offer display design work and unrelated services", consequence: "the audience sees three incompatible identities and cannot categorize one expertise", desiredCause: "Profile, case studies, offer, and content all demonstrate how design decisions affect conversion", desiredConsequence: "the audience can connect every touchpoint to one credible conversion expertise" }
-    : resolved.mechanism === "signal-coherence" && /\b(?:twenty unrelated services|focused offer)\b/iu.test(narrationClaim)
-      ? { cause: "One specialist claim sits beside twenty unrelated services on the offer page", consequence: "the scattered offer weakens the specialist message", desiredCause: "The offer page keeps one problem and its related services in the dominant visual hierarchy", desiredConsequence: "the focused offer makes the specialist position easier to understand" }
-      : resolved.mechanism === "signal-coherence" && /\bten coherent signals\b/iu.test(narrationClaim)
-        ? { cause: "Fifty unrelated signals split attention across disconnected themes", consequence: "volume produces motion without a stable association", desiredCause: "Ten varied proof signals all reinforce one expertise", desiredConsequence: "the smaller coherent set accumulates more recognition" }
-        : resolved.mechanism === "signal-coherence" && /\bevery touchpoint\b/iu.test(narrationClaim)
-          ? { cause: "Profile, website, offer, and content each tell a different story", consequence: "the visitor cannot form one stable professional impression", desiredCause: "Every touchpoint repeats one expertise through different evidence", desiredConsequence: "the visitor combines the encounters into one stronger perception" }
-          : resolved.mechanism === "signal-coherence" && /\bbuild the system around\b/iu.test(narrationClaim)
-            ? { cause: "The offer, profile, evidence, public contexts, and professional story are arranged around one set of positioning answers", consequence: "each part of the system supports the same market association", desiredCause: "The offer, profile, evidence, public contexts, and professional story align around one expertise", desiredConsequence: "the complete system supports one recognizable position" }
-            : resolved.mechanism === "website-first-impression" && /\bentire career\b/iu.test(narrationClaim)
-              ? { cause: "The opening screen leaves the full career history aside and foregrounds one category cue", consequence: "the visitor places the business in the right category without reading the entire career", desiredCause: visual.cause, desiredConsequence: visual.consequence }
-              : resolved.mechanism === "website-first-impression" && /\b(?:brutal test|show only the first screen|ask three questions)\b/iu.test(narrationClaim)
-                ? { cause: "A first-time visitor sees only the opening screen before it is hidden", consequence: "the visitor's recall reveals whether audience, problem, and offer were legible at a glance", desiredCause: visual.cause, desiredConsequence: visual.consequence }
-                : resolved.mechanism === "website-first-impression" && /\binterpretation work\b/iu.test(narrationClaim)
-                  ? { cause: "Vague answers show that the opening screen did not establish audience, problem, or category", consequence: "the visitor must reconcile the missing cues and hesitates", desiredCause: visual.cause, desiredConsequence: visual.consequence }
-                  : resolved.mechanism === "market-problem-solution-chain" && /\brecognize the problem before\b/iu.test(narrationClaim)
-                    ? { cause: "The buyer encounters recognizable problem evidence before the proposed response", consequence: "the buyer can value the response because its purpose is already visible", desiredCause: visual.cause, desiredConsequence: visual.consequence }
-                    : resolved.mechanism === "claim-to-proof" && /\b(?:audience reach the conclusion|without being instructed)\b/iu.test(narrationClaim)
-                      ? { cause: "Work examples, reasoning, and results let the audience infer expertise without a title instruction", consequence: "authority becomes believable because the observer reaches the conclusion independently", desiredCause: visual.cause, desiredConsequence: visual.consequence }
-                      : resolved.mechanism === "identity-bridge" && /\bidentity can change\b/iu.test(narrationClaim) && /\brecognition has to be earned\b/iu.test(narrationClaim)
-                        ? { cause: "A new professional identity appears immediately while the market still has only one unsupported role signal", consequence: "the market does not yet recognize the role", desiredCause: "Repeated work evidence accumulates behind the new professional identity", desiredConsequence: "the market earns a stable recognition of the role from repeated proof" }
-            : undefined;
-  const cause = claimSpecific?.cause ?? polarityVisual?.cause ?? visual.cause;
-  const consequence = claimSpecific?.consequence ?? polarityVisual?.consequence ?? visual.consequence;
-  const contrast = polarity === "CONTRAST" || polarity === "TRANSITION_NEGATIVE_TO_POSITIVE"
-    ? { initialState: `weaker condition: ${cause}`, desiredState: `stronger condition: ${claimSpecific?.desiredCause ?? visual.cause}`, failureState: consequence, consequence: claimSpecific?.desiredConsequence ?? visual.consequence }
-    : undefined;
-  const propositionBase = { schemaVersion: VERONICA_SEMANTIC_PROPOSITION_VERSION, narrationClaim, evidenceSpans: narrationAnchors, polarity, cause, actorRole: owner.role, actorAction: visual.action, ...(buyer.value ? { buyerInterpretation: buyer.value } : {}), consequence, ...(contrast ? { contrast } : {}), ...( /\b(?:doorway|threshold|foothold)\b/iu.test(narrationClaim) ? { narrationNativeMetaphor: "doorway / threshold" } : {}), visualMechanism: resolved.mechanism, evidenceAnchors: narrationAnchors.map((span) => span.text), buyerConsequenceFamily: buyer.family, confidence: { proposition: resolved.confidence, actorOwnership: owner.confidence, consequence: buyer.value ? buyer.confidence : "MEDIUM" as const, visualMechanism: resolved.confidence } };
+  // Visual mechanisms are grammar selectors, never semantic templates.  Keep
+  // the proposition's causal content anchored in the selected narration.
+  const grounded = sourceGroundedCausalFields(narrationClaim, polarity);
+  const cause = grounded.cause;
+  const consequence = grounded.consequence;
+  const contrast = grounded.contrast;
+  const propositionBase = { schemaVersion: VERONICA_SEMANTIC_PROPOSITION_VERSION, narrationClaim, evidenceSpans: narrationAnchors, polarity, stateRelation: grounded.stateRelation, cause, actorRole: owner.role, actorAction: narrationClaim, ...(buyer.value ? { buyerInterpretation: buyer.value } : {}), consequence, ...(contrast ? { contrast } : {}), ...( /\b(?:doorway|threshold|foothold)\b/iu.test(input.narration) ? { narrationNativeMetaphor: "doorway / threshold" } : {}), visualMechanism: resolved.mechanism, evidenceAnchors: narrationAnchors.map((span) => span.text), buyerConsequenceFamily: buyer.family, confidence: { proposition: resolved.confidence, actorOwnership: owner.confidence, consequence: buyer.value ? buyer.confidence : "MEDIUM" as const, visualMechanism: resolved.confidence } };
   return { ...propositionBase, propositionHash: stableHash(propositionBase) };
 }
 
@@ -301,8 +386,18 @@ export function visualTreatmentFromProposition(input: { readonly scene: PlannedS
   const identitySpecific = input.proposition.visualMechanism === "identity-bridge" && /\bidentity can change\b/iu.test(claim) && /\brecognition has to be earned\b/iu.test(claim)
     ? { environment: "market-recognition review with a new role marker and a growing sequence of proof encounters", composition: "new role marker appears instantly at left; separate work-evidence encounters accumulate toward a market observer at right", props: ["new role marker without readable text", "repeated work evidence", "market observer recognition gesture"], action: "the professional adopts the new role immediately while the observer withholds recognition until repeated proof artifacts form a consistent sequence" }
     : undefined;
-  const specificVisual = signalSpecific ?? websiteSpecific ?? marketSpecific ?? identitySpecific;
-  const claimSpecificAction = /\b(?:test|questions?|answer is yes|answer is no)\b/iu.test(claim)
+  const listedClauses = claim.includes(":")
+    ? claim.slice(claim.indexOf(":") + 1).split(/,\s+|\s+and\s+/u).map((clause) => clause.trim()).filter(Boolean)
+    : [];
+  const enumeratedPlanSpecific = listedClauses.length >= 3
+    ? { environment: "implementation planning workspace connecting concrete component artifacts to their relevant contexts", composition: "distinct component artifacts form one coordinated plan around a shared problem cue", props: ["distinct plan-component artifacts", "shared problem cue", "text-free coordination timeline"], action: "the professional arranges one concrete artifact for each narrated plan component around the same problem cue while an observer traces the coordinated plan" }
+    : undefined;
+  const specificVisual = signalSpecific ?? websiteSpecific ?? marketSpecific ?? identitySpecific ?? enumeratedPlanSpecific;
+  const claimSpecificAction = input.proposition.visualMechanism === "signal-coherence" && input.proposition.actorRole === "expert"
+    ? "the professional aligns distinct offer, profile, proof, and public-context artifacts around one shared expertise cue while an observer follows the connection"
+    : /\b(?:first month|recurring content themes?|regular participation)\b/iu.test(claim)
+    ? "the professional groups one defined offer, recurring content themes, and participation evidence around the same problem"
+    : /\b(?:test|questions?|answer is yes|answer is no)\b/iu.test(claim)
     ? "a customer checks three distinct artifacts for audience fit, recognized problem, and matching response"
     : /\b(?:reverse|features?|package|method|thing they want to sell)\b/iu.test(claim)
       ? "the professional moves a prepared package behind the customer's problem evidence before aligning the response"
@@ -324,14 +419,23 @@ export function visualTreatmentFromProposition(input: { readonly scene: PlannedS
     ? `${claimSpecificAction}${consequenceAction ? `; ${consequenceAction}` : ""}`
     : consequenceAction ? `${visual.action}; ${consequenceAction}` : visual.action);
   const thesis = input.proposition.narrationNativeMetaphor
-    ? "A specific doorway gives the intended audience a visible point of entry while leaving wider paths accessible beyond it."
-    : input.proposition.polarity === "TRANSITION_NEGATIVE_TO_POSITIVE" || input.proposition.polarity === "CONTRAST"
-      ? `${input.proposition.contrast?.initialState ?? input.proposition.cause}; ${input.proposition.contrast?.consequence ?? input.proposition.consequence}.`
-      : `${input.proposition.cause ?? visual.cause}; ${input.proposition.consequence}.`;
+    ? /\bwiden\w*\b/iu.test(input.proposition.narrationClaim)
+      ? "Recognition lets the professional widen the doorway for adjacent customers with the same underlying expertise."
+      : /\bfoothold\b/iu.test(input.proposition.narrationClaim)
+      ? "A niche gives the intended audience a stable foothold at a visible doorway."
+      : "A specific doorway gives the intended audience a visible point of entry while leaving wider paths accessible beyond it."
+    : renderVeronicaVisibleThesis(input.proposition);
   if (input.proposition.narrationNativeMetaphor) {
-    return { narrativeBeat: thesis, subjectRequirement: "professional and intended audience with visually distinct roles", environment: "public threshold with a focused entrance and visibly open routes beyond", composition: "the intended person stops at the focused entrance while wider accessible paths remain visible beyond the threshold", camera: "documentary eye-level view with the choice point and open continuation legible in one frame", action: "the intended person enters through the specific doorway while the professional keeps the wider routes visibly open", actionOwnerRole: input.proposition.actorRole, props: ["specific open doorway", "intended audience cue", "wider paths beyond"], diagram: null, strategy: "client-decision" };
+    const foothold = /\bfoothold\b/iu.test(input.proposition.narrationClaim);
+    const widening = /\bwiden\w*\b/iu.test(input.proposition.narrationClaim);
+    return { narrativeBeat: thesis, subjectRequirement: "professional and intended audience with visually distinct roles", environment: "public threshold with a focused entrance and visibly open routes beyond", composition: widening ? "adjacent intended people arrive at the focused threshold as the professional visibly widens it" : foothold ? "the intended person gains a stable foothold at the focused entrance while wider routes remain visible beyond" : "the intended person stops at the focused entrance while wider accessible paths remain visible beyond the threshold", camera: "documentary eye-level view with the choice point and open continuation legible in one frame", action: widening ? "the professional widens the established doorway as adjacent intended people arrive" : foothold ? "the intended person steadies at the specific doorway while the professional keeps the wider routes visibly open" : "the intended person enters through the specific doorway while the professional keeps the wider routes visibly open", actionOwnerRole: widening ? "expert" : "buyer", props: ["specific open doorway", "intended audience cue", "wider paths beyond"], diagram: null, strategy: "client-decision" };
   }
-  const negativeAction = input.proposition.polarity === "NEGATIVE_STATE"
+  const expertClaimContrast = input.proposition.actorRole === "expert"
+    && input.proposition.visualMechanism === "claim-to-proof"
+    && (input.proposition.polarity === "NEGATIVE_STATE" || input.proposition.polarity === "CONTRAST" || input.proposition.polarity === "TRANSITION_POSITIVE_TO_NEGATIVE");
+  const negativeAction = expertClaimContrast
+    ? "the professional presents a new title marker while the observer withholds recognition and turns toward the missing work evidence"
+    : input.proposition.polarity === "NEGATIVE_STATE"
     ? input.proposition.visualMechanism === "recognition-accumulation"
       ? "the observer sorts each newly changed theme into a separate cluster, leaving no repeated expertise cue"
       : input.proposition.visualMechanism === "signal-coherence" || input.proposition.visualMechanism === "website-first-impression"
@@ -342,8 +446,17 @@ export function visualTreatmentFromProposition(input: { readonly scene: PlannedS
     ? "profile, website, offer, and content occupy visibly separate identity clusters; visitor gaze moves between them without a shared cue"
     : input.proposition.polarity === "NEGATIVE_STATE" && input.proposition.visualMechanism === "recognition-accumulation"
       ? "separate evidence clusters point in different directions with no repeated cue connecting them"
+      : input.proposition.polarity === "NEGATIVE_STATE" && input.proposition.visualMechanism === "claim-to-proof"
+        ? "a new title marker stands alone beside visibly empty proof stations while the observer withholds recognition"
       : visual.composition;
-  return { narrativeBeat: thesis, subjectRequirement: input.proposition.actorRole === "none" ? "people responding to two simultaneous visible conditions" : "professional and relevant observer with visually distinct roles", environment: input.preserveEnvironment ? input.scene.treatment.environment : specificVisual?.environment ?? visual.environment, composition: specificVisual?.composition ?? negativeComposition, camera: "documentary eye-level view with the evidence, action, and visible response legible in one frame", action: specificVisual?.action ?? negativeAction, actionOwnerRole: input.proposition.actorRole, props: specificVisual?.props ?? visual.props, diagram: null, strategy: input.proposition.visualMechanism === "peer-referral" || input.proposition.visualMechanism === "relevant-context-participation" ? "social-interaction" : input.proposition.visualMechanism === "audience-fit-signal" || input.proposition.visualMechanism === "problem-first-sequence" ? "client-decision" : "evidence-proof" };
+  const negativeProps = input.proposition.polarity === "NEGATIVE_STATE" && input.proposition.visualMechanism === "claim-to-proof"
+    ? ["new title marker without readable text", "empty proof stations", "observer withholding gesture"]
+    : visual.props;
+  const baseVisibleOwner = resolveVeronicaVisiblePrimaryActionOwner({ ...input.scene.treatment, action: visual.action });
+  const action = input.proposition.actorRole === "buyer" && consequenceAction
+    ? baseVisibleOwner === "buyer" ? concreteAction : consequenceAction
+    : specificVisual?.action ?? negativeAction;
+  return { narrativeBeat: thesis, subjectRequirement: input.proposition.actorRole === "none" ? "people responding to two simultaneous visible conditions" : "professional and relevant observer with visually distinct roles", environment: input.preserveEnvironment ? input.scene.treatment.environment : specificVisual?.environment ?? visual.environment, composition: specificVisual?.composition ?? negativeComposition, camera: "documentary eye-level view with the evidence, action, and visible response legible in one frame", action, actionOwnerRole: input.proposition.actorRole, props: specificVisual?.props ?? negativeProps, diagram: null, strategy: input.proposition.visualMechanism === "peer-referral" || input.proposition.visualMechanism === "relevant-context-participation" ? "social-interaction" : input.proposition.visualMechanism === "audience-fit-signal" || input.proposition.visualMechanism === "problem-first-sequence" ? "client-decision" : "evidence-proof" };
 }
 
 export function assessVeronicaPropositionInternalCoherence(proposition: VeronicaSemanticProposition): { readonly status: "PASS" | "FAIL"; readonly reasons: readonly string[] } {
@@ -355,6 +468,8 @@ export function assessVeronicaPropositionInternalCoherence(proposition: Veronica
     ...(proposition.polarity === "POSITIVE_STATE" && negativeFamily.has(proposition.buyerConsequenceFamily) ? ["positive-polarity-negative-consequence-family"] : []),
     ...(proposition.polarity === "NEGATIVE_STATE" && !/\b(?:cannot|does not|no |without|hesitat\w*|ignore\w*|reset\w*|fails?|conflict\w*|unrelated|separate)\b/iu.test(combined) ? ["negative-polarity-missing-negative-consequence"] : []),
     ...(proposition.polarity === "TRANSITION_NEGATIVE_TO_POSITIVE" && (!proposition.contrast?.initialState || !proposition.contrast.desiredState) ? ["transition-missing-contrast-states"] : []),
+    ...(proposition.stateRelation === "STABLE" && proposition.contrast ? ["stable-relation-has-multiple-states"] : []),
+    ...(proposition.stateRelation !== "STABLE" && proposition.contrast?.relation !== proposition.stateRelation ? ["state-relation-does-not-match-structured-states"] : []),
   ];
   return { status: reasons.length === 0 ? "PASS" : "FAIL", reasons };
 }
@@ -366,17 +481,38 @@ export function assessVeronicaTreatmentPropositionCompatibility(input: { readonl
     "signal-coherence": /\b(?:profile|website|offer|content|touchpoint|signal|identity|coherent|aligned|expertise cue|evidence cluster|proof cluster)\b/iu,
     "recognition-accumulation": /\b(?:evidence|proof|signal|association|cluster|reputation|recurring)\b/iu,
     "identity-bridge": /\b(?:prior|past|new role|transferable|identity|career|work evidence)\b/iu,
-    "relevant-context-participation": /\b(?:participant|conversation|roundtable|demonstration|event|context)\b/iu,
+    "relevant-context-participation": /\b(?:participant|conversation|roundtable|demonstration|event|contexts?)\b/iu,
+    "audience-fit-signal": /\b(?:broad|specific|audience|crowd|fit|message|relevance)\b/iu,
+    "customer-context-interpretation": /\b(?:customer|context|frustration|priority|situation|explanation)\b/iu,
+    "claim-to-proof": /\b(?:proof|evidence|work example|result|reasoning)\b/iu,
+    "market-problem-solution-chain": /\b(?:market|problem|response|solution|group)\b/iu,
+    "problem-first-sequence": /\b(?:problem|package|feature|response|customer)\b/iu,
+    "peer-referral": /\b(?:peer|refer|introduc|recommend)\b/iu,
   };
   const expected = input.proposition.visualMechanism === "UNRESOLVED" ? undefined : mechanismChecks[input.proposition.visualMechanism];
   const staleWebsiteEnvironment = input.proposition.visualMechanism === "website-first-impression" && /\b(?:podcast|booth|stage|backstage|interview|microphone|camera rig)\b/iu.test(visual) && !/\b(?:podcast|booth|stage|backstage|interview)\b/iu.test(input.narration);
   const unsupportedDoorway = /\b(?:doorway|threshold|foothold|future paths?)\b/iu.test(visual) && !/\b(?:doorway|threshold|foothold)\b/iu.test(input.narration) && !input.proposition.narrationNativeMetaphor && !input.episodeMotifSupported;
-  const polarityMismatch = input.proposition.polarity === "NEGATIVE_STATE" && /\b(?:identifies? the category|recognizes? fit|credible impression|easier to remember)\b/iu.test(visual) && !/\b(?:cannot|without|hesitat|conflict|reset|no recurring|separate)\b/iu.test(visual);
+  const visualPolarity = classifyVeronicaSemanticPolarity(visual);
+  const polarityMismatch = (input.proposition.polarity === "NEGATIVE_STATE" && visualPolarity === "POSITIVE_STATE")
+    || (input.proposition.polarity === "POSITIVE_STATE" && visualPolarity === "NEGATIVE_STATE");
+  const transitionStuckInWrongState = input.proposition.polarity === "TRANSITION_NEGATIVE_TO_POSITIVE" && visualPolarity === "NEGATIVE_STATE";
+  const orderedStates = input.proposition.contrast;
+  const actionWords = normalize(input.treatment.action).split(" ");
+  const firstStatePosition = (value: string | undefined): number => {
+    const indexes = contentTokens(value ?? "").map((token) => actionWords.indexOf(token)).filter((index) => index >= 0);
+    return indexes.length > 0 ? Math.min(...indexes) : -1;
+  };
+  const initialPosition = firstStatePosition(orderedStates?.initialState);
+  const desiredPosition = firstStatePosition(orderedStates?.desiredState);
+  const causalOrderInverted = (input.proposition.stateRelation === "CAUSAL_BEFORE_AFTER" || input.proposition.stateRelation === "SEQUENTIAL_PROGRESSION")
+    && initialPosition >= 0 && desiredPosition >= 0 && desiredPosition < initialPosition;
   const reasons = [
     ...(expected && !expected.test(visual) ? ["visual-fields-do-not-support-mechanism"] : []),
     ...(staleWebsiteEnvironment ? ["stale-environment-for-website-mechanism"] : []),
     ...(unsupportedDoorway ? ["unsupported-doorway-motif"] : []),
     ...(polarityMismatch ? ["treatment-polarity-mismatch"] : []),
+    ...(transitionStuckInWrongState ? ["transition-treatment-stuck-in-negative-state"] : []),
+    ...(causalOrderInverted ? ["treatment-causal-order-inversion"] : []),
   ];
   return { status: reasons.length === 0 ? "PASS" : "FAIL", reasons };
 }
@@ -395,8 +531,8 @@ export function assessVeronicaVisibleThesisQuality(input: { readonly thesis: str
   const anchorTokens = contentTokens(anchors.join(" "));
   const overlap = thesisTokens.filter((token) => narrationTokens.has(token) || anchorTokens.includes(token)).length;
   const checks = {
-    explicit: thesis.length >= 28,
-    linguisticSanity: thesis.length <= 260 && !internalLanguage.test(thesis) && !malformedCauseTemplate.test(thesis) && !/\b(?:scene|causal step|narrated claim)\b/iu.test(thesis),
+    explicit: thesis.length >= 20,
+    linguisticSanity: thesis.length <= 420 && !internalLanguage.test(thesis) && !malformedCauseTemplate.test(thesis) && !/\b(?:scene|causal step|narrated claim)\b/iu.test(thesis) && visibleThesisStructuralReasons(thesis).length === 0,
     finitePredicate: finitePredicate.test(thesis),
     narrationGrounded: overlap >= 1 || Boolean(input.proposition && input.proposition.confidence.proposition === "HIGH"),
     visuallyExpressible: !abstractOnly.test(thesis) && /\b(?:person|people|customer|visitor|observer|professional|message|screen|display|evidence|artifact|problem|response|offer|profile|website|work|signal|crowd|peer|participant|page|proof|result|route|doorway|threshold)\b/iu.test(`${thesis} ${input.treatment.action} ${input.treatment.props.join(" ")}`),
@@ -407,9 +543,47 @@ export function assessVeronicaVisibleThesisQuality(input: { readonly thesis: str
   return { checks, score: Math.round(Object.values(checks).filter(Boolean).length / Object.keys(checks).length * 100) / 100, reasons };
 }
 
+/**
+ * Independent final grounding check.  This deliberately does not use a visual
+ * strategy as evidence: a strategy may shape a treatment only after the
+ * narration proposition is established.
+ */
+export function assessVeronicaSourceGroundedSemanticConsistency(input: {
+  readonly narration: string;
+  readonly proposition: VeronicaSemanticProposition;
+  readonly treatment: PositioningVisualTreatment;
+  readonly visibleThesis: string | undefined;
+  readonly providerPrompt?: string;
+}): { readonly status: "PASS" | "FAIL"; readonly reasons: readonly string[] } {
+  const narration = input.narration.trim();
+  const claim = input.proposition.narrationClaim.trim();
+  const evidenceMatchesSource = input.proposition.evidenceSpans.length > 0
+    && input.proposition.evidenceSpans.every((span) => narration.slice(span.startOffset, span.endOffset) === span.text || narration.includes(span.text));
+  const source = `${narration} ${claim}`;
+  const sourceTokens = new Set(contentTokens(source));
+  const causalFieldHasSourceAnchor = (value: string | undefined): boolean => !value || contentTokens(value).some((token) => sourceTokens.has(token));
+  const causalFieldSourceOverlap = (value: string | undefined): number => value ? contentTokens(value).filter((token) => sourceTokens.has(token)).length : 0;
+  // Provider framing (camera, environment, props and generic action grammar)
+  // can add a compatible visual grammar.  Causal fields must remain anchored
+  // to the independently selected narration evidence, rather than to that
+  // reusable framing.
+  const visibleOwner = resolveVeronicaVisiblePrimaryActionOwner(input.treatment);
+  const reasons = [
+    ...(!evidenceMatchesSource ? ["evidence-spans-do-not-match-selected-narration"] : []),
+    ...(normalize(claim) && !normalize(narration).includes(normalize(claim)) ? ["narration-claim-not-selected-source"] : []),
+    ...(!causalFieldHasSourceAnchor(input.proposition.cause) ? ["cause-lacks-source-anchor"] : []),
+    ...(!causalFieldHasSourceAnchor(input.proposition.consequence) ? ["consequence-lacks-source-anchor"] : []),
+    ...(input.visibleThesis && causalFieldSourceOverlap(input.visibleThesis) < (input.proposition.narrationNativeMetaphor ? 1 : 2) ? ["visible-thesis-lacks-source-anchor"] : []),
+    ...((visibleOwner !== undefined && input.treatment.actionOwnerRole !== undefined && visibleOwner !== input.treatment.actionOwnerRole) ? ["stale-action-owner-role"] : []),
+    ...((visibleOwner !== undefined && visibleOwner !== input.proposition.actorRole) ? ["semantic-actor-role-disagrees-with-visible-primary-action"] : []),
+  ];
+  return { status: reasons.length === 0 ? "PASS" : "FAIL", reasons };
+}
+
 export function providerPromptInternalLanguageReasons(prompt: string): readonly string[] {
   return [
     ...(internalLanguage.test(prompt) ? ["internal-remediation-language"] : []),
+    ...(/\b(?:sequence asset|causal role|state condition|state action|state evidence|observer response|multi-asset sequence required|manual review required)\b/iu.test(prompt) ? ["internal-projection-language"] : []),
     ...(/MISSING\s+[—-]\s+PROVIDER PROJECTION BLOCKED/iu.test(prompt) ? ["missing-thesis-marker"] : []),
     ...(/\b(?:placeholder|todo|tbd)\b/iu.test(prompt) || /\bUNRESOLVED\b/u.test(prompt) ? ["unresolved-placeholder"] : []),
     ...providerPromptLexicalIntegrityReasons(prompt),
@@ -417,6 +591,9 @@ export function providerPromptInternalLanguageReasons(prompt: string): readonly 
 }
 
 export function providerPromptLexicalIntegrityReasons(prompt: string): readonly string[] {
+  const visibleThesis = prompt.match(/Visible thesis:\s*([^\n]*?)(?=\s+(?:No readable|Render this|Capture |Prior context:|Primary actor:|Current action:|Emerging consequence:|$))/iu)?.[1]?.trim() ?? "";
+  const openCurlyQuotes = (prompt.match(/“/gu) ?? []).length;
+  const closeCurlyQuotes = (prompt.match(/”/gu) ?? []).length;
   return [
     ...(/\b(?:a|the)\s+-\w+/iu.test(prompt) ? ["orphaned-hyphen"] : []),
     ...(/Visible thesis:\s*:/iu.test(prompt) ? ["malformed-visible-thesis-colon"] : []),
@@ -424,5 +601,19 @@ export function providerPromptLexicalIntegrityReasons(prompt: string): readonly 
     ...(/(?:^|\s):\s+[a-z]/u.test(prompt) ? ["dangling-colon"] : []),
     ...(/(?<!\.)\.\.(?!\.)|!!|\?\?|::/u.test(prompt) ? ["duplicated-punctuation"] : []),
     ...(/\b(?:a|an|the)\s+(?:,|;|\.|:)/iu.test(prompt) ? ["empty-noun-phrase"] : []),
+    ...(/(?:Current action|State action):[^.]*\b(?:while|and|before|after)\s*(?:[.;]|$)/iu.test(prompt) ? ["dangling-action-conjunction"] : []),
+    ...(/\bwhile\s+(?:independently\s+)?(?:points?|inspects?|compares?|traces?)\b/iu.test(prompt) && !/\bwhile\s+(?:the\s+)?(?:buyer|visitor|customer|observer|professional|expert|person|peer)\b/iu.test(prompt) ? ["actorless-action-conjunction"] : []),
+    ...visibleThesisStructuralReasons(visibleThesis),
+    ...(openCurlyQuotes !== closeCurlyQuotes ? ["unbalanced-quotation-boundary"] : []),
+  ];
+}
+
+export function visibleThesisStructuralReasons(thesis: string): readonly string[] {
+  const clauses = thesis.split(/\s*;\s*/u).map((clause) => normalize(clause.replace(/^(?:visible thesis|comparison|alternative [ab]|before|after|result):\s*/iu, ""))).filter(Boolean);
+  const duplicates = clauses.some((clause, index) => clauses.indexOf(clause) !== index);
+  return [
+    ...(duplicates ? ["duplicated-visible-thesis-clause"] : []),
+    ...(/\b(?:when|before|after)\s+(?:if|when|before|after)\b/iu.test(thesis) ? ["nested-semantic-transition-introducer"] : []),
+    ...(/(?:^|[.;])\s*(?:when|before|after|if)\s+(?:it is|this is|that is)\b/iu.test(thesis) ? ["copied-complete-clause-in-transition-slot"] : []),
   ];
 }

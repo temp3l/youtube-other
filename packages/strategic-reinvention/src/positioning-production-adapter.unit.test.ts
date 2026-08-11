@@ -4,6 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   compilePositioningProductionScenePlan,
+  expandVeronicaLongFormSemanticScenes,
   preparePositioningProductionEpisode,
   positioningProductionPlanSchema,
 } from "./positioning-production-adapter.js";
@@ -112,5 +113,28 @@ describe("positioning production adapter", () => {
     expect(finalPlan.cadenceMetrics.targetRangeSeconds).toEqual([6, 15]);
     expect(finalPlan.scenes.map((scene) => scene.stateComplexity)).toContain("DECISIVE_TRANSITION_MOMENT");
     expect(finalPlan.scenes.map((scene) => scene.treatment.actionOwnerRole)).toEqual(["none", "buyer"]);
+  });
+
+  it("adds semantic assets when narration changes proposition instead of counting camera-only events", () => {
+    const source = plan("full") as unknown as Parameters<typeof expandVeronicaLongFormSemanticScenes>[0]["plan"];
+    const narration = [
+      "A broad message gives nobody a specific sign of fit.",
+      "Concrete customer context reveals the frustration and buying priority.",
+      "The response must follow from the recognized problem rather than lead with a package.",
+      "Repeated proof makes the expertise easier for another person to remember.",
+    ].join("\n\n");
+    const expanded = expandVeronicaLongFormSemanticScenes({ plan: source, narration });
+    expect(expanded.expanded).toBe(true);
+    expect(expanded.plan.scenes.length).toBeGreaterThan(source.scenes.length);
+    expect(new Set(expanded.plan.assets.map((asset) => asset.sceneId)).size).toBe(expanded.plan.scenes.length);
+    expect(expanded.plan.visualEvents).toEqual([]);
+  });
+
+  it("keeps one genuinely stable long-form semantic beat intact", () => {
+    const source = plan("full") as unknown as Parameters<typeof expandVeronicaLongFormSemanticScenes>[0]["plan"];
+    const narration = "Repeated proof supports one expertise association. Another work example reinforces that same association. The audience remembers the same expertise again.";
+    const expanded = expandVeronicaLongFormSemanticScenes({ plan: source, narration });
+    expect(expanded.expanded).toBe(false);
+    expect(expanded.plan.scenes).toHaveLength(source.scenes.length);
   });
 });

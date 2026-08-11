@@ -248,6 +248,7 @@ import { buildImageStatusOutput } from "./images-status-output.js";
 import { commandImagesResume } from "./images-resume-command.js";
 import { assertVeronicaPreImageReviewPackCurrent } from "./veronica-pre-image-review-pack.js";
 import { assertPreImageReviewPackCurrent, createPreImageReviewPack, type PreImageReviewGenre } from "./pre-image-review-pack.js";
+import { runArchitectureReviewPack } from "./architecture-review-pack.js";
 import { registerImagesSyncSharedCommand } from "./images-sync-shared-command.js";
 import {
   summarizeRemoteStatusJob,
@@ -5183,6 +5184,55 @@ program
   .description("Create the workspace directories")
   .action(async () => {
     await commandInit(program.opts<CliOptions>());
+  });
+
+const architectureCommand = program
+  .command("architecture")
+  .description("Repository architecture inspection utilities");
+architectureCommand
+  .command("review-pack")
+  .description("Create a deterministic, secret-safe architecture review ZIP")
+  .option("--profile <full|code|delta>", "pack profile", "full")
+  .option("--base <git-ref>", "base revision required by the delta profile")
+  .option("--output <directory>", "output directory inside the repository")
+  .option("--max-binary-size <bytes>", "maximum representative binary size in bytes")
+  .option("--dry-run", "select and report evidence without writing an archive")
+  .option("--json", "emit stable machine-readable result")
+  .action(async (options: {
+    profile?: "full" | "code" | "delta";
+    base?: string;
+    output?: string;
+    maxBinarySize?: string;
+    dryRun?: boolean;
+    json?: boolean;
+  }) => {
+    const globalOptions = program.opts<CliOptions>();
+    const dryRun = options.dryRun ?? globalOptions.dryRun;
+    const json = options.json ?? globalOptions.json;
+    const maxBinarySize = options.maxBinarySize === undefined ? undefined : Number.parseInt(options.maxBinarySize, 10);
+    if (maxBinarySize !== undefined && (!Number.isSafeInteger(maxBinarySize) || maxBinarySize < 0)) {
+      throw new Error("--max-binary-size must be a non-negative integer number of bytes.");
+    }
+    const result = await runArchitectureReviewPack({
+      repositoryRoot: process.cwd(),
+      ...(options.profile !== undefined ? { profile: options.profile } : {}),
+      ...(options.base !== undefined ? { base: options.base } : {}),
+      ...(options.output !== undefined ? { output: options.output } : {}),
+      ...(maxBinarySize !== undefined ? { maxBinarySize } : {}),
+      ...(dryRun !== undefined ? { dryRun } : {}),
+    });
+    if (json) {
+      process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+      return;
+    }
+    process.stdout.write([
+      `Architecture review pack: ${result.status}`,
+      `Profile: ${result.profile}`,
+      `Content hash: ${result.contentHash}`,
+      `Files: ${result.fileCount}; excluded: ${result.excludedCount}`,
+      ...(result.archive ? [`Archive: ${result.archive}`, `SHA-256: ${result.sha256}`, `Compressed bytes: ${result.compressedBytes}`] : []),
+      ...(result.contentUnchanged ? ["Architecture-review content is unchanged from a previous pack."] : []),
+    ].join("\n") + "\n");
   });
 
 const transcriptCommand = program

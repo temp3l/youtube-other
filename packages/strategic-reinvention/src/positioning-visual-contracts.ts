@@ -57,6 +57,7 @@ export type VisualStrategy =
 export type VeronicaActionOwnerRole = "expert" | "buyer" | "shared" | "none";
 export type VeronicaSemanticConfidence = "HIGH" | "MEDIUM" | "LOW";
 export type VeronicaSemanticPolarity = "POSITIVE_STATE" | "NEGATIVE_STATE" | "CONTRAST" | "TRANSITION_NEGATIVE_TO_POSITIVE" | "TRANSITION_POSITIVE_TO_NEGATIVE" | "NEUTRAL";
+export type VeronicaSemanticStateRelation = "STABLE" | "CAUSAL_BEFORE_AFTER" | "CONTRAST" | "CONDITIONAL_ALTERNATIVES" | "SEQUENTIAL_PROGRESSION";
 
 export interface VeronicaNarrationEvidenceSpan {
   readonly sentenceId: string;
@@ -67,16 +68,17 @@ export interface VeronicaNarrationEvidenceSpan {
 }
 
 export interface VeronicaSemanticProposition {
-  readonly schemaVersion: "veronica-semantic-proposition.v2";
+  readonly schemaVersion: "veronica-semantic-proposition.v3";
   readonly narrationClaim: string;
   readonly evidenceSpans: readonly [VeronicaNarrationEvidenceSpan, ...VeronicaNarrationEvidenceSpan[]];
   readonly polarity: VeronicaSemanticPolarity;
+  readonly stateRelation: VeronicaSemanticStateRelation;
   readonly cause?: string;
   readonly actorRole: VeronicaActionOwnerRole;
   readonly actorAction: string;
   readonly buyerInterpretation?: string;
   readonly consequence: string;
-  readonly contrast?: { readonly initialState?: string; readonly desiredState?: string; readonly failureState?: string; readonly consequence?: string };
+  readonly contrast?: { readonly relation: Exclude<VeronicaSemanticStateRelation, "STABLE">; readonly initialState?: string; readonly desiredState?: string; readonly failureState?: string; readonly consequence?: string };
   readonly narrationNativeMetaphor?: string;
   readonly visualMechanism: "website-first-impression" | "market-problem-solution-chain" | "problem-first-sequence" | "identity-bridge" | "relevant-context-participation" | "recognition-accumulation" | "claim-to-proof" | "signal-coherence" | "audience-fit-signal" | "customer-context-interpretation" | "peer-referral" | "UNRESOLVED";
   readonly evidenceAnchors: readonly string[];
@@ -410,7 +412,7 @@ export interface VeronicaSemanticQualityMetrics {
 
 export interface VeronicaProviderReadinessResult {
   readonly schemaVersion: "veronica-provider-readiness.v2";
-  readonly qualityVersion: "veronica-provider-prompt-quality.v2";
+  readonly qualityVersion: "veronica-provider-prompt-quality.v3";
   readonly status: "PASS" | "FAIL";
   readonly checkedSceneCount: number;
   readonly checkedAssetCount: number;
