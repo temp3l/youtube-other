@@ -19,6 +19,7 @@ export * from "./release-policy.js";
 export * from "./acceptance-fixture.js";
 export * from "./positioning-visual-planner.js";
 export * from "./veronica-content-pack-2-ingestion.js";
+export * from "./veronica-visual-plan-resolver.js";
 export * from "./positioning-production-adapter.js";
 export * from "./veronica-canonical-timing.js";
 export * from "./semantic-image-prompt.js";

@@ -1,0 +1,1442 @@
+[
+  {
+    "format": "long",
+    "language": "en",
+    "file": "long/en/01-a-good-business-starts-with-the-right-business-model.md",
+    "words": 1514,
+    "wpm": 150,
+    "estimatedSeconds": 605.6,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "en",
+    "file": "long/en/02-your-ideal-customer-is-not-everyone.md",
+    "words": 1526,
+    "wpm": 150,
+    "estimatedSeconds": 610.4,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "en",
+    "file": "long/en/03-people-dont-buy-your-product-they-buy-the-promise.md",
+    "words": 1508,
+    "wpm": 150,
+    "estimatedSeconds": 603.2,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "en",
+    "file": "long/en/04-how-to-build-an-offer-people-actually-want.md",
+    "words": 1545,
+    "wpm": 150,
+    "estimatedSeconds": 618.0,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "en",
+    "file": "long/en/05-stop-improving-the-marketing-fix-the-product.md",
+    "words": 1465,
+    "wpm": 150,
+    "estimatedSeconds": 586.0,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "en",
+    "file": "long/en/06-attention-is-not-conversion.md",
+    "words": 1548,
+    "wpm": 150,
+    "estimatedSeconds": 619.2,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "en",
+    "file": "long/en/07-why-selling-feels-difficult.md",
+    "words": 1480,
+    "wpm": 150,
+    "estimatedSeconds": 592.0,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "en",
+    "file": "long/en/08-sales-without-chasing-everyone.md",
+    "words": 1510,
+    "wpm": 150,
+    "estimatedSeconds": 604.0,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "de",
+    "file": "long/de/01-a-good-business-starts-with-the-right-business-model.md",
+    "words": 1461,
+    "wpm": 145,
+    "estimatedSeconds": 604.55,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "de",
+    "file": "long/de/02-your-ideal-customer-is-not-everyone.md",
+    "words": 1440,
+    "wpm": 145,
+    "estimatedSeconds": 595.86,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "de",
+    "file": "long/de/03-people-dont-buy-your-product-they-buy-the-promise.md",
+    "words": 1461,
+    "wpm": 145,
+    "estimatedSeconds": 604.55,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "de",
+    "file": "long/de/04-how-to-build-an-offer-people-actually-want.md",
+    "words": 1488,
+    "wpm": 145,
+    "estimatedSeconds": 615.72,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "de",
+    "file": "long/de/05-stop-improving-the-marketing-fix-the-product.md",
+    "words": 1402,
+    "wpm": 145,
+    "estimatedSeconds": 580.14,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "de",
+    "file": "long/de/06-attention-is-not-conversion.md",
+    "words": 1421,
+    "wpm": 145,
+    "estimatedSeconds": 588.0,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "de",
+    "file": "long/de/07-why-selling-feels-difficult.md",
+    "words": 1495,
+    "wpm": 145,
+    "estimatedSeconds": 618.62,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "de",
+    "file": "long/de/08-sales-without-chasing-everyone.md",
+    "words": 1484,
+    "wpm": 145,
+    "estimatedSeconds": 614.07,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "es",
+    "file": "long/es/01-a-good-business-starts-with-the-right-business-model.md",
+    "words": 1517,
+    "wpm": 150,
+    "estimatedSeconds": 606.8,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "es",
+    "file": "long/es/02-your-ideal-customer-is-not-everyone.md",
+    "words": 1474,
+    "wpm": 150,
+    "estimatedSeconds": 589.6,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "es",
+    "file": "long/es/03-people-dont-buy-your-product-they-buy-the-promise.md",
+    "words": 1507,
+    "wpm": 150,
+    "estimatedSeconds": 602.8,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "es",
+    "file": "long/es/04-how-to-build-an-offer-people-actually-want.md",
+    "words": 1514,
+    "wpm": 150,
+    "estimatedSeconds": 605.6,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "es",
+    "file": "long/es/05-stop-improving-the-marketing-fix-the-product.md",
+    "words": 1468,
+    "wpm": 150,
+    "estimatedSeconds": 587.2,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "es",
+    "file": "long/es/06-attention-is-not-conversion.md",
+    "words": 1480,
+    "wpm": 150,
+    "estimatedSeconds": 592.0,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "es",
+    "file": "long/es/07-why-selling-feels-difficult.md",
+    "words": 1482,
+    "wpm": 150,
+    "estimatedSeconds": 592.8,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "es",
+    "file": "long/es/08-sales-without-chasing-everyone.md",
+    "words": 1463,
+    "wpm": 150,
+    "estimatedSeconds": 585.2,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "it",
+    "file": "long/it/01-a-good-business-starts-with-the-right-business-model.md",
+    "words": 1493,
+    "wpm": 150,
+    "estimatedSeconds": 597.2,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "it",
+    "file": "long/it/02-your-ideal-customer-is-not-everyone.md",
+    "words": 1497,
+    "wpm": 150,
+    "estimatedSeconds": 598.8,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "it",
+    "file": "long/it/03-people-dont-buy-your-product-they-buy-the-promise.md",
+    "words": 1494,
+    "wpm": 150,
+    "estimatedSeconds": 597.6,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "it",
+    "file": "long/it/04-how-to-build-an-offer-people-actually-want.md",
+    "words": 1506,
+    "wpm": 150,
+    "estimatedSeconds": 602.4,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "it",
+    "file": "long/it/05-stop-improving-the-marketing-fix-the-product.md",
+    "words": 1460,
+    "wpm": 150,
+    "estimatedSeconds": 584.0,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "it",
+    "file": "long/it/06-attention-is-not-conversion.md",
+    "words": 1523,
+    "wpm": 150,
+    "estimatedSeconds": 609.2,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "it",
+    "file": "long/it/07-why-selling-feels-difficult.md",
+    "words": 1474,
+    "wpm": 150,
+    "estimatedSeconds": 589.6,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "it",
+    "file": "long/it/08-sales-without-chasing-everyone.md",
+    "words": 1456,
+    "wpm": 150,
+    "estimatedSeconds": 582.4,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "fr",
+    "file": "long/fr/01-a-good-business-starts-with-the-right-business-model.md",
+    "words": 1460,
+    "wpm": 150,
+    "estimatedSeconds": 584.0,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "fr",
+    "file": "long/fr/02-your-ideal-customer-is-not-everyone.md",
+    "words": 1492,
+    "wpm": 150,
+    "estimatedSeconds": 596.8,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "fr",
+    "file": "long/fr/03-people-dont-buy-your-product-they-buy-the-promise.md",
+    "words": 1543,
+    "wpm": 150,
+    "estimatedSeconds": 617.2,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "fr",
+    "file": "long/fr/04-how-to-build-an-offer-people-actually-want.md",
+    "words": 1462,
+    "wpm": 150,
+    "estimatedSeconds": 584.8,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "fr",
+    "file": "long/fr/05-stop-improving-the-marketing-fix-the-product.md",
+    "words": 1490,
+    "wpm": 150,
+    "estimatedSeconds": 596.0,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "fr",
+    "file": "long/fr/06-attention-is-not-conversion.md",
+    "words": 1456,
+    "wpm": 150,
+    "estimatedSeconds": 582.4,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "fr",
+    "file": "long/fr/07-why-selling-feels-difficult.md",
+    "words": 1529,
+    "wpm": 150,
+    "estimatedSeconds": 611.6,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "fr",
+    "file": "long/fr/08-sales-without-chasing-everyone.md",
+    "words": 1544,
+    "wpm": 150,
+    "estimatedSeconds": 617.6,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "pt",
+    "file": "long/pt/01-a-good-business-starts-with-the-right-business-model.md",
+    "words": 1516,
+    "wpm": 150,
+    "estimatedSeconds": 606.4,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "pt",
+    "file": "long/pt/02-your-ideal-customer-is-not-everyone.md",
+    "words": 1477,
+    "wpm": 150,
+    "estimatedSeconds": 590.8,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "pt",
+    "file": "long/pt/03-people-dont-buy-your-product-they-buy-the-promise.md",
+    "words": 1455,
+    "wpm": 150,
+    "estimatedSeconds": 582.0,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "pt",
+    "file": "long/pt/04-how-to-build-an-offer-people-actually-want.md",
+    "words": 1534,
+    "wpm": 150,
+    "estimatedSeconds": 613.6,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "pt",
+    "file": "long/pt/05-stop-improving-the-marketing-fix-the-product.md",
+    "words": 1452,
+    "wpm": 150,
+    "estimatedSeconds": 580.8,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "pt",
+    "file": "long/pt/06-attention-is-not-conversion.md",
+    "words": 1465,
+    "wpm": 150,
+    "estimatedSeconds": 586.0,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "pt",
+    "file": "long/pt/07-why-selling-feels-difficult.md",
+    "words": 1493,
+    "wpm": 150,
+    "estimatedSeconds": 597.2,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "long",
+    "language": "pt",
+    "file": "long/pt/08-sales-without-chasing-everyone.md",
+    "words": 1504,
+    "wpm": 150,
+    "estimatedSeconds": 601.6,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "en",
+    "file": "shorts/en/01a-revenue-is-not-a-good-business.md",
+    "words": 184,
+    "wpm": 155,
+    "estimatedSeconds": 71.23,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "en",
+    "file": "shorts/en/01b-if-you-stop-working-does-your-revenue-stop-too.md",
+    "words": 192,
+    "wpm": 155,
+    "estimatedSeconds": 74.32,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "en",
+    "file": "shorts/en/02a-stop-targeting-everyone.md",
+    "words": 216,
+    "wpm": 155,
+    "estimatedSeconds": 83.61,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "en",
+    "file": "shorts/en/02b-stop-posting-where-your-customers-arent.md",
+    "words": 175,
+    "wpm": 155,
+    "estimatedSeconds": 67.74,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "en",
+    "file": "shorts/en/03a-what-does-your-customer-really-buy.md",
+    "words": 194,
+    "wpm": 155,
+    "estimatedSeconds": 75.1,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "en",
+    "file": "shorts/en/03b-the-promise-formula.md",
+    "words": 169,
+    "wpm": 155,
+    "estimatedSeconds": 65.42,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "en",
+    "file": "shorts/en/04a-why-good-products-still-dont-sell.md",
+    "words": 206,
+    "wpm": 155,
+    "estimatedSeconds": 79.74,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "en",
+    "file": "shorts/en/04b-make-your-offer-easier-to-buy.md",
+    "words": 178,
+    "wpm": 155,
+    "estimatedSeconds": 68.9,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "en",
+    "file": "shorts/en/05a-marketing-may-not-be-the-problem.md",
+    "words": 203,
+    "wpm": 155,
+    "estimatedSeconds": 78.58,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "en",
+    "file": "shorts/en/05b-too-many-choices-kill-the-offer.md",
+    "words": 185,
+    "wpm": 155,
+    "estimatedSeconds": 71.61,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "en",
+    "file": "shorts/en/06a-views-are-not-sales.md",
+    "words": 184,
+    "wpm": 155,
+    "estimatedSeconds": 71.23,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "en",
+    "file": "shorts/en/06b-trust-comes-before-conversion.md",
+    "words": 192,
+    "wpm": 155,
+    "estimatedSeconds": 74.32,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "en",
+    "file": "shorts/en/07a-why-selling-feels-uncomfortable.md",
+    "words": 192,
+    "wpm": 155,
+    "estimatedSeconds": 74.32,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "en",
+    "file": "shorts/en/07b-selling-isnt-manipulation.md",
+    "words": 180,
+    "wpm": 155,
+    "estimatedSeconds": 69.68,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "en",
+    "file": "shorts/en/08a-stop-chasing-customers.md",
+    "words": 194,
+    "wpm": 155,
+    "estimatedSeconds": 75.1,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "en",
+    "file": "shorts/en/08b-prospecting-without-being-annoying.md",
+    "words": 173,
+    "wpm": 155,
+    "estimatedSeconds": 66.97,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "de",
+    "file": "shorts/de/01a-revenue-is-not-a-good-business.md",
+    "words": 176,
+    "wpm": 150,
+    "estimatedSeconds": 70.4,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "de",
+    "file": "shorts/de/01b-if-you-stop-working-does-your-revenue-stop-too.md",
+    "words": 189,
+    "wpm": 150,
+    "estimatedSeconds": 75.6,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "de",
+    "file": "shorts/de/02a-stop-targeting-everyone.md",
+    "words": 196,
+    "wpm": 150,
+    "estimatedSeconds": 78.4,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "de",
+    "file": "shorts/de/02b-stop-posting-where-your-customers-arent.md",
+    "words": 167,
+    "wpm": 150,
+    "estimatedSeconds": 66.8,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "de",
+    "file": "shorts/de/03a-what-does-your-customer-really-buy.md",
+    "words": 177,
+    "wpm": 150,
+    "estimatedSeconds": 70.8,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "de",
+    "file": "shorts/de/03b-the-promise-formula.md",
+    "words": 181,
+    "wpm": 150,
+    "estimatedSeconds": 72.4,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "de",
+    "file": "shorts/de/04a-why-good-products-still-dont-sell.md",
+    "words": 174,
+    "wpm": 150,
+    "estimatedSeconds": 69.6,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "de",
+    "file": "shorts/de/04b-make-your-offer-easier-to-buy.md",
+    "words": 170,
+    "wpm": 150,
+    "estimatedSeconds": 68.0,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "de",
+    "file": "shorts/de/05a-marketing-may-not-be-the-problem.md",
+    "words": 177,
+    "wpm": 150,
+    "estimatedSeconds": 70.8,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "de",
+    "file": "shorts/de/05b-too-many-choices-kill-the-offer.md",
+    "words": 172,
+    "wpm": 150,
+    "estimatedSeconds": 68.8,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "de",
+    "file": "shorts/de/06a-views-are-not-sales.md",
+    "words": 169,
+    "wpm": 150,
+    "estimatedSeconds": 67.6,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "de",
+    "file": "shorts/de/06b-trust-comes-before-conversion.md",
+    "words": 178,
+    "wpm": 150,
+    "estimatedSeconds": 71.2,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "de",
+    "file": "shorts/de/07a-why-selling-feels-uncomfortable.md",
+    "words": 188,
+    "wpm": 150,
+    "estimatedSeconds": 75.2,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "de",
+    "file": "shorts/de/07b-selling-isnt-manipulation.md",
+    "words": 163,
+    "wpm": 150,
+    "estimatedSeconds": 65.2,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "de",
+    "file": "shorts/de/08a-stop-chasing-customers.md",
+    "words": 188,
+    "wpm": 150,
+    "estimatedSeconds": 75.2,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "de",
+    "file": "shorts/de/08b-prospecting-without-being-annoying.md",
+    "words": 176,
+    "wpm": 150,
+    "estimatedSeconds": 70.4,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "es",
+    "file": "shorts/es/01a-revenue-is-not-a-good-business.md",
+    "words": 182,
+    "wpm": 155,
+    "estimatedSeconds": 70.45,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "es",
+    "file": "shorts/es/01b-if-you-stop-working-does-your-revenue-stop-too.md",
+    "words": 179,
+    "wpm": 155,
+    "estimatedSeconds": 69.29,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "es",
+    "file": "shorts/es/02a-stop-targeting-everyone.md",
+    "words": 202,
+    "wpm": 155,
+    "estimatedSeconds": 78.19,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "es",
+    "file": "shorts/es/02b-stop-posting-where-your-customers-arent.md",
+    "words": 172,
+    "wpm": 155,
+    "estimatedSeconds": 66.58,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "es",
+    "file": "shorts/es/03a-what-does-your-customer-really-buy.md",
+    "words": 187,
+    "wpm": 155,
+    "estimatedSeconds": 72.39,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "es",
+    "file": "shorts/es/03b-the-promise-formula.md",
+    "words": 189,
+    "wpm": 155,
+    "estimatedSeconds": 73.16,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "es",
+    "file": "shorts/es/04a-why-good-products-still-dont-sell.md",
+    "words": 184,
+    "wpm": 155,
+    "estimatedSeconds": 71.23,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "es",
+    "file": "shorts/es/04b-make-your-offer-easier-to-buy.md",
+    "words": 181,
+    "wpm": 155,
+    "estimatedSeconds": 70.06,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "es",
+    "file": "shorts/es/05a-marketing-may-not-be-the-problem.md",
+    "words": 194,
+    "wpm": 155,
+    "estimatedSeconds": 75.1,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "es",
+    "file": "shorts/es/05b-too-many-choices-kill-the-offer.md",
+    "words": 186,
+    "wpm": 155,
+    "estimatedSeconds": 72.0,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "es",
+    "file": "shorts/es/06a-views-are-not-sales.md",
+    "words": 171,
+    "wpm": 155,
+    "estimatedSeconds": 66.19,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "es",
+    "file": "shorts/es/06b-trust-comes-before-conversion.md",
+    "words": 185,
+    "wpm": 155,
+    "estimatedSeconds": 71.61,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "es",
+    "file": "shorts/es/07a-why-selling-feels-uncomfortable.md",
+    "words": 196,
+    "wpm": 155,
+    "estimatedSeconds": 75.87,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "es",
+    "file": "shorts/es/07b-selling-isnt-manipulation.md",
+    "words": 178,
+    "wpm": 155,
+    "estimatedSeconds": 68.9,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "es",
+    "file": "shorts/es/08a-stop-chasing-customers.md",
+    "words": 191,
+    "wpm": 155,
+    "estimatedSeconds": 73.94,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "es",
+    "file": "shorts/es/08b-prospecting-without-being-annoying.md",
+    "words": 173,
+    "wpm": 155,
+    "estimatedSeconds": 66.97,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "it",
+    "file": "shorts/it/01a-revenue-is-not-a-good-business.md",
+    "words": 184,
+    "wpm": 155,
+    "estimatedSeconds": 71.23,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "it",
+    "file": "shorts/it/01b-if-you-stop-working-does-your-revenue-stop-too.md",
+    "words": 177,
+    "wpm": 155,
+    "estimatedSeconds": 68.52,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "it",
+    "file": "shorts/it/02a-stop-targeting-everyone.md",
+    "words": 216,
+    "wpm": 155,
+    "estimatedSeconds": 83.61,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "it",
+    "file": "shorts/it/02b-stop-posting-where-your-customers-arent.md",
+    "words": 179,
+    "wpm": 155,
+    "estimatedSeconds": 69.29,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "it",
+    "file": "shorts/it/03a-what-does-your-customer-really-buy.md",
+    "words": 215,
+    "wpm": 155,
+    "estimatedSeconds": 83.23,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "it",
+    "file": "shorts/it/03b-the-promise-formula.md",
+    "words": 213,
+    "wpm": 155,
+    "estimatedSeconds": 82.45,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "it",
+    "file": "shorts/it/04a-why-good-products-still-dont-sell.md",
+    "words": 205,
+    "wpm": 155,
+    "estimatedSeconds": 79.35,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "it",
+    "file": "shorts/it/04b-make-your-offer-easier-to-buy.md",
+    "words": 216,
+    "wpm": 155,
+    "estimatedSeconds": 83.61,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "it",
+    "file": "shorts/it/05a-marketing-may-not-be-the-problem.md",
+    "words": 219,
+    "wpm": 155,
+    "estimatedSeconds": 84.77,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "it",
+    "file": "shorts/it/05b-too-many-choices-kill-the-offer.md",
+    "words": 214,
+    "wpm": 155,
+    "estimatedSeconds": 82.84,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "it",
+    "file": "shorts/it/06a-views-are-not-sales.md",
+    "words": 211,
+    "wpm": 155,
+    "estimatedSeconds": 81.68,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "it",
+    "file": "shorts/it/06b-trust-comes-before-conversion.md",
+    "words": 219,
+    "wpm": 155,
+    "estimatedSeconds": 84.77,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "it",
+    "file": "shorts/it/07a-why-selling-feels-uncomfortable.md",
+    "words": 217,
+    "wpm": 155,
+    "estimatedSeconds": 84.0,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "it",
+    "file": "shorts/it/07b-selling-isnt-manipulation.md",
+    "words": 218,
+    "wpm": 155,
+    "estimatedSeconds": 84.39,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "it",
+    "file": "shorts/it/08a-stop-chasing-customers.md",
+    "words": 216,
+    "wpm": 155,
+    "estimatedSeconds": 83.61,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "it",
+    "file": "shorts/it/08b-prospecting-without-being-annoying.md",
+    "words": 203,
+    "wpm": 155,
+    "estimatedSeconds": 78.58,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "fr",
+    "file": "shorts/fr/01a-revenue-is-not-a-good-business.md",
+    "words": 179,
+    "wpm": 155,
+    "estimatedSeconds": 69.29,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "fr",
+    "file": "shorts/fr/01b-if-you-stop-working-does-your-revenue-stop-too.md",
+    "words": 185,
+    "wpm": 155,
+    "estimatedSeconds": 71.61,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "fr",
+    "file": "shorts/fr/02a-stop-targeting-everyone.md",
+    "words": 181,
+    "wpm": 155,
+    "estimatedSeconds": 70.06,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "fr",
+    "file": "shorts/fr/02b-stop-posting-where-your-customers-arent.md",
+    "words": 178,
+    "wpm": 155,
+    "estimatedSeconds": 68.9,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "fr",
+    "file": "shorts/fr/03a-what-does-your-customer-really-buy.md",
+    "words": 183,
+    "wpm": 155,
+    "estimatedSeconds": 70.84,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "fr",
+    "file": "shorts/fr/03b-the-promise-formula.md",
+    "words": 171,
+    "wpm": 155,
+    "estimatedSeconds": 66.19,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "fr",
+    "file": "shorts/fr/04a-why-good-products-still-dont-sell.md",
+    "words": 176,
+    "wpm": 155,
+    "estimatedSeconds": 68.13,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "fr",
+    "file": "shorts/fr/04b-make-your-offer-easier-to-buy.md",
+    "words": 184,
+    "wpm": 155,
+    "estimatedSeconds": 71.23,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "fr",
+    "file": "shorts/fr/05a-marketing-may-not-be-the-problem.md",
+    "words": 180,
+    "wpm": 155,
+    "estimatedSeconds": 69.68,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "fr",
+    "file": "shorts/fr/05b-too-many-choices-kill-the-offer.md",
+    "words": 170,
+    "wpm": 155,
+    "estimatedSeconds": 65.81,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "fr",
+    "file": "shorts/fr/06a-views-are-not-sales.md",
+    "words": 187,
+    "wpm": 155,
+    "estimatedSeconds": 72.39,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "fr",
+    "file": "shorts/fr/06b-trust-comes-before-conversion.md",
+    "words": 180,
+    "wpm": 155,
+    "estimatedSeconds": 69.68,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "fr",
+    "file": "shorts/fr/07a-why-selling-feels-uncomfortable.md",
+    "words": 184,
+    "wpm": 155,
+    "estimatedSeconds": 71.23,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "fr",
+    "file": "shorts/fr/07b-selling-isnt-manipulation.md",
+    "words": 184,
+    "wpm": 155,
+    "estimatedSeconds": 71.23,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "fr",
+    "file": "shorts/fr/08a-stop-chasing-customers.md",
+    "words": 170,
+    "wpm": 155,
+    "estimatedSeconds": 65.81,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "fr",
+    "file": "shorts/fr/08b-prospecting-without-being-annoying.md",
+    "words": 183,
+    "wpm": 155,
+    "estimatedSeconds": 70.84,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "pt",
+    "file": "shorts/pt/01a-revenue-is-not-a-good-business.md",
+    "words": 193,
+    "wpm": 155,
+    "estimatedSeconds": 74.71,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "pt",
+    "file": "shorts/pt/01b-if-you-stop-working-does-your-revenue-stop-too.md",
+    "words": 177,
+    "wpm": 155,
+    "estimatedSeconds": 68.52,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "pt",
+    "file": "shorts/pt/02a-stop-targeting-everyone.md",
+    "words": 208,
+    "wpm": 155,
+    "estimatedSeconds": 80.52,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "pt",
+    "file": "shorts/pt/02b-stop-posting-where-your-customers-arent.md",
+    "words": 174,
+    "wpm": 155,
+    "estimatedSeconds": 67.35,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "pt",
+    "file": "shorts/pt/03a-what-does-your-customer-really-buy.md",
+    "words": 194,
+    "wpm": 155,
+    "estimatedSeconds": 75.1,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "pt",
+    "file": "shorts/pt/03b-the-promise-formula.md",
+    "words": 190,
+    "wpm": 155,
+    "estimatedSeconds": 73.55,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "pt",
+    "file": "shorts/pt/04a-why-good-products-still-dont-sell.md",
+    "words": 183,
+    "wpm": 155,
+    "estimatedSeconds": 70.84,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "pt",
+    "file": "shorts/pt/04b-make-your-offer-easier-to-buy.md",
+    "words": 187,
+    "wpm": 155,
+    "estimatedSeconds": 72.39,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "pt",
+    "file": "shorts/pt/05a-marketing-may-not-be-the-problem.md",
+    "words": 195,
+    "wpm": 155,
+    "estimatedSeconds": 75.48,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "pt",
+    "file": "shorts/pt/05b-too-many-choices-kill-the-offer.md",
+    "words": 189,
+    "wpm": 155,
+    "estimatedSeconds": 73.16,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "pt",
+    "file": "shorts/pt/06a-views-are-not-sales.md",
+    "words": 186,
+    "wpm": 155,
+    "estimatedSeconds": 72.0,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "pt",
+    "file": "shorts/pt/06b-trust-comes-before-conversion.md",
+    "words": 175,
+    "wpm": 155,
+    "estimatedSeconds": 67.74,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "pt",
+    "file": "shorts/pt/07a-why-selling-feels-uncomfortable.md",
+    "words": 195,
+    "wpm": 155,
+    "estimatedSeconds": 75.48,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "pt",
+    "file": "shorts/pt/07b-selling-isnt-manipulation.md",
+    "words": 173,
+    "wpm": 155,
+    "estimatedSeconds": 66.97,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "pt",
+    "file": "shorts/pt/08a-stop-chasing-customers.md",
+    "words": 202,
+    "wpm": 155,
+    "estimatedSeconds": 78.19,
+    "publicPass": true,
+    "internalGuardPass": true
+  },
+  {
+    "format": "shorts",
+    "language": "pt",
+    "file": "shorts/pt/08b-prospecting-without-being-annoying.md",
+    "words": 169,
+    "wpm": 155,
+    "estimatedSeconds": 65.42,
+    "publicPass": true,
+    "internalGuardPass": true
+  }
+]

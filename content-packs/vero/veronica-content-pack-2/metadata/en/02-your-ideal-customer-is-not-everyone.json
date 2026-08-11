@@ -1,0 +1,31 @@
+{
+  "title": "The Buyer Persona Test That Actually Changes Marketing",
+  "thumbnail": "DOES IT CHANGE A DECISION?",
+  "description": "If your target is “anyone who could buy,” the real problem is not advertising yet—it is definition. Learn how needs, context, channels, and observed behavior turn a buyer persona into an operating tool.",
+  "cta": "Next: what customers are really buying beyond the product itself.",
+  "alternativeTitles": [
+    "Your Customer Is Not Everyone — Here's How to Get Specific",
+    "The Buyer Persona Test That Actually Changes Marketing"
+  ],
+  "thumbnailOptions": [
+    "DOES IT CHANGE A DECISION?",
+    "NOT FOR EVERYONE",
+    "STOP TARGETING EVERYONE"
+  ],
+  "youtubeOptimizationVersion": "v4-editorial-continuity-remediation",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  },
+  "shortA": {
+    "title": "Stop Targeting Everyone",
+    "alternateHook": "If your ideal customer is “everyone,” your message has nobody specific to recognize."
+  },
+  "shortB": {
+    "title": "You Do Not Need Every Platform",
+    "alternateHook": "The right channel is where the right customer actually pays attention."
+  }
+}

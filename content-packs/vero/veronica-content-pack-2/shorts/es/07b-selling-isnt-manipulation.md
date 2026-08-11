@@ -1,0 +1,5 @@
+Persuadir no significa quitar a la otra persona la posibilidad de decir no. Si propones un restaurante a tus amigos, das razones, respondes dudas e intentas convencerlos. Pero la decisión sigue siendo suya. Una venta sana funciona igual. Entiendes la necesidad. Presentas la solución. Das razones. Respondes objeciones. Pides una decisión. El cliente puede decir sí o no. Si necesitas ocultar información, crear miedo artificial o quitar libertad para conseguir el sí, has cruzado la línea. Pero si la oferta es pertinente y la elección sigue siendo libre, pedir una decisión forma parte del servicio. No tienes que convencer a todo el mundo. Tienes que reconocer un buen encaje entre necesidad y solución y aceptar el no cuando no existe.
+
+Un buen proceso de venta protege a las dos partes. Tú puedes explicar el valor, responder preguntas y pedir una decisión. El cliente recibe información relevante, espacio para plantear dudas y libertad real para decir que no. Esa combinación es persuasión sin coerción.
+
+Una venta sana no elimina el no: hace que el sí sea informado y libre.

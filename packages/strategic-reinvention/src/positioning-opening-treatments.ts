@@ -333,6 +333,10 @@ export function resolveOpeningTreatmentProfile(contentId: string): OpeningTreatm
   return profile;
 }
 
+export function findOpeningTreatmentProfile(contentId: string): OpeningTreatmentProfile | undefined {
+  return OPENING_TREATMENTS[contentId];
+}
+
 export function openingTreatmentContentIds(): readonly string[] {
   return Object.keys(OPENING_TREATMENTS).sort();
 }

@@ -1,0 +1,9 @@
+Persuadere non significa togliere all'altra persona la possibilità di dire no. Se proponi un ristorante agli amici, dai motivi, rispondi ai dubbi e cerchi di convincerli. Ma la decisione resta loro. Una vendita sana funziona allo stesso modo. Capisci il bisogno, presenti una soluzione, dai buone ragioni, rispondi alle obiezioni e chiedi una decisione. Se l'offerta non è adatta, il no è una risposta valida. Vendere non è manipolazione quando il cliente mantiene la libertà di scegliere.
+
+Capisci il bisogno. Presenti una soluzione. Dai ragioni. Rispondi ai dubbi. Poi chiedi una decisione. Se devi nascondere informazioni, creare paura artificiale o togliere libertà per ottenere il sì, non stai semplicemente persuadendo. Ma se l offerta è pertinente e la scelta resta libera, chiedere una decisione fa parte del servizio. Non devi diventare aggressiva per diventare più brava a vendere.
+
+Il punto non è convincere chiunque. È capire se c'è un buon incontro tra bisogno e soluzione. Se non c'è, il no è utile. Ti permette di proteggere il cliente, il tuo tempo e la qualità del business.
+
+Una buona vendita lascia entrambe le parti in grado di dire la verità: tu sul valore e sui limiti, il cliente sul fatto che quella soluzione sia davvero adatta.
+
+La vendita sana non elimina il no: rende il sì informato e libero.

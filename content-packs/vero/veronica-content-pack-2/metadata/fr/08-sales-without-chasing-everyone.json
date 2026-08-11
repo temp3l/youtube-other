@@ -1,0 +1,42 @@
+{
+  "title": "Arrêtez de courir après les leads. Construisez le système.",
+  "alternativeTitles": [
+    "Prospecter sans harceler : le système complet",
+    "Le suivi qui ajoute de la clarté au lieu de la pression",
+    "De la découverte à la rétention : votre sales operating system"
+  ],
+  "thumbnail": "ARRÊTEZ DE COURIR",
+  "thumbnailOptions": [
+    "ARRÊTEZ DE COURIR APRÈS LES CLIENTS",
+    "Prospecter sans harceler : le système complet",
+    "Le suivi qui ajoute de la clarté au lieu de la pression"
+  ],
+  "description": "Prospecter ne signifie pas envoyer plus de messages. Il faut un système : découverte, compréhension, intérêt, contact, suivi et rétention. Cet épisode montre comment attribuer un rôle, un propriétaire, une métrique et un prochain pas à chaque étape, puis comment distinguer un suivi utile d’une relance qui n’ajoute que de la pression.",
+  "cta": "Dessinez vos six étapes — découverte, compréhension, intérêt, contact, suivi, rétention — puis identifiez la première qui n’a ni propriétaire ni prochain pas clair.",
+  "chapters": [
+    "La prospection est un système",
+    "Acquisition vs rétention",
+    "La découverte",
+    "La compréhension",
+    "L’intérêt",
+    "Le contact",
+    "Le suivi sans pression",
+    "La rétention et la revue mensuelle"
+  ],
+  "shortA": {
+    "title": "Arrêtez de courir après les clients",
+    "alternateHook": "Une bonne prospection construit un chemin au lieu de dépendre de contacts aléatoires."
+  },
+  "shortB": {
+    "title": "Suivi ou harcèlement ?",
+    "alternateHook": "Un bon suivi ajoute de la clarté ou une information ; la chasse ne demande que de l’attention supplémentaire."
+  },
+  "youtubeOptimizationVersion": "v4-editorial-continuity-remediation",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  }
+}

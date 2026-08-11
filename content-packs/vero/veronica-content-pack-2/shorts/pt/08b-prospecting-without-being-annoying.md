@@ -1,0 +1,5 @@
+A diferença entre follow-up e perseguição é simples: follow-up adiciona valor. Responde uma pergunta, envia informação útil, lembra uma data real ou volta no momento combinado. Perseguição continua pedindo atenção sem adicionar nada. Dê um motivo para cada follow-up. Se a única mensagem é “já decidiu?”, talvez você esteja adicionando pressão em vez de clareza. E não abra cinco canais se depois não consegue responder em nenhum. Dois canais bem cuidados valem mais do que cinco portas abandonadas. Um sistema profissional também sabe quando parar. Se a pessoa não responde depois de contatos razoáveis e relevantes, dê espaço. Estar presente não significa ser incessante. Consistência com respeito é disciplina comercial, não pressão.
+
+Um bom follow-up pode responder uma dúvida pendente, enviar um exemplo relevante, entregar um documento prometido ou lembrar um prazo real. Se você não tem nada novo para acrescentar, outra mensagem pode apenas aumentar a pressão. Relevância é o que separa persistência profissional de perseguição.
+
+Todo follow-up deve acrescentar clareza, informação ou um motivo real para responder.

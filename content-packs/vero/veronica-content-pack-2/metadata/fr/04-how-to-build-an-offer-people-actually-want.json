@@ -1,0 +1,42 @@
+{
+  "title": "Votre produit est bon. Mais votre offre est difficile à acheter.",
+  "alternativeTitles": [
+    "Comment construire une offre que les gens comprennent immédiatement",
+    "Le test des 30 secondes pour votre offre",
+    "Arrêtez d’ajouter des bonus. Supprimez la friction."
+  ],
+  "thumbnail": "ACHETER DOIT ÊTRE SIMPLE",
+  "thumbnailOptions": [
+    "RENDEZ L’ACHAT PLUS SIMPLE",
+    "Comment construire une offre que les gens comprennent immédiatement",
+    "Le test des 30 secondes pour votre offre"
+  ],
+  "description": "Une offre forte n’est pas une pile de bonus. C’est un système qui aide le client à comprendre, faire confiance, choisir et agir. Nous auditons le point d’entrée, le parcours, la friction, la preuve, l’urgence et la cohérence de marque, puis nous appliquons un test simple de trente secondes.",
+  "cta": "Ouvrez aujourd’hui votre parcours d’achat sur mobile et supprimez un point de friction qui n’ajoute aucune valeur.",
+  "chapters": [
+    "Le produit n’est pas l’offre",
+    "Créer un point d’entrée",
+    "Produit et service",
+    "La friction comme registre",
+    "La preuve qui réduit le risque",
+    "Urgence réelle vs artificielle",
+    "Le test des 30 secondes",
+    "L’audit complet de l’offre"
+  ],
+  "shortA": {
+    "title": "Un bon produit peut encore être difficile à acheter",
+    "alternateHook": "Chaque étape inutile donne à un client intéressé une raison supplémentaire de reporter."
+  },
+  "shortB": {
+    "title": "Le test des 30 secondes",
+    "alternateHook": "Un nouveau visiteur comprend-il l’offre, le prochain pas et l’endroit où résoudre ses doutes en trente secondes ?"
+  },
+  "youtubeOptimizationVersion": "v4-editorial-continuity-remediation",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  }
+}

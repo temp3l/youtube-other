@@ -54,61 +54,19 @@ import {
   persistVeronicaVisualBeatPlan,
   veronicaVisualBeatOverrideArtifactSchema,
 } from "./veronica-visual-beats.js";
+import {
+  positioningProductionPlanSchema,
+  resolveVeronicaVisualPlan,
+  type PositioningProductionPlan,
+  type VeronicaCanonicalVisualPlanner,
+  type VeronicaVisualPlanResolutionEvidence,
+} from "./veronica-visual-plan-resolver.js";
+
+export { positioningProductionPlanSchema } from "./veronica-visual-plan-resolver.js";
+export type { PositioningProductionPlan } from "./veronica-visual-plan-resolver.js";
 
 export const POSITIONING_PRODUCTION_ADAPTER_VERSION = "veronicabenini-positioning-production-adapter.v4" as const;
 export const VERONICA_LONG_FORM_SEMANTIC_SEGMENTATION_VERSION = "veronica-long-form-semantic-segmentation.v3" as const;
-
-const productionSceneSchema = z
-  .object({
-    sceneId: z.string().min(1),
-    progressionStage: z.string().min(1),
-    narrationAnchor: z.string().min(1),
-    startMs: z.number().int().nonnegative(),
-    durationMs: z.number().int().positive(),
-    treatment: z
-      .object({
-        narrativeBeat: z.string().min(1),
-        communicationIntent: z.string().min(1),
-        subjectRequirement: z.string().min(1),
-        environment: z.string().min(1),
-        composition: z.string().min(1),
-        camera: z.string().min(1),
-        lighting: z.string().min(1),
-        action: z.string().min(1),
-        actionOwnerRole: z.enum(["expert", "buyer", "shared", "none"]).optional(),
-        props: z.array(z.string()),
-      })
-      .passthrough(),
-  })
-  .passthrough();
-
-const productionAssetSchema = z
-  .object({
-    sceneId: z.string().min(1),
-    prompt: z.string().min(1),
-    nativeAspectRatio: z.enum(["16:9", "9:16"]),
-    textFree: z.literal(true),
-    textInGeneratedImage: z.literal(false),
-  })
-  .passthrough();
-
-export const positioningProductionPlanSchema = z
-  .object({
-    schemaVersion: z.literal("veronicabenini-positioning-visual-plan.v2"),
-    contentId: z.string().min(1),
-    format: z.enum(["long", "short"]),
-    aspectRatio: z.enum(["16:9", "9:16"]),
-    scenes: z.array(productionSceneSchema).min(1),
-    assets: z.array(productionAssetSchema).min(1),
-    // A semantic-gate failure may still be compiled into a human review pack; it
-    // never becomes provider-ready because every resulting scene is explicitly
-    // `semantic-review-required`.
-    validation: z.object({ status: z.enum(["pass", "fail"]) }).passthrough(),
-    planHash: z.string().regex(/^[a-f0-9]{64}$/u),
-  })
-  .passthrough();
-
-export type PositioningProductionPlan = z.infer<typeof positioningProductionPlanSchema>;
 
 export interface PreparePositioningProductionEpisodeInput {
   readonly workspaceRoot: string;
@@ -117,6 +75,7 @@ export interface PreparePositioningProductionEpisodeInput {
   readonly scriptPath?: string;
   readonly language: "en" | "de" | "es" | "fr" | "pt" | "it";
   readonly variant: "full" | "short";
+  readonly visualPlanner?: VeronicaCanonicalVisualPlanner;
   readonly imagePromptCompiler?: {
     readonly strategy: "deterministic-v1" | "openai";
     readonly compiler: VeronicaImagePromptCompilerPort;
@@ -155,6 +114,20 @@ export interface PreparePositioningProductionEpisodeResult {
   readonly semanticRemediationRounds: number;
   readonly semanticRemediationStatus: "CONVERGED" | "NO_OP" | "SEMANTIC_REMEDIATION_EXHAUSTED";
   readonly sourceGroundedVisualQaStatus: "PASS" | "BLOCKED";
+  readonly visualPlanResolution?: VeronicaVisualPlanResolutionEvidence;
+}
+
+export function isVeronicaDeterministicVisualQaEligible(
+  plan: Pick<
+    PositioningVisualPlanV2,
+    "validation" | "semanticQuality" | "providerReadiness"
+  >,
+): boolean {
+  return (
+    plan.validation.status === "pass" &&
+    plan.semanticQuality?.status === "PASS" &&
+    plan.providerReadiness?.status === "PASS"
+  );
 }
 
 /**
@@ -202,32 +175,39 @@ export async function runExistingVeronicaSourceGroundedPreImageQa(input: {
       `VERONICA_SOURCE_GROUNDED_QA_SCENE_COUNT_MISMATCH:${scenePlan.scenes.length}:${plan.scenes.length}`
     );
   }
-  const qaRun = await runSourceGroundedVisualQaController({
-    plan,
-    narrationByScene: scenePlan.scenes.map((scene) => scene.canonicalNarration),
-    policy: input.sourceGroundedVisualQa.policy,
-    primaryJudge: input.sourceGroundedVisualQa.primaryJudge,
-    ...(input.sourceGroundedVisualQa.escalationJudge
-      ? { escalationJudge: input.sourceGroundedVisualQa.escalationJudge }
-      : {}),
-    ...(input.sourceGroundedVisualQa.finalJudge
-      ? { finalJudge: input.sourceGroundedVisualQa.finalJudge }
-      : {}),
-    ...(input.sourceGroundedVisualQa.remediationAdvisor
-      ? { remediationAdvisor: input.sourceGroundedVisualQa.remediationAdvisor }
-      : {}),
-    sequenceJudge: input.sourceGroundedVisualQa.sequenceJudge,
-    cache:
-      input.sourceGroundedVisualQa.cache ??
-      new InMemorySourceGroundedVisualQaCache(),
-    ...(input.sourceGroundedVisualQa.scheduler
-      ? { scheduler: input.sourceGroundedVisualQa.scheduler }
-      : {}),
-    ...(input.sourceGroundedVisualQa.onProgress
-      ? { onProgress: input.sourceGroundedVisualQa.onProgress }
-      : {}),
-    // Intentionally no `regenerate`: this command is an audit, never a replan.
-  });
+  const qaRun = isVeronicaDeterministicVisualQaEligible(plan)
+    ? await runSourceGroundedVisualQaController({
+        plan,
+        narrationByScene: scenePlan.scenes.map((scene) => scene.canonicalNarration),
+        policy: input.sourceGroundedVisualQa.policy,
+        primaryJudge: input.sourceGroundedVisualQa.primaryJudge,
+        ...(input.sourceGroundedVisualQa.escalationJudge
+          ? { escalationJudge: input.sourceGroundedVisualQa.escalationJudge }
+          : {}),
+        ...(input.sourceGroundedVisualQa.finalJudge
+          ? { finalJudge: input.sourceGroundedVisualQa.finalJudge }
+          : {}),
+        ...(input.sourceGroundedVisualQa.remediationAdvisor
+          ? { remediationAdvisor: input.sourceGroundedVisualQa.remediationAdvisor }
+          : {}),
+        sequenceJudge: input.sourceGroundedVisualQa.sequenceJudge,
+        cache:
+          input.sourceGroundedVisualQa.cache ??
+          new InMemorySourceGroundedVisualQaCache(),
+        ...(input.sourceGroundedVisualQa.scheduler
+          ? { scheduler: input.sourceGroundedVisualQa.scheduler }
+          : {}),
+        ...(input.sourceGroundedVisualQa.onProgress
+          ? { onProgress: input.sourceGroundedVisualQa.onProgress }
+          : {}),
+        // Intentionally no `regenerate`: this command is an audit, never a replan.
+      })
+    : await runSourceGroundedVisualQaController({
+        plan,
+        narrationByScene: scenePlan.scenes.map((scene) => scene.canonicalNarration),
+        policy: unavailableSourceGroundedVisualQaPolicy(),
+        cache: new InMemorySourceGroundedVisualQaCache(),
+      });
   const visualReady =
     plan.semanticQuality?.status === "PASS" &&
     plan.providerReadiness?.status === "PASS";
@@ -1282,11 +1262,19 @@ export async function preparePositioningProductionEpisode(input: PreparePosition
   const workspaceRoot = path.resolve(input.workspaceRoot);
   const episodeId = normalizeEpisodeId(input.episodeId);
   const episodeDir = path.join(workspaceRoot, episodeId);
-  const planPath = path.resolve(input.planPath ?? path.join(episodeDir, "source", "visual-plan.json"));
   const scriptPath = path.resolve(input.scriptPath ?? defaultScriptPath(episodeDir, input.language, input.variant));
   const manifestPath = path.join(episodeDir, "manifest.json");
   const scenePlanPath = path.join(episodeDir, "shared", "scenes.json");
-  const [planRaw, narration] = await Promise.all([fs.readFile(planPath, "utf8"), fs.readFile(scriptPath, "utf8")]);
+  const [visualPlanResolution, narration] = await Promise.all([
+    resolveVeronicaVisualPlan({
+      episodeDir,
+      episodeId,
+      ...(input.planPath ? { planPath: input.planPath } : {}),
+      ...(input.visualPlanner ? { planner: input.visualPlanner } : {}),
+    }),
+    fs.readFile(scriptPath, "utf8"),
+  ]);
+  const { plan, planPath } = visualPlanResolution;
   if (input.language !== "en") {
     return prepareLocalizedPositioningProduction({
       ...input,
@@ -1297,7 +1285,6 @@ export async function preparePositioningProductionEpisode(input: PreparePosition
       narration,
     });
   }
-  const plan = positioningProductionPlanSchema.parse(JSON.parse(planRaw) as unknown);
   const expectedFormat = input.variant === "short" ? "short" : "long";
   if (plan.format !== expectedFormat) {
     throw new Error(`Veronica plan format ${plan.format} does not match requested ${input.variant} production.`);
@@ -1374,35 +1361,42 @@ export async function preparePositioningProductionEpisode(input: PreparePosition
     narrationByScene: scenePlan.scenes.map((scene) => scene.canonicalNarration),
   }), "canonical-semantic-snapshot");
   const sourceGroundedDependencies = input.sourceGroundedVisualQa;
-  const sourceGrounded = await runSourceGroundedVisualQaController({
-    plan: canonicalPlan,
-    narrationByScene: scenePlan.scenes.map((scene) => scene.canonicalNarration),
-    policy: sourceGroundedDependencies?.policy ?? unavailableSourceGroundedVisualQaPolicy(),
-    ...(sourceGroundedDependencies?.primaryJudge ? { primaryJudge: sourceGroundedDependencies.primaryJudge } : {}),
-    ...(sourceGroundedDependencies?.escalationJudge ? { escalationJudge: sourceGroundedDependencies.escalationJudge } : {}),
-    ...(sourceGroundedDependencies?.finalJudge ? { finalJudge: sourceGroundedDependencies.finalJudge } : {}),
-    ...(sourceGroundedDependencies?.remediationAdvisor ? { remediationAdvisor: sourceGroundedDependencies.remediationAdvisor } : {}),
-    ...(sourceGroundedDependencies?.sequenceJudge ? { sequenceJudge: sourceGroundedDependencies.sequenceJudge } : {}),
-    cache: sourceGroundedDependencies?.cache ?? new InMemorySourceGroundedVisualQaCache(),
-    ...(sourceGroundedDependencies?.scheduler ? { scheduler: sourceGroundedDependencies.scheduler } : {}),
-    ...(sourceGroundedDependencies?.onProgress ? { onProgress: sourceGroundedDependencies.onProgress } : {}),
-    regenerate: async ({ plan: current, directives, round }) => {
-      const remediated = applyVeronicaSourceGroundedRemediationDirectives({
-        plan: current,
-        directives,
+  const sourceGrounded = isVeronicaDeterministicVisualQaEligible(canonicalPlan)
+    ? await runSourceGroundedVisualQaController({
+        plan: canonicalPlan,
         narrationByScene: scenePlan.scenes.map((scene) => scene.canonicalNarration),
-        round,
+        policy: sourceGroundedDependencies?.policy ?? unavailableSourceGroundedVisualQaPolicy(),
+        ...(sourceGroundedDependencies?.primaryJudge ? { primaryJudge: sourceGroundedDependencies.primaryJudge } : {}),
+        ...(sourceGroundedDependencies?.escalationJudge ? { escalationJudge: sourceGroundedDependencies.escalationJudge } : {}),
+        ...(sourceGroundedDependencies?.finalJudge ? { finalJudge: sourceGroundedDependencies.finalJudge } : {}),
+        ...(sourceGroundedDependencies?.remediationAdvisor ? { remediationAdvisor: sourceGroundedDependencies.remediationAdvisor } : {}),
+        ...(sourceGroundedDependencies?.sequenceJudge ? { sequenceJudge: sourceGroundedDependencies.sequenceJudge } : {}),
+        cache: sourceGroundedDependencies?.cache ?? new InMemorySourceGroundedVisualQaCache(),
+        ...(sourceGroundedDependencies?.scheduler ? { scheduler: sourceGroundedDependencies.scheduler } : {}),
+        ...(sourceGroundedDependencies?.onProgress ? { onProgress: sourceGroundedDependencies.onProgress } : {}),
+        regenerate: async ({ plan: current, directives, round }) => {
+          const remediated = applyVeronicaSourceGroundedRemediationDirectives({
+            plan: current,
+            directives,
+            narrationByScene: scenePlan.scenes.map((scene) => scene.canonicalNarration),
+            round,
+          });
+          return compilePrompts(rebuildVeronicaFinalTreatmentState({
+            plan: remediated,
+            sceneTimings: scenePlan.scenes.map((scene) => ({
+              id: scene.id,
+              timing: scene.timing,
+            })),
+            narrationByScene: scenePlan.scenes.map((scene) => scene.canonicalNarration),
+          }), `semantic-remediation-round-${round}`);
+        },
+      })
+    : await runSourceGroundedVisualQaController({
+        plan: canonicalPlan,
+        narrationByScene: scenePlan.scenes.map((scene) => scene.canonicalNarration),
+        policy: unavailableSourceGroundedVisualQaPolicy(),
+        cache: new InMemorySourceGroundedVisualQaCache(),
       });
-      return compilePrompts(rebuildVeronicaFinalTreatmentState({
-        plan: remediated,
-        sceneTimings: scenePlan.scenes.map((scene) => ({
-          id: scene.id,
-          timing: scene.timing,
-        })),
-        narrationByScene: scenePlan.scenes.map((scene) => scene.canonicalNarration),
-      }), `semantic-remediation-round-${round}`);
-    },
-  });
   const sourcePlan = sourceGrounded.plan;
   const visualReady = sourcePlan.semanticQuality?.status === "PASS" && sourcePlan.providerReadiness?.status === "PASS";
   const technicalReady = sourcePlan.validation.status === "pass";
@@ -1670,5 +1664,6 @@ export async function preparePositioningProductionEpisode(input: PreparePosition
     semanticRemediationRounds: hardened.rounds,
     semanticRemediationStatus: finalConvergenceStatus,
     sourceGroundedVisualQaStatus: canonicalPlan.sourceGroundedVisualQa?.sourceFidelityReady ? "PASS" : "BLOCKED",
+    visualPlanResolution: visualPlanResolution.evidence,
   };
 }

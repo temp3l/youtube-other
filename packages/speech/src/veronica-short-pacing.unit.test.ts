@@ -88,6 +88,25 @@ describe("Veronica Short natural pacing", () => {
     expect(result.selectedAttempt.measuredDurationSeconds).toBe(82);
   });
 
+  it("uses the one bounded correction when the initial WPM is outside the soft range", async () => {
+    const result = await calibrateVeronicaShortPacing({
+      initialSpeed: 1,
+      wordCount: 186,
+      policy,
+      synthesize: async ({ attemptIndex }) => ({
+        audioHash: String(attemptIndex).repeat(64),
+        durationSeconds: attemptIndex === 1 ? 77.85 : 72,
+        cacheHit: false,
+        hardConstraintsPassed: true,
+      }),
+    });
+
+    expect(result.attempts).toHaveLength(2);
+    expect(result.attempts[0]!.pacingStatus).toBe("SLIGHTLY_SLOW");
+    expect(result.attempts[1]!.speedSource).toBe("measured-correction");
+    expect(result.selectedAttempt.pacingStatus).toBe("NATURAL");
+  });
+
   it("uses the centralized locale-aware conceptual-explainer profile", () => {
     expect(policy.profileId).toBe("conceptual-explainer");
     expect(policy.preferredWpmRange).toEqual([145, 165]);

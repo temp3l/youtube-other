@@ -1,0 +1,5 @@
+Zähl einmal, wie viele Schritte eine Person machen muss, bevor sie bei dir kaufen kann. Wie viele Fragen? Wie viele Seiten? Wie viele unklare Entscheidungen? Reibung zu reduzieren ist keine Manipulation. Du machst eine Entscheidung einfacher, die der Kunde bereits prüft. Ein starkes Angebot hat einen sinnvollen Einstieg, klare Informationen, glaubwürdige Belege und einen verständlichen Weg. Prüfe außerdem drei Dinge: Muss jeder sofort mit der größten Option starten? Gibt es echte Beweise, die Unsicherheit reduzieren? Und ist deine Dringlichkeit real oder ist alles ständig „nur heute“? Das beste Angebot ist nicht das mit den meisten Boni. Es ist das, bei dem jedes Element hilft, leichter zu verstehen, zu vertrauen, zu wählen und zu handeln.
+
+Mach den Dreißig-Sekunden-Test. Ein neuer Besucher sollte erkennen können, ob das Angebot für ihn gedacht ist, was er bekommt, was als Nächstes passiert und wo offene Fragen beantwortet werden. Wenn das nicht gelingt, braucht das Angebot zuerst mehr Klarheit und nicht mehr Dringlichkeit.
+
+Wenn dein Angebot Druck braucht, um verstanden zu werden, reduziere zuerst die Verwirrung.

@@ -8,4 +8,6 @@ Preparation writes the canonical episode workspace under `episodes/<episode-id>/
 
 Use `mediaforge veronica-media source-pack prepare --pack <pack-root> --workspace episodes --episode-id <authored-key> --language en` to perform this prepare-only boundary. It does not invoke planning or any provider.
 
-Pack 2 provides neither a source visual plan nor visual-reuse metadata. Both are intentionally represented as absent/empty in the canonical planner input. Visual planning remains downstream derived production work. The legacy positioning-pack adapter remains unchanged and continues to own `meta/visual-reuse-manifest.json`.
+Pack 2 provides neither a source visual plan nor visual-reuse metadata. Both are intentionally represented as absent/empty in the canonical planner input. During production preparation, the visual-plan resolver runtime-validates this input and its source hashes, then executes the same deterministic Veronica visual planner used by the legacy positioning workflow. It persists `source/visual-plan.json` as a derived compatibility artifact with planner-input, source, configuration, and plan-revision hashes.
+
+Resolution precedence is explicit: a legacy or human-authored plan remains authoritative; a matching derived plan is reused; a stale or missing derived plan is regenerated from `visual-planner-input.v1.json`; and an episode with neither artifact fails closed. The legacy positioning-pack adapter remains unchanged and continues to own `meta/visual-reuse-manifest.json`.

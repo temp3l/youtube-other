@@ -1,0 +1,5 @@
+One hundred thousand views and zero sales are not a contradiction. Awareness and conversion do different jobs. One makes you known and memorable. The other asks for a specific action. Attention is only an input. To convert, you also need trust, clarity, a relevant offer, and the right moment. Map the path instead of staring at the view count. How many people discover you? How many understand the problem? How many continue? How many reach the offer? How many act? If many people watch but nobody continues, inspect the message. If they continue but do not buy, inspect trust, clarity, relevance, or the offer. Before celebrating or rejecting a piece of content, ask which stage it was supposed to move. Objective and metric need to speak the same language.
+
+Use numbers to locate the leak. Views to profile, profile to page, page to checkout, checkout to purchase: each transition answers a different question. A single conversion rate can hide where the real problem starts, so diagnose the step before changing the whole funnel.
+
+Choose one funnel transition and measure that before changing the rest.

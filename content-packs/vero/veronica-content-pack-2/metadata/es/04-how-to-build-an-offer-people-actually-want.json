@@ -1,0 +1,31 @@
+{
+  "title": "Cómo crear una oferta que la gente quiera comprar",
+  "thumbnail": "HAZ FÁCIL COMPRAR",
+  "description": "Un buen producto no basta si el recorrido de compra es confuso. Este episodio conecta punto de entrada, fricción, prueba, urgencia y coherencia para construir una oferta más fácil de comprar.",
+  "cta": "En el próximo episodio comprobamos si el problema es realmente el marketing o si primero hay que arreglar el producto.",
+  "alternativeTitles": [
+    "Tu producto puede ser bueno — y tu oferta difícil de comprar",
+    "El test de oferta de 30 segundos"
+  ],
+  "thumbnailOptions": [
+    "HAZ FÁCIL COMPRAR",
+    "¿DEMASIADA FRICCIÓN?",
+    "TEST DE 30 SEGUNDOS"
+  ],
+  "youtubeOptimizationVersion": "v2-retention-localization",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  },
+  "shortA": {
+    "title": "Un buen producto puede ser difícil de comprar",
+    "alternateHook": "Cada paso innecesario da a un cliente interesado otro motivo para aplazar."
+  },
+  "shortB": {
+    "title": "El test de oferta de 30 segundos",
+    "alternateHook": "¿Un visitante nuevo entiende oferta, precio y siguiente paso en treinta segundos?"
+  }
+}

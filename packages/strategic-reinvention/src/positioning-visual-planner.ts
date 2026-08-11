@@ -42,7 +42,10 @@ import {
   viewerVisibleFingerprintSimilarity,
   viewerVisibleHookSignature,
 } from "./positioning-visual-semantics.js";
-import { resolveOpeningTreatmentProfile } from "./positioning-opening-treatments.js";
+import {
+  findOpeningTreatmentProfile,
+  resolveOpeningTreatmentProfile,
+} from "./positioning-opening-treatments.js";
 import {
   VERONICA_VISUAL_LANGUAGE_VERSION,
   buildLongFormChapters,
@@ -811,6 +814,7 @@ async function buildDraft(input: {
   readonly priorClusterDiagramTopologies: readonly DiagramTopology["type"][];
   readonly narration?: string;
   readonly parentNarration?: string;
+  readonly requireRegisteredOpeningTreatment?: boolean;
 }): Promise<PlanDraft> {
   const narration = input.narration ?? await readContainedPackFile(input.packDir, input.content.narrationFiles.en);
   const aspectRatio: AspectRatio = input.content.format === "long" ? "16:9" : "9:16";
@@ -893,15 +897,19 @@ async function buildDraft(input: {
   let previousDiagramTopology: DiagramTopology["type"] | null =
     input.priorClusterDiagramTopologies.at(-1) ?? null;
   specs.forEach((spec, index) => {
+    const isOpening = spec.stage === "COLD_OPEN" || spec.stage === "HOOK";
+    const openingProfile = isOpening
+      ? input.requireRegisteredOpeningTreatment === false
+        ? findOpeningTreatmentProfile(input.content.contentId)
+        : resolveOpeningTreatmentProfile(input.content.contentId)
+      : undefined;
     const treatment = buildTreatment({
       sceneId: spec.sceneId,
       concept: spec.concept,
       stage: spec.stage,
       ordinal: index,
       continuity,
-      ...(spec.stage === "COLD_OPEN" || spec.stage === "HOOK"
-        ? { openingProfile: resolveOpeningTreatmentProfile(input.content.contentId) }
-        : {}),
+      ...(openingProfile ? { openingProfile } : {}),
       diagramSelectionContext: {
         usedTopologies: selectedDiagramTopologies,
         previousTopology: previousDiagramTopology,
@@ -1665,6 +1673,112 @@ function reviewSummary(plan: PositioningVisualPlanV2): ReviewPlanSummary {
 async function writeJson(filePath: string, value: unknown): Promise<void> {
   await fs.mkdir(path.dirname(filePath), { recursive: true });
   await fs.writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+}
+
+function canonicalSourceTitle(authoredEpisodeKey: string): string {
+  return authoredEpisodeKey
+    .replace(/^[0-9]+[a-z]?-/u, "")
+    .split("-")
+    .filter(Boolean)
+    .map((word) => `${word.slice(0, 1).toUpperCase()}${word.slice(1)}`)
+    .join(" ");
+}
+
+function canonicalSourceBeats(input: {
+  readonly contentId: string;
+  readonly narration: string;
+  readonly durationMs: number;
+}): readonly SourceBeat[] {
+  const paragraphs = input.narration
+    .split(/\n\s*\n/gu)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+  const units = paragraphs.length > 0
+    ? paragraphs
+    : input.narration.split(/(?<=[.!?])\s+/gu).map((sentence) => sentence.trim()).filter(Boolean);
+  const desiredCount = Math.max(5, Math.min(8, Math.round(input.durationMs / 9_000) - 1));
+  const groups = Array.from({ length: Math.min(desiredCount, units.length) }, () => [] as string[]);
+  units.forEach((unit, index) => {
+    const groupIndex = Math.min(groups.length - 1, Math.floor(index * groups.length / units.length));
+    groups[groupIndex]?.push(unit);
+  });
+  return groups.map((group, index) => ({
+    sceneId: `${input.contentId}-S${String(index + 1).padStart(2, "0")}`,
+    concept: group
+      .join(" ")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/gu, "-")
+      .replace(/^-|-$/gu, "")
+      .split("-")
+      .slice(0, 24)
+      .join("-"),
+  }));
+}
+
+/**
+ * Provider-free application entry point for canonical authored source. It
+ * adapts narration into the existing positioning planner's SourceContent and
+ * executes the same build/finalize algorithm used by the legacy pack.
+ */
+export async function buildVeronicaCanonicalVisualPlan(input: {
+  readonly plannerInput: CanonicalSourcePlannerInput;
+  readonly outputDir: string;
+}): Promise<PositioningVisualPlanV2> {
+  const plannerInput = canonicalSourcePlannerInputSchema.parse(input.plannerInput);
+  if (plannerInput.locale !== "en") {
+    throw new Error("Canonical Veronica visual planning currently requires English narration.");
+  }
+  const wordCount = plannerInput.narration.narration.trim().split(/\s+/u).filter(Boolean).length;
+  const narrationLengthMinutes = wordCount / plannerInput.planningConfiguration.targetWordsPerMinute;
+  const durationMs = Math.max(1_000, Math.round(narrationLengthMinutes * 60_000));
+  const title = canonicalSourceTitle(plannerInput.sourceEpisode.authoredEpisodeKey);
+  const sourcePaths = Object.fromEntries(
+    plannerInput.sourceEpisode.localeSources.map((source) => [source.locale, source.sourcePath]),
+  );
+  const narrationFiles: Readonly<Record<PositioningLocale, string>> = {
+    en: sourcePaths["en"] ?? plannerInput.narration.sourcePath,
+    de: sourcePaths["de"] ?? plannerInput.narration.sourcePath,
+    it: sourcePaths["it"] ?? plannerInput.narration.sourcePath,
+    fr: sourcePaths["fr"] ?? plannerInput.narration.sourcePath,
+    pt: sourcePaths["pt"] ?? plannerInput.narration.sourcePath,
+  };
+  const titles: Readonly<Record<PositioningLocale, string>> = {
+    en: title,
+    de: title,
+    it: title,
+    fr: title,
+    pt: title,
+  };
+  const content: SourceContent = {
+    contentId: plannerInput.sourceEpisode.episodeId,
+    format: "short",
+    titles,
+    narrationFiles,
+    visualAssetKey: `canonical-source:${plannerInput.sourceEpisode.sourcePackId}:${plannerInput.sourceEpisode.authoredEpisodeKey}`,
+    visualBeats: canonicalSourceBeats({
+      contentId: plannerInput.sourceEpisode.episodeId,
+      narration: plannerInput.narration.narration,
+      durationMs,
+    }),
+  };
+  const draft = await buildDraft({
+    packDir: process.cwd(),
+    outputDir: path.resolve(input.outputDir),
+    content,
+    parent: content,
+    narrationLengthMinutes,
+    configuration: {
+      imageProviderModel: plannerInput.planningConfiguration.imageProviderModel,
+      rendererVersion: plannerInput.planningConfiguration.rendererVersion,
+    },
+    priorClusterDiagramTopologies: [],
+    narration: plannerInput.narration.narration,
+    parentNarration: plannerInput.narration.narration,
+    requireRegisteredOpeningTreatment: false,
+  });
+  const plan = finalizePlans([draft])[0];
+  if (!plan) throw new Error("Canonical Veronica visual planner produced no plan.");
+  return plan;
 }
 
 /**

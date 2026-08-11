@@ -1,0 +1,42 @@
+{
+  "title": "Your Revenue Can Grow While Your Business Gets Weaker",
+  "alternativeTitles": [
+    "More Sales Won't Fix a Bad Business Model",
+    "Is Your Business Actually Profitable — or Just Busy?",
+    "The Business Model Test Most Entrepreneurs Skip"
+  ],
+  "thumbnail": "MORE SALES. WORSE BUSINESS?",
+  "thumbnailOptions": [
+    "MORE SALES. WORSE BUSINESS?",
+    "REVENUE ≠ PROFIT",
+    "WOULD 2× SALES HELP?"
+  ],
+  "description": "More revenue does not automatically mean a healthier business. In this episode, we break down the structure behind a sustainable business model: margin, variable and fixed costs, delivery time, scalability, channel economics, and the difference between protecting a product format and protecting the customer need. You’ll also get a simple five-part audit and one stress-test question: if your sales doubled tomorrow, would the business genuinely become stronger?\n\nNext episode: why your ideal customer is not “everyone.”",
+  "cta": "Run the five-line business-model audit from the episode and choose one structural hypothesis to test for the next few weeks.",
+  "chapters": [
+    "Revenue Is Not the Model",
+    "The Hidden Cost of Changing Channels",
+    "Product Format vs Customer Problem",
+    "The Time Test",
+    "What Scalability Actually Means",
+    "The Adaptation Test",
+    "Your Five-Line Business Audit",
+    "What to Test Next"
+  ],
+  "shortA": {
+    "title": "More Revenue Can Make a Weak Business Worse",
+    "alternateHook": "If your sales doubled tomorrow, would your business actually be healthier?"
+  },
+  "shortB": {
+    "title": "Does Your Income Stop When You Stop Working?",
+    "alternateHook": "Your biggest growth constraint may be hiding in your calendar."
+  },
+  "youtubeOptimizationVersion": "v2-retention-localization",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  }
+}

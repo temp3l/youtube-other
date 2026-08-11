@@ -1,0 +1,9 @@
+Centomila visualizzazioni e zero vendite non sono una contraddizione. Awareness e conversion fanno due lavori diversi. Una ti rende conosciuto e memorabile. L'altra chiede un'azione precisa. Il problema è aspettarsi che ogni view diventi automaticamente un cliente. L'attenzione è solo un input. Per convertire servono fiducia, chiarezza, un'offerta rilevante e il momento giusto. Quindi non chiederti soltanto quante persone hanno visto. Chiediti dove, nel percorso, smettono di avanzare.
+
+Fai una mappa del percorso. Quante persone ti scoprono? Quante capiscono il problema? Quante approfondiscono? Quante arrivano all offerta? Quante agiscono? Se hai tante visualizzazioni e nessuno approfondisce, forse il problema è il messaggio. Se approfondiscono ma non comprano, forse devi guardare fiducia, chiarezza o offerta. Così smetti di chiedere a ogni contenuto di vendere. Awareness crea familiarità. Conversione arriva quando quella familiarità incontra un motivo concreto per agire.
+
+Prima di celebrare o bocciare un contenuto, chiediti quindi quale fase doveva muovere. Se doveva creare awareness, misura attenzione e memoria. Se doveva convertire, osserva il passo successivo. Obiettivo e metrica devono parlare la stessa lingua.
+
+Le view sono quindi un segnale, non una conclusione. Il lavoro vero è capire quale passaggio devono alimentare e se quel passaggio esiste davvero.
+
+Scegli una sola transizione del funnel e misura quella prima di cambiare il resto.

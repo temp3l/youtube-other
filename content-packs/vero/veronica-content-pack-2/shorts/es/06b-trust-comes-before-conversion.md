@@ -1,0 +1,5 @@
+Si una persona no sabe quién eres, no entiende qué haces y no confía en ti, una llamada a la acción más agresiva no arregla el problema. La conversión es el final de un recorrido: contenido, relación, credibilidad, claridad y después la propuesta. Pedir «compra ahora» antes de construir lo anterior significa pedir al botón que haga un trabajo que tendrías que haber hecho tú. Si las personas llegan a la página y no actúan, no aumentes automáticamente la presión. Revisa qué no está claro, qué pregunta queda abierta y si habías construido suficiente confianza antes de pedir. La confianza no garantiza una venta, pero sin ella haces la venta mucho más difícil. Quizá el problema no sea el color del botón.
+
+La confianza no es una sensación agradable que añades al final. Es evidencia acumulada antes de pedir la acción: contenido útil, consistencia, pruebas, condiciones claras y una promesa creíble. Si esa base es débil, un CTA más fuerte suele hacer que la petición parezca más agresiva, no más convincente.
+
+Si falta confianza, añadir presión a la CTA aumenta el ruido, no la convicción.

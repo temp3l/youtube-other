@@ -345,8 +345,6 @@ export async function calibrateVeronicaShortPacing(input: {
     if (
       durationAcceptanceStatus === "SHORT_PLATFORM_DURATION_EXCEEDED" ||
       pacingStatus === "NATURAL" ||
-      pacingStatus === "SLIGHTLY_FAST" ||
-      pacingStatus === "SLIGHTLY_SLOW" ||
       !input.policy.preferredWpmRange
     )
       break;

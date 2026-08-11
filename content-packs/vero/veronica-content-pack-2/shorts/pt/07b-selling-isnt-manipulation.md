@@ -1,0 +1,5 @@
+Persuadir não significa tirar da outra pessoa a possibilidade de dizer não. Se você sugere um restaurante para amigos, dá razões, responde dúvidas e tenta convencer. Mas a decisão continua sendo deles. Venda saudável funciona da mesma forma. Entenda a necessidade. Apresente a solução. Dê boas razões. Responda objeções. Peça uma decisão. O cliente pode dizer sim ou não. Se você precisa esconder informação, criar medo artificial ou retirar liberdade para conseguir o sim, passou da linha. Mas, se a oferta é pertinente e a escolha continua livre, pedir uma decisão faz parte do serviço. O objetivo não é convencer todo mundo. É reconhecer um bom encontro entre necessidade e solução e aceitar o não quando esse encontro não existe.
+
+Um bom processo de venda protege os dois lados. Você pode explicar o valor, responder perguntas e pedir uma decisão. O cliente recebe informação relevante, espaço para dúvidas e liberdade real para dizer não. Essa combinação é persuasão sem coerção.
+
+Venda saudável não elimina o não; ela torna o sim informado e livre.

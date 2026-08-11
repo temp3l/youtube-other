@@ -1,0 +1,31 @@
+{
+  "title": "Pare de melhorar o marketing. Corrija o produto.",
+  "thumbnail": "TALVEZ SEJA O PRODUTO",
+  "description": "Mais tráfego não salva um produto fraco. Validação, simplificação, concorrência, custo operacional e risco de estoque ajudam a diagnosticar o que corrigir antes de comprar mais atenção.",
+  "cta": "No próximo episódio, separamos atenção de conversão e encontramos o ponto exato onde as vendas estão sendo perdidas.",
+  "alternativeTitles": [
+    "Antes de gastar mais em marketing, teste o produto",
+    "Mais tráfego pode piorar um problema de produto"
+  ],
+  "thumbnailOptions": [
+    "TALVEZ SEJA O PRODUTO",
+    "NÃO COMPRE MAIS TRÁFEGO",
+    "TESTE ANTES DE ESCALAR"
+  ],
+  "youtubeOptimizationVersion": "v2-retention-localization",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  },
+  "shortA": {
+    "title": "Talvez você não tenha um problema de marketing",
+    "alternateHook": "Mais tráfego não salva um produto que não sustenta o interesse real do cliente."
+  },
+  "shortB": {
+    "title": "Opções demais podem reduzir vendas",
+    "alternateHook": "Mais opções podem criar mais confusão, estoque, erros e decisões lentas."
+  }
+}

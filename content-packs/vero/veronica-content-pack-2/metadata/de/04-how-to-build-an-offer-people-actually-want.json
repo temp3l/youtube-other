@@ -1,0 +1,31 @@
+{
+  "title": "So baust du ein Angebot, das Menschen wirklich kaufen wollen",
+  "thumbnail": "MACH KAUFEN EINFACH",
+  "description": "Ein gutes Produkt reicht nicht, wenn der Kaufweg verwirrend ist. Dieses Video zeigt, wie Einstieg, Reibung, Belege, Dringlichkeit und Angebotslogik zusammenspielen.",
+  "cta": "In der nächsten Folge prüfen wir, ob wirklich das Marketing das Problem ist — oder ob zuerst das Produkt verbessert werden muss.",
+  "alternativeTitles": [
+    "Dein Produkt kann gut sein — und dein Angebot schwer zu kaufen",
+    "Der 30-Sekunden-Angebots-Test"
+  ],
+  "thumbnailOptions": [
+    "MACH KAUFEN EINFACH",
+    "MACH DEN KAUF EINFACH",
+    "ZU VIEL REIBUNG?"
+  ],
+  "youtubeOptimizationVersion": "v2-retention-localization",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  },
+  "shortA": {
+    "title": "Ein gutes Produkt kann schwer zu kaufen sein",
+    "alternateHook": "Jeder unnötige Schritt gibt einem interessierten Kunden einen weiteren Grund zu warten."
+  },
+  "shortB": {
+    "title": "Der 30-Sekunden-Angebots-Test",
+    "alternateHook": "Versteht ein neuer Besucher Angebot, Preisweg und nächsten Schritt in dreißig Sekunden?"
+  }
+}

@@ -1,0 +1,5 @@
+Cuenta cuántos pasos tiene que dar una persona antes de poder comprarte. ¿Cuántas preguntas? ¿Cuántas páginas? ¿Cuántas decisiones poco claras? Reducir fricción no es manipular. Es facilitar una decisión que el cliente ya está valorando. Una oferta fuerte tiene un punto de entrada lógico, información clara, pruebas creíbles y un recorrido comprensible. Después revisa tres cosas: ¿el cliente tiene que empezar directamente por la opción más grande?, ¿existe prueba real que reduzca incertidumbre?, ¿la urgencia es verdadera o todo es siempre «solo hoy»? La mejor oferta no es la que acumula más bonus. Es la que ayuda a entender, confiar, elegir y actuar con menos fricción. Haz esta revisión desde el punto de vista de alguien que llega por primera vez y todavía no conoce tus reglas internas.
+
+Haz la prueba de treinta segundos. Una persona nueva debería poder saber si la oferta es para ella, qué recibe, cuál es el siguiente paso y dónde puede resolver sus dudas. Si no puede, la oferta necesita claridad antes de necesitar urgencia.
+
+Si la oferta necesita presión para entenderse, reduce primero la confusión.

@@ -1,0 +1,40 @@
+{
+  "status": "PASS",
+  "version": "v4-editorial-continuity-remediation",
+  "counts": {
+    "long": 48,
+    "shorts": 96,
+    "metadata": 48
+  },
+  "timing": {
+    "publicPass": 144,
+    "internalGuardPass": 144,
+    "total": 144,
+    "authority": "selected-audio after TTS; WPM estimates are planning only"
+  },
+  "editorial": {
+    "storyPass": 24,
+    "storyTotal": 24,
+    "minimumScore": 9.5,
+    "averageScore": 9.65,
+    "requiredMinimum": 9.5
+  },
+  "continuity": {
+    "knownOrphanFragments": [],
+    "exactDuplicateParagraphs": [],
+    "pass": true
+  },
+  "json": {
+    "errors": [],
+    "pass": true
+  },
+  "packaging": {
+    "oversizedPrimaryTitleOrThumbnail": [],
+    "pass": true
+  },
+  "mockAudio": {
+    "included": false,
+    "canonical": false,
+    "pass": true
+  }
+}

@@ -3916,7 +3916,14 @@ async function runAudioNarrationPipeline(
           rolloutMode === "new" &&
           narrationStageRequiresTts(stage) &&
           !(commandOptions.dryRun ?? options.dryRun) &&
-          result.exitCode === 0
+          result.exitCode === 0 &&
+          (await fileExists(
+            path.join(
+              episodeDir,
+              "source",
+              "pre-image-semantic-plan.v1.json"
+            )
+          ))
         ) {
           await reconcileExistingVeronicaProductionTiming({
             workspaceRoot: path.dirname(episodeDir),

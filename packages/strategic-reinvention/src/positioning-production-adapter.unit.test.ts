@@ -5,10 +5,12 @@ import { describe, expect, it } from "vitest";
 import {
   compilePositioningProductionScenePlan,
   expandVeronicaLongFormSemanticScenes,
+  isVeronicaDeterministicVisualQaEligible,
   preparePositioningProductionEpisode,
   positioningScenePlanMaterializationReasons,
   positioningProductionPlanSchema,
 } from "./positioning-production-adapter.js";
+import { generatePositioningVisualPlanCalibration } from "./positioning-visual-planner.js";
 
 function plan(variant: "short" | "full" = "short") {
   const contentId = variant === "short" ? "L01-S01" : "L02";
@@ -50,6 +52,24 @@ function plan(variant: "short" | "full" = "short") {
 }
 
 describe("positioning production adapter", () => {
+  it("blocks paid source-grounded QA until every deterministic readiness gate passes", () => {
+    const source = plan();
+    expect(
+      isVeronicaDeterministicVisualQaEligible({
+        ...source,
+        semanticQuality: { status: "FAIL" },
+        providerReadiness: { status: "PASS" },
+      } as Parameters<typeof isVeronicaDeterministicVisualQaEligible>[0]),
+    ).toBe(false);
+    expect(
+      isVeronicaDeterministicVisualQaEligible({
+        ...source,
+        semanticQuality: { status: "PASS" },
+        providerReadiness: { status: "PASS" },
+      } as Parameters<typeof isVeronicaDeterministicVisualQaEligible>[0]),
+    ).toBe(true);
+  });
+
   it("compiles approved positioning assets into canonical, likeness-safe scenes", () => {
     const result = compilePositioningProductionScenePlan({
       episodeId: "l01-s01-being-good-isnt-enough",
@@ -86,27 +106,50 @@ describe("positioning production adapter", () => {
     const workspaceRoot = await fs.mkdtemp(path.join(os.tmpdir(), "veronica-production-"));
     const episodeId = "l01-s01-being-good-isnt-enough";
     const episodeDir = path.join(workspaceRoot, episodeId);
+    const fixtureReferenceRoot = path.join(
+      workspaceRoot,
+      "content-packs",
+      "veronica-character-reference-v1",
+    );
+    await fs.mkdir(path.dirname(fixtureReferenceRoot), { recursive: true });
+    await fs.symlink(
+      path.resolve("content-packs/veronica-character-reference-v1"),
+      fixtureReferenceRoot,
+      "dir",
+    );
+    const calibration = await generatePositioningVisualPlanCalibration({
+      packDir: path.resolve("content-packs/veronica-content-pack-1"),
+      outputDir: path.join(workspaceRoot, "legacy-calibration"),
+      contentIds: ["L01", "L01-S01"],
+    });
+    const legacyShortPlanPath = calibration.planPaths.find((candidate) =>
+      candidate.endsWith("l01-s01.visual-plan.json"),
+    );
+    if (!legacyShortPlanPath) throw new Error("Legacy Short calibration plan was not generated.");
+    const legacyShortPlan = positioningProductionPlanSchema.parse(
+      JSON.parse(await fs.readFile(legacyShortPlanPath, "utf8")),
+    );
     await fs.mkdir(path.join(episodeDir, "source"), { recursive: true });
     await fs.mkdir(path.join(episodeDir, "languages", "short"), { recursive: true });
     await fs.writeFile(
       path.join(episodeDir, "source", "visual-plan.json"),
-      `${JSON.stringify(plan(), null, 2)}\n`,
+      `${JSON.stringify(legacyShortPlan, null, 2)}\n`,
     );
     await fs.writeFile(
-      path.join(episodeDir, "languages", "short", "script-de.md"),
-      "Gut zu sein reicht nicht. Zeig den Beweis.",
+      path.join(episodeDir, "languages", "short", "script-en.md"),
+      "Being good is not enough. Show the proof.",
     );
     const result = await preparePositioningProductionEpisode({
       workspaceRoot,
       episodeId,
-      language: "de",
+      language: "en",
       variant: "short",
     });
-    expect(result.sceneCount).toBe(2);
+    expect(result.sceneCount).toBe(legacyShortPlan.scenes.length);
     await expect(fs.stat(result.scenePlanPath)).resolves.toBeDefined();
     await expect(
-      fs.readFile(path.join(episodeDir, "locales", "de", "short", "script.md"), "utf8"),
-    ).resolves.toContain("Zeig den Beweis");
+      fs.readFile(path.join(episodeDir, "locales", "en", "short", "script.md"), "utf8"),
+    ).resolves.toContain("Show the proof");
     const manifest = JSON.parse(await fs.readFile(result.manifestPath, "utf8")) as {
       sourceMetadata: Record<string, unknown>;
       artifacts: readonly { readonly path: string; readonly kind: string }[];
@@ -114,21 +157,21 @@ describe("positioning production adapter", () => {
     };
     expect(manifest.sourceMetadata).toMatchObject({
       genre: "veronicabenini",
-      positioningPlanHash: "a".repeat(64),
+      positioningPlanHash: legacyShortPlan.planHash,
       syntheticCreatorLikenessAllowed: false,
-      providerImagePromptsArtifactPath: "locales/de/short/image-prompts/provider-image-prompts.v1.json",
-      providerImagePromptsMarkdownPath: "locales/de/short/image-prompts/provider-image-prompts.md",
+      providerImagePromptsArtifactPath: "locales/en/short/image-prompts/provider-image-prompts.v1.json",
+      providerImagePromptsMarkdownPath: "locales/en/short/image-prompts/provider-image-prompts.md",
     });
     const promptArtifact = JSON.parse(await fs.readFile(result.providerImagePromptsJsonPath, "utf8")) as {
       readonly promptCount: number;
       readonly prompts: readonly { readonly imagePrompt: string; readonly sameSnapshot: boolean }[];
     };
-    expect(promptArtifact.promptCount).toBe(2);
+    expect(promptArtifact.promptCount).toBe(result.sceneCount);
     expect(promptArtifact.prompts.every((prompt) => prompt.sameSnapshot)).toBe(true);
     await expect(fs.readFile(result.providerImagePromptsMarkdownPath, "utf8")).resolves.toContain(promptArtifact.prompts[0]!.imagePrompt);
     expect(manifest.artifacts.filter((artifact) => artifact.kind === "provider-image-prompts").map((artifact) => artifact.path)).toEqual([
-      "locales/de/short/image-prompts/provider-image-prompts.v1.json",
-      "locales/de/short/image-prompts/provider-image-prompts.md",
+      "locales/en/short/image-prompts/provider-image-prompts.v1.json",
+      "locales/en/short/image-prompts/provider-image-prompts.md",
     ]);
     const canonical = JSON.parse(await fs.readFile(path.join(episodeDir, "source", "pre-image-semantic-plan.v1.json"), "utf8"));
     expect(positioningScenePlanMaterializationReasons({ plan: canonical, scenePlan: manifest.scenePlan })).toEqual([]);
