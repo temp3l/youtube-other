@@ -1,4 +1,8 @@
-import type { OpenAiBatchOutputLine } from "@mediaforge/story-localization";
+import type {
+  OpenAiBatchOutputLine,
+  OpenAiBatchReconciliationResult,
+  OpenAiBatchSubmissionIntent,
+} from "@mediaforge/story-localization";
 import type { ImageBatchStatus } from "./image-batch.types.js";
 
 export type OpenAiBatchId = string & { readonly __brand: "OpenAiBatchId" };
@@ -23,6 +27,9 @@ export interface ImageBatchProvider {
     readonly completionWindow: "24h";
     readonly metadata: Readonly<Record<string, string>>;
   }): Promise<{ readonly batchId: string; readonly status: ImageBatchStatus }>;
+  reconcileSubmission?(
+    intent: OpenAiBatchSubmissionIntent
+  ): Promise<OpenAiBatchReconciliationResult>;
   retrieveStatus(batchId: string): Promise<ImageBatchProviderStatus>;
   downloadOutputFile(fileId: string): Promise<string>;
   downloadErrorFile(fileId: string): Promise<string>;

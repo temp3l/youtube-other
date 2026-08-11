@@ -287,8 +287,12 @@ export function loadSpeechVoiceSettings(overrides: SpeechVoiceSettingsOverrides 
     defaultPaceWpmForPreset(preset);
   const speed =
     overrides.speed ??
-    narrationPacingPreset?.providerSpeed ??
-    defaultSpeedForPreset(preset);
+    // A caller that supplies a centralized WPM policy (Veronica) must not
+    // inherit the deprecated per-locale provider-speed preset. Begin from the
+    // provider-neutral value; measured Short calibration owns any adjustment.
+    (overrides.paceWpm !== undefined
+      ? 1
+      : narrationPacingPreset?.providerSpeed ?? defaultSpeedForPreset(preset));
   const instructions = [
     buildLanguageAdjustment(language),
     buildPacingInstruction(language, artifactType, paceWpm),

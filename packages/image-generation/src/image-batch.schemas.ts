@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { contentVariants, localeCodes } from "@mediaforge/shared";
+import {
+  contentVariants,
+  localeCodes,
+  type BatchRequestSetFingerprint,
+  type BatchSubmissionKey,
+} from "@mediaforge/shared";
 
 const imageBatchQualitySchema = z.enum(["low", "medium", "high", "auto"]);
 const imageBatchAspectRatioSchema = z.enum(["16:9", "9:16", "1:1"]);
@@ -252,6 +257,16 @@ export const imageBatchManifestSchema = z.object({
   completionWindow: z.literal("24h"),
   inputFilePath: z.string().min(1),
   inputFileHash: z.string().min(1),
+  batchSubmissionKey: z
+    .custom<BatchSubmissionKey>(
+      (value) => typeof value === "string" && /^[a-f0-9]{64}$/u.test(value)
+    )
+    .optional(),
+  requestSetFingerprint: z
+    .custom<BatchRequestSetFingerprint>(
+      (value) => typeof value === "string" && /^[a-f0-9]{64}$/u.test(value)
+    )
+    .optional(),
   openAIInputFileId: z.string().min(1).optional(),
   openAIBatchId: z.string().min(1).optional(),
   outputFileId: z.string().min(1).optional(),

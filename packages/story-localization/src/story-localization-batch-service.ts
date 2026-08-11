@@ -3,12 +3,14 @@ import path from "node:path";
 import { z } from "zod";
 import {
   aggregatePromptCacheUsage,
+  createOpenAiBatchSubmissionIdentity,
   ensureDir,
   fileExists,
   hashFile,
   planOpenAiResponsesPromptCache,
   projectOpenAiResponsesPromptCache,
   type PromptCachePlan,
+  type BatchSubmissionKey,
   writeJsonAtomic,
   writeTextAtomic,
 } from "@mediaforge/shared";
@@ -69,6 +71,17 @@ import {
   readRemoteFileText,
   requireBatchCapabilities,
 } from "./story-localization-openai-batch.js";
+import {
+  createOpenAiBatchSubmissionIntent,
+  isTerminalOpenAiBatchStatus,
+  openAiBatchSubmissionLockPath,
+  openAiBatchSubmissionMetadata,
+  readOpenAiBatchSubmissionIntent,
+  reconcileOpenAiBatchSubmission,
+  writeOpenAiBatchSubmissionIntent,
+  type OpenAiBatchSubmissionIntent,
+  type OpenAiRemoteBatchSnapshot,
+} from "./openai-batch-submission.js";
 import { normalizeIncompleteResponse } from "./story-retry-routing.js";
 import { type StoryRequestFingerprintInput } from "./story-request-telemetry.js";
 import {
@@ -2279,6 +2292,31 @@ async function buildRetryBatchItems(args: {
   return { requestItems, manifestItems };
 }
 
+async function resolveStoryBatchSubmissionKey(
+  layout: Awaited<ReturnType<typeof ensureBatchStorageLayout>>,
+  manifest: LocalBatchManifest
+): Promise<BatchSubmissionKey> {
+  if (manifest.batchSubmissionKey) return manifest.batchSubmissionKey;
+  const parentManifest = manifest.parentLocalBatchId
+    ? await readLocalBatchManifest(layout, manifest.parentLocalBatchId)
+    : undefined;
+  const parentBatchSubmissionKey = parentManifest
+    ? await resolveStoryBatchSubmissionKey(layout, parentManifest)
+    : undefined;
+  const jsonl = await fs.promises.readFile(
+    fromRepositoryRelativePath(manifest.inputFilePath),
+    "utf8"
+  );
+  return createOpenAiBatchSubmissionIdentity({
+    endpoint: manifest.endpoint,
+    completionWindow: manifest.completionWindow,
+    jsonl,
+    submissionPolicyVersion: "story-batch-submission.v1",
+    purpose: manifest.parentLocalBatchId ? "failed-item-retry" : "initial",
+    ...(parentBatchSubmissionKey ? { parentBatchSubmissionKey } : {}),
+  }).batchSubmissionKey;
+}
+
 export async function prepareStoryLocalizationBatch(
   sourceFiles: readonly string[],
   config: StoryLocalizationConfig
@@ -2303,16 +2341,34 @@ export async function prepareStoryLocalizationBatch(
   );
   const jsonl = serializeBatchRequestLines(cachePlannedRequestItems);
   await writeTextAtomic(inputPath, jsonl);
-  const manifest = createBaseManifest({
-    localBatchId,
-    model: config.model,
-    inputFilePath: inputPath,
-    inputFileHash: await hashFile(inputPath),
-    items: manifestItems.map((item) => {
-      const promptCachePlan = promptCachePlans.get(item.customId);
-      return promptCachePlan ? { ...item, promptCachePlan } : item;
+  const submissionIdentity =
+    cachePlannedRequestItems.length > 0
+      ? createOpenAiBatchSubmissionIdentity({
+          endpoint: "/v1/responses",
+          completionWindow: "24h",
+          jsonl,
+          submissionPolicyVersion: "story-batch-submission.v1",
+          purpose: "initial",
+        })
+      : undefined;
+  const manifest: LocalBatchManifest = {
+    ...createBaseManifest({
+      localBatchId,
+      model: config.model,
+      inputFilePath: inputPath,
+      inputFileHash: await hashFile(inputPath),
+      items: manifestItems.map((item) => {
+        const promptCachePlan = promptCachePlans.get(item.customId);
+        return promptCachePlan ? { ...item, promptCachePlan } : item;
+      }),
     }),
-  });
+    ...(submissionIdentity
+      ? {
+          batchSubmissionKey: submissionIdentity.batchSubmissionKey,
+          requestSetFingerprint: submissionIdentity.requestSetFingerprint,
+        }
+      : {}),
+  };
   await saveLocalBatchManifest(layout, manifest);
   await persistTextBatchRunPlan({
     outputDirectory: config.outputDirectory,
@@ -2333,6 +2389,72 @@ export async function prepareStoryLocalizationBatch(
   };
 }
 
+function storyBatchSubmissionStatus(
+  intent: OpenAiBatchSubmissionIntent
+): BatchSubmissionResult["status"] & LocalBatchManifest["status"] {
+  return intent.state === "terminal" && intent.providerStatus
+    ? (intent.providerStatus as BatchSubmissionResult["status"] &
+        LocalBatchManifest["status"])
+    : "submitted";
+}
+
+async function persistStoryBatchSubmission(args: {
+  readonly layout: Awaited<ReturnType<typeof ensureBatchStorageLayout>>;
+  readonly config: StoryLocalizationConfig;
+  readonly manifest: LocalBatchManifest;
+  readonly intent: OpenAiBatchSubmissionIntent;
+  readonly remote?: OpenAiRemoteBatchSnapshot;
+}): Promise<BatchSubmissionResult> {
+  if (!args.intent.providerBatchId || !args.intent.inputFileId) {
+    throw new Error("Submitted Batch intent is missing provider identities.");
+  }
+  const nextManifest: LocalBatchManifest = {
+    ...args.manifest,
+    updatedAt: new Date().toISOString(),
+    batchSubmissionKey: args.intent.batchSubmissionKey,
+    requestSetFingerprint: args.intent.requestSetFingerprint,
+    openAIInputFileId: args.intent.inputFileId,
+    openAIBatchId: args.intent.providerBatchId,
+    status: storyBatchSubmissionStatus(args.intent),
+    submittedAt: args.intent.submittedAt ?? new Date().toISOString(),
+    ...(args.remote?.outputFileId
+      ? { outputFileId: args.remote.outputFileId }
+      : {}),
+    ...(args.remote?.errorFileId ? { errorFileId: args.remote.errorFileId } : {}),
+    ...(args.remote?.completedAt
+      ? { completedAt: new Date(args.remote.completedAt * 1000).toISOString() }
+      : {}),
+    items: args.manifest.items.map((item) =>
+      item.status === "preflight-failed"
+        ? item
+        : item.status === "planned"
+          ? { ...item, status: "submitted" }
+          : item
+    ),
+  };
+  await saveLocalBatchManifest(args.layout, nextManifest);
+  await persistTextBatchRunPlan({
+    outputDirectory: args.config.outputDirectory,
+    manifest: nextManifest,
+    copyInput: true,
+  });
+  const index = new StoryBatchIndexService(args.config.outputDirectory);
+  await index.initialize();
+  await index.upsert(
+    entryFromLocalBatchManifest(args.config.outputDirectory, nextManifest)
+  );
+  return {
+    localBatchId: nextManifest.localBatchId,
+    openAIBatchId: args.intent.providerBatchId,
+    openAIInputFileId: args.intent.inputFileId,
+    status: storyBatchSubmissionStatus(args.intent),
+  };
+}
+
+function batchSubmissionErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 export async function submitStoryLocalizationBatch(
   localBatchId: string,
   config: StoryLocalizationConfig,
@@ -2344,6 +2466,22 @@ export async function submitStoryLocalizationBatch(
   if (!manifest) {
     throw new Error(`Unknown batch ${localBatchId}`);
   }
+  if (manifest.openAIBatchId && manifest.openAIInputFileId) {
+    createLogger(config.verbose ? "debug" : "info").info(
+      {
+        batchSubmissionKey: manifest.batchSubmissionKey,
+        providerBatchId: manifest.openAIBatchId,
+        lifecycleTransition: "duplicate_prevented",
+      },
+      "Skipped completed OpenAI Batch submission"
+    );
+    return {
+      localBatchId,
+      openAIBatchId: manifest.openAIBatchId,
+      openAIInputFileId: manifest.openAIInputFileId,
+      status: manifest.status === "uploading" ? "submitted" : manifest.status,
+    };
+  }
   if (manifest.status !== "prepared") {
     throw new Error(`Batch ${localBatchId} is not in prepared state.`);
   }
@@ -2352,45 +2490,209 @@ export async function submitStoryLocalizationBatch(
   if (currentHash !== manifest.inputFileHash) {
     throw new Error(`Batch input hash mismatch for ${localBatchId}.`);
   }
-  const uploaded = await client.files.create({
-    file: fs.createReadStream(inputFilePath),
-    purpose: "batch",
+  const jsonl = await fs.promises.readFile(inputFilePath, "utf8");
+  const parentManifest = manifest.parentLocalBatchId
+    ? await readLocalBatchManifest(layout, manifest.parentLocalBatchId)
+    : undefined;
+  const parentBatchSubmissionKey = parentManifest
+    ? await resolveStoryBatchSubmissionKey(layout, parentManifest)
+    : undefined;
+  const identity = createOpenAiBatchSubmissionIdentity({
+    endpoint: manifest.endpoint,
+    completionWindow: manifest.completionWindow,
+    jsonl,
+    submissionPolicyVersion: "story-batch-submission.v1",
+    purpose: manifest.parentLocalBatchId ? "failed-item-retry" : "initial",
+    ...(parentBatchSubmissionKey
+      ? { parentBatchSubmissionKey }
+      : {}),
   });
-  const created = await client.batches.create({
-    input_file_id: uploaded.id,
-    endpoint: "/v1/responses",
-    completion_window: "24h",
-    metadata: { local_batch_id: localBatchId },
-  });
-  const nextManifest: LocalBatchManifest = {
-    ...manifest,
-    updatedAt: new Date().toISOString(),
-    openAIInputFileId: uploaded.id,
-    openAIBatchId: created.id,
-    status: "submitted",
-    submittedAt: new Date().toISOString(),
-    items: manifest.items.map((item) =>
-      item.status === "preflight-failed"
-        ? item
-        : { ...item, status: "submitted" }
-    ),
-  };
-  await saveLocalBatchManifest(layout, nextManifest);
-  await persistTextBatchRunPlan({
-    outputDirectory: config.outputDirectory,
-    manifest: nextManifest,
-    copyInput: true,
-  });
-  const index = new StoryBatchIndexService(config.outputDirectory);
-  await index.upsert(
-    entryFromLocalBatchManifest(config.outputDirectory, nextManifest)
+  if (
+    (manifest.batchSubmissionKey &&
+      manifest.batchSubmissionKey !== identity.batchSubmissionKey) ||
+    (manifest.requestSetFingerprint &&
+      manifest.requestSetFingerprint !== identity.requestSetFingerprint)
+  ) {
+    throw new Error(`Batch submission identity mismatch for ${localBatchId}.`);
+  }
+  return withFileLock(
+    openAiBatchSubmissionLockPath(layout.root, identity.batchSubmissionKey),
+    async () => {
+      const logger = createLogger(config.verbose ? "debug" : "info");
+      let intent = await readOpenAiBatchSubmissionIntent(
+        layout.root,
+        identity.batchSubmissionKey
+      );
+      if (!intent) {
+        intent = createOpenAiBatchSubmissionIntent({
+          ...identity,
+          endpoint: manifest.endpoint,
+          submissionPolicyVersion: "story-batch-submission.v1",
+          purpose: manifest.parentLocalBatchId ? "failed-item-retry" : "initial",
+          ...(parentBatchSubmissionKey
+            ? { parentBatchSubmissionKey }
+            : {}),
+        });
+        await writeOpenAiBatchSubmissionIntent(layout.root, intent);
+        logger.info(
+          {
+            batchSubmissionKey: intent.batchSubmissionKey,
+            lifecycleTransition: "prepared",
+          },
+          "OpenAI Batch submission intent persisted"
+        );
+      }
+      if (intent.requestSetFingerprint !== identity.requestSetFingerprint) {
+        throw new Error("Batch submission key resolved to a different request set.");
+      }
+      if (intent.providerBatchId) {
+        logger.info(
+          {
+            batchSubmissionKey: intent.batchSubmissionKey,
+            providerBatchId: intent.providerBatchId,
+            lifecycleTransition: "duplicate_prevented",
+          },
+          "Reused durable OpenAI Batch submission"
+        );
+        return persistStoryBatchSubmission({ layout, config, manifest, intent });
+      }
+      if (intent.createAttemptedAt || intent.state === "reconciliation_required") {
+        logger.info(
+          {
+            batchSubmissionKey: intent.batchSubmissionKey,
+            lifecycleTransition: "reconciliation_attempt",
+          },
+          "Reconciling uncertain OpenAI Batch submission"
+        );
+        let reconciliation;
+        try {
+          reconciliation = await reconcileOpenAiBatchSubmission({ client, intent });
+        } catch (error) {
+          logger.warn(
+            {
+              batchSubmissionKey: intent.batchSubmissionKey,
+              lifecycleTransition: "reconciliation_required",
+              error: batchSubmissionErrorMessage(error),
+            },
+            "OpenAI Batch reconciliation failed closed"
+          );
+          throw error;
+        }
+        if (reconciliation.kind !== "exact") {
+          throw new Error(
+            `OpenAI Batch reconciliation is ${reconciliation.kind}; refusing another create.`
+          );
+        }
+        const now = new Date().toISOString();
+        intent = {
+          ...intent,
+          state: isTerminalOpenAiBatchStatus(reconciliation.batch.status)
+            ? "terminal"
+            : "submitted",
+          providerBatchId: reconciliation.batch.id,
+          providerStatus: reconciliation.batch.status,
+          submittedAt: intent.submittedAt ?? now,
+          reconciledAt: now,
+          updatedAt: now,
+        };
+        await writeOpenAiBatchSubmissionIntent(layout.root, intent);
+        logger.info(
+          {
+            batchSubmissionKey: intent.batchSubmissionKey,
+            providerBatchId: intent.providerBatchId,
+            lifecycleTransition: "recovered_existing_remote_submission",
+          },
+          "Recovered OpenAI Batch submission"
+        );
+        return persistStoryBatchSubmission({
+          layout,
+          config,
+          manifest,
+          intent,
+          remote: reconciliation.batch,
+        });
+      }
+      if (!intent.inputFileId) {
+        const uploaded = await client.files.create({
+          file: fs.createReadStream(inputFilePath),
+          purpose: "batch",
+        });
+        intent = {
+          ...intent,
+          inputFileId: uploaded.id,
+          state: "submission_pending",
+          updatedAt: new Date().toISOString(),
+        };
+        await writeOpenAiBatchSubmissionIntent(layout.root, intent);
+      }
+      const createAttemptedAt = new Date().toISOString();
+      intent = {
+        ...intent,
+        state: "submission_pending",
+        createAttemptedAt,
+        updatedAt: createAttemptedAt,
+      };
+      await writeOpenAiBatchSubmissionIntent(layout.root, intent);
+      try {
+        const inputFileId = intent.inputFileId;
+        if (!inputFileId) {
+          throw new Error("Batch input file identity was not persisted.");
+        }
+        const created = await client.batches.create(
+          {
+            input_file_id: inputFileId,
+            endpoint: "/v1/responses",
+            completion_window: "24h",
+            metadata: openAiBatchSubmissionMetadata(intent.batchSubmissionKey, {
+              local_batch_id: localBatchId,
+            }),
+          },
+          { maxRetries: 0 }
+        );
+        const now = new Date().toISOString();
+        intent = {
+          ...intent,
+          state: "submitted",
+          providerBatchId: created.id,
+          providerStatus: created.status,
+          submittedAt: now,
+          updatedAt: now,
+        };
+        await writeOpenAiBatchSubmissionIntent(layout.root, intent);
+        logger.info(
+          {
+            batchSubmissionKey: intent.batchSubmissionKey,
+            providerBatchId: created.id,
+            createAttempt: 1,
+            lifecycleTransition: "submitted",
+          },
+          "Created OpenAI Batch once"
+        );
+        return persistStoryBatchSubmission({ layout, config, manifest, intent });
+      } catch (error) {
+        const now = new Date().toISOString();
+        intent = {
+          ...intent,
+          state: "reconciliation_required",
+          updatedAt: now,
+          lastError: { message: batchSubmissionErrorMessage(error), occurredAt: now },
+        };
+        await writeOpenAiBatchSubmissionIntent(layout.root, intent);
+        logger.warn(
+          {
+            batchSubmissionKey: intent.batchSubmissionKey,
+            createAttempt: 1,
+            lifecycleTransition: "reconciliation_required",
+          },
+          "OpenAI Batch create outcome is ambiguous; retry suppressed"
+        );
+        throw new Error(
+          `OpenAI Batch create outcome is ambiguous for ${localBatchId}; reconciliation is required.`,
+          { cause: error }
+        );
+      }
+    }
   );
-  return {
-    localBatchId,
-    openAIBatchId: created.id,
-    openAIInputFileId: uploaded.id,
-    status: "submitted",
-  };
 }
 
 export async function refreshStoryLocalizationBatch(
@@ -2432,6 +2734,25 @@ export async function refreshStoryLocalizationBatch(
       : {}),
   };
   await saveLocalBatchManifest(layout, nextManifest);
+  if (manifest.batchSubmissionKey) {
+    const submissionIntent = await readOpenAiBatchSubmissionIntent(
+      layout.root,
+      manifest.batchSubmissionKey
+    );
+    if (submissionIntent) {
+      const now = new Date().toISOString();
+      await writeOpenAiBatchSubmissionIntent(layout.root, {
+        ...submissionIntent,
+        state: isTerminalOpenAiBatchStatus(remote.status)
+          ? "terminal"
+          : "submitted",
+        providerStatus: remote.status,
+        providerBatchId: remote.id,
+        updatedAt: now,
+        ...(remote.completed_at ? { submittedAt: submissionIntent.submittedAt ?? now } : {}),
+      });
+    }
+  }
   await persistTextBatchRunPlan({
     outputDirectory: config.outputDirectory,
     manifest: nextManifest,
@@ -4032,6 +4353,18 @@ export async function retryFailedStoryBatch(
   );
   const jsonl = serializeBatchRequestLines(cachePlannedRequestItems);
   await writeTextAtomic(inputPath, jsonl);
+  const parentBatchSubmissionKey = await resolveStoryBatchSubmissionKey(
+    layout,
+    manifest
+  );
+  const submissionIdentity = createOpenAiBatchSubmissionIdentity({
+    endpoint: "/v1/responses",
+    completionWindow: "24h",
+    jsonl,
+    submissionPolicyVersion: "story-batch-submission.v1",
+    purpose: "failed-item-retry",
+    parentBatchSubmissionKey,
+  });
   const nextManifest: LocalBatchManifest = {
     ...createBaseManifest({
       localBatchId,
@@ -4049,6 +4382,8 @@ export async function retryFailedStoryBatch(
     rootLocalBatchId: manifest.rootLocalBatchId,
     parentLocalBatchId: manifest.localBatchId,
     retryNumber: manifest.retryNumber + 1,
+    batchSubmissionKey: submissionIdentity.batchSubmissionKey,
+    requestSetFingerprint: submissionIdentity.requestSetFingerprint,
   };
   await saveLocalBatchManifest(layout, nextManifest);
   await persistTextBatchRunPlan({
@@ -4082,7 +4417,7 @@ export async function cancelStoryBatch(
   if (!entry?.openAIBatchId) {
     throw new Error(`Unable to resolve submitted batch ${batchRef}.`);
   }
-  await client.batches.cancel(entry.openAIBatchId);
+  const remote = await client.batches.cancel(entry.openAIBatchId);
   const manifest = await readLocalBatchManifest(layout, entry.localBatchId);
   if (!manifest) {
     throw new Error(`Missing manifest for ${entry.localBatchId}.`);
@@ -4090,9 +4425,23 @@ export async function cancelStoryBatch(
   const nextManifest: LocalBatchManifest = {
     ...manifest,
     updatedAt: new Date().toISOString(),
-    status: "cancelling",
+    status: remote.status === "cancelled" ? "cancelled" : "cancelling",
   };
   await saveLocalBatchManifest(layout, nextManifest);
+  if (manifest.batchSubmissionKey) {
+    const intent = await readOpenAiBatchSubmissionIntent(
+      layout.root,
+      manifest.batchSubmissionKey
+    );
+    if (intent) {
+      await writeOpenAiBatchSubmissionIntent(layout.root, {
+        ...intent,
+        state: remote.status === "cancelled" ? "terminal" : intent.state,
+        providerStatus: remote.status,
+        updatedAt: new Date().toISOString(),
+      });
+    }
+  }
   await index.upsert(
     entryFromLocalBatchManifest(config.outputDirectory, nextManifest)
   );

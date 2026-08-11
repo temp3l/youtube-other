@@ -184,6 +184,7 @@ async function gate(input: {
   readonly fallbackUsed?: boolean;
   readonly pacingStatus?: "passed" | "warning" | "failed";
   readonly durationStatus?: "within-target" | "outside-target";
+  readonly canonicalSelectedAudio?: boolean;
 }) {
   const narrationRoot = await createRoot();
   const chunkManifest = manifest();
@@ -199,6 +200,7 @@ async function gate(input: {
     reportMarkdownPath: path.join(narrationRoot, "quality-gate.md"),
     narrationRoot,
     compatibilityOutputStatus: "written",
+    canonicalSelectedAudio: input.canonicalSelectedAudio,
     fallbackUsed: input.fallbackUsed,
     fallbackReasons: input.fallbackUsed ? ["provider retry"] : [],
     ...(input.pacingStatus || input.durationStatus
@@ -289,6 +291,19 @@ describe("narration quality gate", () => {
     });
     expect(await fs.readFile(markdownPath, "utf8")).toContain(
       "Outcome: BLOCKED"
+    );
+  });
+
+  it("accepts a calibrated selected narration without chunk assembly", async () => {
+    const report = await gate({
+      includeAssembly: false,
+      canonicalSelectedAudio: true,
+      pacingStatus: "passed",
+    });
+
+    expect(report.outcome).toBe("READY");
+    expect(report.checks.map((item) => item.code)).toContain(
+      "CANONICAL_SELECTED_AUDIO"
     );
   });
 });

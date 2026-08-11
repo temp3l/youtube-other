@@ -1075,6 +1075,14 @@ export class NarrationPipeline {
       paths,
       mastering,
     });
+    // Veronica Shorts may promote a full, measured pacing candidate instead of
+    // assembling the preliminary TTS chunks. In that case the calibration
+    // artifact, selected WAV, and pacing summary form the delivery provenance.
+    const canonicalSelectedAudio =
+      pacingSummary?.measuredAudioPath === "audio/narration.wav" &&
+      (await fileExists(
+        path.join(paths.narrationRoot, "pacing-calibration.v1.json")
+      ));
     const report = await runQualityGate({
       request,
       paths,
@@ -1084,6 +1092,7 @@ export class NarrationPipeline {
       mastering,
       generation,
       pacingSummary,
+      canonicalSelectedAudio,
     });
     request.logger?.info?.(
       pacingSummary
@@ -1263,6 +1272,7 @@ async function runQualityGate(input: {
   readonly mastering: NarrationMasteringMetadata | null;
   readonly generation: NarrationGenerationMetadata | null;
   readonly pacingSummary?: Awaited<ReturnType<typeof buildPacingSummary>>;
+  readonly canonicalSelectedAudio: boolean;
 }): Promise<NarrationQualityGateReport> {
   return runNarrationQualityGate({
     chunkManifest: input.manifest,
@@ -1281,6 +1291,9 @@ async function runQualityGate(input: {
         : (await fileExists(input.paths.compatibilityNarration))
           ? "written"
           : "not_written",
+    ...(input.canonicalSelectedAudio
+      ? { canonicalSelectedAudio: true }
+      : {}),
     ...(input.pacingSummary ? { pacingSummary: input.pacingSummary } : {}),
     ...(input.request.logger ? { logger: input.request.logger } : {}),
   });

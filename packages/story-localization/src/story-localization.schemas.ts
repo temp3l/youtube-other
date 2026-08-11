@@ -1,4 +1,8 @@
 import { z } from "zod";
+import type {
+  BatchRequestSetFingerprint,
+  BatchSubmissionKey,
+} from "@mediaforge/shared";
 import { localizationHorrorAffectProjectionSchema } from "./localization-horror-affect-projection.js";
 import { languageCodes } from "./story-localization.types.js";
 
@@ -508,6 +512,16 @@ export const localBatchManifestSchema = z.object({
   completionWindow: z.literal("24h"),
   inputFilePath: z.string().min(1),
   inputFileHash: z.string().min(8),
+  batchSubmissionKey: z
+    .custom<BatchSubmissionKey>(
+      (value) => typeof value === "string" && /^[a-f0-9]{64}$/u.test(value)
+    )
+    .optional(),
+  requestSetFingerprint: z
+    .custom<BatchRequestSetFingerprint>(
+      (value) => typeof value === "string" && /^[a-f0-9]{64}$/u.test(value)
+    )
+    .optional(),
   openAIInputFileId: z.string().min(1).optional(),
   openAIBatchId: z.string().min(1).optional(),
   status: localBatchManifestStatusSchema,

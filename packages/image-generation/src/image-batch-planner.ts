@@ -4,6 +4,7 @@ import type { BatchCreateParams } from "openai/resources/batches";
 import { scenePlanSchema, type ScenePlan } from "@mediaforge/domain";
 import {
   assertInsideWorkspace,
+  createOpenAiBatchSubmissionIdentity,
   fileExists,
   hashFile,
   hashText,
@@ -1705,15 +1706,26 @@ async function writePreparedGroup(args: {
   readonly settings: ImageBatchPlannerSettings;
 }): Promise<readonly string[]> {
   const requestLines = groupRequestLines(args.group);
+  const serializedRequestLines = requestLines.map((line) => JSON.stringify(line));
   const { inputFilePath, inputFileHash } = await writeImageBatchInputFile(
     args.group.storagePlan,
-    requestLines.map((line) => JSON.stringify(line))
+    serializedRequestLines
   );
   const endpoint =
     requestLines[0]?.url ??
     (args.group.stageKind === "reference-images"
       ? "/v1/images/generations"
       : "/v1/images/generations");
+  const submissionIdentity =
+    serializedRequestLines.length > 0
+      ? createOpenAiBatchSubmissionIdentity({
+          endpoint,
+          completionWindow: "24h",
+          jsonl: `${serializedRequestLines.join("\n")}\n`,
+          submissionPolicyVersion: "image-batch-submission.v1",
+          purpose: "initial",
+        })
+      : undefined;
   const manifest: ImageBatchManifest = {
     schemaVersion: "image-batch-v2",
     category: "image-generation",
@@ -1727,6 +1739,12 @@ async function writePreparedGroup(args: {
     completionWindow: "24h",
     inputFilePath,
     inputFileHash,
+    ...(submissionIdentity
+      ? {
+          batchSubmissionKey: submissionIdentity.batchSubmissionKey,
+          requestSetFingerprint: submissionIdentity.requestSetFingerprint,
+        }
+      : {}),
     status: "prepared",
     items: groupManifestItems(args.group),
     dependencyGraphSummary: {

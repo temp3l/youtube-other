@@ -5,6 +5,7 @@ declare const resultCacheKeyBrand: unique symbol;
 declare const promptPrefixFingerprintBrand: unique symbol;
 declare const promptCacheRoutingKeyBrand: unique symbol;
 declare const batchSubmissionKeyBrand: unique symbol;
+declare const batchRequestSetFingerprintBrand: unique symbol;
 
 export type LogicalRequestFingerprint = string & {
   readonly [logicalRequestFingerprintBrand]: true;
@@ -18,6 +19,9 @@ export type PromptCacheRoutingKey = string & {
 };
 export type BatchSubmissionKey = string & {
   readonly [batchSubmissionKeyBrand]: true;
+};
+export type BatchRequestSetFingerprint = string & {
+  readonly [batchRequestSetFingerprintBrand]: true;
 };
 
 export type CanonicalFingerprintValue =
@@ -144,6 +148,113 @@ export function createBatchSubmissionKey(input: {
   readonly inputManifest: CanonicalFingerprintValue;
 }): BatchSubmissionKey {
   return fingerprint("openai-batch-submission.v1", input) as BatchSubmissionKey;
+}
+
+export interface OpenAiBatchSubmissionIdentity {
+  readonly batchSubmissionKey: BatchSubmissionKey;
+  readonly requestSetFingerprint: BatchRequestSetFingerprint;
+}
+
+function asCanonicalFingerprintValue(value: unknown): CanonicalFingerprintValue {
+  if (
+    value === null ||
+    typeof value === "boolean" ||
+    typeof value === "string"
+  ) {
+    return value;
+  }
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) {
+      throw new Error("Batch request items must contain only finite numbers.");
+    }
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map((entry) => asCanonicalFingerprintValue(entry));
+  }
+  if (typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Readonly<Record<string, unknown>>).map(
+        ([key, entry]) => [key, asCanonicalFingerprintValue(entry)]
+      )
+    );
+  }
+  throw new Error("Batch request items must be JSON-serializable values.");
+}
+
+/**
+ * Derives identity from the exact provider request set. JSONL order is excluded:
+ * OpenAI maps Batch results by unique custom_id and does not promise output order.
+ */
+export function createOpenAiBatchSubmissionIdentity(input: {
+  readonly endpoint: string;
+  readonly completionWindow: string;
+  readonly jsonl: string;
+  readonly submissionPolicyVersion: string;
+  readonly purpose: "initial" | "failed-item-retry";
+  readonly parentBatchSubmissionKey?: BatchSubmissionKey;
+}): OpenAiBatchSubmissionIdentity {
+  const items = input.jsonl
+    .split(/\r?\n/gu)
+    .filter((line) => line.trim().length > 0)
+    .map((line, index) => {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(line) as unknown;
+      } catch (error) {
+        throw new Error(`Invalid Batch JSONL line ${index + 1}.`, { cause: error });
+      }
+      if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+        throw new Error(`Batch JSONL line ${index + 1} must be an object.`);
+      }
+      const record = parsed as Readonly<Record<string, unknown>>;
+      if (
+        typeof record["custom_id"] !== "string" ||
+        typeof record["method"] !== "string" ||
+        typeof record["url"] !== "string" ||
+        !("body" in record)
+      ) {
+        throw new Error(
+          `Batch JSONL line ${index + 1} must contain custom_id, method, url, and body.`
+        );
+      }
+      return {
+        customId: record["custom_id"],
+        method: record["method"],
+        url: record["url"],
+        body: asCanonicalFingerprintValue(record["body"]),
+      } satisfies CanonicalFingerprintValue;
+    })
+    .sort((left, right) => {
+      const byId = String(left.customId).localeCompare(String(right.customId));
+      return byId !== 0
+        ? byId
+        : canonicalize(left).localeCompare(canonicalize(right));
+    });
+  if (items.length === 0) {
+    throw new Error("Batch request set must contain at least one item.");
+  }
+  for (let index = 1; index < items.length; index += 1) {
+    if (items[index - 1]?.customId === items[index]?.customId) {
+      throw new Error(`Duplicate Batch custom_id ${String(items[index]?.customId)}.`);
+    }
+  }
+  const requestSetFingerprint = fingerprint(
+    "openai-batch-request-set.v1",
+    items
+  ) as BatchRequestSetFingerprint;
+  const batchSubmissionKey = createBatchSubmissionKey({
+    provider: "openai",
+    endpoint: input.endpoint,
+    completionWindow: input.completionWindow,
+    inputManifest: {
+      requestSetFingerprint,
+      submissionPolicyVersion: input.submissionPolicyVersion,
+      purpose: input.purpose,
+      parentBatchSubmissionKey: input.parentBatchSubmissionKey ?? null,
+    },
+  });
+  return { batchSubmissionKey, requestSetFingerprint };
 }
 
 export type OpenAiRequestModality =

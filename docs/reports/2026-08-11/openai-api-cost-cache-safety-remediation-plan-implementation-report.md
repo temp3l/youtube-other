@@ -135,3 +135,16 @@ full/ordinary localization 820, English short 746, and affect-preserving
 localization 1,105 estimated tokens; tools are absent. Only the last is eligible,
 and only when at least two exact-prefix items share a burst. Another paid test is
 not warranted until that reuse topology is observed.
+
+## Phase 5 submission-safety update
+
+Story and Image Batch now persist a `BatchSubmissionKey`-scoped intent before
+remote creation, override `batches.create` retries to zero, attach a non-sensitive
+reconciliation key, and adopt exactly one read-only provider-list match after an
+ambiguous outcome. Failed-item retries bind parent submission identity and receive
+new keys. Same-key submitters share an atomic filesystem lock and intent within
+the canonical Batch storage root. No general distributed claim was introduced.
+The export-only History V3.3 helper remains outside demonstrated production
+reachability. Shared identity and reconciliation tests passed; new Story recovery
+and concurrency cases passed. A stale Story fixture and existing Image typing
+drift prevented complete suite/typecheck validation. Paid requests: zero.

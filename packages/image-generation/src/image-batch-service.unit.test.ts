@@ -451,6 +451,21 @@ describe("image batch service", () => {
       client as never
     );
     expect(submitted.openAIBatchId).toBe("batch_1");
+    expect(client.batches.create).toHaveBeenCalledTimes(1);
+    expect(client.batches.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          mediaforge_submission_key: expect.stringMatching(/^[a-f0-9]{64}$/u),
+        }),
+      }),
+      { maxRetries: 0 }
+    );
+    await submitImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+    expect(client.batches.create).toHaveBeenCalledTimes(1);
 
     const manifestAfterSubmit = await readImageBatchManifest(
       group.storagePlan.manifestPath
@@ -472,6 +487,66 @@ describe("image batch service", () => {
     const latest = await index.getLatest({ category: "image-generation" });
     expect(latest?.openAIBatchId).toBe("batch_1");
     expect(latest?.status).toBe("completed");
+  });
+
+  it("recovers an ambiguous image Batch create without creating again", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-recover-"));
+    const episodeDir = path.join(tempDir, "episode");
+    const outputDirectory = path.join(episodeDir, "state", "image-generation");
+    await writeSceneManifest({ episodeDir, sceneId: "scene-002" });
+    const prepared = await prepareImageBatchForEpisode({
+      episodeDir,
+      episodeId: "001-demo",
+      scenePlan: { scenes: [{ id: "scene-002", sequenceNumber: 2 }] },
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1920x1088",
+        quality: "medium",
+        outputFormat: "png",
+      },
+    });
+    const group = prepared.groups[0] as {
+      readonly storagePlan: ImageBatchStoragePlan;
+    };
+    const client = makeClient();
+    let remoteMetadata: Record<string, string> = {};
+    client.batches.create.mockImplementationOnce(async (body) => {
+      remoteMetadata = body.metadata ?? {};
+      throw new Error("connection lost after provider accepted create");
+    });
+    client.batches.list = vi.fn(async () => ({
+      data: [
+        {
+          id: "batch_recovered",
+          status: "in_progress",
+          endpoint: "/v1/images/generations",
+          input_file_id: "file_1",
+          completion_window: "24h",
+          created_at: 1,
+          object: "batch",
+          metadata: remoteMetadata,
+        },
+      ],
+      has_more: false,
+    }));
+
+    await expect(
+      submitImageBatch(
+        outputDirectory,
+        group.storagePlan.localBatchId,
+        client as never
+      )
+    ).rejects.toThrow("reconciliation is required");
+    const recovered = await submitImageBatch(
+      outputDirectory,
+      group.storagePlan.localBatchId,
+      client as never
+    );
+
+    expect(recovered.openAIBatchId).toBe("batch_recovered");
+    expect(client.batches.create).toHaveBeenCalledTimes(1);
+    expect(client.batches.list).toHaveBeenCalledTimes(1);
+    expect(JSON.stringify(remoteMetadata)).not.toContain("Prompt for scene-002");
   });
 
   it("summarizes merge and reuse metadata in the batch readiness report", async () => {
@@ -1966,6 +2041,9 @@ describe("image batch service", () => {
     expect(retryManifest?.retryNumber).toBe(1);
     expect(retryManifest?.items).toHaveLength(1);
     expect(retryManifest?.items[0]?.sceneId).toBe("scene-003");
+    expect(retryManifest?.batchSubmissionKey).not.toBe(
+      manifest.batchSubmissionKey
+    );
     const retryPlan = JSON.parse(
       await fs.readFile(batchRunReportPath(group.storagePlan, "retry-plan.json"), "utf8")
     ) as {

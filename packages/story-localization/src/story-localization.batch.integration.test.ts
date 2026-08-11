@@ -720,6 +720,17 @@ describe("story localization batch integration", () => {
       client as never
     );
     expect(submitted.openAIBatchId).toBe("batch_1");
+    expect(client.batches.create).toHaveBeenCalledTimes(1);
+    expect(client.batches.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          mediaforge_submission_key: expect.stringMatching(/^[a-f0-9]{64}$/u),
+        }),
+      }),
+      { maxRetries: 0 }
+    );
+    await submitStoryLocalizationBatch(prepared.localBatchId, config, client as never);
+    expect(client.batches.create).toHaveBeenCalledTimes(1);
     const refreshed = await refreshStoryLocalizationBatch(
       prepared.localBatchId,
       config,
@@ -855,6 +866,61 @@ describe("story localization batch integration", () => {
     expect(canonicalResult.lineage.fingerprint).toHaveLength(64);
     expect(canonicalResult.result.full).toHaveProperty("narrationParagraphs");
     expect(canonicalResult.result.full).not.toHaveProperty("thumbnailText");
+  });
+
+  it("recovers an ambiguous create by metadata without a second Batch creation", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "story-batch-recover-"));
+    const config = makeConfig(tempDir);
+    const prepared = await prepareStoryLocalizationBatch([sourceFile], config);
+    const client = makeBatchClient("");
+    let remoteMetadata: Record<string, string> = {};
+    client.batches.create.mockImplementationOnce(async (body) => {
+      remoteMetadata = body.metadata ?? {};
+      throw new Error("connection lost after provider accepted create");
+    });
+    client.batches.list = vi.fn(async () => ({
+      data: [
+        {
+          id: "batch_recovered",
+          status: "validating",
+          endpoint: "/v1/responses",
+          input_file_id: "file_input_1",
+          completion_window: "24h",
+          created_at: 1,
+          object: "batch",
+          metadata: remoteMetadata,
+        },
+      ],
+      has_more: false,
+    }));
+
+    await expect(
+      submitStoryLocalizationBatch(prepared.localBatchId, config, client as never)
+    ).rejects.toThrow("reconciliation is required");
+    const recovered = await submitStoryLocalizationBatch(
+      prepared.localBatchId,
+      config,
+      client as never
+    );
+
+    expect(recovered.openAIBatchId).toBe("batch_recovered");
+    expect(client.batches.create).toHaveBeenCalledTimes(1);
+    expect(client.batches.list).toHaveBeenCalledTimes(1);
+    expect(JSON.stringify(remoteMetadata)).not.toContain("Elena Ward");
+  });
+
+  it("serializes concurrent submitters for one BatchSubmissionKey", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "story-batch-concurrent-"));
+    const config = makeConfig(tempDir);
+    const prepared = await prepareStoryLocalizationBatch([sourceFile], config);
+    const client = makeBatchClient("");
+    const submissions = await Promise.allSettled([
+      submitStoryLocalizationBatch(prepared.localBatchId, config, client as never),
+      submitStoryLocalizationBatch(prepared.localBatchId, config, client as never),
+    ]);
+
+    expect(client.batches.create).toHaveBeenCalledTimes(1);
+    expect(submissions.some((result) => result.status === "fulfilled")).toBe(true);
   });
 
   it("imports successful siblings and records provider failure retry candidates", async () => {
@@ -1062,5 +1128,8 @@ describe("story localization batch integration", () => {
     expect(retryManifest?.items).toHaveLength(1);
     expect(retryManifest?.items[0]?.customId.endsWith(":r2")).toBe(true);
     expect(retryManifest?.items[0]?.language).toBe("de");
+    expect(retryManifest?.batchSubmissionKey).not.toBe(
+      manifest.batchSubmissionKey
+    );
   });
 });

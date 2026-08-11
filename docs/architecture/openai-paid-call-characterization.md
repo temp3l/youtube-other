@@ -28,8 +28,8 @@ column avoids inferring deployment topology that source does not prove.
 | Canonical speech chunk | 0 for injected SDK request | default 2 | configured model fallback separate | 3 per model/chunk | `SpeechGenerationService`; existing DB claim unchanged |
 | Legacy speech adapter | 0 for injected SDK request | default 2 | configured model fallback separate | 3 per model/chunk/invocation | Same application service, but no durable reuse in legacy facade |
 | Transcription chunk | 0 (curl) | 0 | one call per chunk | 1 per chunk | No retry owner |
-| Story Batch control plane | configured SDK, default 5 | 0 | manual failed-item retry batch | 6 per control action; one provider execution per submitted item | SDK; Batch API owns item execution |
-| Image Batch control plane | configured SDK, default 2 | 0 | explicit retry-failed batch | 3 per control action; one provider execution per submitted item | SDK; submission crash gap remains |
+| Story Batch control plane | create override 0 | 0 | manual failed-item retry batch with distinct submission key | 1 create attempt per logical submission | application intent/reconciliation; Batch API owns item execution |
+| Image Batch control plane | create override 0 | 0 | explicit retry-failed batch with distinct submission key | 1 create attempt per logical submission | application intent/reconciliation; Batch API owns item execution |
 
 For source-grounded QA with `N` scenes and batch size `B` (7 short, 5 long),
 the existing bounded authorization formula remains approximately
@@ -42,7 +42,7 @@ actions plus scheduler-owned retries, not nested SDK retries.
 | Call family | Classification | Evidence and limitation |
 |---|---|---|
 | Canonical speech | multi-process demonstrated | Postgres generation claim/wait/reclaim in `apps/api/src/postgres-speech-use-cases.ts`; consumed by `SpeechGenerationService` |
-| Image Batch submission | multi-process possible | Shared persistent batch manifests can be submitted by concurrent CLI processes; submission has no claim/lock |
+| Image Batch submission | multi-process possible | Key-scoped filesystem intent and atomic lock prevent concurrent create paths when processes share the canonical Batch storage root |
 | History research providers | unknown | History has worker-thread tooling, but source does not prove that paid V3.3 research runs through that pool |
 | Story localization/full | single-process | CLI composition and in-memory async concurrency; cross-process deployment remains unknown |
 | Short rewrite | single-process | In-memory queue/workers and `Promise.all`; cross-process deployment remains unknown |
@@ -53,7 +53,7 @@ actions plus scheduler-owned retries, not nested SDK retries.
 | Thumbnail | single-process | Direct CLI generation; cross-process deployment remains unknown |
 | Legacy speech facade | single-process | Local facade; API use may sit behind the canonical speech claim |
 | Transcription | single-process | Direct CLI chunk loop; cross-process deployment remains unknown |
-| Story Batch | multi-process possible | Provider Batch plus persisted manifests; concurrent submit topology is not proven |
+| Story Batch | multi-process possible | Key-scoped filesystem intent and atomic lock prevent concurrent create paths when processes share the canonical Batch storage root |
 
 These classifications do not authorize new distributed claims. Phase 2 must first
 prove a multi-process cache-fill race. Local single-flight remains appropriate for
@@ -66,6 +66,18 @@ same-process duplicates; canonical speech keeps its demonstrated Postgres claim.
 - `PromptPrefixFingerprint`: reusable static provider prefix only.
 - `PromptCacheRoutingKey`: provider routing/throughput grouping, never correctness.
 - `BatchSubmissionKey`: deterministic remote submission identity.
+
+## Batch submission safety
+
+Story and Image Batch derive `BatchSubmissionKey` from the canonical JSONL
+request set, endpoint, completion window, submission policy, and retry lineage.
+JSONL order and local paths/IDs do not affect it. A key-scoped intent is persisted
+before one zero-retry `batches.create`; provider metadata contains only the hash.
+Uncertain creation enters `reconciliation_required`. Restart performs bounded,
+read-only listing: one exact key/endpoint/file match is adopted, while
+zero/incomplete/multiple matches fail closed without another create. Uploaded-file
+orphans remain cleanup work. The export-only History V3.3 helper has no repository
+production caller and was not migrated.
 
 Normalized usage makes uncached, cached, and cache-write input mutually exclusive.
 Routing telemetry can calculate request count and peak requests/minute per routing

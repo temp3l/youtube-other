@@ -34,6 +34,12 @@ export interface NarrationQualityGateRequest {
     | "written"
     | "failed"
     | "skipped";
+  /**
+   * A policy-calibrated full narration was promoted as the canonical delivery
+   * asset. Its provenance is represented by the pacing artifact rather than a
+   * chunk-assembly manifest.
+   */
+  readonly canonicalSelectedAudio?: boolean;
   readonly fallbackUsed?: boolean;
   readonly fallbackReasons?: readonly string[];
   readonly pacingSummary?: NarrationPacingSummary;
@@ -249,13 +255,23 @@ export async function runNarrationQualityGate(
       })
     );
   }
-  if (!assembly) {
+  if (!assembly && !request.canonicalSelectedAudio) {
     checks.push(
       check({
         code: "ASSEMBLY_MISSING",
         status: "failed",
         severity: "error",
         message: "Assembly manifest is missing.",
+      })
+    );
+  } else if (!assembly) {
+    checks.push(
+      check({
+        code: "CANONICAL_SELECTED_AUDIO",
+        status: "passed",
+        severity: "info",
+        message:
+          "A policy-calibrated selected narration is the canonical delivery asset.",
       })
     );
   } else {
@@ -383,6 +399,9 @@ export async function runNarrationQualityGate(
     manifest.manifestFingerprint,
     ...(assembly ? [assembly.assemblyFingerprint] : []),
     ...(mastering ? [mastering.masteringConfigurationFingerprint] : []),
+    ...(request.canonicalSelectedAudio && pacingSummary
+      ? [hashText(JSON.stringify(pacingSummary))]
+      : []),
     ...(generation?.artifactFingerprints.map(
       (artifact) => artifact.fingerprint
     ) ?? []),

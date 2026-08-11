@@ -118,8 +118,15 @@ export interface OpenAiStoryClient {
       readonly endpoint: BatchEndpoint;
       readonly completion_window: "24h";
       readonly metadata?: Record<string, string>;
-    }): Promise<OpenAIBatch>;
+    }, options?: { readonly maxRetries?: number }): Promise<OpenAIBatch>;
     retrieve(batchId: string): Promise<OpenAIBatch>;
+    list?(query: {
+      readonly limit: number;
+      readonly after?: string;
+    }): Promise<{
+      readonly data: readonly OpenAIBatch[];
+      readonly has_more: boolean;
+    }>;
     cancel(batchId: string): Promise<OpenAIBatch>;
   };
 }

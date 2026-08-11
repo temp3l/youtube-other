@@ -4,6 +4,7 @@ import { z } from "zod";
 import {
   assertInsideWorkspace,
   aggregatePromptCacheUsage,
+  createOpenAiBatchSubmissionIdentity,
   fileExists,
   hashFile,
   readJsonIfExists,
@@ -19,14 +20,24 @@ import {
   writeBinaryAtomic,
   writeJsonAtomic,
   writeTextAtomic,
+  type BatchSubmissionKey,
 } from "@mediaforge/shared";
+import { createLogger } from "@mediaforge/observability";
 import {
+  createOpenAiBatchSubmissionIntent,
+  isTerminalOpenAiBatchStatus,
+  openAiBatchSubmissionLockPath,
+  openAiBatchSubmissionMetadata,
+  readOpenAiBatchSubmissionIntent,
+  writeOpenAiBatchSubmissionIntent,
   StoryBatchIndexService,
   withFileLock,
   type BatchIndexEntry,
   type BatchIndexStatus,
   type OpenAiBatchOutputLine,
   type OpenAiStoryClient,
+  type OpenAiBatchSubmissionIntent,
+  type OpenAiRemoteBatchSnapshot,
 } from "@mediaforge/story-localization";
 import {
   ensureImageBatchStorageLayout,
@@ -1299,6 +1310,112 @@ async function persistImportedSceneResult(args: {
   };
 }
 
+async function resolveImageBatchSubmissionKey(
+  outputDirectory: string,
+  manifest: ImageBatchManifest
+): Promise<BatchSubmissionKey> {
+  if (manifest.batchSubmissionKey) return manifest.batchSubmissionKey;
+  const parentManifest = manifest.parentLocalBatchId
+    ? (await resolveImageBatchManifest(
+        outputDirectory,
+        manifest.parentLocalBatchId
+      )).manifest
+    : undefined;
+  const parentBatchSubmissionKey = parentManifest
+    ? await resolveImageBatchSubmissionKey(outputDirectory, parentManifest)
+    : undefined;
+  const jsonl = await fsp.readFile(manifest.inputFilePath, "utf8");
+  return createOpenAiBatchSubmissionIdentity({
+    endpoint: manifest.endpoint,
+    completionWindow: manifest.completionWindow,
+    jsonl,
+    submissionPolicyVersion: "image-batch-submission.v1",
+    purpose: manifest.parentLocalBatchId ? "failed-item-retry" : "initial",
+    ...(parentBatchSubmissionKey ? { parentBatchSubmissionKey } : {}),
+  }).batchSubmissionKey;
+}
+
+function imageBatchSubmissionStatus(
+  intent: OpenAiBatchSubmissionIntent
+): ImageBatchStatus {
+  return intent.state === "terminal" && intent.providerStatus
+    ? (intent.providerStatus as ImageBatchStatus)
+    : "submitted";
+}
+
+async function persistImageBatchSubmission(args: {
+  readonly outputDirectory: string;
+  readonly layout: ImageBatchStorageLayout;
+  readonly episodeDir: string;
+  readonly manifestPath: string;
+  readonly manifest: ImageBatchManifest;
+  readonly intent: OpenAiBatchSubmissionIntent;
+  readonly remote?: OpenAiRemoteBatchSnapshot;
+}): Promise<ImageBatchSubmissionResult> {
+  if (!args.intent.providerBatchId || !args.intent.inputFileId) {
+    throw new Error("Submitted image Batch intent is missing provider identities.");
+  }
+  const nextManifest = imageBatchManifestSchema.parse({
+    ...args.manifest,
+    batchSubmissionKey: args.intent.batchSubmissionKey,
+    requestSetFingerprint: args.intent.requestSetFingerprint,
+    openAIInputFileId: args.intent.inputFileId,
+    openAIBatchId: args.intent.providerBatchId,
+    status: imageBatchSubmissionStatus(args.intent),
+    submittedAt: args.intent.submittedAt ?? new Date().toISOString(),
+    ...(args.remote?.outputFileId
+      ? { outputFileId: args.remote.outputFileId }
+      : {}),
+    ...(args.remote?.errorFileId ? { errorFileId: args.remote.errorFileId } : {}),
+    ...(args.remote?.completedAt
+      ? { completedAt: new Date(args.remote.completedAt * 1000).toISOString() }
+      : {}),
+    items: args.manifest.items.map((item) =>
+      item.status === "skipped-cached"
+        ? item
+        : item.status === "planned"
+          ? { ...item, status: "submitted" }
+          : item
+    ),
+    updatedAt: new Date().toISOString(),
+  }) as ImageBatchManifest;
+  await writeImageBatchManifest(
+    {
+      outputDirectory: args.outputDirectory,
+      layout: args.layout,
+      localBatchId: args.manifest.localBatchId,
+      inputFilePath: args.manifest.inputFilePath,
+      manifestPath: args.manifestPath,
+      resultFilePath: resolveEpisodeImageBatchResultPath(
+        args.episodeDir,
+        args.manifest.localBatchId
+      ),
+      errorFilePath: resolveEpisodeImageBatchErrorPath(
+        args.episodeDir,
+        args.manifest.localBatchId
+      ),
+      reportFilePath: resolveEpisodeImageBatchReportPath(
+        args.episodeDir,
+        args.manifest.localBatchId
+      ),
+    },
+    nextManifest
+  );
+  const index = new StoryBatchIndexService(args.outputDirectory);
+  await index.initialize();
+  await index.upsert(toIndexEntry({ layout: args.layout, manifest: nextManifest }));
+  return {
+    localBatchId: args.manifest.localBatchId,
+    openAIBatchId: args.intent.providerBatchId,
+    openAIInputFileId: args.intent.inputFileId,
+    status: batchIndexStatusFromImageStatus(nextManifest.status),
+  };
+}
+
+function imageBatchSubmissionErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 export async function submitImageBatch(
   outputDirectory: string,
   localBatchId: string,
@@ -1310,6 +1427,22 @@ export async function submitImageBatch(
   const resolved = await resolveImageBatchManifest(outputDirectory, localBatchId);
   const manifestPath = resolved.manifestPath;
   const manifest = resolved.manifest;
+  if (manifest.openAIBatchId && manifest.openAIInputFileId) {
+    createLogger("info").info(
+      {
+        batchSubmissionKey: manifest.batchSubmissionKey,
+        providerBatchId: manifest.openAIBatchId,
+        lifecycleTransition: "duplicate_prevented",
+      },
+      "Skipped completed OpenAI image Batch submission"
+    );
+    return {
+      localBatchId,
+      openAIBatchId: manifest.openAIBatchId,
+      openAIInputFileId: manifest.openAIInputFileId,
+      status: batchIndexStatusFromImageStatus(manifest.status),
+    };
+  }
   if (manifest.status !== "prepared") {
     throw new Error(`Image batch ${localBatchId} is not in prepared state.`);
   }
@@ -1332,51 +1465,225 @@ export async function submitImageBatch(
   if (currentHash !== manifest.inputFileHash) {
     throw new Error(`Image batch input hash mismatch for ${localBatchId}.`);
   }
-  const uploaded = await provider.uploadInputFile(absoluteInputPath);
-  const created = await provider.createBatch({
-    inputFileId: uploaded.fileId,
+  const jsonl = await fsp.readFile(absoluteInputPath, "utf8");
+  const parentManifest = manifest.parentLocalBatchId
+    ? (await resolveImageBatchManifest(outputDirectory, manifest.parentLocalBatchId))
+        .manifest
+    : undefined;
+  const parentBatchSubmissionKey = parentManifest
+    ? await resolveImageBatchSubmissionKey(outputDirectory, parentManifest)
+    : undefined;
+  const identity = createOpenAiBatchSubmissionIdentity({
     endpoint: manifest.endpoint,
-    completionWindow: "24h",
-    metadata: {
-      local_batch_id: localBatchId,
-      category: "image-generation",
-    },
+    completionWindow: manifest.completionWindow,
+    jsonl,
+    submissionPolicyVersion: "image-batch-submission.v1",
+    purpose: manifest.parentLocalBatchId ? "failed-item-retry" : "initial",
+    ...(parentBatchSubmissionKey ? { parentBatchSubmissionKey } : {}),
   });
-  const nextManifest = imageBatchManifestSchema.parse({
-    ...manifest,
-    openAIInputFileId: uploaded.fileId,
-    openAIBatchId: created.batchId,
-    status: "submitted",
-    submittedAt: new Date().toISOString(),
-    items: manifest.items.map((item) =>
-      item.status === "skipped-cached"
-        ? item
-        : { ...item, status: "submitted" }
-    ),
-    updatedAt: new Date().toISOString(),
-  }) as ImageBatchManifest;
-  await writeImageBatchManifest(
-    {
-      outputDirectory,
-      layout,
-      localBatchId,
-      inputFilePath: manifest.inputFilePath,
-      manifestPath,
-      resultFilePath: resolveEpisodeImageBatchResultPath(episodeDir, localBatchId),
-      errorFilePath: resolveEpisodeImageBatchErrorPath(episodeDir, localBatchId),
-      reportFilePath: resolveEpisodeImageBatchReportPath(episodeDir, localBatchId),
-    },
-    nextManifest
+  if (
+    (manifest.batchSubmissionKey &&
+      manifest.batchSubmissionKey !== identity.batchSubmissionKey) ||
+    (manifest.requestSetFingerprint &&
+      manifest.requestSetFingerprint !== identity.requestSetFingerprint)
+  ) {
+    throw new Error(`Image batch submission identity mismatch for ${localBatchId}.`);
+  }
+  return withFileLock(
+    openAiBatchSubmissionLockPath(layout.root, identity.batchSubmissionKey),
+    async () => {
+      const logger = createLogger("info");
+      let intent = await readOpenAiBatchSubmissionIntent(
+        layout.root,
+        identity.batchSubmissionKey
+      );
+      if (!intent) {
+        intent = createOpenAiBatchSubmissionIntent({
+          ...identity,
+          endpoint: manifest.endpoint,
+          submissionPolicyVersion: "image-batch-submission.v1",
+          purpose: manifest.parentLocalBatchId ? "failed-item-retry" : "initial",
+          ...(parentBatchSubmissionKey ? { parentBatchSubmissionKey } : {}),
+        });
+        await writeOpenAiBatchSubmissionIntent(layout.root, intent);
+        logger.info(
+          {
+            batchSubmissionKey: intent.batchSubmissionKey,
+            lifecycleTransition: "prepared",
+          },
+          "OpenAI image Batch submission intent persisted"
+        );
+      }
+      if (intent.requestSetFingerprint !== identity.requestSetFingerprint) {
+        throw new Error("Image Batch key resolved to a different request set.");
+      }
+      if (intent.providerBatchId) {
+        logger.info(
+          {
+            batchSubmissionKey: intent.batchSubmissionKey,
+            providerBatchId: intent.providerBatchId,
+            lifecycleTransition: "duplicate_prevented",
+          },
+          "Reused durable OpenAI image Batch submission"
+        );
+        return persistImageBatchSubmission({
+          outputDirectory,
+          layout,
+          episodeDir,
+          manifestPath,
+          manifest,
+          intent,
+        });
+      }
+      if (intent.createAttemptedAt || intent.state === "reconciliation_required") {
+        logger.info(
+          {
+            batchSubmissionKey: intent.batchSubmissionKey,
+            lifecycleTransition: "reconciliation_attempt",
+          },
+          "Reconciling uncertain OpenAI image Batch submission"
+        );
+        if (!provider.reconcileSubmission) {
+          throw new Error(
+            "Image Batch reconciliation is required but the provider cannot list batches."
+          );
+        }
+        let reconciliation;
+        try {
+          reconciliation = await provider.reconcileSubmission(intent);
+        } catch (error) {
+          logger.warn(
+            {
+              batchSubmissionKey: intent.batchSubmissionKey,
+              lifecycleTransition: "reconciliation_required",
+              error: imageBatchSubmissionErrorMessage(error),
+            },
+            "OpenAI image Batch reconciliation failed closed"
+          );
+          throw error;
+        }
+        if (reconciliation.kind !== "exact") {
+          throw new Error(
+            `OpenAI image Batch reconciliation is ${reconciliation.kind}; refusing another create.`
+          );
+        }
+        const now = new Date().toISOString();
+        intent = {
+          ...intent,
+          state: isTerminalOpenAiBatchStatus(reconciliation.batch.status)
+            ? "terminal"
+            : "submitted",
+          providerBatchId: reconciliation.batch.id,
+          providerStatus: reconciliation.batch.status,
+          submittedAt: intent.submittedAt ?? now,
+          reconciledAt: now,
+          updatedAt: now,
+        };
+        await writeOpenAiBatchSubmissionIntent(layout.root, intent);
+        logger.info(
+          {
+            batchSubmissionKey: intent.batchSubmissionKey,
+            providerBatchId: intent.providerBatchId,
+            lifecycleTransition: "recovered_existing_remote_submission",
+          },
+          "Recovered OpenAI image Batch submission"
+        );
+        return persistImageBatchSubmission({
+          outputDirectory,
+          layout,
+          episodeDir,
+          manifestPath,
+          manifest,
+          intent,
+          remote: reconciliation.batch,
+        });
+      }
+      if (!intent.inputFileId) {
+        const uploaded = await provider.uploadInputFile(absoluteInputPath);
+        intent = {
+          ...intent,
+          inputFileId: uploaded.fileId,
+          state: "submission_pending",
+          updatedAt: new Date().toISOString(),
+        };
+        await writeOpenAiBatchSubmissionIntent(layout.root, intent);
+      }
+      const createAttemptedAt = new Date().toISOString();
+      intent = {
+        ...intent,
+        state: "submission_pending",
+        createAttemptedAt,
+        updatedAt: createAttemptedAt,
+      };
+      await writeOpenAiBatchSubmissionIntent(layout.root, intent);
+      try {
+        const inputFileId = intent.inputFileId;
+        if (!inputFileId) {
+          throw new Error("Image Batch input file identity was not persisted.");
+        }
+        const created = await provider.createBatch({
+          inputFileId,
+          endpoint: manifest.endpoint,
+          completionWindow: "24h",
+          metadata: openAiBatchSubmissionMetadata(intent.batchSubmissionKey, {
+            local_batch_id: localBatchId,
+            category: "image-generation",
+          }),
+        });
+        const now = new Date().toISOString();
+        intent = {
+          ...intent,
+          state: "submitted",
+          providerBatchId: created.batchId,
+          providerStatus: created.status,
+          submittedAt: now,
+          updatedAt: now,
+        };
+        await writeOpenAiBatchSubmissionIntent(layout.root, intent);
+        logger.info(
+          {
+            batchSubmissionKey: intent.batchSubmissionKey,
+            providerBatchId: created.batchId,
+            createAttempt: 1,
+            lifecycleTransition: "submitted",
+          },
+          "Created OpenAI image Batch once"
+        );
+        return persistImageBatchSubmission({
+          outputDirectory,
+          layout,
+          episodeDir,
+          manifestPath,
+          manifest,
+          intent,
+        });
+      } catch (error) {
+        const now = new Date().toISOString();
+        intent = {
+          ...intent,
+          state: "reconciliation_required",
+          updatedAt: now,
+          lastError: {
+            message: imageBatchSubmissionErrorMessage(error),
+            occurredAt: now,
+          },
+        };
+        await writeOpenAiBatchSubmissionIntent(layout.root, intent);
+        logger.warn(
+          {
+            batchSubmissionKey: intent.batchSubmissionKey,
+            createAttempt: 1,
+            lifecycleTransition: "reconciliation_required",
+          },
+          "OpenAI image Batch create outcome is ambiguous; retry suppressed"
+        );
+        throw new Error(
+          `OpenAI image Batch create outcome is ambiguous for ${localBatchId}; reconciliation is required.`,
+          { cause: error }
+        );
+      }
+    }
   );
-  const index = new StoryBatchIndexService(outputDirectory);
-  await index.initialize();
-  await index.upsert(toIndexEntry({ layout, manifest: nextManifest }));
-  return {
-    localBatchId,
-    openAIBatchId: created.batchId,
-    openAIInputFileId: uploaded.fileId,
-    status: "submitted",
-  };
 }
 
 export async function refreshImageBatch(
@@ -1417,6 +1724,24 @@ export async function refreshImageBatch(
     },
     nextManifest
   );
+  if (manifest.batchSubmissionKey) {
+    const submissionIntent = await readOpenAiBatchSubmissionIntent(
+      layout.root,
+      manifest.batchSubmissionKey
+    );
+    if (submissionIntent) {
+      const now = new Date().toISOString();
+      await writeOpenAiBatchSubmissionIntent(layout.root, {
+        ...submissionIntent,
+        state: isTerminalOpenAiBatchStatus(remote.status)
+          ? "terminal"
+          : "submitted",
+        providerBatchId: remote.batchId,
+        providerStatus: remote.status,
+        updatedAt: now,
+      });
+    }
+  }
   await index.upsert(toIndexEntry({ layout, manifest: nextManifest }));
   return nextManifest;
 }
@@ -1458,6 +1783,20 @@ export async function cancelImageBatch(
     },
     nextManifest
   );
+  if (nextManifest.status === "cancelled" && nextManifest.batchSubmissionKey) {
+    const intent = await readOpenAiBatchSubmissionIntent(
+      layout.root,
+      nextManifest.batchSubmissionKey
+    );
+    if (intent) {
+      await writeOpenAiBatchSubmissionIntent(layout.root, {
+        ...intent,
+        state: "terminal",
+        providerStatus: "cancelled",
+        updatedAt: new Date().toISOString(),
+      });
+    }
+  }
   const index = new StoryBatchIndexService(outputDirectory);
   await index.initialize();
   await index.upsert(toIndexEntry({ layout, manifest: nextManifest }));
@@ -2088,6 +2427,10 @@ export async function retryFailedImageBatch(
   if (preparedGroups.length === 0) {
     throw new Error(`Failed to prepare retry batch for ${resolved.localBatchId}.`);
   }
+  const parentBatchSubmissionKey = await resolveImageBatchSubmissionKey(
+    outputDirectory,
+    manifest
+  );
   const batches: Array<{
     localBatchId: string;
     manifestPath: string;
@@ -2099,11 +2442,22 @@ export async function retryFailedImageBatch(
     if (!preparedManifest) {
       throw new Error(`Missing prepared retry manifest for ${resolved.localBatchId}.`);
     }
+    const retryJsonl = await fsp.readFile(preparedManifest.inputFilePath, "utf8");
+    const submissionIdentity = createOpenAiBatchSubmissionIdentity({
+      endpoint: preparedManifest.endpoint,
+      completionWindow: preparedManifest.completionWindow,
+      jsonl: retryJsonl,
+      submissionPolicyVersion: "image-batch-submission.v1",
+      purpose: "failed-item-retry",
+      parentBatchSubmissionKey,
+    });
     const nextManifest = imageBatchManifestSchema.parse({
       ...preparedManifest,
       rootLocalBatchId: manifest.rootLocalBatchId,
       parentLocalBatchId: manifest.localBatchId,
       retryNumber: manifest.retryNumber + 1,
+      batchSubmissionKey: submissionIdentity.batchSubmissionKey,
+      requestSetFingerprint: submissionIdentity.requestSetFingerprint,
       updatedAt: new Date().toISOString(),
       items: preparedManifest.items.map((item) => ({
         ...item,

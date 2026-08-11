@@ -4,6 +4,7 @@ import {
   classifyPaidOpenAiFailure,
   createBatchSubmissionKey,
   createLogicalRequestFingerprint,
+  createOpenAiBatchSubmissionIdentity,
   createPaidOpenAiRequestDescriptor,
   createPromptCacheRoutingKey,
   createPromptPrefixFingerprint,
@@ -167,6 +168,68 @@ describe("OpenAI paid-request identity", () => {
     expectTypeOf(routing).not.toMatchTypeOf<ResultCacheKey>();
     expect(result).not.toBe(routing);
     expect(batch).not.toBe(result);
+  });
+
+  it("derives Batch identity from the canonical request set, not JSONL order", () => {
+    const firstLine = JSON.stringify({
+      custom_id: "item-a",
+      method: "POST",
+      url: "/v1/responses",
+      body: { model: "gpt-5.6-terra", input: "first" },
+    });
+    const secondLine = JSON.stringify({
+      custom_id: "item-b",
+      method: "POST",
+      url: "/v1/responses",
+      body: { model: "gpt-5.6-terra", input: "second" },
+    });
+    const input = {
+      endpoint: "/v1/responses",
+      completionWindow: "24h",
+      submissionPolicyVersion: "story-batch-submission.v1",
+      purpose: "initial" as const,
+    };
+    const first = createOpenAiBatchSubmissionIdentity({
+      ...input,
+      jsonl: `${firstLine}\n${secondLine}\n`,
+    });
+    const reordered = createOpenAiBatchSubmissionIdentity({
+      ...input,
+      jsonl: `${secondLine}\n${firstLine}\n`,
+    });
+    const changed = createOpenAiBatchSubmissionIdentity({
+      ...input,
+      jsonl: `${firstLine}\n${secondLine.replace("second", "changed")}\n`,
+    });
+    expect(reordered).toEqual(first);
+    expect(changed.batchSubmissionKey).not.toBe(first.batchSubmissionKey);
+    expect(changed.requestSetFingerprint).not.toBe(first.requestSetFingerprint);
+  });
+
+  it("gives an explicit failed-item retry its own submission identity", () => {
+    const jsonl = `${JSON.stringify({
+      custom_id: "item-a",
+      method: "POST",
+      url: "/v1/responses",
+      body: { model: "gpt-5.6-terra", input: "same provider item" },
+    })}\n`;
+    const initial = createOpenAiBatchSubmissionIdentity({
+      endpoint: "/v1/responses",
+      completionWindow: "24h",
+      jsonl,
+      submissionPolicyVersion: "story-batch-submission.v1",
+      purpose: "initial",
+    });
+    const retry = createOpenAiBatchSubmissionIdentity({
+      endpoint: "/v1/responses",
+      completionWindow: "24h",
+      jsonl,
+      submissionPolicyVersion: "story-batch-submission.v1",
+      purpose: "failed-item-retry",
+      parentBatchSubmissionKey: initial.batchSubmissionKey,
+    });
+    expect(retry.requestSetFingerprint).toBe(initial.requestSetFingerprint);
+    expect(retry.batchSubmissionKey).not.toBe(initial.batchSubmissionKey);
   });
 });
 

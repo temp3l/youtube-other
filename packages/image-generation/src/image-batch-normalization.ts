@@ -381,6 +381,12 @@ export function normalizeImageBatchManifest(raw: unknown): ImageBatchManifest {
       completionWindow: manifest.completionWindow,
       inputFilePath: manifest.inputFilePath,
       inputFileHash: manifest.inputFileHash,
+      ...(manifest.batchSubmissionKey
+        ? { batchSubmissionKey: manifest.batchSubmissionKey }
+        : {}),
+      ...(manifest.requestSetFingerprint
+        ? { requestSetFingerprint: manifest.requestSetFingerprint }
+        : {}),
       ...(manifest.openAIInputFileId
         ? { openAIInputFileId: manifest.openAIInputFileId }
         : {}),

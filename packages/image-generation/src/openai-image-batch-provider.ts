@@ -3,6 +3,8 @@ import {
   normalizeBatchStatus,
   parseBatchOutputJsonl,
   readRemoteFileText,
+  reconcileOpenAiBatchSubmission,
+  type OpenAiBatchSubmissionIntent,
   requireBatchCapabilities,
   type OpenAiStoryClient,
 } from "@mediaforge/story-localization";
@@ -79,16 +81,23 @@ export class OpenAiImageBatchProvider implements ImageBatchProvider {
     readonly status: ImageBatchStatus;
   }> {
     assertCreatorMediaPolicy(this.creatorMedia);
-    const created = await this.batches.create({
-      input_file_id: args.inputFileId,
-      endpoint: args.endpoint,
-      completion_window: args.completionWindow,
-      metadata: { ...args.metadata },
-    });
+    const created = await this.batches.create(
+      {
+        input_file_id: args.inputFileId,
+        endpoint: args.endpoint,
+        completion_window: args.completionWindow,
+        metadata: { ...args.metadata },
+      },
+      { maxRetries: 0 }
+    );
     return {
       batchId: created.id as OpenAiBatchId,
       status: toImageBatchStatus(created.status),
     };
+  }
+
+  async reconcileSubmission(intent: OpenAiBatchSubmissionIntent) {
+    return reconcileOpenAiBatchSubmission({ client: this.client, intent });
   }
 
   async retrieveStatus(batchId: string): Promise<ImageBatchProviderStatus> {

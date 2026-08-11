@@ -693,6 +693,8 @@ export interface LocalBatchManifest {
   readonly completionWindow: "24h";
   readonly inputFilePath: string;
   readonly inputFileHash: string;
+  readonly batchSubmissionKey?: import("@mediaforge/shared").BatchSubmissionKey;
+  readonly requestSetFingerprint?: import("@mediaforge/shared").BatchRequestSetFingerprint;
   readonly openAIInputFileId?: string;
   readonly openAIBatchId?: string;
   readonly status: LocalBatchManifestStatus;

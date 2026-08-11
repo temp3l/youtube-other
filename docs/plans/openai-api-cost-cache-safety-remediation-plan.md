@@ -292,6 +292,13 @@ Exit criteria:
 
 ## Phase 5 — Batch, Flex, and submission recovery
 
+Implementation status (2026-08-11): Story and Image Batch submission recovery is
+implemented with canonical request-set identity, durable key-scoped intent, a
+narrow filesystem lock, one remote create attempt, hashed provider metadata, and
+fail-closed read-only reconciliation. This is not a general distributed claim;
+the guarantee applies where processes share the canonical Batch storage root.
+Batch/Flex expansion remains deferred.
+
 Goal: use discounted execution only where latency and dependency ordering permit.
 
 Tasks:

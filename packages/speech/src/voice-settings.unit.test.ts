@@ -172,6 +172,18 @@ describe("speech voice settings", () => {
     expect(settings.instructions).toContain("186 Wörter pro Minute");
   });
 
+  it("uses a neutral provider baseline for an explicit centralized pace", () => {
+    const settings = loadSpeechVoiceSettings({
+      preset: "fast",
+      language: "de",
+      artifactType: "short",
+      paceWpm: 150,
+    });
+
+    expect(settings.speed).toBe(1);
+    expect(settings.instructions).toContain("150 Wörter pro Minute");
+  });
+
   it("loads Portuguese templates without falling back to generic instructions", () => {
     const settings = loadSpeechVoiceSettings({
       preset: "very-fast",

@@ -70,6 +70,7 @@ export * from "./localization-prompt-builder.js";
 export * from "./story-localization-batch-storage.js";
 export * from "./story-localization-batch-index.js";
 export * from "./story-localization-openai-batch.js";
+export * from "./openai-batch-submission.js";
 export * from "./story-localization-batch-service.js";
 export * from "./story-localization.service.js";
 export * from "./multilingual-story-localization-settings.js";

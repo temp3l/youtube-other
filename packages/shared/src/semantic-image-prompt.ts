@@ -792,7 +792,6 @@ export function buildSemanticImagePromptOpenAiRequest(input: {
 }): Parameters<SemanticImagePromptOpenAiClient["responses"]["create"]>[0] {
   const policy = requireOpenAiResponsesPolicy(
     DEFAULT_OPENAI_CAPABILITY_POLICY["image-prompt-compiler"],
-    "image-prompt-compiler",
   );
   if (input.model !== policy.model) {
     throw new SemanticImagePromptError(
