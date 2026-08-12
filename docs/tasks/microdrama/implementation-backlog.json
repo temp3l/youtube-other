@@ -156,7 +156,7 @@
       "id": "MICRO-007",
       "title": "Admit imported V5 EpisodeSpec and BeatPlan projections",
       "phase": "03-story-planning-and-qa",
-      "status": "READY",
+      "status": "DONE",
       "goal": "Compile accepted imported V5 state and scripts into production EpisodeSpec and BeatPlan contracts without future planning.",
       "scope": ["EpisodeSpec, BeatPlan, hook/cliffhanger semantics and transitions from accepted V5 evidence", "Imported ScriptRevision and EpisodeBoundary lineage adapters; no generation or rewriting"],
       "dependsOn": ["MICRO-004", "MICRO-005"],
