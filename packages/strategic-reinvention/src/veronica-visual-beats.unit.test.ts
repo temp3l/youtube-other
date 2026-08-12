@@ -11,6 +11,7 @@ import {
   calculateVeronicaVisualDensityMetrics,
   deriveVeronicaVisualBeatPlan,
   materializeVeronicaVisualBeatPlan,
+  validateVeronicaVisualBeatPlan,
   type VeronicaVisualBeatOverrideArtifact,
 } from "./veronica-visual-beats.js";
 
@@ -147,6 +148,46 @@ function bible(): VeronicaVisualBibleV1 {
 }
 
 describe("Veronica visual beat planning", () => {
+  it("materializes source-grounded semantic beats for a long compound Short opening", () => {
+    const base = sourcePlan(18_000);
+    const narration = "Revenue looks large while the retained margin is small. Revenue and margin are not the same thing. Variable costs remove most of one sale before the retained remainder exits.";
+    const compound = {
+      ...base,
+      scenes: base.scenes.map((entry) => ({ ...entry, narrationAnchor: narration, durationMs: 18_000 })),
+    } as PositioningVisualPlanV2;
+    const beatPlan = deriveVeronicaVisualBeatPlan({ plan: compound });
+    const materialized = materializeVeronicaVisualBeatPlan({ plan: compound, beatPlan });
+    expect(beatPlan.beats.length).toBeGreaterThan(1);
+    expect(beatPlan.beats.every((beat) => beat.narrationRef.sentenceIds.length > 0 && beat.narrationRef.endOffset > beat.narrationRef.startOffset)).toBe(true);
+    expect(materialized.assets).toHaveLength(beatPlan.beats.length);
+    expect(beatPlan.quality.density).toMatchObject({
+      uniqueAssetsInFirst5Seconds: 2,
+      uniqueAssetsInFirst10Seconds: 3,
+      uniqueAssetsInFirst15Seconds: 3,
+    });
+  });
+
+  it("blocks a compound first fifteen seconds that only changes crop over one asset", () => {
+    const base = sourcePlan(15_000);
+    const narration = "Revenue looks large. Margin remains small. Variable costs consume the difference.";
+    const compound = { ...base, scenes: base.scenes.map((entry) => ({ ...entry, narrationAnchor: narration, durationMs: 15_000 })) } as PositioningVisualPlanV2;
+    const single = deriveVeronicaVisualBeatPlan({ plan: sourcePlan(5_000) }).beats[0]!;
+    const onlyCrop = { ...single, sceneId: "hook", beatId: "hook-B01", timingWeight: 1 };
+    const quality = validateVeronicaVisualBeatPlan({ plan: compound, beats: [onlyCrop] });
+    expect(quality.status).toBe("FAIL");
+    expect(quality.findings).toContainEqual(expect.objectContaining({ code: "INSUFFICIENT_SEMANTIC_ASSET_DENSITY", severity: "blocker" }));
+  });
+
+  it("counts three crop events as one unique asset and reports semantic hold separately", () => {
+    const beat = deriveVeronicaVisualBeatPlan({ plan: sourcePlan(5_000) }).beats[0]!;
+    const metrics = calculateVeronicaVisualDensityMetrics({
+      semanticSceneCount: 1,
+      beats: [beat],
+      events: [0, 2_000, 4_000].map((startMs) => ({ assetId: "one-asset", startMs, durationMs: 2_000 })),
+    });
+    expect(metrics).toMatchObject({ visualEventCount: 3, uniqueCanonicalAssetCount: 1, sameAssetEventCount: 2, longestSemanticBeatHoldMs: 2_000 });
+  });
+
   it("adds useful opening beats without changing semantic scene count or forcing an image count", () => {
     const parent = sourcePlan();
     const beatPlan = deriveVeronicaVisualBeatPlan({ plan: parent, overrides: overrides() });

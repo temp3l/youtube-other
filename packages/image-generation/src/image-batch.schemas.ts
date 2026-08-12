@@ -4,6 +4,7 @@ import {
   localeCodes,
   type BatchRequestSetFingerprint,
   type BatchSubmissionKey,
+  type PromptCachePlan,
 } from "@mediaforge/shared";
 
 const imageBatchQualitySchema = z.enum(["low", "medium", "high", "auto"]);
@@ -38,15 +39,65 @@ const imageBatchDependencyApprovalStatusSchema = z.enum([
   "approved",
 ]);
 
-const promptCachePlanSchema = z.object({
-  mode: z.enum(["disabled", "implicit", "explicit"]),
-  cacheKey: z.string().min(1).optional(),
-  ttl: z.literal("30m").optional(),
-  breakpointAfterBlock: z.string().min(1).optional(),
-  estimatedReusablePrefixTokens: z.number().int().nonnegative(),
-  expectedReuseCount: z.number().int().nonnegative(),
-  shard: z.number().int().nonnegative(),
-});
+const promptCachePlanSchema = z
+  .object({
+    mode: z.enum(["disabled", "implicit", "explicit"]),
+    cacheKey: z.string().min(1).optional(),
+    promptPrefixFingerprint: z.string().min(1).optional(),
+    promptCacheRoutingKey: z.string().min(1).optional(),
+    projectionStrategy: z
+      .enum(["gpt-5.6-explicit", "legacy-automatic", "unsupported"])
+      .optional(),
+    ttl: z.enum(["30m", "in_memory", "24h"]).optional(),
+    breakpointAfterBlock: z.string().min(1).optional(),
+    estimatedReusablePrefixTokens: z.number().int().nonnegative(),
+    estimatedExplicitContentPrefixTokens: z.number().int().nonnegative().optional(),
+    estimatedStructuredOutputPrefixTokens: z.number().int().nonnegative().optional(),
+    estimatedToolDefinitionPrefixTokens: z.number().int().nonnegative().optional(),
+    estimatedEffectiveProviderCachePrefixTokens: z
+      .number()
+      .int()
+      .nonnegative()
+      .optional(),
+    expectedReuseCount: z.number().int().nonnegative(),
+    shard: z.number().int().nonnegative(),
+    cacheSupported: z.boolean().optional(),
+    cacheEligible: z.boolean().optional(),
+    downgradeReason: z
+      .enum([
+        "EXPLICIT_CACHE_DISABLED",
+        "PROVIDER_UNSUPPORTED",
+        "MODEL_UNSUPPORTED",
+        "PREFIX_TOO_SHORT",
+        "INSUFFICIENT_EXPECTED_REUSE",
+        "REPAIR_CACHE_DISABLED",
+      ])
+      .optional(),
+  })
+  .transform((plan) => ({
+    ...plan,
+    ...(plan.promptPrefixFingerprint
+      ? {
+          promptPrefixFingerprint:
+            plan.promptPrefixFingerprint as PromptCachePlan["promptPrefixFingerprint"],
+        }
+      : {}),
+    ...(plan.promptCacheRoutingKey
+      ? {
+          promptCacheRoutingKey:
+            plan.promptCacheRoutingKey as PromptCachePlan["promptCacheRoutingKey"],
+        }
+      : {}),
+    // Pre-measurement manifests stored only the reusable-prefix estimate.
+    estimatedExplicitContentPrefixTokens:
+      plan.estimatedExplicitContentPrefixTokens ?? plan.estimatedReusablePrefixTokens,
+    estimatedStructuredOutputPrefixTokens:
+      plan.estimatedStructuredOutputPrefixTokens ?? 0,
+    estimatedToolDefinitionPrefixTokens: plan.estimatedToolDefinitionPrefixTokens ?? 0,
+    estimatedEffectiveProviderCachePrefixTokens:
+      plan.estimatedEffectiveProviderCachePrefixTokens ??
+      plan.estimatedReusablePrefixTokens,
+  }) as unknown as PromptCachePlan);
 
 const imageGenerationIdentitySchema = z.object({
   operation: z.enum([

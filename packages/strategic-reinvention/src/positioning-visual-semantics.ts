@@ -39,6 +39,57 @@ export function stableHash(value: unknown): string {
   return createHash("sha256").update(canonicalJson(value)).digest("hex");
 }
 
+/**
+ * The persisted semantic-plan identity is the canonical hash of every
+ * persisted field except the self-referential `planHash` field itself.
+ * Keep this projection in one module so finalizers, persistence, and
+ * admission use exactly the same contract.
+ */
+export function semanticPlanHashInput<T extends { readonly planHash: string }>(
+  plan: T,
+): Omit<T, "planHash"> {
+  const { planHash: _planHash, ...input } = plan;
+  return input;
+}
+
+export function computeSemanticPlanHash<T extends { readonly planHash: string }>(
+  plan: T,
+): string {
+  return stableHash(semanticPlanHashInput(plan));
+}
+
+export function finalizeSemanticPlanHash<T extends { readonly planHash: string }>(
+  plan: T,
+): T {
+  const input = semanticPlanHashInput(plan);
+  return { ...input, planHash: stableHash(input) } as T;
+}
+
+export function hasValidSemanticPlanHash<T extends { readonly planHash: string }>(
+  plan: T,
+): boolean {
+  return computeSemanticPlanHash(plan) === plan.planHash;
+}
+
+export class SemanticPlanHashIntegrityError extends Error {
+  readonly code = "VERONICA_SEMANTIC_PLAN_SELF_HASH_INVALID" as const;
+
+  constructor(planHash: string, computedHash: string) {
+    super(`embedded=${planHash}:computed=${computedHash}`);
+    this.name = "SemanticPlanHashIntegrityError";
+  }
+}
+
+export function assertValidSemanticPlanHash<T extends { readonly planHash: string }>(
+  plan: T,
+): T {
+  const computedHash = computeSemanticPlanHash(plan);
+  if (computedHash !== plan.planHash) {
+    throw new SemanticPlanHashIntegrityError(plan.planHash, computedHash);
+  }
+  return plan;
+}
+
 export function semanticHash(value: string): string {
   return stableHash(
     value

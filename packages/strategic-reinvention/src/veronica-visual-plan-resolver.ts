@@ -7,7 +7,11 @@ import {
   POSITIONING_PLANNER_VERSION,
   type PositioningVisualPlanV2,
 } from "./positioning-visual-contracts.js";
-import { stableHash } from "./positioning-visual-semantics.js";
+import {
+  finalizeSemanticPlanHash,
+  hasValidSemanticPlanHash,
+  stableHash,
+} from "./positioning-visual-semantics.js";
 import {
   buildVeronicaCanonicalVisualPlan,
 } from "./positioning-visual-planner.js";
@@ -34,7 +38,7 @@ const productionSceneSchema = z
         camera: z.string().min(1),
         lighting: z.string().min(1),
         action: z.string().min(1),
-        actionOwnerRole: z.enum(["expert", "buyer", "shared", "none"]).optional(),
+        actionOwnerRole: z.enum(["expert", "buyer", "business-operator", "shared", "none"]).optional(),
         props: z.array(z.string()),
       })
       .passthrough(),
@@ -60,7 +64,7 @@ export const visualPlanDerivationSchema = z
     plannerInputHash: z.string().regex(/^[a-f0-9]{64}$/u),
     sourceRevisionHash: z.string().regex(/^[a-f0-9]{64}$/u),
     sourceNarrationSha256: z.string().regex(/^[a-f0-9]{64}$/u),
-    plannerVersion: z.literal(POSITIONING_PLANNER_VERSION),
+    plannerVersion: z.string().min(1),
     configurationHash: z.string().regex(/^[a-f0-9]{64}$/u),
     planRevisionHash: z.string().regex(/^[a-f0-9]{64}$/u),
   })
@@ -69,7 +73,7 @@ export const visualPlanDerivationSchema = z
 export const positioningProductionPlanSchema = z
   .object({
     schemaVersion: z.literal("veronicabenini-positioning-visual-plan.v2"),
-    plannerVersion: z.literal(POSITIONING_PLANNER_VERSION).optional(),
+    plannerVersion: z.string().min(1).optional(),
     contentId: z.string().min(1),
     format: z.enum(["long", "short"]),
     aspectRatio: z.enum(["16:9", "9:16"]),
@@ -130,7 +134,9 @@ export interface VeronicaVisualPlanResolutionEvidence {
     | "legacy-or-human-authored-plan"
     | "matching-planner-input-hash"
     | "visual-plan-missing"
-    | "planner-input-changed";
+    | "planner-input-changed"
+    | "planner-version-changed"
+    | "planner-configuration-changed";
 }
 
 export interface ResolveVeronicaVisualPlanResult {
@@ -222,8 +228,7 @@ function parseVisualPlan(value: unknown, episodeId: string): PositioningProducti
 }
 
 function hasValidDerivedPlanHash(plan: PositioningProductionPlan): boolean {
-  const { planHash, ...withoutPlanHash } = plan;
-  return stableHash(withoutPlanHash) === planHash;
+  return hasValidSemanticPlanHash(plan);
 }
 
 export async function resolveVeronicaVisualPlan(input: {
@@ -278,10 +283,13 @@ export async function resolveVeronicaVisualPlan(input: {
     );
   }
   const plannerInput = await readPlannerInput(plannerInputPath, input.episodeId);
+  const currentConfigurationHash = stableHash(plannerInput.input.planningConfiguration);
   if (
     existingPlan?.derivation &&
     existingPlan.derivation.plannerInputHash === plannerInput.hash &&
     existingPlan.derivation.sourceRevisionHash === plannerInput.input.sourceEpisode.sourceRevisionHash &&
+    existingPlan.derivation.plannerVersion === POSITIONING_PLANNER_VERSION &&
+    existingPlan.derivation.configurationHash === currentConfigurationHash &&
     hasValidDerivedPlanHash(existingPlan)
   ) {
     return {
@@ -312,13 +320,17 @@ export async function resolveVeronicaVisualPlan(input: {
       `generated visual plan ${generated.contentId} does not match workspace ${input.episodeId}`,
     );
   }
-  if (generated.format !== "short" || generated.aspectRatio !== "9:16") {
+  const expectedAspectRatio = plannerInput.input.sourceEpisode.format === "short" ? "9:16" : "16:9";
+  if (
+    generated.format !== plannerInput.input.sourceEpisode.format ||
+    generated.aspectRatio !== expectedAspectRatio
+  ) {
     throw new VeronicaVisualPlanResolutionError(
       "INVALID_VISUAL_PLAN",
-      "canonical source planner must produce a 9:16 Short plan",
+      `canonical source planner must produce a ${expectedAspectRatio} ${plannerInput.input.sourceEpisode.format} plan`,
     );
   }
-  const configurationHash = stableHash(plannerInput.input.planningConfiguration);
+  const configurationHash = currentConfigurationHash;
   const planRevisionHash = stableHash({
     plannerInputHash: plannerInput.hash,
     sourceRevisionHash: plannerInput.input.sourceEpisode.sourceRevisionHash,
@@ -340,10 +352,10 @@ export async function resolveVeronicaVisualPlan(input: {
   });
   const { planHash: _plannerResultHash, ...generatedWithoutPlanHash } = generated;
   const derivedWithoutPlanHash = { ...generatedWithoutPlanHash, derivation };
-  const derived = positioningProductionPlanSchema.parse({
+  const derived = positioningProductionPlanSchema.parse(finalizeSemanticPlanHash({
     ...derivedWithoutPlanHash,
-    planHash: stableHash(derivedWithoutPlanHash),
-  });
+    planHash: generated.planHash,
+  }));
   await writeJsonAtomic(planPath, derived);
   return {
     plan: derived,
@@ -354,7 +366,13 @@ export async function resolveVeronicaVisualPlan(input: {
       plannerInputHash: plannerInput.hash,
       plannerVersion: POSITIONING_PLANNER_VERSION,
       generatedPlanRevisionHash: planRevisionHash,
-      reuseReason: existingPlan ? "planner-input-changed" : "visual-plan-missing",
+      reuseReason: existingPlan
+        ? existingPlan.derivation?.plannerVersion !== POSITIONING_PLANNER_VERSION
+          ? "planner-version-changed"
+          : existingPlan.derivation?.configurationHash !== currentConfigurationHash
+            ? "planner-configuration-changed"
+            : "planner-input-changed"
+        : "visual-plan-missing",
     },
   };
 }

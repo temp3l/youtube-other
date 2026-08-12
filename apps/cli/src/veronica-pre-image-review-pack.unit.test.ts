@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { validateVeronicaTimingIntegrity, veronicaPreImageReviewInstruction } from "./veronica-pre-image-review-pack.js";
+import { resolveVeronicaCurrentReviewState, validateVeronicaTimingIntegrity, veronicaPreImageReviewInstruction } from "./veronica-pre-image-review-pack.js";
 import { calibrateVeronicaShortNarration } from "./veronica-short-pacing.js";
 
 describe("Veronica pre-image review instructions", () => {
@@ -56,6 +56,34 @@ describe("Veronica pre-image review instructions", () => {
       canonicalTimingAudioHash: "a".repeat(64),
     });
     expect(result.status).toBe("PASS");
+  });
+
+  it("uses current identity-bound blockers instead of superseded semantic-review findings", () => {
+    const identity = "a".repeat(64);
+    const revision = "b".repeat(64);
+    const current = resolveVeronicaCurrentReviewState({
+      deterministicFindingCodes: [],
+      sequenceDiversityFindingCodes: [],
+      qaBlockers: ["SOURCE_GROUNDED_BEAT_SEQUENCE_REVIEW_REQUIRED"],
+      qaAdmissionIdentity: identity,
+      qaRevisionId: revision,
+      currentAdmissionIdentity: identity,
+      currentQaRevisionId: revision,
+    });
+    expect(current.qaCurrent).toBe(true);
+    expect(current.activeBlockers).toEqual(["SOURCE_GROUNDED_BEAT_SEQUENCE_REVIEW_REQUIRED"]);
+    expect(current.activeBlockers).not.toContain("BUYER_PERSPECTIVE_REQUIRED");
+
+    const stale = resolveVeronicaCurrentReviewState({
+      deterministicFindingCodes: [],
+      sequenceDiversityFindingCodes: ["COMPOSITION_MONOTONY"],
+      qaBlockers: ["SOURCE_GROUNDED_BEAT_SEQUENCE_REVIEW_REQUIRED"],
+      qaAdmissionIdentity: "c".repeat(64),
+      qaRevisionId: revision,
+      currentAdmissionIdentity: identity,
+      currentQaRevisionId: revision,
+    });
+    expect(stale.activeBlockers).toEqual(["COMPOSITION_MONOTONY", "SOURCE_GROUNDED_QA_STALE"]);
   });
 
   it("promotes the selected cached candidate to the canonical narration WAV", async () => {

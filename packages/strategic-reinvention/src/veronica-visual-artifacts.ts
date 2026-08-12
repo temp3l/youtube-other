@@ -1,4 +1,5 @@
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import fs from "node:fs/promises";
 import { z } from "zod";
 import { hashFile, writeJsonAtomic } from "@mediaforge/shared";
@@ -12,6 +13,32 @@ import { stableHash } from "./positioning-visual-semantics.js";
 export const VERONICA_VISUAL_TREATMENTS_VERSION =
   "veronica-visual-treatments.v1" as const;
 export const VERONICA_VISUAL_BIBLE_VERSION = "veronica-visual-bible.v1" as const;
+export const VERONICA_CANONICAL_REFERENCE_PACK_LOGICAL_ROOT =
+  "content-packs/veronica-character-reference-v1" as const;
+
+const moduleOwnedCanonicalReferencePackRoot = path.resolve(fileURLToPath(new URL(
+  `../../../${VERONICA_CANONICAL_REFERENCE_PACK_LOGICAL_ROOT}/`,
+  import.meta.url,
+)));
+
+export class VeronicaCanonicalReferencePackResolutionError extends Error {
+  readonly code = "VERONICA_CANONICAL_REFERENCE_PACK_MISSING" as const;
+  readonly resolutionSource: "configured" | "module-owned-default";
+  readonly attemptedManifestPath: string;
+
+  constructor(input: {
+    readonly resolutionSource: "configured" | "module-owned-default";
+    readonly attemptedManifestPath: string;
+  }) {
+    super(
+      `${input.resolutionSource === "configured" ? "Configured" : "Module-owned default"} `
+      + `Veronica canonical reference pack is missing manifest: ${input.attemptedManifestPath}`,
+    );
+    this.name = "VeronicaCanonicalReferencePackResolutionError";
+    this.resolutionSource = input.resolutionSource;
+    this.attemptedManifestPath = input.attemptedManifestPath;
+  }
+}
 
 const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/u);
 const semanticPurposeSchema = z.enum([
@@ -286,18 +313,23 @@ export function buildVeronicaVisualTreatmentsArtifact(
   });
 }
 
-async function loadCharacterReferenceManifest(workspaceRoot: string) {
-  const repositoryRoot = await Promise.all(
-    [workspaceRoot, path.dirname(workspaceRoot)].map(async (candidate) => ({
-      candidate,
-      exists: await fs.access(path.join(candidate, "content-packs", "veronica-character-reference-v1", "manifest.json")).then(() => true).catch(() => false),
-    })),
-  ).then((candidates) => candidates.find((candidate) => candidate.exists)?.candidate);
-  if (!repositoryRoot) {
-    throw new Error("VERONICA_CANONICAL_REFERENCE_PACK_MISSING: content-packs/veronica-character-reference-v1/manifest.json");
-  }
-  const packRoot = path.join(repositoryRoot, "content-packs", "veronica-character-reference-v1");
+export async function resolveVeronicaCanonicalReferencePack(input: {
+  readonly canonicalReferencePackRoot?: string;
+} = {}) {
+  const resolutionSource = input.canonicalReferencePackRoot
+    ? "configured" as const
+    : "module-owned-default" as const;
+  const packRoot = path.resolve(
+    input.canonicalReferencePackRoot ?? moduleOwnedCanonicalReferencePackRoot,
+  );
   const manifestPath = path.join(packRoot, "manifest.json");
+  const manifestExists = await fs.access(manifestPath).then(() => true).catch(() => false);
+  if (!manifestExists) {
+    throw new VeronicaCanonicalReferencePackResolutionError({
+      resolutionSource,
+      attemptedManifestPath: manifestPath,
+    });
+  }
   const manifest = characterReferenceManifestSchema.parse(
     JSON.parse(await fs.readFile(manifestPath, "utf8")) as unknown,
   );
@@ -307,17 +339,26 @@ async function loadCharacterReferenceManifest(workspaceRoot: string) {
       throw new Error(`VERONICA_CANONICAL_REFERENCE_HASH_MISMATCH:${file.path}`);
     }
   }
-  return { repositoryRoot, packRoot, manifestPath, manifest };
+  return { resolutionSource, packRoot, manifestPath, manifest };
 }
 
 export async function buildVeronicaVisualBibleArtifact(input: {
   readonly workspaceRoot: string;
   readonly plan: PositioningVisualPlanV2;
+  readonly canonicalReferencePackRoot?: string;
 }): Promise<VeronicaVisualBibleV1> {
-  const loaded = await loadCharacterReferenceManifest(input.workspaceRoot);
+  const loaded = await resolveVeronicaCanonicalReferencePack({
+    ...(input.canonicalReferencePackRoot
+      ? { canonicalReferencePackRoot: input.canonicalReferencePackRoot }
+      : {}),
+  });
   const storyBible = (input.plan as PositioningVisualPlanV2 & {
     readonly visualStoryBible?: PositioningVisualPlanV2["visualStoryBible"];
   }).visualStoryBible;
+  const visualVocabulary = input.plan.visualVocabulary;
+  const legacyEnvironmentDefaults = [...new Set(
+    input.plan.scenes.map((scene) => scene.treatment.environment),
+  )];
   const requiredSceneIds = input.plan.scenes.filter((scene) =>
     scene.treatment.actors?.some(
       (actor) => actor.identityAuthority === "canonical-protagonist",
@@ -337,14 +378,20 @@ export async function buildVeronicaVisualBibleArtifact(input: {
       characterId: loaded.manifest.characterId,
       identityVersion: loaded.manifest.identityVersion,
       authority: "canonical-character-reference-pack" as const,
-      manifestPath: path.relative(loaded.repositoryRoot, loaded.manifestPath).replace(/\\/gu, "/"),
+      manifestPath: `${VERONICA_CANONICAL_REFERENCE_PACK_LOGICAL_ROOT}/manifest.json`,
       canonicalSource: {
-        path: path.relative(loaded.repositoryRoot, path.join(loaded.packRoot, loaded.manifest.canonicalSource.path)).replace(/\\/gu, "/"),
+        path: path.posix.join(
+          VERONICA_CANONICAL_REFERENCE_PACK_LOGICAL_ROOT,
+          loaded.manifest.canonicalSource.path.replace(/\\/gu, "/"),
+        ),
         sha256: loaded.manifest.canonicalSource.sha256,
       },
       approvedReferences: loaded.manifest.references.map((reference) => ({
         id: reference.id,
-        path: path.relative(loaded.repositoryRoot, path.join(loaded.packRoot, reference.path)).replace(/\\/gu, "/"),
+        path: path.posix.join(
+          VERONICA_CANONICAL_REFERENCE_PACK_LOGICAL_ROOT,
+          reference.path.replace(/\\/gu, "/"),
+        ),
         sha256: reference.sha256,
       })),
       requiredSceneIds,
@@ -352,13 +399,13 @@ export async function buildVeronicaVisualBibleArtifact(input: {
     wardrobe: input.plan.continuity.mode === "persistent-protagonist"
       ? input.plan.continuity.appearance.wardrobeAnchor
       : "episode-directed occupation-neutral editorial wardrobe",
-    palette: input.plan.visualVocabulary.materialPalette.length > 0
-      ? [...input.plan.visualVocabulary.materialPalette]
+    palette: visualVocabulary?.materialPalette.length
+      ? [...visualVocabulary.materialPalette]
       : ["restrained neutrals", "warm evidence accents"],
     lighting: "naturalistic editorial light with scene-specific contrast",
     editorialStyle: "contemporary European editorial business-psychology realism",
-    environmentDefaults: [...input.plan.visualVocabulary.environments],
-    recurringMotifs: [...(storyBible?.visualMotifs ?? input.plan.visualVocabulary.recurringMotifs)],
+    environmentDefaults: [...(visualVocabulary?.environments ?? legacyEnvironmentDefaults)],
+    recurringMotifs: [...(storyBible?.visualMotifs ?? visualVocabulary?.recurringMotifs ?? [])],
     output: {
       aspectRatio: input.plan.aspectRatio,
       subtitleSafeArea: {
@@ -380,7 +427,11 @@ export async function buildVeronicaVisualBibleArtifact(input: {
     visualStoryBibleFingerprint: storyBible?.fingerprint ?? stableHash({
       legacyDerived: true,
       contentId: input.plan.contentId,
-      vocabularyHash: input.plan.visualVocabulary.vocabularyHash,
+      vocabularyHash: visualVocabulary?.vocabularyHash ?? stableHash({
+        materialPalette: ["restrained neutrals", "warm evidence accents"],
+        environments: legacyEnvironmentDefaults,
+        recurringMotifs: [],
+      }),
     }),
   };
   return veronicaVisualBibleV1Schema.parse({
@@ -393,6 +444,7 @@ export async function persistVeronicaVisualArtifacts(input: {
   readonly workspaceRoot: string;
   readonly episodeDir: string;
   readonly plan: PositioningVisualPlanV2;
+  readonly canonicalReferencePackRoot?: string;
 }) {
   const treatments = buildVeronicaVisualTreatmentsArtifact(input.plan);
   const bible = await buildVeronicaVisualBibleArtifact(input);

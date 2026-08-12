@@ -6,10 +6,18 @@ import { promisify } from "node:util";
 import { scenePlanSchema } from "@mediaforge/domain";
 import { runCommand } from "@mediaforge/process-runner";
 import { assessVeronicaShortPacing, probeAudioWithFfprobe, resolveVeronicaShortPacingPolicy, veronicaShortPacingCalibrationSchema } from "@mediaforge/speech";
-import { loadVeronicaProviderImagePromptArtifact, positioningProductionPlanSchema, preparePositioningProductionEpisode, type PositioningVisualPlanV2, type PreparePositioningProductionEpisodeInput } from "@mediaforge/strategic-reinvention";
+import {
+  loadVeronicaProviderImagePromptArtifact,
+  positioningProductionPlanSchema,
+  preparePositioningProductionEpisode,
+  reviewVeronicaPreImageTreatment,
+  sourceGroundedQaAdmissionIdentitySchema,
+  type PositioningVisualPlanV2,
+  type PreparePositioningProductionEpisodeInput,
+} from "@mediaforge/strategic-reinvention";
 import { z } from "zod";
 
-const PACK_SCHEMA_VERSION = "veronica-pre-image-review-pack.v9" as const;
+const PACK_SCHEMA_VERSION = "veronica-pre-image-review-pack.v10" as const;
 const AUDIO_INTEGRITY_SCHEMA_VERSION = "veronica-review-audio-integrity.v1" as const;
 const REVIEW_AUDIO_PREVIEW_CODEC = "opus" as const;
 const REVIEW_AUDIO_PREVIEW_BITRATE_KBPS = 64;
@@ -63,6 +71,24 @@ const audioIntegritySchema = z.strictObject({
 type AudioIntegrity = z.infer<typeof audioIntegritySchema>;
 const sourceGroundedQaManifestSchema = z.object({
   policyIdentity: z.string().min(1),
+  admissionIdentity: z.object({
+    schemaVersion: z.literal("veronica-source-grounded-qa-admission.v1"),
+    sourceSha256: z.string().regex(/^[a-f0-9]{64}$/u),
+    selectedAudioSha256: z.string().regex(/^[a-f0-9]{64}$/u),
+    canonicalTimingSha256: z.string().regex(/^[a-f0-9]{64}$/u),
+    semanticPlanFileSha256: z.string().regex(/^[a-f0-9]{64}$/u),
+    semanticPlanHash: z.string().regex(/^[a-f0-9]{64}$/u),
+    beatPlanHash: z.string().regex(/^[a-f0-9]{64}$/u),
+    providerPromptArtifactSha256: z.string().regex(/^[a-f0-9]{64}$/u),
+    providerPromptProjectionHash: z.string().regex(/^[a-f0-9]{64}$/u),
+    providerPromptSchemaVersion: z.string().min(1),
+    providerPromptCompilerVersion: z.string().min(1),
+    plannerVersion: z.string().min(1),
+    plannerConfigurationHash: z.string().regex(/^[a-f0-9]{64}$/u),
+    deterministicGateVersion: z.string().min(1),
+    qaRevisionId: z.string().regex(/^[a-f0-9]{64}$/u),
+    identityHash: z.string().regex(/^[a-f0-9]{64}$/u),
+  }).optional(),
   revision: z.object({
     revisionId: z.string().regex(/^[a-f0-9]{64}$/u),
     sourceNarrationHash: z.string().regex(/^[a-f0-9]{64}$/u),
@@ -214,6 +240,31 @@ const sourceGroundedQaManifestSchema = z.object({
   }),
   resultHash: z.string().regex(/^[a-f0-9]{64}$/u),
 });
+
+export function resolveVeronicaCurrentReviewState(input: {
+  readonly deterministicFindingCodes: readonly string[];
+  readonly sequenceDiversityFindingCodes: readonly string[];
+  readonly qaBlockers: readonly string[];
+  readonly qaAdmissionIdentity: string | null;
+  readonly qaRevisionId: string;
+  readonly currentAdmissionIdentity: string | null;
+  readonly currentQaRevisionId: string | null;
+}) {
+  const qaCurrent = input.currentAdmissionIdentity !== null
+    && input.currentQaRevisionId !== null
+    && input.qaAdmissionIdentity === input.currentAdmissionIdentity
+    && input.qaRevisionId === input.currentQaRevisionId;
+  const activeBlockers = [...new Set([
+    ...input.deterministicFindingCodes,
+    ...input.sequenceDiversityFindingCodes,
+    ...(qaCurrent ? input.qaBlockers : ["SOURCE_GROUNDED_QA_STALE"]),
+  ])].sort();
+  return {
+    qaCurrent,
+    activeBlockers,
+  };
+}
+
 const reviewManifestSchema = z.strictObject({
   schemaVersion: z.literal(PACK_SCHEMA_VERSION),
   episodeId: z.string().min(1),
@@ -236,6 +287,17 @@ const reviewManifestSchema = z.strictObject({
     sourceDurationMeasured: z.literal(true),
   }),
   providerRequestsAllowed: z.literal(false),
+  canonicalReviewState: z.strictObject({
+    qaAdmissionIdentity: z.string().regex(/^[a-f0-9]{64}$/u).nullable(),
+    semanticPlanFileSha256: z.string().regex(/^[a-f0-9]{64}$/u),
+    semanticPlanHash: z.string().regex(/^[a-f0-9]{64}$/u),
+    beatPlanHash: z.string().regex(/^[a-f0-9]{64}$/u).nullable(),
+    providerPromptProjectionHash: z.string().regex(/^[a-f0-9]{64}$/u),
+    qaRevisionId: z.string().regex(/^[a-f0-9]{64}$/u).nullable(),
+    qaCurrent: z.boolean(),
+    sequenceDiversityStatus: z.enum(["PASS", "WARN", "REVIEW_REQUIRED", "BLOCK"]).nullable(),
+    activeBlockers: z.array(z.string()),
+  }),
   sources: z
     .array(
       z.strictObject({
@@ -514,6 +576,9 @@ function promptReviewMarkdown(input: {
   readonly stateByScene: ReadonlyMap<string, string>;
   readonly actorByScene: ReadonlyMap<string, string>;
   readonly thesisByScene: ReadonlyMap<string, string>;
+  readonly activeBlockers: readonly string[];
+  readonly admissionIdentity: string | null;
+  readonly qaCurrent: boolean;
 }): string {
   return [
     "# ChatGPT pre-image review request",
@@ -531,6 +596,12 @@ function promptReviewMarkdown(input: {
     input.narration,
     "",
     `Pacing: ${input.pacingSummary}`,
+    "",
+    `Current QA admission: ${input.admissionIdentity ?? "none"}`,
+    "",
+    `Canonical QA state current: ${input.qaCurrent ? "YES" : "NO"}`,
+    "",
+    `Current active blockers: ${input.activeBlockers.join(", ") || "none"}`,
     "",
     "## Scene prompts",
     "",
@@ -737,6 +808,7 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
   const eventPath = path.join(localeRoot, "retimed-visual-events.json");
   const semanticReviewPath = path.join(input.episodeDir, "shared", "pre-image-semantic-reviews.v1.json");
   const sourceGroundedQaPath = path.join(input.episodeDir, "shared", "source-grounded-visual-qa.v1.json");
+  const qaAdmissionPath = path.join(input.episodeDir, "shared", "source-grounded-qa-admission.v1.json");
   const visualTreatmentsPath = path.join(input.episodeDir, "shared", "visual-treatments.v1.json");
   const visualBiblePath = path.join(input.episodeDir, "shared", "visual-bible.v1.json");
   const localizedProductionPath = path.join(localeRoot, "localized-production.v1.json");
@@ -756,11 +828,13 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
     requiredFile(sourceGroundedQaPath, "source-grounded visual QA"),
     ...(input.variant === "short" ? [requiredFile(pacingCalibrationPath, "adaptive pacing calibration")] : []),
   ]);
-  const [narration, narrationBytes, scenePlanRaw, semanticReviewRaw, pacingCalibrationRaw, timingRaw, eventRaw, episodeManifestRaw, finalPlanRaw] = await Promise.all([
+  const [narration, narrationBytes, scenePlanRaw, semanticReviewRaw, sourceGroundedQaRaw, qaAdmissionRaw, pacingCalibrationRaw, timingRaw, eventRaw, episodeManifestRaw, finalPlanRaw] = await Promise.all([
     fs.readFile(scriptPath, "utf8"),
     fs.readFile(narrationPath),
     fs.readFile(scenePlanPath, "utf8"),
     fs.readFile(semanticReviewPath, "utf8"),
+    fs.readFile(sourceGroundedQaPath, "utf8"),
+    fs.readFile(qaAdmissionPath, "utf8").catch(() => null),
     input.variant === "short" ? fs.readFile(pacingCalibrationPath, "utf8") : Promise.resolve(null),
     fs.readFile(timingPath, "utf8"),
     fs.readFile(eventPath, "utf8"),
@@ -898,7 +972,7 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
             })
             .optional(),
           treatment: z.object({
-            actionOwnerRole: z.enum(["expert", "buyer", "shared", "none"]).optional(),
+            actionOwnerRole: z.enum(["expert", "buyer", "business-operator", "shared", "none"]).optional(),
             environment: z.string(),
             action: z.string(),
           }),
@@ -927,6 +1001,15 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
       ),
     })
     .parse(JSON.parse(finalPlanRaw) as unknown);
+  const canonicalPlan = positioningProductionPlanSchema.parse(JSON.parse(finalPlanRaw) as unknown) as unknown as PositioningVisualPlanV2;
+  const currentAdmission = qaAdmissionRaw === null
+    ? null
+    : sourceGroundedQaAdmissionIdentitySchema.parse(JSON.parse(qaAdmissionRaw) as unknown);
+  // QA-only execution owns this standalone artifact. The deterministic plan's
+  // embedded pre-QA state remains immutable after admission.
+  const sourceGroundedVisualQa = sourceGroundedQaManifestSchema.parse(
+    JSON.parse(sourceGroundedQaRaw) as unknown,
+  );
   const persistedPromptArtifact = await loadVeronicaProviderImagePromptArtifact({
     episodeDir: input.episodeDir,
     language: input.language,
@@ -947,7 +1030,7 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
       return [scene.id, semanticSceneId ? finalPlan.assets.filter((asset) => asset.sceneId === semanticSceneId) : []] as const;
     }),
   );
-  const semanticReviews = z
+  const historicalSemanticReviews = z
     .object({
       convergenceStatus: z.string().optional(),
       remediationRounds: z.number().int().nonnegative().optional(),
@@ -968,13 +1051,47 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
       ),
     })
     .parse(JSON.parse(semanticReviewRaw) as unknown);
+  const currentSemanticReviews = canonicalPlan.scenes.map((scene, index) => {
+    const previous = canonicalPlan.scenes[index - 1];
+    return reviewVeronicaPreImageTreatment({
+      contentId: canonicalPlan.contentId,
+      sceneId: scene.sceneId,
+      plannerVersion: canonicalPlan.plannerVersion ?? "legacy-positioning-plan",
+      narration: scenePlan.scenes[index]?.canonicalNarration ?? scene.narrationAnchor,
+      narrationAnchor: scene.narrationAnchor,
+      visibleThesis: scene.visibleThesis,
+      newInformation: scene.newInformation,
+      treatment: scene.treatment,
+      ...(previous ? {
+        previousTreatment: previous.treatment,
+        previousVisibleThesis: previous.visibleThesis,
+      } : {}),
+      ...(scene.semanticProposition ? { proposition: scene.semanticProposition } : {}),
+      format: canonicalPlan.format,
+      ...(scene.stateComplexity ? { stateComplexity: scene.stateComplexity } : {}),
+    });
+  });
   const findingsByScene = new Map(
-    scenePlan.scenes.map((scene, index) => [scene.id, (semanticReviews.reviews[index]?.findings ?? []).map((finding) => `${finding.severity}:${finding.code} — ${finding.message}`)] as const),
+    scenePlan.scenes.map((scene, index) => [scene.id, (currentSemanticReviews[index]?.findings ?? []).map((finding) => `${finding.severity}:${finding.code} — ${finding.message}`)] as const),
   );
-  const allFindings = semanticReviews.reviews.flatMap((review) => review.findings);
+  const allFindings = currentSemanticReviews.flatMap((review) => review.findings);
   const warningCount = allFindings.filter((finding) => finding.severity === "warning" || finding.severity === "info").length;
   const blockerCount = allFindings.filter((finding) => finding.severity === "blocker" || finding.severity === "error").length;
   const canonicalConvergenceStatus = blockerCount === 0 && finalPlan.validation?.status !== "fail" && finalPlan.providerReadiness.status === "PASS" ? "CONVERGED" : "SEMANTIC_REMEDIATION_EXHAUSTED";
+  const sequenceDiversity = canonicalPlan.visualBeatPlan?.quality.sequenceDiversity ?? null;
+  const canonicalReviewState = resolveVeronicaCurrentReviewState({
+    deterministicFindingCodes: allFindings
+      .filter((finding) => finding.severity === "blocker" || finding.severity === "error")
+      .map((finding) => finding.code),
+    sequenceDiversityFindingCodes: sequenceDiversity?.findings
+      .filter((finding) => finding.severity !== "warning")
+      .map((finding) => finding.code) ?? [],
+    qaBlockers: sourceGroundedVisualQa.blockers,
+    qaAdmissionIdentity: sourceGroundedVisualQa.admissionIdentity?.identityHash ?? null,
+    qaRevisionId: sourceGroundedVisualQa.revision.revisionId,
+    currentAdmissionIdentity: currentAdmission?.identityHash ?? null,
+    currentQaRevisionId: currentAdmission?.qaRevisionId ?? null,
+  });
   const eventArtifact = z
     .object({
       events: z.array(z.object({ startMs: z.number(), durationMs: z.number() })),
@@ -1008,6 +1125,16 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
   const generatedAtMs = Date.now();
   const outputDir = packDir(input, generatedAtMs);
   await fs.mkdir(outputDir, { recursive: true });
+  const currentSemanticReviewEvidencePath = path.join(outputDir, "pre-image-semantic-reviews.v1.json");
+  await fs.writeFile(currentSemanticReviewEvidencePath, `${JSON.stringify({
+    schemaVersion: "veronica-current-pre-image-semantic-reviews.v1",
+    state: "current-canonical",
+    admissionIdentity: currentAdmission?.identityHash ?? null,
+    qaRevisionId: currentAdmission?.qaRevisionId ?? null,
+    reviews: currentSemanticReviews,
+    activeBlockers: canonicalReviewState.activeBlockers,
+    historicalEvidenceIncluded: false,
+  }, null, 2)}\n`, "utf8");
   const canonicalAudioEmbedded = reviewPackMode === "forensic";
   const optionalAuditCandidates: readonly (readonly [string, string])[] = [
       ["visual-treatments.v1.json", visualTreatmentsPath] as const,
@@ -1030,8 +1157,8 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
     ["retimed-visual-events.json", eventPath],
     ["visual-plan.json", sourcePlanPath],
     ["episode-manifest.json", manifestPath],
-    ["pre-image-semantic-reviews.v1.json", semanticReviewPath],
     ["source-grounded-visual-qa.v1.json", sourceGroundedQaPath],
+    ...(reviewPackMode === "forensic" ? [["historical-pre-image-semantic-reviews.v1.json", semanticReviewPath] as const] : []),
     ...optionalAuditFiles,
     ...(input.variant === "short" ? [["pacing-calibration.v1.json", pacingCalibrationPath] as const] : []),
   ];
@@ -1094,6 +1221,9 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
     stateByScene,
     actorByScene,
     thesisByScene,
+    activeBlockers: canonicalReviewState.activeBlockers,
+    admissionIdentity: currentAdmission?.identityHash ?? null,
+    qaCurrent: canonicalReviewState.qaCurrent,
   });
   const providerMarkdown = persistedPromptArtifact.markdown;
   const blockedMarkerCount = providerMarkdown.match(/MISSING\s+[—-]\s+PROVIDER PROJECTION BLOCKED/giu)?.length ?? 0;
@@ -1134,7 +1264,7 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
         finalScenes: finalPlan.scenes,
         assetsByScene,
         findingsByScene,
-        remediationRounds: semanticReviews.remediationRounds ?? 0,
+        remediationRounds: historicalSemanticReviews.remediationRounds ?? 0,
       }),
       "utf8",
     ),
@@ -1147,7 +1277,7 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
         scenes: scenePlan.scenes.map((wrapper, index) => {
           const semanticScene = finalPlan.scenes[index];
           const assets = semanticScene ? finalPlan.assets.filter((asset) => asset.sceneId === semanticScene.sceneId) : [];
-          const qa = finalPlan.sourceGroundedVisualQa.scenes[index];
+          const qa = sourceGroundedVisualQa.scenes[index];
           return {
             wrapperSceneId: wrapper.id,
             canonicalNarrationBeat: wrapper.canonicalNarration,
@@ -1169,7 +1299,7 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
             })),
             qaResult: qa ?? null,
             readinessIssues: finalPlan.providerReadiness.issues.filter((issue) => issue.sceneId === semanticScene?.sceneId),
-            remediationHistory: finalPlan.sourceGroundedVisualQa.remediationHistory.filter((entry) => entry.sceneId === semanticScene?.sceneId),
+            remediationHistory: sourceGroundedVisualQa.remediationHistory.filter((entry) => entry.sceneId === semanticScene?.sceneId),
           };
         }),
       }, null, 2)}\n`,
@@ -1183,6 +1313,7 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
     ["semantic-quality-review.md", qualityReviewPath],
     ["audio-integrity.json", audioIntegrityPath],
     ["prompt-compilation-evidence.json", compilationEvidencePath],
+    ["pre-image-semantic-reviews.v1.json", currentSemanticReviewEvidencePath],
   ];
   const artifactHashes = Object.fromEntries(await Promise.all(artifactFiles.map(async ([name, artifactPath]) => [name, await fileHash(artifactPath)] as const)));
   const sourceFiles: readonly (readonly [string, string])[] = [
@@ -1193,7 +1324,6 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
     ["retimed-visual-events.json", eventPath],
     ["visual-plan.json", sourcePlanPath],
     ["episode-manifest.json", manifestPath],
-    ["pre-image-semantic-reviews.v1.json", semanticReviewPath],
     ["source-grounded-visual-qa.v1.json", sourceGroundedQaPath],
     ...optionalAuditFiles,
     ...(input.variant === "short" ? [["pacing-calibration.v1.json", pacingCalibrationPath] as const] : []),
@@ -1215,6 +1345,7 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
       ["provider-image-prompts.v1.json", await fileHash(promptsJsonPath)] as const,
       ["semantic-quality-review.md", await fileHash(qualityReviewPath)] as const,
       ["prompt-compilation-evidence.json", await fileHash(compilationEvidencePath)] as const,
+      ["pre-image-semantic-reviews.v1.json", await fileHash(currentSemanticReviewEvidencePath)] as const,
     ]),
   );
   const reviewManifestPath = path.join(outputDir, "review-manifest.json");
@@ -1243,6 +1374,19 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
           sourceDurationMeasured: true,
         },
         providerRequestsAllowed: false,
+        canonicalReviewState: {
+          qaAdmissionIdentity: currentAdmission?.identityHash ?? null,
+          semanticPlanFileSha256: createHash("sha256").update(finalPlanRaw).digest("hex"),
+          semanticPlanHash: canonicalPlan.planHash,
+          beatPlanHash: canonicalPlan.visualBeatPlan?.beatPlanHash ?? null,
+          providerPromptProjectionHash: currentAdmission?.providerPromptProjectionHash
+            ?? sourceGroundedVisualQa.admissionIdentity?.providerPromptProjectionHash
+            ?? persistedPromptArtifact.artifact.artifactHash,
+          qaRevisionId: currentAdmission?.qaRevisionId ?? null,
+          qaCurrent: canonicalReviewState.qaCurrent,
+          sequenceDiversityStatus: sequenceDiversity?.status ?? null,
+          activeBlockers: canonicalReviewState.activeBlockers,
+        },
         sources,
         artifactHashes,
         packFileHashes,
@@ -1262,7 +1406,7 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
         },
         providerPromptQuality,
         semanticCoherenceIntegrity,
-        sourceGroundedVisualQa: finalPlan.sourceGroundedVisualQa,
+        sourceGroundedVisualQa,
         semanticQuality: finalPlan.semanticQuality,
         overallPackValidity:
           integrity.status === "PASS" &&
@@ -1272,7 +1416,8 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
           providerPromptQuality.status === "PASS" &&
           semanticCoherenceIntegrity.status === "PASS" &&
           finalPlan.semanticQuality.status === "PASS" &&
-          finalPlan.sourceGroundedVisualQa.sourceFidelityReady,
+          canonicalReviewState.qaCurrent &&
+          sourceGroundedVisualQa.sourceFidelityReady,
         narrationDiagnostic: diagnostic,
       }),
       null,
@@ -1298,14 +1443,16 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
 - Selected recurring motif: \`${finalPlan.selectedRecurringMotif?.concept ?? "none"}\`
 - Continuity strategy: \`${finalPlan.continuity?.mode ?? "not recorded"}\`
 - Automated semantic gate: review-required (\`${warningCount}\` warnings; \`${blockerCount}\` blockers); human pre-image approval is not recorded.
-- Semantic remediation: \`${semanticReviews.convergenceStatus ?? "LEGACY_UNKNOWN"}\` after \`${semanticReviews.remediationRounds ?? 0}\` round(s).
+- Historical semantic remediation provenance: \`${historicalSemanticReviews.convergenceStatus ?? "LEGACY_UNKNOWN"}\` after \`${historicalSemanticReviews.remediationRounds ?? 0}\` round(s); active findings above are recomputed from the current canonical plan.
+- Current QA admission: \`${currentAdmission?.identityHash ?? "none"}\`; current QA identity match: **${canonicalReviewState.qaCurrent ? "YES" : "NO"}**.
+- Deterministic sequence diversity: **${sequenceDiversity?.status ?? "NOT_RECORDED"}**; current active blockers: \`${canonicalReviewState.activeBlockers.join(", ") || "none"}\`.
 - Provider projection readiness: **${finalPlan.providerReadiness.status}** (missing theses \`${finalPlan.providerReadiness.missingThesisCount}\`; malformed theses \`${finalPlan.providerReadiness.malformedThesisCount}\`; blocked projections \`${finalPlan.providerReadiness.blockedProjectionCount}\`).
 - Provider prompt quality: **${providerPromptQuality.status}** (blocked markers \`${providerPromptQuality.blockedMarkerCount}\`; internal-language findings \`${providerPromptQuality.internalLanguageIssueCount}\`; lexical corruptions \`${providerPromptQuality.lexicalCorruptionCount}\`).
 - Semantic coherence integrity: **${semanticCoherenceIntegrity.status}** (incomplete claims \`${semanticCoherenceIntegrity.incompleteClaimCount}\`; polarity mismatches \`${semanticCoherenceIntegrity.polarityMismatchCount}\`; proposition contradictions \`${semanticCoherenceIntegrity.propositionContradictionCount}\`; treatment incompatibilities \`${semanticCoherenceIntegrity.treatmentIncompatibilityCount}\`; projection mismatches \`${semanticCoherenceIntegrity.projectionMismatchCount}\`; motif leakage \`${semanticCoherenceIntegrity.motifLeakageCount}\`; harmful repetition \`${semanticCoherenceIntegrity.harmfulRepetitionCount}\`).
-- Source-grounded scene QA: **${finalPlan.sourceGroundedVisualQa.sourceFidelityReady ? "PASS" : "BLOCKED"}** (PASS \`${finalPlan.sourceGroundedVisualQa.aggregate.scenePassCount}\`; REVIEW \`${finalPlan.sourceGroundedVisualQa.aggregate.sceneReviewCount}\`; BLOCK \`${finalPlan.sourceGroundedVisualQa.aggregate.sceneBlockCount}\`; UNAVAILABLE \`${finalPlan.sourceGroundedVisualQa.aggregate.sceneUnavailableCount}\`; escalated \`${finalPlan.sourceGroundedVisualQa.aggregate.scenesEscalated}\`; remediated \`${finalPlan.sourceGroundedVisualQa.aggregate.scenesRemediated}\`).
-- Source-grounded visual-beat QA: PASS \`${finalPlan.sourceGroundedVisualQa.aggregate.beatPassCount}\`; REVIEW \`${finalPlan.sourceGroundedVisualQa.aggregate.beatReviewCount}\`; BLOCK \`${finalPlan.sourceGroundedVisualQa.aggregate.beatBlockCount}\`; UNAVAILABLE \`${finalPlan.sourceGroundedVisualQa.aggregate.beatUnavailableCount}\`; escalated \`${finalPlan.sourceGroundedVisualQa.aggregate.beatsEscalated}\`.
-- Source-grounded sequence QA: **${finalPlan.sourceGroundedVisualQa.aggregate.sequenceVerdict}** (defects \`${finalPlan.sourceGroundedVisualQa.aggregate.sequenceDefectCount}\`).
-- Source-grounded QA execution: \`${finalPlan.sourceGroundedVisualQa.sourceGroundedQaExecution.profile}\` / \`${finalPlan.sourceGroundedVisualQa.sourceGroundedQaExecution.transport}\`; wall \`${finalPlan.sourceGroundedVisualQa.sourceGroundedQaExecution.wallClockMs}ms\`; concurrency configured/effective/max \`${finalPlan.sourceGroundedVisualQa.aggregate.configuredConcurrency}/${finalPlan.sourceGroundedVisualQa.aggregate.effectiveConcurrency}/${finalPlan.sourceGroundedVisualQa.aggregate.maxObservedConcurrency}\`; primary/escalation/advisor/sequence \`${finalPlan.sourceGroundedVisualQa.aggregate.primaryApiCalls}/${finalPlan.sourceGroundedVisualQa.aggregate.escalationApiCalls}/${finalPlan.sourceGroundedVisualQa.aggregate.remediationApiCalls}/${finalPlan.sourceGroundedVisualQa.aggregate.sequenceApiCalls}\`; advisor bypass/no-op/rejudge requests/scenes \`${finalPlan.sourceGroundedVisualQa.aggregate.advisorBypassCount}/${finalPlan.sourceGroundedVisualQa.aggregate.noOpRemediationCount}/${finalPlan.sourceGroundedVisualQa.aggregate.rejudgeRequestCount}/${finalPlan.sourceGroundedVisualQa.aggregate.scenesRejudged}\`; hits/misses \`${finalPlan.sourceGroundedVisualQa.aggregate.cacheHits}/${finalPlan.sourceGroundedVisualQa.aggregate.cacheMisses}\`; retries/rate-limits \`${finalPlan.sourceGroundedVisualQa.aggregate.retryCount}/${finalPlan.sourceGroundedVisualQa.aggregate.rateLimitEvents}\`; budget \`${finalPlan.sourceGroundedVisualQa.aggregate.budgetStatus}\` with \`${finalPlan.sourceGroundedVisualQa.aggregate.providerCallsReserved}\` calls / \`$${finalPlan.sourceGroundedVisualQa.aggregate.estimatedCostUsd.toFixed(4)}\` estimated; tokens input/cached/output \`${finalPlan.sourceGroundedVisualQa.aggregate.inputTokens}/${finalPlan.sourceGroundedVisualQa.aggregate.cachedInputTokens}/${finalPlan.sourceGroundedVisualQa.aggregate.outputTokens}\`.
+- Source-grounded scene QA: **${sourceGroundedVisualQa.sourceFidelityReady ? "PASS" : "BLOCKED"}** (PASS \`${sourceGroundedVisualQa.aggregate.scenePassCount}\`; REVIEW \`${sourceGroundedVisualQa.aggregate.sceneReviewCount}\`; BLOCK \`${sourceGroundedVisualQa.aggregate.sceneBlockCount}\`; UNAVAILABLE \`${sourceGroundedVisualQa.aggregate.sceneUnavailableCount}\`; escalated \`${sourceGroundedVisualQa.aggregate.scenesEscalated}\`; remediated \`${sourceGroundedVisualQa.aggregate.scenesRemediated}\`).
+- Source-grounded visual-beat QA: PASS \`${sourceGroundedVisualQa.aggregate.beatPassCount}\`; REVIEW \`${sourceGroundedVisualQa.aggregate.beatReviewCount}\`; BLOCK \`${sourceGroundedVisualQa.aggregate.beatBlockCount}\`; UNAVAILABLE \`${sourceGroundedVisualQa.aggregate.beatUnavailableCount}\`; escalated \`${sourceGroundedVisualQa.aggregate.beatsEscalated}\`.
+- Source-grounded sequence QA: **${sourceGroundedVisualQa.aggregate.sequenceVerdict}** (defects \`${sourceGroundedVisualQa.aggregate.sequenceDefectCount}\`).
+- Source-grounded QA execution: \`${sourceGroundedVisualQa.sourceGroundedQaExecution.profile}\` / \`${sourceGroundedVisualQa.sourceGroundedQaExecution.transport}\`; wall \`${sourceGroundedVisualQa.sourceGroundedQaExecution.wallClockMs}ms\`; concurrency configured/effective/max \`${sourceGroundedVisualQa.aggregate.configuredConcurrency}/${sourceGroundedVisualQa.aggregate.effectiveConcurrency}/${sourceGroundedVisualQa.aggregate.maxObservedConcurrency}\`; primary/escalation/advisor/sequence \`${sourceGroundedVisualQa.aggregate.primaryApiCalls}/${sourceGroundedVisualQa.aggregate.escalationApiCalls}/${sourceGroundedVisualQa.aggregate.remediationApiCalls}/${sourceGroundedVisualQa.aggregate.sequenceApiCalls}\`; advisor bypass/no-op/rejudge requests/scenes \`${sourceGroundedVisualQa.aggregate.advisorBypassCount}/${sourceGroundedVisualQa.aggregate.noOpRemediationCount}/${sourceGroundedVisualQa.aggregate.rejudgeRequestCount}/${sourceGroundedVisualQa.aggregate.scenesRejudged}\`; hits/misses \`${sourceGroundedVisualQa.aggregate.cacheHits}/${sourceGroundedVisualQa.aggregate.cacheMisses}\`; retries/rate-limits \`${sourceGroundedVisualQa.aggregate.retryCount}/${sourceGroundedVisualQa.aggregate.rateLimitEvents}\`; budget \`${sourceGroundedVisualQa.aggregate.budgetStatus}\` with \`${sourceGroundedVisualQa.aggregate.providerCallsReserved}\` calls / \`$${sourceGroundedVisualQa.aggregate.estimatedCostUsd.toFixed(4)}\` estimated; tokens input/cached/output \`${sourceGroundedVisualQa.aggregate.inputTokens}/${sourceGroundedVisualQa.aggregate.cachedInputTokens}/${sourceGroundedVisualQa.aggregate.outputTokens}\`.
 - Remediation template quality: **${finalPlan.semanticQuality.status}** (fallback \`${finalPlan.semanticQuality.genericFallbackSceneRate}\`; action-family reuse \`${finalPlan.semanticQuality.repeatedActionFamilyRate}\`; environment-family reuse \`${finalPlan.semanticQuality.repeatedEnvironmentFamilyRate}\`).
 - Provider request allowed: **false** — \`BLOCKED_PENDING_HUMAN_PRE_IMAGE_APPROVAL\`.
 - PACK_HASH_VALIDATION: **PASS**.
@@ -1468,7 +1615,7 @@ export async function assertVeronicaPreImageReviewPackCurrent(input: PackInput):
   if (!stored.providerRequestsAllowed) {
     throw new Error("Veronica image generation is blocked: this pack is awaiting explicit human pre-image approval.");
   }
-  if (!stored.sources.some((source) => source.name === "pre-image-semantic-reviews.v1.json")) {
+  if (!("pre-image-semantic-reviews.v1.json" in stored.artifactHashes)) {
     throw new Error(
       "Veronica image generation requires a review pack containing current semantic-gate evidence. Regenerate the Veronica pre-image review pack, obtain human approval, then retry image generation.",
     );

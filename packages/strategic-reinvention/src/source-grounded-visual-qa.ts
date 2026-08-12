@@ -47,6 +47,46 @@ export const SOURCE_GROUNDED_SEQUENCE_POLICY_VERSION =
   "veronica-source-grounded-sequence-policy.v2" as const;
 export const SOURCE_GROUNDED_CONTROLLER_VERSION =
   "veronica-source-grounded-visual-qa-controller.v2" as const;
+export const SOURCE_GROUNDED_QA_ADMISSION_VERSION =
+  "veronica-source-grounded-qa-admission.v1" as const;
+
+const admissionHashSchema = z.string().regex(/^[a-f0-9]{64}$/u);
+export const sourceGroundedQaAdmissionIdentitySchema = z.strictObject({
+  schemaVersion: z.literal(SOURCE_GROUNDED_QA_ADMISSION_VERSION),
+  sourceSha256: admissionHashSchema,
+  selectedAudioSha256: admissionHashSchema,
+  canonicalTimingSha256: admissionHashSchema,
+  semanticPlanFileSha256: admissionHashSchema,
+  semanticPlanHash: admissionHashSchema,
+  beatPlanHash: admissionHashSchema,
+  providerPromptArtifactSha256: admissionHashSchema,
+  providerPromptProjectionHash: admissionHashSchema,
+  providerPromptSchemaVersion: z.string().min(1),
+  providerPromptCompilerVersion: z.string().min(1),
+  plannerVersion: z.string().min(1),
+  plannerConfigurationHash: admissionHashSchema,
+  deterministicGateVersion: z.string().min(1),
+  qaRevisionId: admissionHashSchema,
+  identityHash: admissionHashSchema,
+});
+export type SourceGroundedQaAdmissionIdentity = z.infer<
+  typeof sourceGroundedQaAdmissionIdentitySchema
+>;
+
+export class SourceGroundedQaAdmissionError extends Error {
+  readonly code:
+    | "VERONICA_QA_ADMISSION_PRECONDITION_FAILED"
+    | "VERONICA_QA_ADMISSION_IDENTITY_MISMATCH";
+
+  constructor(
+    code: SourceGroundedQaAdmissionError["code"],
+    message: string
+  ) {
+    super(`${code}:${message}`);
+    this.name = "SourceGroundedQaAdmissionError";
+    this.code = code;
+  }
+}
 
 export const SOURCE_GROUNDED_SCENE_JUDGE_INSTRUCTIONS = `The original narration beat is authoritative. Every derived semantic structure, state, treatment, provider prompt, and prior automated PASS may be wrong.
 Judge whether the exact final scene specification preserves the narration's meaning and whether the exact provider prompt is likely to render that meaning.
@@ -274,7 +314,7 @@ export const semanticRemediationDirectiveSchema = z.strictObject({
   schemaVersion: z.literal(SOURCE_GROUNDED_REMEDIATION_SCHEMA_VERSION),
   repairBoundary: faultBoundarySchema.exclude(["UNKNOWN"]),
   visualMechanism: z.enum(VERONICA_RESOLVED_VISUAL_MECHANISMS),
-  actionOwnerRole: z.enum(["expert", "buyer"]),
+  actionOwnerRole: z.enum(["expert", "buyer", "business-operator"]),
   sourceSemantics: z.strictObject({
     actorRole: z.string().min(1).optional(),
     actionOwner: z.string().min(1).optional(),
@@ -516,6 +556,8 @@ export interface SourceGroundedVisualQaPolicy {
   readonly sceneJudge: SourceGroundedModelTier;
   readonly escalation: SourceGroundedModelTier;
   readonly finalAdjudication?: SourceGroundedModelTier;
+  /** Operational sequence-only output budget; excluded from semantic admission identity. */
+  readonly finalSequenceAdjudication?: SourceGroundedModelTier;
   readonly remediationAdvisor: SourceGroundedModelTier;
   readonly sequenceJudge: SourceGroundedModelTier;
   readonly maxRemediationRounds: number;
@@ -653,7 +695,8 @@ export interface SourceGroundedEvaluationProvenance {
     | "BEAT_JUDGE_ESCALATION"
     | "BEAT_JUDGE_FINAL"
     | "REMEDIATION_ADVISOR"
-    | "SEQUENCE_JUDGE";
+    | "SEQUENCE_JUDGE"
+    | "SEQUENCE_JUDGE_FINAL";
   readonly model: string;
   readonly reasoningEffort: string;
   readonly instructionVersion: string;
@@ -800,6 +843,8 @@ export interface SourceGroundedVisualQaAggregate {
 export interface SourceGroundedVisualQaResult {
   readonly schemaVersion: typeof SOURCE_GROUNDED_CONTROLLER_VERSION;
   readonly policyIdentity: string;
+  /** Exact immutable artifact identity admitted by the canonical QA-only path. */
+  readonly admissionIdentity?: SourceGroundedQaAdmissionIdentity;
   readonly revision: QaRevision;
   readonly scenes: readonly SourceGroundedSceneEvaluation[];
   readonly beats: readonly SourceGroundedVisualBeatEvaluation[];
@@ -1089,6 +1134,36 @@ export function beatJudgementConsistencyReasons(
   return reasons;
 }
 
+/**
+ * A semantic scene may have multiple beat-scoped image requests. Scene QA must
+ * judge one actual provider request, never concatenate independent stills into
+ * a fictional storyboard. Child beat QA covers every remaining request.
+ */
+function canonicalSingleImageAssetForScene(
+  plan: PositioningVisualPlanV2,
+  scene: PlannedScene,
+  providerAssets: readonly GeneratedVisualAsset[],
+): GeneratedVisualAsset | undefined {
+  const propositionSpans = scene.semanticProposition?.evidenceSpans ?? [];
+  const overlapsProposition = (beatId: string | undefined): boolean => {
+    const beat = plan.visualBeatPlan?.beats.find((candidate) => candidate.beatId === beatId);
+    return Boolean(beat && propositionSpans.some((span) =>
+      beat.narrationRef.startOffset < span.endOffset && span.startOffset < beat.narrationRef.endOffset,
+    ));
+  };
+  const beatOrder = new Map(
+    (plan.visualBeatPlan?.beats ?? [])
+      .filter((beat) => beat.sceneId === scene.sceneId)
+      .map((beat, index) => [beat.beatId, index] as const),
+  );
+  return [...providerAssets].sort((left, right) =>
+    Number(overlapsProposition(right.visualBeatId)) - Number(overlapsProposition(left.visualBeatId))
+      || (beatOrder.get(left.visualBeatId ?? "") ?? Number.MAX_SAFE_INTEGER)
+      - (beatOrder.get(right.visualBeatId ?? "") ?? Number.MAX_SAFE_INTEGER)
+      || left.assetId.localeCompare(right.assetId),
+  )[0];
+}
+
 function inputForScene(
   plan: PositioningVisualPlanV2,
   scene: PlannedScene,
@@ -1097,12 +1172,12 @@ function inputForScene(
 ): SourceGroundedSceneJudgementInput {
   const proposition = scene.semanticProposition;
   const contrast = proposition?.contrast;
-  const promptWithoutThesisAndConstraints = providerAssets
-    .map((asset) => asset.prompt
-      .replace(/Visible thesis:[\s\S]*?(?=(?:No readable|Render this|$))/giu, "")
-      .replace(/No readable[\s\S]*$/giu, ""))
-    .join(" ");
-  const projectionProvenance = providerAssets.flatMap((asset) => asset.projectionProvenance ? [asset.projectionProvenance] : []);
+  const canonicalAsset = canonicalSingleImageAssetForScene(plan, scene, providerAssets);
+  if (!canonicalAsset) throw new Error(`SOURCE_GROUNDED_SCENE_PROVIDER_ASSET_MISSING:${scene.sceneId}`);
+  const promptWithoutThesisAndConstraints = canonicalAsset.prompt
+    .replace(/Visible thesis:[\s\S]*?(?=(?:No readable|Render this|$))/giu, "")
+    .replace(/No readable[\s\S]*$/giu, "");
+  const projectionProvenance = canonicalAsset.projectionProvenance ? [canonicalAsset.projectionProvenance] : [];
   const visibleOwner = resolveVeronicaVisiblePrimaryActionOwner(scene.treatment) ?? scene.treatment.actionOwnerRole ?? "unresolved";
   return {
     sceneId: scene.sceneId,
@@ -1123,10 +1198,10 @@ function inputForScene(
       ...(proposition?.visualMechanism
         ? { visualMechanism: proposition.visualMechanism }
         : {}),
-      requiredVisibleEvidence: providerAssets[0]?.promptCompilation?.input?.treatment.requiredEvidence
+      requiredVisibleEvidence: canonicalAsset.promptCompilation?.input?.treatment.requiredEvidence
         ?? proposition?.evidenceAnchors
         ?? scene.treatment.props,
-      forbiddenEvidence: providerAssets[0]?.promptCompilation?.input?.treatment.forbiddenEvidence
+      forbiddenEvidence: canonicalAsset.promptCompilation?.input?.treatment.forbiddenEvidence
         ?? [],
     },
     structuredState: {
@@ -1145,7 +1220,7 @@ function inputForScene(
       ...((contrast?.consequence ?? proposition?.consequence)
         ? { outcomeState: contrast?.consequence ?? proposition!.consequence }
         : {}),
-      states: providerAssets.map((asset) => asset.semanticPurpose),
+      states: [canonicalAsset.semanticPurpose],
     },
     treatment: {
       environment: scene.treatment.environment,
@@ -1155,7 +1230,7 @@ function inputForScene(
       composition: scene.treatment.composition,
       continuity: scene.continuityGroup ?? plan.continuity.mode,
     },
-    providerPrompt: providerAssets.map((asset) => asset.prompt).join("\n---\n"),
+    providerPrompt: canonicalAsset.prompt,
     providerProjection: {
       treatmentPolarity: classifyVeronicaSemanticPolarity(`${scene.treatment.composition} ${scene.treatment.action} ${scene.treatment.props.join(" ")}`),
       promptPolarity: projectionProvenance[0]?.projectedPolarity
@@ -1275,9 +1350,10 @@ function isOpposingPolarity(
     || (expected === "POSITIVE_STATE" && actual === "NEGATIVE_STATE");
 }
 
-function ownerRole(value: string | undefined): "expert" | "buyer" | undefined {
+function ownerRole(value: string | undefined): "expert" | "buyer" | "business-operator" | undefined {
   if (!value) return undefined;
-  if (/\b(?:expert|professional|consultant|seller)\b/iu.test(value)) return "expert";
+  if (/\b(?:business operator|operator|owner|seller)\b/iu.test(value)) return "business-operator";
+  if (/\b(?:expert|professional|consultant)\b/iu.test(value)) return "expert";
   if (/\b(?:buyer|customer|client|prospect|audience|visitor|observer)\b/iu.test(value)) return "buyer";
   return undefined;
 }
@@ -2066,7 +2142,8 @@ async function cachedSceneJudgement(input: {
   if (
     cached?.schemaVersion === "veronica-source-grounded-cache-record.v1" &&
     sourceGroundedSceneJudgementSchema.safeParse(cached.value).success &&
-    cached.outputHash === stableHash(cached.value)
+    cached.outputHash === stableHash(cached.value) &&
+    cached.provenance.revisionId === input.revision.revisionId
   ) {
     const value = sourceGroundedSceneJudgementSchema.parse(cached.value);
     const hitProvenance = {
@@ -2148,6 +2225,7 @@ async function cachedSceneJudgement(input: {
         ? parsed.data
         : unavailableScene("Scene judge returned malformed structured output.");
     } catch (error) {
+      if (error instanceof SourceGroundedQaAdmissionError) throw error;
       failureKind = transientFailureKind(error);
       judgement = unavailableScene(
         `Scene judge unavailable: ${error instanceof Error ? error.message : "provider failure"}`
@@ -2257,7 +2335,23 @@ async function evaluateScene(input: {
   let final = guardSourceGroundedPass(input.payload, primary.judgement);
   let escalationStatus: SourceGroundedSceneEvaluation["escalationStatus"] =
     "NOT_ESCALATED";
+  const cachedFinal =
+    final.verdict !== "PASS" && input.policy.finalAdjudication
+      ? await cachedFinalScenePass({
+          payload: input.payload,
+          policy: input.policy,
+          cache: input.cache,
+          revision: input.revision,
+          execution: input.execution,
+        })
+      : undefined;
+  if (cachedFinal) {
+    provenanceRecords.push(cachedFinal.provenance);
+    final = guardSourceGroundedPass(input.payload, cachedFinal.judgement);
+    escalationStatus = "FINAL_ADJUDICATION";
+  }
   if (
+    !cachedFinal &&
     (final.verdict !== "PASS" || primary.consistencyReasons.length > 0) &&
     input.escalationJudge
   ) {
@@ -2315,6 +2409,50 @@ async function evaluateScene(input: {
   };
 }
 
+async function cachedFinalScenePass(input: {
+  readonly payload: SourceGroundedSceneJudgementInput;
+  readonly policy: SourceGroundedVisualQaPolicy;
+  readonly cache: SourceGroundedVisualQaCachePort;
+  readonly revision: QaRevision;
+  readonly execution: SourceGroundedQaExecutionPolicy;
+}): Promise<{
+  readonly judgement: SourceGroundedSceneJudgement;
+  readonly provenance: SourceGroundedEvaluationProvenance;
+} | undefined> {
+  const model = input.policy.finalAdjudication;
+  if (!model) return undefined;
+  const key = sourceGroundedSceneCacheKey({
+    payload: input.payload,
+    policyIdentity: input.policy.policyIdentity,
+    model,
+    instructionVersion: SOURCE_GROUNDED_SCENE_JUDGE_INSTRUCTION_VERSION,
+  });
+  const cached = (await input.cache.get(key)) as CachedEvaluation<SourceGroundedSceneJudgement> | null;
+  if (
+    cached?.schemaVersion !== "veronica-source-grounded-cache-record.v1" ||
+    !sourceGroundedSceneJudgementSchema.safeParse(cached.value).success ||
+    cached.outputHash !== stableHash(cached.value) ||
+    cached.provenance.revisionId !== input.revision.revisionId
+  ) return undefined;
+  const judgement = sourceGroundedSceneJudgementSchema.parse(cached.value);
+  return judgement.verdict === "PASS"
+    ? {
+        judgement,
+        provenance: {
+          ...cacheHitProvenance({
+            cached: cached.provenance,
+            revisionId: input.revision.revisionId,
+            execution: input.execution,
+            inputHash: key,
+            instructionVersion: SOURCE_GROUNDED_SCENE_JUDGE_INSTRUCTION_VERSION,
+          }),
+          component: "SCENE_JUDGE_FINAL",
+          escalationStatus: "FINAL_ADJUDICATION",
+        },
+      }
+    : undefined;
+}
+
 function guardSourceGroundedBeatPass(
   payload: SourceGroundedVisualBeatJudgementInput,
   judgement: SourceGroundedVisualBeatJudgement
@@ -2356,7 +2494,8 @@ async function cachedBeatJudgement(input: {
   if (
     cached?.schemaVersion === "veronica-source-grounded-cache-record.v1" &&
     sourceGroundedVisualBeatJudgementSchema.safeParse(cached.value).success &&
-    cached.outputHash === stableHash(cached.value)
+    cached.outputHash === stableHash(cached.value) &&
+    cached.provenance.revisionId === input.revision.revisionId
   ) {
     const value = sourceGroundedVisualBeatJudgementSchema.parse(cached.value);
     return {
@@ -2417,6 +2556,7 @@ async function cachedBeatJudgement(input: {
       malformed = !parsed.success;
       judgement = parsed.success ? parsed.data : unavailableBeat("Beat judge returned malformed structured output.");
     } catch (error) {
+      if (error instanceof SourceGroundedQaAdmissionError) throw error;
       failureKind = transientFailureKind(error);
       judgement = unavailableBeat(`Beat judge unavailable: ${error instanceof Error ? error.message : "provider failure"}`);
     }
@@ -2586,7 +2726,8 @@ async function cachedDirective(input: {
     cachedDirective.success &&
     semanticRemediationDirectiveConsistencyReasons(cachedDirective.data)
       .length === 0 &&
-    cached.outputHash === stableHash(cached.value)
+    cached.outputHash === stableHash(cached.value) &&
+    cached.provenance.revisionId === input.revision.revisionId
   ) {
     return {
       directive: cachedDirective.data,
@@ -2643,6 +2784,7 @@ async function cachedDirective(input: {
         directive = parsed.data;
       else failureKind = "DETERMINISTIC_MALFORMED";
     } catch (error) {
+      if (error instanceof SourceGroundedQaAdmissionError) throw error;
       failureKind = transientFailureKind(error);
       // A typed null is fail-closed and surfaced as unavailable.
     }
@@ -2710,6 +2852,12 @@ async function cachedSequence(input: {
   readonly scenes: readonly EpisodeSequenceSceneSummary[];
   readonly policy: SourceGroundedVisualQaPolicy;
   readonly judge: EpisodeSequenceJudgePort;
+  readonly model: SourceGroundedModelTier;
+  readonly component: Extract<
+    SourceGroundedEvaluationProvenance["component"],
+    "SEQUENCE_JUDGE" | "SEQUENCE_JUDGE_FINAL"
+  >;
+  readonly escalationStatus: SourceGroundedEvaluationProvenance["escalationStatus"];
   readonly cache: SourceGroundedVisualQaCachePort;
   readonly revision: QaRevision;
   readonly execution: SourceGroundedQaExecutionPolicy;
@@ -2722,7 +2870,7 @@ async function cachedSequence(input: {
   const key = sourceGroundedSequenceCacheKey({
     scenes: input.scenes,
     policyIdentity: input.policy.policyIdentity,
-    model: input.policy.sequenceJudge,
+    model: input.model,
   });
   const cached = (await input.cache.get(
     key
@@ -2730,7 +2878,8 @@ async function cachedSequence(input: {
   if (
     cached?.schemaVersion === "veronica-source-grounded-cache-record.v1" &&
     episodeSequenceJudgementSchema.safeParse(cached.value).success &&
-    cached.outputHash === stableHash(cached.value)
+    cached.outputHash === stableHash(cached.value) &&
+    cached.provenance.revisionId === input.revision.revisionId
   ) {
     return {
       judgement: episodeSequenceJudgementSchema.parse(cached.value),
@@ -2749,15 +2898,15 @@ async function cachedSequence(input: {
     return {
       judgement,
       provenance: provenance({
-        component: "SEQUENCE_JUDGE",
-        model: input.policy.sequenceJudge,
+        component: input.component,
+        model: input.model,
         instructionVersion: SOURCE_GROUNDED_SEQUENCE_INSTRUCTION_VERSION,
         inputHash: key,
         value: judgement,
         verdict: judgement.verdict,
         defectCodes: judgement.defectCodes,
         cacheHit: true,
-        escalationStatus: "NOT_ESCALATED",
+        escalationStatus: input.escalationStatus,
         revisionId: input.revision.revisionId,
         execution: input.execution,
         providerCall: false,
@@ -2776,13 +2925,13 @@ async function cachedSequence(input: {
         priority: 40,
         estimatedTokens: estimatedRequestTokens(
           input.scenes,
-          input.policy.sequenceJudge
+          input.model
         ),
         execution: input.execution,
         provider: providerReservation({
           payload: input.scenes,
           instructions: SOURCE_GROUNDED_SEQUENCE_JUDGE_INSTRUCTIONS,
-          model: input.policy.sequenceJudge,
+          model: input.model,
           execution: input.execution,
         }),
         ...(input.signal ? { signal: input.signal } : {}),
@@ -2790,14 +2939,14 @@ async function cachedSequence(input: {
           input.judge.judgeSequence({
             episodeId: input.episodeId,
             scenes: input.scenes,
-            model: input.policy.sequenceJudge,
+            model: input.model,
             instructions: SOURCE_GROUNDED_SEQUENCE_JUDGE_INSTRUCTIONS,
             instructionVersion: SOURCE_GROUNDED_SEQUENCE_INSTRUCTION_VERSION,
             jsonSchema: episodeSequenceJudgementJsonSchema,
             cachePolicy: providerCachePolicy({
               family: "sequence",
               instructionVersion: SOURCE_GROUNDED_SEQUENCE_INSTRUCTION_VERSION,
-              model: input.policy.sequenceJudge,
+              model: input.model,
               execution: input.execution,
             }),
             execution: input.execution,
@@ -2816,6 +2965,7 @@ async function cachedSequence(input: {
             "Sequence judge returned malformed structured output."
           );
     } catch (error) {
+      if (error instanceof SourceGroundedQaAdmissionError) throw error;
       failureKind = transientFailureKind(error);
       judgement = unavailableSequence(
         `Sequence judge unavailable: ${error instanceof Error ? error.message : "provider failure"}`
@@ -2834,15 +2984,15 @@ async function cachedSequence(input: {
     return {
       judgement,
       provenance: provenance({
-        component: "SEQUENCE_JUDGE",
-        model: input.policy.sequenceJudge,
+        component: input.component,
+        model: input.model,
         instructionVersion: SOURCE_GROUNDED_SEQUENCE_INSTRUCTION_VERSION,
         inputHash: key,
         value: judgement,
         verdict: judgement.verdict,
         defectCodes: judgement.defectCodes,
         cacheHit: false,
-        escalationStatus: "NOT_ESCALATED",
+        escalationStatus: input.escalationStatus,
         revisionId: input.revision.revisionId,
         execution: input.execution,
         ...(workTelemetry ? { workTelemetry } : {}),
@@ -2992,7 +3142,7 @@ export function deterministicRemediationDirective(input: {
     .enum(VERONICA_RESOLVED_VISUAL_MECHANISMS)
     .safeParse(input.scene.semantic.visualMechanism);
   const existingActionOwner = z
-    .enum(["expert", "buyer"])
+    .enum(["expert", "buyer", "business-operator"])
     .safeParse(input.scene.semantic.actionOwner);
   if (
     !existingMechanism.success ||
@@ -3647,6 +3797,9 @@ export async function runSourceGroundedVisualQaController(input: {
       scenes: sequenceSummary(plan, evaluations, beatEvaluations),
       policy: input.policy,
       judge: input.sequenceJudge,
+      model: input.policy.sequenceJudge,
+      component: "SEQUENCE_JUDGE",
+      escalationStatus: "NOT_ESCALATED",
       cache: input.cache,
       revision: finalRevision,
       execution,
@@ -3656,6 +3809,27 @@ export async function runSourceGroundedVisualQaController(input: {
     sequence = evaluated.judgement;
     sequenceProvenance.push(evaluated.provenance);
     allProvenance.push(evaluated.provenance);
+    if (sequence.verdict === "REVIEW" && input.policy.finalAdjudication) {
+      const finalModel =
+        input.policy.finalSequenceAdjudication ?? input.policy.finalAdjudication;
+      const final = await cachedSequence({
+        episodeId: plan.contentId,
+        scenes: sequenceSummary(plan, evaluations, beatEvaluations),
+        policy: input.policy,
+        judge: input.sequenceJudge,
+        model: finalModel,
+        component: "SEQUENCE_JUDGE_FINAL",
+        escalationStatus: "FINAL_ADJUDICATION",
+        cache: input.cache,
+        revision: finalRevision,
+        execution,
+        scheduler,
+        ...(input.signal ? { signal: input.signal } : {}),
+      });
+      sequence = final.judgement;
+      sequenceProvenance.push(final.provenance);
+      allProvenance.push(final.provenance);
+    }
   }
 
   const blockers: SourceGroundedVisualQaResult["blockers"][number][] = [];
@@ -3759,7 +3933,8 @@ export async function runSourceGroundedVisualQaController(input: {
           entry.component === "SCENE_JUDGE_ESCALATION" ||
           entry.component === "SCENE_JUDGE_FINAL" ||
           entry.component === "BEAT_JUDGE_ESCALATION" ||
-          entry.component === "BEAT_JUDGE_FINAL"
+          entry.component === "BEAT_JUDGE_FINAL" ||
+          entry.component === "SEQUENCE_JUDGE_FINAL"
       )
       .reduce(
         (sum, entry) =>

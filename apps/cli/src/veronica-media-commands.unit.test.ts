@@ -14,11 +14,11 @@ describe("veronica media commands", () => {
         "short"
       )
     ).toEqual({
-      maxProviderCalls: 4,
+      maxProviderCalls: 6,
       maxEstimatedCostUsd: 0.4,
       maxFlagshipCallsPerPack: 1,
       maxEstimatedInputTokens: 60_000,
-      maxEstimatedOutputTokens: 15_000,
+      maxEstimatedOutputTokens: 20_000,
     });
     expect(
       resolveVeronicaPaidQaAuthorization(
@@ -44,7 +44,9 @@ describe("veronica media commands", () => {
     const program = new Command();
     registerVeronicaMediaCommands(program);
     const veronica = program.commands.find((command) => command.name() === "veronica-media");
+    const sourcePack = veronica?.commands.find((command) => command.name() === "source-pack");
     expect(veronica?.commands.map((command) => command.name())).toEqual([
+      "source-pack",
       "metadata",
       "prepare-production",
       "source-grounded-qa",
@@ -59,6 +61,10 @@ describe("veronica media commands", () => {
       "review-pack",
       "validate",
       "render",
+    ]);
+    expect(sourcePack?.commands.map((command) => command.name())).toEqual([
+      "prepare",
+      "prepare-full-transcripted",
     ]);
     const images = veronica?.commands.find((command) => command.name() === "images");
     const preparation = veronica?.commands.find((command) => command.name() === "prepare-production");
@@ -99,6 +105,8 @@ describe("veronica media commands", () => {
         "--max-estimated-cost-usd",
       ]),
     );
+    expect(sourceGroundedQa?.options.find((option) => option.long === "--max-provider-calls")?.description).toContain("Short 6; full 10");
+    expect(sourceGroundedQa?.options.find((option) => option.long === "--max-estimated-output-tokens")?.description).toContain("Short 20000; full 40000");
     const speech = veronica?.commands.find((command) => command.name() === "speech");
     expect(speech?.commands.map((command) => command.name())).toEqual([
       "plan",

@@ -1,3 +1,5 @@
+import fs from "node:fs/promises";
+import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import type { PositioningVisualPlanV2 } from "./positioning-visual-contracts.js";
 import {
@@ -5,6 +7,7 @@ import {
   FixtureSemanticRemediationAdvisor,
   FixtureSourceGroundedSceneJudge,
   InMemorySourceGroundedVisualQaCache,
+  SourceGroundedQaAdmissionError,
   SOURCE_GROUNDED_REMEDIATION_SCHEMA_VERSION,
   SOURCE_GROUNDED_BEAT_JUDGE_INSTRUCTION_VERSION,
   SOURCE_GROUNDED_SCENE_JUDGE_SCHEMA_VERSION,
@@ -24,6 +27,8 @@ import {
   sourceGroundedProjectionContradictionReasons,
   sourceGroundedSceneJudgementSchema,
   sourceGroundedSceneCacheKey,
+  sourceGroundedSequenceCacheKey,
+  sourceGroundedVisualBeatCacheKey,
   type SemanticDefectCode,
   type SemanticFaultBoundary,
   type SourceGroundedSceneJudgement,
@@ -755,11 +760,167 @@ describe("cache, remediation independence, and hierarchical readiness", () => {
     expect(first.qa.aggregate.cacheMisses).toBe(2);
     expect(second.qa.aggregate.cacheHits).toBe(2);
     expect(judge.calls).toHaveLength(2);
-    expect(sequence.calls).toHaveLength(1);
+    expect(sequence.calls).toHaveLength(2);
     expect(second.qa.scenes[0]!.provenance[0]).toMatchObject({
       cacheHit: true,
       inputTokens: 0,
       outputTokens: 0,
+    });
+  });
+
+  it("rejects a semantically keyed cache entry from a different admitted revision", async () => {
+    const cache = new InMemorySourceGroundedVisualQaCache();
+    const judge = new FixtureSourceGroundedSceneJudge({
+      "semantic-001": sourceGroundedPassJudgement(),
+    });
+    const original = plan();
+    await runSourceGroundedVisualQaController({
+      plan: original,
+      narrationByScene: [original.scenes[0]!.narrationAnchor],
+      policy,
+      primaryJudge: judge,
+      sequenceJudge: new FixtureEpisodeSequenceJudge(
+        sourceGroundedPassSequence()
+      ),
+      cache,
+    });
+    const retimed = {
+      ...original,
+      scenes: original.scenes.map((scene) => ({
+        ...scene,
+        startMs: scene.startMs + 250,
+      })),
+    };
+    const rerun = await runSourceGroundedVisualQaController({
+      plan: retimed,
+      narrationByScene: [retimed.scenes[0]!.narrationAnchor],
+      policy,
+      primaryJudge: judge,
+      sequenceJudge: new FixtureEpisodeSequenceJudge(
+        sourceGroundedPassSequence()
+      ),
+      cache,
+    });
+    expect(judge.calls).toHaveLength(2);
+    expect(rerun.qa.scenes[0]!.cacheHit).toBe(false);
+  });
+
+  it("reuses a cache entry across self-hash re-admission only when judged semantics are unchanged", async () => {
+    const cache = new InMemorySourceGroundedVisualQaCache();
+    const judge = new FixtureSourceGroundedSceneJudge({
+      "semantic-001": sourceGroundedPassJudgement(),
+    });
+    const original = plan();
+    const repairedHashOnly = { ...original, planHash: "b".repeat(64) };
+    const first = await runSourceGroundedVisualQaController({
+      plan: original,
+      narrationByScene: [original.scenes[0]!.narrationAnchor],
+      policy,
+      primaryJudge: judge,
+      sequenceJudge: new FixtureEpisodeSequenceJudge(sourceGroundedPassSequence()),
+      cache,
+    });
+    const second = await runSourceGroundedVisualQaController({
+      plan: repairedHashOnly,
+      narrationByScene: [repairedHashOnly.scenes[0]!.narrationAnchor],
+      policy,
+      primaryJudge: judge,
+      sequenceJudge: new FixtureEpisodeSequenceJudge(sourceGroundedPassSequence()),
+      cache,
+    });
+    expect(second.qa.revision.revisionId).toBe(first.qa.revision.revisionId);
+    expect(second.qa.scenes[0]!.cacheHit).toBe(true);
+    expect(judge.calls).toHaveLength(1);
+  });
+
+  it("binds cache identity to role, judge version, model, reasoning, and admitted semantics", () => {
+    const scenePayload: Parameters<typeof sourceGroundedSceneCacheKey>[0]["payload"] = {
+      sceneId: "scene-001",
+      episodeId: "fixture-episode",
+      format: "SHORT",
+      narrationBeat: "the source-supported semantic claim",
+      semantic: { actorRole: "expert", action: "explains margin" },
+      treatment: { actor: "expert", action: "explains margin" },
+      providerPrompt: "Expert explains margin with no readable text.",
+      constraints: { readableTextAllowed: false, aspectRatio: "9:16" },
+    };
+    const sceneKey = sourceGroundedSceneCacheKey({
+      payload: scenePayload,
+      policyIdentity: policy.policyIdentity,
+      model: policy.sceneJudge,
+      instructionVersion: "veronica-source-grounded-scene-judge-instructions.v2",
+    });
+    expect(sceneKey).not.toBe(sourceGroundedSceneCacheKey({
+      payload: { ...scenePayload, narrationBeat: "materially changed narration" },
+      policyIdentity: policy.policyIdentity,
+      model: policy.sceneJudge,
+      instructionVersion: "veronica-source-grounded-scene-judge-instructions.v2",
+    }));
+    expect(sceneKey).not.toBe(sourceGroundedSceneCacheKey({
+      payload: scenePayload,
+      policyIdentity: policy.policyIdentity,
+      model: { ...policy.sceneJudge, reasoningEffort: "medium" },
+      instructionVersion: "veronica-source-grounded-scene-judge-instructions.v2",
+    }));
+    expect(sceneKey).not.toBe(sourceGroundedSceneCacheKey({
+      payload: scenePayload,
+      policyIdentity: policy.policyIdentity,
+      model: policy.sceneJudge,
+      instructionVersion: "veronica-source-grounded-scene-judge-instructions.v3",
+    }));
+
+    const beatPayload: Parameters<typeof sourceGroundedVisualBeatCacheKey>[0]["payload"] = {
+      ...scenePayload,
+      beatId: "beat-001",
+      narrationEvidence: { sourceQuote: "the source-supported semantic claim", startMs: 0, endMs: 1_000 },
+      parentSemanticSceneHash: "a".repeat(64),
+      parentTreatmentHash: "b".repeat(64),
+      visualBeat: {
+        beatId: "beat-001", sceneId: "scene-001", role: "HOOK", coreMeaning: "margin", newInformation: "costs reduce revenue", viewerShouldUnderstand: "margin is remainder", visualThesis: "a sale flows through costs", subject: "sale", action: "flows", state: "subtracting", environment: "ledger", composition: "diagram", assetDecision: "new-image", continuationOfPreviousBeat: false, beatHash: "c".repeat(64),
+      },
+      providerSemanticQa: { status: "PASS", canonicalContractHash: "d".repeat(64), providerPromptHash: "e".repeat(64) },
+      adjacentBeats: { previous: null, next: null },
+    };
+    const beatKey = sourceGroundedVisualBeatCacheKey({
+      payload: beatPayload,
+      policyIdentity: policy.policyIdentity,
+      model: policy.sceneJudge,
+    });
+    expect(beatKey).not.toBe(sceneKey);
+    expect(beatKey).not.toBe(sourceGroundedVisualBeatCacheKey({
+      payload: { ...beatPayload, visualBeat: { ...beatPayload.visualBeat, beatHash: "f".repeat(64) } },
+      policyIdentity: policy.policyIdentity,
+      model: policy.sceneJudge,
+    }));
+    expect(sourceGroundedSequenceCacheKey({
+      scenes: [], policyIdentity: policy.policyIdentity, model: policy.sequenceJudge,
+    })).not.toBe(sourceGroundedSequenceCacheKey({
+      scenes: [], policyIdentity: policy.policyIdentity, model: policy.sceneJudge,
+    }));
+  });
+
+  it("does not convert an admission mismatch into an unavailable judgement", async () => {
+    const fixturePlan = plan();
+    await expect(
+      runSourceGroundedVisualQaController({
+        plan: fixturePlan,
+        narrationByScene: [fixturePlan.scenes[0]!.narrationAnchor],
+        policy,
+        primaryJudge: {
+          async judge() {
+            throw new SourceGroundedQaAdmissionError(
+              "VERONICA_QA_ADMISSION_IDENTITY_MISMATCH",
+              "changed-before-dispatch"
+            );
+          },
+        },
+        sequenceJudge: new FixtureEpisodeSequenceJudge(
+          sourceGroundedPassSequence()
+        ),
+        cache: new InMemorySourceGroundedVisualQaCache(),
+      })
+    ).rejects.toMatchObject({
+      code: "VERONICA_QA_ADMISSION_IDENTITY_MISMATCH",
     });
   });
 
@@ -1068,9 +1229,9 @@ describe("bounded source-grounded QA execution", () => {
       ),
       cache,
     });
-    expect(resumedJudge.calls).toHaveLength(14);
+    expect(resumedJudge.calls).toHaveLength(32);
     expect(resumed.qa.scenes.filter((scene) => scene.cacheHit)).toHaveLength(
-      18
+      0
     );
 
     let providerCalls = 0;
@@ -1128,7 +1289,7 @@ describe("bounded source-grounded QA execution", () => {
       ),
       cache: new InMemorySourceGroundedVisualQaCache(),
     });
-    expect(calls).toBe(5);
+    expect(calls).toBe(8);
     expect(result.qa.revision).toEqual(
       buildSourceGroundedQaRevision({
         plan: mutable,
@@ -1141,6 +1302,190 @@ describe("bounded source-grounded QA execution", () => {
 });
 
 describe("beat-aware source-grounded hierarchy", () => {
+  it("normalizes four beat-scoped stills to one dominant provider request for scene QA without discarding beat coverage", async () => {
+    const source = multiBeatPlan();
+    const baseBeat = source.visualBeatPlan!.beats[0]!;
+    const beats = Array.from({ length: 4 }, (_, index) => ({
+      ...baseBeat,
+      beatId: `${source.scenes[0]!.sceneId}-B0${index + 1}`,
+      role: index === 0 ? "establish" as const : "progression" as const,
+      visualThesis: `Compatible economic evidence ${index + 1}.`,
+      coreMeaning: `Compatible economic evidence ${index + 1}.`,
+      newInformation: `Compatible economic evidence ${index + 1}.`,
+      viewerShouldUnderstand: `Compatible economic evidence ${index + 1}.`,
+      action: `the buyer examines compatible evidence ${index + 1}`,
+      beatHash: `${index + 3}`.repeat(64),
+    }));
+    const fixture = {
+      ...source,
+      assets: beats.map((beat, index) => ({
+        ...source.assets[0]!,
+        assetId: `asset-compatible-${index + 1}`,
+        visualBeatId: beat.beatId,
+        visualBeatHash: beat.beatHash,
+        prompt: `One still request ${index + 1}: the buyer examines compatible evidence ${index + 1}.`,
+        semanticPurpose: beat.visualThesis,
+      })),
+      visualBeatPlan: { ...source.visualBeatPlan!, beats },
+    } as PositioningVisualPlanV2;
+    const captured: string[] = [];
+    const judge: SourceGroundedSceneJudgePort = {
+      async judge(input) {
+        if ("beatId" in input.payload) return { output: sourceGroundedPassBeatJudgement() };
+        captured.push(input.payload.providerPrompt);
+        expect(input.payload.structuredState?.states).toEqual([beats[0]!.visualThesis]);
+        return { output: sourceGroundedPassJudgement() };
+      },
+    };
+
+    const result = await runSourceGroundedVisualQaController({
+      plan: fixture,
+      narrationByScene: fixture.scenes.map((scene) => scene.narrationAnchor),
+      policy,
+      primaryJudge: judge,
+      sequenceJudge: new FixtureEpisodeSequenceJudge(sourceGroundedPassSequence()),
+      cache: new InMemorySourceGroundedVisualQaCache(),
+    });
+
+    expect(captured).toEqual(["One still request 1: the buyer examines compatible evidence 1."]);
+    expect(captured[0]).not.toContain("---");
+    expect(result.qa.beats).toHaveLength(4);
+    expect(result.qa.beats.every((entry) => entry.judgement.verdict === "PASS")).toBe(true);
+  });
+
+  it("prefers the single-image beat that overlaps the semantic proposition evidence", async () => {
+    const fixture = multiBeatPlan();
+    const second = { ...fixture.visualBeatPlan!.beats[1]!, narrationRef: { ...fixture.visualBeatPlan!.beats[1]!.narrationRef, startOffset: 30, endOffset: 50 } };
+    const planWithSecondProposition = {
+      ...fixture,
+      visualBeatPlan: { ...fixture.visualBeatPlan!, beats: [fixture.visualBeatPlan!.beats[0]!, second] },
+      scenes: [{
+        ...fixture.scenes[0]!,
+        semanticProposition: {
+          ...fixture.scenes[0]!.semanticProposition!,
+          evidenceSpans: [{ ...fixture.scenes[0]!.semanticProposition!.evidenceSpans[0]!, startOffset: second.narrationRef.startOffset, endOffset: second.narrationRef.endOffset }],
+        },
+      }],
+    } as PositioningVisualPlanV2;
+    const captured: string[] = [];
+    const judge: SourceGroundedSceneJudgePort = {
+      async judge(input) {
+        if ("beatId" in input.payload) return { output: sourceGroundedPassBeatJudgement() };
+        captured.push(input.payload.providerPrompt);
+        return { output: sourceGroundedPassJudgement() };
+      },
+    };
+    await runSourceGroundedVisualQaController({
+      plan: planWithSecondProposition,
+      narrationByScene: planWithSecondProposition.scenes.map((scene) => scene.narrationAnchor),
+      policy,
+      primaryJudge: judge,
+      sequenceJudge: new FixtureEpisodeSequenceJudge(sourceGroundedPassSequence()),
+      cache: new InMemorySourceGroundedVisualQaCache(),
+    });
+    expect(captured).toEqual(["Provider prompt for The buyer actively uses the focused solution."]);
+  });
+
+  it("composes concrete fake-judge coverage for every required 01A Short beat before sequence QA", async () => {
+    const artifactPath = path.join(
+      process.cwd(),
+      "episodes",
+      "01a-revenue-is-not-a-good-business",
+      "source",
+      "pre-image-semantic-plan.v1.json"
+    );
+    const fixture = JSON.parse(
+      await fs.readFile(artifactPath, "utf8")
+    ) as PositioningVisualPlanV2;
+    const expectedBeats = fixture.visualBeatPlan?.beats.filter(
+      (beat) => beat.assetDecision === "new-image"
+    ) ?? [];
+    const judge = beatAwareJudge(() => sourceGroundedPassBeatJudgement());
+    const sequence = new FixtureEpisodeSequenceJudge(sourceGroundedPassSequence());
+
+    const result = await runSourceGroundedVisualQaController({
+      plan: fixture,
+      narrationByScene: fixture.scenes.map((scene) => scene.narrationAnchor),
+      policy,
+      primaryJudge: judge,
+      sequenceJudge: sequence,
+      cache: new InMemorySourceGroundedVisualQaCache(),
+    });
+
+    expect(expectedBeats).toHaveLength(13);
+    expect(result.qa.beats).toHaveLength(expectedBeats.length);
+    expect(result.qa.beats.map((entry) => entry.beatId)).toEqual(
+      expectedBeats.map((beat) => beat.beatId)
+    );
+    expect(result.qa.beats.every((entry) => entry.judgement.verdict === "PASS")).toBe(true);
+    expect(sequence.calls).toHaveLength(1);
+    expect(sequence.calls[0]?.map((entry) => entry.visualBeatId)).toEqual(
+      expectedBeats.map((beat) => beat.beatId)
+    );
+    expect(result.qa.sequence.verdict).toBe("PASS");
+  });
+
+  it("reuses an identity-matched primary sequence REVIEW and final-adjudicates it once", async () => {
+    const fixturePlan = plan();
+    const cache = new InMemorySourceGroundedVisualQaCache();
+    const sequencePolicy: SourceGroundedVisualQaPolicy = {
+      ...policy,
+      finalSequenceAdjudication: {
+        ...policy.finalAdjudication!,
+        maxOutputTokens: 3_000,
+      },
+    };
+    const sequenceCalls: { model: string; maxOutputTokens?: number }[] = [];
+    const primarySequence = {
+      async judgeSequence(input: {
+        readonly model: { readonly model: string; readonly maxOutputTokens?: number };
+      }) {
+        sequenceCalls.push(input.model);
+        return {
+          output: input.model.model === sequencePolicy.finalAdjudication!.model
+            ? sourceGroundedPassSequence("Final adjudication accepts the sequence.")
+            : {
+                ...sourceGroundedPassSequence(),
+                verdict: "REVIEW" as const,
+                defectCodes: ["GENERIC_TEMPLATE_REPETITION" as const],
+                reason: "The primary sequence judge requests final adjudication.",
+              },
+        };
+      },
+    };
+    const input = {
+      plan: fixturePlan,
+      narrationByScene: [fixturePlan.scenes[0]!.narrationAnchor],
+      policy: sequencePolicy,
+      primaryJudge: new FixtureSourceGroundedSceneJudge(() =>
+        sourceGroundedPassJudgement()
+      ),
+      sequenceJudge: primarySequence,
+      cache,
+    };
+    const first = await runSourceGroundedVisualQaController(input);
+    expect(first.qa.sequence.verdict).toBe("PASS");
+    expect(first.qa.sequenceProvenance.map((entry) => entry.component)).toEqual([
+      "SEQUENCE_JUDGE",
+      "SEQUENCE_JUDGE_FINAL",
+    ]);
+    expect(sequenceCalls).toMatchObject([
+      { model: sequencePolicy.sequenceJudge.model },
+      { model: sequencePolicy.finalAdjudication!.model, maxOutputTokens: 3_000 },
+    ]);
+
+    const resumed = await runSourceGroundedVisualQaController({
+      ...input,
+      primaryJudge: new FixtureSourceGroundedSceneJudge(() =>
+        sourceGroundedPassJudgement()
+      ),
+      sequenceJudge: primarySequence,
+    });
+    expect(resumed.qa.sequence.verdict).toBe("PASS");
+    expect(resumed.qa.sequenceProvenance.every((entry) => entry.cacheHit)).toBe(true);
+    expect(sequenceCalls).toHaveLength(2);
+  });
+
   it("does not let a parent-scene PASS authorize a blocked new-image beat", async () => {
     const fixture = multiBeatPlan();
     const blockedBeat: SourceGroundedVisualBeatJudgement = {
@@ -1196,6 +1541,37 @@ describe("beat-aware source-grounded hierarchy", () => {
     expect(result.qa.aggregate.beatPrimaryApiCalls).toBe(1);
     expect(result.qa.aggregate.primaryApiCalls).toBe(2);
     expect(result.qa.sourceFidelityReady).toBe(true);
+  });
+
+  it("keeps partial beat availability blocking and cannot dispatch sequence QA", async () => {
+    const fixture = multiBeatPlan();
+    const sequence = new FixtureEpisodeSequenceJudge(sourceGroundedPassSequence());
+    const primary = beatAwareJudge((beatId) =>
+      beatId.endsWith("B02")
+        ? {
+            ...sourceGroundedPassBeatJudgement(),
+            sourceFidelity: "UNCERTAIN",
+            sourceSupport: "UNSUPPORTED_INFERENCE",
+            verdict: "UNAVAILABLE",
+            defectCodes: ["OTHER_BEAT_FIDELITY_FAILURE"],
+            reason: "Required judge capability unavailable.",
+          }
+        : sourceGroundedPassBeatJudgement()
+    );
+    const result = await runSourceGroundedVisualQaController({
+      plan: fixture,
+      narrationByScene: fixture.scenes.map((scene) => scene.narrationAnchor),
+      policy,
+      primaryJudge: primary,
+      sequenceJudge: sequence,
+      cache: new InMemorySourceGroundedVisualQaCache(),
+    });
+    expect(result.qa.beats).toHaveLength(2);
+    expect(result.qa.aggregate.beatPassCount).toBe(1);
+    expect(result.qa.aggregate.beatUnavailableCount).toBe(1);
+    expect(result.qa.blockers).toContain("SOURCE_GROUNDED_BEAT_JUDGE_UNAVAILABLE");
+    expect(result.qa.sourceFidelityReady).toBe(false);
+    expect(sequence.calls).toHaveLength(0);
   });
 });
 

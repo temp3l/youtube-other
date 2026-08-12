@@ -89,11 +89,19 @@ pnpm mediaforge -- images generate --episode <episode-id> --variant short
 
 Source-grounded OpenAI QA is cache-only unless the command includes
 `--allow-paid-openai-qa`. That opt-in applies hard defaults by format: Short
-uses 4 requests, $0.40 estimated spend, 1 flagship request, 60,000 estimated
-input tokens, and 15,000 estimated output tokens; full uses 10 requests, $0.60,
+uses 6 requests, $0.40 estimated spend, 1 flagship request, 60,000 estimated
+input tokens, and 20,000 estimated output tokens; full uses 10 requests, $0.60,
 1 flagship request, 150,000 input tokens, and 40,000 output tokens. The
 individual `--max-*` options can only tighten or explicitly replace those
 ceilings for an authorized run.
+
+The QA-only command binds the source, selected audio, canonical timing,
+semantic plan, visual-beat plan, provider-prompt projection, and planner
+configuration in `shared/source-grounded-qa-admission.v1.json`. It verifies
+that identity again before every judge dispatch and never replans or rewrites
+`source/pre-image-semantic-plan.v1.json`. Judge results are stored separately
+in `shared/source-grounded-visual-qa.v1.json`; a missing, stale, or incompatible
+deterministic artifact fails admission instead of being regenerated.
 
 Every episode-local terminal OpenAI call refreshes
 `episodes/<episode-id>/openai-cost-summary.json`. It aggregates calls, token or

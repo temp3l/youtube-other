@@ -11,7 +11,7 @@ import type {
   VeronicaSemanticPolarity,
   VeronicaSemanticStateRelation,
 } from "./positioning-visual-contracts.js";
-import { stableHash } from "./positioning-visual-semantics.js";
+import { finalizeSemanticPlanHash, stableHash } from "./positioning-visual-semantics.js";
 import {
   validateVeronicaProviderReadiness,
   VERONICA_STATE_AWARE_PROVIDER_PROJECTION_VERSION,
@@ -40,8 +40,8 @@ const stateRelationSchema = z.enum([
   "CONDITIONAL_ALTERNATIVES",
   "SEQUENTIAL_PROGRESSION",
 ]);
-const actorRoleSchema = z.enum(["expert", "buyer", "shared", "none"]);
-const narrativeActorRoleSchema = z.enum(["expert", "observer", "existing-follower", "prospective-buyer"]);
+const actorRoleSchema = z.enum(["expert", "buyer", "business-operator", "shared", "none"]);
+const narrativeActorRoleSchema = z.enum(["expert", "business-operator", "observer", "existing-follower", "prospective-buyer"]);
 
 export const veronicaReferenceAssetDescriptorSchema = z.strictObject({
   assetId: z.string().min(1),
@@ -813,7 +813,7 @@ function applyCompilationResults(input: {
     failures: providerReadiness.issues.map((issue) => `${issue.code}:${issue.sceneId}:${issue.reason}`),
   };
   const final = { ...base, providerReadiness, validation };
-  return { ...final, planHash: stableHash(final) } as PositioningVisualPlanV2;
+  return finalizeSemanticPlanHash({ ...final, planHash: input.plan.planHash }) as PositioningVisualPlanV2;
 }
 
 export async function compileVeronicaImagePrompts(input: {

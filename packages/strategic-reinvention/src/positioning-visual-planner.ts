@@ -33,6 +33,7 @@ import {
   calculateOpeningDiversityDiagnostics,
   calculateDiversityMetrics,
   canonicalJson,
+  finalizeSemanticPlanHash,
   semanticHash,
   semanticTokens,
   stableHash,
@@ -1237,7 +1238,7 @@ function finalizePlans(drafts: readonly PlanDraft[]): readonly PositioningVisual
       ...draft,
       validation: { status: failures.length === 0 ? ("pass" as const) : ("fail" as const), failures },
     };
-    return { ...validated, planHash: stableHash(validated) };
+    return finalizeSemanticPlanHash({ ...validated, planHash: "" });
   });
 }
 
@@ -1675,7 +1676,8 @@ async function writeJson(filePath: string, value: unknown): Promise<void> {
   await fs.writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
-function canonicalSourceTitle(authoredEpisodeKey: string): string {
+function canonicalSourceTitle(authoredEpisodeKey: string, title?: string): string {
+  if (title) return title;
   return authoredEpisodeKey
     .replace(/^[0-9]+[a-z]?-/u, "")
     .split("-")
@@ -1731,7 +1733,10 @@ export async function buildVeronicaCanonicalVisualPlan(input: {
   const wordCount = plannerInput.narration.narration.trim().split(/\s+/u).filter(Boolean).length;
   const narrationLengthMinutes = wordCount / plannerInput.planningConfiguration.targetWordsPerMinute;
   const durationMs = Math.max(1_000, Math.round(narrationLengthMinutes * 60_000));
-  const title = canonicalSourceTitle(plannerInput.sourceEpisode.authoredEpisodeKey);
+  const title = canonicalSourceTitle(
+    plannerInput.sourceEpisode.authoredEpisodeKey,
+    plannerInput.sourceEpisode.title,
+  );
   const sourcePaths = Object.fromEntries(
     plannerInput.sourceEpisode.localeSources.map((source) => [source.locale, source.sourcePath]),
   );
@@ -1751,7 +1756,7 @@ export async function buildVeronicaCanonicalVisualPlan(input: {
   };
   const content: SourceContent = {
     contentId: plannerInput.sourceEpisode.episodeId,
-    format: "short",
+    format: plannerInput.sourceEpisode.format,
     titles,
     narrationFiles,
     visualAssetKey: `canonical-source:${plannerInput.sourceEpisode.sourcePackId}:${plannerInput.sourceEpisode.authoredEpisodeKey}`,

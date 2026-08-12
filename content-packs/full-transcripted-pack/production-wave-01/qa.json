@@ -1,0 +1,448 @@
+[
+  {
+    "storyId": "L004",
+    "title": "How to Differentiate When Everyone Offers the Same Thing",
+    "format": "long",
+    "wordCount": 1477,
+    "estimatedSecondsAt155Wpm": 571.7,
+    "estimatedDuration": "9:32",
+    "targetWords": 1550,
+    "tolerance": 75,
+    "timingPass": true,
+    "sourceIds": [
+      "631094379",
+      "432529483",
+      "432529091",
+      "440034746"
+    ],
+    "sourceQualities": {
+      "631094379": "clean",
+      "432529483": "clean",
+      "432529091": "clean",
+      "440034746": "clean"
+    },
+    "containsNoisySource": false,
+    "maxExactSourcePhraseOverlap": 0,
+    "overlapBySource": [
+      {
+        "sourceId": "631094379",
+        "maxExactContiguousWordOverlap": 0
+      },
+      {
+        "sourceId": "432529483",
+        "maxExactContiguousWordOverlap": 0
+      },
+      {
+        "sourceId": "432529091",
+        "maxExactContiguousWordOverlap": 0
+      },
+      {
+        "sourceId": "440034746",
+        "maxExactContiguousWordOverlap": 0
+      }
+    ],
+    "originalityPass": true,
+    "externalNamedFactClaimsIntroduced": false,
+    "plainNarrationOnly": true,
+    "qaPass": true
+  },
+  {
+    "storyId": "L011",
+    "title": "Build a Signature Method People Can Understand and Buy",
+    "format": "long",
+    "wordCount": 1522,
+    "estimatedSecondsAt155Wpm": 589.2,
+    "estimatedDuration": "9:49",
+    "targetWords": 1550,
+    "tolerance": 75,
+    "timingPass": true,
+    "sourceIds": [
+      "631823319",
+      "631871349",
+      "631882652",
+      "631904157"
+    ],
+    "sourceQualities": {
+      "631823319": "clean",
+      "631871349": "clean",
+      "631882652": "clean",
+      "631904157": "clean"
+    },
+    "containsNoisySource": false,
+    "maxExactSourcePhraseOverlap": 0,
+    "overlapBySource": [
+      {
+        "sourceId": "631823319",
+        "maxExactContiguousWordOverlap": 0
+      },
+      {
+        "sourceId": "631871349",
+        "maxExactContiguousWordOverlap": 0
+      },
+      {
+        "sourceId": "631882652",
+        "maxExactContiguousWordOverlap": 0
+      },
+      {
+        "sourceId": "631904157",
+        "maxExactContiguousWordOverlap": 0
+      }
+    ],
+    "originalityPass": true,
+    "externalNamedFactClaimsIntroduced": false,
+    "plainNarrationOnly": true,
+    "qaPass": true
+  },
+  {
+    "storyId": "L018",
+    "title": "The Psychology of Memorable Business Storytelling",
+    "format": "long",
+    "wordCount": 1526,
+    "estimatedSecondsAt155Wpm": 590.7,
+    "estimatedDuration": "9:51",
+    "targetWords": 1550,
+    "tolerance": 75,
+    "timingPass": true,
+    "sourceIds": [
+      "485998233",
+      "485999265",
+      "489480948",
+      "349396160"
+    ],
+    "sourceQualities": {
+      "485998233": "clean",
+      "485999265": "clean",
+      "489480948": "clean",
+      "349396160": "noisy"
+    },
+    "containsNoisySource": true,
+    "maxExactSourcePhraseOverlap": 0,
+    "overlapBySource": [
+      {
+        "sourceId": "485998233",
+        "maxExactContiguousWordOverlap": 0
+      },
+      {
+        "sourceId": "485999265",
+        "maxExactContiguousWordOverlap": 0
+      },
+      {
+        "sourceId": "489480948",
+        "maxExactContiguousWordOverlap": 0
+      },
+      {
+        "sourceId": "349396160",
+        "maxExactContiguousWordOverlap": 0
+      }
+    ],
+    "originalityPass": true,
+    "externalNamedFactClaimsIntroduced": false,
+    "plainNarrationOnly": true,
+    "qaPass": true
+  },
+  {
+    "storyId": "L022",
+    "title": "How to Design an Offer People Can Say Yes To",
+    "format": "long",
+    "wordCount": 1516,
+    "estimatedSecondsAt155Wpm": 586.8,
+    "estimatedDuration": "9:47",
+    "targetWords": 1550,
+    "tolerance": 75,
+    "timingPass": true,
+    "sourceIds": [
+      "432534455",
+      "491989145",
+      "495484021",
+      "558215215"
+    ],
+    "sourceQualities": {
+      "432534455": "clean",
+      "491989145": "clean",
+      "495484021": "review",
+      "558215215": "review"
+    },
+    "containsNoisySource": false,
+    "maxExactSourcePhraseOverlap": 0,
+    "overlapBySource": [
+      {
+        "sourceId": "432534455",
+        "maxExactContiguousWordOverlap": 0
+      },
+      {
+        "sourceId": "491989145",
+        "maxExactContiguousWordOverlap": 0
+      },
+      {
+        "sourceId": "495484021",
+        "maxExactContiguousWordOverlap": 0
+      },
+      {
+        "sourceId": "558215215",
+        "maxExactContiguousWordOverlap": 0
+      }
+    ],
+    "originalityPass": true,
+    "externalNamedFactClaimsIntroduced": false,
+    "plainNarrationOnly": true,
+    "qaPass": true
+  },
+  {
+    "storyId": "L050",
+    "title": "The Expert Business Flywheel: Positioning → Offer → Content → Sales → Retention",
+    "format": "long",
+    "wordCount": 1518,
+    "estimatedSecondsAt155Wpm": 587.6,
+    "estimatedDuration": "9:48",
+    "targetWords": 1550,
+    "tolerance": 75,
+    "timingPass": true,
+    "sourceIds": [
+      "632208602",
+      "432534455",
+      "413189395",
+      "558394067",
+      "527216093",
+      "631823319"
+    ],
+    "sourceQualities": {
+      "632208602": "clean",
+      "432534455": "clean",
+      "413189395": "clean",
+      "558394067": "review",
+      "527216093": "clean",
+      "631823319": "clean"
+    },
+    "containsNoisySource": false,
+    "maxExactSourcePhraseOverlap": 0,
+    "overlapBySource": [
+      {
+        "sourceId": "632208602",
+        "maxExactContiguousWordOverlap": 0
+      },
+      {
+        "sourceId": "432534455",
+        "maxExactContiguousWordOverlap": 0
+      },
+      {
+        "sourceId": "413189395",
+        "maxExactContiguousWordOverlap": 0
+      },
+      {
+        "sourceId": "558394067",
+        "maxExactContiguousWordOverlap": 0
+      },
+      {
+        "sourceId": "527216093",
+        "maxExactContiguousWordOverlap": 0
+      },
+      {
+        "sourceId": "631823319",
+        "maxExactContiguousWordOverlap": 0
+      }
+    ],
+    "originalityPass": true,
+    "externalNamedFactClaimsIntroduced": false,
+    "plainNarrationOnly": true,
+    "qaPass": true
+  },
+  {
+    "storyId": "S001",
+    "title": "Why Being Good at Your Job Isn't Enough",
+    "format": "short",
+    "wordCount": 233,
+    "estimatedSecondsAt155Wpm": 90.2,
+    "estimatedDuration": "1:30",
+    "targetWords": 232,
+    "tolerance": 12,
+    "timingPass": true,
+    "sourceIds": [
+      "579394985",
+      "632208602",
+      "527200456"
+    ],
+    "sourceQualities": {
+      "579394985": "clean",
+      "632208602": "clean",
+      "527200456": "clean"
+    },
+    "containsNoisySource": false,
+    "maxExactSourcePhraseOverlap": 0,
+    "overlapBySource": [
+      {
+        "sourceId": "579394985",
+        "maxExactContiguousWordOverlap": 0
+      },
+      {
+        "sourceId": "632208602",
+        "maxExactContiguousWordOverlap": 0
+      },
+      {
+        "sourceId": "527200456",
+        "maxExactContiguousWordOverlap": 0
+      }
+    ],
+    "originalityPass": true,
+    "externalNamedFactClaimsIntroduced": false,
+    "plainNarrationOnly": true,
+    "qaPass": true
+  },
+  {
+    "storyId": "S021",
+    "title": "Cheap Pricing Can Make You Harder to Trust",
+    "format": "short",
+    "wordCount": 234,
+    "estimatedSecondsAt155Wpm": 90.6,
+    "estimatedDuration": "1:31",
+    "targetWords": 232,
+    "tolerance": 12,
+    "timingPass": true,
+    "sourceIds": [
+      "632092480",
+      "632208602",
+      "579375182"
+    ],
+    "sourceQualities": {
+      "632092480": "clean",
+      "632208602": "clean",
+      "579375182": "review"
+    },
+    "containsNoisySource": false,
+    "maxExactSourcePhraseOverlap": 0,
+    "overlapBySource": [
+      {
+        "sourceId": "632092480",
+        "maxExactContiguousWordOverlap": 0
+      },
+      {
+        "sourceId": "632208602",
+        "maxExactContiguousWordOverlap": 0
+      },
+      {
+        "sourceId": "579375182",
+        "maxExactContiguousWordOverlap": 0
+      }
+    ],
+    "originalityPass": true,
+    "externalNamedFactClaimsIntroduced": false,
+    "plainNarrationOnly": true,
+    "qaPass": true
+  },
+  {
+    "storyId": "S027",
+    "title": "Never Discount a Weak Offer",
+    "format": "short",
+    "wordCount": 231,
+    "estimatedSecondsAt155Wpm": 89.4,
+    "estimatedDuration": "1:29",
+    "targetWords": 232,
+    "tolerance": 12,
+    "timingPass": true,
+    "sourceIds": [
+      "491989145",
+      "558215215"
+    ],
+    "sourceQualities": {
+      "491989145": "clean",
+      "558215215": "review"
+    },
+    "containsNoisySource": false,
+    "maxExactSourcePhraseOverlap": 0,
+    "overlapBySource": [
+      {
+        "sourceId": "491989145",
+        "maxExactContiguousWordOverlap": 0
+      },
+      {
+        "sourceId": "558215215",
+        "maxExactContiguousWordOverlap": 0
+      }
+    ],
+    "originalityPass": true,
+    "externalNamedFactClaimsIntroduced": false,
+    "plainNarrationOnly": true,
+    "qaPass": true
+  },
+  {
+    "storyId": "S031",
+    "title": "People Don't Buy Services. They Buy Change",
+    "format": "short",
+    "wordCount": 237,
+    "estimatedSecondsAt155Wpm": 91.7,
+    "estimatedDuration": "1:32",
+    "targetWords": 232,
+    "tolerance": 12,
+    "timingPass": true,
+    "sourceIds": [
+      "483226672",
+      "432534455",
+      "631824923"
+    ],
+    "sourceQualities": {
+      "483226672": "noisy",
+      "432534455": "clean",
+      "631824923": "clean"
+    },
+    "containsNoisySource": true,
+    "maxExactSourcePhraseOverlap": 0,
+    "overlapBySource": [
+      {
+        "sourceId": "483226672",
+        "maxExactContiguousWordOverlap": 0
+      },
+      {
+        "sourceId": "432534455",
+        "maxExactContiguousWordOverlap": 0
+      },
+      {
+        "sourceId": "631824923",
+        "maxExactContiguousWordOverlap": 0
+      }
+    ],
+    "originalityPass": true,
+    "externalNamedFactClaimsIntroduced": false,
+    "plainNarrationOnly": true,
+    "qaPass": true
+  },
+  {
+    "storyId": "S041",
+    "title": "Your Customer Isn't Buying Your Solution",
+    "format": "short",
+    "wordCount": 237,
+    "estimatedSecondsAt155Wpm": 91.7,
+    "estimatedDuration": "1:32",
+    "targetWords": 232,
+    "tolerance": 12,
+    "timingPass": true,
+    "sourceIds": [
+      "527200456",
+      "631824923",
+      "408412888"
+    ],
+    "sourceQualities": {
+      "527200456": "clean",
+      "631824923": "clean",
+      "408412888": "clean"
+    },
+    "containsNoisySource": false,
+    "maxExactSourcePhraseOverlap": 0,
+    "overlapBySource": [
+      {
+        "sourceId": "527200456",
+        "maxExactContiguousWordOverlap": 0
+      },
+      {
+        "sourceId": "631824923",
+        "maxExactContiguousWordOverlap": 0
+      },
+      {
+        "sourceId": "408412888",
+        "maxExactContiguousWordOverlap": 0
+      }
+    ],
+    "originalityPass": true,
+    "externalNamedFactClaimsIntroduced": false,
+    "plainNarrationOnly": true,
+    "qaPass": true
+  }
+]

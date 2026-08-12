@@ -1,0 +1,3928 @@
+[
+  {
+    "storyId": "S001",
+    "format": "short",
+    "title": "Why Being Good at Your Job Isn't Enough",
+    "pillar": "Positioning",
+    "angle": "Competence is invisible until the market can categorize and value it.",
+    "hook": "You can be excellent at your job and still be the person nobody thinks to hire.",
+    "sourceIds": [
+      "579394985",
+      "632208602",
+      "527200456"
+    ],
+    "editorialScore": 9.8,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "579394985",
+        "title": "05 Come ci si posiziona da esperta？",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "632208602",
+        "title": "7.1 Cosa significa posizionarsi",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "527200456",
+        "title": "2.4 Posizionamento in 3 punti",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S002",
+    "format": "short",
+    "title": "The Fastest Way to Become “The Expert”",
+    "pillar": "Positioning",
+    "angle": "Specificity creates perceived authority faster than broad competence.",
+    "hook": "If you want to be known as an expert, being useful to everyone is usually the slowest route.",
+    "sourceIds": [
+      "631094802",
+      "579394985",
+      "632208602"
+    ],
+    "editorialScore": 9.7,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "631094802",
+        "title": "1.3 - La nicchia della nicchia",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "579394985",
+        "title": "05 Come ci si posiziona da esperta？",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "632208602",
+        "title": "7.1 Cosa significa posizionarsi",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S003",
+    "format": "short",
+    "title": "Your Niche Is Probably Still Too Broad",
+    "pillar": "Positioning",
+    "angle": "Use the niche-within-a-niche concept as a market-entry strategy.",
+    "hook": "If your niche still describes thousands of interchangeable people, it is not doing enough work.",
+    "sourceIds": [
+      "631094802",
+      "527200456"
+    ],
+    "editorialScore": 9.5,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "631094802",
+        "title": "1.3 - La nicchia della nicchia",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "527200456",
+        "title": "2.4 Posizionamento in 3 punti",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S004",
+    "format": "short",
+    "title": "Stop Saying “I Help Everyone”",
+    "pillar": "Positioning",
+    "angle": "Broad targeting weakens relevance and makes communication generic.",
+    "hook": "The sentence ‘I can help anyone’ sounds ambitious. To a buyer, it often sounds like ‘I am for no one in particular.’",
+    "sourceIds": [
+      "527200456",
+      "487176674",
+      "339539701"
+    ],
+    "editorialScore": 9.6,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "527200456",
+        "title": "2.4 Posizionamento in 3 punti",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "487176674",
+        "title": "1.1 Come definire la tua cliente ideale",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "339539701",
+        "title": "3.3_Buyer Personas",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S005",
+    "format": "short",
+    "title": "Positioning Is Not What You Say You Are",
+    "pillar": "Positioning",
+    "angle": "Positioning is the value category formed in the buyer’s mind.",
+    "hook": "You do not own your positioning just because you wrote it in your bio.",
+    "sourceIds": [
+      "632208602",
+      "500488925",
+      "579394985"
+    ],
+    "editorialScore": 9.6,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "632208602",
+        "title": "7.1 Cosa significa posizionarsi",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "500488925",
+        "title": "1.2. Posizionamento",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "579394985",
+        "title": "05 Come ci si posiziona da esperta？",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S006",
+    "format": "short",
+    "title": "The 3 Questions Behind Strong Positioning",
+    "pillar": "Positioning",
+    "angle": "Reduce positioning to market, problem and perceived value.",
+    "hook": "Strong positioning gets much easier when you can answer three uncomfortable questions.",
+    "sourceIds": [
+      "527200456",
+      "632208602"
+    ],
+    "editorialScore": 9.5,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "527200456",
+        "title": "2.4 Posizionamento in 3 punti",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "632208602",
+        "title": "7.1 Cosa significa posizionarsi",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S007",
+    "format": "short",
+    "title": "If People Don't Understand What You Do, Fix This",
+    "pillar": "Positioning",
+    "angle": "Clarity of explanation is itself a conversion constraint.",
+    "hook": "If people keep asking what you actually do, you do not have an attention problem yet—you have a clarity problem.",
+    "sourceIds": [
+      "337368079",
+      "483226672",
+      "348797918"
+    ],
+    "editorialScore": 9.7,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "337368079",
+        "title": "2.1_Come spiegare il tuo lavoro",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "483226672",
+        "title": "1.2_Cosa vendi",
+        "qualityHeuristic": "noisy"
+      },
+      {
+        "sourceId": "348797918",
+        "title": "CAP 1.2 Cosa vendi basi della comunicazione export",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": true,
+    "sourceRiskNote": "Do not use noisy transcript passages as sole factual support."
+  },
+  {
+    "storyId": "S008",
+    "format": "short",
+    "title": "The Best Differentiation Strategy May Come From Another Industry",
+    "pillar": "Differentiation",
+    "angle": "Cross-industry borrowing creates non-obvious differentiation.",
+    "hook": "One of the best ways to stop copying competitors is to stop looking only at competitors.",
+    "sourceIds": [
+      "432529091",
+      "440034746",
+      "631094379"
+    ],
+    "editorialScore": 9.6,
+    "externalFactCheckRecommended": true,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "432529091",
+        "title": "2.2_Ispirati ad altri settori",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "440034746",
+        "title": "3.1_Contaminazione",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "631094379",
+        "title": "1.2 - Differenziazione",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S009",
+    "format": "short",
+    "title": "Your Weird Skill Combination Is an Advantage",
+    "pillar": "Differentiation",
+    "angle": "A rare combination of ordinary skills can create a defensible category.",
+    "hook": "You may not need one extraordinary skill. You may need a combination nobody else packages together.",
+    "sourceIds": [
+      "432529483",
+      "427702409",
+      "630997086"
+    ],
+    "editorialScore": 9.8,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "432529483",
+        "title": "2.3_Come mixare le tue competenze",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "427702409",
+        "title": "7.1 Come mixare competenze, obiettivi e passioni",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "630997086",
+        "title": "1.1 Analisi di competenze",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S010",
+    "format": "short",
+    "title": "Don't Study Only Your Competitors",
+    "pillar": "Differentiation",
+    "angle": "Competitive research without contamination from adjacent sectors produces sameness.",
+    "hook": "If your research starts and ends with competitors, you are training yourself to look like them.",
+    "sourceIds": [
+      "432529581",
+      "432529683",
+      "432529091"
+    ],
+    "editorialScore": 9.5,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "432529581",
+        "title": "3.1_Analisi industria e concorrenti",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "432529683",
+        "title": "3.2_Come esplorare il tuo settore",
+        "qualityHeuristic": "noisy"
+      },
+      {
+        "sourceId": "432529091",
+        "title": "2.2_Ispirati ad altri settori",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": true,
+    "sourceRiskNote": "Do not use noisy transcript passages as sole factual support."
+  },
+  {
+    "storyId": "S011",
+    "format": "short",
+    "title": "Why Experts Need a Method",
+    "pillar": "Consulting",
+    "angle": "A method converts tacit expertise into a repeatable, sellable system.",
+    "hook": "The moment you can explain how you get a result, your expertise becomes easier to trust—and easier to buy.",
+    "sourceIds": [
+      "631823319",
+      "631871349",
+      "407570083"
+    ],
+    "editorialScore": 9.8,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "631823319",
+        "title": "3.1 - Perché avere un metodo",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "631871349",
+        "title": "3.3 - Come creare il tuo metodo passo passo",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "407570083",
+        "title": "3.1 LA SCALA DELL'EXPERTISE",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S012",
+    "format": "short",
+    "title": "Don't Give Away Your Method to Prove You Have One",
+    "pillar": "Consulting",
+    "angle": "Show the architecture of a method without exposing implementation details.",
+    "hook": "There is a difference between proving you have a process and teaching the entire process for free.",
+    "sourceIds": [
+      "631904157",
+      "631823319"
+    ],
+    "editorialScore": 9.5,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "631904157",
+        "title": "3.5 - Come spiegare il tuo metodo prima che ti scelgano, senza darlo via gratis",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "631823319",
+        "title": "3.1 - Perché avere un metodo",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S013",
+    "format": "short",
+    "title": "Should You Name Your Method?",
+    "pillar": "Consulting",
+    "angle": "A named method is useful only when it improves recall and comprehension.",
+    "hook": "Giving your process a clever name does not make it valuable. But the right name can make it memorable.",
+    "sourceIds": [
+      "631882652",
+      "631823319"
+    ],
+    "editorialScore": 9.2,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "631882652",
+        "title": "3.4 - Il nome del tuo metodo - parliamone",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "631823319",
+        "title": "3.1 - Perché avere un metodo",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S014",
+    "format": "short",
+    "title": "Authority Before Audience",
+    "pillar": "Positioning",
+    "angle": "Authority can be constructed through proof, method and context before scale.",
+    "hook": "You do not need a huge audience before people can see you as an authority.",
+    "sourceIds": [
+      "579394985",
+      "413189395",
+      "492474609"
+    ],
+    "editorialScore": 9.6,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "579394985",
+        "title": "05 Come ci si posiziona da esperta？",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "413189395",
+        "title": "8.2 Contenuti di posizionamento",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "492474609",
+        "title": "5.3_Credibilità",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S015",
+    "format": "short",
+    "title": "The Book That Positions You Before You Enter the Room",
+    "pillar": "Positioning",
+    "angle": "A concise authority asset can pre-sell expertise.",
+    "hook": "Imagine a prospect understanding your worldview before the first sales call even starts.",
+    "sourceIds": [
+      "611985123",
+      "512878615",
+      "579394985"
+    ],
+    "editorialScore": 9.3,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "611985123",
+        "title": "3.3 Un libro di posizionamento",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "512878615",
+        "title": "StayBoss - Ebook di posizionamento",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "579394985",
+        "title": "05 Come ci si posiziona da esperta？",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S016",
+    "format": "short",
+    "title": "You Don't Need More Skills",
+    "pillar": "Career/Expertise",
+    "angle": "More training can be avoidance when the real gap is packaging and market fit.",
+    "hook": "Sometimes the next course is not what makes you more valuable. It just delays the moment you have to sell what you already know.",
+    "sourceIds": [
+      "630997086",
+      "432529483",
+      "407570083"
+    ],
+    "editorialScore": 9.6,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "630997086",
+        "title": "1.1 Analisi di competenze",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "432529483",
+        "title": "2.3_Come mixare le tue competenze",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "407570083",
+        "title": "3.1 LA SCALA DELL'EXPERTISE",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S017",
+    "format": "short",
+    "title": "What You Do—and What You Refuse to Do",
+    "pillar": "Positioning",
+    "angle": "Boundaries sharpen category definition and client fit.",
+    "hook": "A strong positioning statement is partly about what you do. The sharper half is what you deliberately do not do.",
+    "sourceIds": [
+      "338799989",
+      "641914483"
+    ],
+    "editorialScore": 9.4,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "338799989",
+        "title": "2.2_Cosa fai e cosa non fai",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "641914483",
+        "title": "Come dire di no senza dire di no - Part 2",
+        "qualityHeuristic": "noisy"
+      }
+    ],
+    "sourceReviewRequired": true,
+    "sourceRiskNote": "Do not use noisy transcript passages as sole factual support."
+  },
+  {
+    "storyId": "S018",
+    "format": "short",
+    "title": "Why Credibility Beats Polished Branding",
+    "pillar": "Brand",
+    "angle": "Consistency, realism and evidence matter more than surface polish.",
+    "hook": "A perfect feed can look professional and still fail the one test that matters: do I believe you can help me?",
+    "sourceIds": [
+      "492474609",
+      "338224358"
+    ],
+    "editorialScore": 9.7,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "492474609",
+        "title": "5.3_Credibilità",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "338224358",
+        "title": "11.1_Perché devi considerarti un brand",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S019",
+    "format": "short",
+    "title": "Personal Brand Is Not Your Logo",
+    "pillar": "Brand",
+    "angle": "Brand includes behavior, tone, proof and expectation—not just visual identity.",
+    "hook": "If changing your colors would destroy your personal brand, you probably did not have much of a brand yet.",
+    "sourceIds": [
+      "338224358",
+      "429606414"
+    ],
+    "editorialScore": 9.6,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "338224358",
+        "title": "11.1_Perché devi considerarti un brand",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "429606414",
+        "title": "8.1 Che cos'è il personal branding",
+        "qualityHeuristic": "noisy"
+      }
+    ],
+    "sourceReviewRequired": true,
+    "sourceRiskNote": "Do not use noisy transcript passages as sole factual support."
+  },
+  {
+    "storyId": "S020",
+    "format": "short",
+    "title": "The Strongest Personal Brands Amplify, Not Invent",
+    "pillar": "Brand",
+    "angle": "A sustainable public persona magnifies authentic traits rather than fabricating a character.",
+    "hook": "The easiest personal brand to maintain is not a fake version of you. It is a more legible version of you.",
+    "sourceIds": [
+      "492474609",
+      "611819425",
+      "611986505"
+    ],
+    "editorialScore": 9.7,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "492474609",
+        "title": "5.3_Credibilità",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "611819425",
+        "title": "1.1 Che cos'è un personaggio e perché parliamo di personaggio",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "611986505",
+        "title": "3.2 Come veicolare il tuo personaggio sui social",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S021",
+    "format": "short",
+    "title": "Cheap Pricing Can Make You Harder to Trust",
+    "pillar": "Pricing",
+    "angle": "Low prices can conflict with high-expertise positioning.",
+    "hook": "For some expert services, a suspiciously low price does not feel like a bargain. It feels like a warning.",
+    "sourceIds": [
+      "632092480",
+      "632208602",
+      "579375182"
+    ],
+    "editorialScore": 9.8,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "632092480",
+        "title": "6.1 - Potere d'acquisto e prezzi",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "632208602",
+        "title": "7.1 Cosa significa posizionarsi",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "579375182",
+        "title": "03 Quanto guadagna una consulente？",
+        "qualityHeuristic": "review"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S022",
+    "format": "short",
+    "title": "Stop Charging Only for Your Time",
+    "pillar": "Pricing",
+    "angle": "Price the specialized outcome and accumulated expertise, not raw minutes.",
+    "hook": "The client is not buying sixty minutes of your calendar. They are buying what those sixty minutes can change.",
+    "sourceIds": [
+      "632092480",
+      "407570083",
+      "579375182"
+    ],
+    "editorialScore": 9.8,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "632092480",
+        "title": "6.1 - Potere d'acquisto e prezzi",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "407570083",
+        "title": "3.1 LA SCALA DELL'EXPERTISE",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "579375182",
+        "title": "03 Quanto guadagna una consulente？",
+        "qualityHeuristic": "review"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S023",
+    "format": "short",
+    "title": "Raising Prices Can Create a Sales Spike",
+    "pillar": "Pricing",
+    "angle": "A real, announced price change can create legitimate urgency.",
+    "hook": "A price increase can reduce future affordability and still increase sales today—because timing changes the decision.",
+    "sourceIds": [
+      "632102486",
+      "632092480"
+    ],
+    "editorialScore": 9.4,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "632102486",
+        "title": "6.4 - Come aumentare i prezzi",
+        "qualityHeuristic": "noisy"
+      },
+      {
+        "sourceId": "632092480",
+        "title": "6.1 - Potere d'acquisto e prezzi",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": true,
+    "sourceRiskNote": "Do not use noisy transcript passages as sole factual support."
+  },
+  {
+    "storyId": "S024",
+    "format": "short",
+    "title": "Your Price Problem Might Be a Positioning Problem",
+    "pillar": "Pricing",
+    "angle": "Price resistance is often a value-perception mismatch.",
+    "hook": "Before cutting your price, ask a harder question: have you made the value obvious enough to justify it?",
+    "sourceIds": [
+      "632208602",
+      "632092480",
+      "527200456"
+    ],
+    "editorialScore": 9.8,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "632208602",
+        "title": "7.1 Cosa significa posizionarsi",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "632092480",
+        "title": "6.1 - Potere d'acquisto e prezzi",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "527200456",
+        "title": "2.4 Posizionamento in 3 punti",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S025",
+    "format": "short",
+    "title": "Why Experts Feel Guilty Charging More",
+    "pillar": "Pricing",
+    "angle": "Money beliefs can undermine pricing behavior.",
+    "hook": "A pricing strategy will not survive if part of you still believes charging well is morally suspicious.",
+    "sourceIds": [
+      "492004988",
+      "405894598",
+      "632092480"
+    ],
+    "editorialScore": 9.5,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "492004988",
+        "title": "5.1 Relazione con il denaro e con le vendite",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "405894598",
+        "title": "2.3_La relazione con il denaro e le vendite",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "632092480",
+        "title": "6.1 - Potere d'acquisto e prezzi",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S026",
+    "format": "short",
+    "title": "The Price Is Not Just a Number",
+    "pillar": "Pricing",
+    "angle": "Price communicates category, confidence and target buyer.",
+    "hook": "Your price does more than collect money. It tells the market what kind of purchase this is supposed to be.",
+    "sourceIds": [
+      "632092480",
+      "632208602"
+    ],
+    "editorialScore": 9.5,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "632092480",
+        "title": "6.1 - Potere d'acquisto e prezzi",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "632208602",
+        "title": "7.1 Cosa significa posizionarsi",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S027",
+    "format": "short",
+    "title": "Never Discount a Weak Offer",
+    "pillar": "Offers",
+    "angle": "Discounting cannot repair unclear value.",
+    "hook": "If people do not understand why they should buy, making it cheaper usually gives you a cheaper confusing offer.",
+    "sourceIds": [
+      "491989145",
+      "558215215"
+    ],
+    "editorialScore": 9.8,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "491989145",
+        "title": "3.2 Creare un'offerta irresistibile",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "558215215",
+        "title": "Masterclass Ottimizzazione offerta",
+        "qualityHeuristic": "review"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S028",
+    "format": "short",
+    "title": "Discounts Train Customers to Wait",
+    "pillar": "Offers",
+    "angle": "Repeated discounting changes reference price and buyer behavior.",
+    "hook": "The more predictable your discounts become, the less believable your full price becomes.",
+    "sourceIds": [
+      "491989145",
+      "558215215"
+    ],
+    "editorialScore": 9.7,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "491989145",
+        "title": "3.2 Creare un'offerta irresistibile",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "558215215",
+        "title": "Masterclass Ottimizzazione offerta",
+        "qualityHeuristic": "review"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S029",
+    "format": "short",
+    "title": "Make the Offer Easier to Understand, Not Cheaper",
+    "pillar": "Offers",
+    "angle": "Clarity of transformation, audience and mechanism can beat price cuts.",
+    "hook": "When an offer is not selling, your first question should not be ‘how much should I discount it?’",
+    "sourceIds": [
+      "432534455",
+      "491989145",
+      "495484021"
+    ],
+    "editorialScore": 9.8,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "432534455",
+        "title": "8.1_Come creare la tua offerta",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "491989145",
+        "title": "3.2 Creare un'offerta irresistibile",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "495484021",
+        "title": "DIRETTA 28 DICEMBRE - Promessa e offerta",
+        "qualityHeuristic": "review"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S030",
+    "format": "short",
+    "title": "Your Offer Needs a Twist, Not More Bonuses",
+    "pillar": "Offers",
+    "angle": "Differentiate the mechanism or packaging rather than stacking low-value extras.",
+    "hook": "If your offer looks identical to everyone else’s, adding another PDF bonus is not differentiation.",
+    "sourceIds": [
+      "432534643",
+      "432534455",
+      "491989145"
+    ],
+    "editorialScore": 9.6,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "432534643",
+        "title": "8.2_Come applicare il twist alla tua offerta",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "432534455",
+        "title": "8.1_Come creare la tua offerta",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "491989145",
+        "title": "3.2 Creare un'offerta irresistibile",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S031",
+    "format": "short",
+    "title": "People Don't Buy Services. They Buy Change",
+    "pillar": "Offers",
+    "angle": "Translate deliverables into desired transformations.",
+    "hook": "Nobody wakes up wanting a six-session consulting package. They want what they believe those six sessions will change.",
+    "sourceIds": [
+      "483226672",
+      "432534455",
+      "631824923"
+    ],
+    "editorialScore": 9.9,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "483226672",
+        "title": "1.2_Cosa vendi",
+        "qualityHeuristic": "noisy"
+      },
+      {
+        "sourceId": "432534455",
+        "title": "8.1_Come creare la tua offerta",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "631824923",
+        "title": "3.2 - Punto di dolore e punto di desiderio",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": true,
+    "sourceRiskNote": "Do not use noisy transcript passages as sole factual support."
+  },
+  {
+    "storyId": "S032",
+    "format": "short",
+    "title": "The Difference Between a Product and an Offer",
+    "pillar": "Offers",
+    "angle": "A product is what is delivered; an offer is how value is framed and bought.",
+    "hook": "Two businesses can sell almost the same service and get completely different results because only one built an actual offer.",
+    "sourceIds": [
+      "490718574",
+      "432534455",
+      "491989145"
+    ],
+    "editorialScore": 9.6,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "490718574",
+        "title": "2.4 Come adattare o creare nuovi prodotti",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "432534455",
+        "title": "8.1_Come creare la tua offerta",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "491989145",
+        "title": "3.2 Creare un'offerta irresistibile",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S033",
+    "format": "short",
+    "title": "Validate Before You Perfect",
+    "pillar": "Product",
+    "angle": "Test demand and assumptions before polishing the solution.",
+    "hook": "The most expensive version of perfection is building something nobody asked for.",
+    "sourceIds": [
+      "407670101",
+      "527215526",
+      "557609973"
+    ],
+    "editorialScore": 9.8,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "407670101",
+        "title": "3.6 COME VALIDARE LA NOSTA IDEA",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "527215526",
+        "title": "6.1 Validazione",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "557609973",
+        "title": "Masterclass - Ottimizzazione prodotto o servizio",
+        "qualityHeuristic": "review"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S034",
+    "format": "short",
+    "title": "You Don't Need More Leads If This Is Broken",
+    "pillar": "Conversion",
+    "angle": "Acquisition cannot compensate indefinitely for poor conversion.",
+    "hook": "If a hundred interested people produce almost no customers, your next thousand leads may just make the leak bigger.",
+    "sourceIds": [
+      "558394067",
+      "558389112",
+      "360303426"
+    ],
+    "editorialScore": 9.8,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "558394067",
+        "title": "Masterclass Ottimizzazione Conversion",
+        "qualityHeuristic": "review"
+      },
+      {
+        "sourceId": "558389112",
+        "title": "Q&A - Conversion",
+        "qualityHeuristic": "review"
+      },
+      {
+        "sourceId": "360303426",
+        "title": "1.5 Differenza tra Conversion e Awareness",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S035",
+    "format": "short",
+    "title": "Why Retention Beats Constant Acquisition",
+    "pillar": "Growth",
+    "angle": "Retention compounds acquisition and exposes product quality.",
+    "hook": "A business that constantly replaces lost customers is not growing as efficiently as the top-line number suggests.",
+    "sourceIds": [
+      "527216093",
+      "566922303"
+    ],
+    "editorialScore": 9.7,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "527216093",
+        "title": "6.2 Crescita e retention",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "566922303",
+        "title": "Masterclass_1_-_Come_riacchiappo_i_clienti-",
+        "qualityHeuristic": "review"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S036",
+    "format": "short",
+    "title": "A Free Advice Request Is Actually a Positioning Signal",
+    "pillar": "Sales",
+    "angle": "Requests for free expertise prove perceived authority, even when boundaries are needed.",
+    "hook": "When someone asks you for free expert advice, there is one useful signal hidden inside the annoying request.",
+    "sourceIds": [
+      "641914375",
+      "579394985"
+    ],
+    "editorialScore": 9.7,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "641914375",
+        "title": "Come dire di no senza dire di no - Part 1",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "579394985",
+        "title": "05 Come ci si posiziona da esperta？",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S037",
+    "format": "short",
+    "title": "How to Say No to Free Consulting Without Burning the Lead",
+    "pillar": "Sales",
+    "angle": "Protect boundaries while preserving status and relationship.",
+    "hook": "You can refuse free consulting without sounding defensive—and without teaching people that your expertise is free.",
+    "sourceIds": [
+      "641914375",
+      "631904157"
+    ],
+    "editorialScore": 9.7,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "641914375",
+        "title": "Come dire di no senza dire di no - Part 1",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "631904157",
+        "title": "3.5 - Come spiegare il tuo metodo prima che ti scelgano, senza darlo via gratis",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S038",
+    "format": "short",
+    "title": "How to Reject the Wrong Client Without Damaging Your Brand",
+    "pillar": "Sales",
+    "angle": "Declining poor-fit work can reinforce standards and trust.",
+    "hook": "Sometimes the most professional sales move is not closing the deal.",
+    "sourceIds": [
+      "641914483",
+      "338799989"
+    ],
+    "editorialScore": 9.5,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "641914483",
+        "title": "Come dire di no senza dire di no - Part 2",
+        "qualityHeuristic": "noisy"
+      },
+      {
+        "sourceId": "338799989",
+        "title": "2.2_Cosa fai e cosa non fai",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": true,
+    "sourceRiskNote": "Do not use noisy transcript passages as sole factual support."
+  },
+  {
+    "storyId": "S039",
+    "format": "short",
+    "title": "Stop Trying to Close Everyone",
+    "pillar": "Sales",
+    "angle": "Fit filtering protects margin, delivery quality and positioning.",
+    "hook": "A 100% close rate would probably mean you are saying yes to people you should never work with.",
+    "sourceIds": [
+      "641914483",
+      "505265650",
+      "537802677"
+    ],
+    "editorialScore": 9.5,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "641914483",
+        "title": "Come dire di no senza dire di no - Part 2",
+        "qualityHeuristic": "noisy"
+      },
+      {
+        "sourceId": "505265650",
+        "title": "Diretta 11 GENNAIO - Vendita e prospezione",
+        "qualityHeuristic": "noisy"
+      },
+      {
+        "sourceId": "537802677",
+        "title": "SOS DELIVERY - Vendita Live",
+        "qualityHeuristic": "review"
+      }
+    ],
+    "sourceReviewRequired": true,
+    "sourceRiskNote": "Do not use noisy transcript passages as sole factual support."
+  },
+  {
+    "storyId": "S040",
+    "format": "short",
+    "title": "Awareness Content and Conversion Content Are Not the Same",
+    "pillar": "Content/Sales",
+    "angle": "Different content serves discovery versus buying decisions.",
+    "hook": "A post can get huge reach and still be almost useless at creating customers.",
+    "sourceIds": [
+      "360303426",
+      "413189395",
+      "532254039"
+    ],
+    "editorialScore": 9.8,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "360303426",
+        "title": "1.5 Differenza tra Conversion e Awareness",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "413189395",
+        "title": "8.2 Contenuti di posizionamento",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "532254039",
+        "title": "I 7 passi per farti ingaggiare per i tuoi servizi con i tuoi contenuti social",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S041",
+    "format": "short",
+    "title": "Your Customer Isn't Buying Your Solution",
+    "pillar": "Buyer Psychology",
+    "angle": "Buyers start from recognized problems and desired outcomes, not your mechanism.",
+    "hook": "You are obsessed with your solution. Your customer is usually obsessed with the problem it removes.",
+    "sourceIds": [
+      "527200456",
+      "631824923",
+      "408412888"
+    ],
+    "editorialScore": 9.9,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "527200456",
+        "title": "2.4 Posizionamento in 3 punti",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "631824923",
+        "title": "3.2 - Punto di dolore e punto di desiderio",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "408412888",
+        "title": "4.4_Problemi del tuo pubblico",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S042",
+    "format": "short",
+    "title": "Sell the Pain They Recognize, Not the Solution You Love",
+    "pillar": "Buyer Psychology",
+    "angle": "Messaging should begin with problem awareness.",
+    "hook": "If the buyer does not recognize the problem, explaining your brilliant solution is premature.",
+    "sourceIds": [
+      "631824923",
+      "408412888",
+      "527200456"
+    ],
+    "editorialScore": 9.8,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "631824923",
+        "title": "3.2 - Punto di dolore e punto di desiderio",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "408412888",
+        "title": "4.4_Problemi del tuo pubblico",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "527200456",
+        "title": "2.4 Posizionamento in 3 punti",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S043",
+    "format": "short",
+    "title": "The 6 Buying Buttons Behind Decisions",
+    "pillar": "Buyer Psychology",
+    "angle": "Package the transcript’s decision-trigger model as a practical checklist.",
+    "hook": "Most buying decisions have more than one reason underneath them. The useful question is which trigger is strongest right now.",
+    "sourceIds": [
+      "489905594",
+      "495477045",
+      "326760006"
+    ],
+    "editorialScore": 9.4,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "489905594",
+        "title": "2.4_I 6 bottoni decisionali",
+        "qualityHeuristic": "noisy"
+      },
+      {
+        "sourceId": "495477045",
+        "title": "DIRETTA 14 DICEMBRE - Buying personas",
+        "qualityHeuristic": "review"
+      },
+      {
+        "sourceId": "326760006",
+        "title": "3_APPROFONDIMENTO BUYER PERSONAS - diretta 19 marzo",
+        "qualityHeuristic": "review"
+      }
+    ],
+    "sourceReviewRequired": true,
+    "sourceRiskNote": "Do not use noisy transcript passages as sole factual support."
+  },
+  {
+    "storyId": "S044",
+    "format": "short",
+    "title": "Buyer Personas Fail When They Stop at Demographics",
+    "pillar": "Buyer Psychology",
+    "angle": "Psychographic and problem-state insight is more actionable than surface demographics.",
+    "hook": "Age, job title and city rarely tell you what sentence will make someone buy.",
+    "sourceIds": [
+      "339539701",
+      "326760006",
+      "358036996"
+    ],
+    "editorialScore": 9.8,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "339539701",
+        "title": "3.3_Buyer Personas",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "326760006",
+        "title": "3_APPROFONDIMENTO BUYER PERSONAS - diretta 19 marzo",
+        "qualityHeuristic": "review"
+      },
+      {
+        "sourceId": "358036996",
+        "title": "4.4 COM L'importanza della profilazione",
+        "qualityHeuristic": "noisy"
+      }
+    ],
+    "sourceReviewRequired": true,
+    "sourceRiskNote": "Do not use noisy transcript passages as sole factual support."
+  },
+  {
+    "storyId": "S045",
+    "format": "short",
+    "title": "Storytelling Is Not “Tell Your Story”",
+    "pillar": "Storytelling",
+    "angle": "Storytelling is structure, selection and emotional movement—not autobiography dumping.",
+    "hook": "Talking about yourself is not automatically storytelling. A timeline is not a story either.",
+    "sourceIds": [
+      "485998233",
+      "489480948",
+      "612036787"
+    ],
+    "editorialScore": 9.7,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "485998233",
+        "title": "1.1 Che cos'è lo storytelling",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "489480948",
+        "title": "2.1_Come si racconta una storia",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "612036787",
+        "title": "3.5 Storytelling personale",
+        "qualityHeuristic": "review"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S046",
+    "format": "short",
+    "title": "Emotion Makes Information Memorable",
+    "pillar": "Storytelling",
+    "angle": "Emotional movement increases attention and recall in educational content.",
+    "hook": "Information answers a question. Emotion gives the brain a reason to keep listening.",
+    "sourceIds": [
+      "485999265",
+      "349396160",
+      "485998233"
+    ],
+    "editorialScore": 9.7,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "485999265",
+        "title": "1.4_L'importanza delle emozioni",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "349396160",
+        "title": "4.3_Lo storytelling è alla base di qualsiasi contenuto",
+        "qualityHeuristic": "noisy"
+      },
+      {
+        "sourceId": "485998233",
+        "title": "1.1 Che cos'è lo storytelling",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": true,
+    "sourceRiskNote": "Do not use noisy transcript passages as sole factual support."
+  },
+  {
+    "storyId": "S047",
+    "format": "short",
+    "title": "Every Business Story Needs a Before and After",
+    "pillar": "Storytelling",
+    "angle": "Transformation provides narrative meaning.",
+    "hook": "A business story without change is usually just a list of events.",
+    "sourceIds": [
+      "489480948",
+      "492110724",
+      "492067186"
+    ],
+    "editorialScore": 9.6,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "489480948",
+        "title": "2.1_Come si racconta una storia",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "492110724",
+        "title": "4.5_Come raccontano le storie i grandi brand",
+        "qualityHeuristic": "review"
+      },
+      {
+        "sourceId": "492067186",
+        "title": "4.4_Il viaggio dell'eroe",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S048",
+    "format": "short",
+    "title": "Stop Making Yourself the Hero",
+    "pillar": "Storytelling",
+    "angle": "For customer-facing messaging, the customer’s transformation should dominate.",
+    "hook": "If every brand story makes you the hero, your customer may never find their role in it.",
+    "sourceIds": [
+      "492067186",
+      "492110724",
+      "611998739"
+    ],
+    "editorialScore": 9.8,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "492067186",
+        "title": "4.4_Il viaggio dell'eroe",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "492110724",
+        "title": "4.5_Come raccontano le storie i grandi brand",
+        "qualityHeuristic": "review"
+      },
+      {
+        "sourceId": "611998739",
+        "title": "2.2 L'espediente del super eroe",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "S049",
+    "format": "short",
+    "title": "What Batman Can Teach You About Branding",
+    "pillar": "Brand/Storytelling",
+    "angle": "Use recognizable character codes and constraints to explain brand coherence.",
+    "hook": "Batman is memorable before he says a word. That is a useful branding lesson—if you strip away the cape.",
+    "sourceIds": [
+      "432534808",
+      "611819425",
+      "611986505"
+    ],
+    "editorialScore": 9.3,
+    "externalFactCheckRecommended": true,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "432534808",
+        "title": "8.4_Cosa possiamo imparare da batman",
+        "qualityHeuristic": "noisy"
+      },
+      {
+        "sourceId": "611819425",
+        "title": "1.1 Che cos'è un personaggio e perché parliamo di personaggio",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "611986505",
+        "title": "3.2 Come veicolare il tuo personaggio sui social",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": true,
+    "sourceRiskNote": "Do not use noisy transcript passages as sole factual support."
+  },
+  {
+    "storyId": "S050",
+    "format": "short",
+    "title": "Failure Is Useful Only If You Tell It This Way",
+    "pillar": "Storytelling",
+    "angle": "Failure becomes valuable content when tied to learning and transformation.",
+    "hook": "A failure story is not powerful because you failed. It is powerful because the failure changed what happened next.",
+    "sourceIds": [
+      "427320554",
+      "492110724",
+      "612036787"
+    ],
+    "editorialScore": 9.6,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 90,
+    "targetWords": 232,
+    "wordTolerance": 12,
+    "sources": [
+      {
+        "sourceId": "427320554",
+        "title": "6.6 Come affrontare i fallimenti",
+        "qualityHeuristic": "noisy"
+      },
+      {
+        "sourceId": "492110724",
+        "title": "4.5_Come raccontano le storie i grandi brand",
+        "qualityHeuristic": "review"
+      },
+      {
+        "sourceId": "612036787",
+        "title": "3.5 Storytelling personale",
+        "qualityHeuristic": "review"
+      }
+    ],
+    "sourceReviewRequired": true,
+    "sourceRiskNote": "Do not use noisy transcript passages as sole factual support."
+  },
+  {
+    "storyId": "L001",
+    "format": "long",
+    "title": "Why Being Good at Your Job Isn't Enough: Positioning for Experts",
+    "pillar": "Positioning",
+    "angle": "Build the complete argument from competence to perceived category and authority.",
+    "hook": "The market does not reward invisible competence. It rewards competence it can recognize, categorize and trust.",
+    "sourceIds": [
+      "579394985",
+      "632208602",
+      "527200456",
+      "492474609"
+    ],
+    "editorialScore": 9.9,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "579394985",
+        "title": "05 Come ci si posiziona da esperta？",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "632208602",
+        "title": "7.1 Cosa significa posizionarsi",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "527200456",
+        "title": "2.4 Posizionamento in 3 punti",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "492474609",
+        "title": "5.3_Credibilità",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "L002",
+    "format": "long",
+    "title": "How to Find a Niche Without Trapping Yourself",
+    "pillar": "Positioning",
+    "angle": "Treat niching as an entry strategy rather than a permanent identity prison.",
+    "hook": "The fear of choosing a niche comes from treating it like a life sentence instead of a positioning decision.",
+    "sourceIds": [
+      "631094802",
+      "487176674",
+      "527200456",
+      "432529581"
+    ],
+    "editorialScore": 9.8,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "631094802",
+        "title": "1.3 - La nicchia della nicchia",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "487176674",
+        "title": "1.1 Come definire la tua cliente ideale",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "527200456",
+        "title": "2.4 Posizionamento in 3 punti",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "432529581",
+        "title": "3.1_Analisi industria e concorrenti",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "L003",
+    "format": "long",
+    "title": "The 3-Layer Positioning System",
+    "pillar": "Positioning",
+    "angle": "Market + problem + value perception, expanded with proof and specificity.",
+    "hook": "If your positioning takes a paragraph to explain, it is probably missing one of three layers.",
+    "sourceIds": [
+      "527200456",
+      "632208602",
+      "500488925",
+      "579394985"
+    ],
+    "editorialScore": 9.8,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "527200456",
+        "title": "2.4 Posizionamento in 3 punti",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "632208602",
+        "title": "7.1 Cosa significa posizionarsi",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "500488925",
+        "title": "1.2. Posizionamento",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "579394985",
+        "title": "05 Come ci si posiziona da esperta？",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "L004",
+    "format": "long",
+    "title": "How to Differentiate When Everyone Offers the Same Thing",
+    "pillar": "Differentiation",
+    "angle": "Use skill combination, category design and non-obvious references.",
+    "hook": "Most businesses try to differentiate by saying they care more. That is not differentiation; it is table stakes.",
+    "sourceIds": [
+      "631094379",
+      "432529483",
+      "432529091",
+      "440034746"
+    ],
+    "editorialScore": 9.9,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "631094379",
+        "title": "1.2 - Differenziazione",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "432529483",
+        "title": "2.3_Come mixare le tue competenze",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "432529091",
+        "title": "2.2_Ispirati ad altri settori",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "440034746",
+        "title": "3.1_Contaminazione",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "L005",
+    "format": "long",
+    "title": "The Skill-Stack Advantage: Build a Category Around Yourself",
+    "pillar": "Differentiation",
+    "angle": "Combine competencies, goals and interests into a harder-to-copy market position.",
+    "hook": "You do not need to become the best in the world at one thing if your combination of things is rare enough.",
+    "sourceIds": [
+      "630997086",
+      "432529483",
+      "427702409",
+      "407570083"
+    ],
+    "editorialScore": 9.9,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "630997086",
+        "title": "1.1 Analisi di competenze",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "432529483",
+        "title": "2.3_Come mixare le tue competenze",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "427702409",
+        "title": "7.1 Come mixare competenze, obiettivi e passioni",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "407570083",
+        "title": "3.1 LA SCALA DELL'EXPERTISE",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "L006",
+    "format": "long",
+    "title": "How to Study Competitors Without Becoming a Copy",
+    "pillar": "Strategy",
+    "angle": "Separate category literacy from mimicry and introduce adjacent-industry research.",
+    "hook": "Competitor research has a hidden failure mode: the better you study everyone else, the easier it is to become everyone else.",
+    "sourceIds": [
+      "432529581",
+      "432529683",
+      "432529091"
+    ],
+    "editorialScore": 9.7,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "432529581",
+        "title": "3.1_Analisi industria e concorrenti",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "432529683",
+        "title": "3.2_Come esplorare il tuo settore",
+        "qualityHeuristic": "noisy"
+      },
+      {
+        "sourceId": "432529091",
+        "title": "2.2_Ispirati ad altri settori",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": true,
+    "sourceRiskNote": "Do not use noisy transcript passages as sole factual support."
+  },
+  {
+    "storyId": "L007",
+    "format": "long",
+    "title": "Borrow Ideas From Other Industries Without Copying",
+    "pillar": "Innovation",
+    "angle": "Use cross-industry analogies as an innovation method.",
+    "hook": "Some of the best ideas for your business are already working—just not in your industry.",
+    "sourceIds": [
+      "432529091",
+      "440034746",
+      "432532188"
+    ],
+    "editorialScore": 9.7,
+    "externalFactCheckRecommended": true,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "432529091",
+        "title": "2.2_Ispirati ad altri settori",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "440034746",
+        "title": "3.1_Contaminazione",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "432532188",
+        "title": "4.2_Innova o muori",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "L008",
+    "format": "long",
+    "title": "How to Explain What You Do So People Want It",
+    "pillar": "Messaging",
+    "angle": "Move from profession labels to problem, transformation and proof.",
+    "hook": "If prospects understand your job title but still do not understand why they need you, your explanation is technically correct and commercially useless.",
+    "sourceIds": [
+      "337368079",
+      "483226672",
+      "348797918",
+      "527200456"
+    ],
+    "editorialScore": 9.9,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "337368079",
+        "title": "2.1_Come spiegare il tuo lavoro",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "483226672",
+        "title": "1.2_Cosa vendi",
+        "qualityHeuristic": "noisy"
+      },
+      {
+        "sourceId": "348797918",
+        "title": "CAP 1.2 Cosa vendi basi della comunicazione export",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "527200456",
+        "title": "2.4 Posizionamento in 3 punti",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": true,
+    "sourceRiskNote": "Do not use noisy transcript passages as sole factual support."
+  },
+  {
+    "storyId": "L009",
+    "format": "long",
+    "title": "The Authority Engine: Content, Proof, Method, Visibility",
+    "pillar": "Positioning",
+    "angle": "Connect multiple authority-building mechanisms into a compounding system.",
+    "hook": "Authority is rarely one viral post. It is a stack of signals that keep agreeing with each other.",
+    "sourceIds": [
+      "579394985",
+      "413189395",
+      "631823319",
+      "492474609",
+      "611985123"
+    ],
+    "editorialScore": 9.8,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "579394985",
+        "title": "05 Come ci si posiziona da esperta？",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "413189395",
+        "title": "8.2 Contenuti di posizionamento",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "631823319",
+        "title": "3.1 - Perché avere un metodo",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "492474609",
+        "title": "5.3_Credibilità",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "611985123",
+        "title": "3.3 Un libro di posizionamento",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "L010",
+    "format": "long",
+    "title": "From Unknown to Sought-After Consultant",
+    "pillar": "Consulting",
+    "angle": "Design the zero-to-positioned path for a new consultant.",
+    "hook": "The hardest day of consulting is day one: you may have the skills, but the market has no reason to associate those skills with you yet.",
+    "sourceIds": [
+      "579308509",
+      "579394985",
+      "407570083",
+      "631094802",
+      "543622641"
+    ],
+    "editorialScore": 9.8,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "579308509",
+        "title": "01 Come si diventa consulenti？",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "579394985",
+        "title": "05 Come ci si posiziona da esperta？",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "407570083",
+        "title": "3.1 LA SCALA DELL'EXPERTISE",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "631094802",
+        "title": "1.3 - La nicchia della nicchia",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "543622641",
+        "title": "Come si trovano i clienti",
+        "qualityHeuristic": "noisy"
+      }
+    ],
+    "sourceReviewRequired": true,
+    "sourceRiskNote": "Do not use noisy transcript passages as sole factual support."
+  },
+  {
+    "storyId": "L011",
+    "format": "long",
+    "title": "Build a Signature Method People Can Understand and Buy",
+    "pillar": "Consulting",
+    "angle": "Turn tacit expertise into a repeatable, flexible method.",
+    "hook": "A consultant without a method sells hours. A consultant with a credible method can sell a system.",
+    "sourceIds": [
+      "631823319",
+      "631871349",
+      "631882652",
+      "631904157"
+    ],
+    "editorialScore": 9.9,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "631823319",
+        "title": "3.1 - Perché avere un metodo",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "631871349",
+        "title": "3.3 - Come creare il tuo metodo passo passo",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "631882652",
+        "title": "3.4 - Il nome del tuo metodo - parliamone",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "631904157",
+        "title": "3.5 - Come spiegare il tuo metodo prima che ti scelgano, senza darlo via gratis",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "L012",
+    "format": "long",
+    "title": "How to Productize Expertise Without Giving Away the Work",
+    "pillar": "Consulting",
+    "angle": "Expose the framework and proof while protecting the implementation layer.",
+    "hook": "The buyer needs to understand your process before hiring you—but that does not mean publishing the entire playbook.",
+    "sourceIds": [
+      "631904157",
+      "631823319",
+      "432534455",
+      "407551189"
+    ],
+    "editorialScore": 9.8,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "631904157",
+        "title": "3.5 - Come spiegare il tuo metodo prima che ti scelgano, senza darlo via gratis",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "631823319",
+        "title": "3.1 - Perché avere un metodo",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "432534455",
+        "title": "8.1_Come creare la tua offerta",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "407551189",
+        "title": "3.4 COME DEFINIRE COME INSEGNARE",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "L013",
+    "format": "long",
+    "title": "The Expertise Ladder: What Makes Advice More Valuable",
+    "pillar": "Consulting",
+    "angle": "Explore progression from knowledge to applied judgment and repeatable outcomes.",
+    "hook": "Two people can know the same information and still be worth very different amounts to a client.",
+    "sourceIds": [
+      "407570083",
+      "630997086",
+      "579375182",
+      "631823319"
+    ],
+    "editorialScore": 9.7,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "407570083",
+        "title": "3.1 LA SCALA DELL'EXPERTISE",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "630997086",
+        "title": "1.1 Analisi di competenze",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "579375182",
+        "title": "03 Quanto guadagna una consulente？",
+        "qualityHeuristic": "review"
+      },
+      {
+        "sourceId": "631823319",
+        "title": "3.1 - Perché avere un metodo",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "L014",
+    "format": "long",
+    "title": "Why Your Personal Brand Is Bigger Than Your Visual Identity",
+    "pillar": "Brand",
+    "angle": "Decompose brand into expectations, behavior, voice, proof and visual codes.",
+    "hook": "Your logo can change tomorrow and your strongest customers should still know exactly what kind of person or company they are dealing with.",
+    "sourceIds": [
+      "338224358",
+      "429606414",
+      "492474609",
+      "611819425"
+    ],
+    "editorialScore": 9.8,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "338224358",
+        "title": "11.1_Perché devi considerarti un brand",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "429606414",
+        "title": "8.1 Che cos'è il personal branding",
+        "qualityHeuristic": "noisy"
+      },
+      {
+        "sourceId": "492474609",
+        "title": "5.3_Credibilità",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "611819425",
+        "title": "1.1 Che cos'è un personaggio e perché parliamo di personaggio",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": true,
+    "sourceRiskNote": "Do not use noisy transcript passages as sole factual support."
+  },
+  {
+    "storyId": "L015",
+    "format": "long",
+    "title": "Human Brand vs Corporate Brand: Which Should You Build?",
+    "pillar": "Brand",
+    "angle": "Compare trust, scalability, dependence on founder persona and communication style.",
+    "hook": "A human brand can build trust faster. A corporate brand can outgrow the person. Choosing blindly creates expensive problems later.",
+    "sourceIds": [
+      "485848224",
+      "338224358",
+      "492474915"
+    ],
+    "editorialScore": 9.6,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "485848224",
+        "title": "2.1_Sei un brand human o un brand corporate",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "338224358",
+        "title": "11.1_Perché devi considerarti un brand",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "492474915",
+        "title": "4.6_Le tre fasi della creazione di un brand di successo",
+        "qualityHeuristic": "review"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "L016",
+    "format": "long",
+    "title": "The Credibility Stack: How Experts Become Believable Online",
+    "pillar": "Brand",
+    "angle": "Combine consistency, realism, visible proof, specialization and boundaries.",
+    "hook": "People do not buy expertise they cannot verify. Online, credibility has to be engineered through signals.",
+    "sourceIds": [
+      "492474609",
+      "579394985",
+      "632208602",
+      "641914375"
+    ],
+    "editorialScore": 9.9,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "492474609",
+        "title": "5.3_Credibilità",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "579394985",
+        "title": "05 Come ci si posiziona da esperta？",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "632208602",
+        "title": "7.1 Cosa significa posizionarsi",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "641914375",
+        "title": "Come dire di no senza dire di no - Part 1",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "L017",
+    "format": "long",
+    "title": "How to Turn Your Personal Story Into a Business Asset",
+    "pillar": "Storytelling",
+    "angle": "Select business-relevant transformation rather than narrating a biography.",
+    "hook": "Your life story is not automatically useful content. The useful version is the part that explains why your worldview changed.",
+    "sourceIds": [
+      "612036787",
+      "400890516",
+      "492110724",
+      "489480948"
+    ],
+    "editorialScore": 9.7,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "612036787",
+        "title": "3.5 Storytelling personale",
+        "qualityHeuristic": "review"
+      },
+      {
+        "sourceId": "400890516",
+        "title": "IL POTERE DI RACCONTARSI",
+        "qualityHeuristic": "review"
+      },
+      {
+        "sourceId": "492110724",
+        "title": "4.5_Come raccontano le storie i grandi brand",
+        "qualityHeuristic": "review"
+      },
+      {
+        "sourceId": "489480948",
+        "title": "2.1_Come si racconta una storia",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "L018",
+    "format": "long",
+    "title": "The Psychology of Memorable Business Storytelling",
+    "pillar": "Storytelling",
+    "angle": "Explain structure, emotion, contrast and transformation.",
+    "hook": "People forget most advice. They remember the story that made the advice feel true.",
+    "sourceIds": [
+      "485998233",
+      "485999265",
+      "489480948",
+      "349396160"
+    ],
+    "editorialScore": 9.9,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "485998233",
+        "title": "1.1 Che cos'è lo storytelling",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "485999265",
+        "title": "1.4_L'importanza delle emozioni",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "489480948",
+        "title": "2.1_Come si racconta una storia",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "349396160",
+        "title": "4.3_Lo storytelling è alla base di qualsiasi contenuto",
+        "qualityHeuristic": "noisy"
+      }
+    ],
+    "sourceReviewRequired": true,
+    "sourceRiskNote": "Do not use noisy transcript passages as sole factual support."
+  },
+  {
+    "storyId": "L019",
+    "format": "long",
+    "title": "How Great Brands Use Transformation Stories",
+    "pillar": "Storytelling",
+    "angle": "Analyze the transformation arc and selective editing used in brand narratives.",
+    "hook": "Great brand stories rarely tell everything that happened. They tell the sequence that makes the transformation legible.",
+    "sourceIds": [
+      "492110724",
+      "492067186",
+      "492474915"
+    ],
+    "editorialScore": 9.7,
+    "externalFactCheckRecommended": true,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "492110724",
+        "title": "4.5_Come raccontano le storie i grandi brand",
+        "qualityHeuristic": "review"
+      },
+      {
+        "sourceId": "492067186",
+        "title": "4.4_Il viaggio dell'eroe",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "492474915",
+        "title": "4.6_Le tre fasi della creazione di un brand di successo",
+        "qualityHeuristic": "review"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "L020",
+    "format": "long",
+    "title": "Storytelling for Educational Content: Teach Without Boring People",
+    "pillar": "Content",
+    "angle": "Fuse instruction with narrative beats, emotion, examples and pacing.",
+    "hook": "Most educational content loses viewers for the same reason bad classrooms lose students: the information arrives without tension.",
+    "sourceIds": [
+      "485998444",
+      "349396160",
+      "489480948",
+      "485999265"
+    ],
+    "editorialScore": 9.9,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "485998444",
+        "title": "1.3_Insegnare intrattenendo",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "349396160",
+        "title": "4.3_Lo storytelling è alla base di qualsiasi contenuto",
+        "qualityHeuristic": "noisy"
+      },
+      {
+        "sourceId": "489480948",
+        "title": "2.1_Come si racconta una storia",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "485999265",
+        "title": "1.4_L'importanza delle emozioni",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": true,
+    "sourceRiskNote": "Do not use noisy transcript passages as sole factual support."
+  },
+  {
+    "storyId": "L021",
+    "format": "long",
+    "title": "The Irresistible Offer Is Not a Discount",
+    "pillar": "Offers",
+    "angle": "Contrast price cutting with value architecture.",
+    "hook": "If the only way to make your offer irresistible is to make it cheaper, the offer itself is still weak.",
+    "sourceIds": [
+      "491989145",
+      "432534455",
+      "558215215"
+    ],
+    "editorialScore": 9.9,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "491989145",
+        "title": "3.2 Creare un'offerta irresistibile",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "432534455",
+        "title": "8.1_Come creare la tua offerta",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "558215215",
+        "title": "Masterclass Ottimizzazione offerta",
+        "qualityHeuristic": "review"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "L022",
+    "format": "long",
+    "title": "How to Design an Offer People Can Say Yes To",
+    "pillar": "Offers",
+    "angle": "Build audience, problem, promise, mechanism, proof, risk and price into one decision.",
+    "hook": "A strong offer removes reasons to hesitate faster than it adds reasons to admire the product.",
+    "sourceIds": [
+      "432534455",
+      "491989145",
+      "495484021",
+      "558215215"
+    ],
+    "editorialScore": 9.9,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "432534455",
+        "title": "8.1_Come creare la tua offerta",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "491989145",
+        "title": "3.2 Creare un'offerta irresistibile",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "495484021",
+        "title": "DIRETTA 28 DICEMBRE - Promessa e offerta",
+        "qualityHeuristic": "review"
+      },
+      {
+        "sourceId": "558215215",
+        "title": "Masterclass Ottimizzazione offerta",
+        "qualityHeuristic": "review"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "L023",
+    "format": "long",
+    "title": "Why Your Offer Feels Expensive Even When It Isn’t",
+    "pillar": "Offers/Pricing",
+    "angle": "Diagnose perceived price through clarity, urgency, credibility and outcome.",
+    "hook": "‘Too expensive’ is sometimes about money. Often it is shorthand for ‘I do not yet see enough value or certainty.’",
+    "sourceIds": [
+      "632092480",
+      "491989145",
+      "558208174",
+      "495484021"
+    ],
+    "editorialScore": 9.8,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "632092480",
+        "title": "6.1 - Potere d'acquisto e prezzi",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "491989145",
+        "title": "3.2 Creare un'offerta irresistibile",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "558208174",
+        "title": "Q&A - Ottimizzazione offerta",
+        "qualityHeuristic": "review"
+      },
+      {
+        "sourceId": "495484021",
+        "title": "DIRETTA 28 DICEMBRE - Promessa e offerta",
+        "qualityHeuristic": "review"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "L024",
+    "format": "long",
+    "title": "The Offer Twist: How to Differentiate the Same Core Service",
+    "pillar": "Offers",
+    "angle": "Change packaging, mechanism or context rather than fabricating novelty.",
+    "hook": "You can sell a familiar service without looking interchangeable if the offer changes how the buyer understands the path to the result.",
+    "sourceIds": [
+      "432534643",
+      "432534455",
+      "631094379"
+    ],
+    "editorialScore": 9.7,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "432534643",
+        "title": "8.2_Come applicare il twist alla tua offerta",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "432534455",
+        "title": "8.1_Come creare la tua offerta",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "631094379",
+        "title": "1.2 - Differenziazione",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "L025",
+    "format": "long",
+    "title": "Promise, Proof, Price: The Anatomy of a Strong Offer",
+    "pillar": "Offers",
+    "angle": "Use promise-offer masterclass material to create a buyer-decision framework.",
+    "hook": "An offer collapses when its promise, proof and price tell three different stories.",
+    "sourceIds": [
+      "495484021",
+      "491989145",
+      "632092480",
+      "492474609"
+    ],
+    "editorialScore": 9.8,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "495484021",
+        "title": "DIRETTA 28 DICEMBRE - Promessa e offerta",
+        "qualityHeuristic": "review"
+      },
+      {
+        "sourceId": "491989145",
+        "title": "3.2 Creare un'offerta irresistibile",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "632092480",
+        "title": "6.1 - Potere d'acquisto e prezzi",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "492474609",
+        "title": "5.3_Credibilità",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "L026",
+    "format": "long",
+    "title": "How to Raise Prices Without Losing Your Best Customers",
+    "pillar": "Pricing",
+    "angle": "Price-change mechanics, positioning support and communication sequencing.",
+    "hook": "The dangerous part of a price increase is not the new number. It is raising the number before the value story can carry it.",
+    "sourceIds": [
+      "632102486",
+      "632092480",
+      "632208602",
+      "492004988"
+    ],
+    "editorialScore": 9.8,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "632102486",
+        "title": "6.4 - Come aumentare i prezzi",
+        "qualityHeuristic": "noisy"
+      },
+      {
+        "sourceId": "632092480",
+        "title": "6.1 - Potere d'acquisto e prezzi",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "632208602",
+        "title": "7.1 Cosa significa posizionarsi",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "492004988",
+        "title": "5.1 Relazione con il denaro e con le vendite",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": true,
+    "sourceRiskNote": "Do not use noisy transcript passages as sole factual support."
+  },
+  {
+    "storyId": "L027",
+    "format": "long",
+    "title": "Stop Charging by the Hour: Pricing Expertise for Value",
+    "pillar": "Pricing",
+    "angle": "Contrast time pricing with specialized judgment and outcome value.",
+    "hook": "If twenty years of experience let you solve the problem in one hour, hourly pricing can punish you for getting better.",
+    "sourceIds": [
+      "632092480",
+      "407570083",
+      "579375182"
+    ],
+    "editorialScore": 9.9,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "632092480",
+        "title": "6.1 - Potere d'acquisto e prezzi",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "407570083",
+        "title": "3.1 LA SCALA DELL'EXPERTISE",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "579375182",
+        "title": "03 Quanto guadagna una consulente？",
+        "qualityHeuristic": "review"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "L028",
+    "format": "long",
+    "title": "Money Psychology Is Quietly Sabotaging Your Sales",
+    "pillar": "Pricing/Sales",
+    "angle": "Connect seller beliefs about money to discounting, avoidance and weak negotiation.",
+    "hook": "You can memorize every sales script and still sabotage the sale if asking for money makes you retreat.",
+    "sourceIds": [
+      "492004988",
+      "405894598",
+      "551563985"
+    ],
+    "editorialScore": 9.7,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "492004988",
+        "title": "5.1 Relazione con il denaro e con le vendite",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "405894598",
+        "title": "2.3_La relazione con il denaro e le vendite",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "551563985",
+        "title": "La negoziazione aggressiva",
+        "qualityHeuristic": "noisy"
+      }
+    ],
+    "sourceReviewRequired": true,
+    "sourceRiskNote": "Do not use noisy transcript passages as sole factual support."
+  },
+  {
+    "storyId": "L029",
+    "format": "long",
+    "title": "How Much Should a Consultant Charge?",
+    "pillar": "Pricing",
+    "angle": "Build a pricing decision around capacity, specialization, positioning and value.",
+    "hook": "The wrong question is ‘what is a normal hourly rate?’ The useful question is what business model that rate forces you to live inside.",
+    "sourceIds": [
+      "579375182",
+      "632092480",
+      "632102486",
+      "490704129"
+    ],
+    "editorialScore": 9.8,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "579375182",
+        "title": "03 Quanto guadagna una consulente？",
+        "qualityHeuristic": "review"
+      },
+      {
+        "sourceId": "632092480",
+        "title": "6.1 - Potere d'acquisto e prezzi",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "632102486",
+        "title": "6.4 - Come aumentare i prezzi",
+        "qualityHeuristic": "noisy"
+      },
+      {
+        "sourceId": "490704129",
+        "title": "2.2 Analisi e ridisegno del tuo modello di business",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": true,
+    "sourceRiskNote": "Do not use noisy transcript passages as sole factual support."
+  },
+  {
+    "storyId": "L030",
+    "format": "long",
+    "title": "How to Rebuild a Weak Product or Service",
+    "pillar": "Product",
+    "angle": "Audit fit, value, packaging and customer evidence before adding features.",
+    "hook": "When a product underperforms, the instinct is often to add more. Sometimes the fix is to remove, reposition or rebuild the core promise.",
+    "sourceIds": [
+      "557609973",
+      "557656770",
+      "490718574",
+      "407670101"
+    ],
+    "editorialScore": 9.7,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "557609973",
+        "title": "Masterclass - Ottimizzazione prodotto o servizio",
+        "qualityHeuristic": "review"
+      },
+      {
+        "sourceId": "557656770",
+        "title": "Q&A - Ottimizzazione prodotto o servizio",
+        "qualityHeuristic": "review"
+      },
+      {
+        "sourceId": "490718574",
+        "title": "2.4 Come adattare o creare nuovi prodotti",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "407670101",
+        "title": "3.6 COME VALIDARE LA NOSTA IDEA",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "L031",
+    "format": "long",
+    "title": "Why Innovation Usually Starts With Recombination",
+    "pillar": "Innovation",
+    "angle": "New offers often come from recombining known elements across domains.",
+    "hook": "Innovation is often less about inventing from zero and more about combining things your market has never seen together.",
+    "sourceIds": [
+      "432532188",
+      "440034746",
+      "432529091",
+      "432529483"
+    ],
+    "editorialScore": 9.7,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "432532188",
+        "title": "4.2_Innova o muori",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "440034746",
+        "title": "3.1_Contaminazione",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "432529091",
+        "title": "2.2_Ispirati ad altri settori",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "432529483",
+        "title": "2.3_Come mixare le tue competenze",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "L032",
+    "format": "long",
+    "title": "Validate Your Idea Before Building the Perfect Version",
+    "pillar": "Product",
+    "angle": "Create a staged validation framework before heavy investment.",
+    "hook": "A beautiful product is not evidence that anyone wants it.",
+    "sourceIds": [
+      "407670101",
+      "527215526",
+      "557609973"
+    ],
+    "editorialScore": 9.9,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "407670101",
+        "title": "3.6 COME VALIDARE LA NOSTA IDEA",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "527215526",
+        "title": "6.1 Validazione",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "557609973",
+        "title": "Masterclass - Ottimizzazione prodotto o servizio",
+        "qualityHeuristic": "review"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "L033",
+    "format": "long",
+    "title": "How to Find Clients When Nobody Knows You",
+    "pillar": "Sales",
+    "angle": "Prospecting, positioning and visibility for an early consultant.",
+    "hook": "‘I need clients’ sounds like a lead-generation problem. At the beginning, it is usually three problems at once: trust, visibility and relevance.",
+    "sourceIds": [
+      "543622641",
+      "505265650",
+      "579308509",
+      "579394985"
+    ],
+    "editorialScore": 9.8,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "543622641",
+        "title": "Come si trovano i clienti",
+        "qualityHeuristic": "noisy"
+      },
+      {
+        "sourceId": "505265650",
+        "title": "Diretta 11 GENNAIO - Vendita e prospezione",
+        "qualityHeuristic": "noisy"
+      },
+      {
+        "sourceId": "579308509",
+        "title": "01 Come si diventa consulenti？",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "579394985",
+        "title": "05 Come ci si posiziona da esperta？",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": true,
+    "sourceRiskNote": "Do not use noisy transcript passages as sole factual support."
+  },
+  {
+    "storyId": "L034",
+    "format": "long",
+    "title": "Prospecting Without Becoming Spammy",
+    "pillar": "Sales",
+    "angle": "Use relevance and diagnosis rather than volume-first outreach.",
+    "hook": "Bad prospecting feels like a stranger demanding attention. Good prospecting makes the other person feel correctly understood.",
+    "sourceIds": [
+      "505265650",
+      "537802677",
+      "531699684"
+    ],
+    "editorialScore": 9.7,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "505265650",
+        "title": "Diretta 11 GENNAIO - Vendita e prospezione",
+        "qualityHeuristic": "noisy"
+      },
+      {
+        "sourceId": "537802677",
+        "title": "SOS DELIVERY - Vendita Live",
+        "qualityHeuristic": "review"
+      },
+      {
+        "sourceId": "531699684",
+        "title": "StayBoss - Vendita",
+        "qualityHeuristic": "noisy"
+      }
+    ],
+    "sourceReviewRequired": true,
+    "sourceRiskNote": "Do not use noisy transcript passages as sole factual support."
+  },
+  {
+    "storyId": "L035",
+    "format": "long",
+    "title": "The 7-Step Social Content Path From Viewer to Client",
+    "pillar": "Content/Sales",
+    "angle": "Expand the seven-step social hiring concept with awareness/conversion staging.",
+    "hook": "Most creators ask content to do the sale in one post. A better system lets different pieces move the buyer through different decisions.",
+    "sourceIds": [
+      "532254039",
+      "360303426",
+      "413189395",
+      "558394067"
+    ],
+    "editorialScore": 9.8,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "532254039",
+        "title": "I 7 passi per farti ingaggiare per i tuoi servizi con i tuoi contenuti social",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "360303426",
+        "title": "1.5 Differenza tra Conversion e Awareness",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "413189395",
+        "title": "8.2 Contenuti di posizionamento",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "558394067",
+        "title": "Masterclass Ottimizzazione Conversion",
+        "qualityHeuristic": "review"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "L036",
+    "format": "long",
+    "title": "How to Convert Attention Into Sales",
+    "pillar": "Conversion",
+    "angle": "Bridge audience attention to offer clarity, proof and next-step design.",
+    "hook": "Views are not revenue. The missing layer is the sequence that turns attention into a buying decision.",
+    "sourceIds": [
+      "558394067",
+      "558389112",
+      "360303426",
+      "432534455"
+    ],
+    "editorialScore": 9.9,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "558394067",
+        "title": "Masterclass Ottimizzazione Conversion",
+        "qualityHeuristic": "review"
+      },
+      {
+        "sourceId": "558389112",
+        "title": "Q&A - Conversion",
+        "qualityHeuristic": "review"
+      },
+      {
+        "sourceId": "360303426",
+        "title": "1.5 Differenza tra Conversion e Awareness",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "432534455",
+        "title": "8.1_Come creare la tua offerta",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "L037",
+    "format": "long",
+    "title": "Why More Leads Won't Fix a Broken Conversion System",
+    "pillar": "Conversion",
+    "angle": "Show the economics of pouring more traffic into a leaky funnel.",
+    "hook": "If your conversion system leaks, scaling traffic scales waste.",
+    "sourceIds": [
+      "558394067",
+      "558389112",
+      "527216093"
+    ],
+    "editorialScore": 9.9,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "558394067",
+        "title": "Masterclass Ottimizzazione Conversion",
+        "qualityHeuristic": "review"
+      },
+      {
+        "sourceId": "558389112",
+        "title": "Q&A - Conversion",
+        "qualityHeuristic": "review"
+      },
+      {
+        "sourceId": "527216093",
+        "title": "6.2 Crescita e retention",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "L038",
+    "format": "long",
+    "title": "How to Win Back Clients Who Went Quiet",
+    "pillar": "Sales/Retention",
+    "angle": "Reactivation strategy from dormant-client masterclass plus retention principles.",
+    "hook": "A past client is not the same as a cold lead: they already crossed the hardest trust barrier once.",
+    "sourceIds": [
+      "566922303",
+      "527216093",
+      "505265650"
+    ],
+    "editorialScore": 9.7,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "566922303",
+        "title": "Masterclass_1_-_Come_riacchiappo_i_clienti-",
+        "qualityHeuristic": "review"
+      },
+      {
+        "sourceId": "527216093",
+        "title": "6.2 Crescita e retention",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "505265650",
+        "title": "Diretta 11 GENNAIO - Vendita e prospezione",
+        "qualityHeuristic": "noisy"
+      }
+    ],
+    "sourceReviewRequired": true,
+    "sourceRiskNote": "Do not use noisy transcript passages as sole factual support."
+  },
+  {
+    "storyId": "L039",
+    "format": "long",
+    "title": "How to Say No and Still Increase Trust",
+    "pillar": "Sales/Brand",
+    "angle": "Use boundaries as positioning and relationship management.",
+    "hook": "The way you refuse work can make people trust you more than the way you accept it.",
+    "sourceIds": [
+      "641914375",
+      "641914483",
+      "492474609"
+    ],
+    "editorialScore": 9.8,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "641914375",
+        "title": "Come dire di no senza dire di no - Part 1",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "641914483",
+        "title": "Come dire di no senza dire di no - Part 2",
+        "qualityHeuristic": "noisy"
+      },
+      {
+        "sourceId": "492474609",
+        "title": "5.3_Credibilità",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": true,
+    "sourceRiskNote": "Do not use noisy transcript passages as sole factual support."
+  },
+  {
+    "storyId": "L040",
+    "format": "long",
+    "title": "Negotiation Without Desperation: Protecting Value in Sales",
+    "pillar": "Sales",
+    "angle": "Frame negotiation around fit, boundaries and value rather than aggressive tactics.",
+    "hook": "The fastest way to destroy negotiating power is to communicate that you need this deal more than the client needs the outcome.",
+    "sourceIds": [
+      "551563985",
+      "492004988",
+      "632092480"
+    ],
+    "editorialScore": 9.6,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "551563985",
+        "title": "La negoziazione aggressiva",
+        "qualityHeuristic": "noisy"
+      },
+      {
+        "sourceId": "492004988",
+        "title": "5.1 Relazione con il denaro e con le vendite",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "632092480",
+        "title": "6.1 - Potere d'acquisto e prezzi",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": true,
+    "sourceRiskNote": "Do not use noisy transcript passages as sole factual support."
+  },
+  {
+    "storyId": "L041",
+    "format": "long",
+    "title": "Why Buyer Personas Usually Don't Help You Sell",
+    "pillar": "Buyer Psychology",
+    "angle": "Critique shallow persona documents and replace them with decision-useful insight.",
+    "hook": "Most buyer personas are full of details and empty of buying psychology.",
+    "sourceIds": [
+      "339539701",
+      "326760006",
+      "495477045",
+      "358036996"
+    ],
+    "editorialScore": 9.9,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "339539701",
+        "title": "3.3_Buyer Personas",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "326760006",
+        "title": "3_APPROFONDIMENTO BUYER PERSONAS - diretta 19 marzo",
+        "qualityHeuristic": "review"
+      },
+      {
+        "sourceId": "495477045",
+        "title": "DIRETTA 14 DICEMBRE - Buying personas",
+        "qualityHeuristic": "review"
+      },
+      {
+        "sourceId": "358036996",
+        "title": "4.4 COM L'importanza della profilazione",
+        "qualityHeuristic": "noisy"
+      }
+    ],
+    "sourceReviewRequired": true,
+    "sourceRiskNote": "Do not use noisy transcript passages as sole factual support."
+  },
+  {
+    "storyId": "L042",
+    "format": "long",
+    "title": "Pain vs Desire: What Actually Drives a Purchase?",
+    "pillar": "Buyer Psychology",
+    "angle": "Map recognized pain, desired state and readiness.",
+    "hook": "People do not always buy because the pain is unbearable. Sometimes they buy because the desired future finally feels concrete enough.",
+    "sourceIds": [
+      "631824923",
+      "408412888",
+      "495477045"
+    ],
+    "editorialScore": 9.8,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "631824923",
+        "title": "3.2 - Punto di dolore e punto di desiderio",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "408412888",
+        "title": "4.4_Problemi del tuo pubblico",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "495477045",
+        "title": "DIRETTA 14 DICEMBRE - Buying personas",
+        "qualityHeuristic": "review"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "L043",
+    "format": "long",
+    "title": "The 6 Decision Triggers Behind Buying",
+    "pillar": "Buyer Psychology",
+    "angle": "Turn the six-buttons material into a modern decision framework with caveats.",
+    "hook": "Buying decisions look rational after the fact. In the moment, several psychological triggers are competing for control.",
+    "sourceIds": [
+      "489905594",
+      "326760006",
+      "495477045"
+    ],
+    "editorialScore": 9.7,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "489905594",
+        "title": "2.4_I 6 bottoni decisionali",
+        "qualityHeuristic": "noisy"
+      },
+      {
+        "sourceId": "326760006",
+        "title": "3_APPROFONDIMENTO BUYER PERSONAS - diretta 19 marzo",
+        "qualityHeuristic": "review"
+      },
+      {
+        "sourceId": "495477045",
+        "title": "DIRETTA 14 DICEMBRE - Buying personas",
+        "qualityHeuristic": "review"
+      }
+    ],
+    "sourceReviewRequired": true,
+    "sourceRiskNote": "Do not use noisy transcript passages as sole factual support."
+  },
+  {
+    "storyId": "L044",
+    "format": "long",
+    "title": "How to Profile Customers Without Stereotyping Them",
+    "pillar": "Buyer Psychology",
+    "angle": "Focus on situation, behavior, needs and decision context over demographic caricatures.",
+    "hook": "A useful customer profile predicts a decision. A stereotype only describes a person.",
+    "sourceIds": [
+      "358036996",
+      "339539701",
+      "487176674"
+    ],
+    "editorialScore": 9.7,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "358036996",
+        "title": "4.4 COM L'importanza della profilazione",
+        "qualityHeuristic": "noisy"
+      },
+      {
+        "sourceId": "339539701",
+        "title": "3.3_Buyer Personas",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "487176674",
+        "title": "1.1 Come definire la tua cliente ideale",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": true,
+    "sourceRiskNote": "Do not use noisy transcript passages as sole factual support."
+  },
+  {
+    "storyId": "L045",
+    "format": "long",
+    "title": "Your Customer Doesn't Want Your Product—They Want an Outcome",
+    "pillar": "Buyer Psychology",
+    "angle": "Reframe product messaging around jobs, problems and transformation.",
+    "hook": "Customers tolerate your product because they want the future state they believe it can create.",
+    "sourceIds": [
+      "483226672",
+      "631824923",
+      "408412888",
+      "432534455"
+    ],
+    "editorialScore": 9.9,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "483226672",
+        "title": "1.2_Cosa vendi",
+        "qualityHeuristic": "noisy"
+      },
+      {
+        "sourceId": "631824923",
+        "title": "3.2 - Punto di dolore e punto di desiderio",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "408412888",
+        "title": "4.4_Problemi del tuo pubblico",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "432534455",
+        "title": "8.1_Come creare la tua offerta",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": true,
+    "sourceRiskNote": "Do not use noisy transcript passages as sole factual support."
+  },
+  {
+    "storyId": "L046",
+    "format": "long",
+    "title": "Redesign Your Business Model Before You Scale",
+    "pillar": "Business Model",
+    "angle": "Audit model mechanics before multiplying volume and complexity.",
+    "hook": "Scaling a broken business model does not fix it. It gives the broken parts more money and more speed.",
+    "sourceIds": [
+      "490704129",
+      "495479946",
+      "635373801"
+    ],
+    "editorialScore": 9.9,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "490704129",
+        "title": "2.2 Analisi e ridisegno del tuo modello di business",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "495479946",
+        "title": "DIRETTA 21 DICEMBRE - Modello di business",
+        "qualityHeuristic": "review"
+      },
+      {
+        "sourceId": "635373801",
+        "title": "18.1 - Perché scalare",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "L047",
+    "format": "long",
+    "title": "Scaling a Service Business Without Scaling Chaos",
+    "pillar": "Growth",
+    "angle": "Use repeatable methods, productization and capacity design to reduce founder bottlenecks.",
+    "hook": "If every new client creates a completely new way of working, growth eventually becomes an operations problem.",
+    "sourceIds": [
+      "635373801",
+      "631823319",
+      "490704129",
+      "527216093"
+    ],
+    "editorialScore": 9.8,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "635373801",
+        "title": "18.1 - Perché scalare",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "631823319",
+        "title": "3.1 - Perché avere un metodo",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "490704129",
+        "title": "2.2 Analisi e ridisegno del tuo modello di business",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "527216093",
+        "title": "6.2 Crescita e retention",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "L048",
+    "format": "long",
+    "title": "Growth Without Retention Is a Leaky Bucket",
+    "pillar": "Growth",
+    "angle": "Connect acquisition, churn, monitoring and client economics.",
+    "hook": "You can celebrate new customers every month and still have a business quietly shrinking underneath you.",
+    "sourceIds": [
+      "527216093",
+      "566922303",
+      "558394067"
+    ],
+    "editorialScore": 9.8,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "527216093",
+        "title": "6.2 Crescita e retention",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "566922303",
+        "title": "Masterclass_1_-_Come_riacchiappo_i_clienti-",
+        "qualityHeuristic": "review"
+      },
+      {
+        "sourceId": "558394067",
+        "title": "Masterclass Ottimizzazione Conversion",
+        "qualityHeuristic": "review"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "L049",
+    "format": "long",
+    "title": "How to Build a Consulting Business Around a Repeatable System",
+    "pillar": "Consulting",
+    "angle": "Connect positioning, method, offer, price and delivery into one operating model.",
+    "hook": "The consultant who sells isolated hours has to keep reselling themselves. A system changes what can repeat without them starting from zero.",
+    "sourceIds": [
+      "579308509",
+      "631823319",
+      "432534455",
+      "632092480",
+      "490704129"
+    ],
+    "editorialScore": 9.9,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "579308509",
+        "title": "01 Come si diventa consulenti？",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "631823319",
+        "title": "3.1 - Perché avere un metodo",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "432534455",
+        "title": "8.1_Come creare la tua offerta",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "632092480",
+        "title": "6.1 - Potere d'acquisto e prezzi",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "490704129",
+        "title": "2.2 Analisi e ridisegno del tuo modello di business",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  },
+  {
+    "storyId": "L050",
+    "format": "long",
+    "title": "The Expert Business Flywheel: Positioning → Offer → Content → Sales → Retention",
+    "pillar": "Business Strategy",
+    "angle": "Synthesize the entire corpus into a coherent creator-consultant growth system.",
+    "hook": "Most expert businesses optimize one piece at a time. The advantage appears when positioning, offer, content, sales and retention reinforce each other.",
+    "sourceIds": [
+      "632208602",
+      "432534455",
+      "413189395",
+      "558394067",
+      "527216093",
+      "631823319"
+    ],
+    "editorialScore": 10.0,
+    "externalFactCheckRecommended": false,
+    "targetWpm": 155,
+    "targetDurationSeconds": 600,
+    "targetWords": 1550,
+    "wordTolerance": 75,
+    "sources": [
+      {
+        "sourceId": "632208602",
+        "title": "7.1 Cosa significa posizionarsi",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "432534455",
+        "title": "8.1_Come creare la tua offerta",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "413189395",
+        "title": "8.2 Contenuti di posizionamento",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "558394067",
+        "title": "Masterclass Ottimizzazione Conversion",
+        "qualityHeuristic": "review"
+      },
+      {
+        "sourceId": "527216093",
+        "title": "6.2 Crescita e retention",
+        "qualityHeuristic": "clean"
+      },
+      {
+        "sourceId": "631823319",
+        "title": "3.1 - Perché avere un metodo",
+        "qualityHeuristic": "clean"
+      }
+    ],
+    "sourceReviewRequired": false,
+    "sourceRiskNote": null
+  }
+]

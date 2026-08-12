@@ -7,7 +7,7 @@
     "mediaforge": "./bin/mediaforge.js"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node ../../scripts/runtime-build-fingerprint.mjs write --package cli",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "mediaforge": "node ./bin/mediaforge.js",
     "doctor": "node ./bin/mediaforge.js doctor",

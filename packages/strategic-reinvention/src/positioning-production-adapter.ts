@@ -15,13 +15,22 @@ import {
 import { resolveVeronicaProductionPolicy } from "./veronica-production-policy.js";
 import type { PositioningVisualPlanV2, PositioningVisualTreatment, VeronicaSemanticProposition, VeronicaVisualDensityMetrics, VisualEvent } from "./positioning-visual-contracts.js";
 import { deriveVeronicaSemanticProposition, visualTreatmentFromProposition } from "./veronica-semantic-quality.js";
-import { stableHash } from "./positioning-visual-semantics.js";
 import {
+  finalizeSemanticPlanHash,
+  hasValidSemanticPlanHash,
+  stableHash,
+} from "./positioning-visual-semantics.js";
+import {
+  buildSourceGroundedQaRevision,
   InMemorySourceGroundedVisualQaCache,
   runSourceGroundedVisualQaController,
+  SOURCE_GROUNDED_QA_ADMISSION_VERSION,
+  SourceGroundedQaAdmissionError,
+  sourceGroundedQaAdmissionIdentitySchema,
   unavailableSourceGroundedVisualQaPolicy,
   type EpisodeSequenceJudgePort,
   type SemanticRemediationAdvisorPort,
+  type SourceGroundedQaAdmissionIdentity,
   type SourceGroundedSceneJudgePort,
   type SourceGroundedQaProgress,
   type SourceGroundedVisualQaCachePort,
@@ -34,7 +43,11 @@ import {
   type VeronicaImagePromptCompilerModel,
   type VeronicaImagePromptCompilerPort,
 } from "./veronica-image-prompt-compiler.js";
-import { persistVeronicaProviderImagePromptArtifact } from "./veronica-provider-image-prompt-artifact.js";
+import {
+  persistVeronicaProviderImagePromptArtifact,
+  resolveVeronicaProviderImagePromptArtifactPaths,
+  veronicaProviderImagePromptArtifactSchema,
+} from "./veronica-provider-image-prompt-artifact.js";
 import {
   resolveVeronicaCanonicalTiming,
   veronicaTimedNarrationUnitSchema,
@@ -70,6 +83,7 @@ export const VERONICA_LONG_FORM_SEMANTIC_SEGMENTATION_VERSION = "veronica-long-f
 
 export interface PreparePositioningProductionEpisodeInput {
   readonly workspaceRoot: string;
+  readonly canonicalReferencePackRoot?: string;
   readonly episodeId: string;
   readonly planPath?: string;
   readonly scriptPath?: string;
@@ -120,14 +134,102 @@ export interface PreparePositioningProductionEpisodeResult {
 export function isVeronicaDeterministicVisualQaEligible(
   plan: Pick<
     PositioningVisualPlanV2,
-    "validation" | "semanticQuality" | "providerReadiness"
+    "format" | "scenes" | "visualBeatPlan" | "validation" | "semanticQuality" | "providerReadiness"
   >,
 ): boolean {
+  const compoundShortSceneRequiresBeats = plan.format === "short" && plan.scenes.some((scene) =>
+    scene.durationMs >= 8_000 && (scene.narrationAnchor.match(/[.!?…]+/gu)?.length ?? 0) >= 2);
+  const currentSequenceDiversity = plan.format !== "short" || (
+    plan.visualBeatPlan?.policyVersion.includes("veronica-visual-beat-planner.v4") === true &&
+    plan.visualBeatPlan.quality.sequenceDiversity?.policyVersion === "veronica-sequence-diversity-policy.v2" &&
+    !["BLOCK", "REVIEW_REQUIRED"].includes(plan.visualBeatPlan.quality.sequenceDiversity.status)
+  );
   return (
     plan.validation.status === "pass" &&
     plan.semanticQuality?.status === "PASS" &&
-    plan.providerReadiness?.status === "PASS"
+    plan.providerReadiness?.status === "PASS" &&
+    (!compoundShortSceneRequiresBeats || (Boolean(plan.visualBeatPlan) && plan.visualBeatPlan?.quality.status !== "FAIL")) &&
+    currentSequenceDiversity
   );
+}
+
+function sha256(value: string | Buffer): string {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+function qaAdmissionBase(
+  identity: SourceGroundedQaAdmissionIdentity
+): Omit<SourceGroundedQaAdmissionIdentity, "identityHash"> {
+  const { identityHash: _identityHash, ...base } = identity;
+  return base;
+}
+
+function assertQaAdmissionIdentity(
+  admitted: SourceGroundedQaAdmissionIdentity,
+  current: SourceGroundedQaAdmissionIdentity
+): void {
+  if (
+    admitted.identityHash !== stableHash(qaAdmissionBase(admitted)) ||
+    current.identityHash !== stableHash(qaAdmissionBase(current)) ||
+    admitted.identityHash !== current.identityHash
+  ) {
+    throw new SourceGroundedQaAdmissionError(
+      "VERONICA_QA_ADMISSION_IDENTITY_MISMATCH",
+      `admitted=${admitted.identityHash}:current=${current.identityHash}`
+    );
+  }
+}
+
+function guardedSceneJudge(
+  judge: SourceGroundedSceneJudgePort,
+  assertCurrent: () => Promise<void>
+): SourceGroundedSceneJudgePort {
+  return {
+    judge: async (request) => {
+      await assertCurrent();
+      return judge.judge(request);
+    },
+    ...(judge.judgeBatch
+      ? {
+          judgeBatch: async (request: Parameters<NonNullable<SourceGroundedSceneJudgePort["judgeBatch"]>>[0]) => {
+            await assertCurrent();
+            return judge.judgeBatch!(request);
+          },
+        }
+      : {}),
+  };
+}
+
+function guardedRemediationAdvisor(
+  advisor: SemanticRemediationAdvisorPort,
+  assertCurrent: () => Promise<void>
+): SemanticRemediationAdvisorPort {
+  return {
+    advise: async (request) => {
+      await assertCurrent();
+      return advisor.advise(request);
+    },
+    ...(advisor.adviseBatch
+      ? {
+          adviseBatch: async (request: Parameters<NonNullable<SemanticRemediationAdvisorPort["adviseBatch"]>>[0]) => {
+            await assertCurrent();
+            return advisor.adviseBatch!(request);
+          },
+        }
+      : {}),
+  };
+}
+
+function guardedSequenceJudge(
+  judge: EpisodeSequenceJudgePort,
+  assertCurrent: () => Promise<void>
+): EpisodeSequenceJudgePort {
+  return {
+    judgeSequence: async (request) => {
+      await assertCurrent();
+      return judge.judgeSequence(request);
+    },
+  };
 }
 
 /**
@@ -140,7 +242,11 @@ export async function runExistingVeronicaSourceGroundedPreImageQa(input: {
   readonly episodeId: string;
   readonly language: "en" | "de" | "es" | "fr" | "pt" | "it";
   readonly variant: "full" | "short";
+  /** Optional caller-pinned identity. Existing persisted admission is always authoritative. */
+  readonly admittedIdentity?: SourceGroundedQaAdmissionIdentity;
   readonly sourceGroundedVisualQa: NonNullable<PreparePositioningProductionEpisodeInput["sourceGroundedVisualQa"]>;
+  /** Internal explicit pre-QA operation; never evaluates a judge. */
+  readonly admissionOnly?: boolean;
 }): Promise<{
   readonly episodeId: string;
   readonly language: string;
@@ -149,6 +255,8 @@ export async function runExistingVeronicaSourceGroundedPreImageQa(input: {
   readonly sourceGroundedVisualQaStatus: "PASS" | "BLOCKED";
   readonly planPath: string;
   readonly qaPath: string;
+  readonly admissionPath: string;
+  readonly admissionIdentity: SourceGroundedQaAdmissionIdentity;
 }> {
   const workspaceRoot = path.resolve(input.workspaceRoot);
   const episodeId = normalizeEpisodeId(input.episodeId);
@@ -161,120 +269,398 @@ export async function runExistingVeronicaSourceGroundedPreImageQa(input: {
     input.variant,
     "scene-plan.json"
   );
-  const [storedPlan, scenePlan] = await Promise.all([
-    fs.readFile(planPath, "utf8").then((value) =>
-      positioningProductionPlanSchema.parse(JSON.parse(value) as unknown)
-    ),
-    fs.readFile(scenePlanPath, "utf8").then((value) =>
-      scenePlanSchema.parse(JSON.parse(value) as unknown)
-    ),
-  ]);
-  const plan = storedPlan as unknown as PositioningVisualPlanV2;
-  if (scenePlan.scenes.length !== plan.scenes.length) {
-    throw new Error(
-      `VERONICA_SOURCE_GROUNDED_QA_SCENE_COUNT_MISMATCH:${scenePlan.scenes.length}:${plan.scenes.length}`
+  const localeRoot = path.join(
+    episodeDir,
+    "locales",
+    input.language,
+    input.variant
+  );
+  const scriptPath = path.join(localeRoot, "script.md");
+  const audioPath = path.join(localeRoot, "audio", "narration.wav");
+  const timingPath = path.join(localeRoot, "canonical-timing.v1.json");
+  const providerPromptPath = resolveVeronicaProviderImagePromptArtifactPaths({
+    episodeDir,
+    language: input.language,
+    variant: input.variant,
+  }).jsonPath;
+  const admissionPath = path.join(
+    episodeDir,
+    "shared",
+    "source-grounded-qa-admission.v1.json"
+  );
+  let planRaw: string;
+  let scenePlanRaw: string;
+  try {
+    [planRaw, scenePlanRaw] = await Promise.all([
+      fs.readFile(planPath, "utf8"),
+      fs.readFile(scenePlanPath, "utf8"),
+    ]);
+  } catch (error) {
+    throw new SourceGroundedQaAdmissionError(
+      "VERONICA_QA_ADMISSION_PRECONDITION_FAILED",
+      `canonical-plan-or-scene-plan-unreadable:${
+        error instanceof Error ? error.message : "unknown artifact error"
+      }`
     );
   }
-  const qaRun = isVeronicaDeterministicVisualQaEligible(plan)
-    ? await runSourceGroundedVisualQaController({
-        plan,
-        narrationByScene: scenePlan.scenes.map((scene) => scene.canonicalNarration),
-        policy: input.sourceGroundedVisualQa.policy,
-        primaryJudge: input.sourceGroundedVisualQa.primaryJudge,
-        ...(input.sourceGroundedVisualQa.escalationJudge
-          ? { escalationJudge: input.sourceGroundedVisualQa.escalationJudge }
-          : {}),
-        ...(input.sourceGroundedVisualQa.finalJudge
-          ? { finalJudge: input.sourceGroundedVisualQa.finalJudge }
-          : {}),
-        ...(input.sourceGroundedVisualQa.remediationAdvisor
-          ? { remediationAdvisor: input.sourceGroundedVisualQa.remediationAdvisor }
-          : {}),
-        sequenceJudge: input.sourceGroundedVisualQa.sequenceJudge,
-        cache:
-          input.sourceGroundedVisualQa.cache ??
-          new InMemorySourceGroundedVisualQaCache(),
-        ...(input.sourceGroundedVisualQa.scheduler
-          ? { scheduler: input.sourceGroundedVisualQa.scheduler }
-          : {}),
-        ...(input.sourceGroundedVisualQa.onProgress
-          ? { onProgress: input.sourceGroundedVisualQa.onProgress }
-          : {}),
-        // Intentionally no `regenerate`: this command is an audit, never a replan.
-      })
-    : await runSourceGroundedVisualQaController({
-        plan,
-        narrationByScene: scenePlan.scenes.map((scene) => scene.canonicalNarration),
-        policy: unavailableSourceGroundedVisualQaPolicy(),
-        cache: new InMemorySourceGroundedVisualQaCache(),
-      });
-  const visualReady =
-    plan.semanticQuality?.status === "PASS" &&
-    plan.providerReadiness?.status === "PASS";
-  const technicalReady = plan.validation.status === "pass";
-  const hierarchicalReadiness = {
-    schemaVersion: "veronica-hierarchical-readiness.v1" as const,
-    sourceFidelityReady: qaRun.qa.sourceFidelityReady,
-    visualReady,
-    technicalReady,
-    providerCandidate:
-      qaRun.qa.sourceFidelityReady && visualReady && technicalReady,
-    providerRequestsAllowed: false as const,
-    blockers: [
-      ...qaRun.qa.blockers,
-      ...(!visualReady ? ["VISUAL_READINESS_FAILED"] : []),
-      ...(!technicalReady ? ["TECHNICAL_READINESS_FAILED"] : []),
-      "HUMAN_PRE_IMAGE_APPROVAL_REQUIRED",
-    ],
+  let storedPlan: PositioningProductionPlan;
+  let scenePlan: ScenePlan;
+  try {
+    storedPlan = positioningProductionPlanSchema.parse(
+      JSON.parse(planRaw) as unknown
+    );
+    scenePlan = scenePlanSchema.parse(JSON.parse(scenePlanRaw) as unknown);
+  } catch (error) {
+    throw new SourceGroundedQaAdmissionError(
+      "VERONICA_QA_ADMISSION_PRECONDITION_FAILED",
+      `canonical-plan-or-scene-plan-incompatible:${
+        error instanceof Error ? error.message : "unknown artifact error"
+      }`
+    );
+  }
+  const plan = storedPlan as unknown as PositioningVisualPlanV2;
+  if (!hasValidSemanticPlanHash(plan)) {
+    throw new SourceGroundedQaAdmissionError(
+      "VERONICA_QA_ADMISSION_PRECONDITION_FAILED",
+      "semantic-plan-self-hash-invalid"
+    );
+  }
+  if (scenePlan.scenes.length !== plan.scenes.length) {
+    throw new SourceGroundedQaAdmissionError(
+      "VERONICA_QA_ADMISSION_PRECONDITION_FAILED",
+      `scene-count-mismatch:${scenePlan.scenes.length}:${plan.scenes.length}`
+    );
+  }
+  const narrationByScene = scenePlan.scenes.map(
+    (scene) => scene.canonicalNarration
+  );
+  const deterministicReviews = plan.scenes.map((scene, index) =>
+    reviewVeronicaPreImageTreatment({
+      contentId: plan.contentId,
+      sceneId: scene.sceneId,
+      plannerVersion: plan.plannerVersion,
+      narration: narrationByScene[index] ?? scene.narrationAnchor,
+      narrationAnchor: scene.narrationAnchor,
+      visibleThesis: scene.visibleThesis,
+      newInformation: scene.newInformation ?? scene.treatment.narrativeBeat,
+      treatment: scene.treatment,
+      ...(scene.semanticProposition
+        ? { proposition: scene.semanticProposition }
+        : {}),
+      format: plan.format,
+      ...(scene.stateComplexity
+        ? { stateComplexity: scene.stateComplexity }
+        : {}),
+      ...(index > 0
+        ? {
+            previousTreatment: plan.scenes[index - 1]!.treatment,
+            previousVisibleThesis: plan.scenes[index - 1]!.visibleThesis,
+          }
+        : {}),
+      ...(plan.selectedRecurringMotif
+        ? {
+            selectedMotif: plan.selectedRecurringMotif.concept,
+            episodeMotifSupported: true,
+          }
+        : {}),
+    })
+  );
+  const deterministicBlockers = deterministicReviews.flatMap((review) =>
+    review.findings
+      .filter(
+        (finding) =>
+          finding.severity === "blocker" || finding.severity === "error"
+      )
+      .map((finding) => `${review.sceneId}:${finding.code}`)
+  );
+  if (
+    !isVeronicaDeterministicVisualQaEligible(plan) ||
+    deterministicBlockers.length > 0
+  ) {
+    throw new SourceGroundedQaAdmissionError(
+      "VERONICA_QA_ADMISSION_PRECONDITION_FAILED",
+      deterministicBlockers.length > 0
+        ? `semantic-gate:${deterministicBlockers.join(",")}`
+        : "deterministic-readiness"
+    );
+  }
+  const requiredBeats =
+    plan.visualBeatPlan?.beats.filter(
+      (beat) => beat.assetDecision === "new-image"
+    ) ?? [];
+  const missingBeatAssets = requiredBeats.filter(
+    (beat) =>
+      plan.assets.filter((asset) => asset.visualBeatId === beat.beatId).length !==
+      1
+  );
+  if (
+    (plan.format === "short" && !plan.visualBeatPlan) ||
+    missingBeatAssets.length > 0 ||
+    typeof input.sourceGroundedVisualQa.primaryJudge?.judge !== "function" ||
+    typeof input.sourceGroundedVisualQa.sequenceJudge?.judgeSequence !==
+      "function"
+  ) {
+    throw new SourceGroundedQaAdmissionError(
+      "VERONICA_QA_ADMISSION_PRECONDITION_FAILED",
+      missingBeatAssets.length > 0
+        ? `beat-assets:${missingBeatAssets.map((beat) => beat.beatId).join(",")}`
+        : "required-beat-or-sequence-judge-capability"
+    );
+  }
+
+  const buildCurrentAdmissionIdentityUnsafe = async (): Promise<SourceGroundedQaAdmissionIdentity> => {
+    const [currentPlanRaw, sourceBytes, audioBytes, timingBytes, providerBytes] =
+      await Promise.all([
+        fs.readFile(planPath, "utf8"),
+        fs.readFile(scriptPath),
+        fs.readFile(audioPath),
+        fs.readFile(timingPath),
+        fs.readFile(providerPromptPath),
+      ]);
+    const currentPlan = positioningProductionPlanSchema.parse(
+      JSON.parse(currentPlanRaw) as unknown
+    ) as unknown as PositioningVisualPlanV2;
+    const providerArtifact = veronicaProviderImagePromptArtifactSchema.parse(
+      JSON.parse(providerBytes.toString("utf8")) as unknown
+    );
+    const timingArtifact = JSON.parse(timingBytes.toString("utf8")) as {
+      readonly selectedAudioHash?: unknown;
+    };
+    const selectedAudioSha256 = sha256(audioBytes);
+    const currentRevision = buildSourceGroundedQaRevision({
+      plan: currentPlan,
+      narrationByScene,
+      policy: input.sourceGroundedVisualQa.policy,
+    });
+    if (
+      providerArtifact.episodeId !== episodeId ||
+      providerArtifact.language !== input.language ||
+      providerArtifact.variant !== input.variant ||
+      providerArtifact.canonicalImagePlanHash !==
+        currentPlan.canonicalImagePlanHash ||
+      providerArtifact.promptCount !== currentPlan.assets.length ||
+      providerArtifact.prompts.some(
+        (prompt) =>
+          prompt.providerSemanticQa?.status !== "PASS" ||
+          !prompt.sameSnapshot
+      ) ||
+      providerArtifact.provenance.selectedAudioHash !== selectedAudioSha256 ||
+      timingArtifact.selectedAudioHash !== selectedAudioSha256
+    ) {
+      throw new SourceGroundedQaAdmissionError(
+        "VERONICA_QA_ADMISSION_PRECONDITION_FAILED",
+        "provider-prompt-projection-not-current"
+      );
+    }
+    const base = {
+      schemaVersion: SOURCE_GROUNDED_QA_ADMISSION_VERSION,
+      sourceSha256: sha256(sourceBytes),
+      selectedAudioSha256,
+      canonicalTimingSha256: sha256(timingBytes),
+      semanticPlanFileSha256: sha256(currentPlanRaw),
+      semanticPlanHash: currentPlan.planHash,
+      beatPlanHash:
+        currentPlan.visualBeatPlan?.beatPlanHash ??
+        stableHash(currentPlan.visualBeatPlan ?? null),
+      providerPromptArtifactSha256: sha256(providerBytes),
+      providerPromptProjectionHash: providerArtifact.artifactHash,
+      providerPromptSchemaVersion: providerArtifact.schemaVersion,
+      providerPromptCompilerVersion:
+        providerArtifact.compiler?.version ?? "legacy-deterministic",
+      plannerVersion: currentPlan.plannerVersion,
+      plannerConfigurationHash:
+        currentPlan.derivation?.configurationHash ??
+        stableHash({
+          plannerVersion: currentPlan.plannerVersion,
+          beatPolicyVersion: currentPlan.visualBeatPlan?.policyVersion ?? null,
+          compilerVersion:
+            currentPlan.imagePromptCompilation?.compilerVersion ?? null,
+          semanticGateVersion: VERONICA_PRE_IMAGE_SEMANTIC_GATE_VERSION,
+        }),
+      deterministicGateVersion: VERONICA_PRE_IMAGE_SEMANTIC_GATE_VERSION,
+      qaRevisionId: currentRevision.revisionId,
+    } as const;
+    return { ...base, identityHash: stableHash(base) };
   };
-  const planBase = {
-    ...plan,
-    sourceGroundedVisualQa: qaRun.qa,
-    hierarchicalReadiness,
+  const buildCurrentAdmissionIdentity = async (): Promise<SourceGroundedQaAdmissionIdentity> => {
+    try {
+      return await buildCurrentAdmissionIdentityUnsafe();
+    } catch (error) {
+      if (error instanceof SourceGroundedQaAdmissionError) throw error;
+      throw new SourceGroundedQaAdmissionError(
+        "VERONICA_QA_ADMISSION_PRECONDITION_FAILED",
+        `artifact-set-unreadable-or-incompatible:${
+          error instanceof Error ? error.message : "unknown artifact error"
+        }`
+      );
+    }
   };
-  const auditedPlan = {
-    ...planBase,
-    planHash: stableHash(planBase),
-  } as PositioningVisualPlanV2;
+  const currentAdmission = await buildCurrentAdmissionIdentity();
+  const persistedAdmission = await fs
+    .readFile(admissionPath, "utf8")
+    .then(
+      (value) =>
+        sourceGroundedQaAdmissionIdentitySchema.parse(JSON.parse(value))
+    )
+    .catch((error: unknown) => {
+      if (
+        error &&
+        typeof error === "object" &&
+        "code" in error &&
+        error.code === "ENOENT"
+      )
+        return null;
+      throw new SourceGroundedQaAdmissionError(
+        "VERONICA_QA_ADMISSION_PRECONDITION_FAILED",
+        `persisted-admission-unreadable-or-incompatible:${
+          error instanceof Error ? error.message : "unknown admission error"
+        }`
+      );
+    });
+  if (input.admissionOnly) {
+    await writeJsonAtomic(admissionPath, currentAdmission);
+    return {
+      episodeId,
+      language: input.language,
+      variant: input.variant,
+      sceneCount: plan.scenes.length,
+      sourceGroundedVisualQaStatus: "BLOCKED" as const,
+      planPath,
+      qaPath: path.join(episodeDir, "shared", "source-grounded-visual-qa.v1.json"),
+      admissionPath,
+      admissionIdentity: currentAdmission,
+    };
+  }
+  const admittedIdentity =
+    persistedAdmission ?? input.admittedIdentity;
+  if (!admittedIdentity) {
+    throw new SourceGroundedQaAdmissionError(
+      "VERONICA_QA_ADMISSION_PRECONDITION_FAILED",
+      "missing-explicit-qa-admission"
+    );
+  }
+  assertQaAdmissionIdentity(admittedIdentity, currentAdmission);
+  if (input.admittedIdentity)
+    assertQaAdmissionIdentity(admittedIdentity, input.admittedIdentity);
+  const assertAdmissionCurrent = async (): Promise<void> => {
+    assertQaAdmissionIdentity(
+      admittedIdentity,
+      await buildCurrentAdmissionIdentity()
+    );
+  };
+  const guardedPrimary = guardedSceneJudge(
+    input.sourceGroundedVisualQa.primaryJudge,
+    assertAdmissionCurrent
+  );
+  const guardedEscalation = input.sourceGroundedVisualQa.escalationJudge
+    ? guardedSceneJudge(
+        input.sourceGroundedVisualQa.escalationJudge,
+        assertAdmissionCurrent
+      )
+    : undefined;
+  const guardedFinal = input.sourceGroundedVisualQa.finalJudge
+    ? guardedSceneJudge(
+        input.sourceGroundedVisualQa.finalJudge,
+        assertAdmissionCurrent
+      )
+    : undefined;
+  const guardedAdvisor = input.sourceGroundedVisualQa.remediationAdvisor
+    ? guardedRemediationAdvisor(
+        input.sourceGroundedVisualQa.remediationAdvisor,
+        assertAdmissionCurrent
+      )
+    : undefined;
+  const qaRun = await runSourceGroundedVisualQaController({
+    plan,
+    narrationByScene,
+    policy: input.sourceGroundedVisualQa.policy,
+    primaryJudge: guardedPrimary,
+    ...(guardedEscalation ? { escalationJudge: guardedEscalation } : {}),
+    ...(guardedFinal ? { finalJudge: guardedFinal } : {}),
+    ...(guardedAdvisor ? { remediationAdvisor: guardedAdvisor } : {}),
+    sequenceJudge: guardedSequenceJudge(
+      input.sourceGroundedVisualQa.sequenceJudge,
+      assertAdmissionCurrent
+    ),
+    cache:
+      input.sourceGroundedVisualQa.cache ??
+      new InMemorySourceGroundedVisualQaCache(),
+    ...(input.sourceGroundedVisualQa.scheduler
+      ? { scheduler: input.sourceGroundedVisualQa.scheduler }
+      : {}),
+    ...(input.sourceGroundedVisualQa.onProgress
+      ? { onProgress: input.sourceGroundedVisualQa.onProgress }
+      : {}),
+    // Intentionally no `regenerate`: this command is an audit, never a replan.
+  });
+  await assertAdmissionCurrent();
+  const { resultHash: _resultHash, ...qaWithoutHash } = qaRun.qa;
+  const qaBase = {
+    ...qaWithoutHash,
+    admissionIdentity: admittedIdentity,
+  };
+  const qa = { ...qaBase, resultHash: stableHash(qaBase) };
   const qaPath = path.join(
     episodeDir,
     "shared",
     "source-grounded-visual-qa.v1.json"
   );
-  const semanticReviewsPath = path.join(
-    episodeDir,
-    "shared",
-    "pre-image-semantic-reviews.v1.json"
-  );
-  const reviews = await fs
-    .readFile(semanticReviewsPath, "utf8")
-    .then((value) => JSON.parse(value) as Record<string, unknown>)
-    .catch(() => null);
-  await Promise.all([
-    writeJsonAtomic(planPath, auditedPlan),
-    writeJsonAtomic(qaPath, qaRun.qa),
-    ...(reviews
-      ? [
-          writeJsonAtomic(semanticReviewsPath, {
-            ...reviews,
-            semanticPlanHash: auditedPlan.planHash,
-            sourceGroundedVisualQa: qaRun.qa,
-            hierarchicalReadiness,
-          }),
-        ]
-      : []),
-  ]);
+  await writeJsonAtomic(qaPath, qa);
+  await assertAdmissionCurrent();
   return {
     episodeId,
     language: input.language,
     variant: input.variant,
     sceneCount: plan.scenes.length,
-    sourceGroundedVisualQaStatus: qaRun.qa.sourceFidelityReady
+    sourceGroundedVisualQaStatus: qa.sourceFidelityReady
       ? "PASS"
       : "BLOCKED",
     planPath,
     qaPath,
+    admissionPath,
+    admissionIdentity: admittedIdentity,
   };
+}
+
+/**
+ * Explicit deterministic pre-QA admission. This is intentionally separate
+ * from QA execution: it validates the complete artifact set, then replaces a
+ * stale admission only when the caller asks to establish a new one.
+ */
+export async function establishVeronicaSourceGroundedQaAdmission(input: {
+  readonly workspaceRoot: string;
+  readonly episodeId: string;
+  readonly language: "en" | "de" | "es" | "fr" | "pt" | "it";
+  readonly variant: "full" | "short";
+  readonly sourceGroundedVisualQa: NonNullable<PreparePositioningProductionEpisodeInput["sourceGroundedVisualQa"]>;
+}) {
+  return runExistingVeronicaSourceGroundedPreImageQa({ ...input, admissionOnly: true });
+}
+
+/** Re-finalize an existing canonical plan without re-planning its semantics. */
+export async function finalizeExistingVeronicaSemanticPlanHash(input: {
+  readonly workspaceRoot: string;
+  readonly episodeId: string;
+}): Promise<{
+  readonly planPath: string;
+  readonly previousPlanHash: string;
+  readonly planHash: string;
+  readonly changed: boolean;
+}> {
+  const episodeDir = path.join(path.resolve(input.workspaceRoot), normalizeEpisodeId(input.episodeId));
+  const planPath = path.join(episodeDir, "source", "pre-image-semantic-plan.v1.json");
+  const parsed = positioningProductionPlanSchema.parse(
+    JSON.parse(await fs.readFile(planPath, "utf8")) as unknown,
+  ) as unknown as PositioningVisualPlanV2;
+  const finalized = positioningProductionPlanSchema.parse(
+    finalizeSemanticPlanHash(parsed),
+  ) as unknown as PositioningVisualPlanV2;
+  if (finalized.planHash === parsed.planHash) {
+    return { planPath, previousPlanHash: parsed.planHash, planHash: finalized.planHash, changed: false };
+  }
+  await writeJsonAtomic(planPath, finalized);
+  await fs.rm(path.join(episodeDir, "shared", "source-grounded-qa-admission.v1.json"), { force: true });
+  return { planPath, previousPlanHash: parsed.planHash, planHash: finalized.planHash, changed: true };
 }
 
 function defaultScriptPath(episodeDir: string, language: string, variant: "full" | "short"): string {
@@ -566,7 +952,7 @@ export function expandVeronicaLongFormSemanticScenes(input: { readonly plan: Pos
     }),
   };
   return {
-    plan: { ...basePlan, planHash: stableHash(basePlan) },
+    plan: finalizeSemanticPlanHash({ ...basePlan, planHash: input.plan.planHash }),
     narrationByScene: scenes.map((scene) => scene.narrationAnchor),
     expanded: true,
   } as const;
@@ -838,6 +1224,9 @@ async function prepareLocalizedPositioningProduction(input: PreparePositioningPr
     workspaceRoot: input.workspaceRoot,
     episodeDir: input.episodeDir,
     plan: canonicalPlan,
+    ...(input.canonicalReferencePackRoot
+      ? { canonicalReferencePackRoot: input.canonicalReferencePackRoot }
+      : {}),
   });
   const localized = await persistVeronicaLocalizedProduction({
     episodeDir: input.episodeDir,
@@ -953,10 +1342,10 @@ const editorialTreatmentOverrideSchema = z.strictObject({
     sceneId: z.string().min(1),
     visibleThesis: z.string().min(1).optional(),
     treatment: z.object({
-      strategy: z.string(), subjectRequirement: z.string(), environment: z.string(), composition: z.string(), camera: z.string(), lighting: z.string(), action: z.string(), actionOwnerRole: z.enum(["expert", "buyer", "shared", "none"]), props: z.array(z.string().min(1)), motionOpportunities: z.array(z.string()), narrativeBeat: z.string(), communicationIntent: z.string(),
+      strategy: z.string(), subjectRequirement: z.string(), environment: z.string(), composition: z.string(), camera: z.string(), lighting: z.string(), action: z.string(), actionOwnerRole: z.enum(["expert", "buyer", "business-operator", "shared", "none"]), props: z.array(z.string().min(1)), motionOpportunities: z.array(z.string()), narrativeBeat: z.string(), communicationIntent: z.string(),
     }).partial().strict(),
     semantic: z.object({
-      actorRole: z.enum(["expert", "buyer", "shared", "none"]), actorAction: z.string(), cause: z.string().optional(), consequence: z.string(), buyerInterpretation: z.string().optional(), polarity: z.enum(["POSITIVE_STATE", "NEGATIVE_STATE", "CONTRAST", "TRANSITION_NEGATIVE_TO_POSITIVE", "TRANSITION_POSITIVE_TO_NEGATIVE", "NEUTRAL"]), stateRelation: z.enum(["STABLE", "CAUSAL_BEFORE_AFTER", "CONTRAST", "CONDITIONAL_ALTERNATIVES", "SEQUENTIAL_PROGRESSION"]), visualMechanism: z.string(), evidenceAnchors: z.array(z.string().min(1)), buyerConsequenceFamily: z.string(), confidence: z.object({ proposition: z.enum(["HIGH", "MEDIUM", "LOW"]), actorOwnership: z.enum(["HIGH", "MEDIUM", "LOW"]), consequence: z.enum(["HIGH", "MEDIUM", "LOW"]), visualMechanism: z.enum(["HIGH", "MEDIUM", "LOW"]) }),
+      actorRole: z.enum(["expert", "buyer", "business-operator", "shared", "none"]), actorAction: z.string(), cause: z.string().optional(), consequence: z.string(), buyerInterpretation: z.string().optional(), polarity: z.enum(["POSITIVE_STATE", "NEGATIVE_STATE", "CONTRAST", "TRANSITION_NEGATIVE_TO_POSITIVE", "TRANSITION_POSITIVE_TO_NEGATIVE", "NEUTRAL"]), stateRelation: z.enum(["STABLE", "CAUSAL_BEFORE_AFTER", "CONTRAST", "CONDITIONAL_ALTERNATIVES", "SEQUENTIAL_PROGRESSION"]), visualMechanism: z.string(), evidenceAnchors: z.array(z.string().min(1)), buyerConsequenceFamily: z.string(), confidence: z.object({ proposition: z.enum(["HIGH", "MEDIUM", "LOW"]), actorOwnership: z.enum(["HIGH", "MEDIUM", "LOW"]), consequence: z.enum(["HIGH", "MEDIUM", "LOW"]), visualMechanism: z.enum(["HIGH", "MEDIUM", "LOW"]) }),
     }).partial().strict().optional(),
   })).min(1),
 });
@@ -1023,7 +1412,7 @@ export async function remediateExistingVeronicaPreImagePlan(input: {
 export async function planExistingVeronicaVisualDensity(input: {
   readonly workspaceRoot: string;
   readonly episodeId: string;
-  readonly overridePath: string;
+  readonly overridePath?: string;
   readonly imagePromptCompiler: NonNullable<PreparePositioningProductionEpisodeInput["imagePromptCompiler"]>;
 }): Promise<{
   readonly episodeId: string;
@@ -1045,15 +1434,15 @@ export async function planExistingVeronicaVisualDensity(input: {
   const enScenePlanPath = path.join(episodeDir, "locales", "en", "short", "scene-plan.json");
   const [planRaw, overrideRaw, scenePlanRaw] = await Promise.all([
     fs.readFile(planPath, "utf8"),
-    fs.readFile(input.overridePath, "utf8"),
+    input.overridePath ? fs.readFile(input.overridePath, "utf8") : Promise.resolve(null),
     fs.readFile(enScenePlanPath, "utf8"),
   ]);
   const plan = positioningProductionPlanSchema.parse(JSON.parse(planRaw) as unknown) as unknown as PositioningVisualPlanV2;
   if (plan.format !== "short") throw new Error("VERONICA_VISUAL_DENSITY_SHORT_ONLY");
-  const overrides = veronicaVisualBeatOverrideArtifactSchema.parse(JSON.parse(overrideRaw) as unknown);
-  if (overrides.episodeId !== episodeId) throw new Error("VERONICA_VISUAL_BEAT_OVERRIDE_EPISODE_MISMATCH");
+  const overrides = overrideRaw === null ? undefined : veronicaVisualBeatOverrideArtifactSchema.parse(JSON.parse(overrideRaw) as unknown);
+  if (overrides && overrides.episodeId !== episodeId) throw new Error("VERONICA_VISUAL_BEAT_OVERRIDE_EPISODE_MISMATCH");
   const enScenePlan = scenePlanSchema.parse(JSON.parse(scenePlanRaw) as unknown);
-  const beatPlan = deriveVeronicaVisualBeatPlan({ plan, overrides });
+  const beatPlan = deriveVeronicaVisualBeatPlan({ plan, ...(overrides ? { overrides } : {}) });
   const beatMaterialized = materializeVeronicaVisualBeatPlan({ plan, beatPlan });
   const bible = await buildVeronicaVisualBibleArtifact({ workspaceRoot, plan: beatMaterialized });
   const compiled = await compileVeronicaImagePrompts({
@@ -1103,12 +1492,13 @@ export async function planExistingVeronicaVisualDensity(input: {
       ],
     },
   };
-  const auditedPlan = { ...auditedBase, planHash: stableHash(auditedBase) } as PositioningVisualPlanV2;
+  const auditedPlan = finalizeSemanticPlanHash({ ...auditedBase, planHash: plan.planHash }) as PositioningVisualPlanV2;
   const beatPlanPath = path.join(episodeDir, "shared", "visual-beats.v1.json");
   await Promise.all([
     writeJsonAtomic(planPath, auditedPlan),
     persistVeronicaVisualBeatPlan({ path: beatPlanPath, plan: beatPlan }),
     writeJsonAtomic(path.join(episodeDir, "shared", "source-grounded-visual-qa.v1.json"), unavailableQa.qa),
+    fs.rm(path.join(episodeDir, "shared", "source-grounded-qa-admission.v1.json"), { force: true }),
   ]);
   const supportedLocales = new Set(["en", "de", "es", "fr", "pt", "it"] as const);
   const localeEntries = await fs.readdir(path.join(episodeDir, "locales"), { withFileTypes: true });
@@ -1116,9 +1506,52 @@ export async function planExistingVeronicaVisualDensity(input: {
     .filter((entry) => entry.isDirectory() && supportedLocales.has(entry.name as "en" | "de" | "es" | "fr" | "pt" | "it"))
     .map(async (entry) => {
       const language = entry.name as "en" | "de" | "es" | "fr" | "pt" | "it";
-      if (!(await fileExists(path.join(episodeDir, "locales", language, "short", "audio", "narration.wav")))) return null;
-      return reconcileExistingVeronicaProductionTiming({ workspaceRoot, episodeId, language, variant: "short" });
-    }))).filter((result): result is ReconcileExistingVeronicaProductionTimingResult => result !== null);
+      const localeRoot = path.join(episodeDir, "locales", language, "short");
+      const audioPath = path.join(localeRoot, "audio", "narration.wav");
+      if (!(await fileExists(audioPath))) return null;
+      const [scenePlanRaw, timingRaw, narration, audioBytes, treatmentsRaw, bibleRaw] = await Promise.all([
+        fs.readFile(path.join(localeRoot, "scene-plan.json"), "utf8"),
+        fs.readFile(path.join(localeRoot, "canonical-timing.v1.json"), "utf8"),
+        fs.readFile(path.join(localeRoot, "script.md"), "utf8"),
+        fs.readFile(audioPath),
+        fs.readFile(path.join(episodeDir, "shared", "visual-treatments.v1.json"), "utf8"),
+        fs.readFile(path.join(episodeDir, "shared", "visual-bible.v1.json"), "utf8"),
+      ]);
+      const localeScenePlan = scenePlanSchema.parse(JSON.parse(scenePlanRaw) as unknown);
+      const canonicalTiming = JSON.parse(timingRaw) as { readonly timingFingerprint?: unknown };
+      if (typeof canonicalTiming.timingFingerprint !== "string") throw new Error(`VERONICA_CANONICAL_TIMING_INCOMPATIBLE:${language}`);
+      const selectedAudioHash = createHash("sha256").update(audioBytes).digest("hex");
+      const visualEvents = retimeVisualEvents({ events: auditedPlan.visualEvents, plan: auditedPlan, scenePlan: localeScenePlan });
+      const visualDensityMetrics = calculateVeronicaVisualDensityMetrics({
+        semanticSceneCount: auditedPlan.scenes.length,
+        beats: beatPlan.beats,
+        events: visualEvents,
+      });
+      await persistVeronicaLocalizedProduction({
+        episodeDir,
+        episodeId,
+        locale: language,
+        variant: "short",
+        narration,
+        selectedAudioHash,
+        timingHash: canonicalTiming.timingFingerprint,
+        plan: auditedPlan,
+        scenePlan: localeScenePlan,
+        visualEvents,
+        treatments: veronicaVisualTreatmentsArtifactSchema.parse(JSON.parse(treatmentsRaw) as unknown),
+        bible: veronicaVisualBibleV1Schema.parse(JSON.parse(bibleRaw) as unknown),
+      });
+      await writeJsonAtomic(path.join(localeRoot, "retimed-visual-events.json"), {
+        schemaVersion: "veronica-retimed-visual-events.v3",
+        locale: language,
+        timingSource: "canonical-timing-preserved",
+        selectedAudioHash,
+        timingFingerprint: canonicalTiming.timingFingerprint,
+        visualDensityMetrics,
+        events: visualEvents,
+      });
+      return { language, visualDensityMetrics };
+    }))).filter((result): result is { readonly language: "en" | "de" | "es" | "fr" | "pt" | "it"; readonly visualDensityMetrics: VeronicaVisualDensityMetrics } => result !== null);
   const retimedLocales = retimedResults.map((result) => result.language);
   return {
     episodeId,
@@ -1293,7 +1726,10 @@ export async function preparePositioningProductionEpisode(input: PreparePosition
     plan: plan as unknown as PositioningVisualPlanV2,
     narration,
   });
-  const segmentedPlan = positioningProductionPlanSchema.parse(semanticSegmentation.plan as unknown);
+  const segmentedPlan = positioningProductionPlanSchema.parse({
+    ...semanticSegmentation.plan,
+    canonicalSourceHash: semanticSegmentation.plan.canonicalSourceHash ?? stableHash(narration),
+  } as unknown);
   const provisionalScenePlan = compilePositioningProductionScenePlan({
     episodeId,
     narration,
@@ -1345,21 +1781,32 @@ export async function preparePositioningProductionEpisode(input: PreparePosition
     ? compileVeronicaImagePrompts({
         episodeId,
         plan: candidate,
-        visualBible: await buildVeronicaVisualBibleArtifact({ workspaceRoot, plan: candidate }),
+        visualBible: await buildVeronicaVisualBibleArtifact({
+          workspaceRoot,
+          plan: candidate,
+          ...(input.canonicalReferencePackRoot
+            ? { canonicalReferencePackRoot: input.canonicalReferencePackRoot }
+            : {}),
+        }),
         compiler: input.imagePromptCompiler.compiler,
         cache: input.imagePromptCompiler.cache,
         model: input.imagePromptCompiler.model,
         reasonForRegeneration,
       })
     : ({ ...candidate, imagePromptGenerationStrategy: "legacy-deterministic" } as PositioningVisualPlanV2);
-  let canonicalPlan = await compilePrompts(rebuildVeronicaFinalTreatmentState({
+  const materializeSemanticBeats = (candidate: PositioningVisualPlanV2): PositioningVisualPlanV2 => {
+    if (candidate.format !== "short") return candidate;
+    const beatPlan = deriveVeronicaVisualBeatPlan({ plan: candidate });
+    return materializeVeronicaVisualBeatPlan({ plan: candidate, beatPlan });
+  };
+  let canonicalPlan = await compilePrompts(materializeSemanticBeats(rebuildVeronicaFinalTreatmentState({
     plan: hardened.plan,
     sceneTimings: scenePlan.scenes.map((scene) => ({
       id: scene.id,
       timing: scene.timing,
     })),
     narrationByScene: scenePlan.scenes.map((scene) => scene.canonicalNarration),
-  }), "canonical-semantic-snapshot");
+  })), "canonical-semantic-snapshot");
   const sourceGroundedDependencies = input.sourceGroundedVisualQa;
   const sourceGrounded = isVeronicaDeterministicVisualQaEligible(canonicalPlan)
     ? await runSourceGroundedVisualQaController({
@@ -1381,14 +1828,14 @@ export async function preparePositioningProductionEpisode(input: PreparePosition
             narrationByScene: scenePlan.scenes.map((scene) => scene.canonicalNarration),
             round,
           });
-          return compilePrompts(rebuildVeronicaFinalTreatmentState({
+          return compilePrompts(materializeSemanticBeats(rebuildVeronicaFinalTreatmentState({
             plan: remediated,
             sceneTimings: scenePlan.scenes.map((scene) => ({
               id: scene.id,
               timing: scene.timing,
             })),
             narrationByScene: scenePlan.scenes.map((scene) => scene.canonicalNarration),
-          }), `semantic-remediation-round-${round}`);
+          })), `semantic-remediation-round-${round}`);
         },
       })
     : await runSourceGroundedVisualQaController({
@@ -1414,10 +1861,10 @@ export async function preparePositioningProductionEpisode(input: PreparePosition
     sourceGroundedVisualQa: sourceGrounded.qa,
     hierarchicalReadiness,
   };
-  canonicalPlan = {
+  canonicalPlan = finalizeSemanticPlanHash({
     ...sourceGroundedPlanBase,
-    planHash: stableHash(sourceGroundedPlanBase),
-  } as PositioningVisualPlanV2;
+    planHash: sourcePlan.planHash,
+  }) as PositioningVisualPlanV2;
   const providerIssuesByScene = new Map(
     canonicalPlan.scenes.map((scene) => [scene.sceneId, canonicalPlan.providerReadiness?.issues.filter((issue) => issue.sceneId === scene.sceneId) ?? []] as const),
   );
@@ -1501,6 +1948,9 @@ export async function preparePositioningProductionEpisode(input: PreparePosition
     workspaceRoot,
     episodeDir,
     plan: canonicalPlan,
+    ...(input.canonicalReferencePackRoot
+      ? { canonicalReferencePackRoot: input.canonicalReferencePackRoot }
+      : {}),
   });
   const persistedPrompts = await persistVeronicaProviderImagePromptArtifact({
     episodeDir,
@@ -1597,6 +2047,7 @@ export async function preparePositioningProductionEpisode(input: PreparePosition
     writeJsonAtomic(scenePlanPath, finalScenePlan),
     writeJsonAtomic(path.join(episodeDir, "locales", input.language, input.variant, "scene-plan.json"), finalScenePlan),
     writeJsonAtomic(path.join(episodeDir, "source", "pre-image-semantic-plan.v1.json"), canonicalPlan),
+    fs.rm(path.join(episodeDir, "shared", "source-grounded-qa-admission.v1.json"), { force: true }),
     writeJsonAtomic(path.join(episodeDir, "shared", "pre-image-semantic-reviews.v1.json"), {
       schemaVersion: "veronica-pre-image-semantic-reviews.v5",
       gateVersion: VERONICA_PRE_IMAGE_SEMANTIC_GATE_VERSION,

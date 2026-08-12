@@ -10,7 +10,7 @@ import type {
 } from "./source-grounded-visual-qa.js";
 
 export const POSITIONING_PLANNER_VERSION =
-  "veronicabenini-positioning-visual-planner.v2.2" as const;
+  "veronicabenini-positioning-visual-planner.v2.3" as const;
 export const POSITIONING_PLAN_VERSION =
   "veronicabenini-positioning-visual-plan.v2" as const;
 export const POSITIONING_REVIEW_VERSION =
@@ -58,9 +58,10 @@ export type VisualStrategy =
   | "semantic-diagram";
 
 /** The semantic owner of the scene's primary visible action. */
-export type VeronicaActionOwnerRole = "expert" | "buyer" | "shared" | "none";
+export type VeronicaActionOwnerRole = "expert" | "buyer" | "business-operator" | "shared" | "none";
 export type VeronicaNarrativeActorRole =
   | "expert"
+  | "business-operator"
   | "observer"
   | "existing-follower"
   | "prospective-buyer";
@@ -87,6 +88,11 @@ export const VERONICA_RESOLVED_VISUAL_MECHANISMS = [
   "audience-fit-signal",
   "customer-context-interpretation",
   "peer-referral",
+  "quantity-comparison",
+  "input-output-flow",
+  "retained-remainder",
+  "workload-accumulation",
+  "scaling-relation",
 ] as const;
 export type VeronicaResolvedVisualMechanism =
   (typeof VERONICA_RESOLVED_VISUAL_MECHANISMS)[number];
@@ -106,8 +112,13 @@ export const VERONICA_VISUAL_MECHANISM_ACTION_OWNER = {
   "audience-fit-signal": "buyer",
   "customer-context-interpretation": "expert",
   "peer-referral": "buyer",
+  "quantity-comparison": "expert",
+  "input-output-flow": "business-operator",
+  "retained-remainder": "business-operator",
+  "workload-accumulation": "business-operator",
+  "scaling-relation": "business-operator",
 } as const satisfies Readonly<
-  Record<VeronicaResolvedVisualMechanism, Extract<VeronicaActionOwnerRole, "expert" | "buyer">>
+  Record<VeronicaResolvedVisualMechanism, Extract<VeronicaActionOwnerRole, "expert" | "buyer" | "business-operator">>
 >;
 
 export interface VeronicaNarrationEvidenceSpan {
@@ -558,7 +569,7 @@ export interface VisualBeatTreatmentV1 {
 export interface VeronicaVisualBeatQuality {
   readonly status: "PASS" | "WARN" | "FAIL";
   readonly findings: readonly {
-    readonly code: "REDUNDANT_SIBLING_BEAT" | "REDUNDANT_PAID_IMAGE_CANDIDATE" | "EVENT_ONLY_DENSITY_INCREASE" | "OPENING_STATIC_HOLD" | "LONG_STATIC_OPENING_ASSET_HOLD" | "BEAT_OUTSIDE_PARENT_MEANING" | "INVALID_REUSE_SOURCE";
+    readonly code: "REDUNDANT_SIBLING_BEAT" | "REDUNDANT_PAID_IMAGE_CANDIDATE" | "EVENT_ONLY_DENSITY_INCREASE" | "OPENING_STATIC_HOLD" | "INSUFFICIENT_SEMANTIC_ASSET_DENSITY" | "LONG_STATIC_OPENING_ASSET_HOLD" | "BEAT_OUTSIDE_PARENT_MEANING" | "INVALID_REUSE_SOURCE";
     readonly severity: "warning" | "blocker";
     readonly sceneId: string;
     readonly beatId: string | null;
@@ -568,6 +579,117 @@ export interface VeronicaVisualBeatQuality {
   readonly beatsInFirst10Seconds: number;
   readonly beatsInFirst15Seconds: number;
   readonly density: VeronicaVisualDensityMetrics;
+  readonly sequenceDiversity: VeronicaSequenceDiversityResult;
+}
+
+export type VeronicaSequenceDiversityFindingCode =
+  | "ADJACENT_VISUAL_DUPLICATION"
+  | "TREATMENT_FAMILY_REPETITION"
+  | "ENVIRONMENT_MONOTONY"
+  | "ACTION_MONOTONY"
+  | "COMPOSITION_MONOTONY"
+  | "MECHANISM_REPETITION"
+  | "PRESENTATION_MECHANISM_REPETITION"
+  | "LOW_INFORMATION_GAIN"
+  | "OPENING_NOVELTY_LOW"
+  | "OPENING_ACTION_NOVELTY_LOW";
+
+export const VERONICA_DEPICTED_ACTION_FAMILIES = [
+  "comparison",
+  "decomposition",
+  "selection",
+  "inspection",
+  "transfer",
+  "application",
+  "flow",
+  "accumulation",
+  "scaling",
+  "workload-growth",
+  "retained-value-reveal",
+  "evidence-reveal",
+  "incremental-contribution",
+  "sorting",
+  "allocation",
+  "conversion",
+  "bottleneck",
+  "queue-growth",
+  "state-transition",
+  "contrast-reveal",
+  "other",
+] as const;
+export type VeronicaDepictedActionFamily = (typeof VERONICA_DEPICTED_ACTION_FAMILIES)[number];
+
+export type VeronicaPresentationMechanism =
+  | "unmodified"
+  | "foreground-evidence"
+  | "isolated-diagnostic"
+  | "modular-system"
+  | "process-path"
+  | "depth-staging"
+  | "other-presentation";
+
+export interface VeronicaVisualTreatmentSignature {
+  readonly beatId: string;
+  readonly treatmentFamily: string;
+  readonly visualMechanism: string;
+  readonly presentationMechanism: VeronicaPresentationMechanism;
+  readonly depictedActionFamily: VeronicaDepictedActionFamily;
+  readonly environmentFamily: string;
+  /** Compatibility diagnostic; action policy uses depictedActionFamily. */
+  readonly primaryAction: string;
+  readonly compositionFamily: string;
+  readonly cameraFamily: string;
+  readonly informationRole: string;
+  readonly semanticState: string;
+  readonly actorPerspective: string;
+  readonly sourcePropositionHash: string;
+  readonly signatureHash: string;
+}
+
+export interface VeronicaSequenceDiversityFinding {
+  readonly code: VeronicaSequenceDiversityFindingCode;
+  readonly severity: "warning" | "review-required" | "blocker";
+  readonly beatIds: readonly string[];
+  readonly window: "adjacent" | "three-beat" | "five-beat" | "opening-5s" | "opening-10s" | "opening-15s" | "whole-episode";
+  readonly repeatedDimensions: readonly string[];
+  readonly observed: number;
+  readonly threshold: number;
+  readonly evidence: string;
+  readonly remediationEligible: boolean;
+}
+
+export interface VeronicaSequenceDiversityResult {
+  readonly schemaVersion: "veronica-sequence-diversity.v2";
+  readonly policyVersion: string;
+  readonly status: "PASS" | "WARN" | "REVIEW_REQUIRED" | "BLOCK";
+  readonly signatures: readonly VeronicaVisualTreatmentSignature[];
+  readonly findings: readonly VeronicaSequenceDiversityFinding[];
+  readonly metrics: {
+    readonly adjacentDuplicateCount: number;
+    readonly treatmentFamilyDominantShare: number;
+    readonly environmentDominantShare: number;
+    readonly actionDominantShare: number;
+    readonly depictedActionDominantShare: number;
+    readonly presentationMechanismDominantShare: number;
+    readonly compositionDominantShare: number;
+    readonly mechanismDominantShare: number;
+    readonly lowInformationGainCount: number;
+    readonly opening: Readonly<Record<"5" | "10" | "15", {
+      readonly beatCount: number;
+      readonly uniqueSourcePropositions: number;
+      readonly uniqueTreatmentMechanisms: number;
+      readonly uniquePresentationMechanisms: number;
+      readonly uniqueDepictedActionFamilies: number;
+      readonly uniqueCompositionFamilies: number;
+      readonly uniqueActionFamilies: number;
+    }>>;
+  };
+  readonly remediation: {
+    readonly passes: number;
+    readonly changedBeatIds: readonly string[];
+    readonly exhausted: boolean;
+  };
+  readonly resultHash: string;
 }
 
 export interface VeronicaVisualDensityMetrics {
@@ -585,6 +707,7 @@ export interface VeronicaVisualDensityMetrics {
   readonly uniqueAssetsInFirst10Seconds: number;
   readonly uniqueAssetsInFirst15Seconds: number;
   readonly longestContinuousSameAssetHoldMs: number;
+  readonly longestSemanticBeatHoldMs?: number;
   readonly averageCanonicalAssetHoldMs: number;
   readonly redundantPaidImageCandidateBeatIds: readonly string[];
   readonly informationGain: readonly {

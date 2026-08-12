@@ -37,16 +37,29 @@ const canonicalSourceDocumentSchema = z
 export const canonicalSourceEpisodeSchema = z
   .object({
     schemaVersion: z.literal(CANONICAL_SOURCE_EPISODE_SCHEMA_VERSION),
-    ingestionAdapterVersion: z.literal(VERONICA_CONTENT_PACK_2_ADAPTER_VERSION),
-    sourcePackId: z.literal("veronica-content-pack-2"),
+    ingestionAdapterVersion: z.string().min(1),
+    sourcePackId: z.string().min(1),
     episodeId: episodeIdSchema,
     authoredEpisodeKey: z.string().regex(/^[a-z0-9][a-z0-9-]*$/u),
     canonicalSlug: z.string().regex(/^[a-z0-9][a-z0-9-]*$/u),
+    title: z.string().min(1).optional(),
     contentProfileId: z.literal("veronicabenini"),
-    format: z.literal("short"),
+    format: z.enum(["short", "long"]),
     localeSources: z.array(canonicalSourceDocumentSchema).min(1),
     sourceRevisionHash: z.string().regex(/^[a-f0-9]{64}$/u),
     declaredReusableAssets: z.array(z.never()),
+    sourceGrounding: z
+      .object({
+        storyId: z.string().min(1),
+        sourceIds: z.array(z.string().min(1)).min(1),
+        sourceQualities: z.record(z.string(), z.enum(["clean", "noisy", "review"])),
+        timingPass: z.boolean(),
+        originalityPass: z.boolean(),
+        plainNarrationOnly: z.boolean(),
+        qaPass: z.boolean(),
+      })
+      .strict()
+      .optional(),
   })
   .strict()
   .superRefine((value, context) => {
@@ -269,8 +282,7 @@ export async function prepareCanonicalSourceEpisodeWorkspace(
   );
   const scriptPath = path.join(
     episodeDir,
-    "languages",
-    "short",
+    ...(sourceEpisode.format === "short" ? ["languages", "short"] : ["languages"]),
     `script-${input.locale}.md`,
   );
   const now = new Date().toISOString();
@@ -303,6 +315,9 @@ export async function prepareCanonicalSourceEpisodeWorkspace(
       variant: sourceEpisode.format,
       canonicalSourceDescriptorPath: "source/canonical-source-episode.v1.json",
       canonicalSourceRevisionHash: sourceEpisode.sourceRevisionHash,
+      ...(sourceEpisode.sourceGrounding
+        ? { sourceGrounding: sourceEpisode.sourceGrounding }
+        : {}),
       authoritativeSource: {
         path: plannerInput.narration.sourcePath,
         sha256: plannerInput.narration.sourceSha256,

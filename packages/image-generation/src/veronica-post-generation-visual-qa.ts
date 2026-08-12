@@ -106,6 +106,12 @@ export interface VeronicaVisualQaResult {
   readonly manualReviewRequired: boolean;
 }
 
+type OpenAiVeronicaVisualQaConfig = Readonly<Record<string, unknown>> & {
+  readonly temperature?: unknown;
+  readonly maxOutputTokens?: unknown;
+  readonly reasoningEffort?: unknown;
+};
+
 export interface OpenAiVisionResponsesClient {
   readonly responses: {
     create(request: {
@@ -151,7 +157,7 @@ export function createOpenAiVeronicaVisualQaEvaluator(input: {
   readonly model: string;
   readonly config?: Readonly<Record<string, unknown>>;
 }): VeronicaVisualQaEvaluator {
-  const config = {
+  const config: OpenAiVeronicaVisualQaConfig = {
     temperature: 0,
     maxOutputTokens: 2200,
     ...(input.config ?? {}),

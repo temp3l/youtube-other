@@ -13,6 +13,7 @@ import {
 import {
   createVeronicaSourceGroundedVisualQaComposition,
   OpenAiSourceGroundedVisualQaAdapter,
+  VERONICA_SOURCE_GROUNDED_QA_DEFAULT_CEILINGS,
 } from "./veronica-source-grounded-visual-qa-composition.js";
 
 const createClientMock = vi.hoisted(() =>
@@ -26,6 +27,13 @@ vi.mock("@mediaforge/config", () => ({
     openAiValidatorMaxOutputTokens: 800,
     openAiStoryMaxOutputTokens: 1_800,
     openAiPromptCacheMode: "enabled",
+    openAiPolicy: {
+      "veronica-visual-qa-scene": { endpoint: "responses", model: "gpt-5.4-mini", reasoning: "low" },
+      "veronica-visual-qa-sequence": { endpoint: "responses", model: "gpt-5.4-mini", reasoning: "low" },
+      "veronica-visual-qa-escalation": { endpoint: "responses", model: "gpt-5.6-terra", reasoning: "medium" },
+      "veronica-visual-qa-remediation": { endpoint: "responses", model: "gpt-5.6-terra", reasoning: "medium" },
+      "veronica-visual-qa-final-adjudication": { endpoint: "responses", model: "gpt-5.6-sol", reasoning: "medium" },
+    },
   })),
 }));
 
@@ -81,6 +89,19 @@ function requestInput(profile: "INTERACTIVE" | "COST_OPTIMIZED" | "BULK") {
 }
 
 describe("OpenAI source-grounded QA adapter", () => {
+  it("scopes the six-call Short ceiling to Short QA without loosening Full QA", () => {
+    expect(VERONICA_SOURCE_GROUNDED_QA_DEFAULT_CEILINGS.short).toMatchObject({
+      maxProviderCalls: 6,
+      maxEstimatedOutputTokens: 20_000,
+      maxFlagshipCallsPerPack: 1,
+    });
+    expect(VERONICA_SOURCE_GROUNDED_QA_DEFAULT_CEILINGS.full).toMatchObject({
+      maxProviderCalls: 10,
+      maxEstimatedOutputTokens: 40_000,
+      maxFlagshipCallsPerPack: 1,
+    });
+  });
+
   it("defaults to cache-only, one remediation round, and zero SDK retries", async () => {
     const workspaceRoot = await fs.mkdtemp(path.join(os.tmpdir(), "veronica-qa-policy-"));
     const episodeDir = path.join(workspaceRoot, "episode");
@@ -106,6 +127,16 @@ describe("OpenAI source-grounded QA adapter", () => {
     expect(routine.policy.remediationAdvisor).toMatchObject({
       model: "gpt-5.6-terra",
       reasoningEffort: "medium",
+    });
+    expect(routine.policy.finalAdjudication).toMatchObject({
+      model: "gpt-5.6-sol",
+      reasoningEffort: "medium",
+      maxOutputTokens: 1_200,
+    });
+    expect(routine.policy.finalSequenceAdjudication).toMatchObject({
+      model: "gpt-5.6-sol",
+      reasoningEffort: "medium",
+      maxOutputTokens: 3_000,
     });
     expect(routine.policy.maxRemediationRounds).toBe(1);
     expect(createClientMock).toHaveBeenLastCalledWith({

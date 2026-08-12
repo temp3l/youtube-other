@@ -11,8 +11,20 @@ const { onMock, spawnMock } = vi.hoisted(() => ({
   })),
 }));
 
+const { verifyRuntimeBuildFingerprintMock } = vi.hoisted(() => ({
+  verifyRuntimeBuildFingerprintMock: vi.fn(async (packageName: string) => ({
+    packageName,
+    sourceFingerprint: `${packageName}-fingerprint`,
+    manifestPath: `${packageName}/dist/runtime-fingerprint.json`,
+  })),
+}));
+
 vi.mock("node:child_process", () => ({
   spawn: spawnMock,
+}));
+
+vi.mock("../../../scripts/runtime-build-fingerprint.mjs", () => ({
+  verifyRuntimeBuildFingerprint: verifyRuntimeBuildFingerprintMock,
 }));
 
 describe("mediaforge bin", () => {
@@ -23,6 +35,7 @@ describe("mediaforge bin", () => {
     vi.resetModules();
     onMock.mockReset();
     spawnMock.mockClear();
+    verifyRuntimeBuildFingerprintMock.mockClear();
     process.argv = [
       "node",
       "/repo/apps/cli/bin/mediaforge.js",
@@ -52,6 +65,33 @@ describe("mediaforge bin", () => {
     expect(options).toMatchObject({
       stdio: "inherit",
       env: process.env,
+    });
+  });
+
+  it("rejects stale built QA runtime before loading the compiled entrypoint", async () => {
+    process.argv = ["node", "/repo/apps/cli/bin/mediaforge.js", "veronica-media", "source-grounded-qa"];
+    verifyRuntimeBuildFingerprintMock.mockRejectedValueOnce(new Error("Runtime build fingerprint is stale"));
+
+    const exit = vi.spyOn(process, "exit").mockImplementation(((code?: number) => {
+      throw new Error(`exit:${code ?? 0}`);
+    }) as never);
+    await expect(import("../bin/mediaforge.js")).rejects.toThrow("exit:1");
+
+    expect(verifyRuntimeBuildFingerprintMock).toHaveBeenCalledTimes(2);
+    expect(spawnMock).not.toHaveBeenCalled();
+    exit.mockRestore();
+  });
+
+  it("binds QA runtime provenance to both freshly verified package graphs", async () => {
+    process.argv = ["node", "/repo/apps/cli/bin/mediaforge.js", "--", "veronica-media", "source-grounded-qa"];
+    await import("../bin/mediaforge.js");
+
+    expect(verifyRuntimeBuildFingerprintMock).toHaveBeenCalledWith("cli");
+    expect(verifyRuntimeBuildFingerprintMock).toHaveBeenCalledWith("strategic-reinvention");
+    const [, , options] = spawnMock.mock.calls[0] ?? [];
+    expect(JSON.parse(options.env.MEDIAFORGE_QA_RUNTIME_PROVENANCE)).toMatchObject({
+      mode: "VERIFIED_BUILT_MODE",
+      cliEntrypoint: "apps/cli/dist/index.js",
     });
   });
 

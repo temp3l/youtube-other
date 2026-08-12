@@ -24,6 +24,108 @@ function plan(scenes: readonly PlannedScene[]): PositioningVisualPlanV2 {
 }
 
 describe("Veronica pre-image semantic gate", () => {
+  it("rejects concrete positioning semantics leaked into a source-grounded economics treatment", () => {
+    const narration = "If sales doubled tomorrow, would the business definitely become healthier?";
+    const proposition = deriveVeronicaSemanticProposition({ scene: scene(), narration });
+    const contaminated = treatment({
+      environment: "evidence review with an observer and title badge",
+      action: "the observer inspects a work example and recognizes the claimed expertise",
+      props: ["title badge", "work example", "reasoning artifact"],
+    });
+    const compatibility = assessVeronicaTreatmentPropositionCompatibility({ treatment: contaminated, proposition, narration });
+    expect(proposition.visualMechanism).toBe("scaling-relation");
+    expect(compatibility.status).toBe("FAIL");
+    expect(compatibility.reasons).toEqual(expect.arrayContaining([
+      "unsupported-treatment-entity:expertise-recognition",
+      "treatment-family-mismatch:positioning-expertise",
+    ]));
+  });
+
+  it("assigns a source-grounded marginal-sale calculation to the business operator before the next order", () => {
+    const narration = "Before chasing the next order, calculate what one additional sale actually leaves behind.";
+    const proposition = deriveVeronicaSemanticProposition({ scene: scene({ narrationAnchor: narration }), narration });
+    const projected = visualTreatmentFromProposition({ scene: scene({ narrationAnchor: narration }), proposition, preserveEnvironment: false });
+    expect(proposition.actorRole).toBe("business-operator");
+    expect(projected.actionOwnerRole).toBe("business-operator");
+    expect(projected.action).toContain("before pursuing the next order");
+    expect(projected.composition).toContain("next order remains outside");
+  });
+
+  it("retains a materially narrated sale subject in a conservative unit-economics treatment", () => {
+    const narration = "Take your best-selling product and calculate one sale from start to finish.";
+    const proposition = deriveVeronicaSemanticProposition({ scene: scene({ narrationAnchor: narration }), narration });
+    const projected = visualTreatmentFromProposition({ scene: scene({ narrationAnchor: narration }), proposition, preserveEnvironment: false });
+    expect(projected.props).toContain("isolated source-supported best-selling product");
+    expect(projected.composition).toContain("best-selling product");
+    expect(projected.action).toContain("source-supported best-selling product");
+  });
+
+  it("projects a hypothetical volume increase as a text-free simultaneous comparison", () => {
+    const narration = "If sales doubled tomorrow, would the business definitely become healthier?";
+    const proposition = deriveVeronicaSemanticProposition({ scene: scene({ narrationAnchor: narration }), narration });
+    const projected = visualTreatmentFromProposition({ scene: scene({ narrationAnchor: narration }), proposition, preserveEnvironment: false });
+    expect(proposition.visualMechanism).toBe("scaling-relation");
+    expect(projected.composition).toContain("doubled order-volume evidence");
+    expect(projected.action).toContain("without implying the business is healthier");
+    expect(projected.props).toEqual(expect.arrayContaining(["paired retained-remainder containers"]));
+  });
+
+  it("blocks unsupported threshold environments while preserving supported doorway stories", () => {
+    const narration = "Revenue grows while retained margin remains small.";
+    const proposition = deriveVeronicaSemanticProposition({ scene: scene(), narration });
+    expect(assessVeronicaTreatmentPropositionCompatibility({ treatment: treatment(), proposition, narration }).reasons).toEqual(expect.arrayContaining([
+      "unsupported-doorway-motif",
+      "unsupported-treatment-environment:public-threshold",
+    ]));
+    const supportedNarration = "A specific niche is a doorway, not a wall.";
+    const supported = deriveVeronicaSemanticProposition({ scene: scene(), narration: supportedNarration });
+    const supportedTreatment = treatment(visualTreatmentFromProposition({ scene: scene(), proposition: supported, preserveEnvironment: false }));
+    expect(assessVeronicaTreatmentPropositionCompatibility({ treatment: supportedTreatment, proposition: supported, narration: supportedNarration }).status).toBe("PASS");
+  });
+
+  it("resolves contextual and pronoun-dependent theses from bounded source spans", () => {
+    const contextual = "Try this instead. Take one sale from customer payment through every variable cost.";
+    const proposition = deriveVeronicaSemanticProposition({ scene: scene(), narration: contextual });
+    expect(proposition.narrationClaim).toBe("Take one sale from customer payment through every variable cost.");
+    expect(proposition.evidenceSpans).toHaveLength(2);
+    expect(proposition.evidenceSpans.map((span) => span.text)).toEqual([
+      "Try this instead.",
+      "Take one sale from customer payment through every variable cost.",
+    ]);
+    expect(renderVeronicaVisibleThesis(proposition)).not.toBe("Try this instead.");
+
+    const pronoun = "The retained value barely changes when workload doubles. That is the problem.";
+    const pronounProposition = deriveVeronicaSemanticProposition({ scene: scene(), narration: pronoun });
+    expect(pronounProposition.narrationClaim).toContain("retained value barely changes");
+  });
+
+  it("keeps a standalone thesis stable and blocks an ambiguous contextual fragment", () => {
+    const complete = "One additional sale leaves a small retained remainder.";
+    const stable = deriveVeronicaSemanticProposition({ scene: scene(), narration: complete });
+    expect(stable.narrationClaim).toBe(complete);
+    expect(renderVeronicaVisibleThesis(stable)).toBe(complete);
+
+    const ambiguous = deriveVeronicaSemanticProposition({ scene: scene(), narration: "Try this instead." });
+    expect(ambiguous.visualMechanism).toBe("UNRESOLVED");
+    expect(() => visualTreatmentFromProposition({ scene: scene(), proposition: ambiguous, preserveEnvironment: false })).toThrow("SEMANTIC_REMEDIATION_LOW_CONFIDENCE");
+  });
+
+  it("records and replaces a rejected treatment family instead of recycling it", () => {
+    const narration = "If double the sales means double the workload and almost no additional margin, growth amplifies structural weakness.";
+    const contaminated = scene({
+      narrationAnchor: narration,
+      treatment: treatment({ environment: "expertise review", action: "an observer inspects a title badge and matching work example", props: ["title badge", "work example"] }),
+    });
+    const result = runVeronicaSemanticRemediation({ plan: plan([contaminated]), narrationByScene: [narration] });
+    expect(result.decisions[0]?.rejectedTreatmentFamilies).toContain("expertise-recognition");
+    expect(result.plan.scenes[0]?.semanticProposition?.visualMechanism).toBe("workload-accumulation");
+    expect(`${result.plan.scenes[0]?.treatment.environment} ${result.plan.scenes[0]?.treatment.action}`).not.toMatch(/title badge|expertise recognition|work example/iu);
+  });
+
+  it("hard-blocks unresolved placeholders before provider projection", () => {
+    expect(providerPromptInternalLanguageReasons("Vertical image prompt with TODO placeholder and UNRESOLVED action.")).toContain("unresolved-placeholder");
+  });
+
   it("replaces rejected semantic ownership and propagates the replacement through provider projection", () => {
     const narration = "Doing substantive professional work develops actual expertise. External recognition of that expertise is a separate problem.";
     const stale = scene({
@@ -236,6 +338,25 @@ describe("Veronica pre-image semantic gate", () => {
     expect(classifyVeronicaStillStateComplexity("Adjacent buyers arrive and the doorway widens.", treatment({ action: "adjacent buyers arrive at the actively widening doorway", composition: "buyers at an opening threshold" }))).toBe("DECISIVE_TRANSITION_MOMENT");
   });
 
+  it("preserves an atomic source transition through final state materialization", () => {
+    const narration = "The buyer hesitates, then commits after seeing the proof.";
+    const source = scene({
+      narrationAnchor: narration,
+      treatment: treatment({
+        actionOwnerRole: "buyer",
+        action: "the buyer hesitates, then commits after seeing the proof",
+      }),
+    });
+    const rebuilt = rebuildVeronicaFinalTreatmentState({
+      plan: plan([source]),
+      sceneTimings: [{ id: source.sceneId, timing: { startSeconds: 0, endSeconds: 5 } }],
+      narrationByScene: [narration],
+    });
+
+    expect(rebuilt.scenes[0]?.semanticProposition?.stateRelation).toBe("SEQUENTIAL_PROGRESSION");
+    expect(rebuilt.scenes[0]?.stateComplexity).toBe("DECISIVE_TRANSITION_MOMENT");
+  });
+
   it("normalizes threshold variants while separating their interactions", () => {
     const decision = normalizeVeronicaViewerVisibleFamilies(scene({ treatment: treatment({ environment: "doorway decision space", camera: "32mm threshold three-quarter", action: "a buyer commits through the threshold" }) }), "doorway / threshold / widening access");
     const referral = normalizeVeronicaViewerVisibleFamilies(scene({ sceneId: "scene-002", treatment: treatment({ environment: "street-facing threshold", camera: "32mm doorway transition perspective", action: "one buyer introduces another buyer" }) }), "doorway / threshold / widening access");
@@ -356,6 +477,45 @@ describe("Veronica pre-image semantic gate", () => {
     expect(prompt).toContain("Primary actor: the recurring professional.");
   });
 
+  it("does not require buyer perspective for S01 customer-payment flow with an explicit NONE consequence", () => {
+    const narration = "Take one sale from customer payment through every variable cost.";
+    const proposition = deriveVeronicaSemanticProposition({ scene: scene(), narration });
+    const review = reviewVeronicaPreImageTreatment({
+      contentId: "01a-revenue-is-not-a-good-business", sceneId: "S01", plannerVersion: "test",
+      narration, narrationAnchor: narration,
+      visibleThesis: "One sale passes from customer payment through every variable cost.",
+      newInformation: "Shows the full payment-to-cost flow for one sale.",
+      treatment: treatment({ actionOwnerRole: "none", action: "a payment moves through visible variable-cost deductions" }),
+      proposition,
+    });
+    expect(proposition.buyerConsequenceFamily).toBe("NONE");
+    expect(review.driftFlags).not.toContain("BUYER_PERSPECTIVE_REQUIRED");
+  });
+
+  it("still requires buyer perspective for a structured buyer consequence", () => {
+    const narration = "A clear first screen helps a visitor categorize the offer.";
+    const proposition = deriveVeronicaSemanticProposition({ scene: scene(), narration });
+    const review = reviewVeronicaPreImageTreatment({
+      contentId: "test", sceneId: "buyer-consequence", plannerVersion: "test",
+      narration, narrationAnchor: narration,
+      visibleThesis: "A clear first screen lets a visitor categorize the offer.",
+      newInformation: "Adds the visitor's categorization consequence at the first screen.",
+      treatment: treatment({
+        narrativeBeat: "expert interface arrangement",
+        subjectRequirement: "an expert and one interface",
+        environment: "neutral interface studio",
+        composition: "expert beside one clear first screen",
+        camera: "eye-level medium shot",
+        actionOwnerRole: "expert",
+        action: "the expert arranges one clear first screen",
+        props: ["interface screen"],
+      }),
+      proposition,
+    });
+    expect(proposition.buyerConsequenceFamily).toBe("CATEGORIZES");
+    expect(review.driftFlags).toContain("BUYER_PERSPECTIVE_REQUIRED");
+  });
+
   it("normalizes generated prompt-boundary punctuation without rewriting ellipses", () => {
     expect(normalizeProviderPromptSentence("same pattern.")).toBe("same pattern.");
     expect(normalizeProviderPromptSentence("same pattern..")).toBe("same pattern.");
@@ -384,6 +544,26 @@ describe("Veronica pre-image semantic gate", () => {
     expect(conflict.buyerConsequenceFamily).toBe("HESITATES");
     expect(visualTreatmentFromProposition({ scene: scene(), proposition: conflict, preserveEnvironment: false }).action).toMatch(/conflicting|without finding/iu);
     expect(classifyVeronicaSemanticPolarity("The signals conflict at first, but after alignment the visitor understands one coherent category.")).toBe("TRANSITION_NEGATIVE_TO_POSITIVE");
+  });
+
+  it("keeps a source-grounded economic warning negative and binds its complete causal chain", () => {
+    const narration = "You can have impressive revenue and still have a weak business. Because revenue and margin are not the same thing. If one hundred euros comes in and nearly all of it goes back out in sale-related costs, more orders may make the problem bigger.";
+    const proposition = deriveVeronicaSemanticProposition({ scene: scene(), narration });
+    const projected = visualTreatmentFromProposition({ scene: scene(), proposition, preserveEnvironment: false });
+    expect(proposition.polarity).toBe("NEGATIVE_STATE");
+    expect(proposition.evidenceSpans).toHaveLength(3);
+    expect(proposition.visualMechanism).toBe("retained-remainder");
+    expect(projected.action).toMatch(/outgoing cost portions|retained remainder/iu);
+    expect(classifyVeronicaSemanticPolarity("More orders may simply make the problem bigger.")).toBe("NEGATIVE_STATE");
+  });
+
+  it("projects unit-economics sequencing as a sale flow before growth pursuit", () => {
+    const narration = "Before chasing more revenue, understand what happens economically every single time you sell.";
+    const proposition = deriveVeronicaSemanticProposition({ scene: scene(), narration });
+    const projected = visualTreatmentFromProposition({ scene: scene(), proposition, preserveEnvironment: false });
+    expect(proposition.visualMechanism).toBe("input-output-flow");
+    expect(projected.action).toMatch(/traces one sale.*before adding another order/iu);
+    expect(`${projected.environment} ${projected.composition} ${projected.props.join(" ")}`).toMatch(/cost portions|retained result|additional order/iu);
   });
 
   it("keeps motion-without-accumulation as a failure state", () => {

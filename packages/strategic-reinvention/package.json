@@ -12,7 +12,7 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node ../../scripts/runtime-build-fingerprint.mjs write --package strategic-reinvention",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

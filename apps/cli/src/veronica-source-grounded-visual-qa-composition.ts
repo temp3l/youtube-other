@@ -47,6 +47,8 @@ const OPENAI_QA_MODEL_PRICING: NonNullable<
   },
 };
 
+export const FINAL_SEQUENCE_ADJUDICATION_MAX_OUTPUT_TOKENS = 3_000;
+
 export interface VeronicaPaidOpenAiQaAuthorization {
   readonly maxProviderCalls: number;
   readonly maxEstimatedCostUsd: number;
@@ -57,11 +59,13 @@ export interface VeronicaPaidOpenAiQaAuthorization {
 
 export const VERONICA_SOURCE_GROUNDED_QA_DEFAULT_CEILINGS = {
   short: {
-    maxProviderCalls: 4,
+    // Two scene batches, two beat batches, one bounded escalation batch, and
+    // sequence adjudication must all fit one admitted Short run.
+    maxProviderCalls: 6,
     maxEstimatedCostUsd: 0.4,
     maxFlagshipCallsPerPack: 1,
     maxEstimatedInputTokens: 60_000,
-    maxEstimatedOutputTokens: 15_000,
+    maxEstimatedOutputTokens: 20_000,
   },
   full: {
     maxProviderCalls: 10,
@@ -715,6 +719,11 @@ export async function createVeronicaSourceGroundedVisualQaComposition(input: {
       model: finalPolicy.model,
       reasoningEffort: finalPolicy.reasoning,
       maxOutputTokens: Math.min(runtime.openAiStoryMaxOutputTokens ?? 1_200, 1_200),
+    },
+    finalSequenceAdjudication: {
+      model: finalPolicy.model,
+      reasoningEffort: finalPolicy.reasoning,
+      maxOutputTokens: FINAL_SEQUENCE_ADJUDICATION_MAX_OUTPUT_TOKENS,
     },
     maxRemediationRounds: input.maxAutomaticRemediationRounds ?? 1,
     remediateReview: true,

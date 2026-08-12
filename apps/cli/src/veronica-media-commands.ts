@@ -29,6 +29,7 @@ import {
   resolveVeronicaSemanticImagePromptPaths,
   runStrategicSupplementalMediaBridge,
   discoverVeronicaContentPack2Shorts,
+  discoverFullTranscriptedPackEpisodes,
   prepareCanonicalSourceEpisodeWorkspace,
   type PositioningVisualPlanV2,
 } from "@mediaforge/strategic-reinvention";
@@ -157,7 +158,7 @@ function addSourceGroundedQaCostControls(command: Command): Command {
       "Explicitly authorize live paid source-grounded OpenAI QA",
       false
     )
-    .option("--max-provider-calls <number>", "Hard provider-request ceiling (Short 4; full 10)", (value) =>
+    .option("--max-provider-calls <number>", `Hard provider-request ceiling (Short ${VERONICA_SOURCE_GROUNDED_QA_DEFAULT_CEILINGS.short.maxProviderCalls}; full ${VERONICA_SOURCE_GROUNDED_QA_DEFAULT_CEILINGS.full.maxProviderCalls})`, (value) =>
       parsePositiveInteger(value, "--max-provider-calls")
     )
     .option("--max-estimated-cost-usd <number>", "Hard estimated-spend ceiling (Short $0.40; full $0.60)", (value) =>
@@ -166,10 +167,10 @@ function addSourceGroundedQaCostControls(command: Command): Command {
     .option("--max-flagship-calls-per-pack <number>", "Hard flagship-request ceiling per pack (default 1)", (value) =>
       parsePositiveInteger(value, "--max-flagship-calls-per-pack")
     )
-    .option("--max-estimated-input-tokens <number>", "Estimated input-token ceiling (Short 60000; full 150000)", (value) =>
+    .option("--max-estimated-input-tokens <number>", `Estimated input-token ceiling (Short ${VERONICA_SOURCE_GROUNDED_QA_DEFAULT_CEILINGS.short.maxEstimatedInputTokens}; full ${VERONICA_SOURCE_GROUNDED_QA_DEFAULT_CEILINGS.full.maxEstimatedInputTokens})`, (value) =>
       parsePositiveInteger(value, "--max-estimated-input-tokens")
     )
-    .option("--max-estimated-output-tokens <number>", "Estimated output-token ceiling (Short 15000; full 40000)", (value) =>
+    .option("--max-estimated-output-tokens <number>", `Estimated output-token ceiling (Short ${VERONICA_SOURCE_GROUNDED_QA_DEFAULT_CEILINGS.short.maxEstimatedOutputTokens}; full ${VERONICA_SOURCE_GROUNDED_QA_DEFAULT_CEILINGS.full.maxEstimatedOutputTokens})`, (value) =>
       parsePositiveInteger(value, "--max-estimated-output-tokens")
     )
     .option("--max-automatic-remediation-rounds <number>", "Automatic rounds (default 1; 2 must be explicit)", (value) =>
@@ -263,6 +264,46 @@ export function registerVeronicaMediaCommands(program: Command): void {
         sourcePackId: sourceEpisode.sourcePackId,
         sourceRevisionHash: sourceEpisode.sourceRevisionHash,
         sourceLocales: sourceEpisode.localeSources.map((source) => source.locale),
+        providerCalls: 0,
+      };
+      process.stdout.write(`${JSON.stringify(payload, options.json ? null : undefined, options.json ? 2 : undefined)}\n`);
+    });
+
+  sourcePack
+    .command("prepare-full-transcripted")
+    .description("Prepare one QA-approved Wave 01 narration from the full-transcripted Veronica pack")
+    .requiredOption("--pack <path>", "Full-transcripted content pack root")
+    .requiredOption("--workspace <path>", "Canonical episode workspace root")
+    .requiredOption("--episode-id <id>", "Wave story ID (for example S001) or canonical episode ID")
+    .option("--format <short|long>", "Limit discovery to one video format")
+    .option("--json", "Emit machine-readable output", false)
+    .action(async (options: { pack: string; workspace: string; episodeId: string; format?: "short" | "long"; json: boolean }) => {
+      if (options.format !== undefined && options.format !== "short" && options.format !== "long") {
+        throw new Error("--format must be short or long.");
+      }
+      const episodes = await discoverFullTranscriptedPackEpisodes({
+        packDir: path.resolve(options.pack),
+        ...(options.format ? { format: options.format } : {}),
+      });
+      const requestedId = options.episodeId.trim();
+      const sourceEpisode = episodes.find((episode) =>
+        episode.episodeId === requestedId.toLowerCase() ||
+        episode.sourceGrounding?.storyId === requestedId.toUpperCase(),
+      );
+      if (!sourceEpisode) {
+        throw new Error(`QA-approved full-transcripted Pack Wave 01 episode not found: ${options.episodeId}`);
+      }
+      const result = await prepareCanonicalSourceEpisodeWorkspace({
+        workspaceRoot: path.resolve(options.workspace),
+        sourceEpisode,
+        locale: "en",
+      });
+      const payload = {
+        ...result,
+        sourcePackId: sourceEpisode.sourcePackId,
+        sourceRevisionHash: sourceEpisode.sourceRevisionHash,
+        format: sourceEpisode.format,
+        sourceGrounding: sourceEpisode.sourceGrounding,
         providerCalls: 0,
       };
       process.stdout.write(`${JSON.stringify(payload, options.json ? null : undefined, options.json ? 2 : undefined)}\n`);
@@ -454,15 +495,15 @@ export function registerVeronicaMediaCommands(program: Command): void {
     .description("Materialize visual beats for an approved Veronica Short without changing semantic scenes or producing images")
     .requiredOption("--workspace <path>", "Episode workspace root")
     .requiredOption("--episode-id <id>", "Episode identifier")
-    .requiredOption("--overrides <path>", "Reviewed visual-beat override artifact")
+    .option("--overrides <path>", "Optional reviewed visual-beat override artifact; otherwise use deterministic treatment diversification")
     .option("--json", "Emit machine-readable output", false)
-    .action(async (options: { workspace: string; episodeId: string; overrides: string; json: boolean }) => {
+    .action(async (options: { workspace: string; episodeId: string; overrides?: string; json: boolean }) => {
       const workspaceRoot = path.resolve(options.workspace);
       const episodeDir = path.join(workspaceRoot, options.episodeId);
       const result = await planExistingVeronicaVisualDensity({
         workspaceRoot,
         episodeId: options.episodeId,
-        overridePath: path.resolve(options.overrides),
+        ...(options.overrides ? { overridePath: path.resolve(options.overrides) } : {}),
         imagePromptCompiler: await createVeronicaImagePromptCompilerComposition({ workspaceRoot, episodeDir }),
       });
       process.stdout.write(`${JSON.stringify(result, options.json ? null : undefined, options.json ? 2 : undefined)}\n`);

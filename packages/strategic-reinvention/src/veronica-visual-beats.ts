@@ -1,23 +1,36 @@
 import { z } from "zod";
 import { writeJsonAtomic } from "@mediaforge/shared";
-import type {
-  GeneratedVisualAsset,
-  PlannedScene,
-  PositioningVisualPlanV2,
-  VisualBeatAssetDecision,
-  VisualBeatBoundaryKind,
-  VisualBeatRole,
-  VisualBeatTreatmentV1,
-  VisualEvent,
-  VisualEventKind,
-  VeronicaVisualDensityMetrics,
-  VeronicaVisualBeatPlanV1,
+import {
+  VERONICA_DEPICTED_ACTION_FAMILIES,
+  type GeneratedVisualAsset,
+  type PlannedScene,
+  type PositioningVisualPlanV2,
+  type VisualBeatAssetDecision,
+  type VisualBeatBoundaryKind,
+  type VisualBeatRole,
+  type VisualBeatTreatmentV1,
+  type VisualEvent,
+  type VisualEventKind,
+  type VeronicaVisualDensityMetrics,
+  type VeronicaVisualBeatPlanV1,
 } from "./positioning-visual-contracts.js";
-import { stableHash } from "./positioning-visual-semantics.js";
+import { finalizeSemanticPlanHash, stableHash } from "./positioning-visual-semantics.js";
 import { resolveVeronicaProductionPolicy } from "./veronica-production-policy.js";
+import {
+  deriveVeronicaSemanticProposition,
+  renderVeronicaVisibleThesis,
+  visualTreatmentFromProposition,
+} from "./veronica-semantic-quality.js";
+import {
+  analyzeVeronicaSequenceDiversity,
+  diversifyVeronicaVisualBeatSequence,
+  VERONICA_SEQUENCE_DIVERSITY_POLICY_VERSION,
+} from "./veronica-sequence-diversity.js";
 
 export const VERONICA_VISUAL_BEAT_PLAN_VERSION =
   "veronica-visual-beat-plan.v1" as const;
+export const VERONICA_VISUAL_BEAT_PLANNER_VERSION =
+  "veronica-visual-beat-planner.v4" as const;
 
 const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/u);
 const beatRoleSchema = z.enum([
@@ -93,6 +106,7 @@ const qualitySchema = z.strictObject({
       "REDUNDANT_PAID_IMAGE_CANDIDATE",
       "EVENT_ONLY_DENSITY_INCREASE",
       "OPENING_STATIC_HOLD",
+      "INSUFFICIENT_SEMANTIC_ASSET_DENSITY",
       "LONG_STATIC_OPENING_ASSET_HOLD",
       "BEAT_OUTSIDE_PARENT_MEANING",
       "INVALID_REUSE_SOURCE",
@@ -120,6 +134,7 @@ const qualitySchema = z.strictObject({
     uniqueAssetsInFirst10Seconds: z.number().int().nonnegative(),
     uniqueAssetsInFirst15Seconds: z.number().int().nonnegative(),
     longestContinuousSameAssetHoldMs: z.number().int().nonnegative(),
+    longestSemanticBeatHoldMs: z.number().int().nonnegative().default(0),
     averageCanonicalAssetHoldMs: z.number().nonnegative(),
     redundantPaidImageCandidateBeatIds: z.array(z.string().min(1)),
     informationGain: z.array(z.strictObject({
@@ -128,6 +143,64 @@ const qualitySchema = z.strictObject({
       addsMaterialInformation: z.boolean(),
     })),
     higherImageDensityThanOnePerScene: z.boolean(),
+  }),
+  sequenceDiversity: z.strictObject({
+    schemaVersion: z.literal("veronica-sequence-diversity.v2"),
+    policyVersion: z.literal(VERONICA_SEQUENCE_DIVERSITY_POLICY_VERSION),
+    status: z.enum(["PASS", "WARN", "REVIEW_REQUIRED", "BLOCK"]),
+    signatures: z.array(z.strictObject({
+      beatId: z.string().min(1),
+      treatmentFamily: z.string().min(1),
+      visualMechanism: z.string().min(1),
+      presentationMechanism: z.enum(["unmodified", "foreground-evidence", "isolated-diagnostic", "modular-system", "process-path", "depth-staging", "other-presentation"]),
+      depictedActionFamily: z.enum(VERONICA_DEPICTED_ACTION_FAMILIES),
+      environmentFamily: z.string().min(1),
+      primaryAction: z.string().min(1),
+      compositionFamily: z.string().min(1),
+      cameraFamily: z.string().min(1),
+      informationRole: z.string().min(1),
+      semanticState: z.string().min(1),
+      actorPerspective: z.string().min(1),
+      sourcePropositionHash: sha256Schema,
+      signatureHash: sha256Schema,
+    })),
+    findings: z.array(z.strictObject({
+      code: z.enum(["ADJACENT_VISUAL_DUPLICATION", "TREATMENT_FAMILY_REPETITION", "ENVIRONMENT_MONOTONY", "ACTION_MONOTONY", "COMPOSITION_MONOTONY", "MECHANISM_REPETITION", "PRESENTATION_MECHANISM_REPETITION", "LOW_INFORMATION_GAIN", "OPENING_NOVELTY_LOW", "OPENING_ACTION_NOVELTY_LOW"]),
+      severity: z.enum(["warning", "review-required", "blocker"]),
+      beatIds: z.array(z.string().min(1)).min(1),
+      window: z.enum(["adjacent", "three-beat", "five-beat", "opening-5s", "opening-10s", "opening-15s", "whole-episode"]),
+      repeatedDimensions: z.array(z.string().min(1)),
+      observed: z.number().nonnegative(),
+      threshold: z.number().nonnegative(),
+      evidence: z.string().min(1),
+      remediationEligible: z.boolean(),
+    })),
+    metrics: z.strictObject({
+      adjacentDuplicateCount: z.number().int().nonnegative(),
+      treatmentFamilyDominantShare: z.number().min(0).max(1),
+      environmentDominantShare: z.number().min(0).max(1),
+      actionDominantShare: z.number().min(0).max(1),
+      depictedActionDominantShare: z.number().min(0).max(1),
+      presentationMechanismDominantShare: z.number().min(0).max(1),
+      compositionDominantShare: z.number().min(0).max(1),
+      mechanismDominantShare: z.number().min(0).max(1),
+      lowInformationGainCount: z.number().int().nonnegative(),
+      opening: z.record(z.enum(["5", "10", "15"]), z.strictObject({
+        beatCount: z.number().int().nonnegative(),
+        uniqueSourcePropositions: z.number().int().nonnegative(),
+        uniqueTreatmentMechanisms: z.number().int().nonnegative(),
+        uniquePresentationMechanisms: z.number().int().nonnegative(),
+        uniqueDepictedActionFamilies: z.number().int().nonnegative(),
+        uniqueCompositionFamilies: z.number().int().nonnegative(),
+        uniqueActionFamilies: z.number().int().nonnegative(),
+      })),
+    }),
+    remediation: z.strictObject({
+      passes: z.number().int().nonnegative(),
+      changedBeatIds: z.array(z.string().min(1)),
+      exhausted: z.boolean(),
+    }),
+    resultHash: sha256Schema,
   }),
 });
 
@@ -237,9 +310,106 @@ function semanticTokens(value: string): ReadonlySet<string> {
 }
 
 function overlapsParent(beat: VisualBeatTreatmentV1, scene: PlannedScene): boolean {
-  const parent = semanticTokens(`${scene.semanticProposition?.narrationClaim ?? ""} ${scene.semanticProposition?.consequence ?? ""} ${scene.visibleThesis} ${scene.treatment.action}`);
+  const parent = semanticTokens(`${scene.narrationAnchor} ${scene.semanticProposition?.narrationClaim ?? ""} ${scene.semanticProposition?.consequence ?? ""} ${scene.visibleThesis} ${scene.treatment.action}`);
   const child = semanticTokens(`${beat.coreMeaning} ${beat.newInformation} ${beat.viewerShouldUnderstand} ${beat.visualThesis} ${beat.action}`);
   return [...child].some((token) => parent.has(token));
+}
+
+interface SemanticChunk {
+  readonly text: string;
+  readonly startOffset: number;
+  readonly endOffset: number;
+  readonly sentenceIds: readonly string[];
+}
+
+function semanticChunks(narration: string): readonly SemanticChunk[] {
+  const sentences = [...narration.matchAll(/[^.!?…]+(?:[.!?…]+[”"'’)]*|$)/gu)].flatMap((match, index): SemanticChunk[] => {
+    const text = match[0].trim();
+    if (!text) return [];
+    const startOffset = (match.index ?? 0) + match[0].indexOf(text);
+    return [{ text, startOffset, endOffset: startOffset + text.length, sentenceIds: [`sentence-${String(index + 1).padStart(3, "0")}`] }];
+  });
+  const raw = sentences.flatMap((sentence): SemanticChunk[] => {
+    const commaIndex = sentence.text.indexOf(",");
+    if (!/^if\b/iu.test(sentence.text) || sentence.text.length < 120 || commaIndex < 30) return [sentence];
+    const firstText = sentence.text.slice(0, commaIndex).trim();
+    const secondText = sentence.text.slice(commaIndex + 1).trim();
+    if (!firstText || !secondText) return [sentence];
+    const secondStartOffset = sentence.startOffset + commaIndex + 1 + sentence.text.slice(commaIndex + 1).search(/\S/u);
+    return [
+      { text: firstText, startOffset: sentence.startOffset, endOffset: sentence.startOffset + commaIndex, sentenceIds: sentence.sentenceIds },
+      { text: secondText, startOffset: secondStartOffset, endOffset: sentence.endOffset, sentenceIds: sentence.sentenceIds },
+    ];
+  });
+  const chunks: SemanticChunk[] = [];
+  for (let index = 0; index < raw.length; index += 1) {
+    const current = raw[index]!;
+    const next = raw[index + 1];
+    if (next && /^(?:try|do|use)\s+(?:this|that|it)(?:\s+instead)?\s*[.!?…]*$/iu.test(current.text)) {
+      chunks.push({
+        text: `${current.text} ${next.text}`,
+        startOffset: current.startOffset,
+        endOffset: next.endOffset,
+        sentenceIds: [...current.sentenceIds, ...next.sentenceIds],
+      });
+      index += 1;
+    } else {
+      chunks.push(current);
+    }
+  }
+  return chunks;
+}
+
+function automaticSceneBeats(plan: PositioningVisualPlanV2, scene: PlannedScene): readonly Omit<VisualBeatTreatmentV1, "beatHash">[] {
+  const chunks = semanticChunks(scene.narrationAnchor);
+  if (plan.format !== "short" || scene.durationMs < 8_000 || chunks.length < 2) return [defaultBeat(plan, scene)];
+  const resolved = chunks.map((chunk) => ({
+    chunk,
+    proposition: deriveVeronicaSemanticProposition({ scene: { ...scene, narrationAnchor: chunk.text }, narration: chunk.text }),
+  }));
+  const usable = resolved.filter((entry) => entry.proposition.visualMechanism !== "UNRESOLVED");
+  if (usable.length < 2) return [defaultBeat(plan, scene)];
+  const openingWeights = usable.length >= 3 && scene.startMs < 15_000
+    ? [0.18, 0.25, ...Array.from({ length: usable.length - 2 }, () => 0.57 / (usable.length - 2))]
+    : Array.from({ length: usable.length }, () => 1);
+  return usable.map(({ chunk, proposition }, index) => {
+    const projected = visualTreatmentFromProposition({ scene, proposition, preserveEnvironment: false });
+    const beatId = `${scene.sceneId}-B${String(index + 1).padStart(2, "0")}`;
+    return {
+      version: 1,
+      beatId,
+      sceneId: scene.sceneId,
+      role: index === 0 ? (scene.progressionStage === "HOOK" ? "establish" : "primary") : index === usable.length - 1 ? (scene.progressionStage === "PAYOFF" ? "payoff" : "progression") : "progression",
+      narrationRef: {
+        semanticSceneId: scene.sceneId,
+        sentenceIds: chunk.sentenceIds,
+        startOffset: chunk.startOffset,
+        endOffset: chunk.endOffset,
+        spanHash: stableHash({ text: chunk.text, startOffset: chunk.startOffset, endOffset: chunk.endOffset }),
+      },
+      parentTreatmentHash: scene.treatment.treatmentHash,
+      coreMeaning: proposition.narrationClaim,
+      newInformation: proposition.narrationClaim,
+      viewerShouldUnderstand: proposition.consequence,
+      visualThesis: renderVeronicaVisibleThesis(proposition),
+      subject: projected.subjectRequirement,
+      action: projected.action,
+      state: `${proposition.polarity}; ${proposition.stateRelation}; ${proposition.consequence}`,
+      environment: projected.environment,
+      composition: {
+        description: projected.composition,
+        camera: projected.camera,
+        lighting: scene.treatment.lighting,
+        subtitleSafeAreaRequired: true,
+      },
+      continuationOfPreviousBeat: index > 0,
+      referenceRequirements: referenceRequirements(plan, scene),
+      assetDecision: "new-image",
+      reuseSourceBeatId: null,
+      timingWeight: openingWeights[index] ?? 1,
+      boundaryKind: "semantic-subspan-aligned",
+    };
+  });
 }
 
 interface DensityEvent {
@@ -315,6 +485,7 @@ export function calculateVeronicaVisualDensityMetrics(input: {
     uniqueAssetsInFirst10Seconds: assetsBefore(10_000),
     uniqueAssetsInFirst15Seconds: assetsBefore(15_000),
     longestContinuousSameAssetHoldMs,
+    longestSemanticBeatHoldMs: ordered.reduce((longest, event) => Math.max(longest, event.durationMs), 0),
     averageCanonicalAssetHoldMs: seenAssets.size === 0 ? 0 : Math.round(((timelineEnd - timelineStart) / seenAssets.size) * 1_000) / 1_000,
     redundantPaidImageCandidateBeatIds,
     informationGain,
@@ -360,6 +531,7 @@ function beatStarts(plan: PositioningVisualPlanV2, beats: readonly VisualBeatTre
 export function validateVeronicaVisualBeatPlan(input: {
   readonly plan: PositioningVisualPlanV2;
   readonly beats: readonly VisualBeatTreatmentV1[];
+  readonly sequenceDiversity?: ReturnType<typeof analyzeVeronicaSequenceDiversity>;
 }) {
   const findings: VeronicaVisualBeatPlanV1["quality"]["findings"][number][] = [];
   const beatIds = new Set(input.beats.map((beat) => beat.beatId));
@@ -438,6 +610,16 @@ export function validateVeronicaVisualBeatPlan(input: {
       message: "Opening unique-image density is below the Veronica Short profile guidance; review whether narration supports another meaningful state.",
     });
   }
+  const openingHasMultiplePropositions = semanticChunks(input.plan.scenes[0]?.narrationAnchor ?? "").length >= 2;
+  if (policy.enabled && openingHasMultiplePropositions && density.uniqueAssetsInFirst15Seconds <= 1) {
+    findings.push({
+      code: "INSUFFICIENT_SEMANTIC_ASSET_DENSITY",
+      severity: "blocker",
+      sceneId: input.plan.scenes[0]?.sceneId ?? input.plan.contentId,
+      beatId: input.beats[0]?.beatId ?? null,
+      message: "Multiple opening propositions remain on one canonical asset through the first fifteen seconds; semantic beat materialization is required.",
+    });
+  }
   const longOpeningRun = densityEvents.some((event) => event.startMs < 10_000 && event.durationMs >= 8_000);
   if (policy.enabled && longOpeningRun) findings.push({
     code: "LONG_STATIC_OPENING_ASSET_HOLD",
@@ -446,13 +628,17 @@ export function validateVeronicaVisualBeatPlan(input: {
     beatId: input.beats[0]?.beatId ?? null,
     message: "An opening canonical image holds for at least eight seconds and requires explicit editorial justification.",
   });
+  const sequenceDiversity = input.sequenceDiversity ?? analyzeVeronicaSequenceDiversity({ plan: input.plan, beats: input.beats });
   return qualitySchema.parse({
-    status: findings.some((finding) => finding.severity === "blocker") ? "FAIL" : findings.length > 0 ? "WARN" : "PASS",
+    status: findings.some((finding) => finding.severity === "blocker") || sequenceDiversity.status === "BLOCK" || sequenceDiversity.status === "REVIEW_REQUIRED"
+      ? "FAIL"
+      : findings.length > 0 || sequenceDiversity.status === "WARN" ? "WARN" : "PASS",
     findings,
     beatsInFirst5Seconds,
     beatsInFirst10Seconds,
     beatsInFirst15Seconds,
     density,
+    sequenceDiversity,
   });
 }
 
@@ -465,7 +651,7 @@ export function deriveVeronicaVisualBeatPlan(input: {
     throw new Error("VERONICA_VISUAL_BEAT_OVERRIDE_STALE");
   }
   const overrideByScene = new Map(input.overrides?.scenes.map((entry) => [entry.sceneId, entry.beats] as const) ?? []);
-  const beats = input.plan.scenes.flatMap((scene): VisualBeatTreatmentV1[] => {
+  const rawBeats = input.plan.scenes.flatMap((scene): VisualBeatTreatmentV1[] => {
     const overrides = overrideByScene.get(scene.sceneId);
     const values = overrides?.map((override) => ({
       version: 1 as const,
@@ -489,16 +675,27 @@ export function deriveVeronicaVisualBeatPlan(input: {
       reuseSourceBeatId: override.reuseSourceBeatId,
       timingWeight: override.timingWeight,
       boundaryKind: override.boundaryKind as VisualBeatBoundaryKind,
-    })) ?? [defaultBeat(input.plan, scene)];
+    })) ?? automaticSceneBeats(input.plan, scene);
     return values.map((value) => visualBeatTreatmentV1Schema.parse({
       ...value,
       beatHash: stableHash(value),
     }));
   });
-  const quality = validateVeronicaVisualBeatPlan({ plan: input.plan, beats });
+  // Diversity may restage a valid treatment, but it must never conceal a
+  // semantic beat defect. Validate source/beat identity before refinement and
+  // only diversify when that owning gate has no blocker.
+  const rawQuality = validateVeronicaVisualBeatPlan({ plan: input.plan, beats: rawBeats });
+  const rawSemanticBlocker = rawQuality.findings.some((finding) => finding.severity === "blocker");
+  const diversified = rawSemanticBlocker
+    ? { beats: rawBeats, analysis: rawQuality.sequenceDiversity }
+    : diversifyVeronicaVisualBeatSequence({ plan: input.plan, beats: rawBeats });
+  const beats = diversified.beats;
+  const quality = rawSemanticBlocker
+    ? rawQuality
+    : validateVeronicaVisualBeatPlan({ plan: input.plan, beats, sequenceDiversity: diversified.analysis });
   const base = {
     schemaVersion: VERONICA_VISUAL_BEAT_PLAN_VERSION,
-    policyVersion: policy.policyVersion,
+    policyVersion: `${policy.policyVersion}+${VERONICA_VISUAL_BEAT_PLANNER_VERSION}`,
     contentId: input.plan.contentId,
     semanticSceneCount: input.plan.scenes.length,
     beats,
@@ -531,7 +728,11 @@ export function materializeVeronicaVisualBeatPlan(input: {
   readonly beatPlan: VeronicaVisualBeatPlanV1;
 }): PositioningVisualPlanV2 {
   if (input.beatPlan.quality.status === "FAIL") {
-    throw new Error(`VERONICA_VISUAL_BEAT_QUALITY_FAILED:${input.beatPlan.quality.findings.filter((entry) => entry.severity === "blocker").map((entry) => entry.code).join(",")}`);
+    const blockers = [
+      ...input.beatPlan.quality.findings.filter((entry) => entry.severity === "blocker").map((entry) => entry.code),
+      ...input.beatPlan.quality.sequenceDiversity.findings.filter((entry) => entry.severity !== "warning").map((entry) => entry.code),
+    ];
+    throw new Error(`VERONICA_VISUAL_BEAT_QUALITY_FAILED:${[...new Set(blockers)].join(",")}`);
   }
   const {
     imagePromptCompilation: _staleCompilationTelemetry,
@@ -633,7 +834,7 @@ export function materializeVeronicaVisualBeatPlan(input: {
     }),
     renderEventPlanHash: stableHash(events),
   };
-  return { ...base, planHash: stableHash(base) } as PositioningVisualPlanV2;
+  return finalizeSemanticPlanHash({ ...base, planHash: input.plan.planHash }) as PositioningVisualPlanV2;
 }
 
 export async function persistVeronicaVisualBeatPlan(input: {

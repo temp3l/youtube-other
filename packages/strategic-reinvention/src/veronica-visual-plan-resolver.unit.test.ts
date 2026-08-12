@@ -14,6 +14,13 @@ import {
   resolveVeronicaVisualPlan,
   type VeronicaCanonicalVisualPlanner,
 } from "./veronica-visual-plan-resolver.js";
+import {
+  assertValidSemanticPlanHash,
+  computeSemanticPlanHash,
+  finalizeSemanticPlanHash,
+  hasValidSemanticPlanHash,
+  SemanticPlanHashIntegrityError,
+} from "./positioning-visual-semantics.js";
 
 const temporaryDirectories: string[] = [];
 
@@ -133,6 +140,35 @@ describe("canonical Veronica visual-plan resolver", () => {
     });
     expect(productionInput.scenes).toHaveLength(resolved.plan.scenes.length);
     expect(productionInput.scenes[0]?.imagePrompt).toBe(resolved.plan.assets[0]?.prompt);
+    const reloaded = positioningProductionPlanSchema.parse(
+      JSON.parse(await fs.readFile(resolved.planPath, "utf8")),
+    );
+    expect(hasValidSemanticPlanHash(reloaded)).toBe(true);
+    expect(reloaded.planHash).toBe(resolved.plan.planHash);
+    expect(() => assertValidSemanticPlanHash(reloaded)).not.toThrow();
+  });
+
+  it("uses one canonical self-hash projection and detects post-finalization mutation", () => {
+    const finalized = finalizeSemanticPlanHash(fakePlan("semantic-hash-contract"));
+    expect(finalized.planHash).toBe(computeSemanticPlanHash(finalized));
+    expect(hasValidSemanticPlanHash(finalized)).toBe(true);
+
+    const reordered = {
+      planHash: finalized.planHash,
+      validation: finalized.validation,
+      assets: finalized.assets,
+      scenes: finalized.scenes,
+      aspectRatio: finalized.aspectRatio,
+      format: finalized.format,
+      contentId: finalized.contentId,
+      plannerVersion: finalized.plannerVersion,
+      schemaVersion: finalized.schemaVersion,
+    } as typeof finalized;
+    expect(computeSemanticPlanHash(reordered)).toBe(finalized.planHash);
+
+    const mutated = { ...finalized, contentId: "semantic-hash-contract-mutated" };
+    expect(hasValidSemanticPlanHash(mutated)).toBe(false);
+    expect(() => assertValidSemanticPlanHash(mutated)).toThrow(SemanticPlanHashIntegrityError);
   });
 
   it("reuses a matching derived plan without invoking the planner", async () => {

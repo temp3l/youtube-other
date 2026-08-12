@@ -131,8 +131,7 @@ export function boundedLlmProposerConfigFromEnvV36(
   environment: NodeJS.ProcessEnv = process.env
 ): BoundedLlmProposerConfigV36 {
   const policy = requireOpenAiResponsesPolicy(
-    DEFAULT_OPENAI_CAPABILITY_POLICY["history-escalation"],
-    "history-escalation"
+    DEFAULT_OPENAI_CAPABILITY_POLICY["history-escalation"]
   );
   const configuredModel = environment["HISTORY_V36_RELATION_PROPOSER_MODEL"]?.trim();
   if (configuredModel && configuredModel !== policy.model) {
@@ -173,8 +172,7 @@ export class OpenAiBoundedLlmRelationProviderV36 implements BoundedLlmRelationPr
 
   async propose(packet: BoundedLlmRelationPacketV36): Promise<BoundedLlmProviderResultV36> {
     const policy = requireOpenAiResponsesPolicy(
-      DEFAULT_OPENAI_CAPABILITY_POLICY["history-escalation"],
-      "history-escalation"
+      DEFAULT_OPENAI_CAPABILITY_POLICY["history-escalation"]
     );
     if (this.model !== policy.model) {
       throw new Error("The V36 relation proposer must use the history-escalation capability model.");
