@@ -576,11 +576,7 @@
       "id": "MICRO-028",
       "title": "Implement TikTok status reconciliation and ambiguous outcomes",
       "phase": "05-publication",
-<<<<<<< HEAD
-      "status": "READY",
-=======
       "status": "DONE",
->>>>>>> 313695f (microdrama(MICRO-028): implement TikTok status reconciliation)
       "goal": "Resolve TikTok status safely without blind duplicate dispatch.",
       "scope": ["Official status query adapter, provider request/correlation IDs and state mapping", "Persisted Retry-After/next-eligible state", "OUTCOME_UNCERTAIN recovery, bounded polling and audit evidence"],
       "dependsOn": ["MICRO-027"],
