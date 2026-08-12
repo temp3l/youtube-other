@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { licensedAudioLayerTracksSchema } from "./microdrama-licensed-audio-contracts.js";
 import { hashCanonicalDependency } from "./selected-audio-timing-dependency.js";
 import { signalUiBcp47LocaleSchema } from "./signal-ui-contracts.js";
 
@@ -65,6 +66,7 @@ export const episodeTimelineTracksSchema = z
     videoShots: z.array(episodeTimelineVideoShotTrackEntrySchema).min(1),
     subtitles: episodeTimelineSubtitleTrackSchema,
     signalUi: episodeTimelineSignalUiTrackSchema.optional(),
+    licensedAudio: licensedAudioLayerTracksSchema.optional(),
   })
   .strict();
 export type EpisodeTimelineTracks = z.infer<typeof episodeTimelineTracksSchema>;

@@ -857,7 +857,7 @@
       "id": "MICRO-041",
       "title": "Implement licensed audio layers and rights evidence",
       "phase": "04-media-planning-and-production",
-      "status": "BLOCKED",
+      "status": "DONE",
       "goal": "Keep dialogue, ambience, SFX and music separate with auditable imported-asset rights.",
       "scope": ["Timeline tracks for ambience, SFX and music", "Licensed/imported asset hashes, provenance, territory/term and approval evidence", "Mix dependencies and targeted invalidation; no generated music provider"],
       "dependsOn": ["MICRO-002", "MICRO-018"],

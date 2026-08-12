@@ -7,6 +7,11 @@ import {
   type EpisodeTimelineRevision,
 } from "@mediaforge/domain";
 
+import {
+  licensedAudioMixManifestSchema,
+  type LicensedAudioMixManifest,
+} from "./microdrama-licensed-audio-mix.js";
+
 export const MICRODRAMA_RENDER_MANIFEST_SCHEMA_VERSION =
   "mediaforge.microdrama-render-manifest.v1" as const;
 
@@ -79,6 +84,7 @@ export const microdramaRenderManifestSchema = z
     locale: z.string().min(1),
     clips: z.array(microdramaRenderClipSchema).min(1),
     narrationAudioPath: z.string().min(1),
+    licensedAudioMix: licensedAudioMixManifestSchema.optional(),
     subtitlePath: z.string().min(1).optional(),
     outputPath: z.string().min(1),
     contentHash: sha256Schema,
@@ -115,6 +121,7 @@ export function compileMicrodramaRenderManifest(input: {
   readonly outputPath: string;
   readonly clipAssetPaths: Readonly<Record<string, string>>;
   readonly profile?: MicrodramaRenderProfile;
+  readonly licensedAudioMix?: LicensedAudioMixManifest;
 }): MicrodramaRenderManifest {
   const timeline = episodeTimelineRevisionSchema.parse(input.timeline);
   const profile = input.profile ?? MICRODRAMA_DEFAULT_VERTICAL_PROFILE;
@@ -151,6 +158,9 @@ export function compileMicrodramaRenderManifest(input: {
     locale: timeline.locale,
     clips,
     narrationAudioPath: input.narrationAudioPath,
+    ...(input.licensedAudioMix
+      ? { licensedAudioMix: input.licensedAudioMix }
+      : {}),
     ...(input.subtitlePath ? { subtitlePath: input.subtitlePath } : {}),
     outputPath: input.outputPath,
   };

@@ -45,6 +45,8 @@ export * from "./signal-ui-locale-projection.js";
 export * from "./selected-audio-timing-dependency.js";
 export * from "./locale-subtitle-projection.js";
 export * from "./episode-timeline.js";
+export * from "./microdrama-licensed-audio-contracts.js";
+export * from "./microdrama-licensed-audio-lifecycle.js";
 export * from "./microdrama-budget-contracts.js";
 export * from "./microdrama-budget-preflight.js";
 export * from "./microdrama-publication-contracts.js";
