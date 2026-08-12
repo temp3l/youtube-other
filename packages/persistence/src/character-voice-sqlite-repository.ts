@@ -365,6 +365,71 @@ export class CharacterVoiceSQLiteRepository
     return row ? parseVersionRow(row) : null;
   }
 
+  public recordBoundedCanaryApprovedProviderBinding(input: {
+    readonly profileVersionId: CharacterVoiceProfileVersionId;
+    readonly providerVoiceId: string;
+    readonly canaryEvidenceArtifactHash: string;
+    readonly recordedAt: string;
+  }): ReturnType<CharacterVoiceRegistryPersistencePort["getProfileVersion"]> {
+    const database = this.sqlite.database;
+    const row = database
+      .prepare(
+        `SELECT profile_version_id, profile_id, version_number, status, provider, model_intent,
+        voice_binding_status, provider_voice_id, canary_evidence_artifact_hash,
+        consent_record_id, delivery_configuration_json, pronunciation_revision_id, revision
+        FROM microdrama_character_voice_profile_versions WHERE profile_version_id = ?`
+      )
+      .get(input.profileVersionId) as VersionRow | undefined;
+    if (!row) {
+      throw new Error(`Profile version not found: ${input.profileVersionId}`);
+    }
+    if (row.status !== "ACTIVE") {
+      throw new CharacterVoiceProfileVersionImmutableError(
+        "Bounded canary provider binding requires an active profile version."
+      );
+    }
+    if (
+      row.voice_binding_status === "CANARY_APPROVED" &&
+      row.provider_voice_id === input.providerVoiceId &&
+      row.canary_evidence_artifact_hash === input.canaryEvidenceArtifactHash
+    ) {
+      return parseVersionRow(row);
+    }
+    if (row.voice_binding_status !== "UNBOUND") {
+      throw new CharacterVoiceProfileVersionImmutableError(
+        "Bounded canary provider binding requires UNBOUND active profile version."
+      );
+    }
+
+    const updated = database
+      .prepare(
+        `UPDATE microdrama_character_voice_profile_versions
+        SET voice_binding_status = 'CANARY_APPROVED',
+            provider_voice_id = ?,
+            canary_evidence_artifact_hash = ?,
+            revision = revision + 1
+        WHERE profile_version_id = ?
+          AND status = 'ACTIVE'
+          AND voice_binding_status = 'UNBOUND'`
+      )
+      .run(
+        input.providerVoiceId,
+        input.canaryEvidenceArtifactHash,
+        input.profileVersionId
+      );
+    if (updated.changes !== 1) {
+      throw new CharacterVoiceConcurrencyError(
+        "Bounded canary provider binding lost an optimistic concurrency race."
+      );
+    }
+
+    const rebound = this.getProfileVersion(input.profileVersionId);
+    if (!rebound) {
+      throw new Error("Rebound profile version could not be reloaded.");
+    }
+    return rebound;
+  }
+
   public resolveActiveProfile(
     characterId: string,
     locale: MicrodramaBcp47Locale

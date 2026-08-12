@@ -6,32 +6,45 @@ import type {
   MicrodramaBudgetProfile,
   MicrodramaCanaryPreflightResult,
   MicrodramaOperatorAuthorizationRecord,
+  MicrodramaSpeechCredentialRecord,
 } from "@mediaforge/domain";
 import {
   evaluateBoundedPaidProviderCanaryPreflight,
   evaluateMicrodramaBudgetPreflight,
+  evaluateMicrodramaSpeechCredentialAdmission,
   evaluateTrustGate,
 } from "@mediaforge/domain";
+import type { CharacterVoiceRegistryPersistencePort } from "@mediaforge/persistence";
 
 import {
   buildAudioTtsBudgetWorkItem,
+  buildAudioTtsReadinessEvidenceRecords,
   compileAudioTtsReadinessArtifacts,
   evaluateAudioTtsReadiness,
-  grantStoryApprovedEvidence,
-  resolveStoryScriptReadinessBinding,
-  validateAudioTtsBinding,
-  validateStoryScriptBinding,
-  validateV5StoryEpisodeDeterministicQa,
-  buildStoryScriptReadinessEvidenceRecords,
   evaluateStoryScriptGateForAudio,
-  buildAudioTtsReadinessEvidenceRecords,
-  compileV5CanonAdmission,
-  compileV5EpisodeProduction,
-} from "./index.js";
+  validateAudioTtsBinding,
+} from "./audio-tts-readiness.js";
+import {
+  buildStoryScriptReadinessEvidenceRecords,
+  resolveStoryScriptReadinessBinding,
+  validateStoryScriptBinding,
+} from "./story-script-readiness.js";
+import { compileV5CanonAdmission } from "./v5-canon-admission.js";
+import { compileV5EpisodeProduction } from "./v5-episode-production-compiler.js";
+import { grantStoryApprovedEvidence } from "./v5-story-approval.js";
+import { validateV5StoryEpisodeDeterministicQa } from "./v5-story-qa.js";
 import type { LocaleTtsModelConfiguration } from "@mediaforge/speech";
+import {
+  MICRO_033_CANARY_EPISODE_IDS,
+  resolveMicro033CanaryCostProposal,
+  resolveMicro033CanaryEpisodeCostMinorAllocations,
+} from "./micro-033-canary-bindings.js";
+import {
+  SEVEN_MINUTES_AHEAD_NARRATOR_CHARACTER_ID,
+} from "./seven-minutes-ahead-narrator-voice-registry.js";
 
 export const MICRO_033_TASK_ID = "MICRO-033";
-export const EN_E001_E003_TTS_CANARY_EPISODES = ["E001", "E002", "E003"] as const;
+export const EN_E001_E003_TTS_CANARY_EPISODES = MICRO_033_CANARY_EPISODE_IDS;
 
 const VOICE_PROFILE_VERSION_ID = "voice-version.narrator.en-us.v1";
 const DEFAULT_MODEL_CONFIGURATION: LocaleTtsModelConfiguration = {
@@ -52,6 +65,8 @@ export type EnE001E003TtsCanaryPreflightInput = {
   readonly estimatedCostMinorPerEpisode?: number;
   readonly operatorAuthorization?: MicrodramaOperatorAuthorizationRecord;
   readonly assetGenerationApproval?: MicrodramaAssetGenerationApproval;
+  readonly voiceRegistryPort?: CharacterVoiceRegistryPersistencePort;
+  readonly speechCredential?: MicrodramaSpeechCredentialRecord;
 };
 
 export type EnE001E003TtsCanaryPreflightResult = {
@@ -59,13 +74,19 @@ export type EnE001E003TtsCanaryPreflightResult = {
   readonly bindingProbe: BoundedPaidProviderBindingProbe;
 };
 
+export function defaultEnTtsCanaryModelConfiguration(): LocaleTtsModelConfiguration {
+  return DEFAULT_MODEL_CONFIGURATION;
+}
+
 export async function evaluateEnE001E003TtsCanaryPreflight(
   input: EnE001E003TtsCanaryPreflightInput
 ): Promise<EnE001E003TtsCanaryPreflightResult> {
   const voiceProfileVersionId =
     input.voiceProfileVersionId ?? VOICE_PROFILE_VERSION_ID;
   const modelConfiguration = input.modelConfiguration ?? DEFAULT_MODEL_CONFIGURATION;
-  const estimatedCostMinorPerEpisode = input.estimatedCostMinorPerEpisode ?? 120;
+  const costProposal = resolveMicro033CanaryCostProposal();
+  const episodeCostAllocations = resolveMicro033CanaryEpisodeCostMinorAllocations();
+  const defaultEstimatedCostMinorPerEpisode = input.estimatedCostMinorPerEpisode;
 
   const admission = compileV5CanonAdmission(input.packRoot, input.admittedAt);
   if (!admission.ok) {
@@ -177,13 +198,16 @@ export async function evaluateEnE001E003TtsCanaryPreflight(
       projectedAt: input.evaluatedAt,
     });
 
+    const estimatedCostMinor =
+      defaultEstimatedCostMinorPerEpisode ?? episodeCostAllocations[episodeId];
+
     const budgetPreflight = evaluateMicrodramaBudgetPreflight({
       correlationId: `corr.audio.${episodeId.toLowerCase()}`,
       workItems: [
         buildAudioTtsBudgetWorkItem({
           binding,
           modelConfiguration,
-          estimatedCostMinor: estimatedCostMinorPerEpisode,
+          estimatedCostMinor,
         }),
       ],
       profiles: input.profiles,
@@ -249,10 +273,45 @@ export async function evaluateEnE001E003TtsCanaryPreflight(
       buildAudioTtsBudgetWorkItem({
         binding,
         modelConfiguration,
-        estimatedCostMinor: estimatedCostMinorPerEpisode,
+        estimatedCostMinor,
       })
     );
-    totalEstimatedCostMinor += estimatedCostMinorPerEpisode;
+    totalEstimatedCostMinor += estimatedCostMinor;
+  }
+
+  if (input.voiceRegistryPort !== undefined) {
+    const resolvedVoice = await input.voiceRegistryPort.resolveActiveProfile(
+      SEVEN_MINUTES_AHEAD_NARRATOR_CHARACTER_ID,
+      locale
+    );
+    const voicePersisted =
+      resolvedVoice?.activeVersion?.profileVersionId === voiceProfileVersionId &&
+      resolvedVoice.activeVersion.status === "ACTIVE";
+    readinessGates.push({
+      gate: "CHARACTER_VOICE_PROFILE_PERSISTED",
+      ok: voicePersisted,
+      ...(voicePersisted
+        ? {}
+        : {
+            message:
+              "Active narrator voice profile revision is missing from persistence.",
+          }),
+    });
+  }
+
+  if (input.speechCredential !== undefined) {
+    const credentialAdmission = evaluateMicrodramaSpeechCredentialAdmission({
+      credential: input.speechCredential,
+      provider: modelConfiguration.provider,
+      now: input.evaluatedAt,
+    });
+    readinessGates.push({
+      gate: "SPEECH_CREDENTIAL_ADMITTED",
+      ok: credentialAdmission.allowed,
+      ...(credentialAdmission.allowed
+        ? {}
+        : { message: credentialAdmission.reason }),
+    });
   }
 
   const aggregateBudgetPreflight = evaluateMicrodramaBudgetPreflight({
@@ -272,7 +331,7 @@ export async function evaluateEnE001E003TtsCanaryPreflight(
   });
 
   const assetApprovalOk =
-    input.assetGenerationApproval !== undefined &&
+    input.assetGenerationApproval != null &&
     input.assetGenerationApproval.state === "active";
   readinessGates.push({
     gate: "ASSET_GENERATION_APPROVED",
@@ -288,7 +347,10 @@ export async function evaluateEnE001E003TtsCanaryPreflight(
     scriptRevisionIds,
     voiceRevision: voiceProfileVersionId,
     provider: modelConfiguration.provider,
-    estimatedCostMinor: totalEstimatedCostMinor,
+    estimatedCostMinor:
+      defaultEstimatedCostMinorPerEpisode !== undefined
+        ? totalEstimatedCostMinor
+        : costProposal.proposedMaximumCostMinor,
   };
 
   const preflight = evaluateBoundedPaidProviderCanaryPreflight({

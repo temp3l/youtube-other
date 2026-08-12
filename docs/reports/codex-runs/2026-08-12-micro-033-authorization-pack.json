@@ -1,0 +1,259 @@
+{
+  "schemaVersion": "mediaforge.microdrama.authorization-pack.v1",
+  "taskId": "MICRO-033",
+  "preparedAt": "2026-08-12T10:28:00.000Z",
+  "bindingProbe": {
+    "taskId": "MICRO-033",
+    "episodeIds": ["E001", "E002", "E003"],
+    "locale": "en-US",
+    "scriptRevisionIds": {
+      "E001": "rev.script.en-us.e001",
+      "E002": "rev.script.en-us.e002",
+      "E003": "rev.script.en-us.e003"
+    },
+    "scriptHashes": {
+      "E001": "810786522f12d2168fb30ae21840de0cce247966d0362d057db0b80920f64669",
+      "E002": "f6f6d234257ed88c08c0d504b9f4262da6730e5accc25ab3d642d5d3fd0d2f49",
+      "E003": "0f0b2983fc90cab8d0fb2d826282e2bea170f7f5e25fb4b376110037e9a78727"
+    },
+    "voiceRevision": "voice-version.narrator.en-us.v1",
+    "provider": "openai",
+    "providerModel": "tts-1-hd",
+    "providerConfigRevision": "a5b5a465a3c8cb33cb71467421e0e7d9471143342cecbb88511e5c9ff2a967e9",
+    "storyScriptReadyEvidence": {
+      "status": "PASS",
+      "source": "provider-free STORY_SCRIPT_READY projection via evaluateEnE001E003TtsCanaryPreflight"
+    },
+    "audioTtsReadyEvidence": {
+      "status": "PASS",
+      "source": "provider-free AUDIO_TTS_READY projection for E001–E003 en-US"
+    },
+    "assetGenerationApproval": null,
+    "costBudgetApproval": null,
+    "operatorAuthorization": null,
+    "maximumProviderRequests": 111,
+    "costLimitMinor": 199,
+    "currency": "USD"
+  },
+  "packRoot": "content-packs/seven-minutes-ahead-content-pack-v5-remediated",
+  "packVersion": "v5-remediated",
+  "seriesBibleRevisionId": "rev.series-bible.v5-remediated",
+  "productionProfileId": "production-profile.seven-minutes-ahead.v5-remediated",
+  "episodeIds": ["E001", "E002", "E003"],
+  "locale": "en-US",
+  "scriptRevisionIds": {
+    "E001": "rev.script.en-us.e001",
+    "E002": "rev.script.en-us.e002",
+    "E003": "rev.script.en-us.e003"
+  },
+  "scriptHashes": {
+    "E001": {
+      "localizedMasterStoryContentHash": "810786522f12d2168fb30ae21840de0cce247966d0362d057db0b80920f64669",
+      "packFileManifestSha256": "f5403a5d87ef6bd4fbce2076963bca7153b387cb1a01e33f1858081cc33b31e6",
+      "scriptRelativePath": "languages/en/episodes/e001-seven-minutes.md"
+    },
+    "E002": {
+      "localizedMasterStoryContentHash": "f6f6d234257ed88c08c0d504b9f4262da6730e5accc25ab3d642d5d3fd0d2f49",
+      "packFileManifestSha256": "43aad0048c56de9ac5a6998fb7f731e776f67b2a8b50d5ebaef6a029bef01ef1",
+      "scriptRelativePath": "languages/en/episodes/e002-the-dead-woman.md"
+    },
+    "E003": {
+      "localizedMasterStoryContentHash": "0f0b2983fc90cab8d0fb2d826282e2bea170f7f5e25fb4b376110037e9a78727",
+      "packFileManifestSha256": "c658e3141d34c5f2cd120080b01649c216530f1825ec2657d05a65f59afe5948",
+      "scriptRelativePath": "languages/en/episodes/e003-she-knew.md"
+    }
+  },
+  "canonLinkage": {
+    "E001": {
+      "episodeSpecRevisionId": "rev.episode-spec.e001",
+      "beatPlanRevisionId": "rev.beat-plan.e001",
+      "boundaryRevisionId": "rev.boundary.e001",
+      "audioTtsTargetRevisionId": "rev.audio-tts.rev.script.en-us.e001.en-us"
+    },
+    "E002": {
+      "episodeSpecRevisionId": "rev.episode-spec.e002",
+      "beatPlanRevisionId": "rev.beat-plan.e002",
+      "boundaryRevisionId": "rev.boundary.e002",
+      "audioTtsTargetRevisionId": "rev.audio-tts.rev.script.en-us.e002.en-us"
+    },
+    "E003": {
+      "episodeSpecRevisionId": "rev.episode-spec.e003",
+      "beatPlanRevisionId": "rev.beat-plan.e003",
+      "boundaryRevisionId": "rev.boundary.e003",
+      "audioTtsTargetRevisionId": "rev.audio-tts.rev.script.en-us.e003.en-us"
+    }
+  },
+  "voiceRevision": "voice-version.narrator.en-us.v1",
+  "voiceRevisionNotes": {
+    "readinessFixtureProfileVersionId": "voice-version.narrator.en-us.v1",
+    "localRegistrationModule": "packages/microdrama/src/seven-minutes-ahead-narrator-voice-registry.ts",
+    "persistenceModule": "packages/microdrama/src/seven-minutes-ahead-narrator-voice-persistence.ts",
+    "persistedCharacterVoiceProfile": "MISSING_IN_OPERATOR_DB",
+    "requiredAction": "PERSIST_VOICE_PROFILE_IN_OPERATOR_DB_AND_OPERATOR_VOICE_BINDING"
+  },
+  "provider": "openai",
+  "providerModel": "tts-1-hd",
+  "providerVoiceCandidate": "alloy",
+  "providerConfigRevision": "a5b5a465a3c8cb33cb71467421e0e7d9471143342cecbb88511e5c9ff2a967e9",
+  "providerConfigurationNotes": {
+    "source": "packages/microdrama/src/en-e001-e003-tts-canary-preflight.ts DEFAULT_MODEL_CONFIGURATION",
+    "operatorApprovedBoundedConfiguration": "PROVIDER_CONFIGURATION_REQUIRED",
+    "providerVoiceBindingStatus": "UNBOUND",
+    "registryPolicy": "Provider voice binding requires CANARY_APPROVED evidence (packages/speech/src/character-voice-registry.ts)"
+  },
+  "segmentation": {
+    "E001": { "segmentCount": 10, "billableCharacters": 823 },
+    "E002": { "segmentCount": 12, "billableCharacters": 865 },
+    "E003": { "segmentCount": 15, "billableCharacters": 855 },
+    "totalSegmentCount": 37,
+    "totalBillableCharacters": 2543
+  },
+  "timingPolicy": {
+    "lexicalTargetWpm": 155,
+    "lexicalWordCountSoftMin": 145,
+    "lexicalWordCountSoftMax": 160,
+    "lexicalDurationSecondsMin": 56,
+    "lexicalDurationSecondsMax": 62,
+    "audioGate": {
+      "gateKind": "AUDIO_GATE",
+      "calibrationStatus": "UNCALIBRATED",
+      "selectedAudioIsTimingAuthority": true,
+      "softDurationSeconds": null,
+      "hardDurationSeconds": null
+    },
+    "audioGateUncalibratedBeforeCanary": true
+  },
+  "candidateStrategy": {
+    "naturalnessCandidatesPerEpisode": 1,
+    "initialSegmentSynthesesPerEpisode": {
+      "E001": 10,
+      "E002": 12,
+      "E003": 15
+    },
+    "rationale": "Locale TTS segmentation issues one synthesis request per narration/dialogue paragraph; inline dialogue in EN v5 scripts does not use MAYA: line prefixes, so segments are paragraph-bound rather than speaker-bound."
+  },
+  "retryPolicy": {
+    "semanticRetryOwner": "SpeechGenerationService (packages/speech/src/platform/service.ts)",
+    "applicationMaximumAttempts": 3,
+    "applicationRetryBaseDelayMs": 500,
+    "sdkRetrySetting": "not explicitly configured in microdrama OpenAI transport; application owns bounded chunk retries per ADR-SPEECH-003",
+    "ambiguousPostDispatchBehavior": "no blind retry; permanent/ambiguous failures require explicit replacement via supersedesGenerationId"
+  },
+  "requestCeilingProposal": {
+    "initialProviderSyntheses": 37,
+    "maximumRetriesPerSynthesis": 2,
+    "maximumTotalProviderRequests": 111
+  },
+  "costProposal": {
+    "pricingSource": "packages/microdrama/src/microdrama-openai-tts-pricing-catalog.ts",
+    "pricingRevision": "microdrama.openai-tts.planning.v1",
+    "pricingStatus": "LOCAL_PLANNING_PROPOSAL",
+    "repositoryPreflightEstimateMinorPerEpisode": 120,
+    "repositoryPreflightEstimateSource": "packages/microdrama/src/audio-tts-readiness.ts",
+    "expectedBaseCostMinor": 51,
+    "retryReserveMinor": 148,
+    "proposedMaximumCostMinor": 199,
+    "currency": "USD",
+    "billableCharacters": 2543,
+    "estimatedCurrencyAmount": 0.5086
+  },
+  "localPrerequisites": {
+    "narratorVoiceRegistry": {
+      "module": "packages/microdrama/src/seven-minutes-ahead-narrator-voice-registry.ts",
+      "persistenceModule": "packages/microdrama/src/seven-minutes-ahead-narrator-voice-persistence.ts",
+      "profileId": "voice.character.narrator.en-us",
+      "profileVersionId": "voice-version.narrator.en-us.v1",
+      "characterId": "character.narrator",
+      "voiceBindingStatus": "UNBOUND",
+      "validatedBy": [
+        "packages/microdrama/src/seven-minutes-ahead-narrator-voice-registry.unit.test.ts",
+        "packages/microdrama/src/seven-minutes-ahead-narrator-voice-persistence.integration.test.ts"
+      ]
+    },
+    "pricingCatalog": {
+      "module": "packages/microdrama/src/microdrama-openai-tts-pricing-catalog.ts",
+      "pricingRevision": "microdrama.openai-tts.planning.v1",
+      "validatedBy": "packages/microdrama/src/microdrama-openai-tts-pricing-catalog.unit.test.ts"
+    },
+    "credentialAdmission": {
+      "contracts": "packages/domain/src/microdrama-speech-credential-contracts.ts",
+      "lifecycle": "packages/domain/src/microdrama-speech-credential-lifecycle.ts",
+      "validatedBy": "packages/domain/src/microdrama-speech-credential-lifecycle.unit.test.ts"
+    }
+  },
+  "externalPrerequisites": {
+    "approvedTtsProviderAccount": "MISSING",
+    "credentialHandle": null,
+    "boundedVoiceProviderConfiguration": "PARTIAL_FIXTURE_ONLY"
+  },
+  "gates": {
+    "STORY_SCRIPT_READY": "PASS",
+    "AUDIO_TTS_READY": "PASS",
+    "ASSET_GENERATION_APPROVED": "NOT_YET_AUTHORIZED",
+    "COST_BUDGET_APPROVED": "TO_BE_APPROVED"
+  },
+  "storyScriptReadyEvidence": {
+    "projection": "provider-free readiness evaluation over V5 admitted scripts",
+    "preflightModule": "packages/microdrama/src/en-e001-e003-tts-canary-preflight.ts"
+  },
+  "audioTtsReadyEvidence": {
+    "projection": "provider-free AUDIO_TTS_READY for E001–E003 en-US",
+    "validatedBy": "packages/microdrama/src/en-e001-e003-tts-canary-preflight.unit.test.ts"
+  },
+  "assetGenerationApproval": null,
+  "costBudgetApproval": null,
+  "operatorAuthorization": null,
+  "maximumProviderRequests": 111,
+  "costLimitMinor": 199,
+  "currency": "USD",
+  "preflightCommand": "pnpm test:focused -- packages/microdrama/src/en-e001-e003-tts-canary-preflight.unit.test.ts",
+  "preflightApi": "evaluateEnE001E003TtsCanaryPreflight from @mediaforge/microdrama",
+  "authorizationPayloadTemplate": {
+    "schemaVersion": "mediaforge.microdrama-operator-authorization.v1",
+    "kind": "BOUNDED_PAID_PROVIDER_EFFECT",
+    "taskId": "MICRO-033",
+    "bindings": {
+      "episodeIds": ["E001", "E002", "E003"],
+      "locale": "en-US",
+      "scriptRevisionIds": [
+        "rev.script.en-us.e001",
+        "rev.script.en-us.e002",
+        "rev.script.en-us.e003"
+      ],
+      "voiceRevision": "voice-version.narrator.en-us.v1",
+      "provider": "openai",
+      "costLimitMinor": 199
+    },
+    "operatorId": "REQUIRED",
+    "authorizedAt": "REQUIRED",
+    "expiresAt": null
+  },
+  "assetGenerationApprovalTemplate": {
+    "schemaVersion": "mediaforge.microdrama-asset-generation-approval.v1",
+    "taskId": "MICRO-033",
+    "scope": {
+      "episodeIds": ["E001", "E002", "E003"],
+      "locale": "en-US",
+      "scriptRevisionIds": [
+        "rev.script.en-us.e001",
+        "rev.script.en-us.e002",
+        "rev.script.en-us.e003"
+      ],
+      "assetKinds": ["tts", "alignment"],
+      "providers": ["openai"],
+      "voiceRevision": "voice-version.narrator.en-us.v1",
+      "costLimitMinor": 199
+    },
+    "operatorId": "REQUIRED",
+    "approvedAt": "REQUIRED"
+  },
+  "verdict": "BLOCKED",
+  "blockers": [
+    "PERSIST_VOICE_PROFILE_IN_OPERATOR_DB",
+    "PROVIDER_CONFIGURATION_REQUIRED",
+    "MISSING_TTS_PROVIDER_CREDENTIAL_HANDLE",
+    "COST_BUDGET_OPERATOR_APPROVAL_REQUIRED",
+    "ASSET_GENERATION_APPROVED_NOT_YET_AUTHORIZED",
+    "OPERATOR_AUTHORIZATION_NOT_YET_APPROVED"
+  ]
+}

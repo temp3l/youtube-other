@@ -80,6 +80,8 @@ export * from "./microdrama-asset-generation-approval-contracts.js";
 export * from "./microdrama-asset-generation-approval-lifecycle.js";
 export * from "./microdrama-canary-preflight-contracts.js";
 export * from "./microdrama-canary-preflight-lifecycle.js";
+export * from "./microdrama-speech-credential-contracts.js";
+export * from "./microdrama-speech-credential-lifecycle.js";
 
 const episodeIdPattern = /^[a-z0-9][a-z0-9-]*$/;
 const sceneIdPattern = /^scene-[0-9]{3}$/;

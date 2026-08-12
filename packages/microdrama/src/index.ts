@@ -488,3 +488,62 @@ export type {
   EnE001E003TtsCanaryPreflightInput,
   EnE001E003TtsCanaryPreflightResult,
 } from "./en-e001-e003-tts-canary-preflight.js";
+
+export {
+  MICRODRAMA_OPENAI_TTS_PLANNING_PRICING,
+  MICRODRAMA_OPENAI_TTS_PRICING_REVISION,
+  estimateMicrodramaOpenAiTtsCostMinor,
+  proposeMicrodramaTtsCanaryCostLimitMinor,
+} from "./microdrama-openai-tts-pricing-catalog.js";
+
+export {
+  SEVEN_MINUTES_AHEAD_NARRATOR_CHARACTER_ID,
+  SEVEN_MINUTES_AHEAD_NARRATOR_OPENAI_MODEL_INTENT,
+  SEVEN_MINUTES_AHEAD_NARRATOR_OPENAI_PROVIDER,
+  SEVEN_MINUTES_AHEAD_NARRATOR_TARGET_PACE_WPM,
+  SEVEN_MINUTES_AHEAD_NARRATOR_VOICE_PROFILE_VERSION_ID,
+  buildSevenMinutesAheadNarratorVoiceProfile,
+  buildSevenMinutesAheadNarratorVoiceProfileVersion,
+  registerSevenMinutesAheadNarratorVoiceProfile,
+  sevenMinutesAheadNarratorProfileId,
+} from "./seven-minutes-ahead-narrator-voice-registry.js";
+
+export {
+  MICRO_033_CANARY_EPISODE_BILLABLE_CHARACTERS,
+  MICRO_033_CANARY_EPISODE_IDS,
+  MICRO_033_CANARY_INITIAL_PROVIDER_SYNTHESES,
+  MICRO_033_CANARY_MAXIMUM_TOTAL_PROVIDER_REQUESTS,
+  MICRO_033_CANARY_COST_LIMIT_MINOR,
+  MICRO_033_CANARY_CURRENCY,
+  MICRO_033_AUTHORIZATION_PACK_SCRIPT_REVISIONS,
+  MICRO_033_AUTHORIZATION_PACK_SCRIPT_HASHES,
+  MICRO_033_DEFAULT_OPENAI_TTS_MODEL_CONFIGURATION,
+  MICRO_033_PROVIDER_VOICE_ID,
+  computeMicro033ProviderConfigRevision,
+  resolveMicro033CanaryCostProposal,
+  resolveMicro033CanaryEpisodeCostMinorAllocations,
+} from "./micro-033-canary-bindings.js";
+
+export {
+  ensureSevenMinutesAheadNarratorVoiceProfilePersisted,
+} from "./seven-minutes-ahead-narrator-voice-persistence.js";
+
+export {
+  isOpenAiSpeechSecretConfigured,
+  buildMicro033OpenAiSpeechCredentialRecord,
+  MICRO_033_OPENAI_CREDENTIAL_HANDLE,
+} from "./microdrama-openai-speech-credential.js";
+
+export {
+  prepareMicro033BoundedCanaryAuthorization,
+  computeMicro033CanaryVoiceBindingEvidenceHash,
+  micro033AuthorizationEvidenceSummary,
+} from "./micro-033-bounded-canary-authorization-preparation.js";
+export type {
+  Micro033BoundedCanaryAuthorizationPreparationInput,
+  Micro033BoundedCanaryAuthorizationPreparationResult,
+} from "./micro-033-bounded-canary-authorization-preparation.js";
+
+export {
+  defaultEnTtsCanaryModelConfiguration,
+} from "./en-e001-e003-tts-canary-preflight.js";

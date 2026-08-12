@@ -166,4 +166,40 @@ describe("character voice SQLite repository", () => {
       })
     ).toThrow(CharacterVoiceProfileVersionImmutableError);
   });
+
+  it("records bounded canary-approved provider binding on active UNBOUND versions", () => {
+    const repository = createRepository();
+    repository.registerProfile({ payload: maraProfile(), createdAt });
+    const versionId = "voice-version.mara.en-us.v1";
+    repository.appendProfileVersion({
+      payload: {
+        schemaVersion: NARRATIVE_SCHEMA_VERSION,
+        profileVersionId: versionId,
+        profileId: buildCharacterVoiceProfileId("character.mara", "en-US"),
+        versionNumber: 1,
+        status: "DRAFT",
+        provider: "openai",
+        modelIntent: "tts-1-hd",
+        voiceBindingStatus: "UNBOUND",
+        deliveryConfiguration: { paceWpm: 155, instructions: "Stay intimate." },
+      },
+      createdAt,
+    });
+    repository.activateProfileVersion({
+      profileVersionId: versionId,
+      expectedRevision: 0,
+      activatedAt: createdAt,
+    });
+
+    const evidenceHash = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+    const bound = repository.recordBoundedCanaryApprovedProviderBinding({
+      profileVersionId: versionId,
+      providerVoiceId: "alloy",
+      canaryEvidenceArtifactHash: evidenceHash,
+      recordedAt: createdAt,
+    });
+    expect(bound.voiceBindingStatus).toBe("CANARY_APPROVED");
+    expect(bound.providerVoiceId).toBe("alloy");
+    expect(bound.canaryEvidenceArtifactHash).toBe(evidenceHash);
+  });
 });
