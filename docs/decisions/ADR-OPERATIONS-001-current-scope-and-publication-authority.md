@@ -48,3 +48,15 @@ metadata bindings, and channel/intent fences are rechecked immediately before
 private-first provider commands. Bounded metadata retries and read-only
 reconciliation are allowed; public-first uploads and unbounded retries remain
 prohibited. This update does not enable the capability in production.
+
+## Microdrama scheduling clarification (2026-08-12)
+
+ADR-MICRODRAMA-005 governs the new Microdrama bounded context. It preserves
+operator initiation while defining two modes. `MANUAL` retains a dispatch-time
+operator action. In disabled-by-default `PREAPPROVED_SCHEDULED`, the operator's
+exact, revision-bound consent at scheduling time is the initiating action, so a
+fresh dispatch-time click is unnecessary. Automated dispatch is permitted only
+after immediate revalidation of every immutable account, OAuth, capability,
+render, metadata, policy, declaration, consent, approval, and idempotency fence;
+any material change blocks. Enabling the mode requires recorded TikTok
+app/audit-policy evidence and explicit deployment/operator enablement.

@@ -28,3 +28,16 @@ No external, paid, media, or publication calls ran. No commit was created;
 baseline is `e28e10ca77a4e2d33093c8b53e30bdcbc8e8877a`.
 
 Next: execute MICRO-001 only.
+
+## Planning amendment
+
+The readiness DAG now separates imported-V4 admission from future rolling
+planning and separates implementation dependencies from runtime gates. The
+broad production-QA task became a readiness-evidence framework plus independent
+story/script, audio/TTS, visual/render, and publication admission tasks. TikTok
+now has exact consent/export evidence, app/audit readiness, manual and disabled
+preapproved scheduling modes, and a read-only OAuth/creator canary. Analytics
+reads follow a public video rather than assuming SELF_ONLY visibility.
+
+Updated validation: PASS — 50 tasks, 1 READY (`MICRO-001`), 49 BLOCKED,
+resolved dependencies, no cycles, and no provider/publication calls.

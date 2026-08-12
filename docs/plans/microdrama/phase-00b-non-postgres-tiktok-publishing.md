@@ -36,7 +36,8 @@ work. It does not migrate or remove legacy PostgreSQL functionality.
 
 Publication identity includes provider, immutable provider account ID,
 canonical episode and revision, locale, render hash, metadata revision,
-credential version, attempt, approval, and idempotency key.
+credential version, creator-consent revision, exact export-approval revision,
+attempt, approval, and idempotency key.
 
 Provider adapters remain explicit. YouTube keeps its own projection and safety
 rules. TikTok receives its own OAuth/account, metadata, transfer, Direct Post,
@@ -52,7 +53,8 @@ provider semantics.
    available; never write plaintext tokens into SQLite, JSON, logs, or reports.
 3. Before each mutation, resolve `PublicationTargetProfile(locale, provider)`,
    verify the authenticated account and creator information, recheck approval,
-   media/metadata hashes, capability, policy fields, and AI-content disclosure.
+   consent/export revisions, media/metadata hashes, privacy, interaction
+   settings, capability, policy fields, and AI/commercial-content declarations.
 4. Use TikTok's official Content Posting APIs only. Undocumented/private APIs,
    browser automation, and implicit "currently logged in" account selection are
    rejected.
@@ -67,10 +69,26 @@ provider semantics.
    ambiguous post-dispatch result becomes `OUTCOME_UNCERTAIN`; read-only status
    reconciliation decides whether a new attempt is safe.
 8. Scheduling is operator policy keyed by provider, locale, account, and
-   audience timezone. Persist instants in UTC and revalidate creator capability
-   near dispatch. A schedule is a durable plan, not unattended/API publication
-   authority; execution remains operator-initiated through the capability-off-
-   by-default controlled path defined by ADR-OPERATIONS-001.
+   audience timezone. Persist instants in UTC. `MANUAL` requires a dispatch-time
+   operator action. `PREAPPROVED_SCHEDULED` records exact per-post operator
+   consent at scheduling time and may dispatch without a fresh click only after
+   account, OAuth, app/audit, creator capability, hash, approval, consent/export,
+   privacy, interaction and declaration revalidation. Any change blocks. The
+   scheduled mode remains capability-off until TikTok audit/policy evidence and
+   explicit deployment/operator enablement exist.
+
+TikTok app/audit readiness is durable, revisioned evidence distinct from account
+preflight. It covers developer app/product configuration, Login Kit, callback
+configuration, required/granted scopes, Content Posting API access,
+creator-info/export and explicit-consent UX, audit submission/result, and
+effective/expiry/revocation state. Provider approval cannot be inferred from
+local configuration or tests.
+
+Creator consent and export approval are separate durable revisions. The exact
+TikTok export approval binds compatible creator capability and consent evidence,
+account, render/artifact hashes, metadata, privacy, interaction settings,
+AI/commercial declarations, approver, and timestamp. Direct Post may consume
+only a compatible, active revision.
 
 Persist provider request/correlation IDs, response identity, rate-limit headers,
 `Retry-After`, next-eligible time, attempt/fence identity, and reconciliation
@@ -93,7 +111,8 @@ Provider effects use one semantic retry owner. SDK, adapter, and worker retry
 loops must not overlap. Publication capability defaults off. Private canaries
 precede audited public canaries, and neither is authorized by this plan.
 
-Approval revocation blocks queued work and later mutable effects. Cancellation
+Approval or consent/export revocation blocks queued/prepared work and later
+mutable effects. Cancellation
 is cooperative only before irreversible dispatch; an in-flight cancellation
 request records intent and moves through reconciliation rather than claiming the
 provider effect was cancelled. A force option cannot bypass immutable intent or
@@ -108,8 +127,9 @@ correlation.
 
 - Embedded persistence is additive to the new microdrama bounded context.
 - TikTok is split into bounded tasks for account/OAuth, secret storage,
-  creator-info preflight, metadata, transfer, Direct Post, reconciliation,
-  scheduling, and canaries.
+  creator-info preflight, app/audit readiness, consent/export UX, metadata,
+  transfer, Direct Post, reconciliation, scheduling, read-only OAuth/preflight,
+  and publication canaries.
 - Every publication task declares whether external or publication calls are
   eligible and still requires task-specific operator authorization.
 - No production functionality is implemented in Phase 00B.

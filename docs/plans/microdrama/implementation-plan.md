@@ -30,6 +30,9 @@ task until an ADR/plan amendment and backlog update are approved.
   blindly retrying.
 - `STORY_APPROVED`, `ASSET_GENERATION_APPROVED`, and `PUBLICATION_APPROVED`
   bind exact revisions and cannot be bypassed by force/retry/resume.
+- `dependsOn` expresses implementation dependencies only. Runtime approvals,
+  provider/account state, budgets and policy are separate `requiredGates`,
+  `externalPrerequisites`, and `operatorAuthorization` conditions.
 - Untrusted source/provider payloads cannot alter canon, tools, providers,
   accounts, policy, or approval. Artifact MIME/hash/URL and redaction gates fail
   closed.
@@ -43,10 +46,14 @@ flowchart TD
     M002 --> M004[004 V4 narrative admission]
     M003 --> M004
     M003 --> M005[005 Series/locale profiles]
-    M004 --> M006[006 Rolling planning]
-    M006 --> M007[007 Episode/beat compiler]
+    M004 --> M006[006 Future rolling planning]
+    M004 --> M007[007 Imported V4 episode/beat admission]
+    M005 --> M007
     M004 --> M008[008 Story/parity QA]
     M007 --> M008
+    M006 --> M044[044 Rolling-plan episode/beat compiler]
+    M007 --> M044
+    M008 --> M044
     M008 --> M009[009 Future-locale pipeline]
 
     M002 --> M010[010 Visual registry]
@@ -55,7 +62,6 @@ flowchart TD
     M005 --> M040
     M002 --> M043[043 Security/trust gates]
     M003 --> M043
-    M010 --> M043
     M005 --> M011[011 Signal UI/safe zones]
     M007 --> M012[012 Scene/shot compiler]
     M010 --> M012
@@ -73,10 +79,31 @@ flowchart TD
     M017 --> M018
     M018 --> M041[041 Licensed audio/rights]
     M002 --> M041
-    M008 --> M019[019 Production QA]
-    M018 --> M019
-    M041 --> M019
-    M043 --> M019
+    M002 --> M019[019 Readiness evidence framework]
+    M005 --> M019
+    M004 --> M045[045 Story/script readiness]
+    M007 --> M045
+    M008 --> M045
+    M019 --> M045
+    M043 --> M045
+    M015 --> M046[046 Audio/TTS readiness]
+    M016 --> M046
+    M019 --> M046
+    M040 --> M046
+    M043 --> M046
+    M045 --> M046
+    M010 --> M047[047 Visual/render readiness]
+    M011 --> M047
+    M012 --> M047
+    M013 --> M047
+    M014 --> M047
+    M017 --> M047
+    M018 --> M047
+    M019 --> M047
+    M041 --> M047
+    M043 --> M047
+    M045 --> M047
+    M046 --> M047
 
     M002 --> M020[020 Publication domain]
     M005 --> M020
@@ -88,38 +115,51 @@ flowchart TD
     M023 --> M024[024 Creator preflight/targets]
     M020 --> M025[025 TikTok metadata]
     M024 --> M026[026 TikTok transfer]
+    M020 --> M049[049 TikTok app/audit evidence]
+    M022 --> M049
+    M023 --> M049
+    M025 --> M049
     M025 --> M027[027 Direct Post/idempotency]
     M026 --> M027
+    M049 --> M027
     M027 --> M028[028 TikTok reconciliation]
     M028 --> M029[029 Scheduling/operator controls]
+    M019 --> M048[048 Publication readiness]
+    M020 --> M048
+    M024 --> M048
+    M025 --> M048
+    M027 --> M048
+    M028 --> M048
+    M029 --> M048
+    M040 --> M048
+    M043 --> M048
+    M047 --> M048
+    M049 --> M048
+    M024 --> M050[050 Read-only OAuth/creator canary]
+    M049 --> M050
 
-    M028 --> M030
+    M020 --> M030
     M030 --> M031[031 Experiments]
     M006 --> M032[032 Learning admission]
     M008 --> M032
+    M044 --> M032
     M031 --> M032
 
-    M004 --> M033[033 EN TTS/timing canary]
-    M005 --> M033
-    M016 --> M033
-    M019 --> M033
-    M040 --> M033
-    M013 --> M034[034 EN visual canary]
-    M019 --> M034
+    M046 --> M033[033 EN TTS/timing canary]
+    M047 --> M034[034 EN visual canary]
     M033 --> M034
-    M017 --> M035[035 Multilingual render canary]
+    M047 --> M035[035 Multilingual render canary]
     M034 --> M035
     M035 --> M036[036 E004-E010 production]
-    M019 --> M037[037 TikTok private canary]
-    M028 --> M037
-    M029 --> M037
+    M048 --> M037[037 TikTok private canary]
+    M050 --> M037
     M035 --> M037
     M037 --> M038[038 TikTok audited public canary]
-    M030 --> M042[042 Provider analytics read canary]
-    M037 --> M042
-    M042 --> M038
+    M030 --> M042[042 Public-video analytics read canary]
+    M038 --> M042
     M036 --> M039[039 Progressive E011+]
     M038 --> M039
+    M042 --> M039
     M032 --> M039
 ```
 
@@ -129,11 +169,11 @@ flowchart TD
 |---|---|---|---|
 | 01 Narrative foundation | MICRO-001 | Pure IDs, schemas, revisions, canon validators | Local only |
 | 02 Embedded state and V4 admission | MICRO-002–005 | Durable embedded authority and admitted V4 corpus/profile | Local only |
-| 03 Story planning and QA | MICRO-006–009 | Rolling plans, episode/beat compilation, canon/parity gates | Local/mocked |
-| 04 Media planning and production | MICRO-010–019, 040–041, 043 | Registries, security, cost controls, semantic shots, locale audio/timing, rights, composition, QA | Local/mocked until canaries |
-| 05 Publication | MICRO-020–029 | Provider-specific durable publication, TikTok official API architecture | Local/mocked |
+| 03 Story planning and QA | MICRO-006–009, 044 | Imported-V4 admission independent of future rolling planning, plus canon/parity gates | Local/mocked |
+| 04 Media planning and production | MICRO-010–019, 040–041, 043, 045–047 | Registries, security, cost controls, locale audio/timing, composition, and composable readiness | Local/mocked until canaries |
+| 05 Publication | MICRO-020–029, 048–049 | Provider-specific publication, exact consent, scheduling modes, and TikTok app/audit evidence | Local/mocked |
 | 06 Performance and learning | MICRO-030–032 | Revision-linked observations, experiments, canon-safe recommendations | Local/mocked |
-| 07 Bounded canaries | MICRO-033–039, 042 | Explicitly authorized staged production/publication and analytics reads | Side effects only per task approval |
+| 07 Bounded canaries | MICRO-033–039, 042, 050 | Explicitly authorized staged production/publication and read-only provider checks | Side effects only per task approval |
 
 ## Phase requirements
 
@@ -154,10 +194,12 @@ generation is out of scope.
 
 ### 03 — Story planning and QA
 
-Add season, arc, near-horizon, EpisodeSpec, BeatPlan, and revision workflows over
-accepted snapshots. Deterministic QA owns chronology, knowledge, promise, reveal,
-boundary, hook, and localization-parity rules. Future-locale generation remains
-after V4 admission and cannot modify supplied revisions.
+Compile existing imported V4 scripts and canonical boundaries directly into
+production `EpisodeSpec`/`BeatPlan` projections. This admission path does not
+require the future rolling planner and cannot generate or rewrite scripts.
+Separately add season, arc, near-horizon and current-episode planning for future
+revisions, reusing the same contracts. Deterministic QA owns chronology,
+knowledge, promise, reveal, boundary, hook, and localization-parity rules.
 
 ### 04 — Media planning and production
 
@@ -166,6 +208,12 @@ platform safe zones; language-neutral Beat/Scene/Shot identity; shared-visual
 cache policy; provider ports; selected-audio measurement/alignment; independent
 locale subtitles/UI; typed timeline/composition; and production QA. Provider
 integration tasks use mocks until an explicitly authorized canary.
+
+Implement one readiness-evidence framework with independent story/script,
+audio/TTS, and visual/render evaluators. These are admission semantics in
+existing packages, not reasons to create new packages. An audio canary requires
+story/audio readiness but not visual generation, composition, music/SFX, or
+render QA.
 
 Before canaries, add revision-linked cost/quota attribution and bounded
 observability, untrusted-input/artifact trust gates, and separate
@@ -178,9 +226,14 @@ Persist provider-specific intents/effects in the embedded store. Retain YouTube
 as a distinct projection. Split TikTok into account/OAuth, secure credential
 handles, creator preflight, locale target mappings, metadata, FILE_UPLOAD default
 with constrained PULL_FROM_URL, Direct Post, idempotency, reconciliation, and
-scheduling/operator controls. Capability remains disabled outside canaries.
-Schedule records never authorize unattended or public-API dispatch; initiation
-remains operator-controlled under ADR-OPERATIONS-001.
+scheduling/operator controls. Persist exact creator-consent/export revisions and
+TikTok app/audit-readiness evidence. Publication readiness is evaluated
+independently from story/audio/visual readiness.
+
+Support `MANUAL` and disabled-by-default `PREAPPROVED_SCHEDULED`. In the latter,
+the operator consents to one exact post intent when scheduling; dispatch needs no
+fresh click but revalidates every account, OAuth, capability, hash, policy,
+declaration, consent and approval fence and blocks on any material change.
 Persist provider correlation IDs and rate-limit/`Retry-After` state; the single
 retry owner pauses safely and never converts throttling or ambiguity into a
 duplicate mutation.
@@ -191,26 +244,33 @@ Ingest immutable provider/account/locale/revision/window observations, normalize
 with versioned null-aware definitions, and support controlled experiment records.
 Learning produces recommendations only; canon-aware validation and acceptance
 are mandatory before future planning consumes them.
-Provider adapters and storage are implemented with fixtures first; a separate,
-explicitly authorized read-only canary proves live observation ingestion before
-any audited public TikTok canary.
+Provider adapters and storage are implemented with fixtures first. Basic video
+read counters are not called retention metrics. Missing official fields remain
+unavailable, never zero. Because SELF_ONLY/private posts may not be exposed by
+the authorized read API, the live analytics canary follows the first audited
+public post (or targets a separately authorized existing public video).
 
 ### 07 — Bounded rollout
 
 Run separate EN E001–E003 audio/timing and visual canaries, then a shared-visual
 DE/ES/PT-BR render canary, then E004–E010. TikTok private and audited public
 canaries are separate tasks. E011+ stays blocked until production, publication,
-analytics, and learning gates have evidence. No canary task title grants provider
-authorization.
+analytics, and learning gates have evidence. A bounded OAuth/creator-info canary
+validates exact account identity, token refresh, scopes and creator capability
+without upload or publication before the first publication mutation. No canary
+task title grants provider authorization.
 
 ## Task status and reporting
 
 - Only MICRO-001 is initially READY because Narrative Core does not exist and
   requires no unresolved implementation dependency.
-- Every other task is BLOCKED until all `dependsOn` tasks are DONE and any
-  explicit side-effect approval is recorded.
+- Every other task is BLOCKED until all `dependsOn` tasks are DONE and all
+  applicable runtime gates, external prerequisites and operator authorization
+  are recorded. These conditions do not become DAG edges.
 - No task begins IN_PROGRESS through planning alone.
 - Required task validation is focused and bounded by repository guardrails.
+- Backlog validation checks unique/resolved IDs, acyclicity, effective schema
+  defaults, valid blocked reasons, and exactly one READY task (`MICRO-001`).
 - Every modifying task creates a concise Codex run report. Work based on this
   plan additionally creates or updates the dated implementation report required
   by `AGENTS.md`.

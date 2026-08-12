@@ -1,0 +1,92 @@
+{
+  "status": "PASS",
+  "total_variants": 400,
+  "summary": {
+    "en": {
+      "locale": "en-US",
+      "wpm": 155,
+      "episodes": 100,
+      "timing_pass": 100,
+      "editorial_pass": 100,
+      "word_min": 145,
+      "word_max": 160,
+      "seconds_min": 56.13,
+      "seconds_max": 61.94,
+      "score_min": 9.58,
+      "score_max": 9.84,
+      "score_avg": 9.68
+    },
+    "de": {
+      "locale": "de-DE",
+      "wpm": 150,
+      "episodes": 100,
+      "timing_pass": 100,
+      "editorial_pass": 100,
+      "word_min": 140,
+      "word_max": 155,
+      "seconds_min": 56.0,
+      "seconds_max": 62.0,
+      "score_min": 9.57,
+      "score_max": 9.84,
+      "score_avg": 9.66
+    },
+    "es": {
+      "locale": "es-ES",
+      "wpm": 155,
+      "episodes": 100,
+      "timing_pass": 100,
+      "editorial_pass": 100,
+      "word_min": 145,
+      "word_max": 160,
+      "seconds_min": 56.13,
+      "seconds_max": 61.94,
+      "score_min": 9.57,
+      "score_max": 9.84,
+      "score_avg": 9.66
+    },
+    "pt-BR": {
+      "locale": "pt-BR",
+      "wpm": 155,
+      "episodes": 100,
+      "timing_pass": 100,
+      "editorial_pass": 100,
+      "word_min": 145,
+      "word_max": 160,
+      "seconds_min": 56.13,
+      "seconds_max": 61.94,
+      "score_min": 9.58,
+      "score_max": 9.84,
+      "score_avg": 9.67
+    }
+  },
+  "duplicate_prose": {
+    "en": {
+      "repeated_sentences": 0,
+      "episodes_affected": 0,
+      "extra_instances": 0
+    },
+    "de": {
+      "repeated_sentences": 0,
+      "episodes_affected": 0,
+      "extra_instances": 0
+    },
+    "es": {
+      "repeated_sentences": 0,
+      "episodes_affected": 0,
+      "extra_instances": 0
+    },
+    "pt-BR": {
+      "repeated_sentences": 0,
+      "episodes_affected": 0,
+      "extra_instances": 0
+    }
+  },
+  "english_dialogue_audit": {
+    "average_direct_dialogue_share_pct": 18.6,
+    "episodes_at_least_20pct": 42,
+    "episodes_at_least_30pct": 16
+  },
+  "all_timing_pass": true,
+  "all_editorial_pass": true,
+  "all_exact_duplicate_prose_clear": true
+}

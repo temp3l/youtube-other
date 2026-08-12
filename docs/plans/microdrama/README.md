@@ -73,7 +73,10 @@ Complementary active constraints:
 
 - [ADR-OPERATIONS-001](../../decisions/ADR-OPERATIONS-001-current-scope-and-publication-authority.md)
   keeps publication initiation operator-controlled and capability-off by
-  default. Schedule records do not authorize unattended/API publication.
+  default. For Microdrama, `PREAPPROVED_SCHEDULED` treats the operator's exact,
+  revision-bound consent at scheduling time as initiation; dispatch needs no
+  fresh click but must fail closed on any changed fence and remains disabled
+  until TikTok audit/policy evidence permits it.
 - ADR-SPEECH-001 through ADR-SPEECH-003 retain one provider-neutral speech
   service, immutable voice profile versions, and no silent provider fallback.
 
@@ -95,8 +98,12 @@ Complementary active constraints:
 | Selected locale audio and alignment determine final timing | V3/V4 timing notes | ADR-MICRODRAMA-004 | ACTIVE |
 | One high-level TikTok adapter phase is sufficient | Phase 00 phase 14 | Phase 00B; ADR-MICRODRAMA-005 | SUPERSEDED |
 | Official TikTok APIs, immutable account binding, idempotency, and reconciliation | Later publication policy | Phase 00B; ADR-MICRODRAMA-005 | ACTIVE |
-| A schedule may initiate unattended/API publication | Phase 00 generic scheduling possibility | ADR-OPERATIONS-001; Phase 00B; ADR-MICRODRAMA-005 | REJECTED |
-| Publication remains operator-initiated through a capability-off controlled path | ADR-OPERATIONS-001 update | Phase 00B; ADR-MICRODRAMA-005 | ACTIVE |
+| A schedule without exact per-post operator consent may authorize publication | Phase 00 generic scheduling possibility | ADR-OPERATIONS-001; Phase 00B; ADR-MICRODRAMA-005 | REJECTED |
+| `MANUAL` dispatch requires an operator action at dispatch | ADR-OPERATIONS-001 update | Phase 00B; ADR-MICRODRAMA-005 | ACTIVE |
+| `PREAPPROVED_SCHEDULED` may dispatch without a fresh click after exact schedule-time consent and unchanged-fence revalidation | Later Microdrama scheduling requirement | Phase 00B; ADR-MICRODRAMA-005 | ACTIVE; capability disabled pending audit/policy gate |
+| Creator consent/export approval may be inferred from asset availability or an earlier post | None; unsafe alternative | ADR-MICRODRAMA-005 | REJECTED |
+| TikTok consent/export evidence is immutable, revision-bound, and exact-post scoped | Later publication policy | Phase 00B; ADR-MICRODRAMA-005 | ACTIVE |
+| Local configuration alone proves TikTok app/audit readiness | None; unsafe alternative | ADR-MICRODRAMA-005 | REJECTED |
 | Build a provider-generic `SocialPublisher` | Phase 00 rejected anti-pattern | ADR-MICRODRAMA-005 | REJECTED |
 | Rolling plans may revise accepted canon directly | None; unsafe alternative | ADR-MICRODRAMA-003 | REJECTED |
 | Analytics become canon only through future explicit admission | Phase 00 learning architecture | ADR-MICRODRAMA-003 | ACTIVE |
@@ -119,6 +126,9 @@ Complementary active constraints:
 - Reuse the existing workflow engine; do not create a second one.
 - TikTok uses official APIs only. Publication always needs explicit approval,
   exact account binding, idempotency, and reconciliation.
+- Direct Post consumes exact, non-revoked creator-consent/export evidence bound
+  to account, creator capability, render, metadata, privacy, interaction
+  settings, declarations, and approval timestamp.
 - Provider work is budgeted and attributable by episode, locale, provider,
   asset type, and revision; rate-limit/retry evidence is durable.
 - Source/provider payloads are untrusted. Prompt injection cannot change canon,
@@ -137,3 +147,8 @@ Exactly one task is ready:
 The next gate is acceptance of the pure Narrative Core package and its focused
 tests. No persistence, provider, media, publication, or analytics work belongs
 to that task.
+
+Backlog `dependsOn` edges mean code/contract implementation dependencies only.
+Runtime evidence is listed separately in `requiredGates`, external conditions in
+`externalPrerequisites`, and operator authority in `operatorAuthorization`.
+Omitted task-level values inherit the explicit schema-v2 `taskDefaults`.

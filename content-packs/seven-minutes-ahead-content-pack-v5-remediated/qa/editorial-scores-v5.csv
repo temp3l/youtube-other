@@ -1,0 +1,401 @@
+language,locale,episode,arc,title,score,gate,continuity_remediation,deep_showrunner_rewrite
+en,en-US,E001,1,Seven Minutes,9.73,PASS,False,False
+en,en-US,E002,1,The Dead Woman,9.73,PASS,False,False
+en,en-US,E003,1,She Knew,9.69,PASS,False,False
+en,en-US,E004,1,The Second Video,9.73,PASS,False,False
+en,en-US,E005,1,Do Not Save Him,9.69,PASS,False,False
+en,en-US,E006,1,Nora Who?,9.69,PASS,False,False
+en,en-US,E007,1,Another Receiver,9.73,PASS,False,False
+en,en-US,E008,1,The Detective,9.69,PASS,False,False
+en,en-US,E009,1,His First Prediction,9.69,PASS,False,False
+en,en-US,E010,1,Nora’s Phone,9.73,PASS,False,False
+en,en-US,E011,2,The Gun,9.66,PASS,False,False
+en,en-US,E012,2,While You Slept,9.66,PASS,False,False
+en,en-US,E013,2,The Relay,9.76,PASS,True,True
+en,en-US,E014,2,Receiver Seventeen,9.76,PASS,True,True
+en,en-US,E015,2,Receiver Sixteen,9.76,PASS,True,True
+en,en-US,E016,2,One of Us,9.66,PASS,False,False
+en,en-US,E017,2,Field Observer,9.66,PASS,False,False
+en,en-US,E018,2,The Red Door,9.66,PASS,False,False
+en,en-US,E019,2,Blind Spot,9.66,PASS,False,False
+en,en-US,E020,2,Inside the Apartment,9.66,PASS,False,False
+en,en-US,E021,3,The Sleeping Maya,9.67,PASS,False,False
+en,en-US,E022,3,Where Is Clara?,9.67,PASS,False,False
+en,en-US,E023,3,The Annex,9.67,PASS,False,False
+en,en-US,E024,3,Tomorrow’s Photograph,9.67,PASS,False,False
+en,en-US,E025,3,Maya Built AHEAD,9.67,PASS,False,False
+en,en-US,E026,3,You Are Early,9.67,PASS,False,False
+en,en-US,E027,3,Seven Minutes Away,9.67,PASS,False,False
+en,en-US,E028,3,After Tonight,9.67,PASS,False,False
+en,en-US,E029,3,Ethan Receives,9.67,PASS,False,False
+en,en-US,E030,3,The Detonator,9.67,PASS,False,False
+en,en-US,E031,4,Seven-Minute Bomb,9.58,PASS,False,False
+en,en-US,E032,4,Jonah Reed,9.68,PASS,True,True
+en,en-US,E033,4,Version Seventeen,9.68,PASS,False,True
+en,en-US,E034,4,Initiates Return,9.58,PASS,False,False
+en,en-US,E035,4,The Cost,9.58,PASS,False,False
+en,en-US,E036,4,Dr. Vale,9.58,PASS,False,False
+en,en-US,E037,4,Return Protocol,9.58,PASS,False,False
+en,en-US,E038,4,Jonah Must Die,9.58,PASS,False,False
+en,en-US,E039,4,Silas Ward,9.58,PASS,False,False
+en,en-US,E040,4,The Empty Chair,9.58,PASS,False,False
+en,en-US,E041,5,Clara Alive,9.68,PASS,False,False
+en,en-US,E042,5,The Unbreakable Prediction,9.68,PASS,False,False
+en,en-US,E043,5,Train 407,9.72,PASS,False,False
+en,en-US,E044,5,One Casualty,9.68,PASS,False,False
+en,en-US,E045,5,Timeline Error,9.68,PASS,False,False
+en,en-US,E046,5,No Signal,9.68,PASS,False,False
+en,en-US,E047,5,The Other Maya,9.68,PASS,False,False
+en,en-US,E048,5,Daniel Gets the Signal,9.68,PASS,False,False
+en,en-US,E049,5,The Way Out,9.78,PASS,True,True
+en,en-US,E050,5,The Locked Room,9.72,PASS,False,False
+en,en-US,E051,6,Four Seconds Missing,9.71,PASS,False,False
+en,en-US,E052,6,Before We Met,9.71,PASS,False,False
+en,en-US,E053,6,M. Vale,9.71,PASS,False,False
+en,en-US,E054,6,Engineered,9.71,PASS,False,False
+en,en-US,E055,6,A Life Without Maya,9.71,PASS,False,False
+en,en-US,E056,6,Seven Hours,9.71,PASS,False,False
+en,en-US,E057,6,The Injection,9.71,PASS,False,False
+en,en-US,E058,6,Nora Started It,9.75,PASS,False,False
+en,en-US,E059,6,Message to Tomorrow,9.71,PASS,False,False
+en,en-US,E060,6,The First Address,9.75,PASS,False,False
+en,en-US,E061,7,Seven Days to Expansion,9.69,PASS,False,True
+en,en-US,E062,7,Receiver 001,9.69,PASS,False,True
+en,en-US,E063,7,The Blackout Future,9.69,PASS,False,True
+en,en-US,E064,7,Dr. Lena Voss,9.59,PASS,False,False
+en,en-US,E065,7,Clara’s Price,9.69,PASS,True,True
+en,en-US,E066,7,The Clara Problem,9.59,PASS,False,False
+en,en-US,E067,7,Clara Location Acquired,9.69,PASS,True,True
+en,en-US,E068,7,The Anchor Key,9.69,PASS,False,True
+en,en-US,E069,7,Maya Causes the Blackout,9.69,PASS,False,True
+en,en-US,E070,7,Silas,9.69,PASS,True,True
+en,en-US,E071,8,The Wrong Villain,9.68,PASS,True,True
+en,en-US,E072,8,Jonah’s Lie,9.58,PASS,False,False
+en,en-US,E073,8,Sixteen Resets,9.58,PASS,False,False
+en,en-US,E074,8,The Deadline,9.58,PASS,False,False
+en,en-US,E075,8,Seven-Day Murder,9.58,PASS,False,False
+en,en-US,E076,8,Two Jonahs,9.58,PASS,False,False
+en,en-US,E077,8,The Replica Room,9.68,PASS,False,True
+en,en-US,E078,8,Origin Event,9.68,PASS,False,True
+en,en-US,E079,8,The Enemy Is AHEAD,9.72,PASS,False,True
+en,en-US,E080,8,Consensus,9.72,PASS,False,True
+en,en-US,E081,9,The Missing Line,9.63,PASS,False,False
+en,en-US,E082,9,Lena Taught Her,9.63,PASS,False,False
+en,en-US,E083,9,The Villain Version,9.63,PASS,False,False
+en,en-US,E084,9,What Maya Did,9.63,PASS,False,False
+en,en-US,E085,9,Maya Missing,9.63,PASS,False,False
+en,en-US,E086,9,Welcome Back,9.63,PASS,False,False
+en,en-US,E087,9,Version Eighteen,9.63,PASS,False,False
+en,en-US,E088,9,Do Not Save Nora,9.63,PASS,False,False
+en,en-US,E089,9,The First Packet,9.63,PASS,False,False
+en,en-US,E090,9,Edit the Loop,9.63,PASS,False,False
+en,en-US,E091,10,The Friendship Test,9.76,PASS,False,False
+en,en-US,E092,10,Strangers Again,9.72,PASS,False,False
+en,en-US,E093,10,They Meet Anyway,9.76,PASS,False,False
+en,en-US,E094,10,Version Thirteen,9.72,PASS,False,False
+en,en-US,E095,10,Seven Minutes Left,9.72,PASS,False,False
+en,en-US,E096,10,The Anchor,9.72,PASS,False,False
+en,en-US,E097,10,Final Rules,9.82,PASS,True,True
+en,en-US,E098,10,The Last Prediction,9.84,PASS,True,True
+en,en-US,E099,10,The Choice,9.84,PASS,True,True
+en,en-US,E100,10,7 Minutes Ahead,9.76,PASS,False,False
+de,de-DE,E001,1,Sieben Minuten,9.72,PASS,False,False
+de,de-DE,E002,1,Die tote Frau,9.72,PASS,False,False
+de,de-DE,E003,1,Sie wusste es,9.68,PASS,False,False
+de,de-DE,E004,1,Das zweite Video,9.72,PASS,False,False
+de,de-DE,E005,1,Rette ihn nicht,9.68,PASS,False,False
+de,de-DE,E006,1,Nora wer?,9.68,PASS,False,False
+de,de-DE,E007,1,Noch ein Empfänger,9.72,PASS,False,False
+de,de-DE,E008,1,Der Ermittler,9.68,PASS,False,False
+de,de-DE,E009,1,Seine erste Vorhersage,9.68,PASS,False,False
+de,de-DE,E010,1,Noras Handy,9.72,PASS,False,False
+de,de-DE,E011,2,Die Pistole,9.65,PASS,False,False
+de,de-DE,E012,2,Während du schliefst,9.65,PASS,False,False
+de,de-DE,E013,2,Das Relais,9.75,PASS,True,True
+de,de-DE,E014,2,Empfänger Siebzehn,9.75,PASS,True,True
+de,de-DE,E015,2,Empfänger Sechzehn,9.75,PASS,True,True
+de,de-DE,E016,2,Einer von uns,9.65,PASS,False,False
+de,de-DE,E017,2,Feldbeobachterin,9.65,PASS,False,False
+de,de-DE,E018,2,Die rote Tür,9.65,PASS,False,False
+de,de-DE,E019,2,Blinder Fleck,9.65,PASS,False,False
+de,de-DE,E020,2,In der Wohnung,9.65,PASS,False,False
+de,de-DE,E021,3,Die schlafende Maya,9.66,PASS,False,False
+de,de-DE,E022,3,Wo ist Clara?,9.66,PASS,False,False
+de,de-DE,E023,3,Der Annex,9.66,PASS,False,False
+de,de-DE,E024,3,Das Foto von morgen,9.66,PASS,False,False
+de,de-DE,E025,3,Maya baute AHEAD,9.66,PASS,False,False
+de,de-DE,E026,3,Du bist zu früh,9.66,PASS,False,False
+de,de-DE,E027,3,Sieben Minuten entfernt,9.66,PASS,False,False
+de,de-DE,E028,3,Nach heute Nacht,9.66,PASS,False,False
+de,de-DE,E029,3,Ethan empfängt,9.66,PASS,False,False
+de,de-DE,E030,3,Der Zünder,9.66,PASS,False,False
+de,de-DE,E031,4,Sieben-Minuten-Bombe,9.57,PASS,False,False
+de,de-DE,E032,4,Jonah Reed,9.67,PASS,True,True
+de,de-DE,E033,4,Version Siebzehn,9.57,PASS,False,False
+de,de-DE,E034,4,Startet Return,9.57,PASS,False,False
+de,de-DE,E035,4,Der Preis,9.57,PASS,False,False
+de,de-DE,E036,4,Dr. Vale,9.57,PASS,False,False
+de,de-DE,E037,4,Return-Protokoll,9.57,PASS,False,False
+de,de-DE,E038,4,Jonah muss sterben,9.57,PASS,False,False
+de,de-DE,E039,4,Silas Ward,9.57,PASS,False,False
+de,de-DE,E040,4,Der leere Stuhl,9.57,PASS,False,False
+de,de-DE,E041,5,Clara lebt,9.67,PASS,False,False
+de,de-DE,E042,5,Die unzerbrechliche Vorhersage,9.67,PASS,False,False
+de,de-DE,E043,5,Zug 407,9.71,PASS,False,False
+de,de-DE,E044,5,Ein Opfer,9.67,PASS,False,False
+de,de-DE,E045,5,Zeitlinienfehler,9.67,PASS,False,False
+de,de-DE,E046,5,Kein Signal,9.67,PASS,False,False
+de,de-DE,E047,5,Die andere Maya,9.67,PASS,False,False
+de,de-DE,E048,5,Daniel bekommt das Signal,9.67,PASS,False,False
+de,de-DE,E049,5,Der Ausweg,9.77,PASS,True,True
+de,de-DE,E050,5,Der verschlossene Raum,9.71,PASS,False,False
+de,de-DE,E051,6,Vier Sekunden verschwunden,9.7,PASS,False,False
+de,de-DE,E052,6,Bevor wir uns trafen,9.7,PASS,False,False
+de,de-DE,E053,6,M. Vale,9.7,PASS,False,False
+de,de-DE,E054,6,Konstruiert,9.7,PASS,False,False
+de,de-DE,E055,6,Ein Leben ohne Maya,9.7,PASS,False,False
+de,de-DE,E056,6,Sieben Stunden,9.7,PASS,False,False
+de,de-DE,E057,6,Die Injektion,9.7,PASS,False,False
+de,de-DE,E058,6,Nora hat angefangen,9.74,PASS,False,False
+de,de-DE,E059,6,Nachricht an morgen,9.7,PASS,False,False
+de,de-DE,E060,6,Die erste Adresse,9.74,PASS,False,False
+de,de-DE,E061,7,Sieben Tage bis zur Erweiterung,9.58,PASS,False,False
+de,de-DE,E062,7,Empfänger 001,9.58,PASS,False,False
+de,de-DE,E063,7,Die Zukunft im Blackout,9.58,PASS,False,False
+de,de-DE,E064,7,Dr. Lena Voss,9.58,PASS,False,False
+de,de-DE,E065,7,Claras Preis,9.68,PASS,True,True
+de,de-DE,E066,7,Das Clara-Problem,9.58,PASS,False,False
+de,de-DE,E067,7,Clara lokalisiert,9.68,PASS,True,True
+de,de-DE,E068,7,Der Ankerschlüssel,9.58,PASS,False,False
+de,de-DE,E069,7,Maya verursacht den Blackout,9.58,PASS,False,False
+de,de-DE,E070,7,Silas,9.68,PASS,True,True
+de,de-DE,E071,8,Der falsche Bösewicht,9.67,PASS,True,True
+de,de-DE,E072,8,Jonahs Lüge,9.57,PASS,False,False
+de,de-DE,E073,8,Sechzehn Resets,9.57,PASS,False,False
+de,de-DE,E074,8,Die Frist,9.57,PASS,False,False
+de,de-DE,E075,8,Mord in sieben Tagen,9.57,PASS,False,False
+de,de-DE,E076,8,Zwei Jonahs,9.57,PASS,False,False
+de,de-DE,E077,8,Der Replik-Raum,9.57,PASS,False,False
+de,de-DE,E078,8,Das Ursprungsereignis,9.57,PASS,False,False
+de,de-DE,E079,8,Der Feind ist AHEAD,9.61,PASS,False,False
+de,de-DE,E080,8,Konsens,9.61,PASS,False,False
+de,de-DE,E081,9,Die gestrichene Zeile,9.62,PASS,False,False
+de,de-DE,E082,9,Lena zeigte es ihr,9.62,PASS,False,False
+de,de-DE,E083,9,Die Bösewicht-Version,9.62,PASS,False,False
+de,de-DE,E084,9,Was Maya getan hat,9.62,PASS,False,False
+de,de-DE,E085,9,Maya fehlt,9.62,PASS,False,False
+de,de-DE,E086,9,Willkommen zurück,9.62,PASS,False,False
+de,de-DE,E087,9,Version Achtzehn,9.62,PASS,False,False
+de,de-DE,E088,9,Rette Nora nicht,9.62,PASS,False,False
+de,de-DE,E089,9,Das erste Paket,9.62,PASS,False,False
+de,de-DE,E090,9,Die Schleife bearbeiten,9.62,PASS,False,False
+de,de-DE,E091,10,Der Freundschaftstest,9.75,PASS,False,False
+de,de-DE,E092,10,Wieder Fremde,9.71,PASS,False,False
+de,de-DE,E093,10,Sie finden sich trotzdem,9.75,PASS,False,False
+de,de-DE,E094,10,Version Dreizehn,9.71,PASS,False,False
+de,de-DE,E095,10,Noch sieben Minuten,9.71,PASS,False,False
+de,de-DE,E096,10,Der Anker,9.71,PASS,False,False
+de,de-DE,E097,10,Die letzten Regeln,9.81,PASS,True,True
+de,de-DE,E098,10,Die letzte Vorhersage,9.84,PASS,True,True
+de,de-DE,E099,10,Die Entscheidung,9.84,PASS,True,True
+de,de-DE,E100,10,Sieben Minuten voraus,9.75,PASS,False,False
+es,es-ES,E001,1,Siete minutos,9.72,PASS,False,False
+es,es-ES,E002,1,La mujer muerta,9.72,PASS,False,False
+es,es-ES,E003,1,Ella lo sabía,9.68,PASS,False,False
+es,es-ES,E004,1,El segundo vídeo,9.72,PASS,False,False
+es,es-ES,E005,1,No lo salves,9.68,PASS,False,False
+es,es-ES,E006,1,¿Nora quién?,9.68,PASS,False,False
+es,es-ES,E007,1,Otro receptor,9.72,PASS,False,False
+es,es-ES,E008,1,El detective,9.68,PASS,False,False
+es,es-ES,E009,1,Su primera predicción,9.68,PASS,False,False
+es,es-ES,E010,1,El móvil de Nora,9.72,PASS,False,False
+es,es-ES,E011,2,El arma,9.65,PASS,False,False
+es,es-ES,E012,2,Mientras dormías,9.65,PASS,False,False
+es,es-ES,E013,2,El relé,9.75,PASS,True,True
+es,es-ES,E014,2,Receptor diecisiete,9.75,PASS,True,True
+es,es-ES,E015,2,Receptor dieciséis,9.75,PASS,True,True
+es,es-ES,E016,2,Uno de nosotros,9.65,PASS,False,False
+es,es-ES,E017,2,Observadora de campo,9.65,PASS,False,False
+es,es-ES,E018,2,La puerta roja,9.65,PASS,False,False
+es,es-ES,E019,2,Punto ciego,9.65,PASS,False,False
+es,es-ES,E020,2,Dentro del apartamento,9.65,PASS,False,False
+es,es-ES,E021,3,La Maya dormida,9.66,PASS,False,False
+es,es-ES,E022,3,¿Dónde está Clara?,9.66,PASS,False,False
+es,es-ES,E023,3,El anexo,9.66,PASS,False,False
+es,es-ES,E024,3,La fotografía de mañana,9.66,PASS,False,False
+es,es-ES,E025,3,Maya construyó AHEAD,9.66,PASS,False,False
+es,es-ES,E026,3,Has llegado pronto,9.66,PASS,False,False
+es,es-ES,E027,3,A siete minutos,9.66,PASS,False,False
+es,es-ES,E028,3,Después de esta noche,9.66,PASS,False,False
+es,es-ES,E029,3,Ethan recibe la Señal,9.66,PASS,False,False
+es,es-ES,E030,3,El detonador,9.66,PASS,False,False
+es,es-ES,E031,4,Bomba de siete minutos,9.57,PASS,False,False
+es,es-ES,E032,4,Jonah Reed,9.67,PASS,True,True
+es,es-ES,E033,4,Versión diecisiete,9.57,PASS,False,False
+es,es-ES,E034,4,Inicia Return,9.57,PASS,False,False
+es,es-ES,E035,4,El coste,9.57,PASS,False,False
+es,es-ES,E036,4,Dra. Vale,9.57,PASS,False,False
+es,es-ES,E037,4,Protocolo Return,9.57,PASS,False,False
+es,es-ES,E038,4,Jonah debe morir,9.57,PASS,False,False
+es,es-ES,E039,4,Silas Ward,9.57,PASS,False,False
+es,es-ES,E040,4,La silla vacía,9.57,PASS,False,False
+es,es-ES,E041,5,Clara está viva,9.67,PASS,False,False
+es,es-ES,E042,5,La predicción irrompible,9.67,PASS,False,False
+es,es-ES,E043,5,Tren 407,9.71,PASS,False,False
+es,es-ES,E044,5,Una víctima,9.67,PASS,False,False
+es,es-ES,E045,5,Error de línea temporal,9.67,PASS,False,False
+es,es-ES,E046,5,Sin señal,9.67,PASS,False,False
+es,es-ES,E047,5,La otra Maya,9.67,PASS,False,False
+es,es-ES,E048,5,Daniel recibe la Señal,9.67,PASS,False,False
+es,es-ES,E049,5,La salida,9.77,PASS,True,True
+es,es-ES,E050,5,La habitación cerrada,9.71,PASS,False,False
+es,es-ES,E051,6,Faltan cuatro segundos,9.7,PASS,False,False
+es,es-ES,E052,6,Antes de conocernos,9.7,PASS,False,False
+es,es-ES,E053,6,M. Vale,9.7,PASS,False,False
+es,es-ES,E054,6,Diseñada,9.7,PASS,False,False
+es,es-ES,E055,6,Una vida sin Maya,9.7,PASS,False,False
+es,es-ES,E056,6,Siete horas,9.7,PASS,False,False
+es,es-ES,E057,6,La inyección,9.7,PASS,False,False
+es,es-ES,E058,6,Nora lo empezó,9.74,PASS,False,False
+es,es-ES,E059,6,Mensaje a mañana,9.7,PASS,False,False
+es,es-ES,E060,6,La primera dirección,9.74,PASS,False,False
+es,es-ES,E061,7,Siete días para la expansión,9.58,PASS,False,False
+es,es-ES,E062,7,Receptor 001,9.58,PASS,False,False
+es,es-ES,E063,7,El futuro del apagón,9.58,PASS,False,False
+es,es-ES,E064,7,Dra. Lena Voss,9.58,PASS,False,False
+es,es-ES,E065,7,El precio de Clara,9.68,PASS,True,True
+es,es-ES,E066,7,El problema de Clara,9.58,PASS,False,False
+es,es-ES,E067,7,Ubicación de Clara adquirida,9.68,PASS,True,True
+es,es-ES,E068,7,La llave del ancla,9.58,PASS,False,False
+es,es-ES,E069,7,Maya causa el apagón,9.58,PASS,False,False
+es,es-ES,E070,7,Silas,9.68,PASS,True,True
+es,es-ES,E071,8,El villano equivocado,9.67,PASS,True,True
+es,es-ES,E072,8,La mentira de Jonah,9.57,PASS,False,False
+es,es-ES,E073,8,Dieciséis reinicios,9.57,PASS,False,False
+es,es-ES,E074,8,La fecha límite,9.57,PASS,False,False
+es,es-ES,E075,8,Asesinato en siete días,9.57,PASS,False,False
+es,es-ES,E076,8,Dos Jonahs,9.57,PASS,False,False
+es,es-ES,E077,8,La sala de réplicas,9.57,PASS,False,False
+es,es-ES,E078,8,Evento de origen,9.57,PASS,False,False
+es,es-ES,E079,8,El enemigo es AHEAD,9.61,PASS,False,False
+es,es-ES,E080,8,Consenso,9.61,PASS,False,False
+es,es-ES,E081,9,La línea que falta,9.62,PASS,False,False
+es,es-ES,E082,9,Lena le enseñó,9.62,PASS,False,False
+es,es-ES,E083,9,La versión villana,9.62,PASS,False,False
+es,es-ES,E084,9,Lo que hizo Maya,9.62,PASS,False,False
+es,es-ES,E085,9,Maya desaparecida,9.62,PASS,False,False
+es,es-ES,E086,9,Bienvenida de nuevo,9.62,PASS,False,False
+es,es-ES,E087,9,Versión dieciocho,9.62,PASS,False,False
+es,es-ES,E088,9,No salves a Nora,9.62,PASS,False,False
+es,es-ES,E089,9,El primer paquete,9.62,PASS,False,False
+es,es-ES,E090,9,Editar el bucle,9.62,PASS,False,False
+es,es-ES,E091,10,La prueba de amistad,9.75,PASS,False,False
+es,es-ES,E092,10,Otra vez desconocidos,9.71,PASS,False,False
+es,es-ES,E093,10,Se encuentran de todos modos,9.75,PASS,False,False
+es,es-ES,E094,10,Versión trece,9.71,PASS,False,False
+es,es-ES,E095,10,Quedan siete minutos,9.71,PASS,False,False
+es,es-ES,E096,10,El ancla,9.71,PASS,False,False
+es,es-ES,E097,10,Las reglas finales,9.81,PASS,True,True
+es,es-ES,E098,10,La última predicción,9.84,PASS,True,True
+es,es-ES,E099,10,La elección,9.84,PASS,True,True
+es,es-ES,E100,10,7 minutos por delante,9.75,PASS,False,False
+pt-BR,pt-BR,E001,1,Sete minutos,9.73,PASS,False,False
+pt-BR,pt-BR,E002,1,A mulher morta,9.73,PASS,False,False
+pt-BR,pt-BR,E003,1,Ela sabia,9.69,PASS,False,False
+pt-BR,pt-BR,E004,1,O segundo vídeo,9.73,PASS,False,False
+pt-BR,pt-BR,E005,1,Não salve ele,9.69,PASS,False,False
+pt-BR,pt-BR,E006,1,Nora quem?,9.69,PASS,False,False
+pt-BR,pt-BR,E007,1,Outro receptor,9.73,PASS,False,False
+pt-BR,pt-BR,E008,1,O detetive,9.69,PASS,False,False
+pt-BR,pt-BR,E009,1,A primeira previsão dele,9.69,PASS,False,False
+pt-BR,pt-BR,E010,1,O celular da Nora,9.73,PASS,False,False
+pt-BR,pt-BR,E011,2,A arma,9.66,PASS,False,False
+pt-BR,pt-BR,E012,2,Enquanto você dormia,9.66,PASS,False,False
+pt-BR,pt-BR,E013,2,O relé,9.76,PASS,True,True
+pt-BR,pt-BR,E014,2,Receptor dezessete,9.76,PASS,True,True
+pt-BR,pt-BR,E015,2,Receptor dezesseis,9.76,PASS,True,True
+pt-BR,pt-BR,E016,2,Um de nós,9.66,PASS,False,False
+pt-BR,pt-BR,E017,2,Observadora de campo,9.66,PASS,False,False
+pt-BR,pt-BR,E018,2,A porta vermelha,9.66,PASS,False,False
+pt-BR,pt-BR,E019,2,Ponto cego,9.66,PASS,False,False
+pt-BR,pt-BR,E020,2,Dentro do apartamento,9.66,PASS,False,False
+pt-BR,pt-BR,E021,3,A Maya adormecida,9.67,PASS,False,False
+pt-BR,pt-BR,E022,3,Onde está Clara?,9.67,PASS,False,False
+pt-BR,pt-BR,E023,3,O anexo,9.67,PASS,False,False
+pt-BR,pt-BR,E024,3,A fotografia de amanhã,9.67,PASS,False,False
+pt-BR,pt-BR,E025,3,Maya construiu AHEAD,9.67,PASS,False,False
+pt-BR,pt-BR,E026,3,Você chegou cedo,9.67,PASS,False,False
+pt-BR,pt-BR,E027,3,A sete minutos de distância,9.67,PASS,False,False
+pt-BR,pt-BR,E028,3,Depois desta noite,9.67,PASS,False,False
+pt-BR,pt-BR,E029,3,Ethan recebe o Sinal,9.67,PASS,False,False
+pt-BR,pt-BR,E030,3,O detonador,9.67,PASS,False,False
+pt-BR,pt-BR,E031,4,Bomba de sete minutos,9.58,PASS,False,False
+pt-BR,pt-BR,E032,4,Jonah Reed,9.68,PASS,True,True
+pt-BR,pt-BR,E033,4,Versão dezessete,9.58,PASS,False,False
+pt-BR,pt-BR,E034,4,Return inicia,9.58,PASS,False,False
+pt-BR,pt-BR,E035,4,O preço,9.58,PASS,False,False
+pt-BR,pt-BR,E036,4,Dra. Vale,9.58,PASS,False,False
+pt-BR,pt-BR,E037,4,Protocolo Return,9.58,PASS,False,False
+pt-BR,pt-BR,E038,4,Jonah precisa morrer,9.58,PASS,False,False
+pt-BR,pt-BR,E039,4,Silas Ward,9.58,PASS,False,False
+pt-BR,pt-BR,E040,4,A cadeira vazia,9.58,PASS,False,False
+pt-BR,pt-BR,E041,5,Clara está viva,9.68,PASS,False,False
+pt-BR,pt-BR,E042,5,A previsão inquebrável,9.68,PASS,False,False
+pt-BR,pt-BR,E043,5,Trem 407,9.72,PASS,False,False
+pt-BR,pt-BR,E044,5,Uma vítima,9.68,PASS,False,False
+pt-BR,pt-BR,E045,5,Erro de linha temporal,9.68,PASS,False,False
+pt-BR,pt-BR,E046,5,Sem sinal,9.68,PASS,False,False
+pt-BR,pt-BR,E047,5,A outra Maya,9.68,PASS,False,False
+pt-BR,pt-BR,E048,5,Daniel recebe o Sinal,9.68,PASS,False,False
+pt-BR,pt-BR,E049,5,A saída,9.78,PASS,True,True
+pt-BR,pt-BR,E050,5,A sala trancada,9.72,PASS,False,False
+pt-BR,pt-BR,E051,6,Quatro segundos perdidos,9.71,PASS,False,False
+pt-BR,pt-BR,E052,6,Antes de nos conhecermos,9.71,PASS,False,False
+pt-BR,pt-BR,E053,6,M. Vale,9.71,PASS,False,False
+pt-BR,pt-BR,E054,6,Projetada,9.71,PASS,False,False
+pt-BR,pt-BR,E055,6,Uma vida sem Maya,9.71,PASS,False,False
+pt-BR,pt-BR,E056,6,Sete horas,9.71,PASS,False,False
+pt-BR,pt-BR,E057,6,A injeção,9.71,PASS,False,False
+pt-BR,pt-BR,E058,6,Nora começou,9.75,PASS,False,False
+pt-BR,pt-BR,E059,6,Mensagem para amanhã,9.71,PASS,False,False
+pt-BR,pt-BR,E060,6,O primeiro endereço,9.75,PASS,False,False
+pt-BR,pt-BR,E061,7,Sete dias para a expansão,9.59,PASS,False,False
+pt-BR,pt-BR,E062,7,Receptor 001,9.59,PASS,False,False
+pt-BR,pt-BR,E063,7,O futuro do apagão,9.59,PASS,False,False
+pt-BR,pt-BR,E064,7,Dra. Lena Voss,9.59,PASS,False,False
+pt-BR,pt-BR,E065,7,O preço de Clara,9.69,PASS,True,True
+pt-BR,pt-BR,E066,7,O problema de Clara,9.59,PASS,False,False
+pt-BR,pt-BR,E067,7,Localização de Clara adquirida,9.69,PASS,True,True
+pt-BR,pt-BR,E068,7,A chave da âncora,9.59,PASS,False,False
+pt-BR,pt-BR,E069,7,Maya causa o apagão,9.59,PASS,False,False
+pt-BR,pt-BR,E070,7,Silas,9.69,PASS,True,True
+pt-BR,pt-BR,E071,8,O vilão errado,9.68,PASS,True,True
+pt-BR,pt-BR,E072,8,A mentira de Jonah,9.58,PASS,False,False
+pt-BR,pt-BR,E073,8,Dezesseis reinícios,9.58,PASS,False,False
+pt-BR,pt-BR,E074,8,O prazo final,9.58,PASS,False,False
+pt-BR,pt-BR,E075,8,Assassinato em sete dias,9.58,PASS,False,False
+pt-BR,pt-BR,E076,8,Dois Jonahs,9.58,PASS,False,False
+pt-BR,pt-BR,E077,8,A sala de réplicas,9.58,PASS,False,False
+pt-BR,pt-BR,E078,8,Evento de origem,9.58,PASS,False,False
+pt-BR,pt-BR,E079,8,O inimigo é AHEAD,9.62,PASS,False,False
+pt-BR,pt-BR,E080,8,Consenso,9.62,PASS,False,False
+pt-BR,pt-BR,E081,9,A linha apagada,9.63,PASS,False,False
+pt-BR,pt-BR,E082,9,Lena ensinou,9.63,PASS,False,False
+pt-BR,pt-BR,E083,9,A versão vilã,9.63,PASS,False,False
+pt-BR,pt-BR,E084,9,O que Maya fez,9.63,PASS,False,False
+pt-BR,pt-BR,E085,9,Maya desaparecida,9.63,PASS,False,False
+pt-BR,pt-BR,E086,9,Bem-vinda de volta,9.63,PASS,False,False
+pt-BR,pt-BR,E087,9,Versão dezoito,9.63,PASS,False,False
+pt-BR,pt-BR,E088,9,Não salve Nora,9.63,PASS,False,False
+pt-BR,pt-BR,E089,9,O primeiro pacote,9.63,PASS,False,False
+pt-BR,pt-BR,E090,9,Edite o ciclo,9.63,PASS,False,False
+pt-BR,pt-BR,E091,10,O teste da amizade,9.76,PASS,False,False
+pt-BR,pt-BR,E092,10,Estranhos outra vez,9.72,PASS,False,False
+pt-BR,pt-BR,E093,10,Eles se encontram mesmo assim,9.76,PASS,False,False
+pt-BR,pt-BR,E094,10,Versão treze,9.72,PASS,False,False
+pt-BR,pt-BR,E095,10,Sete minutos restantes,9.72,PASS,False,False
+pt-BR,pt-BR,E096,10,A âncora,9.72,PASS,False,False
+pt-BR,pt-BR,E097,10,Regras finais,9.82,PASS,True,True
+pt-BR,pt-BR,E098,10,A última previsão,9.84,PASS,True,True
+pt-BR,pt-BR,E099,10,A escolha,9.84,PASS,True,True
+pt-BR,pt-BR,E100,10,7 minutos à frente,9.76,PASS,False,False
