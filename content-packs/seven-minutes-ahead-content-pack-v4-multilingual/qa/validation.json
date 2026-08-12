@@ -1,0 +1,72 @@
+{
+  "status": "PASS",
+  "total_variants": 400,
+  "summary": {
+    "en": {
+      "locale": "en-US",
+      "wpm": 155,
+      "episodes": 100,
+      "timing_pass": 100,
+      "editorial_pass": 100,
+      "word_count_min": 150,
+      "word_count_max": 160,
+      "word_count_avg": 153.88,
+      "seconds_min": 58.06,
+      "seconds_max": 61.94,
+      "seconds_avg": 59.57,
+      "score_min": 9.75,
+      "score_max": 9.82,
+      "score_avg": 9.8
+    },
+    "de": {
+      "locale": "de-DE",
+      "wpm": 150,
+      "episodes": 100,
+      "timing_pass": 100,
+      "editorial_pass": 100,
+      "word_count_min": 140,
+      "word_count_max": 155,
+      "word_count_avg": 146.24,
+      "seconds_min": 56.0,
+      "seconds_max": 62.0,
+      "seconds_avg": 58.5,
+      "score_min": 9.73,
+      "score_max": 9.82,
+      "score_avg": 9.79
+    },
+    "es": {
+      "locale": "es-ES",
+      "wpm": 155,
+      "episodes": 100,
+      "timing_pass": 100,
+      "editorial_pass": 100,
+      "word_count_min": 145,
+      "word_count_max": 160,
+      "word_count_avg": 152.58,
+      "seconds_min": 56.13,
+      "seconds_max": 61.94,
+      "seconds_avg": 59.06,
+      "score_min": 9.72,
+      "score_max": 9.81,
+      "score_avg": 9.78
+    },
+    "pt-BR": {
+      "locale": "pt-BR",
+      "wpm": 155,
+      "episodes": 100,
+      "timing_pass": 100,
+      "editorial_pass": 100,
+      "word_count_min": 145,
+      "word_count_max": 160,
+      "word_count_avg": 152.47,
+      "seconds_min": 56.13,
+      "seconds_max": 61.94,
+      "seconds_avg": 59.02,
+      "score_min": 9.73,
+      "score_max": 9.82,
+      "score_avg": 9.79
+    }
+  },
+  "all_timing_pass": true,
+  "all_editorial_pass": true
+}

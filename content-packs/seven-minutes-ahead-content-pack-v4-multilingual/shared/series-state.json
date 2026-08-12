@@ -1,0 +1,59 @@
+{
+  "series": {
+    "title": "7 MINUTES AHEAD",
+    "format": "100 x ~1-minute vertical microdrama episodes",
+    "genre": [
+      "mystery",
+      "thriller",
+      "relationship drama",
+      "science fiction"
+    ],
+    "master_language": "en",
+    "target_spoken_wpm": 160,
+    "target_duration_seconds": [
+      56,
+      62
+    ],
+    "core_promise": "Every episode changes what the viewer thought was true.",
+    "premise": "Every night at 8:00 PM, Maya receives a twenty-second video recorded seven minutes in the future. At first the clips save lives. Then one shows Maya committing murder. She discovers other receivers, competing factions, and eventually that the signal is part of a temporal loop she may be destined to create.",
+    "editorial_version": "v3",
+    "script_mode": "performed microdrama / narration + dialogue",
+    "editorial_gate": ">=9.50/10 internal craft score",
+    "selected_audio_is_canonical_timing_authority": true,
+    "v3_word_range": [
+      150,
+      160
+    ],
+    "v3_average_words": 153.88
+  },
+  "characters": {
+    "Maya Vale": "28, systems analyst; observant, stubborn, protective; protagonist and eventual origin point of the loop.",
+    "Ethan Cole": "30, investigative audio producer; Maya’s partner; appears deceptive because his missing sister Clara was tied to the original AHEAD experiments.",
+    "Nora Reyes": "29, emergency-room nurse; Maya’s closest friend; has secretly received the Signal longer than Maya.",
+    "Detective Daniel Cross": "38, homicide detective; skeptical, methodical; becomes a receiver and moral counterweight.",
+    "Dr. Lena Voss": "45, temporal-computing researcher; publicly blamed for AHEAD; actually tried to shut the project down.",
+    "Jonah Reed": "34, first publicly documented receiver; officially died three years ago but is alive inside the network’s hidden infrastructure.",
+    "Clara Cole": "27, Ethan’s sister; missing researcher whose disappearance anchors Ethan’s secrecy.",
+    "Silas Ward": "42, leader of the Anchors; believes predicted futures must be preserved to avoid catastrophic branching."
+  },
+  "global_truth": {
+    "signal": "Temporal return packets showing reachable future states; often accurate but deliberately context-poor.",
+    "ahead": "A temporal-computing project founded by Lena Voss and later repeatedly altered by future versions of Maya.",
+    "version_17": "Current loop/attempt represented by Season 1.",
+    "return": "A protocol that can send compressed state backward and, at full scale, overwrite branch history.",
+    "catastrophe": "A self-fulfilling global blackout caused by scaling temporal-return traffic across communications infrastructure.",
+    "season_resolution": "Maya dismantles the prediction/control network and becomes anchor for a single non-predictive seven-minute communication bridge."
+  },
+  "knowledge_model_required": [
+    "objective_truth",
+    "audience_knows",
+    "maya_knows",
+    "ethan_knows",
+    "nora_knows",
+    "daniel_knows",
+    "lena_knows",
+    "silas_knows",
+    "jonah_knows"
+  ],
+  "episode_state_source": "See manifest + episode files; production implementation should compile per-episode state snapshots before scene planning."
+}

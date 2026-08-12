@@ -1,0 +1,401 @@
+language,locale,episode,title,source_editorial_score,localization_naturalness,timing_fit,continuity_preservation,weighted_score,gate
+en,en-US,E001,Seven Minutes,9.79,9.8,9.96,9.95,9.82,PASS
+en,en-US,E002,The Dead Woman,9.79,9.8,9.96,9.95,9.82,PASS
+en,en-US,E003,She Knew,9.79,9.8,9.96,9.95,9.82,PASS
+en,en-US,E004,The Second Video,9.8,9.8,9.96,9.95,9.82,PASS
+en,en-US,E005,Do Not Save Him,9.79,9.8,9.96,9.95,9.82,PASS
+en,en-US,E006,Nora Who?,9.74,9.8,9.96,9.95,9.78,PASS
+en,en-US,E007,Another Receiver,9.78,9.8,9.92,9.95,9.81,PASS
+en,en-US,E008,The Detective,9.73,9.8,9.96,9.95,9.77,PASS
+en,en-US,E009,His First Prediction,9.79,9.8,9.96,9.95,9.82,PASS
+en,en-US,E010,Nora’s Phone,9.79,9.8,9.96,9.95,9.82,PASS
+en,en-US,E011,The Gun,9.8,9.8,9.96,9.95,9.82,PASS
+en,en-US,E012,While You Slept,9.77,9.8,9.96,9.95,9.8,PASS
+en,en-US,E013,The Relay,9.8,9.8,9.96,9.95,9.82,PASS
+en,en-US,E014,Receiver Seventeen,9.77,9.8,9.96,9.95,9.8,PASS
+en,en-US,E015,Receiver Sixteen,9.79,9.8,9.96,9.95,9.82,PASS
+en,en-US,E016,One of Us,9.75,9.8,9.96,9.95,9.79,PASS
+en,en-US,E017,Field Observer,9.74,9.8,9.96,9.95,9.78,PASS
+en,en-US,E018,The Red Door,9.77,9.8,9.96,9.95,9.8,PASS
+en,en-US,E019,Blind Spot,9.77,9.8,9.96,9.95,9.8,PASS
+en,en-US,E020,Inside the Apartment,9.79,9.8,9.96,9.95,9.82,PASS
+en,en-US,E021,The Sleeping Maya,9.74,9.8,9.96,9.95,9.78,PASS
+en,en-US,E022,Where Is Clara?,9.8,9.8,9.96,9.95,9.82,PASS
+en,en-US,E023,The Annex,9.75,9.8,9.96,9.95,9.79,PASS
+en,en-US,E024,Tomorrow’s Photograph,9.77,9.8,9.96,9.95,9.8,PASS
+en,en-US,E025,Maya Built AHEAD,9.74,9.8,9.99,9.95,9.78,PASS
+en,en-US,E026,You Are Early,9.8,9.8,9.96,9.95,9.82,PASS
+en,en-US,E027,Seven Minutes Away,9.77,9.8,9.99,9.95,9.81,PASS
+en,en-US,E028,After Tonight,9.77,9.8,9.96,9.95,9.8,PASS
+en,en-US,E029,Ethan Receives,9.8,9.8,9.82,9.95,9.81,PASS
+en,en-US,E030,The Detonator,9.79,9.8,9.96,9.95,9.82,PASS
+en,en-US,E031,Seven-Minute Bomb,9.79,9.8,9.96,9.95,9.82,PASS
+en,en-US,E032,Jonah Reed,9.78,9.8,9.97,9.95,9.81,PASS
+en,en-US,E033,Version Seventeen,9.74,9.8,9.96,9.95,9.78,PASS
+en,en-US,E034,Initiates Return,9.71,9.8,9.96,9.95,9.76,PASS
+en,en-US,E035,The Cost,9.79,9.8,9.99,9.95,9.82,PASS
+en,en-US,E036,Dr. Vale,9.79,9.8,9.99,9.95,9.82,PASS
+en,en-US,E037,Return Protocol,9.73,9.8,9.99,9.95,9.78,PASS
+en,en-US,E038,Jonah Must Die,9.78,9.8,9.89,9.95,9.8,PASS
+en,en-US,E039,Silas Ward,9.79,9.8,9.99,9.95,9.82,PASS
+en,en-US,E040,The Empty Chair,9.79,9.8,9.96,9.95,9.82,PASS
+en,en-US,E041,Clara Alive,9.76,9.8,9.94,9.95,9.79,PASS
+en,en-US,E042,The Unbreakable Prediction,9.79,9.8,9.89,9.95,9.81,PASS
+en,en-US,E043,Train 407,9.8,9.8,9.89,9.95,9.82,PASS
+en,en-US,E044,One Casualty,9.78,9.8,9.85,9.95,9.8,PASS
+en,en-US,E045,Timeline Error,9.8,9.8,9.96,9.95,9.82,PASS
+en,en-US,E046,No Signal,9.79,9.8,9.89,9.95,9.81,PASS
+en,en-US,E047,The Other Maya,9.79,9.8,9.92,9.95,9.81,PASS
+en,en-US,E048,Daniel Gets the Signal,9.74,9.8,9.99,9.95,9.78,PASS
+en,en-US,E049,The Way Out,9.79,9.8,9.89,9.95,9.81,PASS
+en,en-US,E050,The Locked Room,9.79,9.8,9.94,9.95,9.81,PASS
+en,en-US,E051,Four Seconds Missing,9.8,9.8,9.94,9.95,9.82,PASS
+en,en-US,E052,Before We Met,9.74,9.8,9.99,9.95,9.78,PASS
+en,en-US,E053,M. Vale,9.77,9.8,9.99,9.95,9.81,PASS
+en,en-US,E054,Engineered,9.77,9.8,9.99,9.95,9.81,PASS
+en,en-US,E055,A Life Without Maya,9.73,9.8,9.99,9.95,9.78,PASS
+en,en-US,E056,Seven Hours,9.76,9.8,9.87,9.95,9.79,PASS
+en,en-US,E057,The Injection,9.77,9.8,9.82,9.95,9.79,PASS
+en,en-US,E058,Nora Started It,9.79,9.8,9.99,9.95,9.82,PASS
+en,en-US,E059,Message to Tomorrow,9.8,9.8,9.97,9.95,9.82,PASS
+en,en-US,E060,The First Address,9.77,9.8,9.97,9.95,9.8,PASS
+en,en-US,E061,Seven Days to Expansion,9.79,9.8,9.99,9.95,9.82,PASS
+en,en-US,E062,Receiver 001,9.75,9.8,9.99,9.95,9.79,PASS
+en,en-US,E063,The Blackout Future,9.75,9.8,9.96,9.95,9.79,PASS
+en,en-US,E064,Dr. Lena Voss,9.73,9.8,9.87,9.95,9.77,PASS
+en,en-US,E065,Clara’s Price,9.78,9.8,9.96,9.95,9.81,PASS
+en,en-US,E066,The Clara Problem,9.76,9.8,9.96,9.95,9.8,PASS
+en,en-US,E067,Clara Location Acquired,9.76,9.8,9.97,9.95,9.8,PASS
+en,en-US,E068,The Anchor Key,9.76,9.8,9.89,9.95,9.79,PASS
+en,en-US,E069,Maya Causes the Blackout,9.76,9.8,9.94,9.95,9.79,PASS
+en,en-US,E070,Silas,9.75,9.8,9.99,9.95,9.79,PASS
+en,en-US,E071,The Wrong Villain,9.72,9.8,9.99,9.95,9.77,PASS
+en,en-US,E072,Jonah’s Lie,9.73,9.8,9.82,9.95,9.76,PASS
+en,en-US,E073,Sixteen Resets,9.72,9.8,9.96,9.95,9.77,PASS
+en,en-US,E074,The Deadline,9.74,9.8,9.99,9.95,9.78,PASS
+en,en-US,E075,Seven-Day Murder,9.78,9.8,9.99,9.95,9.81,PASS
+en,en-US,E076,Two Jonahs,9.73,9.8,9.92,9.95,9.77,PASS
+en,en-US,E077,The Replica Room,9.77,9.8,9.96,9.95,9.8,PASS
+en,en-US,E078,Origin Event,9.74,9.8,9.96,9.95,9.78,PASS
+en,en-US,E079,The Enemy Is AHEAD,9.76,9.8,9.99,9.95,9.8,PASS
+en,en-US,E080,Consensus,9.72,9.8,9.97,9.95,9.77,PASS
+en,en-US,E081,The Missing Line,9.73,9.8,9.97,9.95,9.78,PASS
+en,en-US,E082,Lena Taught Her,9.79,9.8,9.96,9.95,9.82,PASS
+en,en-US,E083,The Villain Version,9.7,9.8,9.97,9.95,9.75,PASS
+en,en-US,E084,What Maya Did,9.7,9.8,9.99,9.95,9.76,PASS
+en,en-US,E085,Maya Missing,9.78,9.8,9.97,9.95,9.81,PASS
+en,en-US,E086,Welcome Back,9.76,9.8,9.94,9.95,9.79,PASS
+en,en-US,E087,Version Eighteen,9.75,9.8,9.97,9.95,9.79,PASS
+en,en-US,E088,Do Not Save Nora,9.77,9.8,9.99,9.95,9.81,PASS
+en,en-US,E089,The First Packet,9.78,9.8,9.99,9.95,9.81,PASS
+en,en-US,E090,Edit the Loop,9.78,9.8,9.96,9.95,9.81,PASS
+en,en-US,E091,The Friendship Test,9.78,9.8,9.96,9.95,9.81,PASS
+en,en-US,E092,Strangers Again,9.76,9.8,9.96,9.95,9.8,PASS
+en,en-US,E093,They Meet Anyway,9.75,9.8,9.97,9.95,9.79,PASS
+en,en-US,E094,Version Thirteen,9.78,9.8,9.94,9.95,9.81,PASS
+en,en-US,E095,Seven Minutes Left,9.75,9.8,9.99,9.95,9.79,PASS
+en,en-US,E096,The Anchor,9.79,9.8,9.96,9.95,9.82,PASS
+en,en-US,E097,Final Rules,9.79,9.8,9.94,9.95,9.81,PASS
+en,en-US,E098,V13 Override,9.79,9.8,9.99,9.95,9.82,PASS
+en,en-US,E099,The Choice,9.71,9.8,9.89,9.95,9.75,PASS
+en,en-US,E100,7 Minutes Ahead,9.73,9.8,9.99,9.95,9.78,PASS
+de,de-DE,E001,Sieben Minuten,9.79,9.74,9.92,9.95,9.8,PASS
+de,de-DE,E002,Die tote Frau,9.79,9.74,9.94,9.95,9.81,PASS
+de,de-DE,E003,Sie wusste es,9.79,9.74,9.94,9.95,9.81,PASS
+de,de-DE,E004,Das zweite Video,9.8,9.74,9.96,9.95,9.81,PASS
+de,de-DE,E005,Rette ihn nicht,9.79,9.74,9.89,9.95,9.8,PASS
+de,de-DE,E006,Nora wer?,9.74,9.74,9.94,9.95,9.77,PASS
+de,de-DE,E007,Noch ein Empfänger,9.78,9.74,9.89,9.95,9.79,PASS
+de,de-DE,E008,Der Ermittler,9.73,9.74,9.94,9.95,9.76,PASS
+de,de-DE,E009,Seine erste Vorhersage,9.79,9.74,9.99,9.95,9.81,PASS
+de,de-DE,E010,Noras Handy,9.79,9.74,9.82,9.95,9.79,PASS
+de,de-DE,E011,Die Pistole,9.8,9.74,9.99,9.95,9.82,PASS
+de,de-DE,E012,Während du schliefst,9.77,9.74,9.87,9.95,9.78,PASS
+de,de-DE,E013,Das Relais,9.8,9.74,9.99,9.95,9.82,PASS
+de,de-DE,E014,Empfänger Siebzehn,9.77,9.74,9.84,9.95,9.78,PASS
+de,de-DE,E015,Empfänger Sechzehn,9.79,9.74,9.99,9.95,9.81,PASS
+de,de-DE,E016,Einer von uns,9.75,9.74,9.87,9.95,9.77,PASS
+de,de-DE,E017,Feldbeobachterin,9.74,9.74,9.96,9.95,9.77,PASS
+de,de-DE,E018,Die rote Tür,9.77,9.74,9.96,9.95,9.79,PASS
+de,de-DE,E019,Blinder Fleck,9.77,9.74,9.89,9.95,9.79,PASS
+de,de-DE,E020,In der Wohnung,9.79,9.74,9.99,9.95,9.81,PASS
+de,de-DE,E021,Die schlafende Maya,9.74,9.74,9.94,9.95,9.77,PASS
+de,de-DE,E022,Wo ist Clara?,9.8,9.74,9.99,9.95,9.82,PASS
+de,de-DE,E023,Der Annex,9.75,9.74,9.94,9.95,9.78,PASS
+de,de-DE,E024,Das Foto von morgen,9.77,9.74,9.92,9.95,9.79,PASS
+de,de-DE,E025,Maya baute AHEAD,9.74,9.74,9.89,9.95,9.77,PASS
+de,de-DE,E026,Du bist zu früh,9.8,9.74,9.96,9.95,9.81,PASS
+de,de-DE,E027,Sieben Minuten entfernt,9.77,9.74,9.82,9.95,9.78,PASS
+de,de-DE,E028,Nach heute Nacht,9.77,9.74,9.96,9.95,9.79,PASS
+de,de-DE,E029,Ethan empfängt,9.8,9.74,9.92,9.95,9.81,PASS
+de,de-DE,E030,Der Zünder,9.79,9.74,9.94,9.95,9.81,PASS
+de,de-DE,E031,Sieben-Minuten-Bombe,9.79,9.74,9.96,9.95,9.81,PASS
+de,de-DE,E032,Jonah Reed,9.78,9.74,9.87,9.95,9.79,PASS
+de,de-DE,E033,Version Siebzehn,9.74,9.74,9.94,9.95,9.77,PASS
+de,de-DE,E034,Startet Return,9.71,9.74,9.92,9.95,9.75,PASS
+de,de-DE,E035,Der Preis,9.79,9.74,9.87,9.95,9.8,PASS
+de,de-DE,E036,Dr. Vale,9.79,9.74,9.92,9.95,9.8,PASS
+de,de-DE,E037,Return-Protokoll,9.73,9.74,9.99,9.95,9.77,PASS
+de,de-DE,E038,Jonah muss sterben,9.78,9.74,9.92,9.95,9.8,PASS
+de,de-DE,E039,Silas Ward,9.79,9.74,9.89,9.95,9.8,PASS
+de,de-DE,E040,Der leere Stuhl,9.79,9.74,9.82,9.95,9.79,PASS
+de,de-DE,E041,Clara lebt,9.76,9.74,9.84,9.95,9.77,PASS
+de,de-DE,E042,Die unzerbrechliche Vorhersage,9.79,9.74,9.99,9.95,9.81,PASS
+de,de-DE,E043,Zug 407,9.8,9.74,9.92,9.95,9.81,PASS
+de,de-DE,E044,Ein Opfer,9.78,9.74,9.89,9.95,9.79,PASS
+de,de-DE,E045,Zeitlinienfehler,9.8,9.74,9.82,9.95,9.8,PASS
+de,de-DE,E046,Kein Signal,9.79,9.74,9.99,9.95,9.81,PASS
+de,de-DE,E047,Die andere Maya,9.79,9.74,9.82,9.95,9.79,PASS
+de,de-DE,E048,Daniel bekommt das Signal,9.74,9.74,9.99,9.95,9.78,PASS
+de,de-DE,E049,Der Ausweg,9.79,9.74,9.89,9.95,9.8,PASS
+de,de-DE,E050,Der verschlossene Raum,9.79,9.74,9.92,9.95,9.8,PASS
+de,de-DE,E051,Vier Sekunden verschwunden,9.8,9.74,9.84,9.95,9.8,PASS
+de,de-DE,E052,Bevor wir uns trafen,9.74,9.74,9.92,9.95,9.77,PASS
+de,de-DE,E053,M. Vale,9.77,9.74,9.96,9.95,9.79,PASS
+de,de-DE,E054,Konstruiert,9.77,9.74,9.89,9.95,9.79,PASS
+de,de-DE,E055,Ein Leben ohne Maya,9.73,9.74,9.84,9.95,9.75,PASS
+de,de-DE,E056,Sieben Stunden,9.76,9.74,9.94,9.95,9.78,PASS
+de,de-DE,E057,Die Injektion,9.77,9.74,9.82,9.95,9.78,PASS
+de,de-DE,E058,Nora hat angefangen,9.79,9.74,9.99,9.95,9.81,PASS
+de,de-DE,E059,Nachricht an morgen,9.8,9.74,9.99,9.95,9.82,PASS
+de,de-DE,E060,Die erste Adresse,9.77,9.74,9.96,9.95,9.79,PASS
+de,de-DE,E061,Sieben Tage bis zur Erweiterung,9.79,9.74,9.82,9.95,9.79,PASS
+de,de-DE,E062,Empfänger 001,9.75,9.74,9.92,9.95,9.78,PASS
+de,de-DE,E063,Die Zukunft im Blackout,9.75,9.74,9.96,9.95,9.78,PASS
+de,de-DE,E064,Dr. Lena Voss,9.73,9.74,9.96,9.95,9.77,PASS
+de,de-DE,E065,Claras Preis,9.78,9.74,9.92,9.95,9.8,PASS
+de,de-DE,E066,Das Clara-Problem,9.76,9.74,9.99,9.95,9.79,PASS
+de,de-DE,E067,Clara lokalisiert,9.76,9.74,9.94,9.95,9.78,PASS
+de,de-DE,E068,Der Ankerschlüssel,9.76,9.74,9.89,9.95,9.78,PASS
+de,de-DE,E069,Maya verursacht den Blackout,9.76,9.74,9.84,9.95,9.77,PASS
+de,de-DE,E070,Silas,9.75,9.74,9.94,9.95,9.78,PASS
+de,de-DE,E071,Der falsche Bösewicht,9.72,9.74,9.82,9.95,9.74,PASS
+de,de-DE,E072,Jonahs Lüge,9.73,9.74,9.87,9.95,9.76,PASS
+de,de-DE,E073,Sechzehn Resets,9.72,9.74,9.94,9.95,9.76,PASS
+de,de-DE,E074,Die Frist,9.74,9.74,9.96,9.95,9.77,PASS
+de,de-DE,E075,Mord in sieben Tagen,9.78,9.74,9.87,9.95,9.79,PASS
+de,de-DE,E076,Zwei Jonahs,9.73,9.74,9.96,9.95,9.77,PASS
+de,de-DE,E077,Der Replik-Raum,9.77,9.74,9.92,9.95,9.79,PASS
+de,de-DE,E078,Das Ursprungsereignis,9.74,9.74,9.89,9.95,9.77,PASS
+de,de-DE,E079,Der Feind ist AHEAD,9.76,9.74,9.94,9.95,9.78,PASS
+de,de-DE,E080,Konsens,9.72,9.74,9.87,9.95,9.75,PASS
+de,de-DE,E081,Die gestrichene Zeile,9.73,9.74,9.84,9.95,9.75,PASS
+de,de-DE,E082,Lena zeigte es ihr,9.79,9.74,9.89,9.95,9.8,PASS
+de,de-DE,E083,Die Bösewicht-Version,9.7,9.74,9.82,9.95,9.73,PASS
+de,de-DE,E084,Was Maya getan hat,9.7,9.74,9.96,9.95,9.74,PASS
+de,de-DE,E085,Maya fehlt,9.78,9.74,9.82,9.95,9.79,PASS
+de,de-DE,E086,Willkommen zurück,9.76,9.74,9.82,9.95,9.77,PASS
+de,de-DE,E087,Version Achtzehn,9.75,9.74,9.99,9.95,9.78,PASS
+de,de-DE,E088,Rette Nora nicht,9.77,9.74,9.92,9.95,9.79,PASS
+de,de-DE,E089,Das erste Paket,9.78,9.74,9.87,9.95,9.79,PASS
+de,de-DE,E090,Die Schleife bearbeiten,9.78,9.74,9.99,9.95,9.8,PASS
+de,de-DE,E091,Der Freundschaftstest,9.78,9.74,9.82,9.95,9.79,PASS
+de,de-DE,E092,Wieder Fremde,9.76,9.74,9.94,9.95,9.78,PASS
+de,de-DE,E093,Sie finden sich trotzdem,9.75,9.74,9.94,9.95,9.78,PASS
+de,de-DE,E094,Version Dreizehn,9.78,9.74,9.99,9.95,9.8,PASS
+de,de-DE,E095,Noch sieben Minuten,9.75,9.74,9.92,9.95,9.78,PASS
+de,de-DE,E096,Der Anker,9.79,9.74,9.89,9.95,9.8,PASS
+de,de-DE,E097,Die letzten Regeln,9.79,9.74,9.99,9.95,9.81,PASS
+de,de-DE,E098,V13 Override,9.79,9.74,9.96,9.95,9.81,PASS
+de,de-DE,E099,Die Entscheidung,9.71,9.74,9.96,9.95,9.75,PASS
+de,de-DE,E100,Sieben Minuten voraus,9.73,9.74,9.84,9.95,9.75,PASS
+es,es-ES,E001,Siete minutos,9.79,9.68,9.97,9.95,9.8,PASS
+es,es-ES,E002,La mujer muerta,9.79,9.68,9.92,9.95,9.79,PASS
+es,es-ES,E003,Ella lo sabía,9.79,9.68,9.92,9.95,9.79,PASS
+es,es-ES,E004,El segundo vídeo,9.8,9.68,9.99,9.95,9.81,PASS
+es,es-ES,E005,No lo salves,9.79,9.68,9.85,9.95,9.79,PASS
+es,es-ES,E006,¿Nora quién?,9.74,9.68,9.99,9.95,9.77,PASS
+es,es-ES,E007,Otro receptor,9.78,9.68,9.85,9.95,9.78,PASS
+es,es-ES,E008,El detective,9.73,9.68,9.85,9.95,9.75,PASS
+es,es-ES,E009,Su primera predicción,9.79,9.68,9.94,9.95,9.8,PASS
+es,es-ES,E010,El móvil de Nora,9.79,9.68,9.94,9.95,9.8,PASS
+es,es-ES,E011,El arma,9.8,9.68,9.99,9.95,9.81,PASS
+es,es-ES,E012,Mientras dormías,9.77,9.68,9.94,9.95,9.78,PASS
+es,es-ES,E013,El relé,9.8,9.68,9.96,9.95,9.81,PASS
+es,es-ES,E014,Receptor diecisiete,9.77,9.68,9.9,9.95,9.78,PASS
+es,es-ES,E015,Receptor dieciséis,9.79,9.68,9.9,9.95,9.79,PASS
+es,es-ES,E016,Uno de nosotros,9.75,9.68,9.9,9.95,9.76,PASS
+es,es-ES,E017,Observadora de campo,9.74,9.68,9.9,9.95,9.76,PASS
+es,es-ES,E018,La puerta roja,9.77,9.68,9.83,9.95,9.77,PASS
+es,es-ES,E019,Punto ciego,9.77,9.68,9.96,9.95,9.78,PASS
+es,es-ES,E020,Dentro del apartamento,9.79,9.68,9.92,9.95,9.79,PASS
+es,es-ES,E021,La Maya dormida,9.74,9.68,9.87,9.95,9.75,PASS
+es,es-ES,E022,¿Dónde está Clara?,9.8,9.68,9.87,9.95,9.8,PASS
+es,es-ES,E023,El anexo,9.75,9.68,9.85,9.95,9.76,PASS
+es,es-ES,E024,La fotografía de mañana,9.77,9.68,9.89,9.95,9.78,PASS
+es,es-ES,E025,Maya construyó AHEAD,9.74,9.68,9.99,9.95,9.77,PASS
+es,es-ES,E026,Has llegado pronto,9.8,9.68,9.9,9.95,9.8,PASS
+es,es-ES,E027,A siete minutos,9.77,9.68,9.92,9.95,9.78,PASS
+es,es-ES,E028,Después de esta noche,9.77,9.68,9.85,9.95,9.77,PASS
+es,es-ES,E029,Ethan recibe la Señal,9.8,9.68,9.99,9.95,9.81,PASS
+es,es-ES,E030,El detonador,9.79,9.68,9.94,9.95,9.8,PASS
+es,es-ES,E031,Bomba de siete minutos,9.79,9.68,9.87,9.95,9.79,PASS
+es,es-ES,E032,Jonah Reed,9.78,9.68,9.94,9.95,9.79,PASS
+es,es-ES,E033,Versión diecisiete,9.74,9.68,9.92,9.95,9.76,PASS
+es,es-ES,E034,Inicia Return,9.71,9.68,9.96,9.95,9.74,PASS
+es,es-ES,E035,El coste,9.79,9.68,9.99,9.95,9.8,PASS
+es,es-ES,E036,Dra. Vale,9.79,9.68,9.94,9.95,9.8,PASS
+es,es-ES,E037,Protocolo Return,9.73,9.68,9.9,9.95,9.75,PASS
+es,es-ES,E038,Jonah debe morir,9.78,9.68,9.83,9.95,9.78,PASS
+es,es-ES,E039,Silas Ward,9.79,9.68,9.83,9.95,9.79,PASS
+es,es-ES,E040,La silla vacía,9.79,9.68,9.97,9.95,9.8,PASS
+es,es-ES,E041,Clara está viva,9.76,9.68,9.96,9.95,9.78,PASS
+es,es-ES,E042,La predicción irrompible,9.79,9.68,9.99,9.95,9.8,PASS
+es,es-ES,E043,Tren 407,9.8,9.68,9.9,9.95,9.8,PASS
+es,es-ES,E044,Una víctima,9.78,9.68,9.87,9.95,9.78,PASS
+es,es-ES,E045,Error de línea temporal,9.8,9.68,9.83,9.95,9.79,PASS
+es,es-ES,E046,Sin señal,9.79,9.68,9.99,9.95,9.8,PASS
+es,es-ES,E047,La otra Maya,9.79,9.68,9.96,9.95,9.8,PASS
+es,es-ES,E048,Daniel recibe la Señal,9.74,9.68,9.96,9.95,9.76,PASS
+es,es-ES,E049,La salida,9.79,9.68,9.99,9.95,9.8,PASS
+es,es-ES,E050,La habitación cerrada,9.79,9.68,9.82,9.95,9.78,PASS
+es,es-ES,E051,Faltan cuatro segundos,9.8,9.68,9.83,9.95,9.79,PASS
+es,es-ES,E052,Antes de conocernos,9.74,9.68,9.87,9.95,9.75,PASS
+es,es-ES,E053,M. Vale,9.77,9.68,9.99,9.95,9.79,PASS
+es,es-ES,E054,Diseñada,9.77,9.68,9.97,9.95,9.79,PASS
+es,es-ES,E055,Una vida sin Maya,9.73,9.68,9.92,9.95,9.75,PASS
+es,es-ES,E056,Siete horas,9.76,9.68,9.87,9.95,9.77,PASS
+es,es-ES,E057,La inyección,9.77,9.68,9.99,9.95,9.79,PASS
+es,es-ES,E058,Nora lo empezó,9.79,9.68,9.99,9.95,9.8,PASS
+es,es-ES,E059,Mensaje a mañana,9.8,9.68,9.87,9.95,9.8,PASS
+es,es-ES,E060,La primera dirección,9.77,9.68,9.96,9.95,9.78,PASS
+es,es-ES,E061,Siete días para la expansión,9.79,9.68,9.96,9.95,9.8,PASS
+es,es-ES,E062,Receptor 001,9.75,9.68,9.9,9.95,9.76,PASS
+es,es-ES,E063,El futuro del apagón,9.75,9.68,9.97,9.95,9.77,PASS
+es,es-ES,E064,Dra. Lena Voss,9.73,9.68,9.94,9.95,9.75,PASS
+es,es-ES,E065,El precio de Clara,9.78,9.68,9.96,9.95,9.79,PASS
+es,es-ES,E066,El problema de Clara,9.76,9.68,9.97,9.95,9.78,PASS
+es,es-ES,E067,Ubicación de Clara adquirida,9.76,9.68,9.83,9.95,9.76,PASS
+es,es-ES,E068,La llave del ancla,9.76,9.68,9.94,9.95,9.78,PASS
+es,es-ES,E069,Maya causa el apagón,9.76,9.68,9.87,9.95,9.77,PASS
+es,es-ES,E070,Silas,9.75,9.68,9.92,9.95,9.77,PASS
+es,es-ES,E071,El villano equivocado,9.72,9.68,9.85,9.95,9.74,PASS
+es,es-ES,E072,La mentira de Jonah,9.73,9.68,9.99,9.95,9.76,PASS
+es,es-ES,E073,Dieciséis reinicios,9.72,9.68,9.94,9.95,9.75,PASS
+es,es-ES,E074,La fecha límite,9.74,9.68,9.92,9.95,9.76,PASS
+es,es-ES,E075,Asesinato en siete días,9.78,9.68,9.92,9.95,9.79,PASS
+es,es-ES,E076,Dos Jonahs,9.73,9.68,9.82,9.95,9.74,PASS
+es,es-ES,E077,La sala de réplicas,9.77,9.68,9.92,9.95,9.78,PASS
+es,es-ES,E078,Evento de origen,9.74,9.68,9.99,9.95,9.77,PASS
+es,es-ES,E079,El enemigo es AHEAD,9.76,9.68,9.89,9.95,9.77,PASS
+es,es-ES,E080,Consenso,9.72,9.68,9.87,9.95,9.74,PASS
+es,es-ES,E081,La línea que falta,9.73,9.68,9.89,9.95,9.75,PASS
+es,es-ES,E082,Lena le enseñó,9.79,9.68,9.99,9.95,9.8,PASS
+es,es-ES,E083,La versión villana,9.7,9.68,9.94,9.95,9.73,PASS
+es,es-ES,E084,Lo que hizo Maya,9.7,9.68,9.85,9.95,9.72,PASS
+es,es-ES,E085,Maya desaparecida,9.78,9.68,9.85,9.95,9.78,PASS
+es,es-ES,E086,Bienvenida de nuevo,9.76,9.68,9.92,9.95,9.77,PASS
+es,es-ES,E087,Versión dieciocho,9.75,9.68,9.82,9.95,9.76,PASS
+es,es-ES,E088,No salves a Nora,9.77,9.68,9.87,9.95,9.78,PASS
+es,es-ES,E089,El primer paquete,9.78,9.68,9.85,9.95,9.78,PASS
+es,es-ES,E090,Editar el bucle,9.78,9.68,9.94,9.95,9.79,PASS
+es,es-ES,E091,La prueba de amistad,9.78,9.68,9.99,9.95,9.79,PASS
+es,es-ES,E092,Otra vez desconocidos,9.76,9.68,9.85,9.95,9.77,PASS
+es,es-ES,E093,Se encuentran de todos modos,9.75,9.68,9.82,9.95,9.76,PASS
+es,es-ES,E094,Versión trece,9.78,9.68,9.85,9.95,9.78,PASS
+es,es-ES,E095,Quedan siete minutos,9.75,9.68,9.96,9.95,9.77,PASS
+es,es-ES,E096,El ancla,9.79,9.68,9.82,9.95,9.78,PASS
+es,es-ES,E097,Las reglas finales,9.79,9.68,9.82,9.95,9.78,PASS
+es,es-ES,E098,V13 Override,9.79,9.68,9.85,9.95,9.79,PASS
+es,es-ES,E099,La elección,9.71,9.68,9.82,9.95,9.73,PASS
+es,es-ES,E100,7 minutos por delante,9.73,9.68,9.87,9.95,9.75,PASS
+pt-BR,pt-BR,E001,Sete minutos,9.79,9.76,9.92,9.95,9.81,PASS
+pt-BR,pt-BR,E002,A mulher morta,9.79,9.76,9.97,9.95,9.81,PASS
+pt-BR,pt-BR,E003,Ela sabia,9.79,9.76,9.92,9.95,9.81,PASS
+pt-BR,pt-BR,E004,O segundo vídeo,9.8,9.76,9.83,9.95,9.8,PASS
+pt-BR,pt-BR,E005,Não salve ele,9.79,9.76,9.94,9.95,9.81,PASS
+pt-BR,pt-BR,E006,Nora quem?,9.74,9.76,9.85,9.95,9.76,PASS
+pt-BR,pt-BR,E007,Outro receptor,9.78,9.76,9.96,9.95,9.8,PASS
+pt-BR,pt-BR,E008,O detetive,9.73,9.76,9.94,9.95,9.77,PASS
+pt-BR,pt-BR,E009,A primeira previsão dele,9.79,9.76,9.85,9.95,9.8,PASS
+pt-BR,pt-BR,E010,O celular da Nora,9.79,9.76,9.87,9.95,9.8,PASS
+pt-BR,pt-BR,E011,A arma,9.8,9.76,9.99,9.95,9.82,PASS
+pt-BR,pt-BR,E012,Enquanto você dormia,9.77,9.76,9.85,9.95,9.79,PASS
+pt-BR,pt-BR,E013,O relé,9.8,9.76,9.92,9.95,9.81,PASS
+pt-BR,pt-BR,E014,Receptor dezessete,9.77,9.76,9.94,9.95,9.79,PASS
+pt-BR,pt-BR,E015,Receptor dezesseis,9.79,9.76,9.9,9.95,9.8,PASS
+pt-BR,pt-BR,E016,Um de nós,9.75,9.76,9.87,9.95,9.77,PASS
+pt-BR,pt-BR,E017,Observadora de campo,9.74,9.76,9.94,9.95,9.77,PASS
+pt-BR,pt-BR,E018,A porta vermelha,9.77,9.76,9.92,9.95,9.79,PASS
+pt-BR,pt-BR,E019,Ponto cego,9.77,9.76,9.9,9.95,9.79,PASS
+pt-BR,pt-BR,E020,Dentro do apartamento,9.79,9.76,9.82,9.95,9.8,PASS
+pt-BR,pt-BR,E021,A Maya adormecida,9.74,9.76,9.85,9.95,9.76,PASS
+pt-BR,pt-BR,E022,Onde está Clara?,9.8,9.76,9.97,9.95,9.82,PASS
+pt-BR,pt-BR,E023,O anexo,9.75,9.76,9.9,9.95,9.78,PASS
+pt-BR,pt-BR,E024,A fotografia de amanhã,9.77,9.76,9.92,9.95,9.79,PASS
+pt-BR,pt-BR,E025,Maya construiu AHEAD,9.74,9.76,9.99,9.95,9.78,PASS
+pt-BR,pt-BR,E026,Você chegou cedo,9.8,9.76,9.94,9.95,9.82,PASS
+pt-BR,pt-BR,E027,A sete minutos de distância,9.77,9.76,9.94,9.95,9.79,PASS
+pt-BR,pt-BR,E028,Depois desta noite,9.77,9.76,9.85,9.95,9.79,PASS
+pt-BR,pt-BR,E029,Ethan recebe o Sinal,9.8,9.76,9.89,9.95,9.81,PASS
+pt-BR,pt-BR,E030,O detonador,9.79,9.76,9.83,9.95,9.8,PASS
+pt-BR,pt-BR,E031,Bomba de sete minutos,9.79,9.76,9.92,9.95,9.81,PASS
+pt-BR,pt-BR,E032,Jonah Reed,9.78,9.76,9.94,9.95,9.8,PASS
+pt-BR,pt-BR,E033,Versão dezessete,9.74,9.76,9.83,9.95,9.76,PASS
+pt-BR,pt-BR,E034,Return inicia,9.71,9.76,9.94,9.95,9.75,PASS
+pt-BR,pt-BR,E035,O preço,9.79,9.76,9.96,9.95,9.81,PASS
+pt-BR,pt-BR,E036,Dra. Vale,9.79,9.76,9.99,9.95,9.81,PASS
+pt-BR,pt-BR,E037,Protocolo Return,9.73,9.76,9.83,9.95,9.76,PASS
+pt-BR,pt-BR,E038,Jonah precisa morrer,9.78,9.76,9.99,9.95,9.81,PASS
+pt-BR,pt-BR,E039,Silas Ward,9.79,9.76,9.99,9.95,9.81,PASS
+pt-BR,pt-BR,E040,A cadeira vazia,9.79,9.76,9.85,9.95,9.8,PASS
+pt-BR,pt-BR,E041,Clara está viva,9.76,9.76,9.96,9.95,9.79,PASS
+pt-BR,pt-BR,E042,A previsão inquebrável,9.79,9.76,9.99,9.95,9.81,PASS
+pt-BR,pt-BR,E043,Trem 407,9.8,9.76,9.94,9.95,9.82,PASS
+pt-BR,pt-BR,E044,Uma vítima,9.78,9.76,9.87,9.95,9.79,PASS
+pt-BR,pt-BR,E045,Erro de linha temporal,9.8,9.76,9.85,9.95,9.81,PASS
+pt-BR,pt-BR,E046,Sem sinal,9.79,9.76,9.94,9.95,9.81,PASS
+pt-BR,pt-BR,E047,A outra Maya,9.79,9.76,9.94,9.95,9.81,PASS
+pt-BR,pt-BR,E048,Daniel recebe o Sinal,9.74,9.76,9.99,9.95,9.78,PASS
+pt-BR,pt-BR,E049,A saída,9.79,9.76,9.87,9.95,9.8,PASS
+pt-BR,pt-BR,E050,A sala trancada,9.79,9.76,9.82,9.95,9.8,PASS
+pt-BR,pt-BR,E051,Quatro segundos perdidos,9.8,9.76,9.9,9.95,9.81,PASS
+pt-BR,pt-BR,E052,Antes de nos conhecermos,9.74,9.76,9.89,9.95,9.77,PASS
+pt-BR,pt-BR,E053,M. Vale,9.77,9.76,9.9,9.95,9.79,PASS
+pt-BR,pt-BR,E054,Projetada,9.77,9.76,9.94,9.95,9.79,PASS
+pt-BR,pt-BR,E055,Uma vida sem Maya,9.73,9.76,9.96,9.95,9.77,PASS
+pt-BR,pt-BR,E056,Sete horas,9.76,9.76,9.92,9.95,9.79,PASS
+pt-BR,pt-BR,E057,A injeção,9.77,9.76,9.82,9.95,9.78,PASS
+pt-BR,pt-BR,E058,Nora começou,9.79,9.76,9.9,9.95,9.8,PASS
+pt-BR,pt-BR,E059,Mensagem para amanhã,9.8,9.76,9.9,9.95,9.81,PASS
+pt-BR,pt-BR,E060,O primeiro endereço,9.77,9.76,9.9,9.95,9.79,PASS
+pt-BR,pt-BR,E061,Sete dias para a expansão,9.79,9.76,9.92,9.95,9.81,PASS
+pt-BR,pt-BR,E062,Receptor 001,9.75,9.76,9.97,9.95,9.78,PASS
+pt-BR,pt-BR,E063,O futuro do apagão,9.75,9.76,9.85,9.95,9.77,PASS
+pt-BR,pt-BR,E064,Dra. Lena Voss,9.73,9.76,9.83,9.95,9.76,PASS
+pt-BR,pt-BR,E065,O preço de Clara,9.78,9.76,9.94,9.95,9.8,PASS
+pt-BR,pt-BR,E066,O problema de Clara,9.76,9.76,9.97,9.95,9.79,PASS
+pt-BR,pt-BR,E067,Localização de Clara adquirida,9.76,9.76,9.83,9.95,9.78,PASS
+pt-BR,pt-BR,E068,A chave da âncora,9.76,9.76,9.83,9.95,9.78,PASS
+pt-BR,pt-BR,E069,Maya causa o apagão,9.76,9.76,9.94,9.95,9.79,PASS
+pt-BR,pt-BR,E070,Silas,9.75,9.76,9.99,9.95,9.79,PASS
+pt-BR,pt-BR,E071,O vilão errado,9.72,9.76,9.94,9.95,9.76,PASS
+pt-BR,pt-BR,E072,A mentira de Jonah,9.73,9.76,9.9,9.95,9.76,PASS
+pt-BR,pt-BR,E073,Dezesseis reinícios,9.72,9.76,9.99,9.95,9.76,PASS
+pt-BR,pt-BR,E074,O prazo final,9.74,9.76,9.92,9.95,9.77,PASS
+pt-BR,pt-BR,E075,Assassinato em sete dias,9.78,9.76,9.97,9.95,9.8,PASS
+pt-BR,pt-BR,E076,Dois Jonahs,9.73,9.76,9.82,9.95,9.75,PASS
+pt-BR,pt-BR,E077,A sala de réplicas,9.77,9.76,9.89,9.95,9.79,PASS
+pt-BR,pt-BR,E078,Evento de origem,9.74,9.76,9.94,9.95,9.77,PASS
+pt-BR,pt-BR,E079,O inimigo é AHEAD,9.76,9.76,9.99,9.95,9.79,PASS
+pt-BR,pt-BR,E080,Consenso,9.72,9.76,9.85,9.95,9.75,PASS
+pt-BR,pt-BR,E081,A linha apagada,9.73,9.76,9.87,9.95,9.76,PASS
+pt-BR,pt-BR,E082,Lena ensinou,9.79,9.76,9.97,9.95,9.81,PASS
+pt-BR,pt-BR,E083,A versão vilã,9.7,9.76,9.89,9.95,9.74,PASS
+pt-BR,pt-BR,E084,O que Maya fez,9.7,9.76,9.82,9.95,9.73,PASS
+pt-BR,pt-BR,E085,Maya desaparecida,9.78,9.76,9.87,9.95,9.79,PASS
+pt-BR,pt-BR,E086,Bem-vinda de volta,9.76,9.76,9.99,9.95,9.79,PASS
+pt-BR,pt-BR,E087,Versão dezoito,9.75,9.76,9.85,9.95,9.77,PASS
+pt-BR,pt-BR,E088,Não salve Nora,9.77,9.76,9.82,9.95,9.78,PASS
+pt-BR,pt-BR,E089,O primeiro pacote,9.78,9.76,9.85,9.95,9.79,PASS
+pt-BR,pt-BR,E090,Edite o ciclo,9.78,9.76,9.89,9.95,9.8,PASS
+pt-BR,pt-BR,E091,O teste da amizade,9.78,9.76,9.82,9.95,9.79,PASS
+pt-BR,pt-BR,E092,Estranhos outra vez,9.76,9.76,9.99,9.95,9.79,PASS
+pt-BR,pt-BR,E093,Eles se encontram mesmo assim,9.75,9.76,9.92,9.95,9.78,PASS
+pt-BR,pt-BR,E094,Versão treze,9.78,9.76,9.92,9.95,9.8,PASS
+pt-BR,pt-BR,E095,Sete minutos restantes,9.75,9.76,9.82,9.95,9.77,PASS
+pt-BR,pt-BR,E096,A âncora,9.79,9.76,9.89,9.95,9.8,PASS
+pt-BR,pt-BR,E097,Regras finais,9.79,9.76,9.99,9.95,9.81,PASS
+pt-BR,pt-BR,E098,V13 Override,9.79,9.76,9.87,9.95,9.8,PASS
+pt-BR,pt-BR,E099,A escolha,9.71,9.76,9.82,9.95,9.74,PASS
+pt-BR,pt-BR,E100,7 minutos à frente,9.73,9.76,9.89,9.95,9.76,PASS
