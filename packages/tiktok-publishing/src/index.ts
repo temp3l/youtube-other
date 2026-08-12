@@ -48,3 +48,12 @@ export {
   type TikTokDirectPostPersistencePort,
   type TikTokDirectPostServiceInput,
 } from "./tiktok-direct-post-service.js";
+export {
+  FixtureTikTokPublishStatusAdapter,
+  TikTokStatusReconciliationService,
+  auditTikTokStatusReconciliation,
+  type TikTokPublishStatusQueryAdapter,
+  type TikTokPublishStatusQueryScenario,
+  type TikTokStatusReconciliationAuditSink,
+  type TikTokStatusReconciliationServiceInput,
+} from "./tiktok-status-reconciliation-service.js";

@@ -70,6 +70,8 @@ export * from "./tiktok-transfer-contracts.js";
 export * from "./tiktok-transfer-lifecycle.js";
 export * from "./tiktok-direct-post-contracts.js";
 export * from "./tiktok-direct-post-lifecycle.js";
+export * from "./tiktok-status-reconciliation-contracts.js";
+export * from "./tiktok-status-reconciliation-lifecycle.js";
 
 const episodeIdPattern = /^[a-z0-9][a-z0-9-]*$/;
 const sceneIdPattern = /^scene-[0-9]{3}$/;

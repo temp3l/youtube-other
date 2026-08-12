@@ -17,6 +17,7 @@ export * from "./tiktok-account-service.js";
 export * from "./tiktok-app-audit-service.js";
 export * from "./tiktok-transfer-service.js";
 export * from "./tiktok-direct-post-service.js";
+export * from "./tiktok-status-reconciliation-service.js";
 export * from "./release-gates.js";
 export * from "./ports.js";
 export * from "./durable-outbox-worker.js";
