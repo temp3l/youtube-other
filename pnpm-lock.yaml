@@ -556,6 +556,15 @@ importers:
         specifier: ^4.0.14
         version: 4.4.3
 
+  packages/performance:
+    dependencies:
+      '@mediaforge/domain':
+        specifier: workspace:*
+        version: link:../domain
+      zod:
+        specifier: ^4.0.14
+        version: 4.4.3
+
   packages/persistence:
     dependencies:
       '@mediaforge/domain':
@@ -574,6 +583,9 @@ importers:
         specifier: ^4.0.14
         version: 4.4.3
     devDependencies:
+      '@mediaforge/performance':
+        specifier: workspace:*
+        version: link:../performance
       '@types/pg':
         specifier: ^8.15.6
         version: 8.20.0

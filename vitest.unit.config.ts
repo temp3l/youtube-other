@@ -104,6 +104,10 @@ export default defineConfig({
         import.meta.dirname,
         "packages/youtube-upload/src/index.ts"
       ),
+      "@mediaforge/performance": path.resolve(
+        import.meta.dirname,
+        "packages/performance/src/index.ts"
+      ),
     },
   },
   test: {
