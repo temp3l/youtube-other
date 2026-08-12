@@ -44,6 +44,10 @@ export default defineConfig({
         import.meta.dirname,
         "packages/observability/src/log-redaction.ts"
       ),
+      "@mediaforge/observability/telemetry.js": path.resolve(
+        import.meta.dirname,
+        "packages/observability/src/telemetry.ts"
+      ),
       "@mediaforge/observability": path.resolve(
         import.meta.dirname,
         "packages/observability/src/index.ts"

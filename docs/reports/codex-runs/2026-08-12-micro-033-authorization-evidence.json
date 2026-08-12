@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "mediaforge.microdrama.micro-033-authorization-evidence.v1",
+  "taskId": "MICRO-033",
+  "dbPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.mediaforge.sqlite",
+  "admittedAt": "2026-08-12T04:00:00.000Z",
+  "preparedAt": "2026-08-12T11:54:39.626Z",
+  "operatorId": "operator.microdrama",
+  "externalCalls": {
+    "tts": 0,
+    "openAiApi": 0,
+    "paidProvider": 0,
+    "publication": 0
+  },
+  "status": "READY_FOR_EXPLICIT_EXECUTE",
+  "blockers": [],
+  "voiceProfileId": "voice.character.narrator.en-us",
+  "voiceRevision": "voice-version.narrator.en-us.v1",
+  "voiceBindingStatus": "CANARY_APPROVED",
+  "provider": "openai",
+  "providerModel": "tts-1-hd",
+  "providerVoiceId": "alloy",
+  "providerConfigRevision": "a5b5a465a3c8cb33cb71467421e0e7d9471143342cecbb88511e5c9ff2a967e9",
+  "providerVoiceEvidenceHash": "049592784c9a4b1b390fd647bedb8ed928e6d53e9ba1a2b3de49012618bbed54",
+  "credentialHandle": "speech-cred.openai.micro-033",
+  "assetGenerationApprovalId": "approval.micro-033.asset-generation",
+  "operatorAuthorizationId": "auth.micro-033.bounded-canary",
+  "costBudgetApprovalId": "cost-budget-approval.micro-033",
+  "maximumProviderRequests": 111,
+  "costLimitMinor": 199,
+  "currency": "USD",
+  "preflightAllowed": true,
+  "scriptRevisionIds": [
+    "rev.script.en-us.e001",
+    "rev.script.en-us.e002",
+    "rev.script.en-us.e003"
+  ]
+}

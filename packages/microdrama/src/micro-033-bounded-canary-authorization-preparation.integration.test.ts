@@ -1,4 +1,4 @@
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -90,4 +90,48 @@ describe("MICRO-033 bounded canary authorization preparation", () => {
       }
     }
   });
+
+  it.runIf(process.env.MICRO_033_OPERATOR_PREP === "1")(
+    "prepares workspace operator embedded database without dispatching TTS",
+    async () => {
+      const repoRoot = path.resolve(import.meta.dirname, "../../../");
+      const dbPath = path.join(repoRoot, ".mediaforge.sqlite");
+      const preparedAt = process.env.MICRO_033_PREPARED_AT ?? new Date().toISOString();
+
+      const result = await prepareMicro033BoundedCanaryAuthorization({
+        dbPath,
+        admittedAt: ADMITTED_AT,
+        preparedAt,
+      });
+
+      const evidence = {
+        schemaVersion: "mediaforge.microdrama.micro-033-authorization-evidence.v1",
+        taskId: "MICRO-033",
+        dbPath,
+        admittedAt: ADMITTED_AT,
+        preparedAt,
+        operatorId: "operator.microdrama",
+        externalCalls: {
+          tts: 0,
+          openAiApi: 0,
+          paidProvider: 0,
+          publication: 0,
+        },
+        ...result,
+      };
+
+      writeFileSync(
+        path.join(
+          repoRoot,
+          "docs/reports/codex-runs/2026-08-12-micro-033-authorization-evidence.json"
+        ),
+        `${JSON.stringify(evidence, null, 2)}\n`,
+        "utf8"
+      );
+
+      expect(result.status).toBe("READY_FOR_EXPLICIT_EXECUTE");
+      expect(result.preflightAllowed).toBe(true);
+      expect(result.credentialHandle).toBe(MICRO_033_OPENAI_CREDENTIAL_HANDLE);
+    }
+  );
 });

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "mediaforge.microdrama.micro-033-canary-execution-evidence.v1",
+  "taskId": "MICRO-033",
+  "status": "BLOCKED",
+  "blockers": ["OPENAI_CREDIT_BALANCE_EXHAUSTED"],
+  "dbPath": ".mediaforge.sqlite",
+  "admittedAt": "2026-08-12T04:00:00.000Z",
+  "attemptedAt": "2026-08-12T14:21:59.000Z",
+  "provider": "openai",
+  "providerError": {
+    "code": "credit_balance_exhausted",
+    "type": "insufficient_quota",
+    "message": "You have no credits remaining. Add credits to continue using the API."
+  },
+  "preparationStatus": "READY_FOR_EXPLICIT_EXECUTE",
+  "explicitExecuteAuthorization": "persisted on re-prepare before attempt",
+  "providerRequestsAttempted": 1,
+  "publicationCalls": 0,
+  "mockIntegrationTest": "pass",
+  "resumeCommand": "MICRO_033_OPERATOR_EXECUTE=1 pnpm exec tsx scripts/microdrama-execute-micro-033-canary.ts --db .mediaforge.sqlite"
+}

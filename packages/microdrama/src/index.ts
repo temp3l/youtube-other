@@ -547,3 +547,28 @@ export type {
 export {
   defaultEnTtsCanaryModelConfiguration,
 } from "./en-e001-e003-tts-canary-preflight.js";
+
+export {
+  authorizeMicro033BoundedCanaryExplicitExecute,
+  executeMicro033BoundedTtsCanary,
+  createMicro033OpenAiSegmentSynthesisPortFromEnv,
+  createMicro033OpenAiSpeechProviderFromEnv,
+  createMicro033MockSegmentSynthesisPort,
+  MICRO_033_CANARY_EXECUTION_EVIDENCE_PROJECTION_KEY,
+} from "./micro-033-bounded-tts-canary-execute.js";
+export type {
+  Micro033AuthorizeExplicitExecuteInput,
+  Micro033AuthorizeExplicitExecuteResult,
+  Micro033BoundedTtsCanaryExecuteInput,
+  Micro033BoundedTtsCanaryExecuteResult,
+  Micro033EpisodeCanaryTimingEvidence,
+} from "./micro-033-bounded-tts-canary-execute.js";
+
+export {
+  buildMicro033ExplicitExecuteAuthorizationRecord,
+  computeMicro033PreparationFingerprint,
+  loadMicro033ExplicitExecuteAuthorization,
+  MICRO_033_EXPLICIT_EXECUTE_AUTHORIZATION_ID,
+  persistMicro033ExplicitExecuteAuthorization,
+} from "./micro-033-explicit-execute-authorization.js";
+export type { Micro033ExplicitExecuteAuthorizationRecord } from "./micro-033-explicit-execute-authorization.js";
