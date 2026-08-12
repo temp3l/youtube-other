@@ -196,7 +196,7 @@
       "id": "MICRO-009",
       "title": "Add future-locale generation and admission workflow",
       "phase": "03-story-planning-and-qa",
-      "status": "READY",
+      "status": "DONE",
       "goal": "Support new locale drafts without changing imported V5 revisions.",
       "scope": ["Glossary-bound draft workflow and deterministic QA", "Semantic parity and explicit accepted ScriptRevision"],
       "dependsOn": ["MICRO-008"],
