@@ -816,6 +816,18 @@ importers:
         specifier: ^4.0.14
         version: 4.4.3
 
+  packages/video-generation:
+    dependencies:
+      '@mediaforge/domain':
+        specifier: workspace:*
+        version: link:../domain
+      '@mediaforge/scene-planning':
+        specifier: workspace:*
+        version: link:../scene-planning
+      zod:
+        specifier: ^4.0.14
+        version: 4.4.3
+
   packages/visual-planning:
     dependencies:
       '@mediaforge/domain':

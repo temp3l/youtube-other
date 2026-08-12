@@ -296,7 +296,7 @@
       "id": "MICRO-014",
       "title": "Add provider-neutral video generation port",
       "phase": "04-media-planning-and-production",
-      "status": "READY",
+      "status": "DONE",
       "goal": "Model optional generated video clips without choosing or calling a provider.",
       "scope": ["Typed request/result/effect/cache contracts", "Mock lifecycle, cost and approval policy"],
       "dependsOn": ["MICRO-012"],

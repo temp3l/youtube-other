@@ -44,6 +44,10 @@ export default defineConfig({
         import.meta.dirname,
         "packages/speech/src/index.ts"
       ),
+      "@mediaforge/video-generation": path.resolve(
+        import.meta.dirname,
+        "packages/video-generation/src/index.ts"
+      ),
       "@mediaforge/observability/log-redaction.js": path.resolve(
         import.meta.dirname,
         "packages/observability/src/log-redaction.ts"
