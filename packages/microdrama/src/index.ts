@@ -325,6 +325,25 @@ export type {
 } from "./visual-render-readiness.js";
 
 export {
+  PUBLICATION_READINESS_CHECKS,
+  PUBLICATION_READINESS_SCHEMA_VERSION,
+  buildPublicationBudgetWorkItem,
+  buildPublicationReadinessEvidenceRecords,
+  evaluatePublicationBudgetPreflight,
+  evaluatePublicationReadiness,
+  publicationChecksInvalidatedByChange,
+  publicationTargetRevisionHash,
+  publicationTargetRevisionId,
+  resolvePublicationReadinessBinding,
+  validatePublicationBinding,
+} from "./publication-readiness.js";
+export type {
+  PublicationReadinessBinding,
+  PublicationReadinessFacet,
+  PublicationReadinessInput,
+} from "./publication-readiness.js";
+
+export {
   STORY_QA_ISSUE_CODES,
   STORY_QA_SCHEMA_VERSION,
   SEMANTIC_STORY_QA_STATUSES,

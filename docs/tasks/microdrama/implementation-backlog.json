@@ -1000,7 +1000,7 @@
       "id": "MICRO-048",
       "title": "Implement publication readiness admission",
       "phase": "05-publication",
-      "status": "BLOCKED",
+      "status": "DONE",
       "goal": "Evaluate exact provider post intents independently after render readiness.",
       "scope": ["PUBLICATION_READY projection over render, target, metadata, app/account capability, consent/export, schedule, budget and trust evidence", "Provider-specific failure reasons without dispatch"],
       "dependsOn": ["MICRO-019", "MICRO-020", "MICRO-024", "MICRO-025", "MICRO-027", "MICRO-028", "MICRO-029", "MICRO-040", "MICRO-043", "MICRO-047", "MICRO-049"],
