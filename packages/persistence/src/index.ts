@@ -35,6 +35,13 @@ export * from "./postgres-revision-analytics-repository.js";
 export * from "./webhook-event-catalog.js";
 export * from "./asset-payload-validation.js";
 export * from "./tenant-object-storage.js";
+export * from "./microdrama-persistence-port.js";
+export * from "./microdrama-sqlite-schema.js";
+export {
+  MicrodramaSQLiteRepository,
+  copyMicrodramaDatabaseBackup,
+  writeMicrodramaBackupManifest,
+} from "./microdrama-sqlite-repository.js";
 
 export interface PersistenceConfig {
   readonly dbPath: string;

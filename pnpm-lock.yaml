@@ -244,6 +244,9 @@ importers:
 
   packages/application:
     dependencies:
+      '@mediaforge/config':
+        specifier: workspace:*
+        version: link:../config
       '@mediaforge/dark-truth':
         specifier: workspace:*
         version: link:../dark-truth
@@ -484,6 +487,12 @@ importers:
         specifier: ^4.0.14
         version: 4.4.3
 
+  packages/narrative-core:
+    dependencies:
+      zod:
+        specifier: ^4.0.14
+        version: 4.4.3
+
   packages/observability:
     dependencies:
       '@mediaforge/domain':
@@ -507,6 +516,9 @@ importers:
       '@mediaforge/domain':
         specifier: workspace:*
         version: link:../domain
+      '@mediaforge/narrative-core':
+        specifier: workspace:*
+        version: link:../narrative-core
       '@mediaforge/shared':
         specifier: workspace:*
         version: link:../shared
@@ -631,6 +643,9 @@ importers:
 
   packages/story-localization:
     dependencies:
+      '@mediaforge/domain':
+        specifier: workspace:*
+        version: link:../domain
       '@mediaforge/observability':
         specifier: workspace:*
         version: link:../observability
@@ -731,6 +746,9 @@ importers:
       '@mediaforge/domain':
         specifier: workspace:*
         version: link:../domain
+      '@mediaforge/metadata':
+        specifier: workspace:*
+        version: link:../metadata
       '@mediaforge/observability':
         specifier: workspace:*
         version: link:../observability
@@ -746,9 +764,15 @@ importers:
       '@mediaforge/source-ingestion':
         specifier: workspace:*
         version: link:../source-ingestion
+      '@mediaforge/story-localization':
+        specifier: workspace:*
+        version: link:../story-localization
       '@mediaforge/visual-planning':
         specifier: workspace:*
         version: link:../visual-planning
+      '@mediaforge/youtube-upload':
+        specifier: workspace:*
+        version: link:../youtube-upload
       zod:
         specifier: ^4.0.14
         version: 4.4.3

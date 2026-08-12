@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "backlogId": "vertical-microdrama-factory",
-  "updatedAt": "2026-08-12T02:53:00+02:00",
+  "updatedAt": "2026-08-12T03:02:00+02:00",
   "architectureIndex": "docs/plans/microdrama/README.md",
   "implementationPlan": "docs/plans/microdrama/implementation-plan.md",
   "taskStatusValues": ["BLOCKED", "READY", "IN_PROGRESS", "DONE", "SUPERSEDED"],
@@ -56,7 +56,7 @@
       "id": "MICRO-002",
       "title": "Add embedded microdrama persistence",
       "phase": "02-embedded-state-and-v5-admission",
-      "status": "READY",
+      "status": "DONE",
       "goal": "Persist typed microdrama revisions, projections and effects in embedded SQLite.",
       "scope": ["Repository ports, SQLite migrations, transactions, CAS and append-only events", "Artifact references and backup/restore contract; no large blobs"],
       "dependsOn": ["MICRO-001"],

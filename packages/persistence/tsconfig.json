@@ -9,5 +9,6 @@
     "tsBuildInfoFile": ".cache/tsconfig.tsbuildinfo"
   },
   "exclude": ["src/**/*.test.ts"],
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "references": [{ "path": "../narrative-core" }]
 }
