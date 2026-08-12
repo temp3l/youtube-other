@@ -37,6 +37,9 @@ export * from "./localization-derivative-lifecycle.js";
 export * from "./publication-preparation-contracts.js";
 export * from "./publication-preparation-lifecycle.js";
 export * from "./visual-asset-registry-contracts.js";
+export * from "./platform-safe-zone-contracts.js";
+export * from "./signal-ui-contracts.js";
+export * from "./signal-ui-locale-projection.js";
 
 const episodeIdPattern = /^[a-z0-9][a-z0-9-]*$/;
 const sceneIdPattern = /^scene-[0-9]{3}$/;

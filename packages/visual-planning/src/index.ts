@@ -74,6 +74,15 @@ export {
 } from "./caption-collision.js";
 
 export {
+  fixtureSafeZoneLayout,
+  validateSafeZoneLayout,
+  type SafeZoneLayoutElement,
+  type SafeZoneLayoutIssue,
+  type SafeZoneLayoutValidationResult,
+  type ValidateSafeZoneLayoutInput,
+} from "./safe-zone-layout.js";
+
+export {
   migrateLegacyEpisodeShots,
   type LegacyArtifactFormat,
   type LegacyMigrationResult,
