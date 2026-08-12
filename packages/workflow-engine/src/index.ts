@@ -2,6 +2,7 @@ export * from "./artifact-repository.js";
 export * from "./attempt-observability.js";
 export * from "./batch.js";
 export * from "./bulk-preflight.js";
+export * from "./microdrama-budget-preflight.js";
 export * from "./batch-adapters.js";
 export * from "./cache.js";
 export * from "./caller-migration.js";

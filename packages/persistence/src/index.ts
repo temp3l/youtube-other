@@ -42,6 +42,9 @@ export {
   copyMicrodramaDatabaseBackup,
   writeMicrodramaBackupManifest,
 } from "./microdrama-sqlite-repository.js";
+export * from "./microdrama-budget-schema.js";
+export * from "./microdrama-budget-port.js";
+export { MicrodramaBudgetRepository } from "./microdrama-budget-repository.js";
 
 export interface PersistenceConfig {
   readonly dbPath: string;
