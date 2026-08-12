@@ -980,7 +980,7 @@
       "id": "MICRO-047",
       "title": "Implement visual and render readiness",
       "phase": "04-media-planning-and-production",
-      "status": "BLOCKED",
+      "status": "DONE",
       "goal": "Evaluate shared visuals, localized composition, rights and render evidence independently from publication.",
       "scope": ["VISUAL_RENDER_READY projection over registry, UI, scene/shot, provider-port, selected-audio, subtitle, timeline, rights and trust evidence", "Locale-aware render reasons and shared-visual invalidation"],
       "dependsOn": ["MICRO-010", "MICRO-011", "MICRO-012", "MICRO-013", "MICRO-014", "MICRO-017", "MICRO-018", "MICRO-019", "MICRO-041", "MICRO-043", "MICRO-045", "MICRO-046"],

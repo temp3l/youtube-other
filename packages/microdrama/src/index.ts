@@ -297,6 +297,34 @@ export type {
 } from "./audio-tts-readiness.js";
 
 export {
+  VISUAL_RENDER_READINESS_CHECKS,
+  VISUAL_RENDER_READINESS_SCHEMA_VERSION,
+  DEFAULT_RENDER_PROFILE_REVISION,
+  DEFAULT_VIDEO_PROVIDER_PORT_REVISION,
+  DEFAULT_SHARED_VISUAL_PROMPT_VERSION,
+  buildVisualRenderBudgetWorkItem,
+  buildVisualRenderReadinessEvidenceRecords,
+  compileVisualRenderReadinessArtifacts,
+  computeRegistryFingerprint,
+  computeSafeZoneLayoutFingerprint,
+  computeSceneShotPlanContentHash,
+  computeSharedVisualCacheFingerprint,
+  evaluateAudioTtsGateForVisual,
+  evaluateVisualRenderBudgetPreflight,
+  evaluateVisualRenderReadiness,
+  resolveVisualRenderReadinessBinding,
+  validateVisualRenderBinding,
+  visualRenderChecksInvalidatedByChange,
+  visualRenderTargetRevisionHash,
+  visualRenderTargetRevisionId,
+} from "./visual-render-readiness.js";
+export type {
+  VisualRenderReadinessBinding,
+  VisualRenderReadinessFacet,
+  VisualRenderReadinessInput,
+} from "./visual-render-readiness.js";
+
+export {
   STORY_QA_ISSUE_CODES,
   STORY_QA_SCHEMA_VERSION,
   SEMANTIC_STORY_QA_STATUSES,
