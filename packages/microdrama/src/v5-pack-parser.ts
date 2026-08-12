@@ -45,10 +45,16 @@ function fail(issues: V5PackValidationIssue[]): V5PackValidationResult {
 }
 
 function mapPathIssue(issue: PackPathIssue): V5PackValidationIssue {
+  if (issue.path) {
+    return {
+      code: issue.code,
+      message: issue.message,
+      path: issue.path,
+    };
+  }
   return {
     code: issue.code,
     message: issue.message,
-    path: issue.path,
   };
 }
 
@@ -332,6 +338,15 @@ export function validateAndImportV5Pack(
       }
 
       const scriptHash = hashManifest[scriptRelativePath];
+      if (!scriptHash) {
+        return fail([
+          {
+            code: "hash_mismatch",
+            message: `Missing hash entry for ${scriptRelativePath}`,
+            path: scriptRelativePath,
+          },
+        ]);
+      }
       localizedScriptImports.push({
         schemaVersion: MICRODRAMA_PACK_SCHEMA_VERSION,
         episodeId: entry.id,
@@ -366,6 +381,16 @@ export function validateAndImportV5Pack(
     JSON.parse(fs.readFileSync(enManifestPath, "utf8"))
   );
   for (const entry of enManifest) {
+    const enManifestHash = hashManifest["languages/en/manifest.json"];
+    if (!enManifestHash) {
+      return fail([
+        {
+          code: "hash_mismatch",
+          message: "Missing hash entry for languages/en/manifest.json",
+          path: "languages/en/manifest.json",
+        },
+      ]);
+    }
     episodeImports.push({
       schemaVersion: MICRODRAMA_PACK_SCHEMA_VERSION,
       episodeId: entry.id,
@@ -374,8 +399,8 @@ export function validateAndImportV5Pack(
       arcName: entry.arc_name,
       title: entry.title,
       provenance: buildProvenance(
-        `languages/en/manifest.json`,
-        hashManifest["languages/en/manifest.json"],
+        "languages/en/manifest.json",
+        enManifestHash,
         importedAt
       ),
     });

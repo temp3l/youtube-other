@@ -11,6 +11,20 @@ export default defineConfig({
           "packages/narrative-core/src/index.ts"
         ),
       },
+      {
+        find: "@mediaforge/persistence",
+        replacement: path.resolve(
+          import.meta.dirname,
+          "packages/persistence/src/index.ts"
+        ),
+      },
+      {
+        find: "@mediaforge/microdrama",
+        replacement: path.resolve(
+          import.meta.dirname,
+          "packages/microdrama/src/index.ts"
+        ),
+      },
     ],
   },
   test: {

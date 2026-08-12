@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@mediaforge/narrative-core": "workspace:*",
+    "@mediaforge/persistence": "workspace:*",
     "zod": "^4.0.14"
   }
 }

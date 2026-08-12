@@ -42,3 +42,38 @@ export {
 } from "./v5-pack-path-policy.js";
 
 export { validateAndImportV5Pack } from "./v5-pack-parser.js";
+
+export {
+  admittedLocalizedScriptSchema,
+  episodeBoundaryContractSchema,
+  episodeIdentityRecordSchema,
+  IMPORTED_SCRIPT_STATUSES,
+  validateV5CanonAdmissionBundle,
+  validateV5CanonAdmissionProjection,
+  v5CanonAdmissionBundleSchema,
+  v5CanonAdmissionProjectionSchema,
+} from "./v5-canon-admission-contracts.js";
+export type {
+  AdmittedLocalizedScript,
+  EpisodeBoundaryContract,
+  EpisodeIdentityRecord,
+  ImportedScriptStatus,
+  V5CanonAdmissionBundle,
+  V5CanonAdmissionIssue,
+  V5CanonAdmissionIssueCode,
+  V5CanonAdmissionProjection,
+  V5CanonAdmissionResult,
+} from "./v5-canon-admission-contracts.js";
+
+export {
+  buildCanonAdmissionProjection,
+  buildSeriesBibleRevisionEnvelope,
+  compileV5CanonAdmission,
+} from "./v5-canon-admission.js";
+
+export {
+  persistV5CanonAdmission,
+  replayV5CanonAdmission,
+  verifyReplayedCanonAdmission,
+} from "./v5-canon-persistence.js";
+export type { V5CanonAdmissionRepository } from "./v5-canon-persistence.js";
