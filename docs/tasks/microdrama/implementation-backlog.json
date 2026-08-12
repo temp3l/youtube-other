@@ -396,7 +396,7 @@
       "id": "MICRO-019",
       "title": "Implement composable production-readiness evidence",
       "phase": "04-media-planning-and-production",
-      "status": "READY",
+      "status": "DONE",
       "goal": "Provide reusable revision-bound readiness evidence and fail-closed gate evaluation without coupling readiness domains.",
       "scope": ["Typed evidence, reason and invalidation contracts", "Conjunction-only evaluators shared by story, audio, visual/render and publication readiness"],
       "dependsOn": ["MICRO-002", "MICRO-005"],
