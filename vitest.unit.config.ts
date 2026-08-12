@@ -32,6 +32,10 @@ export default defineConfig({
         import.meta.dirname,
         "packages/persistence/src/index.ts"
       ),
+      "@mediaforge/image-generation/microdrama-visual-generation": path.resolve(
+        import.meta.dirname,
+        "packages/image-generation/src/microdrama-visual-generation/index.ts"
+      ),
       "@mediaforge/image-generation": path.resolve(
         import.meta.dirname,
         "packages/image-generation/src/index.ts"
@@ -51,6 +55,10 @@ export default defineConfig({
       "@mediaforge/shared": path.resolve(
         import.meta.dirname,
         "packages/shared/src/index.ts"
+      ),
+      "@mediaforge/workflow-engine": path.resolve(
+        import.meta.dirname,
+        "packages/workflow-engine/src/index.ts"
       ),
     },
   },

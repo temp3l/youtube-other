@@ -10,6 +10,10 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./microdrama-visual-generation": {
+      "types": "./dist/microdrama-visual-generation/index.d.ts",
+      "default": "./dist/microdrama-visual-generation/index.js"
+    },
     "./focal-metadata.js": {
       "types": "./dist/focal-metadata.d.ts",
       "default": "./dist/focal-metadata.js"
@@ -30,6 +34,7 @@
     "@mediaforge/process-runner": "workspace:*",
     "@mediaforge/story-localization": "workspace:*",
     "@mediaforge/shared": "workspace:*",
+    "@mediaforge/visual-planning": "workspace:*",
     "@mediaforge/workflow-engine": "workspace:*",
     "openai": "^6.44.0",
     "sharp": "^0.34.3",

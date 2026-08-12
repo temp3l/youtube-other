@@ -351,3 +351,9 @@ export {
   shotSemanticId,
   sourcePlateSemanticId,
 } from "./v5-scene-shot-compiler.js";
+
+export {
+  buildMicrodramaShotVisualGenerationRequests,
+  buildMicrodramaVisualGenerationPlan,
+  type MicrodramaVisualGenerationPlanItem,
+} from "./v5-visual-generation.js";

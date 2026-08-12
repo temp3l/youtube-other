@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@mediaforge/domain": "workspace:*",
+    "@mediaforge/image-generation": "workspace:*",
     "@mediaforge/narrative-core": "workspace:*",
     "@mediaforge/scene-planning": "workspace:*",
     "@mediaforge/visual-planning": "workspace:*",

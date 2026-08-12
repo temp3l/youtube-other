@@ -276,7 +276,7 @@
       "id": "MICRO-013",
       "title": "Integrate shared visual generation and cache identity",
       "phase": "04-media-planning-and-production",
-      "status": "READY",
+      "status": "DONE",
       "goal": "Bind image generation/import to approved semantic shots and reusable visual keys.",
       "scope": ["Provider-neutral request/effect adapter with mocks", "Shared visual cache and dependency-based invalidation"],
       "dependsOn": ["MICRO-010", "MICRO-012"],

@@ -129,6 +129,19 @@ export {
 } from "./microdrama-canary-asset-density.js";
 
 export {
+  MICRODRAMA_SHOT_BLOCKING_KINDS,
+  MICRODRAMA_SOURCE_PLATE_PROMPT_VERSION,
+  assertSourceImagePromptIsLanguageNeutral,
+  buildMicrodramaSourcePlatePrompt,
+  containsLocalizedReadableText,
+  microdramaShotBlockingKindSchema,
+  microdramaSourcePlatePromptInputSchema,
+  type MicrodramaShotBlockingKind,
+  type MicrodramaSourcePlatePrompt,
+  type MicrodramaSourcePlatePromptInput,
+} from "./microdrama-source-plate-prompt.js";
+
+export {
   PERSISTED_VISUAL_DIRECTION_RESOLVER_V1,
   PERSISTED_VISUAL_DIRECTION_SCHEMA_V1,
   buildPersistedVisualDirectionFingerprint,

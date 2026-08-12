@@ -65,6 +65,7 @@ export {
   type CreatorMediaPolicyErrorCode,
 } from "./creator-media-policy.js";
 export * from "./visual-asset-continuity.js";
+export * from "./microdrama-visual-generation/index.js";
 
 export interface PromptTemplateContext {
   readonly GLOBAL_STYLE: string;

@@ -383,6 +383,9 @@ importers:
       '@mediaforge/story-localization':
         specifier: workspace:*
         version: link:../story-localization
+      '@mediaforge/visual-planning':
+        specifier: workspace:*
+        version: link:../visual-planning
       '@mediaforge/workflow-engine':
         specifier: workspace:*
         version: link:../workflow-engine
@@ -492,6 +495,9 @@ importers:
       '@mediaforge/domain':
         specifier: workspace:*
         version: link:../domain
+      '@mediaforge/image-generation':
+        specifier: workspace:*
+        version: link:../image-generation
       '@mediaforge/narrative-core':
         specifier: workspace:*
         version: link:../narrative-core
