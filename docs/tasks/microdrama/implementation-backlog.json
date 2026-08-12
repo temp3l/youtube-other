@@ -837,7 +837,7 @@
       "id": "MICRO-040",
       "title": "Implement microdrama budgets cost attribution and observability",
       "phase": "04-media-planning-and-production",
-      "status": "READY",
+      "status": "DONE",
       "goal": "Gate and attribute provider work before any paid or publication canary.",
       "scope": ["Budget/quota profiles and preflight reservations", "Cost attribution by episode, locale, provider, asset type and revision", "Bounded metrics plus high-cardinality correlation in logs/traces"],
       "dependsOn": ["MICRO-002", "MICRO-005"],

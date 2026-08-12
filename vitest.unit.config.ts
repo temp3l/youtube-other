@@ -32,6 +32,14 @@ export default defineConfig({
         import.meta.dirname,
         "packages/speech/src/index.ts"
       ),
+      "@mediaforge/observability": path.resolve(
+        import.meta.dirname,
+        "packages/observability/src/index.ts"
+      ),
+      "@mediaforge/shared": path.resolve(
+        import.meta.dirname,
+        "packages/shared/src/index.ts"
+      ),
     },
   },
   test: {
