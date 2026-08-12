@@ -357,3 +357,18 @@ export {
   buildMicrodramaVisualGenerationPlan,
   type MicrodramaVisualGenerationPlanItem,
 } from "./v5-visual-generation.js";
+
+export {
+  LOCALE_TTS_SEGMENTATION_BUNDLE_SCHEMA_VERSION,
+  SELECTED_AUDIO_TIMING_SCHEMA_VERSION,
+  compileLocaleTtsSegmentation,
+  fakeSelectedAudioFixtureSchema,
+  localeTtsSegmentationBundleSchema,
+  resolveLocaleTtsTimingAuthority,
+  selectedAudioTimingContractSchema,
+  type FakeSelectedAudioFixture,
+  type LocaleTtsSegmentationBundle,
+  type LocaleTtsSegmentationInput,
+  type LocaleTtsTimingAuthorityResolution,
+  type SelectedAudioTimingContract,
+} from "./locale-tts-segmentation.js";

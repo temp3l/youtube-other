@@ -10,5 +10,9 @@
   },
   "exclude": ["src/**/*.test.ts"],
   "include": ["src/**/*.ts"],
-  "references": [{ "path": "../narrative-core" }]
+  "references": [
+    { "path": "../alignment" },
+    { "path": "../narrative-core" },
+    { "path": "../speech" }
+  ]
 }

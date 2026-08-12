@@ -16,9 +16,12 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@mediaforge/alignment": "workspace:*",
     "@mediaforge/domain": "workspace:*",
     "@mediaforge/image-generation": "workspace:*",
     "@mediaforge/narrative-core": "workspace:*",
+    "@mediaforge/shared": "workspace:*",
+    "@mediaforge/speech": "workspace:*",
     "@mediaforge/scene-planning": "workspace:*",
     "@mediaforge/visual-planning": "workspace:*",
     "@mediaforge/observability": "workspace:*",

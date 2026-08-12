@@ -40,6 +40,10 @@ export default defineConfig({
         import.meta.dirname,
         "packages/image-generation/src/index.ts"
       ),
+      "@mediaforge/speech/locale-tts-segmentation.js": path.resolve(
+        import.meta.dirname,
+        "packages/speech/src/locale-tts-segmentation.ts"
+      ),
       "@mediaforge/speech": path.resolve(
         import.meta.dirname,
         "packages/speech/src/index.ts"
@@ -47,6 +51,14 @@ export default defineConfig({
       "@mediaforge/video-generation": path.resolve(
         import.meta.dirname,
         "packages/video-generation/src/index.ts"
+      ),
+      "@mediaforge/alignment/locale-tts-alignment.js": path.resolve(
+        import.meta.dirname,
+        "packages/alignment/src/locale-tts-alignment.ts"
+      ),
+      "@mediaforge/alignment": path.resolve(
+        import.meta.dirname,
+        "packages/alignment/src/index.ts"
       ),
       "@mediaforge/observability/log-redaction.js": path.resolve(
         import.meta.dirname,

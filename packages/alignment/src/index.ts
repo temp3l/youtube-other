@@ -17,6 +17,15 @@ export {
   type PlanPhraseCaptionsInput,
 } from "./caption-plan.js";
 export {
+  LOCALE_TTS_ALIGNMENT_SCHEMA_VERSION,
+  alignLocaleTtsSegment,
+  buildLocaleTtsSelectedAudioAlignment,
+  localeTtsSegmentAlignmentSchema,
+  localeTtsSelectedAudioAlignmentSchema,
+  type LocaleTtsSegmentAlignment,
+  type LocaleTtsSelectedAudioAlignment,
+} from "./locale-tts-alignment.js";
+export {
   validateLocalizedVisuals,
   writeLocalizedVisualValidationReport,
   type ValidateLocalizedVisualsInput,
