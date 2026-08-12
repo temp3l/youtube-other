@@ -52,6 +52,10 @@ export { VisualAssetRegistryRepository } from "./visual-asset-registry-repositor
 export * from "./microdrama-budget-schema.js";
 export * from "./microdrama-budget-port.js";
 export { MicrodramaBudgetRepository } from "./microdrama-budget-repository.js";
+export * from "./microdrama-publication-schema.js";
+export * from "./microdrama-publication-port.js";
+export { FakeMicrodramaPublicationRepository } from "./microdrama-publication-fake-repository.js";
+export { MicrodramaPublicationRepository } from "./microdrama-publication-repository.js";
 
 export interface PersistenceConfig {
   readonly dbPath: string;

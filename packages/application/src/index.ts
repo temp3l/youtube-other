@@ -11,6 +11,7 @@ export * from "./webhook-delivery.js";
 export * from "./usage-audit.js";
 export * from "./publication-safety.js";
 export * from "./publication-execution.js";
+export * from "./microdrama-publication-service.js";
 export * from "./release-gates.js";
 export * from "./ports.js";
 export * from "./durable-outbox-worker.js";

@@ -44,6 +44,8 @@ export * from "./signal-ui-contracts.js";
 export * from "./signal-ui-locale-projection.js";
 export * from "./microdrama-budget-contracts.js";
 export * from "./microdrama-budget-preflight.js";
+export * from "./microdrama-publication-contracts.js";
+export * from "./microdrama-publication-lifecycle.js";
 
 const episodeIdPattern = /^[a-z0-9][a-z0-9-]*$/;
 const sceneIdPattern = /^scene-[0-9]{3}$/;

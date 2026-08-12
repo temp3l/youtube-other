@@ -36,6 +36,10 @@ export default defineConfig({
         import.meta.dirname,
         "packages/image-generation/src/microdrama-visual-generation/index.ts"
       ),
+      "@mediaforge/application": path.resolve(
+        import.meta.dirname,
+        "packages/application/src/index.ts"
+      ),
       "@mediaforge/image-generation": path.resolve(
         import.meta.dirname,
         "packages/image-generation/src/index.ts"
