@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "backlogId": "vertical-microdrama-factory",
-  "updatedAt": "2026-08-12T03:31:00+02:00",
+  "updatedAt": "2026-08-12T03:38:00+02:00",
   "architectureIndex": "docs/plans/microdrama/README.md",
   "implementationPlan": "docs/plans/microdrama/implementation-plan.md",
   "taskStatusValues": ["BLOCKED", "READY", "IN_PROGRESS", "DONE", "SUPERSEDED"],
@@ -136,7 +136,7 @@
       "id": "MICRO-006",
       "title": "Implement rolling series planning revisions",
       "phase": "03-story-planning-and-qa",
-      "status": "READY",
+      "status": "DONE",
       "goal": "Add future macro, arc, near-horizon and current-episode planning over accepted snapshots.",
       "scope": ["Revisioned future-planning contracts and workflow tasks", "Promise/reveal/knowledge constraints and season boundary"],
       "dependsOn": ["MICRO-004"],

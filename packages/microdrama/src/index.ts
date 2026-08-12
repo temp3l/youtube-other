@@ -110,3 +110,54 @@ export {
   persistV5ProductionProfile,
   replayV5ProductionProfile,
 } from "./v5-production-profile-persistence.js";
+
+export {
+  MICRODRAMA_PLANNING_TASK_IDS,
+  MICRODRAMA_PLANNING_WORKFLOW_TASKS,
+  MICRODRAMA_PLANNING_WORKFLOW_VERSION,
+  planningTaskForHorizon,
+  topologicalSortMicrodramaPlanningTasks,
+} from "./rolling-plan-workflow.js";
+export type {
+  MicrodramaPlanningTaskId,
+  MicrodramaPlanningWorkflowTask,
+} from "./rolling-plan-workflow.js";
+
+export {
+  NEAR_HORIZON_DEFAULT_SIZE,
+  NEAR_HORIZON_MAX_SIZE,
+  PLANNING_HORIZONS,
+  ROLLING_PLAN_REVISION_STATUSES,
+  ROLLING_PLAN_SCHEMA_VERSION,
+  SEASON_1_EPISODE_COUNT,
+  parseCanonicalEpisodeNumber,
+  planningHorizonSchema,
+  planningIntentionSchema,
+  rollingPlanPayloadSchema,
+  rollingPlanRevisionSchema,
+  validateRollingPlanPayload,
+  validateRollingPlanRevision,
+} from "./rolling-plan-contracts.js";
+export type {
+  PlanningHorizon,
+  PlanningIntention,
+  RollingPlanIssue,
+  RollingPlanIssueCode,
+  RollingPlanPayload,
+  RollingPlanRevision,
+  RollingPlanRevisionStatus,
+  RollingPlanValidationResult,
+} from "./rolling-plan-contracts.js";
+
+export {
+  expectedEpisodeRange,
+  validateRollingPlanConstraints,
+} from "./rolling-plan-constraints.js";
+export type { RollingPlanConstraintContext } from "./rolling-plan-constraints.js";
+
+export {
+  buildRollingPlanPayload,
+  buildRollingPlanRevision,
+  compileRollingPlanFromFixture,
+} from "./rolling-plan-planner.js";
+export type { RollingPlanFixtureInput } from "./rolling-plan-planner.js";
