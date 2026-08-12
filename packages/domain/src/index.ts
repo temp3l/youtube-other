@@ -52,6 +52,8 @@ export * from "./microdrama-publication-lifecycle.js";
 export * from "./microdrama-performance-contracts.js";
 export * from "./microdrama-performance-normalization.js";
 export * from "./microdrama-performance-lifecycle.js";
+export * from "./microdrama-experiment-contracts.js";
+export * from "./microdrama-experiment-lifecycle.js";
 export * from "./tiktok-account-contracts.js";
 export * from "./tiktok-account-lifecycle.js";
 export * from "./tiktok-metadata-contracts.js";

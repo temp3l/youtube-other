@@ -60,6 +60,10 @@ export * from "./microdrama-performance-schema.js";
 export * from "./microdrama-performance-port.js";
 export { FakeMicrodramaPerformanceRepository } from "./microdrama-performance-fake-repository.js";
 export { MicrodramaPerformanceRepository } from "./microdrama-performance-repository.js";
+export * from "./microdrama-experiment-schema.js";
+export * from "./microdrama-experiment-port.js";
+export { FakeMicrodramaExperimentRepository } from "./microdrama-experiment-fake-repository.js";
+export { MicrodramaExperimentRepository } from "./microdrama-experiment-repository.js";
 
 export interface PersistenceConfig {
   readonly dbPath: string;
