@@ -163,6 +163,27 @@ export {
 export type { RollingPlanFixtureInput } from "./rolling-plan-planner.js";
 
 export {
+  mapRollingPlanIssues,
+  rollingPlanEpisodeProductionBundleSchema,
+  rollingPlanEpisodeProductionRecordSchema,
+  validateRollingPlanEpisodeProductionBundle,
+} from "./rolling-plan-episode-production-contracts.js";
+export type {
+  CompiledRollingEpisodeProduction,
+  RollingPlanEpisodeProductionBundle,
+  RollingPlanEpisodeProductionIssue,
+  RollingPlanEpisodeProductionIssueCode,
+  RollingPlanEpisodeProductionRecord,
+  RollingPlanEpisodeProductionResult,
+} from "./rolling-plan-episode-production-contracts.js";
+
+export {
+  buildRollingPlanEpisodeProductionRevisionEnvelopes,
+  compileRollingEpisodeProductionFromIntention,
+  compileRollingPlanEpisodeProduction,
+} from "./rolling-plan-episode-production-compiler.js";
+
+export {
   v5EpisodeProductionBundleSchema,
   v5EpisodeProductionProjectionSchema,
   v5EpisodeProductionRecordSchema,

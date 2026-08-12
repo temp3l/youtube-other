@@ -920,7 +920,7 @@
       "id": "MICRO-044",
       "title": "Extend EpisodeSpec and BeatPlan compilation for rolling revisions",
       "phase": "03-story-planning-and-qa",
-      "status": "READY",
+      "status": "DONE",
       "goal": "Compile future accepted rolling-plan revisions through the same production contracts used by imported V5.",
       "scope": ["PlanningRevision to EpisodeSpec/BeatPlan adapter", "Future-revision lineage and canon-bound admission; no change to imported V5 scripts"],
       "dependsOn": ["MICRO-006", "MICRO-007", "MICRO-008"],

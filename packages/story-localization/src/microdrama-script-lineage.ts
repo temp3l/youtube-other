@@ -64,3 +64,57 @@ export function lineageUsesRevisionIdsOnly(lineage: MicrodramaScriptLineageRef):
     return typeof value === "string" || value === "script_revision";
   });
 }
+
+export const microdramaRollingPlanLineageRefSchema = z
+  .object({
+    episodeId: z.string().regex(/^E\d{3}$/u),
+    rollingPlanRevisionId: z.string().min(1).max(160),
+    episodeSpecRevisionId: z.string().min(1).max(160),
+    beatPlanRevisionId: z.string().min(1).max(160),
+    boundaryRevisionId: z.string().min(1).max(160),
+    pendingScriptRevisionId: z.string().min(1).max(160),
+    proseAuthority: z.literal("pending_script"),
+    hookSemanticId: z.string().min(1).max(160),
+    cliffhangerSemanticId: z.string().min(1).max(160),
+  })
+  .strict();
+export type MicrodramaRollingPlanLineageRef = z.infer<
+  typeof microdramaRollingPlanLineageRefSchema
+>;
+
+export type MicrodramaRollingPlanProductionRevisionRefs = {
+  episodeId: string;
+  rollingPlanRevisionId: string;
+  episodeSpecRevisionId: string;
+  beatPlanRevisionId: string;
+  boundaryRevisionId: string;
+  pendingScriptRevisionId: string;
+  episodeSpec: EpisodeSpecPayload;
+  beatPlan: BeatPlanPayload;
+};
+
+export function resolveMicrodramaRollingPlanLineage(
+  input: MicrodramaRollingPlanProductionRevisionRefs
+): MicrodramaRollingPlanLineageRef {
+  return microdramaRollingPlanLineageRefSchema.parse({
+    episodeId: input.episodeId,
+    rollingPlanRevisionId: input.rollingPlanRevisionId,
+    episodeSpecRevisionId: input.episodeSpecRevisionId,
+    beatPlanRevisionId: input.beatPlanRevisionId,
+    boundaryRevisionId: input.boundaryRevisionId,
+    pendingScriptRevisionId: input.pendingScriptRevisionId,
+    proseAuthority: "pending_script",
+    hookSemanticId: input.episodeSpec.hook.semanticId,
+    cliffhangerSemanticId: input.episodeSpec.cliffhanger.semanticId,
+  });
+}
+
+export function rollingPlanLineageUsesRevisionIdsOnly(
+  lineage: MicrodramaRollingPlanLineageRef
+): boolean {
+  const keys = Object.keys(lineage) as (keyof MicrodramaRollingPlanLineageRef)[];
+  return keys.every((key) => {
+    const value = lineage[key];
+    return typeof value === "string" || value === "pending_script";
+  });
+}

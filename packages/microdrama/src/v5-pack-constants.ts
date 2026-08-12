@@ -8,6 +8,8 @@ export const V5_EXPECTED_HASH_MANIFEST_ENTRIES = 433;
 export const V5_EXPECTED_EPISODE_COUNT = 100;
 export const V5_EXPECTED_LOCALE_VARIANT_COUNT = 400;
 
+export const ROLLING_PLAN_DEFAULT_EPISODE_SECONDS = 59.6 as const;
+
 export const V5_HASH_MANIFEST_RELATIVE_PATH = "qa/sha256-v5.json";
 export const V5_VALIDATION_RELATIVE_PATH = "qa/validation-v5.json";
 
