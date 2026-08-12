@@ -487,6 +487,15 @@ importers:
         specifier: ^4.0.14
         version: 4.4.3
 
+  packages/microdrama:
+    dependencies:
+      '@mediaforge/narrative-core':
+        specifier: workspace:*
+        version: link:../narrative-core
+      zod:
+        specifier: ^4.0.14
+        version: 4.4.3
+
   packages/narrative-core:
     dependencies:
       zod:

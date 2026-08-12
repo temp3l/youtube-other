@@ -12,6 +12,14 @@ export default defineConfig({
         import.meta.dirname,
         "packages/domain/src/index.ts"
       ),
+      "@mediaforge/narrative-core": path.resolve(
+        import.meta.dirname,
+        "packages/narrative-core/src/index.ts"
+      ),
+      "@mediaforge/microdrama": path.resolve(
+        import.meta.dirname,
+        "packages/microdrama/src/index.ts"
+      ),
     },
   },
   test: {
