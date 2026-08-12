@@ -18,6 +18,8 @@
   "dependencies": {
     "@mediaforge/domain": "workspace:*",
     "@mediaforge/narrative-core": "workspace:*",
+    "@mediaforge/scene-planning": "workspace:*",
+    "@mediaforge/visual-planning": "workspace:*",
     "@mediaforge/observability": "workspace:*",
     "@mediaforge/persistence": "workspace:*",
     "zod": "^4.0.14"

@@ -501,6 +501,12 @@ importers:
       '@mediaforge/persistence':
         specifier: workspace:*
         version: link:../persistence
+      '@mediaforge/scene-planning':
+        specifier: workspace:*
+        version: link:../scene-planning
+      '@mediaforge/visual-planning':
+        specifier: workspace:*
+        version: link:../visual-planning
       zod:
         specifier: ^4.0.14
         version: 4.4.3

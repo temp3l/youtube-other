@@ -631,3 +631,20 @@ export function sortScenesByTiming(plan: ScenePlan): ScenePlan {
 export function sceneTimestampLabel(scene: Scene): string {
   return `${safeTimestampToken(scene.timing.startSeconds)}-${safeTimestampToken(scene.timing.endSeconds)}`;
 }
+
+export {
+  beatSemanticId,
+  beatSemanticIdSchema,
+  sceneSemanticId,
+  sceneSemanticIdSchema,
+  semanticIdContainsEnglishSentenceIdentity,
+  shotSemanticId,
+  shotSemanticIdSchema,
+  slugifyRegistryEntryId,
+  sourcePlateSemanticId,
+  sourcePlateSemanticIdSchema,
+  type BeatSemanticId,
+  type SceneSemanticId,
+  type ShotSemanticId,
+  type SourcePlateSemanticId,
+} from "./microdrama-semantic-ids.js";

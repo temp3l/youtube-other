@@ -307,3 +307,47 @@ export {
   grantStoryApprovedEvidence,
 } from "./v5-story-approval.js";
 export type { StoryApprovalRequest, StoryApprovalResult } from "./v5-story-approval.js";
+
+export {
+  MICRODRAMA_SHOT_BLOCKING_KINDS,
+  MICRODRAMA_SHOT_REACTION_KINDS,
+  V5_SCENE_SHOT_SCHEMA_VERSION,
+  microdramaAssetDensityPolicySchema,
+  microdramaShotBlockingKindSchema,
+  microdramaShotReactionKindSchema,
+  projectedLocaleShotTimingSchema,
+  semanticBeatPlanEntrySchema,
+  semanticScenePlanEntrySchema,
+  semanticShotPlanEntrySchema,
+  semanticTimingWindowSchema,
+  validateV5SceneShotPlanBundle,
+  validateV5SceneShotPlanRecord,
+  v5SceneShotPlanBundleSchema,
+  v5SceneShotPlanRecordSchema,
+} from "./v5-scene-shot-compiler-contracts.js";
+export type {
+  MicrodramaAssetDensityPolicyRecord,
+  MicrodramaShotBlockingKind,
+  MicrodramaShotReactionKind,
+  ProjectedLocaleShotTiming,
+  SemanticBeatPlanEntry,
+  SemanticScenePlanEntry,
+  SemanticShotPlanEntry,
+  SemanticTimingWindow,
+  ShotVisualRegistryReference,
+  V5SceneShotPlanBundle,
+  V5SceneShotPlanIssue,
+  V5SceneShotPlanIssueCode,
+  V5SceneShotPlanRecord,
+  V5SceneShotPlanResult,
+} from "./v5-scene-shot-compiler-contracts.js";
+
+export {
+  beatSemanticId,
+  compileSceneShotPlanFromProductionRecord,
+  compileV5SceneShotPlans,
+  projectLocaleTimingOverSemanticPlan,
+  sceneSemanticId,
+  shotSemanticId,
+  sourcePlateSemanticId,
+} from "./v5-scene-shot-compiler.js";

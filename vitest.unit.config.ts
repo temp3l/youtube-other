@@ -20,6 +20,14 @@ export default defineConfig({
         import.meta.dirname,
         "packages/microdrama/src/index.ts"
       ),
+      "@mediaforge/scene-planning": path.resolve(
+        import.meta.dirname,
+        "packages/scene-planning/src/index.ts"
+      ),
+      "@mediaforge/visual-planning": path.resolve(
+        import.meta.dirname,
+        "packages/visual-planning/src/index.ts"
+      ),
       "@mediaforge/persistence": path.resolve(
         import.meta.dirname,
         "packages/persistence/src/index.ts"

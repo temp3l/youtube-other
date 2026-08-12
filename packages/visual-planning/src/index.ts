@@ -119,6 +119,16 @@ export {
 } from "./scene-visual-policy.js";
 
 export {
+  CANARY_EDITORIAL_CUT_RANGE,
+  CANARY_EPISODE_NUMBER_MAX,
+  CANARY_SOURCE_PLATE_RANGE,
+  distributeEditorialCutsAcrossScenes,
+  resolveMicrodramaAssetDensityPolicy,
+  type MicrodramaAssetDensityPolicy,
+  type MicrodramaAssetDensityScope,
+} from "./microdrama-canary-asset-density.js";
+
+export {
   PERSISTED_VISUAL_DIRECTION_RESOLVER_V1,
   PERSISTED_VISUAL_DIRECTION_SCHEMA_V1,
   buildPersistedVisualDirectionFingerprint,
