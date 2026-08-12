@@ -265,6 +265,9 @@ importers:
       '@mediaforge/strategic-reinvention':
         specifier: workspace:*
         version: link:../strategic-reinvention
+      '@mediaforge/tiktok-publishing':
+        specifier: workspace:*
+        version: link:../tiktok-publishing
       '@mediaforge/workflow-engine':
         specifier: workspace:*
         version: link:../workflow-engine
@@ -770,6 +773,15 @@ importers:
       '@mediaforge/shared':
         specifier: workspace:*
         version: link:../shared
+      zod:
+        specifier: ^4.0.14
+        version: 4.4.3
+
+  packages/tiktok-publishing:
+    dependencies:
+      '@mediaforge/domain':
+        specifier: workspace:*
+        version: link:../domain
       zod:
         specifier: ^4.0.14
         version: 4.4.3

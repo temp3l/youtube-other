@@ -51,6 +51,8 @@ export * from "./microdrama-publication-lifecycle.js";
 export * from "./microdrama-performance-contracts.js";
 export * from "./microdrama-performance-normalization.js";
 export * from "./microdrama-performance-lifecycle.js";
+export * from "./tiktok-account-contracts.js";
+export * from "./tiktok-account-lifecycle.js";
 
 const episodeIdPattern = /^[a-z0-9][a-z0-9-]*$/;
 const sceneIdPattern = /^scene-[0-9]{3}$/;

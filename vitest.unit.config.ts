@@ -40,6 +40,10 @@ export default defineConfig({
         import.meta.dirname,
         "packages/application/src/index.ts"
       ),
+      "@mediaforge/tiktok-publishing": path.resolve(
+        import.meta.dirname,
+        "packages/tiktok-publishing/src/index.ts"
+      ),
       "@mediaforge/image-generation": path.resolve(
         import.meta.dirname,
         "packages/image-generation/src/index.ts"

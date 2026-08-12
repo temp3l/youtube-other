@@ -1,0 +1,16 @@
+{
+  "workspaceId": "workspace.microdrama.001",
+  "sessionId": "oauth-session.fixture.001",
+  "stateNonce": "nonce-fixture-001",
+  "accountId": "tiktok.account.001",
+  "providerAccountId": "tiktok.open-id.fixture.001",
+  "displayName": "Fixture Creator",
+  "redirectUri": "https://localhost:8787/oauth/tiktok/callback",
+  "requestedScopes": ["user.info.basic", "video.publish"],
+  "clientKey": "fixture-client-key",
+  "authorizationCode": "fixture-authorization-code",
+  "credentialHandle": "tiktok-cred-handle.fixture.001",
+  "authorizationExpiresAt": "2026-09-12T12:00:00.000Z",
+  "evaluatedAt": "2026-08-12T12:00:00.000Z",
+  "expiresAt": "2026-08-12T12:15:00.000Z"
+}
