@@ -259,12 +259,18 @@ importers:
       '@mediaforge/math-education':
         specifier: workspace:*
         version: link:../math-education
+      '@mediaforge/metadata':
+        specifier: workspace:*
+        version: link:../metadata
       '@mediaforge/strategic-reinvention':
         specifier: workspace:*
         version: link:../strategic-reinvention
       '@mediaforge/workflow-engine':
         specifier: workspace:*
         version: link:../workflow-engine
+      '@mediaforge/youtube-upload':
+        specifier: workspace:*
+        version: link:../youtube-upload
       zod:
         specifier: ^4.0.14
         version: 4.4.3

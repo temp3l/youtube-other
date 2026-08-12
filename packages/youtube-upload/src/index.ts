@@ -69,6 +69,14 @@ export {
   type YoutubePublicationIntent,
 } from "./publication-intent.js";
 export {
+  FakeMicrodramaYoutubeCoexistenceExecutor,
+  executeMicrodramaYoutubeCoexistencePreflight,
+  planMicrodramaYoutubeCoexistenceIntent,
+  reconcileMicrodramaYoutubeCoexistenceIntent,
+  type MicrodramaYoutubeCoexistenceExecutorPort,
+  type PlanMicrodramaYoutubeCoexistenceIntentInput,
+} from "./microdrama-youtube-coexistence.js";
+export {
   PUBLISH_APPROVAL_SCHEMA_VERSION,
   PublishApprovalError,
   approvePublishDryRun,

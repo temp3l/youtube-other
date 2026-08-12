@@ -8,12 +8,25 @@ import { formatTimestampLabel, normalizeWhitespace, splitIntoWords } from "@medi
 export {
   DELIVERY_BUNDLE_SCHEMA_VERSION,
   deliveryBundleSchema,
+  editableLocaleMetadataSchema,
   type DeliveryBundle,
   type EditableLocaleMetadata,
   type PlanDeliveryBundleInput,
   planDeliveryBundle,
   redactDeliveryBundleFailure,
 } from "./delivery-bundle.js";
+export {
+  MICRODRAMA_YOUTUBE_LOCALE_METADATA_SCHEMA_VERSION,
+  MICRODRAMA_YOUTUBE_SERIES_PROJECTION_SCHEMA_VERSION,
+  microdramaYoutubeLocaleMetadataRevisionSchema,
+  microdramaYoutubeSeriesProjectionSchema,
+  type MicrodramaYoutubeLocaleMetadataRevision,
+  type MicrodramaYoutubeSeriesProjection,
+  type PlanMicrodramaYoutubeLocaleMetadataRevisionInput,
+  type ProjectMicrodramaYoutubeSeriesPlaylistsInput,
+  planMicrodramaYoutubeLocaleMetadataRevision,
+  projectMicrodramaYoutubeSeriesPlaylists,
+} from "./microdrama-youtube-locale-metadata.js";
 
 export {
   ConfigurationError,

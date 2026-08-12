@@ -29,7 +29,7 @@ function fingerprint(value: unknown): string {
     .digest("hex");
 }
 
-const editableLocaleMetadataSchema = z.strictObject({
+export const editableLocaleMetadataSchema = z.strictObject({
   title: z.string().trim().min(1).max(100),
   description: z.string().trim().min(1).max(5000),
   tags: z.array(z.string().trim().min(1)).max(500),

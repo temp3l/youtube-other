@@ -13,6 +13,10 @@
     "./delivery-bundle": {
       "types": "./dist/delivery-bundle.d.ts",
       "default": "./dist/delivery-bundle.js"
+    },
+    "./microdrama-youtube-locale-metadata": {
+      "types": "./dist/microdrama-youtube-locale-metadata.d.ts",
+      "default": "./dist/microdrama-youtube-locale-metadata.js"
     }
   },
   "scripts": {

@@ -436,7 +436,7 @@
       "id": "MICRO-021",
       "title": "Add YouTube microdrama coexistence projection",
       "phase": "05-publication",
-      "status": "READY",
+      "status": "DONE",
       "goal": "Reuse YouTube safety through the embedded microdrama publication domain.",
       "scope": ["YouTube locale metadata and playlist/series projection", "Adapter mapping without TikTok metadata reuse"],
       "dependsOn": ["MICRO-020"],

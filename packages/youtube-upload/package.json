@@ -29,6 +29,10 @@
     "./strategic-publish-routing": {
       "types": "./dist/strategic-publish-routing.d.ts",
       "default": "./dist/strategic-publish-routing.js"
+    },
+    "./microdrama-youtube-coexistence": {
+      "types": "./dist/microdrama-youtube-coexistence.d.ts",
+      "default": "./dist/microdrama-youtube-coexistence.js"
     }
   },
   "scripts": {

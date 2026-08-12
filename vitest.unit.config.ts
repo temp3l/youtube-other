@@ -80,6 +80,30 @@ export default defineConfig({
         import.meta.dirname,
         "packages/workflow-engine/src/index.ts"
       ),
+      "@mediaforge/metadata/delivery-bundle": path.resolve(
+        import.meta.dirname,
+        "packages/metadata/src/delivery-bundle.ts"
+      ),
+      "@mediaforge/metadata/microdrama-youtube-locale-metadata": path.resolve(
+        import.meta.dirname,
+        "packages/metadata/src/microdrama-youtube-locale-metadata.ts"
+      ),
+      "@mediaforge/metadata": path.resolve(
+        import.meta.dirname,
+        "packages/metadata/src/index.ts"
+      ),
+      "@mediaforge/youtube-upload/microdrama-youtube-coexistence": path.resolve(
+        import.meta.dirname,
+        "packages/youtube-upload/src/microdrama-youtube-coexistence.ts"
+      ),
+      "@mediaforge/youtube-upload/publication-intent": path.resolve(
+        import.meta.dirname,
+        "packages/youtube-upload/src/publication-intent.ts"
+      ),
+      "@mediaforge/youtube-upload": path.resolve(
+        import.meta.dirname,
+        "packages/youtube-upload/src/index.ts"
+      ),
     },
   },
   test: {

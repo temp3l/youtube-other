@@ -23,6 +23,8 @@
     "@mediaforge/config": "workspace:*",
     "@mediaforge/dark-truth": "workspace:*",
     "@mediaforge/domain": "workspace:*",
+    "@mediaforge/metadata": "workspace:*",
+    "@mediaforge/youtube-upload": "workspace:*",
     "@mediaforge/history": "workspace:*",
     "@mediaforge/math-education": "workspace:*",
     "@mediaforge/strategic-reinvention": "workspace:*",
