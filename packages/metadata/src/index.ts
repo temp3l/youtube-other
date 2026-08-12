@@ -29,6 +29,11 @@ export {
 } from "./microdrama-youtube-locale-metadata.js";
 
 export {
+  projectTikTokLocaleEditorialMetadata,
+  type ProjectTikTokLocaleEditorialInput,
+} from "./tiktok-locale-metadata.js";
+
+export {
   ConfigurationError,
   MetadataValidationError,
   OpenAIResponseError,

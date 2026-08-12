@@ -516,7 +516,7 @@
       "id": "MICRO-025",
       "title": "Implement TikTok locale metadata projection",
       "phase": "05-publication",
-      "status": "READY",
+      "status": "DONE",
       "goal": "Create revision-bound TikTok captions, hashtags, CTA and policy fields per locale.",
       "scope": ["Editorial metadata separate from provider policy fields", "AI/commercial disclosure and interaction/privacy validation"],
       "dependsOn": ["MICRO-005", "MICRO-020"],

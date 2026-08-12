@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@mediaforge/domain": "workspace:*",
+    "@mediaforge/metadata": "workspace:*",
     "zod": "^4.0.14"
   }
 }

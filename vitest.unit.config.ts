@@ -92,6 +92,10 @@ export default defineConfig({
         import.meta.dirname,
         "packages/metadata/src/microdrama-youtube-locale-metadata.ts"
       ),
+      "@mediaforge/metadata/tiktok-locale-metadata.js": path.resolve(
+        import.meta.dirname,
+        "packages/metadata/src/tiktok-locale-metadata.ts"
+      ),
       "@mediaforge/metadata": path.resolve(
         import.meta.dirname,
         "packages/metadata/src/index.ts"
@@ -111,6 +115,10 @@ export default defineConfig({
       "@mediaforge/performance": path.resolve(
         import.meta.dirname,
         "packages/performance/src/index.ts"
+      ),
+      "@mediaforge/tiktok-publishing": path.resolve(
+        import.meta.dirname,
+        "packages/tiktok-publishing/src/index.ts"
       ),
     },
   },

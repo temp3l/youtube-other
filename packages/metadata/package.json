@@ -17,6 +17,10 @@
     "./microdrama-youtube-locale-metadata": {
       "types": "./dist/microdrama-youtube-locale-metadata.d.ts",
       "default": "./dist/microdrama-youtube-locale-metadata.js"
+    },
+    "./tiktok-locale-metadata.js": {
+      "types": "./src/tiktok-locale-metadata.ts",
+      "default": "./dist/tiktok-locale-metadata.js"
     }
   },
   "scripts": {
