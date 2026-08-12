@@ -26,6 +26,11 @@ export {
   type LocaleTtsSelectedAudioAlignment,
 } from "./locale-tts-alignment.js";
 export {
+  LOCALE_SUBTITLE_COMPILATION_SCHEMA_VERSION,
+  compileLocaleSubtitleCaptionPlan,
+  type CompileLocaleSubtitleProjectionInput,
+} from "./locale-subtitle-projection.js";
+export {
   validateLocalizedVisuals,
   writeLocalizedVisualValidationReport,
   type ValidateLocalizedVisualsInput,

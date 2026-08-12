@@ -589,6 +589,9 @@ importers:
 
   packages/rendering:
     dependencies:
+      '@mediaforge/alignment':
+        specifier: workspace:*
+        version: link:../alignment
       '@mediaforge/domain':
         specifier: workspace:*
         version: link:../domain

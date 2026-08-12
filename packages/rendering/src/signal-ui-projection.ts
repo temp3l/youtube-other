@@ -1,8 +1,10 @@
 import {
+  fingerprintSelectedAudioTimingDependency,
   localizedSignalUiProjectionSchema,
   rejectScreenshotDerivedSignalUIState,
   signalUiStateSchema,
   type LocalizedSignalUiProjection,
+  type SelectedAudioTimingDependency,
   type SignalUIState,
 } from "@mediaforge/domain";
 
@@ -24,6 +26,7 @@ export type SignalUiCompositorArtifact = {
   readonly dependencyIdentity: Readonly<{
     readonly signalUiStateFingerprint: string;
     readonly locale: LocalizedSignalUiProjection["locale"];
+    readonly timingDependencyFingerprint?: string;
   }>;
 };
 
@@ -39,8 +42,14 @@ export function assertCanonicalSignalUIState(
 
 export function compileLocalizedSignalUiCompositorArtifact(
   projection: LocalizedSignalUiProjection,
+  options?: {
+    readonly timingDependency?: SelectedAudioTimingDependency;
+  },
 ): SignalUiCompositorArtifact {
   const parsed = localizedSignalUiProjectionSchema.parse(projection);
+  const timingDependencyFingerprint = options?.timingDependency
+    ? fingerprintSelectedAudioTimingDependency(options.timingDependency)
+    : undefined;
   return {
     schemaVersion: SIGNAL_UI_COMPOSITOR_ARTIFACT_SCHEMA_VERSION,
     locale: parsed.locale,
@@ -59,6 +68,9 @@ export function compileLocalizedSignalUiCompositorArtifact(
     dependencyIdentity: {
       signalUiStateFingerprint: parsed.stateFingerprint,
       locale: parsed.locale,
+      ...(timingDependencyFingerprint
+        ? { timingDependencyFingerprint }
+        : {}),
     },
   };
 }

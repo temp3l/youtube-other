@@ -20,6 +20,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@mediaforge/alignment": "workspace:*",
     "@mediaforge/domain": "workspace:*",
     "@mediaforge/process-runner": "workspace:*",
     "@mediaforge/shared": "workspace:*",

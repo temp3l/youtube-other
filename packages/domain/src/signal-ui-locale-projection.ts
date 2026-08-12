@@ -10,6 +10,7 @@ import {
   type SignalUiLocaleTextBundle,
   validateSignalUIState,
 } from "./signal-ui-contracts.js";
+import { fingerprintSelectedAudioTimingDependency } from "./selected-audio-timing-dependency.js";
 
 function canonicalize(value: unknown): unknown {
   if (Array.isArray(value)) {
@@ -31,11 +32,14 @@ function hashCanonical(value: unknown): string {
     .digest("hex");
 }
 
+import type { SelectedAudioTimingDependency } from "./selected-audio-timing-dependency.js";
+
 export type ProjectSignalUiForLocaleInput = {
   readonly state: SignalUIState;
   readonly locale: SignalUiBcp47Locale;
   readonly textBundle: SignalUiLocaleTextBundle;
   readonly compositorRevision?: string;
+  readonly timingDependency?: SelectedAudioTimingDependency;
 };
 
 export type ProjectSignalUiForLocaleResult =
@@ -127,7 +131,10 @@ export function projectSignalUiForLocale(
   const stateFingerprint = fingerprintSignalUIState(state);
   const compositorRevision =
     input.compositorRevision ?? `signal-ui-compositor.v1:${input.locale}`;
-  const fingerprintMaterial = {
+  const timingDependencyFingerprint = input.timingDependency
+    ? fingerprintSelectedAudioTimingDependency(input.timingDependency)
+    : undefined;
+  const projectionBody = {
     schemaVersion: SIGNAL_UI_PROJECTION_SCHEMA_VERSION,
     locale: input.locale,
     stateId: state.stateId,
@@ -139,11 +146,17 @@ export function projectSignalUiForLocale(
     criticalRevealRegions: state.criticalRevealRegions,
     compositorRevision,
   };
+  const fingerprintMaterial = {
+    ...projectionBody,
+    ...(timingDependencyFingerprint
+      ? { timingDependencyFingerprint }
+      : {}),
+  };
 
   return {
     ok: true,
     projection: localizedSignalUiProjectionSchema.parse({
-      ...fingerprintMaterial,
+      ...projectionBody,
       fingerprint: hashCanonical(fingerprintMaterial),
     }),
   };
