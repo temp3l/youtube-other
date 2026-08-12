@@ -403,3 +403,29 @@ export {
 } from "./locale-tts-segmentation.js";
 
 export { buildMinimalSceneShotPlanFixture } from "./scene-shot-plan-fixture.js";
+
+export {
+  LEARNING_ADMISSION_SCHEMA_VERSION,
+  LEARNING_ADMISSION_ISSUE_CODES,
+  acceptedPlanningLearningInputSchema,
+  learningAdmissionIssueCodeSchema,
+  learningAdmissionIssueSchema,
+  learningAdmissionValidationResultSchema,
+  planningLearningInputsSchema,
+} from "./learning-admission-contracts.js";
+export type {
+  AcceptedPlanningLearningInput,
+  LearningAdmissionIssue,
+  LearningAdmissionIssueCode,
+  LearningAdmissionValidationResult,
+  PlanningLearningInputs,
+} from "./learning-admission-contracts.js";
+
+export {
+  acceptCreativeRecommendationForPlanning,
+  buildAcceptedPlanningLearningInput,
+  rejectUnadmittedRecommendationsForPlanning,
+  selectAcceptedRecommendationsForPlanning,
+  validateCreativeRecommendationCanonSafety,
+} from "./learning-admission.js";
+export type { LearningAdmissionContext } from "./learning-admission.js";

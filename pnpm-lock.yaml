@@ -516,6 +516,9 @@ importers:
       '@mediaforge/observability':
         specifier: workspace:*
         version: link:../observability
+      '@mediaforge/performance':
+        specifier: workspace:*
+        version: link:../performance
       '@mediaforge/persistence':
         specifier: workspace:*
         version: link:../persistence

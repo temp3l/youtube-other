@@ -192,6 +192,19 @@ export {
 } from "./transitions.js";
 
 export {
+  CANON_PROTECTED_SURFACES,
+  PLANNING_SAFE_SURFACES,
+  assertPlanningOnlySurfaces,
+  canonProtectedSurfaceSchema,
+  isCanonProtectedSurface,
+  planningSafeSurfaceSchema,
+} from "./canon-protection.js";
+export type {
+  CanonProtectedSurface,
+  PlanningSafeSurface,
+} from "./canon-protection.js";
+
+export {
   parseCharacterPayload,
   parseCharacterRevision,
   parseCharacterVoiceProfilePayload,

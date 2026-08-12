@@ -656,7 +656,7 @@
       "id": "MICRO-032",
       "title": "Implement canon-safe learning admission",
       "phase": "06-performance-and-learning",
-      "status": "READY",
+      "status": "DONE",
       "goal": "Convert evidence into recommendations without direct canon mutation.",
       "scope": ["Finding and CreativeRecommendation revisions", "Canon-aware validator and explicit acceptance into future planning"],
       "dependsOn": ["MICRO-006", "MICRO-008", "MICRO-031", "MICRO-044"],
