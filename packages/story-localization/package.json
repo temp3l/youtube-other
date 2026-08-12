@@ -21,6 +21,8 @@
   },
   "dependencies": {
     "@mediaforge/domain": "workspace:*",
+    "@mediaforge/microdrama": "workspace:*",
+    "@mediaforge/narrative-core": "workspace:*",
     "@mediaforge/observability": "workspace:*",
     "@mediaforge/shared": "workspace:*",
     "@mediaforge/workflow-engine": "workspace:*",

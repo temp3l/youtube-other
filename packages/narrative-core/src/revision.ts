@@ -31,6 +31,8 @@ export const NARRATIVE_AGGREGATE_KINDS = [
   "character_voice_profile",
   "character_voice_profile_version",
   "character_voice_pronunciation",
+  "episode_spec",
+  "beat_plan",
 ] as const;
 export const narrativeAggregateKindSchema = z.enum(NARRATIVE_AGGREGATE_KINDS);
 export type NarrativeAggregateKind = z.infer<typeof narrativeAggregateKindSchema>;

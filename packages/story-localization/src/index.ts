@@ -89,3 +89,4 @@ export {
   buildCanonicalSourceFileName,
 } from "./short-rewrite.utils.js";
 export * from "./short-rewrite.service.js";
+export * from "./microdrama-script-lineage.js";

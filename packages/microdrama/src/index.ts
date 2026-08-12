@@ -163,40 +163,26 @@ export {
 export type { RollingPlanFixtureInput } from "./rolling-plan-planner.js";
 
 export {
-  READINESS_DOMAINS,
-  READINESS_CHECK_RESULTS,
-  READINESS_EVIDENCE_SCHEMA_VERSION,
-  READINESS_EVIDENCE_STATUSES,
-  READINESS_FAILURE_CLASSES,
-  readinessCheckEvaluationSchema,
-  readinessCheckResultSchema,
-  readinessDomainSchema,
-  readinessEvidenceRecordSchema,
-  readinessEvidenceStatusSchema,
-  readinessFailureClassSchema,
-  readinessInvalidationReasonSchema,
-  readinessProjectionSchema,
-  validateReadinessEvidenceRecord,
-  validateReadinessProjection,
-} from "./readiness-evidence-contracts.js";
+  v5EpisodeProductionBundleSchema,
+  v5EpisodeProductionProjectionSchema,
+  v5EpisodeProductionRecordSchema,
+  validateV5EpisodeProductionBundle,
+  validateV5EpisodeProductionRecord,
+} from "./v5-episode-production-contracts.js";
 export type {
-  ReadinessCheckEvaluation,
-  ReadinessCheckResult,
-  ReadinessDomain,
-  ReadinessEvidenceRecord,
-  ReadinessEvidenceStatus,
-  ReadinessFailureClass,
-  ReadinessInvalidationReason,
-  ReadinessProjection,
-  ReadinessProjectionResult,
-} from "./readiness-evidence-contracts.js";
+  CompiledEpisodeProduction,
+  V5EpisodeProductionBundle,
+  V5EpisodeProductionIssue,
+  V5EpisodeProductionIssueCode,
+  V5EpisodeProductionProjection,
+  V5EpisodeProductionRecord,
+  V5EpisodeProductionResult,
+} from "./v5-episode-production-contracts.js";
 
 export {
-  conjunctionEvaluatesToPass,
-  defaultEvidenceBackedCheck,
-  evaluateReadinessProjection,
-  evidenceMatchesRevision,
-  projectionBlocksOnlyDomain,
-  unavailableCheckNeverPasses,
-} from "./readiness-evidence-evaluator.js";
-export type { ReadinessCheckDefinition, ReadinessEvaluationInput } from "./readiness-evidence-evaluator.js";
+  FORBIDDEN_OPEN_LOOP_RESOLUTION,
+  buildEpisodeProductionRevisionEnvelopes,
+  buildV5EpisodeProductionProjection,
+  compileEpisodeProductionFromBoundary,
+  compileV5EpisodeProduction,
+} from "./v5-episode-production-compiler.js";

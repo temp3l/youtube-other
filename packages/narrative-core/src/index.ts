@@ -149,6 +149,44 @@ export type {
 } from "./voice-registry.js";
 
 export {
+  BEAT_CATEGORIES,
+  CLIFFHANGER_TAXONOMY,
+  EPISODE_PRODUCTION_SCHEMA_VERSION,
+  beatCategorySchema,
+  beatEntrySchema,
+  beatPlanPayloadSchema,
+  beatPlanPacingRatios,
+  beatPlanRevisionSchema,
+  cliffhangerProjectionSchema,
+  cliffhangerTaxonomySchema,
+  durationTargetFromRatio,
+  durationTargetSchema,
+  episodeSpecPayloadSchema,
+  episodeSpecRevisionSchema,
+  hookProjectionSchema,
+  parseBeatPlanPayload,
+  parseEpisodeSpecPayload,
+  revealPermissionSchema as episodeSpecRevealPermissionSchema,
+  promiseMovementSchema as episodeSpecPromiseMovementSchema,
+  validateBeatPlanPayload,
+  validateEpisodeSpecPayload,
+} from "./episode-production.js";
+export type {
+  BeatCategory,
+  BeatEntry,
+  BeatPlanPayload,
+  BeatPlanRevision,
+  CliffhangerProjection,
+  CliffhangerTaxonomy,
+  DurationTarget,
+  EpisodeSpecPayload,
+  EpisodeSpecPromiseMovement,
+  EpisodeSpecRevealPermission,
+  EpisodeSpecRevision,
+  HookProjection,
+} from "./episode-production.js";
+
+export {
   assertRevisionStatusTransition,
   canTransitionRevisionStatus,
 } from "./transitions.js";
