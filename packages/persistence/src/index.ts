@@ -35,6 +35,9 @@ export * from "./postgres-revision-analytics-repository.js";
 export * from "./webhook-event-catalog.js";
 export * from "./asset-payload-validation.js";
 export * from "./tenant-object-storage.js";
+export * from "./character-voice-persistence-port.js";
+export * from "./character-voice-sqlite-schema.js";
+export { CharacterVoiceSQLiteRepository } from "./character-voice-sqlite-repository.js";
 export * from "./microdrama-persistence-port.js";
 export * from "./microdrama-sqlite-schema.js";
 export {

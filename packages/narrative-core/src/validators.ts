@@ -27,6 +27,14 @@ import {
   seriesBiblePayloadSchema,
   seriesBibleRevisionSchema,
 } from "./entities.js";
+import {
+  characterVoicePronunciationRevisionPayloadSchema,
+  characterVoicePronunciationRevisionSchema,
+  characterVoiceProfilePayloadSchema,
+  characterVoiceProfileRevisionSchema,
+  characterVoiceProfileVersionPayloadSchema,
+  characterVoiceProfileVersionRevisionSchema,
+} from "./voice-registry.js";
 import type { CharacterId } from "./ids.js";
 import type { NarrativeRevisionEnvelope } from "./revision.js";
 import { narrativeRevisionEnvelopeSchema } from "./revision.js";
@@ -307,6 +315,30 @@ export function parseNarrativePromisePayload(value: unknown) {
 
 export function parseNarrativeSnapshotPayload(value: unknown) {
   return narrativeSnapshotPayloadSchema.safeParse(value);
+}
+
+export function parseCharacterVoiceProfileRevision(value: unknown) {
+  return characterVoiceProfileRevisionSchema.safeParse(value);
+}
+
+export function parseCharacterVoiceProfileVersionRevision(value: unknown) {
+  return characterVoiceProfileVersionRevisionSchema.safeParse(value);
+}
+
+export function parseCharacterVoicePronunciationRevision(value: unknown) {
+  return characterVoicePronunciationRevisionSchema.safeParse(value);
+}
+
+export function parseCharacterVoiceProfilePayload(value: unknown) {
+  return characterVoiceProfilePayloadSchema.safeParse(value);
+}
+
+export function parseCharacterVoiceProfileVersionPayload(value: unknown) {
+  return characterVoiceProfileVersionPayloadSchema.safeParse(value);
+}
+
+export function parseCharacterVoicePronunciationRevisionPayload(value: unknown) {
+  return characterVoicePronunciationRevisionPayloadSchema.safeParse(value);
 }
 
 // Export payload types used only in validators for external tests

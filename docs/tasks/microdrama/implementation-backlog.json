@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "backlogId": "vertical-microdrama-factory",
-  "updatedAt": "2026-08-12T03:38:00+02:00",
+  "updatedAt": "2026-08-12T03:44:00+02:00",
   "architectureIndex": "docs/plans/microdrama/README.md",
   "implementationPlan": "docs/plans/microdrama/implementation-plan.md",
   "taskStatusValues": ["BLOCKED", "READY", "IN_PROGRESS", "DONE", "SUPERSEDED"],
@@ -316,7 +316,7 @@
       "id": "MICRO-015",
       "title": "Implement character voice registry",
       "phase": "04-media-planning-and-production",
-      "status": "READY",
+      "status": "DONE",
       "goal": "Persist stable character/narrator voice profiles by locale.",
       "scope": ["CharacterVoiceProfile and pronunciation revision", "Provider/model/voice version status and consent references"],
       "dependsOn": ["MICRO-002", "MICRO-005"],

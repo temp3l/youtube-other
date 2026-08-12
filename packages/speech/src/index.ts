@@ -71,6 +71,7 @@ export * from "./educational-pronunciation.js";
 export * from "./educational-speech-pipeline.js";
 export * from "./spoken-numeric-verbalizer.js";
 export * from "./creator-voice-policy.js";
+export * from "./character-voice-registry.js";
 export {
   AUDIO_MASTERING_PROFILE_VERSION,
   SPEECH_CACHE_KEY_SCHEMA_VERSION,

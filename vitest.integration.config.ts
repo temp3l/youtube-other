@@ -12,6 +12,13 @@ export default defineConfig({
         ),
       },
       {
+        find: "@mediaforge/shared",
+        replacement: path.resolve(
+          import.meta.dirname,
+          "packages/shared/src/index.ts"
+        ),
+      },
+      {
         find: "@mediaforge/narrative-core",
         replacement: path.resolve(
           import.meta.dirname,
@@ -23,6 +30,13 @@ export default defineConfig({
         replacement: path.resolve(
           import.meta.dirname,
           "packages/persistence/src/index.ts"
+        ),
+      },
+      {
+        find: "@mediaforge/speech",
+        replacement: path.resolve(
+          import.meta.dirname,
+          "packages/speech/src/index.ts"
         ),
       },
       {

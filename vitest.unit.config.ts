@@ -28,6 +28,10 @@ export default defineConfig({
         import.meta.dirname,
         "packages/image-generation/src/index.ts"
       ),
+      "@mediaforge/speech": path.resolve(
+        import.meta.dirname,
+        "packages/speech/src/index.ts"
+      ),
     },
   },
   test: {
