@@ -114,6 +114,12 @@ export interface PrepareCanonicalSourceEpisodeWorkspaceInput {
   readonly workspaceRoot: string;
   readonly sourceEpisode: CanonicalSourceEpisode;
   readonly locale: z.infer<typeof supportedLanguageCodeSchema>;
+  /**
+   * Explicitly authorizes replacing an existing workspace script with a new
+   * canonical source. Callers must use this only when downstream audio and
+   * timing provenance are being deliberately renewed.
+   */
+  readonly allowSourceReplacement?: boolean;
 }
 
 export interface PrepareCanonicalSourceEpisodeWorkspaceResult {
@@ -122,6 +128,20 @@ export interface PrepareCanonicalSourceEpisodeWorkspaceResult {
   readonly sourceDescriptorPath: string;
   readonly plannerInputPath: string;
   readonly scriptPath: string;
+}
+
+export type CanonicalSourceWorkspacePreparationErrorCode =
+  | "STALE_WORKSPACE_SOURCE_MAPPING";
+
+/** Prevents an active-source refresh from silently relinking existing audio/timing. */
+export class CanonicalSourceWorkspacePreparationError extends Error {
+  constructor(
+    readonly code: CanonicalSourceWorkspacePreparationErrorCode,
+    message: string,
+  ) {
+    super(`${code}:${message}`);
+    this.name = "CanonicalSourceWorkspacePreparationError";
+  }
 }
 
 function sha256(input: string | Buffer): string {
@@ -285,6 +305,18 @@ export async function prepareCanonicalSourceEpisodeWorkspace(
     ...(sourceEpisode.format === "short" ? ["languages", "short"] : ["languages"]),
     `script-${input.locale}.md`,
   );
+  if (await fileExists(scriptPath)) {
+    const existingScript = await fs.readFile(scriptPath, "utf8");
+    if (
+      sha256(existingScript) !== plannerInput.narration.sourceSha256 &&
+      !input.allowSourceReplacement
+    ) {
+      throw new CanonicalSourceWorkspacePreparationError(
+        "STALE_WORKSPACE_SOURCE_MAPPING",
+        `workspace narration ${scriptPath} does not match active ${input.locale} source ${plannerInput.narration.sourcePath}`,
+      );
+    }
+  }
   const now = new Date().toISOString();
   const manifestPath = path.join(episodeDir, "manifest.json");
   const existing = (await fileExists(manifestPath))

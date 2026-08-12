@@ -11,6 +11,7 @@ import {
   preparePositioningProductionEpisode,
   positioningScenePlanMaterializationReasons,
   positioningProductionPlanSchema,
+  remediateExistingVeronicaPreImagePlan,
   runExistingVeronicaSourceGroundedPreImageQa,
 } from "./positioning-production-adapter.js";
 import { buildVeronicaCanonicalVisualPlan } from "./positioning-visual-planner.js";
@@ -367,6 +368,43 @@ describe("positioning production adapter", () => {
     expect(qa.admissionIdentity).toEqual(admission);
     expect(result.admissionIdentity).toEqual(admission);
     expect(calls.count).toBeGreaterThan(0);
+  }, 60_000);
+
+  it("rematerializes reviewed treatments before TTS without requiring a narration WAV", async () => {
+    const workspaceRoot = await fs.mkdtemp(path.join(os.tmpdir(), "veronica-pre-tts-remediation-"));
+    const episodeRoot = path.join(workspaceRoot, qaEpisodeId);
+    await fs.cp(path.join(readyQaTemplateRoot, qaEpisodeId), episodeRoot, { recursive: true });
+    const referenceRoot = path.join(workspaceRoot, "content-packs", "veronica-character-reference-v1");
+    await fs.mkdir(path.dirname(referenceRoot), { recursive: true });
+    await fs.symlink(path.resolve("content-packs/veronica-character-reference-v1"), referenceRoot, "dir");
+    await fs.rm(path.join(episodeRoot, "locales", "en", "short", "audio", "narration.wav"));
+    const planPath = path.join(episodeRoot, "source", "pre-image-semantic-plan.v1.json");
+    const plan = JSON.parse(await fs.readFile(planPath, "utf8"));
+    const overridePath = path.join(workspaceRoot, "override.json");
+    await fs.writeFile(overridePath, `${JSON.stringify({
+      schemaVersion: "veronica-editorial-treatment-overrides.v1",
+      basePlanHash: plan.planHash,
+      scenes: [{
+        sceneId: plan.scenes[0].sceneId,
+        treatment: { lighting: "soft natural editorial daylight" },
+      }],
+    }, null, 2)}\n`);
+
+    const result = await remediateExistingVeronicaPreImagePlan({
+      workspaceRoot,
+      episodeId: qaEpisodeId,
+      overridePath,
+      imagePromptCompiler: {
+        strategy: "deterministic-v1",
+        compiler: new DeterministicVeronicaImagePromptCompiler(),
+        cache: new InMemoryVeronicaImagePromptCompilationCache(),
+        model: { model: "deterministic-template", reasoningEffort: "none", maxOutputTokens: 0 },
+      },
+    });
+
+    expect(result.retimedLocales).toEqual([]);
+    const prompts = JSON.parse(await fs.readFile(path.join(episodeRoot, "locales", "en", "short", "image-prompts", "provider-image-prompts.v1.json"), "utf8"));
+    expect(prompts.provenance.selectedAudioHash).toBeNull();
   }, 60_000);
 
   it.each([

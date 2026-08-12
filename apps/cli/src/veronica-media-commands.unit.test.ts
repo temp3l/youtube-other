@@ -38,6 +38,12 @@ describe("veronica media commands", () => {
         "full"
       )?.maxProviderCalls
     ).toBe(2);
+    expect(
+      resolveVeronicaPaidQaAuthorization(
+        { allowPaidOpenaiQa: true, maxProviderCalls: 0 },
+        "short"
+      )?.maxProviderCalls
+    ).toBe(0);
   });
 
   it("registers the isolated Veronica media subcommands", () => {

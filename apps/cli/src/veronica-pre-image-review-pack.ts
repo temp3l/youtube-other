@@ -249,6 +249,8 @@ export function resolveVeronicaCurrentReviewState(input: {
   readonly qaRevisionId: string;
   readonly currentAdmissionIdentity: string | null;
   readonly currentQaRevisionId: string | null;
+  /** A cache-only run deliberately deferred judgment; it is not stale history. */
+  readonly qaDeferred?: boolean;
 }) {
   const qaCurrent = input.currentAdmissionIdentity !== null
     && input.currentQaRevisionId !== null
@@ -257,7 +259,7 @@ export function resolveVeronicaCurrentReviewState(input: {
   const activeBlockers = [...new Set([
     ...input.deterministicFindingCodes,
     ...input.sequenceDiversityFindingCodes,
-    ...(qaCurrent ? input.qaBlockers : ["SOURCE_GROUNDED_QA_STALE"]),
+    ...(qaCurrent ? input.qaBlockers : input.qaDeferred ? [] : ["SOURCE_GROUNDED_QA_STALE"]),
   ])].sort();
   return {
     qaCurrent,
@@ -1079,6 +1081,12 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
   const blockerCount = allFindings.filter((finding) => finding.severity === "blocker" || finding.severity === "error").length;
   const canonicalConvergenceStatus = blockerCount === 0 && finalPlan.validation?.status !== "fail" && finalPlan.providerReadiness.status === "PASS" ? "CONVERGED" : "SEMANTIC_REMEDIATION_EXHAUSTED";
   const sequenceDiversity = canonicalPlan.visualBeatPlan?.quality.sequenceDiversity ?? null;
+  const qaDeferred = sourceGroundedVisualQa.aggregate.budgetStatus === "CACHE_ONLY"
+    && sourceGroundedVisualQa.aggregate.sceneUnavailableCount === scenePlan.scenes.length
+    && sourceGroundedVisualQa.aggregate.beatUnavailableCount > 0
+    && sourceGroundedVisualQa.aggregate.sequenceVerdict === "UNAVAILABLE"
+    && sourceGroundedVisualQa.aggregate.primaryApiCalls === 0
+    && sourceGroundedVisualQa.aggregate.sequenceApiCalls === 0;
   const canonicalReviewState = resolveVeronicaCurrentReviewState({
     deterministicFindingCodes: allFindings
       .filter((finding) => finding.severity === "blocker" || finding.severity === "error")
@@ -1091,6 +1099,7 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
     qaRevisionId: sourceGroundedVisualQa.revision.revisionId,
     currentAdmissionIdentity: currentAdmission?.identityHash ?? null,
     currentQaRevisionId: currentAdmission?.qaRevisionId ?? null,
+    qaDeferred,
   });
   const eventArtifact = z
     .object({
@@ -1449,7 +1458,7 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
 - Provider projection readiness: **${finalPlan.providerReadiness.status}** (missing theses \`${finalPlan.providerReadiness.missingThesisCount}\`; malformed theses \`${finalPlan.providerReadiness.malformedThesisCount}\`; blocked projections \`${finalPlan.providerReadiness.blockedProjectionCount}\`).
 - Provider prompt quality: **${providerPromptQuality.status}** (blocked markers \`${providerPromptQuality.blockedMarkerCount}\`; internal-language findings \`${providerPromptQuality.internalLanguageIssueCount}\`; lexical corruptions \`${providerPromptQuality.lexicalCorruptionCount}\`).
 - Semantic coherence integrity: **${semanticCoherenceIntegrity.status}** (incomplete claims \`${semanticCoherenceIntegrity.incompleteClaimCount}\`; polarity mismatches \`${semanticCoherenceIntegrity.polarityMismatchCount}\`; proposition contradictions \`${semanticCoherenceIntegrity.propositionContradictionCount}\`; treatment incompatibilities \`${semanticCoherenceIntegrity.treatmentIncompatibilityCount}\`; projection mismatches \`${semanticCoherenceIntegrity.projectionMismatchCount}\`; motif leakage \`${semanticCoherenceIntegrity.motifLeakageCount}\`; harmful repetition \`${semanticCoherenceIntegrity.harmfulRepetitionCount}\`).
-- Source-grounded scene QA: **${sourceGroundedVisualQa.sourceFidelityReady ? "PASS" : "BLOCKED"}** (PASS \`${sourceGroundedVisualQa.aggregate.scenePassCount}\`; REVIEW \`${sourceGroundedVisualQa.aggregate.sceneReviewCount}\`; BLOCK \`${sourceGroundedVisualQa.aggregate.sceneBlockCount}\`; UNAVAILABLE \`${sourceGroundedVisualQa.aggregate.sceneUnavailableCount}\`; escalated \`${sourceGroundedVisualQa.aggregate.scenesEscalated}\`; remediated \`${sourceGroundedVisualQa.aggregate.scenesRemediated}\`).
+- Source-grounded scene QA: **${sourceGroundedVisualQa.sourceFidelityReady ? "PASS" : qaDeferred ? "DEFERRED" : "BLOCKED"}** (PASS \`${sourceGroundedVisualQa.aggregate.scenePassCount}\`; REVIEW \`${sourceGroundedVisualQa.aggregate.sceneReviewCount}\`; BLOCK \`${sourceGroundedVisualQa.aggregate.sceneBlockCount}\`; UNAVAILABLE \`${sourceGroundedVisualQa.aggregate.sceneUnavailableCount}\`; escalated \`${sourceGroundedVisualQa.aggregate.scenesEscalated}\`; remediated \`${sourceGroundedVisualQa.aggregate.scenesRemediated}\`).
 - Source-grounded visual-beat QA: PASS \`${sourceGroundedVisualQa.aggregate.beatPassCount}\`; REVIEW \`${sourceGroundedVisualQa.aggregate.beatReviewCount}\`; BLOCK \`${sourceGroundedVisualQa.aggregate.beatBlockCount}\`; UNAVAILABLE \`${sourceGroundedVisualQa.aggregate.beatUnavailableCount}\`; escalated \`${sourceGroundedVisualQa.aggregate.beatsEscalated}\`.
 - Source-grounded sequence QA: **${sourceGroundedVisualQa.aggregate.sequenceVerdict}** (defects \`${sourceGroundedVisualQa.aggregate.sequenceDefectCount}\`).
 - Source-grounded QA execution: \`${sourceGroundedVisualQa.sourceGroundedQaExecution.profile}\` / \`${sourceGroundedVisualQa.sourceGroundedQaExecution.transport}\`; wall \`${sourceGroundedVisualQa.sourceGroundedQaExecution.wallClockMs}ms\`; concurrency configured/effective/max \`${sourceGroundedVisualQa.aggregate.configuredConcurrency}/${sourceGroundedVisualQa.aggregate.effectiveConcurrency}/${sourceGroundedVisualQa.aggregate.maxObservedConcurrency}\`; primary/escalation/advisor/sequence \`${sourceGroundedVisualQa.aggregate.primaryApiCalls}/${sourceGroundedVisualQa.aggregate.escalationApiCalls}/${sourceGroundedVisualQa.aggregate.remediationApiCalls}/${sourceGroundedVisualQa.aggregate.sequenceApiCalls}\`; advisor bypass/no-op/rejudge requests/scenes \`${sourceGroundedVisualQa.aggregate.advisorBypassCount}/${sourceGroundedVisualQa.aggregate.noOpRemediationCount}/${sourceGroundedVisualQa.aggregate.rejudgeRequestCount}/${sourceGroundedVisualQa.aggregate.scenesRejudged}\`; hits/misses \`${sourceGroundedVisualQa.aggregate.cacheHits}/${sourceGroundedVisualQa.aggregate.cacheMisses}\`; retries/rate-limits \`${sourceGroundedVisualQa.aggregate.retryCount}/${sourceGroundedVisualQa.aggregate.rateLimitEvents}\`; budget \`${sourceGroundedVisualQa.aggregate.budgetStatus}\` with \`${sourceGroundedVisualQa.aggregate.providerCallsReserved}\` calls / \`$${sourceGroundedVisualQa.aggregate.estimatedCostUsd.toFixed(4)}\` estimated; tokens input/cached/output \`${sourceGroundedVisualQa.aggregate.inputTokens}/${sourceGroundedVisualQa.aggregate.cachedInputTokens}/${sourceGroundedVisualQa.aggregate.outputTokens}\`.

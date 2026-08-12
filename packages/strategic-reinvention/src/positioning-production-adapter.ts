@@ -1389,8 +1389,22 @@ export async function remediateExistingVeronicaPreImagePlan(input: {
   const bible = await buildVeronicaVisualBibleArtifact({ workspaceRoot, plan: rebuilt });
   const compiled = await compileVeronicaImagePrompts({ episodeId, plan: rebuilt, visualBible: bible, compiler: input.imagePromptCompiler.compiler, cache: input.imagePromptCompiler.cache, model: input.imagePromptCompiler.model, reasonForRegeneration: "reviewed-editorial-treatment-override" });
   const visualArtifacts = await persistVeronicaVisualArtifacts({ workspaceRoot, episodeDir, plan: compiled });
-  const enAudio = await fs.readFile(path.join(episodeDir, "locales", "en", "short", "audio", "narration.wav"));
-  await persistVeronicaProviderImagePromptArtifact({ episodeDir, episodeId, language: "en", variant: "short", plan: compiled, scenePlan: enScenePlan, visualTreatmentsHash: visualArtifacts.treatments.artifactHash, visualBible: visualArtifacts.bible, selectedAudioHash: createHash("sha256").update(enAudio).digest("hex") });
+  const enAudio = await fs
+    .readFile(path.join(episodeDir, "locales", "en", "short", "audio", "narration.wav"))
+    .catch(() => null);
+  await persistVeronicaProviderImagePromptArtifact({
+    episodeDir,
+    episodeId,
+    language: "en",
+    variant: "short",
+    plan: compiled,
+    scenePlan: enScenePlan,
+    visualTreatmentsHash: visualArtifacts.treatments.artifactHash,
+    visualBible: visualArtifacts.bible,
+    selectedAudioHash: enAudio
+      ? createHash("sha256").update(enAudio).digest("hex")
+      : null,
+  });
   await writeJsonAtomic(sourcePlanPath, compiled);
   const supportedLocales = new Set(["en", "de", "es", "fr", "pt", "it"] as const);
   const localeEntries = await fs.readdir(path.join(episodeDir, "locales"), { withFileTypes: true });

@@ -24,6 +24,7 @@ import {
   preparePositioningProductionEpisode,
   planExistingVeronicaVisualDensity,
   remediateExistingVeronicaPreImagePlan,
+  establishVeronicaSourceGroundedQaAdmission,
   runExistingVeronicaSourceGroundedPreImageQa,
   positioningProductionPlanSchema,
   resolveVeronicaSemanticImagePromptPaths,
@@ -108,6 +109,14 @@ function parsePositiveInteger(value: string, label: string): number {
   return parsed;
 }
 
+function parseNonNegativeInteger(value: string, label: string): number {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    throw new Error(`${label} must be a non-negative integer.`);
+  }
+  return parsed;
+}
+
 function parsePositiveNumber(value: string, label: string): number {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0) {
@@ -158,8 +167,8 @@ function addSourceGroundedQaCostControls(command: Command): Command {
       "Explicitly authorize live paid source-grounded OpenAI QA",
       false
     )
-    .option("--max-provider-calls <number>", `Hard provider-request ceiling (Short ${VERONICA_SOURCE_GROUNDED_QA_DEFAULT_CEILINGS.short.maxProviderCalls}; full ${VERONICA_SOURCE_GROUNDED_QA_DEFAULT_CEILINGS.full.maxProviderCalls})`, (value) =>
-      parsePositiveInteger(value, "--max-provider-calls")
+    .option("--max-provider-calls <number>", `Hard provider-request ceiling; 0 enforces exact-cache-only execution (Short ${VERONICA_SOURCE_GROUNDED_QA_DEFAULT_CEILINGS.short.maxProviderCalls}; full ${VERONICA_SOURCE_GROUNDED_QA_DEFAULT_CEILINGS.full.maxProviderCalls})`, (value) =>
+      parseNonNegativeInteger(value, "--max-provider-calls")
     )
     .option("--max-estimated-cost-usd <number>", "Hard estimated-spend ceiling (Short $0.40; full $0.60)", (value) =>
       parsePositiveNumber(value, "--max-estimated-cost-usd")
@@ -417,6 +426,7 @@ export function registerVeronicaMediaCommands(program: Command): void {
       .option("--variant <full|short>", "Narration variant", "short")
       .option("--source-grounded-fixture <path>", "Offline strict source-grounded QA fixture")
       .option("--source-grounded-qa-profile <profile>", "interactive, cost-optimized, or bulk", "interactive")
+      .option("--admission-only", "Validate deterministic artifacts and establish a fresh QA admission without dispatching judges", false)
       .option("--json", "Emit machine-readable output", false)
   ).action(
     async (options: {
@@ -426,6 +436,7 @@ export function registerVeronicaMediaCommands(program: Command): void {
       variant: VeronicaVariant;
       sourceGroundedFixture?: string;
       sourceGroundedQaProfile: string;
+      admissionOnly: boolean;
       allowPaidOpenaiQa?: boolean;
       maxProviderCalls?: number;
       maxEstimatedCostUsd?: number;
@@ -444,27 +455,31 @@ export function registerVeronicaMediaCommands(program: Command): void {
       const maxAutomaticRemediationRounds = remediationRounds(
         options.maxAutomaticRemediationRounds
       );
-      const result = await runExistingVeronicaSourceGroundedPreImageQa({
+      const sourceGroundedVisualQa =
+        await createVeronicaSourceGroundedVisualQaComposition({
+          workspaceRoot,
+          episodeDir,
+          ...(options.sourceGroundedFixture
+            ? { fixturePath: options.sourceGroundedFixture }
+            : {}),
+          executionProfile: parseSourceGroundedQaProfile(
+            options.sourceGroundedQaProfile
+          ),
+          ...(paidOpenAiQa ? { paidOpenAiQa } : {}),
+          ...(maxAutomaticRemediationRounds
+            ? { maxAutomaticRemediationRounds }
+            : {}),
+        });
+      const qaInput = {
         workspaceRoot,
         episodeId: options.episodeId,
         language: options.language,
         variant: options.variant,
-        sourceGroundedVisualQa:
-          await createVeronicaSourceGroundedVisualQaComposition({
-            workspaceRoot,
-            episodeDir,
-            ...(options.sourceGroundedFixture
-              ? { fixturePath: options.sourceGroundedFixture }
-              : {}),
-            executionProfile: parseSourceGroundedQaProfile(
-              options.sourceGroundedQaProfile
-            ),
-            ...(paidOpenAiQa ? { paidOpenAiQa } : {}),
-            ...(maxAutomaticRemediationRounds
-              ? { maxAutomaticRemediationRounds }
-              : {}),
-          }),
-      });
+        sourceGroundedVisualQa,
+      } as const;
+      const result = options.admissionOnly
+        ? await establishVeronicaSourceGroundedQaAdmission(qaInput)
+        : await runExistingVeronicaSourceGroundedPreImageQa(qaInput);
       process.stdout.write(
         `${JSON.stringify(result, options.json ? null : undefined, options.json ? 2 : undefined)}\n`
       );

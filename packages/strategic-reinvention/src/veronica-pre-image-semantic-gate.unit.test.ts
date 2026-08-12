@@ -41,14 +41,16 @@ describe("Veronica pre-image semantic gate", () => {
     ]));
   });
 
-  it("assigns a source-grounded marginal-sale calculation to the business operator before the next order", () => {
+  it("assigns a source-grounded marginal-sale payoff to the business operator before the next order", () => {
     const narration = "Before chasing the next order, calculate what one additional sale actually leaves behind.";
     const proposition = deriveVeronicaSemanticProposition({ scene: scene({ narrationAnchor: narration }), narration });
     const projected = visualTreatmentFromProposition({ scene: scene({ narrationAnchor: narration }), proposition, preserveEnvironment: false });
     expect(proposition.actorRole).toBe("business-operator");
     expect(projected.actionOwnerRole).toBe("business-operator");
+    expect(projected.action).toContain("small retained contribution");
     expect(projected.action).toContain("before pursuing the next order");
-    expect(projected.composition).toContain("next order remains outside");
+    expect(projected.composition).toContain("next order remains peripheral");
+    expect(projected.composition).toContain("no cost-decomposition workflow");
   });
 
   it("retains a materially narrated sale subject in a conservative unit-economics treatment", () => {
@@ -68,6 +70,45 @@ describe("Veronica pre-image semantic gate", () => {
     expect(projected.composition).toContain("doubled order-volume evidence");
     expect(projected.action).toContain("without implying the business is healthier");
     expect(projected.props).toEqual(expect.arrayContaining(["paired retained-remainder containers"]));
+  });
+
+  it("isolates retained value from order-count mass without reusing a transaction inspection", () => {
+    const narration = "What remains tells you much more than the order count.";
+    const proposition = deriveVeronicaSemanticProposition({ scene: scene({ narrationAnchor: narration }), narration });
+    const projected = visualTreatmentFromProposition({ scene: scene({ narrationAnchor: narration }), proposition, preserveEnvironment: false });
+    expect(projected.composition).toContain("many order units recede");
+    expect(projected.action).toContain("isolates the small retained-value evidence");
+    expect(projected.props).toEqual(expect.arrayContaining(["isolated small retained-value evidence"]));
+  });
+
+  it("projects workload growth as one operational bottleneck rather than a modular flow", () => {
+    const narration = "If double the sales means double the workload and almost no additional margin, growth is amplifying a structural weakness.";
+    const proposition = deriveVeronicaSemanticProposition({ scene: scene({ narrationAnchor: narration }), narration });
+    const projected = visualTreatmentFromProposition({ scene: scene({ narrationAnchor: narration }), proposition, preserveEnvironment: false });
+    expect(proposition.visualMechanism).toBe("workload-accumulation");
+    expect(projected.environment).toContain("accumulating workload backlog");
+    expect(projected.composition).toContain("dominant bottleneck");
+    expect(projected.composition).not.toMatch(/input.*process.*result/iu);
+  });
+
+  it("projects unit-economics understanding before growth as a decision checkpoint", () => {
+    const narration = "Before chasing more revenue, understand what happens economically every single time you sell.";
+    const proposition = deriveVeronicaSemanticProposition({ scene: scene({ narrationAnchor: narration }), narration });
+    const projected = visualTreatmentFromProposition({ scene: scene({ narrationAnchor: narration }), proposition, preserveEnvironment: false });
+    expect(projected.composition).toContain("clear checkpoint");
+    expect(projected.composition).toContain("no cost-decomposition workflow");
+    expect(projected.action).toContain("before allowing additional orders");
+    expect(projected.props).toEqual(expect.arrayContaining(["visible retained contribution"]));
+  });
+
+  it("projects healthy scaling with controlled capacity and retained contribution as primary evidence", () => {
+    const narration = "It is the one whose economics still work when the volume grows.";
+    const proposition = deriveVeronicaSemanticProposition({ scene: scene({ narrationAnchor: narration }), narration });
+    const projected = visualTreatmentFromProposition({ scene: scene({ narrationAnchor: narration }), proposition, preserveEnvironment: false });
+    expect(proposition.visualMechanism).toBe("scaling-relation");
+    expect(projected.composition).toContain("larger retained contribution form the primary comparison");
+    expect(projected.composition).toContain("without an accumulating backlog");
+    expect(projected.action).toContain("controlled capacity");
   });
 
   it("blocks unsupported threshold environments while preserving supported doorway stories", () => {
@@ -562,7 +603,7 @@ describe("Veronica pre-image semantic gate", () => {
     const proposition = deriveVeronicaSemanticProposition({ scene: scene(), narration });
     const projected = visualTreatmentFromProposition({ scene: scene(), proposition, preserveEnvironment: false });
     expect(proposition.visualMechanism).toBe("input-output-flow");
-    expect(projected.action).toMatch(/traces one sale.*before adding another order/iu);
+    expect(projected.action).toMatch(/already-analyzed sale.*decision checkpoint.*before allowing additional orders/iu);
     expect(`${projected.environment} ${projected.composition} ${projected.props.join(" ")}`).toMatch(/cost portions|retained result|additional order/iu);
   });
 

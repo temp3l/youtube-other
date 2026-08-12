@@ -84,6 +84,18 @@ describe("Veronica pre-image review instructions", () => {
       currentQaRevisionId: revision,
     });
     expect(stale.activeBlockers).toEqual(["COMPOSITION_MONOTONY", "SOURCE_GROUNDED_QA_STALE"]);
+
+    const deferred = resolveVeronicaCurrentReviewState({
+      deterministicFindingCodes: [],
+      sequenceDiversityFindingCodes: [],
+      qaBlockers: ["SOURCE_GROUNDED_SCENE_JUDGE_UNAVAILABLE"],
+      qaAdmissionIdentity: null,
+      qaRevisionId: revision,
+      currentAdmissionIdentity: identity,
+      currentQaRevisionId: revision,
+      qaDeferred: true,
+    });
+    expect(deferred.activeBlockers).toEqual([]);
   });
 
   it("promotes the selected cached candidate to the canonical narration WAV", async () => {

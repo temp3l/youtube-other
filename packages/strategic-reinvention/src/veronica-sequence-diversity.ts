@@ -557,10 +557,22 @@ export function diversifyVeronicaVisualBeatSequence(input: {
       const beat = beats[index]!;
       if (!targetIds.has(beat.beatId)) continue;
       const sourceNarration = input.plan.scenes.find((scene) => scene.sceneId === beat.sceneId)?.narrationAnchor ?? "";
-      const actionBases = [beat, ...sourceCompatibleDepictedActionCandidates(beat, sourceNarration)];
+      // A workload consequence is grounded in one accumulating burden. A
+      // decision checkpoint and healthy scaling comparison likewise carry
+      // source-critical relationships. Preserve those grammars rather than
+      // trading them for generic action or presentation novelty.
+      const protectedEconomicGrammar = /\b(?:workload|backlog|bottleneck|burden|operational strain|decision checkpoint|controlled capacity|retained contribution)\b/iu.test(`${sourceNarration} ${beat.action} ${beat.state}`)
+        || (/\b(?:economics?|unit economics?)\s+(?:still\s+)?work\b/iu.test(sourceNarration)
+          && /\b(?:volume|sales?|orders?)\s+(?:grow(?:s|ing)?|increase(?:s|d|ing)?|scale(?:s|d|ing)?)\b/iu.test(sourceNarration));
+      const actionBases = protectedEconomicGrammar
+        ? [beat]
+        : [beat, ...sourceCompatibleDepictedActionCandidates(beat, sourceNarration)];
+      const presentationVariants = protectedEconomicGrammar
+        ? []
+        : PRESENTATION_VARIANTS;
       const candidates = actionBases.flatMap((base) => [
         base,
-        ...PRESENTATION_VARIANTS.map((variant) => withVariant(base, variant)),
+        ...presentationVariants.map((variant) => withVariant(base, variant)),
       ]);
       const uniqueCandidates = [...new Map(candidates.map((candidate) => [candidate.beatHash, candidate])).values()];
       const currentPenalty = diversityPenalty(analysis);

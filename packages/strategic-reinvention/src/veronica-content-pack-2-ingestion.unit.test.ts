@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  CanonicalSourceWorkspacePreparationError,
   canonicalSourceEpisodePlannerInput,
   discoverVeronicaContentPack2Shorts,
   prepareCanonicalSourceEpisodeWorkspace,
@@ -124,6 +125,48 @@ describe("Veronica Content Pack 2 ingestion", () => {
     expect(manifest.sourceMetadata.authoritativeSource.sha256).toBe(
       "4e82a65208256d74b2171c4475ee624d9506cfd6f0b21b1f055074d4062c7503",
     );
+  });
+
+  it("fails closed on a stale workspace source unless replacement is explicitly authorized", async () => {
+    const workspaceRoot = await temporaryDirectory("veronica-pack2-stale-workspace-");
+    const initialPack = await writePack2Fixture({ enNarration: "Original canonical narration." });
+    const initialEpisode = (await discoverVeronicaContentPack2Shorts({ packDir: initialPack })).find(
+      (episode) => episode.episodeId === "01a-revenue-is-not-a-good-business",
+    );
+    if (!initialEpisode) throw new Error("Fixture source was not discovered.");
+    const initial = await prepareCanonicalSourceEpisodeWorkspace({
+      workspaceRoot,
+      sourceEpisode: initialEpisode,
+      locale: "en",
+    });
+
+    await fs.writeFile(
+      path.join(initialPack, "shorts", "en", "01a-revenue-is-not-a-good-business.md"),
+      "Replacement canonical narration.",
+      "utf8",
+    );
+    const changedEpisode = (await discoverVeronicaContentPack2Shorts({ packDir: initialPack })).find(
+      (episode) => episode.episodeId === "01a-revenue-is-not-a-good-business",
+    );
+    if (!changedEpisode) throw new Error("Changed fixture source was not discovered.");
+
+    await expect(prepareCanonicalSourceEpisodeWorkspace({
+      workspaceRoot,
+      sourceEpisode: changedEpisode,
+      locale: "en",
+    })).rejects.toMatchObject({
+      name: "CanonicalSourceWorkspacePreparationError",
+      code: "STALE_WORKSPACE_SOURCE_MAPPING",
+    } satisfies Partial<CanonicalSourceWorkspacePreparationError>);
+    await expect(fs.readFile(initial.scriptPath, "utf8")).resolves.toBe("Original canonical narration.");
+
+    await prepareCanonicalSourceEpisodeWorkspace({
+      workspaceRoot,
+      sourceEpisode: changedEpisode,
+      locale: "en",
+      allowSourceReplacement: true,
+    });
+    await expect(fs.readFile(initial.scriptPath, "utf8")).resolves.toBe("Replacement canonical narration.");
   });
 
   it("keeps the legacy positioning-pack calibration path available", async () => {

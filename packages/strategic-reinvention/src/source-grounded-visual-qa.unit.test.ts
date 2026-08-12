@@ -14,6 +14,7 @@ import {
   SOURCE_GROUNDED_SEQUENCE_SCHEMA_VERSION,
   benchmarkSourceGroundedReasoningPolicies,
   buildSourceGroundedQaRevision,
+  classifySourceGroundedQaAvailability,
   coalesceSourceGroundedRemediationDirectives,
   deterministicRemediationDirective,
   episodeSequenceJudgementSchema,
@@ -1486,6 +1487,48 @@ describe("beat-aware source-grounded hierarchy", () => {
     expect(sequenceCalls).toHaveLength(2);
   });
 
+  it("hands a final-adjudicated sequence REVIEW to human pre-image review without authorizing providers", async () => {
+    const fixturePlan = plan();
+    const sequencePolicy: SourceGroundedVisualQaPolicy = {
+      ...policy,
+      finalSequenceAdjudication: {
+        ...policy.finalAdjudication!,
+        maxOutputTokens: 3_000,
+      },
+    };
+    const sequenceJudge = {
+      async judgeSequence() {
+        return {
+          output: {
+            ...sourceGroundedPassSequence(),
+            verdict: "REVIEW" as const,
+            defectCodes: ["GENERIC_TEMPLATE_REPETITION" as const],
+            reason: "The sequence is source-grounded and requires a human editorial decision.",
+          },
+        };
+      },
+    };
+    const result = await runSourceGroundedVisualQaController({
+      plan: fixturePlan,
+      narrationByScene: [fixturePlan.scenes[0]!.narrationAnchor],
+      policy: sequencePolicy,
+      primaryJudge: new FixtureSourceGroundedSceneJudge(() =>
+        sourceGroundedPassJudgement()
+      ),
+      sequenceJudge,
+      cache: new InMemorySourceGroundedVisualQaCache(),
+    });
+
+    expect(result.qa.sequence.verdict).toBe("REVIEW");
+    expect(result.qa.sequenceProvenance.map((entry) => entry.component)).toEqual([
+      "SEQUENCE_JUDGE",
+      "SEQUENCE_JUDGE_FINAL",
+    ]);
+    expect(result.qa.sourceFidelityReady).toBe(true);
+    expect(result.qa.blockers).not.toContain("SOURCE_GROUNDED_SEQUENCE_REVIEW_REQUIRED");
+    expect(result.qa.providerRequestsAllowed).toBe(false);
+  });
+
   it("does not let a parent-scene PASS authorize a blocked new-image beat", async () => {
     const fixture = multiBeatPlan();
     const blockedBeat: SourceGroundedVisualBeatJudgement = {
@@ -1918,6 +1961,21 @@ describe("cost and identity controls", () => {
       providerCallsReserved: 1,
       budgetStatus: "EXHAUSTED",
     });
+  });
+
+  it("keeps budget and prerequisite unavailability operationally typed for a later resume", () => {
+    expect(classifySourceGroundedQaAvailability({
+      verdict: "UNAVAILABLE",
+      reason: "Estimated output-token ceiling would be exceeded.",
+    })).toBe("UNAVAILABLE_BUDGET");
+    expect(classifySourceGroundedQaAvailability({
+      verdict: "UNAVAILABLE",
+      reason: "Parent scene QA prerequisite is not final PASS.",
+    })).toBe("UNAVAILABLE_PREREQUISITE");
+    expect(classifySourceGroundedQaAvailability({
+      verdict: "PASS",
+      reason: "",
+    })).toBe("AVAILABLE");
   });
 
   it("is cache-only by default and preserves per-scene cache identity across batching", async () => {

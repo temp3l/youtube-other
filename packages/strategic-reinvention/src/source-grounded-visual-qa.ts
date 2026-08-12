@@ -919,6 +919,23 @@ interface CachedOperationalFailure {
   readonly expiresAt: string;
 }
 
+export type SourceGroundedQaAvailability =
+  | "AVAILABLE"
+  | "UNAVAILABLE_BUDGET"
+  | "UNAVAILABLE_PREREQUISITE"
+  | "UNAVAILABLE_PROVIDER";
+
+/** Classifies operational unavailability without recasting it as semantic failure. */
+export function classifySourceGroundedQaAvailability(input: {
+  readonly verdict: SourceGroundedVerdict;
+  readonly reason: string;
+}): SourceGroundedQaAvailability {
+  if (input.verdict !== "UNAVAILABLE") return "AVAILABLE";
+  if (/budget|ceiling|authorized maximum|reserved/i.test(input.reason)) return "UNAVAILABLE_BUDGET";
+  if (/parent scene|prerequisite|scene QA/i.test(input.reason)) return "UNAVAILABLE_PREREQUISITE";
+  return "UNAVAILABLE_PROVIDER";
+}
+
 function negativeCacheKey(identity: string): string {
   return stableHash({
     negativeCacheSchemaVersion: "veronica-source-grounded-negative-cache.v1",
@@ -3833,6 +3850,13 @@ export async function runSourceGroundedVisualQaController(input: {
   }
 
   const blockers: SourceGroundedVisualQaResult["blockers"][number][] = [];
+  const finalSequenceReviewHandoff =
+    sequence.verdict === "REVIEW" &&
+    sequenceProvenance.some(
+      (entry) =>
+        entry.component === "SEQUENCE_JUDGE_FINAL" &&
+        entry.escalationStatus === "FINAL_ADJUDICATION"
+    );
   if (evaluations.some((entry) => entry.judgement.verdict === "BLOCK"))
     blockers.push("SOURCE_GROUNDED_SCENE_BLOCKED");
   if (evaluations.some((entry) => entry.judgement.verdict === "REVIEW"))
@@ -3849,11 +3873,11 @@ export async function runSourceGroundedVisualQaController(input: {
     blockers.push("SOURCE_GROUNDED_BEAT_JUDGE_UNAVAILABLE");
   if (plan.visualBeatPlan) {
     if (sequence.verdict === "BLOCK") blockers.push("SOURCE_GROUNDED_BEAT_SEQUENCE_BLOCKED");
-    if (sequence.verdict === "REVIEW") blockers.push("SOURCE_GROUNDED_BEAT_SEQUENCE_REVIEW_REQUIRED");
+    if (sequence.verdict === "REVIEW" && !finalSequenceReviewHandoff) blockers.push("SOURCE_GROUNDED_BEAT_SEQUENCE_REVIEW_REQUIRED");
     if (sequence.verdict === "UNAVAILABLE") blockers.push("SOURCE_GROUNDED_BEAT_SEQUENCE_JUDGE_UNAVAILABLE");
   } else {
     if (sequence.verdict === "BLOCK") blockers.push("SOURCE_GROUNDED_SEQUENCE_BLOCKED");
-    if (sequence.verdict === "REVIEW") blockers.push("SOURCE_GROUNDED_SEQUENCE_REVIEW_REQUIRED");
+    if (sequence.verdict === "REVIEW" && !finalSequenceReviewHandoff) blockers.push("SOURCE_GROUNDED_SEQUENCE_REVIEW_REQUIRED");
     if (sequence.verdict === "UNAVAILABLE") blockers.push("SOURCE_GROUNDED_SEQUENCE_JUDGE_UNAVAILABLE");
   }
   if (remediationHistory.some((entry) => entry.directive === null))
@@ -4017,7 +4041,7 @@ export async function runSourceGroundedVisualQaController(input: {
     evaluations.every((entry) => entry.judgement.verdict === "PASS") &&
     beatEvaluations.every((entry) => entry.judgement.verdict === "PASS") &&
     beatEvaluations.length === requiredBeats.length &&
-    sequence.verdict === "PASS";
+    (sequence.verdict === "PASS" || finalSequenceReviewHandoff);
   const base = {
     schemaVersion: SOURCE_GROUNDED_CONTROLLER_VERSION,
     policyIdentity: input.policy.policyIdentity,
