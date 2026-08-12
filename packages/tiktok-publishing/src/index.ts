@@ -13,3 +13,10 @@ export {
   type ProjectTikTokAppAuditReadinessBundleInput,
   type ProjectTikTokAppAuditReadinessBundleResult,
 } from "./tiktok-app-audit-projection.js";
+export {
+  FixtureTikTokCreatorInfoAdapter,
+  InMemoryTikTokCreatorInfoCache,
+  TikTokCreatorPreflightService,
+  type TikTokCreatorInfoAdapter,
+  type TikTokCreatorInfoCachePort,
+} from "./tiktok-creator-preflight-service.js";

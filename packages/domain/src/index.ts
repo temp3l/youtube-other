@@ -60,6 +60,8 @@ export * from "./microdrama-learning-contracts.js";
 export * from "./microdrama-learning-lifecycle.js";
 export * from "./tiktok-account-contracts.js";
 export * from "./tiktok-account-lifecycle.js";
+export * from "./tiktok-creator-preflight-contracts.js";
+export * from "./tiktok-creator-preflight-lifecycle.js";
 export * from "./tiktok-metadata-contracts.js";
 export * from "./tiktok-metadata-lifecycle.js";
 export * from "./tiktok-app-audit-contracts.js";
