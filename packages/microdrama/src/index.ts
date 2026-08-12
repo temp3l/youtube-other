@@ -382,6 +382,12 @@ export {
 } from "./v5-visual-generation.js";
 
 export {
+  LOCALE_COMPOSITION_SCHEMA_VERSION,
+  compileLocaleEpisodeTimeline,
+  type CompileLocaleEpisodeTimelineInput,
+} from "./locale-composition.js";
+
+export {
   LOCALE_TTS_SEGMENTATION_BUNDLE_SCHEMA_VERSION,
   SELECTED_AUDIO_TIMING_SCHEMA_VERSION,
   compileLocaleTtsSegmentation,
@@ -395,3 +401,5 @@ export {
   type LocaleTtsTimingAuthorityResolution,
   type SelectedAudioTimingContract,
 } from "./locale-tts-segmentation.js";
+
+export { buildMinimalSceneShotPlanFixture } from "./scene-shot-plan-fixture.js";

@@ -31,6 +31,15 @@ export {
   type CompileLocaleSubtitleProjectionInput,
 } from "./locale-subtitle-projection.js";
 export {
+  LOCALE_SHOT_TIMING_PROJECTION_SCHEMA_VERSION,
+  buildLocaleShotTimingProjection,
+  localeShotTimingProjectionSchema,
+  validateLocaleShotTimingProjection,
+  type LocaleShotTimingProjection,
+  type LocaleShotTimingValidationIssue,
+  type ValidateLocaleShotTimingInput,
+} from "./locale-shot-timing-projection.js";
+export {
   validateLocalizedVisuals,
   writeLocalizedVisualValidationReport,
   type ValidateLocalizedVisualsInput,

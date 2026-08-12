@@ -64,6 +64,7 @@ export * from "./shared-visual-render.js";
 export * from "./composition-contract.js";
 export * from "./signal-ui-projection.js";
 export * from "./locale-subtitle-artifact.js";
+export * from "./microdrama-render-manifest.js";
 export type * from "./motion/types.js";
 
 type ProcessEnv = Readonly<Record<string, string | undefined>>;

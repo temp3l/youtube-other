@@ -158,3 +158,10 @@ export {
   type VisualDirectionReferenceCandidate,
   type VisualDirectionScene,
 } from "./persisted-direction.js";
+
+export {
+  LOCALE_VIDEO_SHOT_TRACK_SCHEMA_VERSION,
+  composeLocaleVideoShotTrack,
+  localeVideoShotTrackSchema,
+  type LocaleVideoShotTrack,
+} from "./locale-shot-timing.js";

@@ -376,7 +376,7 @@
       "id": "MICRO-018",
       "title": "Implement locale timing projections and deterministic composition",
       "phase": "04-media-planning-and-production",
-      "status": "READY",
+      "status": "DONE",
       "goal": "Compose shared visual semantics with locale audio, timing, subtitles and UI.",
       "scope": ["EpisodeTimeline revision and per-locale shot timing", "Deterministic FFmpeg request/manifests and render cache identity"],
       "dependsOn": ["MICRO-012", "MICRO-013", "MICRO-016", "MICRO-017"],
