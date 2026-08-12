@@ -236,3 +236,38 @@ export {
   unavailableCheckNeverPasses,
 } from "./readiness-evidence-evaluator.js";
 export type { ReadinessCheckDefinition, ReadinessEvaluationInput } from "./readiness-evidence-evaluator.js";
+
+export {
+  STORY_QA_ISSUE_CODES,
+  STORY_QA_SCHEMA_VERSION,
+  SEMANTIC_STORY_QA_STATUSES,
+  craftEditorialEvidenceSchema,
+  semanticStoryQaStatusSchema,
+  storyApprovedEvidenceSchema,
+  storyQaIssueCodeSchema,
+  storyQaIssueSchema,
+  validateStoryApprovedEvidence,
+} from "./v5-story-qa-contracts.js";
+export type {
+  CraftEditorialEvidence,
+  SemanticStoryQaAdapter,
+  SemanticStoryQaAdapterResult,
+  SemanticStoryQaStatus,
+  StoryApprovedEvidence,
+  StoryQaIssue,
+  StoryQaIssueCode,
+  V5StoryDeterministicQaResult,
+} from "./v5-story-qa-contracts.js";
+
+export {
+  validateV5StoryDeterministicQa,
+  validateV5StoryEpisodeDeterministicQa,
+} from "./v5-story-qa.js";
+
+export {
+  assertDeterministicStoryQaPassed,
+  buildStoryApprovalDeterministicQa,
+  evaluateOptionalSemanticStoryQa,
+  grantStoryApprovedEvidence,
+} from "./v5-story-approval.js";
+export type { StoryApprovalRequest, StoryApprovalResult } from "./v5-story-approval.js";
