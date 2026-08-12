@@ -74,6 +74,12 @@ export * from "./tiktok-direct-post-contracts.js";
 export * from "./tiktok-direct-post-lifecycle.js";
 export * from "./tiktok-status-reconciliation-contracts.js";
 export * from "./tiktok-status-reconciliation-lifecycle.js";
+export * from "./microdrama-operator-authorization-contracts.js";
+export * from "./microdrama-operator-authorization-lifecycle.js";
+export * from "./microdrama-asset-generation-approval-contracts.js";
+export * from "./microdrama-asset-generation-approval-lifecycle.js";
+export * from "./microdrama-canary-preflight-contracts.js";
+export * from "./microdrama-canary-preflight-lifecycle.js";
 
 const episodeIdPattern = /^[a-z0-9][a-z0-9-]*$/;
 const sceneIdPattern = /^scene-[0-9]{3}$/;

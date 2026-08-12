@@ -476,3 +476,15 @@ export {
   validateCreativeRecommendationCanonSafety,
 } from "./learning-admission.js";
 export type { LearningAdmissionContext } from "./learning-admission.js";
+
+export {
+  MICRO_033_TASK_ID,
+  EN_E001_E003_TTS_CANARY_EPISODES,
+  defaultEnTtsCanaryBudgetProfiles,
+  defaultV5PackRoot,
+  evaluateEnE001E003TtsCanaryPreflight,
+} from "./en-e001-e003-tts-canary-preflight.js";
+export type {
+  EnE001E003TtsCanaryPreflightInput,
+  EnE001E003TtsCanaryPreflightResult,
+} from "./en-e001-e003-tts-canary-preflight.js";
