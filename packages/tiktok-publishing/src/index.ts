@@ -20,3 +20,13 @@ export {
   type TikTokCreatorInfoAdapter,
   type TikTokCreatorInfoCachePort,
 } from "./tiktok-creator-preflight-service.js";
+export {
+  FixtureTikTokTransferChunkConstraintsPort,
+  TIKTOK_OFFICIAL_FILE_UPLOAD_CHUNK_CONSTRAINTS,
+  TikTokTransferPlanningService,
+  computeLocalFileContentHash,
+  streamTikTokFileUploadPlan,
+  type TikTokTransferChunkConstraintsPort,
+  type TikTokTransferChunkDelivery,
+  type TikTokTransferPlanningServiceInput,
+} from "./tiktok-transfer-planning-service.js";
