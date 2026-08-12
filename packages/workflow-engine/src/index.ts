@@ -5,6 +5,7 @@ export * from "./bulk-preflight.js";
 export * from "./microdrama-budget-preflight.js";
 export * from "./microdrama-visual-generation.js";
 export * from "./microdrama-publication-dispatch.js";
+export * from "./tiktok-direct-post-dispatch.js";
 export * from "./batch-adapters.js";
 export * from "./cache.js";
 export * from "./caller-migration.js";

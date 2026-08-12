@@ -30,3 +30,21 @@ export {
   type TikTokTransferChunkDelivery,
   type TikTokTransferPlanningServiceInput,
 } from "./tiktok-transfer-planning-service.js";
+export {
+  FixtureTikTokDirectPostAdapter,
+  ThrottlingTikTokDirectPostAdapter,
+  type TikTokDirectPostAdapter,
+  type TikTokDirectPostAdapterResult,
+} from "./tiktok-direct-post-fake-adapter.js";
+export {
+  InMemoryTikTokDirectPostPersistence,
+} from "./in-memory-tiktok-direct-post-persistence.js";
+export {
+  TikTokDirectPostBlockedError,
+  TikTokDirectPostService,
+  type TikTokDirectPostDispatchContext,
+  type TikTokDirectPostDispatchInput,
+  type TikTokDirectPostDispatchResult,
+  type TikTokDirectPostPersistencePort,
+  type TikTokDirectPostServiceInput,
+} from "./tiktok-direct-post-service.js";

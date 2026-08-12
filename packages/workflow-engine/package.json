@@ -19,6 +19,7 @@
     "@mediaforge/domain": "workspace:*",
     "@mediaforge/observability": "workspace:*",
     "@mediaforge/shared": "workspace:*",
+    "@mediaforge/tiktok-publishing": "workspace:*",
     "zod": "^4.0.14"
   }
 }
