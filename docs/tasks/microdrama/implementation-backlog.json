@@ -960,7 +960,7 @@
       "id": "MICRO-046",
       "title": "Implement audio and TTS canary readiness",
       "phase": "04-media-planning-and-production",
-      "status": "READY",
+      "status": "DONE",
       "goal": "Evaluate whether exact localized scripts may enter bounded TTS/timing calibration without visual dependencies.",
       "scope": ["AUDIO_TTS_READY projection over story, voice, segmentation, provider-config, budget and trust evidence", "Audio-only failure reasons and targeted invalidation"],
       "dependsOn": ["MICRO-015", "MICRO-016", "MICRO-019", "MICRO-040", "MICRO-043", "MICRO-045"],

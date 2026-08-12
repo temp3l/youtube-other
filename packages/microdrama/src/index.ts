@@ -274,6 +274,29 @@ export type {
 } from "./story-script-readiness.js";
 
 export {
+  AUDIO_TTS_READINESS_CHECKS,
+  AUDIO_TTS_READINESS_SCHEMA_VERSION,
+  audioTtsChecksInvalidatedByChange,
+  audioTtsTargetRevisionHash,
+  audioTtsTargetRevisionId,
+  buildAudioTtsBudgetWorkItem,
+  buildAudioTtsReadinessEvidenceRecords,
+  compileAudioTtsReadinessArtifacts,
+  evaluateAudioTtsBudgetPreflight,
+  evaluateAudioTtsReadiness,
+  evaluateStoryScriptGateForAudio,
+  extractLocalizedMasterStory,
+  readAdmittedLocalizedScriptText,
+  resolveAudioTtsReadinessBinding,
+  validateAudioTtsBinding,
+} from "./audio-tts-readiness.js";
+export type {
+  AudioTtsReadinessBinding,
+  AudioTtsReadinessFacet,
+  AudioTtsReadinessInput,
+} from "./audio-tts-readiness.js";
+
+export {
   STORY_QA_ISSUE_CODES,
   STORY_QA_SCHEMA_VERSION,
   SEMANTIC_STORY_QA_STATUSES,
