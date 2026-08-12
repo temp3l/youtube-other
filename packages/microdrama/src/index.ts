@@ -77,3 +77,36 @@ export {
   verifyReplayedCanonAdmission,
 } from "./v5-canon-persistence.js";
 export type { V5CanonAdmissionRepository } from "./v5-canon-persistence.js";
+
+export {
+  audioGatePolicySchema,
+  HERITAGE_SINGLE_VALUE_WPM,
+  lexicalGatePolicySchema,
+  localeProductionProfileSchema,
+  sevenMinutesAheadProductionProfileSchema,
+  V5_BCP47_LOCALES,
+  validateSevenMinutesAheadProductionProfile,
+  v5Bcp47LocaleSchema,
+} from "./v5-production-profile-contracts.js";
+export type {
+  AudioGatePolicy,
+  LexicalGatePolicy,
+  LexicalTimingAuthorityResolution,
+  LocaleProductionProfile,
+  SevenMinutesAheadProductionProfile,
+  TimingAuthorityHint,
+  TimingAuthorityHintSource,
+  V5Bcp47Locale,
+} from "./v5-production-profile-contracts.js";
+
+export {
+  buildSevenMinutesAheadProductionProfile,
+  heritageWpmIsRuntimeAuthority,
+  resolveLexicalTimingAuthority,
+  resolveLocaleProductionProfile,
+} from "./v5-production-profile.js";
+
+export {
+  persistV5ProductionProfile,
+  replayV5ProductionProfile,
+} from "./v5-production-profile-persistence.js";
