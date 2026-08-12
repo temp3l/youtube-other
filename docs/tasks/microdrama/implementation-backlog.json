@@ -900,7 +900,7 @@
       "id": "MICRO-043",
       "title": "Implement microdrama security and artifact trust gates",
       "phase": "04-media-planning-and-production",
-      "status": "READY",
+      "status": "DONE",
       "goal": "Apply cross-cutting trust, redaction and artifact validation before media or publication effects.",
       "scope": ["Untrusted pack/script/provider payload and prompt-injection boundaries", "Artifact MIME, size, SHA-256, path/URL/signed-URL scope and expiry validation", "Secret/personal-data redaction and immutable audit correlation"],
       "dependsOn": ["MICRO-002", "MICRO-003"],

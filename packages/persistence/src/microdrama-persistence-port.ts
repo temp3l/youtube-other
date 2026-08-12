@@ -54,6 +54,12 @@ export type RegisterArtifactReferenceInput = {
   readonly storageUri: string;
   readonly provenance: unknown;
   readonly recordedAt: string;
+  readonly correlationId?: string;
+  readonly observedContentHash?: string;
+};
+
+export type MicrodramaSQLiteRepositoryOptions = {
+  readonly artifactRoot?: string;
 };
 
 export type ReplaceProjectionInput = {

@@ -6,6 +6,7 @@ export * from "./math-telemetry.js";
 export * from "./visual-retention.js";
 export * from "./workflow-recovery.js";
 export * from "./microdrama-telemetry.js";
+export * from "./log-redaction.js";
 
 export interface LoggerContext {
   episodeId?: string;

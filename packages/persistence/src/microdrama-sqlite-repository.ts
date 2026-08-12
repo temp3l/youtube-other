@@ -24,10 +24,12 @@ import {
   MicrodramaConcurrencyError,
   MicrodramaDuplicateRevisionError,
 } from "./microdrama-persistence-port.js";
+import type { MicrodramaSQLiteRepositoryOptions } from "./microdrama-persistence-port.js";
 import {
   MICRODRAMA_SQLITE_MIGRATION,
   MICRODRAMA_SQLITE_MIGRATION_ID,
 } from "./microdrama-sqlite-schema.js";
+import { validateArtifactReferenceForRegistration } from "./microdrama-artifact-trust.js";
 
 type SQLitePersistenceHost = {
   readonly database: DatabaseSync;
@@ -109,7 +111,17 @@ function parseProjection(row: ProjectionRow): MicrodramaProjection {
 }
 
 export class MicrodramaSQLiteRepository implements MicrodramaPersistencePort {
-  public constructor(private readonly sqlite: SQLitePersistenceHost) {}
+  public constructor(
+    private readonly sqlite: SQLitePersistenceHost,
+    private readonly options: MicrodramaSQLiteRepositoryOptions = {}
+  ) {}
+
+  private artifactRoot(): string {
+    return (
+      this.options.artifactRoot ??
+      path.join(path.dirname(this.sqlite.config.dbPath), "artifacts")
+    );
+  }
 
   public migrate(): void {
     const database = this.sqlite.database;
@@ -264,6 +276,22 @@ export class MicrodramaSQLiteRepository implements MicrodramaPersistencePort {
   public registerArtifactReference(
     input: RegisterArtifactReferenceInput
   ): ArtifactReference {
+    validateArtifactReferenceForRegistration({
+      correlationId:
+        input.correlationId ??
+        `artifact.${input.artifactHash.slice(0, 16)}`,
+      evaluatedAt: input.recordedAt,
+      artifactRoot: this.artifactRoot(),
+      artifactHash: input.artifactHash,
+      mimeType: input.mimeType,
+      byteSize: input.byteSize,
+      storageUri: input.storageUri,
+      ...(input.observedContentHash !== undefined
+        ? { observedContentHash: input.observedContentHash }
+        : {}),
+      untrustedProvenance: input.provenance,
+    });
+
     this.sqlite.database
       .prepare(
         `INSERT INTO microdrama_artifact_references (

@@ -186,3 +186,53 @@ export {
   compileEpisodeProductionFromBoundary,
   compileV5EpisodeProduction,
 } from "./v5-episode-production-compiler.js";
+
+export {
+  assertDispatchTrustGateAllowed,
+  evaluateMediaDispatchTrustGate,
+  evaluatePublicationDispatchTrustGate,
+} from "./trust-gate-dispatch.js";
+export type {
+  MediaDispatchTrustInput,
+  PublicationDispatchTrustInput,
+  TrustGateDispatchResult,
+} from "./trust-gate-dispatch.js";
+
+export {
+  READINESS_DOMAINS,
+  READINESS_CHECK_RESULTS,
+  READINESS_EVIDENCE_SCHEMA_VERSION,
+  READINESS_EVIDENCE_STATUSES,
+  READINESS_FAILURE_CLASSES,
+  readinessCheckEvaluationSchema,
+  readinessCheckResultSchema,
+  readinessDomainSchema,
+  readinessEvidenceRecordSchema,
+  readinessEvidenceStatusSchema,
+  readinessFailureClassSchema,
+  readinessInvalidationReasonSchema,
+  readinessProjectionSchema,
+  validateReadinessEvidenceRecord,
+  validateReadinessProjection,
+} from "./readiness-evidence-contracts.js";
+export type {
+  ReadinessCheckEvaluation,
+  ReadinessCheckResult,
+  ReadinessDomain,
+  ReadinessEvidenceRecord,
+  ReadinessEvidenceStatus,
+  ReadinessFailureClass,
+  ReadinessInvalidationReason,
+  ReadinessProjection,
+  ReadinessProjectionResult,
+} from "./readiness-evidence-contracts.js";
+
+export {
+  conjunctionEvaluatesToPass,
+  defaultEvidenceBackedCheck,
+  evaluateReadinessProjection,
+  evidenceMatchesRevision,
+  projectionBlocksOnlyDomain,
+  unavailableCheckNeverPasses,
+} from "./readiness-evidence-evaluator.js";
+export type { ReadinessCheckDefinition, ReadinessEvaluationInput } from "./readiness-evidence-evaluator.js";

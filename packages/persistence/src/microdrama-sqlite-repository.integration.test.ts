@@ -135,16 +135,32 @@ describe("microdrama SQLite repository", () => {
     const { repository } = createRepository();
     const artifact = repository.registerArtifactReference({
       artifactHash: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      mimeType: "text/markdown",
+      mimeType: "text/plain",
       byteSize: 1200,
-      storageUri: "file:///tmp/import/script.md",
+      storageUri: "imports/script.md",
       provenance: { sourceKind: "import" },
       recordedAt: createdAt,
+      observedContentHash:
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     });
     expect(artifact.byteSize).toBe(1200);
     expect(repository.getArtifactReference(artifact.artifactHash)?.storageUri).toBe(
-      "file:///tmp/import/script.md"
+      "imports/script.md"
     );
+  });
+
+  it("rejects malformed artifact identity before registration", () => {
+    const { repository } = createRepository();
+    expect(() =>
+      repository.registerArtifactReference({
+        artifactHash: "bad-hash",
+        mimeType: "video/mp4",
+        byteSize: 1200,
+        storageUri: "../escape/render.mp4",
+        provenance: { sourceKind: "import" },
+        recordedAt: createdAt,
+      })
+    ).toThrow(/invalid_artifact_hash|storage_uri_escape/);
   });
 
   it("exports backup manifest and database copy contract", async () => {
@@ -153,9 +169,11 @@ describe("microdrama SQLite repository", () => {
       artifactHash: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       mimeType: "application/json",
       byteSize: 42,
-      storageUri: "file:///tmp/import/manifest.json",
+      storageUri: "imports/manifest.json",
       provenance: { sourceKind: "import" },
       recordedAt: createdAt,
+      observedContentHash:
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
     });
 
     const manifest = repository.exportBackupManifest();
@@ -174,6 +192,6 @@ describe("microdrama SQLite repository", () => {
       restoredRepository.getArtifactReference(
         "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
       )?.storageUri
-    ).toBe("file:///tmp/import/manifest.json");
+    ).toBe("imports/manifest.json");
   });
 });

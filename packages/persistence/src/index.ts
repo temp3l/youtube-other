@@ -39,6 +39,7 @@ export * from "./character-voice-persistence-port.js";
 export * from "./character-voice-sqlite-schema.js";
 export { CharacterVoiceSQLiteRepository } from "./character-voice-sqlite-repository.js";
 export * from "./microdrama-persistence-port.js";
+export * from "./microdrama-artifact-trust.js";
 export * from "./microdrama-sqlite-schema.js";
 export {
   MicrodramaSQLiteRepository,

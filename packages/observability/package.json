@@ -13,6 +13,10 @@
     "./telemetry.js": {
       "types": "./dist/telemetry.d.ts",
       "default": "./dist/telemetry.js"
+    },
+    "./log-redaction.js": {
+      "types": "./dist/log-redaction.d.ts",
+      "default": "./dist/log-redaction.js"
     }
   },
   "scripts": {

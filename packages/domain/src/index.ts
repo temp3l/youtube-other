@@ -12,6 +12,8 @@ export * from "./capability-configuration-resolver.js";
 export * from "./capability-admission-evaluator.js";
 export * from "./command-security-contracts.js";
 export * from "./command-security.js";
+export * from "./microdrama-trust-gate-contracts.js";
+export * from "./microdrama-trust-gate.js";
 export * from "./workflow-portfolio-contracts.js";
 export * from "./workflow-portfolio-projector.js";
 export * from "./bulk-production-preflight.js";
