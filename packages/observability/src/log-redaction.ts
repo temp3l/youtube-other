@@ -9,7 +9,7 @@ const REDACTED_SIGNED_URL = "[REDACTED_SIGNED_URL]";
 const secretFieldPattern =
   /(?:secret|token|password|credential|api[_-]?key|authorization|private[_-]?key)/iu;
 const secretValuePattern =
-  /^(?:mfk_[A-Za-z0-9._-]+|Bearer\s+[A-Za-z0-9._~+/=-]+|[A-Za-z0-9+/]{32,}={0,2})$/u;
+  /^(?:mfk_[A-Za-z0-9._-]+|Bearer\s+[A-Za-z0-9._~+/=-]+|act\.[A-Za-z0-9._-]+|rft\.[A-Za-z0-9._-]+|[A-Za-z0-9+/]{32,}={0,2})$/u;
 const signedUrlPattern =
   /^https?:\/\/[^\s?#]+(?:\?[^\s#]*?(?:sig|signature|token|X-Amz-Signature|X-Amz-Credential)=[^&#\s]+)/iu;
 const emailPattern = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/iu;
@@ -37,6 +37,8 @@ const PRESERVED_LOG_KEYS = [
   ...CORRELATION_ID_KEYS,
   "artifactHash",
   "contentHash",
+  "credentialHandle",
+  "credentialVersionId",
 ] as const;
 
 export function redactMicrodramaLogValue(value: unknown, key?: string): unknown {
@@ -67,6 +69,12 @@ export function redactMicrodramaLogValue(value: unknown, key?: string): unknown 
     return output;
   }
   return value;
+}
+
+export function redactTikTokPublicationAuditPayload(
+  payload: Record<string, unknown>
+): Record<string, unknown> {
+  return redactMicrodramaLogValue(payload) as Record<string, unknown>;
 }
 
 export function buildRedactedMicrodramaAuditRecord(input: {

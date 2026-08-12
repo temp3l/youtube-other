@@ -9,7 +9,8 @@
   "requestedScopes": ["user.info.basic", "video.publish"],
   "clientKey": "fixture-client-key",
   "authorizationCode": "fixture-authorization-code",
-  "credentialHandle": "tiktok-cred-handle.fixture.001",
+  "accessToken": "act.fixture-access-token-value",
+  "refreshToken": "rft.fixture-refresh-token-value",
   "authorizationExpiresAt": "2026-09-12T12:00:00.000Z",
   "evaluatedAt": "2026-08-12T12:00:00.000Z",
   "expiresAt": "2026-08-12T12:15:00.000Z"

@@ -37,6 +37,14 @@ export {
   type ExecutionPolicy,
   type RunPolicyArtifact,
 } from "./execution-policy.js";
+export {
+  assertTikTokSecretStoreConfigIdentifiers,
+  parseTikTokSecretStoreEnvironment,
+  redactTikTokSecretStoreConfigEvidence,
+  resolveTikTokSecretStoreRoot,
+  tikTokSecretStoreConfigSchema,
+  type TikTokSecretStoreConfig,
+} from "./tiktok-secret-store-config.js";
 
 const visualRetentionPresetSchema = z.strictObject({
   id: z.enum(["short-45-60", "short-60-75", "full-4-6m"]),

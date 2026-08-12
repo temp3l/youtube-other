@@ -1,5 +1,9 @@
 export * from "./tiktok-account-fake-repository.js";
 export * from "./tiktok-account-oauth-service.js";
+export * from "./in-memory-tiktok-secret-store.js";
+export * from "./local-encrypted-tiktok-secret-store.js";
+export * from "./tiktok-secret-store-contracts.js";
+export * from "./tiktok-secret-store-port.js";
 export {
   projectTikTokLocaleMetadataBundle,
   type ProjectTikTokLocaleMetadataBundleInput,

@@ -25,6 +25,21 @@ describe("microdrama log redaction", () => {
     expect(redacted.artifactHash).toBe("a".repeat(64));
   });
 
+  it("redacts TikTok OAuth tokens from publication audit payloads", () => {
+    const handle = "tiktok.secret.fixtureopaquehandle00000001";
+    const redacted = redactMicrodramaLogValue({
+      credentialHandle: handle,
+      credentialVersionId: "cred.fixture.v1",
+      accessToken: "act.fixture-access-token-value",
+      refreshToken: "rft.fixture-refresh-token-value",
+    }) as Record<string, unknown>;
+
+    expect(redacted.credentialHandle).toBe(handle);
+    expect(redacted.credentialVersionId).toBe("cred.fixture.v1");
+    expect(redacted.accessToken).toBe("[REDACTED]");
+    expect(redacted.refreshToken).toBe("[REDACTED]");
+  });
+
   it("builds immutable audit records with explicit correlation binding", () => {
     const record = buildRedactedMicrodramaAuditRecord({
       correlation: {

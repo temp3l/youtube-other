@@ -15,13 +15,18 @@ import {
 } from "@mediaforge/domain";
 
 import type { TikTokAccountRepositoryPort } from "./tiktok-account-fake-repository.js";
+import type { TikTokOAuthCredentialPayload } from "./tiktok-secret-store-contracts.js";
+import {
+  assertTikTokSecretStoreAvailable,
+  type TikTokSecretStorePort,
+} from "./tiktok-secret-store-port.js";
 
 export type ProviderFreeTikTokTokenExchangeResult = {
   readonly providerAccountId: string;
   readonly displayName: string;
-  readonly credentialHandle: string;
   readonly grantedScopes: readonly string[];
   readonly authorizationExpiresAt?: string;
+  readonly credentials: TikTokOAuthCredentialPayload;
 };
 
 export type ProviderFreeTikTokTokenExchangePort = {
@@ -44,6 +49,7 @@ export class FixtureTikTokTokenExchange implements ProviderFreeTikTokTokenExchan
 export type TikTokAccountOAuthServiceInput = {
   readonly repository: TikTokAccountRepositoryPort;
   readonly tokenExchange: ProviderFreeTikTokTokenExchangePort;
+  readonly secretStore: TikTokSecretStorePort;
   readonly endpointConfiguration?: ReturnType<
     typeof createOfficialTikTokEndpointConfiguration
   >;
@@ -80,7 +86,7 @@ export class TikTokAccountOAuthService {
     return started;
   }
 
-  public completeOAuthCallback(input: {
+  public async completeOAuthCallback(input: {
     readonly workspaceId: string;
     readonly sessionId: string;
     readonly callback: TikTokOAuthCallbackInput;
@@ -98,11 +104,12 @@ export class TikTokAccountOAuthService {
       | "authorizationExpiresAt"
       | "registeredAt"
     >;
-  }): {
+  }): Promise<{
     readonly account: TikTokAccountRecord;
     readonly grant: TikTokOAuthGrantRecord;
     readonly session: TikTokOAuthSessionRecord;
-  } {
+  }> {
+    assertTikTokSecretStoreAvailable(this.input.secretStore);
     const session = this.input.repository.getSession({
       workspaceId: input.workspaceId,
       sessionId: input.sessionId,
@@ -127,13 +134,20 @@ export class TikTokAccountOAuthService {
       authorizationCode: admission.code,
       session,
     });
+    const storedSecret = await this.input.secretStore.storeCredential({
+      workspaceId: input.workspaceId,
+      accountId: input.accountId,
+      credentialVersionId: input.credentialVersionId,
+      payload: exchanged.credentials,
+      storedAt: input.evaluatedAt,
+    });
     const registered = registerTikTokAccount({
       registration: {
         workspaceId: input.workspaceId,
         accountId: input.accountId,
         providerAccountId: exchanged.providerAccountId,
         displayName: exchanged.displayName,
-        credentialHandle: exchanged.credentialHandle,
+        credentialHandle: storedSecret.handle,
         grantedScopes: [...exchanged.grantedScopes],
         ...(exchanged.authorizationExpiresAt
           ? { authorizationExpiresAt: exchanged.authorizationExpiresAt }
@@ -159,13 +173,14 @@ export class TikTokAccountOAuthService {
     };
   }
 
-  public revokeAccount(input: {
+  public async revokeAccount(input: {
     readonly workspaceId: string;
     readonly revocation: TikTokAccountRevocationInput;
-  }): {
+  }): Promise<{
     readonly account: TikTokAccountRecord;
     readonly grant: TikTokOAuthGrantRecord;
-  } {
+  }> {
+    assertTikTokSecretStoreAvailable(this.input.secretStore);
     const account = this.input.repository.getAccount({
       workspaceId: input.workspaceId,
       accountId: input.revocation.accountId,
@@ -182,6 +197,13 @@ export class TikTokAccountOAuthService {
     if (!credentialVersion || !grant) {
       throw new Error("TikTok account grant or credential version is missing.");
     }
+    await this.input.secretStore.revokeCredential({
+      workspaceId: input.workspaceId,
+      accountId: account.accountId,
+      handle: credentialVersion.credentialHandle,
+      credentialVersionId: credentialVersion.credentialVersionId,
+      revokedAt: input.revocation.revokedAt,
+    });
     const revoked = revokeTikTokAccountGrant({
       account,
       credentialVersion,

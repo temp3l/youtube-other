@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { buildTikTokOAuthState } from "@mediaforge/domain";
+import { redactTikTokPublicationAuditPayload } from "@mediaforge/observability/log-redaction.js";
 import { TikTokAccountApplicationService } from "../../application/src/tiktok-account-service.js";
 import fixture from "./fixtures/tiktok-oauth-account.fixture.json" with {
   type: "json",
@@ -12,19 +13,31 @@ import {
   FixtureTikTokTokenExchange,
   TikTokAccountOAuthService,
 } from "./tiktok-account-oauth-service.js";
+import { InMemoryTikTokSecretStore } from "./in-memory-tiktok-secret-store.js";
+import { buildTikTokCredentialHandle } from "./tiktok-secret-store-contracts.js";
 
 describe("tiktok account oauth contracts", () => {
   const repository = new FakeTikTokAccountRepository();
+  const secretStore = new InMemoryTikTokSecretStore();
   const tokenExchange = new FixtureTikTokTokenExchange({
     providerAccountId: fixture.providerAccountId,
     displayName: fixture.displayName,
-    credentialHandle: fixture.credentialHandle,
     grantedScopes: fixture.requestedScopes,
     authorizationExpiresAt: fixture.authorizationExpiresAt,
+    credentials: {
+      schemaVersion: "mediaforge.tiktok-secret-store.v1",
+      accessToken: fixture.accessToken,
+      refreshToken: fixture.refreshToken,
+      tokenType: "Bearer",
+    },
   });
 
   it("begins oauth with official authorization endpoint and fixture state", () => {
-    const service = new TikTokAccountOAuthService({ repository, tokenExchange });
+    const service = new TikTokAccountOAuthService({
+      repository,
+      tokenExchange,
+      secretStore,
+    });
     const started = service.beginOAuthSession({
       workspaceId: fixture.workspaceId,
       sessionId: fixture.sessionId,
@@ -48,8 +61,12 @@ describe("tiktok account oauth contracts", () => {
     );
   });
 
-  it("registers an account from a provider-free oauth callback fixture", () => {
-    const oauthService = new TikTokAccountOAuthService({ repository, tokenExchange });
+  it("registers an account from a provider-free oauth callback fixture", async () => {
+    const oauthService = new TikTokAccountOAuthService({
+      repository,
+      tokenExchange,
+      secretStore,
+    });
     oauthService.beginOAuthSession({
       workspaceId: fixture.workspaceId,
       sessionId: fixture.sessionId,
@@ -61,7 +78,7 @@ describe("tiktok account oauth contracts", () => {
       accountId: fixture.accountId,
       clientKey: fixture.clientKey,
     });
-    const completed = oauthService.completeOAuthCallback({
+    const completed = await oauthService.completeOAuthCallback({
       workspaceId: fixture.workspaceId,
       sessionId: fixture.sessionId,
       evaluatedAt: fixture.evaluatedAt,
@@ -78,16 +95,36 @@ describe("tiktok account oauth contracts", () => {
       registration: {},
     });
     expect(completed.account.providerAccountId).toBe(fixture.providerAccountId);
-    expect(completed.grant.credentialHandle).toBe(fixture.credentialHandle);
+    expect(completed.grant.credentialHandle).toBe(
+      buildTikTokCredentialHandle({
+        workspaceId: fixture.workspaceId,
+        accountId: fixture.accountId,
+      })
+    );
     expect(completed.grant.state).toBe("active");
+    expect(secretStore.snapshotSerializedStorage()).not.toContain(
+      fixture.accessToken
+    );
+    expect(
+      redactTikTokPublicationAuditPayload({
+        credentialHandle: completed.grant.credentialHandle,
+        credentialVersionId: completed.grant.credentialVersionId,
+        accessToken: fixture.accessToken,
+      })
+    ).toEqual({
+      credentialHandle: completed.grant.credentialHandle,
+      credentialVersionId: completed.grant.credentialVersionId,
+      accessToken: "[REDACTED]",
+    });
   });
 
-  it("revokes account grants without live authorization", () => {
+  it("revokes account grants without live authorization", async () => {
     const application = new TikTokAccountApplicationService({
       port: repository,
       tokenExchange,
+      secretStore,
     });
-    const revoked = application.revokeAccount({
+    const revoked = await application.revokeAccount({
       workspaceId: fixture.workspaceId,
       revocation: {
         accountId: fixture.accountId,
@@ -103,6 +140,7 @@ describe("tiktok account oauth contracts", () => {
     const application = new TikTokAccountApplicationService({
       port: repository,
       tokenExchange,
+      secretStore,
     });
     expect(() =>
       application.requireAttemptAccountBinding({

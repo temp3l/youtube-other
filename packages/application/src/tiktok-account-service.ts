@@ -10,8 +10,9 @@ import {
 } from "@mediaforge/domain";
 import {
   TikTokAccountOAuthService,
-  type TikTokAccountRepositoryPort,
   type ProviderFreeTikTokTokenExchangePort,
+  type TikTokAccountRepositoryPort,
+  type TikTokSecretStorePort,
 } from "@mediaforge/tiktok-publishing";
 
 export type TikTokAccountApplicationPort = TikTokAccountRepositoryPort & {
@@ -23,6 +24,7 @@ export type TikTokAccountApplicationPort = TikTokAccountRepositoryPort & {
 export type TikTokAccountApplicationServiceInput = {
   readonly port: TikTokAccountApplicationPort;
   readonly tokenExchange: ProviderFreeTikTokTokenExchangePort;
+  readonly secretStore: TikTokSecretStorePort;
 };
 
 export class TikTokAccountApplicationService {
@@ -32,6 +34,7 @@ export class TikTokAccountApplicationService {
     this.oauthService = new TikTokAccountOAuthService({
       repository: input.port,
       tokenExchange: input.tokenExchange,
+      secretStore: input.secretStore,
     });
   }
 
@@ -49,26 +52,26 @@ export class TikTokAccountApplicationService {
     return this.oauthService.beginOAuthSession(input).beginResult;
   }
 
-  public completeAccountConnect(input: {
+  public async completeAccountConnect(input: {
     readonly workspaceId: string;
     readonly sessionId: string;
     readonly callback: TikTokOAuthCallbackInput;
     readonly evaluatedAt: string;
     readonly accountId: string;
     readonly credentialVersionId: string;
-  }): TikTokAccountRecord {
-    const result = this.oauthService.completeOAuthCallback({
+  }): Promise<TikTokAccountRecord> {
+    const result = await this.oauthService.completeOAuthCallback({
       ...input,
       registration: {},
     });
     return redactTikTokAccountRecord(result.account);
   }
 
-  public revokeAccount(input: {
+  public async revokeAccount(input: {
     readonly workspaceId: string;
     readonly revocation: TikTokAccountRevocationInput;
-  }): TikTokAccountRecord {
-    const result = this.oauthService.revokeAccount(input);
+  }): Promise<TikTokAccountRecord> {
+    const result = await this.oauthService.revokeAccount(input);
     return redactTikTokAccountRecord(result.account);
   }
 
