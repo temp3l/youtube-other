@@ -216,7 +216,7 @@
       "id": "MICRO-010",
       "title": "Implement canonical visual asset registry",
       "phase": "04-media-planning-and-production",
-      "status": "READY",
+      "status": "DONE",
       "goal": "Persist approved character, appearance, location, prop and reference identities.",
       "scope": ["Registry contracts/revisions and hash-addressed references", "Continuity lookup and explicit locale-variant reason"],
       "dependsOn": ["MICRO-002", "MICRO-004"],

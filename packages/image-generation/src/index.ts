@@ -64,6 +64,7 @@ export {
   type CreatorMediaGenerationRequest,
   type CreatorMediaPolicyErrorCode,
 } from "./creator-media-policy.js";
+export * from "./visual-asset-continuity.js";
 
 export interface PromptTemplateContext {
   readonly GLOBAL_STYLE: string;

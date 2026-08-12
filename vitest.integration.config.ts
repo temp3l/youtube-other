@@ -5,6 +5,13 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: "@mediaforge/domain",
+        replacement: path.resolve(
+          import.meta.dirname,
+          "packages/domain/src/index.ts"
+        ),
+      },
+      {
         find: "@mediaforge/narrative-core",
         replacement: path.resolve(
           import.meta.dirname,

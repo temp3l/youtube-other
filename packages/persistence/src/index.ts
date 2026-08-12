@@ -42,6 +42,9 @@ export {
   copyMicrodramaDatabaseBackup,
   writeMicrodramaBackupManifest,
 } from "./microdrama-sqlite-repository.js";
+export * from "./visual-asset-registry-port.js";
+export * from "./visual-asset-registry-schema.js";
+export { VisualAssetRegistryRepository } from "./visual-asset-registry-repository.js";
 
 export interface PersistenceConfig {
   readonly dbPath: string;

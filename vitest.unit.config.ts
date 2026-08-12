@@ -20,6 +20,14 @@ export default defineConfig({
         import.meta.dirname,
         "packages/microdrama/src/index.ts"
       ),
+      "@mediaforge/persistence": path.resolve(
+        import.meta.dirname,
+        "packages/persistence/src/index.ts"
+      ),
+      "@mediaforge/image-generation": path.resolve(
+        import.meta.dirname,
+        "packages/image-generation/src/index.ts"
+      ),
     },
   },
   test: {
