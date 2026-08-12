@@ -1,0 +1,38 @@
+{
+  "readinessProjectionId": "tiktok.app.readiness.fixture.pending",
+  "configurationRevisionId": "tiktok.app.config.fixture.pending",
+  "auditEvidenceId": "tiktok.app.audit.fixture.pending",
+  "workspaceId": "workspace.microdrama.001",
+  "providerAppId": "tiktok.app.fixture.001",
+  "product": "content_posting_api",
+  "environment": "sandbox",
+  "loginKit": {
+    "callbackConfigHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "redirectUriHashes": [
+      "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    ]
+  },
+  "requiredScopes": ["user.info.basic", "video.publish"],
+  "grantedScopes": ["user.info.basic", "video.publish"],
+  "contentPosting": {
+    "configured": true,
+    "configurationHash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+  },
+  "creatorInfoExportUx": {
+    "runbookVersion": "tiktok-app-audit-readiness.v1",
+    "reviewEvidenceHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "reviewedAt": "2026-08-12T12:00:00.000Z"
+  },
+  "consentExportUx": {
+    "runbookVersion": "tiktok-app-audit-readiness.v1",
+    "reviewEvidenceHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "reviewedAt": "2026-08-12T12:00:00.000Z"
+  },
+  "configurationEffectiveAt": "2026-08-12T12:00:00.000Z",
+  "auditEvidenceSource": "provider_portal_export",
+  "auditSubmissionState": "provider_pending",
+  "auditResultEvidenceHash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "auditRecordedBy": "operator.001",
+  "auditEffectiveAt": "2026-08-12T12:00:00.000Z",
+  "recordedAt": "2026-08-12T12:00:00.000Z"
+}

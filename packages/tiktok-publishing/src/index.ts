@@ -8,3 +8,8 @@ export {
   projectTikTokLocaleMetadataBundle,
   type ProjectTikTokLocaleMetadataBundleInput,
 } from "./locale-metadata-projection.js";
+export {
+  projectTikTokAppAuditReadinessBundle,
+  type ProjectTikTokAppAuditReadinessBundleInput,
+  type ProjectTikTokAppAuditReadinessBundleResult,
+} from "./tiktok-app-audit-projection.js";

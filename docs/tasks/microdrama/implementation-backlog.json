@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "backlogId": "vertical-microdrama-factory",
-  "updatedAt": "2026-08-12T05:10:00+02:00",
+  "updatedAt": "2026-08-12T06:00:00+02:00",
   "architectureIndex": "docs/plans/microdrama/README.md",
   "implementationPlan": "docs/plans/microdrama/implementation-plan.md",
   "taskStatusValues": ["BLOCKED", "READY", "IN_PROGRESS", "DONE", "SUPERSEDED"],
@@ -1020,7 +1020,7 @@
       "id": "MICRO-049",
       "title": "Implement TikTok app and audit readiness evidence",
       "phase": "05-publication",
-      "status": "BLOCKED",
+      "status": "DONE",
       "goal": "Represent TikTok developer-app configuration, consent/export UX and audit readiness without claiming provider approval locally.",
       "scope": ["Developer app/product, Login Kit, callback/config hash, required/granted scopes and Content Posting configuration evidence", "Creator-info/export UX and explicit consent/export evidence capture", "Audit submission/result, environment, effective/expiry/revocation and public-posting capability state"],
       "dependsOn": ["MICRO-020", "MICRO-022", "MICRO-023", "MICRO-025"],
