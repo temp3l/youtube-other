@@ -259,6 +259,21 @@ export {
 export type { ReadinessCheckDefinition, ReadinessEvaluationInput } from "./readiness-evidence-evaluator.js";
 
 export {
+  STORY_SCRIPT_READINESS_CHECKS,
+  STORY_SCRIPT_READINESS_SCHEMA_VERSION,
+  buildStoryScriptReadinessEvidenceRecords,
+  evaluateStoryScriptReadiness,
+  resolveStoryScriptReadinessBinding,
+  storyScriptTargetRevisionHash,
+  storyScriptTargetRevisionId,
+  validateStoryScriptBinding,
+} from "./story-script-readiness.js";
+export type {
+  StoryScriptReadinessBinding,
+  StoryScriptReadinessInput,
+} from "./story-script-readiness.js";
+
+export {
   STORY_QA_ISSUE_CODES,
   STORY_QA_SCHEMA_VERSION,
   SEMANTIC_STORY_QA_STATUSES,

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "backlogId": "vertical-microdrama-factory",
-  "updatedAt": "2026-08-12T03:45:00+02:00",
+  "updatedAt": "2026-08-12T05:10:00+02:00",
   "architectureIndex": "docs/plans/microdrama/README.md",
   "implementationPlan": "docs/plans/microdrama/implementation-plan.md",
   "taskStatusValues": ["BLOCKED", "READY", "IN_PROGRESS", "DONE", "SUPERSEDED"],
@@ -940,7 +940,7 @@
       "id": "MICRO-045",
       "title": "Implement story and localized-script readiness",
       "phase": "04-media-planning-and-production",
-      "status": "READY",
+      "status": "DONE",
       "goal": "Evaluate story/script admission independently from audio, visual and publication readiness.",
       "scope": ["STORY_SCRIPT_READY projection over exact canon, EpisodeSpec, BeatPlan and ScriptRevision identities", "Continuity, boundary, hook/cliffhanger and locale-parity evidence reasons"],
       "dependsOn": ["MICRO-004", "MICRO-007", "MICRO-008", "MICRO-019", "MICRO-043"],
