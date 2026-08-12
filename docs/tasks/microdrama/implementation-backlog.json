@@ -596,7 +596,7 @@
       "id": "MICRO-029",
       "title": "Implement publication scheduling and operator controls",
       "phase": "05-publication",
-      "status": "BLOCKED",
+      "status": "DONE",
       "goal": "Gate MANUAL and PREAPPROVED_SCHEDULED dispatch through explicit operator policy.",
       "scope": ["UTC schedule records, audience timezone profiles, DispatchMode and enable flags", "Exact schedule-time consent, dispatch revalidation, approval, budget, capability and cancellation controls"],
       "dependsOn": ["MICRO-028"],

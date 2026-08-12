@@ -14,6 +14,7 @@ export * from "./publication-execution.js";
 export * from "./microdrama-publication-service.js";
 export * from "./microdrama-youtube-coexistence-service.js";
 export * from "./tiktok-account-service.js";
+export * from "./microdrama-publication-scheduling-service.js";
 export * from "./tiktok-app-audit-service.js";
 export * from "./tiktok-transfer-service.js";
 export * from "./tiktok-direct-post-service.js";

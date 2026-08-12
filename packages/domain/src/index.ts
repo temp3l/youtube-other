@@ -64,6 +64,8 @@ export * from "./tiktok-creator-preflight-contracts.js";
 export * from "./tiktok-creator-preflight-lifecycle.js";
 export * from "./tiktok-metadata-contracts.js";
 export * from "./tiktok-metadata-lifecycle.js";
+export * from "./microdrama-publication-scheduling-contracts.js";
+export * from "./microdrama-publication-scheduling-lifecycle.js";
 export * from "./tiktok-app-audit-contracts.js";
 export * from "./tiktok-app-audit-lifecycle.js";
 export * from "./tiktok-transfer-contracts.js";
