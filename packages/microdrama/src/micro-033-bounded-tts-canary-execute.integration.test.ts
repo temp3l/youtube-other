@@ -145,7 +145,9 @@ describe("MICRO-033 bounded TTS canary execute", () => {
   it.runIf(
     process.env.MICRO_033_OPERATOR_EXECUTE === "1" &&
       process.env.MICRO_033_AUTHORIZE_ONLY !== "1"
-  )("executes workspace operator bounded canary with live bounded OpenAI TTS", async () => {
+  )(
+    "executes workspace operator bounded canary with live bounded OpenAI TTS",
+    async () => {
     const repoRoot = path.resolve(import.meta.dirname, "../../../");
     const dbPath =
       process.env.MICRO_033_DB_PATH ?? path.join(repoRoot, ".mediaforge.sqlite");
@@ -209,5 +211,7 @@ describe("MICRO-033 bounded TTS canary execute", () => {
     expect(execution.episodes.length).toBe(3);
     expect(execution.providerRequests).toBeLessThanOrEqual(111);
     expect(execution.totalCostMinor).toBeLessThanOrEqual(199);
-  });
+    },
+    900_000
+  );
 });

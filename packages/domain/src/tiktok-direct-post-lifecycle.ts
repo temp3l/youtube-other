@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import {
   type CreatorContentConsentRevision,
   type MicrodramaPublicationAttempt,
@@ -20,13 +22,16 @@ import { type TikTokMetadataRevision } from "./tiktok-metadata-contracts.js";
 import {
   type TikTokDirectPostDispatchAdmission,
   type TikTokDirectPostDispatchBlockReason,
+  type TikTokDirectPostDispatchOutcome,
   type TikTokDirectPostEffectRecord,
+  type TikTokDirectPostEffectReference,
   type TikTokDirectPostInitRequest,
   type TikTokDirectPostInitResponse,
   type TikTokDirectPostThrottleEvidence,
   TIKTOK_DIRECT_POST_SCHEMA_VERSION,
   tikTokDirectPostDispatchAdmissionSchema,
   tikTokDirectPostEffectRecordSchema,
+  tikTokDirectPostEffectReferenceSchema,
   tikTokDirectPostInitRequestSchema,
 } from "./tiktok-direct-post-contracts.js";
 import { type TikTokTransferPlan } from "./tiktok-transfer-contracts.js";
@@ -356,4 +361,59 @@ export function tikTokDirectPostCapabilityAllowsDispatch(
   state: MicrodramaPublicationCapabilityState
 ): boolean {
   return publicationCapabilityAllowsDispatch(state);
+}
+
+export function computeTikTokDirectPostRecoveryIdentity(input: {
+  readonly intentId: string;
+  readonly attemptId: string;
+  readonly idempotencyKey: string;
+}): string {
+  return createHash("sha256")
+    .update(
+      JSON.stringify({
+        intentId: input.intentId,
+        attemptId: input.attemptId,
+        idempotencyKey: input.idempotencyKey,
+      }),
+      "utf8"
+    )
+    .digest("hex")
+    .slice(0, 32);
+}
+
+export function buildTikTokDirectPostEffectReferenceFromRecord(input: {
+  readonly effect: TikTokDirectPostEffectRecord;
+  readonly dispatchOutcome: TikTokDirectPostDispatchOutcome;
+  readonly recordedAt: string;
+}): TikTokDirectPostEffectReference {
+  const initResponse = input.effect.initResponse;
+  if (!initResponse) {
+    throw new Error("TIKTOK_DIRECT_POST_EFFECT_MISSING_INIT_RESPONSE");
+  }
+  return tikTokDirectPostEffectReferenceSchema.parse({
+    schemaVersion: TIKTOK_DIRECT_POST_SCHEMA_VERSION,
+    effectId: input.effect.effectId,
+    attemptId: input.effect.attemptId,
+    intentId: input.effect.intentId,
+    idempotencyKey: input.effect.idempotencyKey,
+    attemptFence: input.effect.initRequest.attemptFence,
+    publishId: initResponse.publishId,
+    binding: input.effect.initRequest.binding,
+    providerCorrelation: initResponse.providerCorrelation,
+    dispatchOutcome: input.dispatchOutcome,
+    recoveryIdentity: computeTikTokDirectPostRecoveryIdentity({
+      intentId: input.effect.intentId,
+      attemptId: input.effect.attemptId,
+      idempotencyKey: input.effect.idempotencyKey,
+    }),
+    recordedAt: input.recordedAt,
+  });
+}
+
+export function assertDirectPostEffectEligibleForReconciliation(
+  effect: TikTokDirectPostEffectReference
+): void {
+  if (effect.dispatchOutcome !== "outcome_uncertain") {
+    throw new Error("TIKTOK_DIRECT_POST_EFFECT_NOT_UNCERTAIN");
+  }
 }

@@ -1,4 +1,6 @@
-import "dotenv/config";
+import { config as loadDotenv } from "dotenv";
+
+loadDotenv({ override: true });
 
 import { spawnSync } from "node:child_process";
 import path from "node:path";

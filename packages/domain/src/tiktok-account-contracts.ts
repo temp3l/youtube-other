@@ -15,6 +15,10 @@ export const TIKTOK_OFFICIAL_ENDPOINTS = {
   userInfo: "https://open.tiktokapis.com/v2/user/info/",
 } as const;
 
+/** Official read-only video query; kept outside OAuth endpoint kinds. */
+export const TIKTOK_OFFICIAL_VIDEO_QUERY_ENDPOINT =
+  "https://open.tiktokapis.com/v2/video/query/" as const;
+
 export const TIKTOK_OFFICIAL_ENDPOINT_KINDS = [
   "authorization",
   "token",

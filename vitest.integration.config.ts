@@ -4,6 +4,10 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   resolve: {
     alias: {
+      "@mediaforge/domain/visual-retention/treatment-catalog.js": path.resolve(
+        import.meta.dirname,
+        "packages/domain/src/visual-retention/treatment-catalog.ts"
+      ),
       "@mediaforge/domain": path.resolve(
         import.meta.dirname,
         "packages/domain/src/index.ts"
@@ -40,6 +44,26 @@ export default defineConfig({
         import.meta.dirname,
         "packages/microdrama/src/index.ts"
       ),
+      "@mediaforge/tiktok-publishing": path.resolve(
+        import.meta.dirname,
+        "packages/tiktok-publishing/src/index.ts"
+      ),
+      "@mediaforge/performance": path.resolve(
+        import.meta.dirname,
+        "packages/performance/src/index.ts"
+      ),
+      "@mediaforge/application": path.resolve(
+        import.meta.dirname,
+        "packages/application/src/index.ts"
+      ),
+      "@mediaforge/metadata/tiktok-locale-metadata.js": path.resolve(
+        import.meta.dirname,
+        "packages/metadata/src/tiktok-locale-metadata.ts"
+      ),
+      "@mediaforge/metadata": path.resolve(
+        import.meta.dirname,
+        "packages/metadata/src/index.ts"
+      ),
       "@mediaforge/observability/log-redaction.js": path.resolve(
         import.meta.dirname,
         "packages/observability/src/log-redaction.ts"
@@ -52,6 +76,10 @@ export default defineConfig({
         import.meta.dirname,
         "packages/observability/src/index.ts"
       ),
+      "@mediaforge/workflow-engine": path.resolve(
+        import.meta.dirname,
+        "packages/workflow-engine/src/index.ts"
+      ),
       "@mediaforge/scene-planning": path.resolve(
         import.meta.dirname,
         "packages/scene-planning/src/index.ts"
@@ -59,6 +87,10 @@ export default defineConfig({
       "@mediaforge/visual-planning": path.resolve(
         import.meta.dirname,
         "packages/visual-planning/src/index.ts"
+      ),
+      "@mediaforge/image-generation/microdrama-visual-generation": path.resolve(
+        import.meta.dirname,
+        "packages/image-generation/src/microdrama-visual-generation/index.ts"
       ),
       "@mediaforge/image-generation": path.resolve(
         import.meta.dirname,

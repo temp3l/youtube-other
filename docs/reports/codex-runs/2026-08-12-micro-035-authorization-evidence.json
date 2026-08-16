@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "mediaforge.microdrama.micro-035-authorization-evidence.v1",
+  "taskId": "MICRO-035",
+  "dbPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.mediaforge.sqlite",
+  "admittedAt": "2026-08-12T04:00:00.000Z",
+  "preparedAt": "2026-08-12T13:45:43.875Z",
+  "operatorId": "operator.microdrama",
+  "externalCalls": {
+    "image": 0,
+    "render": 0,
+    "openAiApi": 0,
+    "paidProvider": 0,
+    "publication": 0
+  },
+  "status": "READY_FOR_EXPLICIT_EXECUTE",
+  "blockers": [],
+  "visualProfileRevision": "render-profile.microdrama.vertical.v1",
+  "providerConfigRevision": "5b9d88b8bbffae94de46a3b47b9dc3a3f77e5905a2c5e6c5e706d436db7bb1b5",
+  "providers": [
+    "openai",
+    "mock-image",
+    "ffmpeg"
+  ],
+  "sharedVisualRevisionIds": [
+    "ce619e9b7d2443a9baad6153c81ee92cb297c50069e138ddd079d94506d3861b",
+    "b6cf995e9381069200964055e04f8ef157dbb7964c39257a0500cc650ecb02e1",
+    "ef26414c72453a14d81df753a25c6e19491fc08df7f9fc488cb7f3b226d4db83"
+  ],
+  "assetGenerationApprovalId": "approval.micro-035.asset-generation",
+  "operatorAuthorizationId": "auth.micro-035.bounded-canary",
+  "costBudgetApprovalId": "cost-budget-approval.micro-035",
+  "maximumProviderRequests": 400,
+  "costLimitMinor": 2999,
+  "currency": "USD",
+  "preflightAllowed": true,
+  "scriptRevisionIds": [
+    "rev.script.de-de.e001",
+    "rev.script.de-de.e002",
+    "rev.script.de-de.e003",
+    "rev.script.es-es.e001",
+    "rev.script.es-es.e002",
+    "rev.script.es-es.e003",
+    "rev.script.pt-br.e001",
+    "rev.script.pt-br.e002",
+    "rev.script.pt-br.e003"
+  ],
+  "micro034EvidenceContentHash": "{\"scope\":\"micro-035.micro-034-evidence.v1\",\"status\":\"DONE\",\"sharedVisualRevisionIds\":[\"ce619e9b7d2443a9baad6153c81ee92cb297c50069e138ddd079d94506d3861b\",\"b6cf995e9381069200964055e04f8ef157dbb7964c39257a0500cc650ecb02e1\",\"ef26414c72453a14d81df753a25c6e19491fc08df7f9fc488cb7f3b226d4db83\"],\"episodes\":[{\"episodeId\":\"E001\",\"visualRenderHash\":\"ce619e9b7d2443a9baad6153c81ee92cb297c50069e138ddd079d94506d3861b\",\"scriptRevisionId\":\"rev.script.en-us.e001\"},{\"episodeId\":\"E002\",\"visualRenderHash\":\"b6cf995e9381069200964055e04f8ef157dbb7964c39257a0500cc650ecb02e1\",\"scriptRevisionId\":\"rev.script.en-us.e002\"},{\"episodeId\":\"E003\",\"visualRenderHash\":\"ef26414c72453a14d81df753a25c6e19491fc08df7f9fc488cb7f3b226d4db83\",\"scriptRevisionId\":\"rev.script.en-us.e003\"}]}"
+}

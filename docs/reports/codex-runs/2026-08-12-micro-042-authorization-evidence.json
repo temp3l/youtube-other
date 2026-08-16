@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "mediaforge.microdrama.micro-042-authorization-evidence.v1",
+  "taskId": "MICRO-042",
+  "dbPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.mediaforge.sqlite",
+  "preparedAt": "2026-08-12T15:09:21.554Z",
+  "operatorId": "operator.microdrama",
+  "publicationCalls": 0,
+  "status": "READY_FOR_EXPLICIT_EXECUTE",
+  "blockers": [],
+  "operatorAuthorizationId": "auth.micro-042.public-video-read-canary",
+  "publicationId": "intent.micro-038.public-canary",
+  "providerVideoId": "video.micro-038.public",
+  "preflightAllowed": true
+}

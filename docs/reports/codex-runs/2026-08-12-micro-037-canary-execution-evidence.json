@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "mediaforge.microdrama.micro-037-canary-execution-evidence.v1",
+  "dbPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.mediaforge.sqlite",
+  "executedAt": "2026-08-12T14:36:25.142Z",
+  "publicationCalls": 1,
+  "status": "DONE",
+  "blockers": [],
+  "publishId": "tiktok.publish.micro-037.1",
+  "receiptPublicVideoId": "video.micro-037.private",
+  "evidenceProjectionKey": "microdrama.canary-execution-evidence.MICRO-037"
+}

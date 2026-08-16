@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "mediaforge.microdrama.micro-039-batch-execution-evidence.v1",
+  "dbPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.mediaforge.sqlite",
+  "executedAt": "2026-08-12T15:23:55.405Z",
+  "publicationCalls": 1,
+  "status": "DONE",
+  "blockers": [],
+  "paidCalls": 0,
+  "episodes": [
+    {
+      "locale": "en-US",
+      "episodeId": "E011",
+      "renderOutputPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-039-batch/en-us/e011/render.mp4",
+      "visualRenderHash": "61155b2a3f075fda7417c287762810e4ee58f6ffe783cdff335d02e4221cb4f2",
+      "selectedAudioPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-039-batch/en-us/e011/selected-audio.wav"
+    },
+    {
+      "locale": "de-DE",
+      "episodeId": "E011",
+      "renderOutputPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-039-batch/de-de/e011/render.mp4",
+      "visualRenderHash": "be8494ab4fbbe97d486cfd5f9c118d66c76e7311dc9d5e2cdde890da9b4edf19",
+      "selectedAudioPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-039-batch/de-de/e011/selected-audio.wav"
+    },
+    {
+      "locale": "es-ES",
+      "episodeId": "E011",
+      "renderOutputPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-039-batch/es-es/e011/render.mp4",
+      "visualRenderHash": "aa114148816b2331cc4a1f811c8de3c9c44f73a94b5031548730f1c1cd3be484",
+      "selectedAudioPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-039-batch/es-es/e011/selected-audio.wav"
+    },
+    {
+      "locale": "pt-BR",
+      "episodeId": "E011",
+      "renderOutputPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-039-batch/pt-br/e011/render.mp4",
+      "visualRenderHash": "66d951791173cd068697a93b9dfc839d39537307bc68f89a55cd067ac692daf1",
+      "selectedAudioPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-039-batch/pt-br/e011/selected-audio.wav"
+    }
+  ],
+  "publishId": "tiktok.publish.micro-039.1",
+  "receiptPublicVideoId": "video.micro-039.e011.private",
+  "learningAdmissionId": "admission.micro-039.e011.hook-presentation",
+  "observationAudit": {
+    "micro042ObservationId": "perf-obs-72cdc246994dcae4",
+    "status": "PASSED"
+  },
+  "evidenceProjectionKey": "microdrama.batch-execution-evidence.MICRO-039"
+}

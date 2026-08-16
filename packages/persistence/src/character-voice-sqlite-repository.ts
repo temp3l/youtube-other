@@ -395,6 +395,33 @@ export class CharacterVoiceSQLiteRepository
     ) {
       return parseVersionRow(row);
     }
+    if (row.voice_binding_status === "CANARY_APPROVED") {
+      const rebound = database
+        .prepare(
+          `UPDATE microdrama_character_voice_profile_versions
+          SET provider_voice_id = ?,
+              canary_evidence_artifact_hash = ?,
+              revision = revision + 1
+          WHERE profile_version_id = ?
+            AND status = 'ACTIVE'
+            AND voice_binding_status = 'CANARY_APPROVED'`
+        )
+        .run(
+          input.providerVoiceId,
+          input.canaryEvidenceArtifactHash,
+          input.profileVersionId
+        );
+      if (rebound.changes !== 1) {
+        throw new CharacterVoiceConcurrencyError(
+          "Bounded canary provider rebinding lost an optimistic concurrency race."
+        );
+      }
+      const reboundVersion = this.getProfileVersion(input.profileVersionId);
+      if (!reboundVersion) {
+        throw new Error("Rebound profile version could not be reloaded.");
+      }
+      return reboundVersion;
+    }
     if (row.voice_binding_status !== "UNBOUND") {
       throw new CharacterVoiceProfileVersionImmutableError(
         "Bounded canary provider binding requires UNBOUND active profile version."

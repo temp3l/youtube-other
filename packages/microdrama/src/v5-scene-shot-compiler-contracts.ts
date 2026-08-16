@@ -104,7 +104,7 @@ export type SemanticShotPlanEntry = z.infer<typeof semanticShotPlanEntrySchema>;
 
 export const microdramaAssetDensityPolicySchema = z
   .object({
-    scope: z.enum(["canary", "standard"]),
+    scope: z.enum(["canary", "standard", "review"]),
     sourcePlateTarget: z.number().int().positive(),
     editorialCutTarget: z.number().int().positive(),
     sourcePlateMin: z.number().int().positive(),

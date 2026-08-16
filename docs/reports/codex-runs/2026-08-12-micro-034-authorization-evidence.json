@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "mediaforge.microdrama.micro-034-authorization-evidence.v1",
+  "taskId": "MICRO-034",
+  "dbPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.mediaforge.sqlite",
+  "admittedAt": "2026-08-12T04:00:00.000Z",
+  "preparedAt": "2026-08-12T13:18:57.036Z",
+  "operatorId": "operator.microdrama",
+  "externalCalls": {
+    "image": 0,
+    "video": 0,
+    "render": 0,
+    "openAiApi": 0,
+    "paidProvider": 0,
+    "publication": 0
+  },
+  "status": "READY_FOR_EXPLICIT_EXECUTE",
+  "blockers": [],
+  "visualProfileRevision": "render-profile.microdrama.vertical.v1",
+  "providerConfigRevision": "f1dcaccc183cc112f09d8b72781bc040d0320b2be4cd0e3bcec5ef0a0b1d8f4b",
+  "providers": [
+    "mock-image",
+    "ffmpeg"
+  ],
+  "audioRevisionIds": [
+    "rev.locale-tts-alignment.rev.script.en-us.e001.en-us",
+    "rev.locale-tts-alignment.rev.script.en-us.e002.en-us",
+    "rev.locale-tts-alignment.rev.script.en-us.e003.en-us"
+  ],
+  "assetGenerationApprovalId": "approval.micro-034.asset-generation",
+  "operatorAuthorizationId": "auth.micro-034.bounded-canary",
+  "costBudgetApprovalId": "cost-budget-approval.micro-034",
+  "maximumProviderRequests": 90,
+  "costLimitMinor": 999,
+  "currency": "USD",
+  "preflightAllowed": true,
+  "scriptRevisionIds": [
+    "rev.script.en-us.e001",
+    "rev.script.en-us.e002",
+    "rev.script.en-us.e003"
+  ],
+  "micro033EvidenceContentHash": "{\"scope\":\"micro-034.micro-033-evidence.v1\",\"status\":\"DONE\",\"audioRevisionIds\":[\"rev.locale-tts-alignment.rev.script.en-us.e001.en-us\",\"rev.locale-tts-alignment.rev.script.en-us.e002.en-us\",\"rev.locale-tts-alignment.rev.script.en-us.e003.en-us\"],\"episodes\":[{\"episodeId\":\"E001\",\"scriptRevisionId\":\"rev.script.en-us.e001\",\"measuredDurationMs\":60600,\"narrationAudioSha256\":\"a2b72288d7f79f44601b6447bb5cf28bbcf9e0148c27af95d4881a6862a24226\"},{\"episodeId\":\"E002\",\"scriptRevisionId\":\"rev.script.en-us.e002\",\"measuredDurationMs\":60400,\"narrationAudioSha256\":\"78f5f47d1d3641dc9e1cdbecace835ab0febc0b08dbce1e1ab8dba042bb0dee5\"},{\"episodeId\":\"E003\",\"scriptRevisionId\":\"rev.script.en-us.e003\",\"measuredDurationMs\":63000,\"narrationAudioSha256\":\"9e313f6e2c0da884b0f970be1ab260095671cc78579f6b5a7c6cedd9a794f325\"}]}"
+}

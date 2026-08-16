@@ -39,8 +39,10 @@ import {
   computeMicro033ProviderConfigRevision,
   MICRO_033_CANARY_COST_LIMIT_MINOR,
   MICRO_033_CANARY_EPISODE_IDS,
-  MICRO_033_DEFAULT_OPENAI_TTS_MODEL_CONFIGURATION,
 } from "./micro-033-canary-bindings.js";
+import {
+  resolveMicro033OpenAiTtsModelConfigurationFromEnv,
+} from "./micro-033-openai-tts-env.js";
 import {
   buildMicro033ExplicitExecuteAuthorizationRecord,
   computeMicro033PreparationFingerprint,
@@ -268,7 +270,7 @@ export async function authorizeMicro033BoundedCanaryExplicitExecute(
     scriptRevisionIds: preflight.bindingProbe.scriptRevisionIds,
     voiceRevision: SEVEN_MINUTES_AHEAD_NARRATOR_VOICE_PROFILE_VERSION_ID,
     providerConfigRevision: computeMicro033ProviderConfigRevision(
-      MICRO_033_DEFAULT_OPENAI_TTS_MODEL_CONFIGURATION
+      resolveMicro033OpenAiTtsModelConfigurationFromEnv()
     ),
   });
 
@@ -342,7 +344,7 @@ export async function executeMicro033BoundedTtsCanary(
     scriptRevisionIds: preflight.bindingProbe.scriptRevisionIds,
     voiceRevision: SEVEN_MINUTES_AHEAD_NARRATOR_VOICE_PROFILE_VERSION_ID,
     providerConfigRevision: computeMicro033ProviderConfigRevision(
-      MICRO_033_DEFAULT_OPENAI_TTS_MODEL_CONFIGURATION
+      resolveMicro033OpenAiTtsModelConfigurationFromEnv()
     ),
   });
 
@@ -528,7 +530,7 @@ export async function executeMicro033BoundedTtsCanary(
 
       const attribution: MicrodramaCostAttribution = {
         schemaVersion: "mediaforge.microdrama-budget.v1",
-        attributionId: `attrib.micro-033.${segment.segmentId}`,
+        attributionId: `attrib.micro-033.${executeCorrelationNonce}.${segment.segmentId}`,
         episodeId: episodeId.toLowerCase(),
         locale: script.locale,
         provider: modelConfiguration.provider,
@@ -540,7 +542,7 @@ export async function executeMicro033BoundedTtsCanary(
         cacheStatus: "miss",
         retryCount: 0,
         correlationId: `${episodeCorrelationId}.${segment.segmentId}`,
-        requestId: `req.micro-033.${segment.segmentId}`,
+        requestId: `req.micro-033.${executeCorrelationNonce}.${segment.segmentId}`,
         recordedAt: input.executedAt,
       };
       const attributed = attributeMicrodramaCost({

@@ -522,6 +522,9 @@ importers:
       '@mediaforge/persistence':
         specifier: workspace:*
         version: link:../persistence
+      '@mediaforge/rendering':
+        specifier: workspace:*
+        version: link:../rendering
       '@mediaforge/scene-planning':
         specifier: workspace:*
         version: link:../scene-planning

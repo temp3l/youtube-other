@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "mediaforge.microdrama.micro-034-live-image-canary-execution-evidence.v1",
+  "dbPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.mediaforge.sqlite",
+  "admittedAt": "2026-08-12T04:00:00.000Z",
+  "executedAt": "2026-08-13T13:25:54.000Z",
+  "outputRoot": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-034-canary",
+  "liveImages": true,
+  "episodeIds": [
+    "E003"
+  ],
+  "publicationCalls": 0,
+  "status": "DONE",
+  "blockers": [],
+  "providerRequests": 32,
+  "totalCostMinor": 525,
+  "costLimitMinor": 999,
+  "sharedVisualCacheHits": 0,
+  "episodes": [
+    {
+      "episodeId": "E003",
+      "scriptRevisionId": "rev.script.en-us.e003",
+      "alignmentRevisionId": "rev.locale-tts-alignment.rev.script.en-us.e003.en-us",
+      "narrationAudioPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-033-canary/en-us/e003/narration.rev.script.en-us.e003.wav",
+      "renderOutputPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-034-canary/en-us/e003/render.rev.timeline.e003.en-us.rev.shot-plan.e003.rev.locale-tts-alignment.rev.script.en-us.e003.en-us.mp4",
+      "visualRenderHash": "91e7e7824fc399bb7145fab9e28d7222e6cd7a72eee0968309587f74185f91f6",
+      "safeZonePass": true,
+      "sharedVisualCacheHits": 0,
+      "sharedVisualRequests": 15,
+      "subtitlePath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-034-canary/en-us/e003/subtitles.srt"
+    }
+  ],
+  "evidenceProjectionKey": "microdrama.canary-execution-evidence.MICRO-034"
+}

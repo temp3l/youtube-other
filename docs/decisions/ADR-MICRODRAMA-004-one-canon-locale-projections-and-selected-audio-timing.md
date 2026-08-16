@@ -5,9 +5,9 @@ Status: accepted
 
 ## Context
 
-The V4 `7 MINUTES AHEAD` pack contains 100 narrative episodes and four supplied
-locale scripts per episode. It also contains a heritage 160 WPM field that
-conflicts with the V4 locale profiles. Localized speech changes real timing.
+The V5 remediated `7 MINUTES AHEAD` pack contains 100 narrative episodes and four
+supplied locale scripts per episode. V4 lineage and a heritage 160 WPM field may
+appear in older packs but do not govern the current corpus.
 
 ## Decision
 
@@ -15,9 +15,9 @@ Maintain one language-neutral canon and one canonical identity per episode.
 `en-US`, `de-DE`, `es-ES`, and `pt-BR` scripts are imported approved locale
 ScriptRevisions, not independent episode canons and not generation requests.
 
-V4 locale lexical admission uses 155 WPM for en-US/es-ES/pt-BR and 150 WPM for
-de-DE, with the declared word and 56–62 second lexical gates. The 160 WPM shared
-field is heritage only. After TTS selection, measured selected audio and its
+V5 locale lexical admission uses 155 WPM for en-US/es-ES/pt-BR and 150 WPM for
+de-DE, with the declared word and 56–62 second lexical gates. Heritage single-value
+160 WPM fields are not runtime authority. After TTS selection, measured selected audio and its
 alignment are the final locale timing authority for scenes, shots, subtitles,
 UI, and render.
 
@@ -31,7 +31,7 @@ are locale projections. Any visual locale fork records an explicit reason.
   locale-specific outputs.
 - A wording-only revision does not invalidate other locales or shared visuals.
 - Audio gates are calibrated separately from lexical gates after E001–E003.
-- New locales use explicit localization/admission work and do not alter V4
+- New locales use explicit localization/admission work and do not alter V5
   imported revisions.
 
 ## Alternatives rejected

@@ -1,13 +1,13 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import path from "node:path";
 
 import { sceneIdSchema } from "@mediaforge/domain";
 import { OpenAiCompatibleSpeechProvider } from "@mediaforge/speech";
 
 import {
-  MICRO_033_DEFAULT_OPENAI_TTS_MODEL_CONFIGURATION,
-  MICRO_033_PROVIDER_VOICE_ID,
-} from "./micro-033-canary-bindings.js";
+  resolveMicro033OpenAiTtsModelConfigurationFromEnv,
+  resolveMicro033ProviderVoiceIdFromEnv,
+} from "./micro-033-openai-tts-env.js";
 import { SEVEN_MINUTES_AHEAD_NARRATOR_VOICE_PROFILE_ID } from "./seven-minutes-ahead-narrator-voice-registry.js";
 
 export type Micro033SegmentSynthesisPort = {
@@ -36,14 +36,27 @@ export function createMicro033OpenAiSegmentSynthesisPortFromEnv(): Micro033Segme
     throw new Error("OPENAI_SECRET_REQUIRED");
   }
 
+  const modelConfiguration = resolveMicro033OpenAiTtsModelConfigurationFromEnv();
+  const outputFormat =
+    modelConfiguration.outputFormat === "mp3" ||
+    modelConfiguration.outputFormat === "opus" ||
+    modelConfiguration.outputFormat === "aac" ||
+    modelConfiguration.outputFormat === "flac" ||
+    modelConfiguration.outputFormat === "wav" ||
+    modelConfiguration.outputFormat === "pcm"
+      ? modelConfiguration.outputFormat
+      : "mp3";
+
   const provider = new OpenAiCompatibleSpeechProvider({
     apiKey,
-    model: MICRO_033_DEFAULT_OPENAI_TTS_MODEL_CONFIGURATION.model,
-    voice: MICRO_033_DEFAULT_OPENAI_TTS_MODEL_CONFIGURATION.voice,
-    instructions: MICRO_033_DEFAULT_OPENAI_TTS_MODEL_CONFIGURATION.instructions,
-    responseFormat: "mp3",
-    speed: MICRO_033_DEFAULT_OPENAI_TTS_MODEL_CONFIGURATION.speed,
+    model: modelConfiguration.model,
+    voice: modelConfiguration.voice,
+    instructions: modelConfiguration.instructions,
+    responseFormat: outputFormat,
+    speed: modelConfiguration.speed,
   });
+
+  const providerVoiceId = resolveMicro033ProviderVoiceIdFromEnv();
 
   return {
     async synthesizeSegment(segment) {
@@ -60,11 +73,11 @@ export function createMicro033OpenAiSegmentSynthesisPortFromEnv(): Micro033Segme
             gender: "neutral",
             style: "narration",
             paceWpm: 155,
-            providerVoiceId: MICRO_033_PROVIDER_VOICE_ID,
+            providerVoiceId,
           },
           outputPath: segment.outputPath,
-          instructions: MICRO_033_DEFAULT_OPENAI_TTS_MODEL_CONFIGURATION.instructions,
-          speed: MICRO_033_DEFAULT_OPENAI_TTS_MODEL_CONFIGURATION.speed,
+          instructions: modelConfiguration.instructions,
+          speed: modelConfiguration.speed,
           dispatchContext: { kind: "legacy-noncreator" },
         },
         signal

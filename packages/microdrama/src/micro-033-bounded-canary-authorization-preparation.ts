@@ -26,9 +26,11 @@ import {
   MICRO_033_CANARY_COST_LIMIT_MINOR,
   MICRO_033_CANARY_CURRENCY,
   MICRO_033_CANARY_MAXIMUM_TOTAL_PROVIDER_REQUESTS,
-  MICRO_033_DEFAULT_OPENAI_TTS_MODEL_CONFIGURATION,
-  MICRO_033_PROVIDER_VOICE_ID,
 } from "./micro-033-canary-bindings.js";
+import {
+  resolveMicro033OpenAiTtsModelConfigurationFromEnv,
+  resolveMicro033ProviderVoiceIdFromEnv,
+} from "./micro-033-openai-tts-env.js";
 import {
   computeMicro033AuthorizationRevisionId,
   loadMicro033AssetGenerationApproval,
@@ -51,7 +53,6 @@ import {
 } from "./microdrama-openai-speech-credential.js";
 import { ensureSevenMinutesAheadNarratorVoiceProfilePersisted } from "./seven-minutes-ahead-narrator-voice-persistence.js";
 import {
-  SEVEN_MINUTES_AHEAD_NARRATOR_OPENAI_MODEL_INTENT,
   SEVEN_MINUTES_AHEAD_NARRATOR_VOICE_PROFILE_ID,
   SEVEN_MINUTES_AHEAD_NARRATOR_VOICE_PROFILE_VERSION_ID,
 } from "./seven-minutes-ahead-narrator-voice-registry.js";
@@ -191,6 +192,8 @@ function buildCostBudgetApproval(input: {
   readonly scriptRevisionIds: readonly string[];
   readonly voiceRevision: string;
   readonly providerConfigRevision: string;
+  readonly providerModel: string;
+  readonly providerVoiceId: string;
   readonly operatorId: string;
   readonly approvedAt: string;
 }): MicrodramaCostBudgetApprovalRecord {
@@ -206,8 +209,8 @@ function buildCostBudgetApproval(input: {
     scriptRevisionIds: [...input.scriptRevisionIds],
     voiceRevision: input.voiceRevision,
     provider: "openai",
-    providerModel: SEVEN_MINUTES_AHEAD_NARRATOR_OPENAI_MODEL_INTENT,
-    providerVoiceId: MICRO_033_PROVIDER_VOICE_ID,
+    providerModel: input.providerModel,
+    providerVoiceId: input.providerVoiceId,
     providerConfigRevision: input.providerConfigRevision,
     approvedAt: input.approvedAt,
     operatorId: input.operatorId,
@@ -220,14 +223,17 @@ export async function prepareMicro033BoundedCanaryAuthorization(
   const blockers: string[] = [];
   const packRoot = input.packRoot ?? defaultV5PackRoot;
   const operatorId = input.operatorId ?? "operator.microdrama";
+  const openAiTtsModelConfiguration = resolveMicro033OpenAiTtsModelConfigurationFromEnv();
+  const providerModel = openAiTtsModelConfiguration.model;
+  const providerVoiceId = resolveMicro033ProviderVoiceIdFromEnv();
   const providerConfigRevision = computeMicro033ProviderConfigRevision(
-    MICRO_033_DEFAULT_OPENAI_TTS_MODEL_CONFIGURATION
+    openAiTtsModelConfiguration
   );
   const providerVoiceEvidenceHash = computeMicro033CanaryVoiceBindingEvidenceHash({
     voiceRevision: SEVEN_MINUTES_AHEAD_NARRATOR_VOICE_PROFILE_VERSION_ID,
     provider: "openai",
-    providerModel: SEVEN_MINUTES_AHEAD_NARRATOR_OPENAI_MODEL_INTENT,
-    providerVoiceId: MICRO_033_PROVIDER_VOICE_ID,
+    providerModel,
+    providerVoiceId,
     providerConfigRevision,
   });
 
@@ -240,8 +246,8 @@ export async function prepareMicro033BoundedCanaryAuthorization(
       voiceRevision: SEVEN_MINUTES_AHEAD_NARRATOR_VOICE_PROFILE_VERSION_ID,
       voiceBindingStatus: "MISSING",
       provider: "openai",
-      providerModel: SEVEN_MINUTES_AHEAD_NARRATOR_OPENAI_MODEL_INTENT,
-      providerVoiceId: MICRO_033_PROVIDER_VOICE_ID,
+      providerModel,
+      providerVoiceId,
       providerConfigRevision,
       providerVoiceEvidenceHash,
       credentialHandle: null,
@@ -306,7 +312,7 @@ export async function prepareMicro033BoundedCanaryAuthorization(
 
     const boundVersion = voiceRepository.recordBoundedCanaryApprovedProviderBinding({
       profileVersionId: SEVEN_MINUTES_AHEAD_NARRATOR_VOICE_PROFILE_VERSION_ID,
-      providerVoiceId: MICRO_033_PROVIDER_VOICE_ID,
+      providerVoiceId: providerVoiceId,
       canaryEvidenceArtifactHash: providerVoiceEvidenceHash,
       recordedAt: input.preparedAt,
     });
@@ -346,6 +352,8 @@ export async function prepareMicro033BoundedCanaryAuthorization(
       scriptRevisionIds,
       voiceRevision: SEVEN_MINUTES_AHEAD_NARRATOR_VOICE_PROFILE_VERSION_ID,
       providerConfigRevision,
+      providerModel,
+      providerVoiceId,
       operatorId,
       approvedAt: input.preparedAt,
     });
@@ -394,8 +402,8 @@ export async function prepareMicro033BoundedCanaryAuthorization(
     voiceRevision: SEVEN_MINUTES_AHEAD_NARRATOR_VOICE_PROFILE_VERSION_ID,
     voiceBindingStatus,
     provider: "openai",
-    providerModel: SEVEN_MINUTES_AHEAD_NARRATOR_OPENAI_MODEL_INTENT,
-    providerVoiceId: MICRO_033_PROVIDER_VOICE_ID,
+    providerModel,
+    providerVoiceId,
     providerConfigRevision,
     providerVoiceEvidenceHash,
     credentialHandle,

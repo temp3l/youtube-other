@@ -162,3 +162,41 @@ export function validateTikTokDirectPostEffectRecord(
 ): TikTokDirectPostEffectRecord {
   return tikTokDirectPostEffectRecordSchema.parse(value);
 }
+
+export const TIKTOK_DIRECT_POST_DISPATCH_OUTCOMES = [
+  "succeeded",
+  "failed_known",
+  "outcome_uncertain",
+] as const;
+export const tikTokDirectPostDispatchOutcomeSchema = z.enum(
+  TIKTOK_DIRECT_POST_DISPATCH_OUTCOMES
+);
+export type TikTokDirectPostDispatchOutcome = z.infer<
+  typeof tikTokDirectPostDispatchOutcomeSchema
+>;
+
+export const tikTokDirectPostEffectReferenceSchema = z
+  .object({
+    schemaVersion: z.literal(TIKTOK_DIRECT_POST_SCHEMA_VERSION),
+    effectId: identifierSchema,
+    attemptId: identifierSchema,
+    intentId: identifierSchema,
+    idempotencyKey: identifierSchema,
+    attemptFence: z.number().int().positive(),
+    publishId: identifierSchema,
+    binding: microdramaPublicationIntentBindingSchema,
+    providerCorrelation: providerCorrelationSchema,
+    dispatchOutcome: tikTokDirectPostDispatchOutcomeSchema,
+    recoveryIdentity: identifierSchema,
+    recordedAt: isoDateTimeSchema,
+  })
+  .strict();
+export type TikTokDirectPostEffectReference = z.infer<
+  typeof tikTokDirectPostEffectReferenceSchema
+>;
+
+export function validateTikTokDirectPostEffectReference(
+  value: unknown
+): TikTokDirectPostEffectReference {
+  return tikTokDirectPostEffectReferenceSchema.parse(value);
+}

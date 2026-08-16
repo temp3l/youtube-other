@@ -21,7 +21,7 @@ task until an ADR/plan amendment and backlog update are approved.
 - Reuse the existing workflow engine; do not add a second workflow engine.
 - Narrative Core has no persistence, provider, media, publication, or analytics I/O.
 - Large artifacts stay outside SQLite and are referenced by immutable hashes.
-- V4 is one 100-episode canon with 400 supplied locale ScriptRevisions.
+- V5 is one 100-episode canon with 400 supplied locale ScriptRevisions.
 - Selected locale audio and alignment determine final production timing.
 - Shared visual semantics/assets are the default across locales.
 - Provider calls, paid calls, and publication calls require task-specific policy
@@ -42,12 +42,12 @@ task until an ADR/plan amendment and backlog update are approved.
 ```mermaid
 flowchart TD
     M001[001 Narrative Core] --> M002[002 Embedded store]
-    M001 --> M003[003 V4 parser/validation]
-    M002 --> M004[004 V4 narrative admission]
+    M001 --> M003[003 V5 parser/validation]
+    M002 --> M004[004 V5 narrative admission]
     M003 --> M004
     M003 --> M005[005 Series/locale profiles]
     M004 --> M006[006 Future rolling planning]
-    M004 --> M007[007 Imported V4 episode/beat admission]
+    M004 --> M007[007 Imported V5 episode/beat admission]
     M005 --> M007
     M004 --> M008[008 Story/parity QA]
     M007 --> M008
@@ -168,8 +168,8 @@ flowchart TD
 | Phase | Tasks | Outcome | Calls by default |
 |---|---|---|---|
 | 01 Narrative foundation | MICRO-001 | Pure IDs, schemas, revisions, canon validators | Local only |
-| 02 Embedded state and V4 admission | MICRO-002–005 | Durable embedded authority and admitted V4 corpus/profile | Local only |
-| 03 Story planning and QA | MICRO-006–009, 044 | Imported-V4 admission independent of future rolling planning, plus canon/parity gates | Local/mocked |
+| 02 Embedded state and V5 admission | MICRO-002–005 | Durable embedded authority and admitted V5 corpus/profile | Local only |
+| 03 Story planning and QA | MICRO-006–009, 044 | Imported-V5 admission independent of future rolling planning, plus canon/parity gates | Local/mocked |
 | 04 Media planning and production | MICRO-010–019, 040–041, 043, 045–047 | Registries, security, cost controls, locale audio/timing, composition, and composable readiness | Local/mocked until canaries |
 | 05 Publication | MICRO-020–029, 048–049 | Provider-specific publication, exact consent, scheduling modes, and TikTok app/audit evidence | Local/mocked |
 | 06 Performance and learning | MICRO-030–032 | Revision-linked observations, experiments, canon-safe recommendations | Local/mocked |
@@ -184,17 +184,17 @@ envelope/state, SeriesBible, Character/CharacterState, directional relationships
 secrets, knowledge, promises, snapshots, and deterministic validators. Keep it
 generic: no `7 MINUTES AHEAD`, WPM, locales, Signal, providers, persistence, or I/O.
 
-### 02 — Embedded state and V4 admission
+### 02 — Embedded state and V5 admission
 
 Add SQLite repositories and migrations for narrative/import/profile state behind
-ports. Build a fail-closed V4 parser/hash validator, then compile shared canon
+ports. Build a fail-closed V5 parser/hash validator, then compile shared canon
 evidence and 400 imported script revisions into one 100-episode identity graph.
 Persist BCP-47 locale profiles and separate lexical/audio timing policies. Media
 generation is out of scope.
 
 ### 03 — Story planning and QA
 
-Compile existing imported V4 scripts and canonical boundaries directly into
+Compile existing imported V5 scripts and canonical boundaries directly into
 production `EpisodeSpec`/`BeatPlan` projections. This admission path does not
 require the future rolling planner and cannot generate or rewrite scripts.
 Separately add season, arc, near-horizon and current-episode planning for future

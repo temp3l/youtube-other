@@ -26,7 +26,7 @@ update the backlog, then resume.
 ## Active planning documents
 
 - [Phase 00B: embedded persistence and TikTok](phase-00b-non-postgres-tiktok-publishing.md)
-- [Phase 00C-V4: multilingual production profile](phase-00c-v4-seven-minutes-ahead-multilingual-production.md)
+- [Phase 00C-V5: remediated multilingual production profile](phase-00c-v5-seven-minutes-ahead-remediated-production.md)
 - [Authoritative implementation plan](implementation-plan.md)
 
 Historical characterization:
@@ -36,7 +36,7 @@ Historical characterization:
   narrative/media direction remain useful; its PostgreSQL microdrama design,
   `7 MINUTES AHEAD` timing default, and high-level TikTok phase do not.
 - No persisted V3-specific Phase 00C document was found. V3 series assumptions
-  are superseded by Phase 00C-V4.
+  are superseded by Phase 00C-V5.
 
 Related repository material is classified, not silently inherited:
 
@@ -87,15 +87,16 @@ Complementary active constraints:
 | Structured narrative state, not prose/media, is canon | Phase 00 sections E–F | ADR-MICRODRAMA-001 | ACTIVE |
 | PostgreSQL is microdrama authority | Phase 00 sections A, S, X; ADR-API-004 recommendation | ADR-MICRODRAMA-002 | SUPERSEDED |
 | Embedded SQLite is the microdrama structured store; Prisma is absent | Later no-PostgreSQL policy | Phase 00B; ADR-MICRODRAMA-002 | ACTIVE |
-| V3 is the current `7 MINUTES AHEAD` production pack | V3 content-pack lineage | Phase 00C-V4; ADR-MICRODRAMA-004 | SUPERSEDED |
-| V4 multilingual is the current production corpus | V4 pack | Phase 00C-V4 | ACTIVE |
-| Supplied locales require future translation generation | Phase 00 generic localization path | Phase 00C-V4 | SUPERSEDED |
-| Supplied V4 scripts are imported approved locale revisions | V4 pack | Phase 00C-V4; ADR-MICRODRAMA-004 | ACTIVE |
-| 60–90 seconds is the `7 MINUTES AHEAD` episode target | Phase 00 generic default | Phase 00C-V4 | SUPERSEDED |
-| `7 MINUTES AHEAD` uses 56–62 lexical seconds and about one minute selected audio | V4 root/locale profiles | Phase 00C-V4 | ACTIVE |
-| Shared `160 WPM` drives V4 runtime timing | V3 heritage in `shared/series-state.json` | Phase 00C-V4 field authority | SUPERSEDED |
-| V4 lexical WPM is en-US 155, de-DE 150, es-ES 155, pt-BR 155 | V4 manifests and locale READMEs | Phase 00C-V4 | ACTIVE |
-| Selected locale audio and alignment determine final timing | V3/V4 timing notes | ADR-MICRODRAMA-004 | ACTIVE |
+| V3 is the current `7 MINUTES AHEAD` production pack | V3 content-pack lineage | Phase 00C-V5; ADR-MICRODRAMA-004 | SUPERSEDED |
+| V4 multilingual was the production corpus | V4 pack | Phase 00C-V4 | SUPERSEDED |
+| V5 remediated multilingual is the current production corpus | V5 pack | Phase 00C-V5 | ACTIVE |
+| Supplied locales require future translation generation | Phase 00 generic localization path | Phase 00C-V5 | SUPERSEDED |
+| Supplied V5 scripts are imported approved locale revisions | V5 pack | Phase 00C-V5; ADR-MICRODRAMA-004 | ACTIVE |
+| 60–90 seconds is the `7 MINUTES AHEAD` episode target | Phase 00 generic default | Phase 00C-V5 | SUPERSEDED |
+| `7 MINUTES AHEAD` uses 56–62 lexical seconds and about one minute selected audio | V5 root/locale profiles | Phase 00C-V5 | ACTIVE |
+| Shared `160 WPM` drives V5 runtime timing | V3 heritage in `shared/series-state.json` | Phase 00C-V5 field authority | SUPERSEDED |
+| V5 lexical WPM is en-US 155, de-DE 150, es-ES 155, pt-BR 155 | V5 manifests and locale READMEs | Phase 00C-V5 | ACTIVE |
+| Selected locale audio and alignment determine final timing | V3/V5 timing notes | ADR-MICRODRAMA-004 | ACTIVE |
 | One high-level TikTok adapter phase is sufficient | Phase 00 phase 14 | Phase 00B; ADR-MICRODRAMA-005 | SUPERSEDED |
 | Official TikTok APIs, immutable account binding, idempotency, and reconciliation | Later publication policy | Phase 00B; ADR-MICRODRAMA-005 | ACTIVE |
 | A schedule without exact per-post operator consent may authorize publication | Phase 00 generic scheduling possibility | ADR-OPERATIONS-001; Phase 00B; ADR-MICRODRAMA-005 | REJECTED |
@@ -107,15 +108,15 @@ Complementary active constraints:
 | Build a provider-generic `SocialPublisher` | Phase 00 rejected anti-pattern | ADR-MICRODRAMA-005 | REJECTED |
 | Rolling plans may revise accepted canon directly | None; unsafe alternative | ADR-MICRODRAMA-003 | REJECTED |
 | Analytics become canon only through future explicit admission | Phase 00 learning architecture | ADR-MICRODRAMA-003 | ACTIVE |
-| Generate additional locales beyond V4 | Phase 00 generic localization | Implementation plan, after V4 admission | DEFERRED |
+| Generate additional locales beyond V5 | Phase 00 generic localization | Implementation plan, after V5 admission | DEFERRED |
 | Initial music/SFX may use generated providers | Phase 00 production layering | Implementation plan, MICRO-041 | REJECTED |
 | Initial music/SFX are licensed/imported, rights-linked layers | Phase 00 production layering | Implementation plan, MICRO-041 | ACTIVE |
 | Generated music-provider integration | Phase 00 optional capability | Future architecture amendment | DEFERRED |
 
 ## Current corpus and constraints
 
-- Corpus: `content-packs/seven-minutes-ahead-content-pack-v4-multilingual/`
-- Identity: `seven-minutes-ahead` / `v4-multilingual`
+- Corpus: `content-packs/seven-minutes-ahead-content-pack-v5-remediated/`
+- Identity: `seven-minutes-ahead` / `v5-remediated`
 - 100 canonical episodes; 400 localized variants.
 - Locales: `en-US`, `de-DE`, `es-ES`, `pt-BR`.
 - One language-neutral canon; locale-specific scripts, TTS, timing, subtitles,

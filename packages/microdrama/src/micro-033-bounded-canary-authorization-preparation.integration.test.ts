@@ -9,6 +9,7 @@ import {
 import {
   computeMicro033ProviderConfigRevision,
   MICRO_033_AUTHORIZATION_PACK_SCRIPT_HASHES,
+  MICRO_033_PLANNING_OPENAI_TTS_MODEL_CONFIGURATION,
 } from "./micro-033-canary-bindings.js";
 import { MICRO_033_OPENAI_CREDENTIAL_HANDLE } from "./microdrama-openai-speech-credential.js";
 import {
@@ -45,7 +46,9 @@ describe("MICRO-033 bounded canary authorization preparation", () => {
         "approval.micro-033.asset-generation"
       );
       expect(result.costBudgetApprovalId).toBe("cost-budget-approval.micro-033");
-      expect(computeMicro033ProviderConfigRevision()).toBe(
+      expect(computeMicro033ProviderConfigRevision(
+        MICRO_033_PLANNING_OPENAI_TTS_MODEL_CONFIGURATION
+      )).toBe(
         "a5b5a465a3c8cb33cb71467421e0e7d9471143342cecbb88511e5c9ff2a967e9"
       );
       expect(MICRO_033_AUTHORIZATION_PACK_SCRIPT_HASHES.E001).toHaveLength(64);

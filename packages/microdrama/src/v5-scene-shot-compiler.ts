@@ -9,8 +9,11 @@ import {
 } from "@mediaforge/scene-planning";
 import {
   distributeEditorialCutsAcrossScenes,
+  resolveFrontLoadUniqueCutsForDuration,
   resolveMicrodramaAssetDensityPolicy,
+  REVIEW_FRONT_LOAD_UNTIL_RATIO,
 } from "@mediaforge/visual-planning";
+import { beatPlanPacingRatios } from "@mediaforge/narrative-core";
 
 import type { V5EpisodeProductionBundle, V5EpisodeProductionRecord } from "./v5-episode-production-contracts.js";
 import { validateV5EpisodeProductionRecord } from "./v5-episode-production-contracts.js";
@@ -140,7 +143,12 @@ export function compileSceneShotPlanFromProductionRecord(
   const productionRecord = validateV5EpisodeProductionRecord(record);
   const episodeId = productionRecord.episodeId;
   const episodeNumber = productionRecord.episodeSpec.episodeNumber;
-  const assetDensityPolicy = resolveMicrodramaAssetDensityPolicy(episodeNumber);
+  const durationSeconds =
+    productionRecord.episodeSpec.durationRangeSeconds.maxSeconds ||
+    productionRecord.episodeSpec.durationRangeSeconds.targetSeconds;
+  const assetDensityPolicy = resolveMicrodramaAssetDensityPolicy(episodeNumber, {
+    durationSeconds,
+  });
   const sourcePlates = assignSourcePlates(episodeId, assetDensityPolicy.sourcePlateTarget);
   const registryReferences = buildRegistryReferences({
     participants: productionRecord.episodeSpec.startingConditions.cast,
@@ -157,41 +165,88 @@ export function compileSceneShotPlanFromProductionRecord(
     boundaryObligation: beat.boundaryObligation,
   }));
 
-  const scenes: SemanticScenePlanEntry[] = productionRecord.beatPlan.beats.map((beat, index) => {
-    const order = index + 1;
-    const plate = resolvePlateForSceneIndex(index, sourcePlates);
-    const continuitySceneSemanticIds =
-      index === 0
-        ? []
-        : [sceneSemanticId(episodeId, index)];
+  const scenesWithoutPlates: SemanticScenePlanEntry[] = productionRecord.beatPlan.beats.map(
+    (beat, index) => {
+      const order = index + 1;
+      const continuitySceneSemanticIds =
+        index === 0 ? [] : [sceneSemanticId(episodeId, index)];
 
-    return {
-      sceneSemanticId: sceneSemanticId(episodeId, order),
-      beatSemanticId: beatSemanticId(episodeId, beat.category),
-      order,
-      sourcePlateSemanticId: plate.plateSemanticId,
-      timing: buildTimingWindow(beat),
-      registryReferences,
-      continuitySceneSemanticIds,
-      blockingKind: BLOCKING_BY_CATEGORY[beat.category],
-    };
-  });
+      return {
+        sceneSemanticId: sceneSemanticId(episodeId, order),
+        beatSemanticId: beatSemanticId(episodeId, beat.category),
+        order,
+        sourcePlateSemanticId: sourcePlates[0]!.plateSemanticId,
+        timing: buildTimingWindow(beat),
+        registryReferences,
+        continuitySceneSemanticIds,
+        blockingKind: BLOCKING_BY_CATEGORY[beat.category],
+      };
+    }
+  );
 
   const shotCounts = distributeEditorialCutsAcrossScenes({
-    sceneCount: scenes.length,
+    sceneCount: scenesWithoutPlates.length,
     editorialCutTarget: assetDensityPolicy.editorialCutTarget,
     sceneWeights: productionRecord.beatPlan.beats.map(
       (beat) => BEAT_CATEGORY_WEIGHTS[beat.category]
     ),
+    sceneStartRatios: productionRecord.beatPlan.beats.map(
+      (beat) => beatPlanPacingRatios[beat.category].start
+    ),
+    sceneEndRatios: productionRecord.beatPlan.beats.map(
+      (beat) => beatPlanPacingRatios[beat.category].end
+    ),
+    ...(assetDensityPolicy.scope === "review"
+      ? {
+          frontLoadUntilRatio: REVIEW_FRONT_LOAD_UNTIL_RATIO,
+          frontLoadUniqueCuts: resolveFrontLoadUniqueCutsForDuration(durationSeconds),
+        }
+      : {}),
+  });
+
+  // Representative plate per scene for scene records; shots may override for uniqueness.
+  const plateBySceneOrder = new Map<number, SourcePlateAssignment>();
+  let plateCursor = 0;
+  for (const [sceneIndex, scene] of scenesWithoutPlates.entries()) {
+    if ((shotCounts[sceneIndex] ?? 0) <= 0) {
+      continue;
+    }
+    const plate = sourcePlates[plateCursor % sourcePlates.length]!;
+    plateBySceneOrder.set(scene.order, plate);
+    plateCursor += 1;
+  }
+
+  const scenes: SemanticScenePlanEntry[] = scenesWithoutPlates.map((scene, index) => {
+    const plate =
+      plateBySceneOrder.get(scene.order) ??
+      resolvePlateForSceneIndex(index, sourcePlates);
+    return {
+      ...scene,
+      sourcePlateSemanticId: plate.plateSemanticId,
+    };
   });
 
   const shots: SemanticShotPlanEntry[] = [];
+  const usedEarlyPlates = new Set<string>();
+  let earlyUniqueAssigned = 0;
+  let uniquePlateCursor = 0;
+  const frontLoadUniquePlates =
+    assetDensityPolicy.scope === "review"
+      ? resolveFrontLoadUniqueCutsForDuration(durationSeconds)
+      : 0;
+  const preferUniquePlatesPerShot =
+    assetDensityPolicy.scope === "review" ||
+    assetDensityPolicy.sourcePlateTarget >= assetDensityPolicy.editorialCutTarget;
+
   for (const [sceneIndex, scene] of scenes.entries()) {
     const beat = productionRecord.beatPlan.beats[sceneIndex];
     if (!beat) {
       continue;
     }
     const shotsInScene = shotCounts[sceneIndex] ?? 1;
+    if (shotsInScene <= 0) {
+      continue;
+    }
     const sceneDuration = beat.durationTargetSeconds.targetSeconds;
     for (let shotIndex = 0; shotIndex < shotsInScene; shotIndex += 1) {
       const startRatioWithinBeat = shotIndex / shotsInScene;
@@ -208,6 +263,36 @@ export function compileSceneShotPlanFromProductionRecord(
         targetSeconds: Number((sceneDuration / shotsInScene).toFixed(2)),
       };
 
+      let plateSemanticId = scene.sourcePlateSemanticId;
+      const isEarlyShot = timing.startRatio < REVIEW_FRONT_LOAD_UNTIL_RATIO;
+      if (preferUniquePlatesPerShot) {
+        if (
+          frontLoadUniquePlates > 0 &&
+          isEarlyShot &&
+          earlyUniqueAssigned < frontLoadUniquePlates
+        ) {
+          const plate =
+            sourcePlates.find((candidate) => !usedEarlyPlates.has(candidate.plateSemanticId)) ??
+            sourcePlates[earlyUniqueAssigned % sourcePlates.length]!;
+          plateSemanticId = plate.plateSemanticId;
+          usedEarlyPlates.add(plateSemanticId);
+          earlyUniqueAssigned += 1;
+          uniquePlateCursor = Math.max(uniquePlateCursor, usedEarlyPlates.size);
+        } else if (uniquePlateCursor < sourcePlates.length) {
+          // Prefer unused plates so review cadence stays one unique image per cut.
+          const plate =
+            sourcePlates.find((candidate) => !usedEarlyPlates.has(candidate.plateSemanticId)) ??
+            sourcePlates[uniquePlateCursor]!;
+          plateSemanticId = plate.plateSemanticId;
+          usedEarlyPlates.add(plateSemanticId);
+          uniquePlateCursor += 1;
+        } else {
+          const plate = sourcePlates[uniquePlateCursor % sourcePlates.length]!;
+          plateSemanticId = plate.plateSemanticId;
+          uniquePlateCursor += 1;
+        }
+      }
+
       shots.push({
         shotSemanticId: shotSemanticId(episodeId, scene.order, shotIndex + 1),
         sceneSemanticId: scene.sceneSemanticId,
@@ -215,7 +300,7 @@ export function compileSceneShotPlanFromProductionRecord(
         order: shots.length + 1,
         sceneOrder: scene.order,
         shotOrderInScene: shotIndex + 1,
-        sourcePlateSemanticId: scene.sourcePlateSemanticId,
+        sourcePlateSemanticId: plateSemanticId,
         timing,
         blockingKind: BLOCKING_BY_CATEGORY[beat.category],
         reactions: mapRequiredReactions(beat.requiredReactions),

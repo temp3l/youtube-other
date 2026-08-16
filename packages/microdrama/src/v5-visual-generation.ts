@@ -37,19 +37,16 @@ export function buildMicrodramaVisualGenerationPlan(input: {
     }
   >();
 
-  for (const scene of input.plan.scenes) {
-    const representativeShot = input.plan.shots.find(
-      (shot) => shot.sourcePlateSemanticId === scene.sourcePlateSemanticId
-    );
-    if (!representativeShot) {
+  for (const shot of input.plan.shots) {
+    if (uniquePlates.has(shot.sourcePlateSemanticId)) {
       continue;
     }
-    uniquePlates.set(scene.sourcePlateSemanticId, {
-      sourcePlateSemanticId: scene.sourcePlateSemanticId,
-      sceneSemanticId: scene.sceneSemanticId,
-      blockingKind: scene.blockingKind,
-      registryReferences: scene.registryReferences,
-      shotSemanticId: representativeShot.shotSemanticId,
+    uniquePlates.set(shot.sourcePlateSemanticId, {
+      sourcePlateSemanticId: shot.sourcePlateSemanticId,
+      sceneSemanticId: shot.sceneSemanticId,
+      blockingKind: shot.blockingKind,
+      registryReferences: shot.registryReferences,
+      shotSemanticId: shot.shotSemanticId,
     });
   }
 

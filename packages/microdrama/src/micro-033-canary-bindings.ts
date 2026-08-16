@@ -45,6 +45,10 @@ export const MICRO_033_DEFAULT_OPENAI_TTS_MODEL_CONFIGURATION: LocaleTtsModelCon
   speed: 1,
 };
 
+/** Planning-time default when env is not loaded (tests, authorization pack docs). */
+export const MICRO_033_PLANNING_OPENAI_TTS_MODEL_CONFIGURATION =
+  MICRO_033_DEFAULT_OPENAI_TTS_MODEL_CONFIGURATION;
+
 export const MICRO_033_PROVIDER_VOICE_ID = "alloy" as const;
 
 export function computeMicro033ProviderConfigRevision(

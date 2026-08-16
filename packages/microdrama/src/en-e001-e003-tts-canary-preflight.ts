@@ -42,18 +42,12 @@ import {
 import {
   SEVEN_MINUTES_AHEAD_NARRATOR_CHARACTER_ID,
 } from "./seven-minutes-ahead-narrator-voice-registry.js";
+import { resolveMicro033OpenAiTtsModelConfigurationFromEnv } from "./micro-033-openai-tts-env.js";
 
 export const MICRO_033_TASK_ID = "MICRO-033";
 export const EN_E001_E003_TTS_CANARY_EPISODES = MICRO_033_CANARY_EPISODE_IDS;
 
 const VOICE_PROFILE_VERSION_ID = "voice-version.narrator.en-us.v1";
-const DEFAULT_MODEL_CONFIGURATION: LocaleTtsModelConfiguration = {
-  provider: "openai",
-  model: "tts-1-hd",
-  voice: "alloy",
-  instructions: "Measured pacing for microdrama.",
-  speed: 1,
-};
 
 export type EnE001E003TtsCanaryPreflightInput = {
   readonly packRoot: string;
@@ -75,7 +69,7 @@ export type EnE001E003TtsCanaryPreflightResult = {
 };
 
 export function defaultEnTtsCanaryModelConfiguration(): LocaleTtsModelConfiguration {
-  return DEFAULT_MODEL_CONFIGURATION;
+  return resolveMicro033OpenAiTtsModelConfigurationFromEnv();
 }
 
 export async function evaluateEnE001E003TtsCanaryPreflight(
@@ -83,7 +77,8 @@ export async function evaluateEnE001E003TtsCanaryPreflight(
 ): Promise<EnE001E003TtsCanaryPreflightResult> {
   const voiceProfileVersionId =
     input.voiceProfileVersionId ?? VOICE_PROFILE_VERSION_ID;
-  const modelConfiguration = input.modelConfiguration ?? DEFAULT_MODEL_CONFIGURATION;
+  const modelConfiguration =
+    input.modelConfiguration ?? defaultEnTtsCanaryModelConfiguration();
   const costProposal = resolveMicro033CanaryCostProposal();
   const episodeCostAllocations = resolveMicro033CanaryEpisodeCostMinorAllocations();
   const defaultEstimatedCostMinorPerEpisode = input.estimatedCostMinorPerEpisode;

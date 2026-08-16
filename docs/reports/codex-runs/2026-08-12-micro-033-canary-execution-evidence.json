@@ -1,21 +1,107 @@
 {
   "schemaVersion": "mediaforge.microdrama.micro-033-canary-execution-evidence.v1",
-  "taskId": "MICRO-033",
-  "status": "BLOCKED",
-  "blockers": ["OPENAI_CREDIT_BALANCE_EXHAUSTED"],
-  "dbPath": ".mediaforge.sqlite",
+  "dbPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.mediaforge.sqlite",
   "admittedAt": "2026-08-12T04:00:00.000Z",
-  "attemptedAt": "2026-08-12T14:21:59.000Z",
-  "provider": "openai",
-  "providerError": {
-    "code": "credit_balance_exhausted",
-    "type": "insufficient_quota",
-    "message": "You have no credits remaining. Add credits to continue using the API."
-  },
-  "preparationStatus": "READY_FOR_EXPLICIT_EXECUTE",
-  "explicitExecuteAuthorization": "persisted on re-prepare before attempt",
-  "providerRequestsAttempted": 1,
+  "executedAt": "2026-08-12T12:54:58.779Z",
+  "outputRoot": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-033-canary",
   "publicationCalls": 0,
-  "mockIntegrationTest": "pass",
-  "resumeCommand": "MICRO_033_OPERATOR_EXECUTE=1 pnpm exec tsx scripts/microdrama-execute-micro-033-canary.ts --db .mediaforge.sqlite"
+  "status": "DONE",
+  "blockers": [],
+  "providerRequests": 37,
+  "totalCostMinor": 68,
+  "costLimitMinor": 199,
+  "episodes": [
+    {
+      "episodeId": "E001",
+      "scriptRevisionId": "rev.script.en-us.e001",
+      "measuredDurationMs": 60600,
+      "segmentDurationsMs": [
+        4850,
+        10050,
+        3550,
+        10050,
+        2650,
+        9200,
+        4100,
+        8950,
+        4300,
+        2900
+      ],
+      "alignmentRevisionId": "rev.locale-tts-alignment.rev.script.en-us.e001.en-us",
+      "narrationAudioPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-033-canary/en-us/e001/narration.rev.script.en-us.e001.wav",
+      "narrationAudioSha256": "a2b72288d7f79f44601b6447bb5cf28bbcf9e0148c27af95d4881a6862a24226",
+      "calibratedAudioGateGuidance": {
+        "calibrationStatus": "CALIBRATED_FROM_CANARY",
+        "measuredDurationSeconds": 60.6,
+        "softDurationSeconds": 57.57,
+        "hardDurationSeconds": 62,
+        "lexicalDurationSecondsMin": 56,
+        "lexicalDurationSecondsMax": 62
+      }
+    },
+    {
+      "episodeId": "E002",
+      "scriptRevisionId": "rev.script.en-us.e002",
+      "measuredDurationMs": 60400,
+      "segmentDurationsMs": [
+        3800,
+        4350,
+        7600,
+        4800,
+        6500,
+        6350,
+        12100,
+        4250,
+        3350,
+        2400,
+        2450,
+        2450
+      ],
+      "alignmentRevisionId": "rev.locale-tts-alignment.rev.script.en-us.e002.en-us",
+      "narrationAudioPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-033-canary/en-us/e002/narration.rev.script.en-us.e002.wav",
+      "narrationAudioSha256": "78f5f47d1d3641dc9e1cdbecace835ab0febc0b08dbce1e1ab8dba042bb0dee5",
+      "calibratedAudioGateGuidance": {
+        "calibrationStatus": "CALIBRATED_FROM_CANARY",
+        "measuredDurationSeconds": 60.4,
+        "softDurationSeconds": 57.38,
+        "hardDurationSeconds": 62,
+        "lexicalDurationSecondsMin": 56,
+        "lexicalDurationSecondsMax": 62
+      }
+    },
+    {
+      "episodeId": "E003",
+      "scriptRevisionId": "rev.script.en-us.e003",
+      "measuredDurationMs": 63000,
+      "segmentDurationsMs": [
+        5750,
+        6250,
+        4000,
+        5550,
+        2600,
+        3500,
+        4750,
+        6500,
+        3200,
+        2950,
+        1750,
+        3100,
+        4800,
+        5950,
+        2350
+      ],
+      "alignmentRevisionId": "rev.locale-tts-alignment.rev.script.en-us.e003.en-us",
+      "narrationAudioPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-033-canary/en-us/e003/narration.rev.script.en-us.e003.wav",
+      "narrationAudioSha256": "9e313f6e2c0da884b0f970be1ab260095671cc78579f6b5a7c6cedd9a794f325",
+      "calibratedAudioGateGuidance": {
+        "calibrationStatus": "CALIBRATED_FROM_CANARY",
+        "measuredDurationSeconds": 63,
+        "softDurationSeconds": 59.85,
+        "hardDurationSeconds": 62,
+        "lexicalDurationSecondsMin": 56,
+        "lexicalDurationSecondsMax": 62
+      }
+    }
+  ],
+  "evidenceProjectionKey": "microdrama.canary-execution-evidence.MICRO-033"
 }

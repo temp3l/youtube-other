@@ -1,46 +1,17 @@
-# implementation-plan implementation report
+# implementation-plan-implementation-report
 
-Source plan: `docs/plans/microdrama/implementation-plan.md`
-Date: 2026-08-12
+Source plan: `docs/plans/microdrama/implementation-plan.md`  
+Date: 2026-08-13
 
 ## Summary
 
-Implemented MICRO-001: `@mediaforge/narrative-core` package with Zod contracts, revision envelopes, transition rules, and focused unit tests.
+Narration-aligned MICRO-034 provider briefs (beat hook/cliffhanger/etc.) + E001 live regenerate.
 
-## Files changed
+## Tests
 
-See `docs/reports/codex-runs/2026-08-12-MICRO-001-narrative-core.md`.
+- lexicon/brief unit tests → pass
+- live E001 `--live-images --review-density` → DONE
 
-## Tasks completed
+## Next
 
-- MICRO-001
-
-## Tasks partially completed
-
-None.
-
-## Tasks not completed
-
-MICRO-002 through MICRO-050 remain pending or blocked on dependencies/gates.
-
-## Deviations
-
-None.
-
-## Tests/checks run
-
-- narrative-core typecheck
-- narrative-core unit tests (8)
-- file-targeted ESLint
-
-## Test results
-
-All pass.
-
-## Risks / follow-up
-
-- MICRO-002 and MICRO-003 are both READY; queue runner should pick MICRO-002 first (lower task ID, same phase).
-
-## Next steps
-
-Implement MICRO-002 embedded persistence.
+Human review of E001; regenerate E002–E003 with the same briefs if approved.

@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "mediaforge.microdrama.micro-039-e013-batch-execution-evidence.v1",
+  "dbPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.mediaforge.sqlite",
+  "executedAt": "2026-08-12T16:05:01.467Z",
+  "publicationCalls": 1,
+  "status": "DONE",
+  "blockers": [],
+  "paidCalls": 79,
+  "providerRequests": 79,
+  "totalCostMinor": 111,
+  "episodes": [
+    {
+      "locale": "en-US",
+      "episodeId": "E013",
+      "renderOutputPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-039-e013-batch/en-us/e013/render.mp4",
+      "visualRenderHash": "5a58a6515e67d8eccc3bc976b8cfb2deac5b976654a4356c099bc29f02a46fa6",
+      "selectedAudioPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-039-e013-batch/en-us/e013/selected-audio.wav",
+      "narrationAudioPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-039-e013-batch/en-us/e013/narration.rev.script.en-us.e013.wav"
+    },
+    {
+      "locale": "de-DE",
+      "episodeId": "E013",
+      "renderOutputPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-039-e013-batch/de-de/e013/render.mp4",
+      "visualRenderHash": "e17e7c827bf1c7679be10bc33a464b9b582f5c4e7749594fc4d011544b8852f6",
+      "selectedAudioPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-039-e013-batch/de-de/e013/selected-audio.wav",
+      "narrationAudioPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-039-e013-batch/de-de/e013/narration.rev.script.de-de.e013.wav"
+    },
+    {
+      "locale": "es-ES",
+      "episodeId": "E013",
+      "renderOutputPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-039-e013-batch/es-es/e013/render.mp4",
+      "visualRenderHash": "69d1076d9e18eb897982bb2b2758381ca0830d21085a3868567171f84fdd20c5",
+      "selectedAudioPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-039-e013-batch/es-es/e013/selected-audio.wav",
+      "narrationAudioPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-039-e013-batch/es-es/e013/narration.rev.script.es-es.e013.wav"
+    },
+    {
+      "locale": "pt-BR",
+      "episodeId": "E013",
+      "renderOutputPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-039-e013-batch/pt-br/e013/render.mp4",
+      "visualRenderHash": "72adbcd77ccb50ad1fe22a786d15ee54bf3d4fef180d59a752c9062a7ef94656",
+      "selectedAudioPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-039-e013-batch/pt-br/e013/selected-audio.wav",
+      "narrationAudioPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-039-e013-batch/pt-br/e013/narration.rev.script.pt-br.e013.wav"
+    }
+  ],
+  "publishId": "tiktok.publish.micro-039-e013.1",
+  "receiptPublicVideoId": "video.micro-039-e013.e013.private",
+  "learningAdmissionId": "admission.micro-039-e013.e013.hook-presentation",
+  "observationAudit": {
+    "micro042ObservationId": "perf-obs-72cdc246994dcae4",
+    "status": "PASSED"
+  },
+  "evidenceProjectionKey": "microdrama.batch-execution-evidence.MICRO-039-E013"
+}

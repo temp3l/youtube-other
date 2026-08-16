@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "mediaforge.microdrama.micro-038-authorization-evidence.v1",
+  "taskId": "MICRO-038",
+  "dbPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.mediaforge.sqlite",
+  "preparedAt": "2026-08-12T14:56:35.312Z",
+  "operatorId": "operator.microdrama",
+  "publicationCalls": 0,
+  "status": "READY_FOR_EXPLICIT_EXECUTE",
+  "blockers": [],
+  "operatorAuthorizationId": "auth.micro-038.public-publication-canary",
+  "renderBinding": {
+    "locale": "en-US",
+    "episodeId": "E002",
+    "renderOutputPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-034-canary/en-us/e002/render.rev.timeline.e002.en-us.rev.shot-plan.e002.rev.locale-tts-alignment.rev.script.en-us.e002.en-us.mp4",
+    "visualRenderHash": "b6cf995e9381069200964055e04f8ef157dbb7964c39257a0500cc650ecb02e1",
+    "scriptRevisionId": "rev.script.en-us.e002",
+    "evidenceSource": "micro-034"
+  },
+  "preflightAllowed": true
+}

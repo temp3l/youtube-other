@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "mediaforge.microdrama.micro-034-canary-execution-evidence.v1",
+  "dbPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.mediaforge.sqlite",
+  "admittedAt": "2026-08-12T04:00:00.000Z",
+  "executedAt": "2026-08-12T13:19:14.168Z",
+  "outputRoot": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-034-canary",
+  "publicationCalls": 0,
+  "status": "DONE",
+  "blockers": [],
+  "providerRequests": 52,
+  "totalCostMinor": 900,
+  "costLimitMinor": 999,
+  "sharedVisualCacheHits": 0,
+  "episodes": [
+    {
+      "episodeId": "E001",
+      "scriptRevisionId": "rev.script.en-us.e001",
+      "alignmentRevisionId": "rev.locale-tts-alignment.rev.script.en-us.e001.en-us",
+      "narrationAudioPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-033-canary/en-us/e001/narration.rev.script.en-us.e001.wav",
+      "renderOutputPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-034-canary/en-us/e001/render.rev.timeline.e001.en-us.rev.shot-plan.e001.rev.locale-tts-alignment.rev.script.en-us.e001.en-us.mp4",
+      "visualRenderHash": "ce619e9b7d2443a9baad6153c81ee92cb297c50069e138ddd079d94506d3861b",
+      "safeZonePass": true,
+      "sharedVisualCacheHits": 0,
+      "sharedVisualRequests": 5,
+      "subtitlePath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-034-canary/en-us/e001/subtitles.srt"
+    },
+    {
+      "episodeId": "E002",
+      "scriptRevisionId": "rev.script.en-us.e002",
+      "alignmentRevisionId": "rev.locale-tts-alignment.rev.script.en-us.e002.en-us",
+      "narrationAudioPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-033-canary/en-us/e002/narration.rev.script.en-us.e002.wav",
+      "renderOutputPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-034-canary/en-us/e002/render.rev.timeline.e002.en-us.rev.shot-plan.e002.rev.locale-tts-alignment.rev.script.en-us.e002.en-us.mp4",
+      "visualRenderHash": "b6cf995e9381069200964055e04f8ef157dbb7964c39257a0500cc650ecb02e1",
+      "safeZonePass": true,
+      "sharedVisualCacheHits": 0,
+      "sharedVisualRequests": 6,
+      "subtitlePath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-034-canary/en-us/e002/subtitles.srt"
+    },
+    {
+      "episodeId": "E003",
+      "scriptRevisionId": "rev.script.en-us.e003",
+      "alignmentRevisionId": "rev.locale-tts-alignment.rev.script.en-us.e003.en-us",
+      "narrationAudioPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-033-canary/en-us/e003/narration.rev.script.en-us.e003.wav",
+      "renderOutputPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-034-canary/en-us/e003/render.rev.timeline.e003.en-us.rev.shot-plan.e003.rev.locale-tts-alignment.rev.script.en-us.e003.en-us.mp4",
+      "visualRenderHash": "ef26414c72453a14d81df753a25c6e19491fc08df7f9fc488cb7f3b226d4db83",
+      "safeZonePass": true,
+      "sharedVisualCacheHits": 0,
+      "sharedVisualRequests": 7,
+      "subtitlePath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.artifacts/microdrama/micro-034-canary/en-us/e003/subtitles.srt"
+    }
+  ],
+  "evidenceProjectionKey": "microdrama.canary-execution-evidence.MICRO-034"
+}

@@ -1,7 +1,16 @@
 # Phase 00C-V4 — `7 MINUTES AHEAD` multilingual production profile
 
 Date: 2026-08-12
-Status: ACTIVE / CORPUS READY
+Status: SUPERSEDED
+
+> **Superseded by**
+> [Phase 00C-V5: remediated multilingual production profile](phase-00c-v5-seven-minutes-ahead-remediated-production.md).
+> The V4 pack remains lineage evidence only. Do not use it as the production
+> corpus for new implementation.
+
+## Historical status (2026-08-12)
+
+Status at adoption: ACTIVE / CORPUS READY
 
 ## Executive recommendation
 

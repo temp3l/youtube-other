@@ -1,4 +1,6 @@
-import "dotenv/config";
+import { config as loadDotenv } from "dotenv";
+
+loadDotenv({ override: true });
 
 import { spawnSync } from "node:child_process";
 import path from "node:path";
@@ -15,8 +17,7 @@ if (dbPath !== path.join(repoRoot, ".mediaforge.sqlite")) {
   process.stderr.write(
     "Custom --db paths require @mediaforge/microdrama build; default uses workspace .mediaforge.sqlite via vitest.\n"
   );
-  process.exitCode = 1;
-  return;
+  process.exit(1);
 }
 
 const child = spawnSync(

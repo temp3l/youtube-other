@@ -8,7 +8,7 @@ Baseline: feature/tiktok-integration at e28e10ca77a4e2d33093c8b53e30bdcbc8e8877a
 > narrative/media analysis remain useful. The PostgreSQL microdrama direction,
 > the generic 60–90 second assumption for `7 MINUTES AHEAD`, and the high-level
 > TikTok phase are superseded by the active microdrama index, ADRs, Phase 00B,
-> and Phase 00C-V4. This document is historical characterization, not the
+> and Phase 00C-V5. This document is historical characterization, not the
 > current implementation authority.
 
 ## A. Executive summary

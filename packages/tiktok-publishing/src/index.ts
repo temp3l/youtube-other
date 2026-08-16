@@ -57,3 +57,9 @@ export {
   type TikTokStatusReconciliationAuditSink,
   type TikTokStatusReconciliationServiceInput,
 } from "./tiktok-status-reconciliation-service.js";
+export {
+  FixtureTikTokVideoQueryAdapter,
+  type TikTokVideoQueryAdapter,
+  type TikTokVideoQueryRequest,
+  type TikTokVideoQueryResponse,
+} from "./tiktok-video-query-fake-adapter.js";

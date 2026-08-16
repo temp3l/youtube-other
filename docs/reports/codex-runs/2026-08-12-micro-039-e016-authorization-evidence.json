@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "mediaforge.microdrama.micro-039-e016-authorization-evidence.v1",
+  "taskId": "MICRO-039-E016",
+  "dbPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.mediaforge.sqlite",
+  "preparedAt": "2026-08-12T17:01:30.607Z",
+  "status": "READY_FOR_EXPLICIT_EXECUTE",
+  "blockers": [],
+  "operatorAuthorizationId": "auth.micro-039-e016.progressive-e016-batch",
+  "assetGenerationApprovalId": "approval.micro-039-e016.asset-generation",
+  "costBudgetApprovalId": "cost-budget-approval.micro-039-e016",
+  "revisionSet": [
+    "6b7cbcd28848cb411962a176053faa92081f838a336a339b986aed014c6d4aa1",
+    "render-profile.microdrama.vertical.v1",
+    "rev.script.de-de.e016",
+    "rev.script.en-us.e016",
+    "rev.script.es-es.e016",
+    "rev.script.pt-br.e016"
+  ],
+  "learningAdmissionId": "admission.micro-039-e016.e016.hook-presentation",
+  "preflightAllowed": true
+}

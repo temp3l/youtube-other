@@ -122,9 +122,18 @@ export {
   CANARY_EDITORIAL_CUT_RANGE,
   CANARY_EPISODE_NUMBER_MAX,
   CANARY_SOURCE_PLATE_RANGE,
+  REVIEW_EDITORIAL_CUT_TARGET,
+  REVIEW_FRONT_LOAD_UNIQUE_CUTS,
+  REVIEW_FRONT_LOAD_UNTIL_RATIO,
+  REVIEW_SOURCE_PLATE_TARGET,
+  UNIQUE_IMAGE_CADENCE_SECONDS,
   distributeEditorialCutsAcrossScenes,
+  resolveFrontLoadUniqueCutsForDuration,
   resolveMicrodramaAssetDensityPolicy,
+  resolveMicrodramaAssetDensityProfile,
+  resolveUniqueImageCountForDuration,
   type MicrodramaAssetDensityPolicy,
+  type MicrodramaAssetDensityProfile,
   type MicrodramaAssetDensityScope,
 } from "./microdrama-canary-asset-density.js";
 
@@ -140,6 +149,15 @@ export {
   type MicrodramaSourcePlatePrompt,
   type MicrodramaSourcePlatePromptInput,
 } from "./microdrama-source-plate-prompt.js";
+
+export {
+  MICRODRAMA_PROVIDER_VISUAL_BRIEF_VERSION,
+  buildMicrodramaProviderVisualBrief,
+  deriveCharacterVisualNotes,
+  rewriteProviderBriefForViolenceRetry,
+  type MicrodramaProviderVisualBriefInput,
+  type MicrodramaProviderVisualCastMember,
+} from "./microdrama-provider-visual-brief.js";
 
 export {
   PERSISTED_VISUAL_DIRECTION_RESOLVER_V1,

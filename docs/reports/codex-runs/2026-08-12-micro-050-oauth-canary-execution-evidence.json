@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "mediaforge.microdrama.micro-050-oauth-canary-execution-evidence.v1",
+  "dbPath": "/home/box/workspace/fehmarn-seo/youtube/other-tiktok/.mediaforge.sqlite",
+  "executedAt": "2026-08-12T14:35:58.586Z",
+  "status": "DONE",
+  "blockers": [],
+  "publicationCalls": 0,
+  "externalCalls": 4,
+  "credentialVersionId": "cred.fixture.v1",
+  "refreshedCredentialVersionId": "cred.fixture.v2",
+  "creatorCapabilityEvidenceRevision": "f480bb23bfd9eb4b72b1040105e576e848c09af1fbba53c4f8ea7e4bf3e43f69",
+  "evidenceProjectionKey": "microdrama.canary-execution-evidence.MICRO-050"
+}

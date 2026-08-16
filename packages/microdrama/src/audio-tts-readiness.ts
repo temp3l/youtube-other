@@ -102,20 +102,28 @@ export function audioTtsTargetRevisionHash(
 }
 
 export function extractLocalizedMasterStory(markdown: string): string {
-  const marker = "## Localized master story";
-  const start = markdown.indexOf(marker);
-  if (start === -1) {
-    throw new Error("Missing Localized master story section");
+  const markers = [
+    "## Localized master story",
+    "## Lokalisierte Master-Story",
+    "## Historia maestra localizada",
+    "## História-mestre localizada",
+  ];
+  for (const marker of markers) {
+    const start = markdown.indexOf(marker);
+    if (start === -1) {
+      continue;
+    }
+    const remainder = markdown.slice(start + marker.length);
+    const nextSection = remainder.search(/\n## /u);
+    const body =
+      nextSection === -1 ? remainder : remainder.slice(0, nextSection);
+    const text = body.trim();
+    if (text.length === 0) {
+      throw new Error("Localized master story section is empty");
+    }
+    return text;
   }
-  const remainder = markdown.slice(start + marker.length);
-  const nextSection = remainder.search(/\n## /u);
-  const body =
-    nextSection === -1 ? remainder : remainder.slice(0, nextSection);
-  const text = body.trim();
-  if (text.length === 0) {
-    throw new Error("Localized master story section is empty");
-  }
-  return text;
+  throw new Error("Missing Localized master story section");
 }
 
 export function readAdmittedLocalizedScriptText(input: {
