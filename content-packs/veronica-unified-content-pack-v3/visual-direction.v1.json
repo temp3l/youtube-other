@@ -1,0 +1,2378 @@
+{
+  "schemaVersion": "veronica-unified-v3-visual-direction.v1",
+  "stories": [
+    {
+      "storyId": "osc-l06",
+      "visualPremise": "For “Attention Is Not Conversion,” stage attention failing to cross the gap into trust and purchase through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": null,
+      "recurringConcreteObjects": [
+        "a phone showing an unreadable grid of content tiles",
+        "an empty unbranded checkout basket beside a sealed parcel",
+        "a sample, receipt, and return label arranged as a trust sequence"
+      ],
+      "allowedEnvironments": [
+        "a compact creator workbench connected to a small online shop",
+        "a text-free checkout packing station"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "abundant attention remains physically separated from purchase",
+        "proof objects bridge viewing and buying",
+        "one relevant content path ends at a dispatched parcel"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Attention Is Not Conversion: attention failing to cross the gap into trust and purchase.",
+        "focalSubjectOrObject": "a phone showing an unreadable grid of content tiles",
+        "visibleActionOrState": "a phone showing an unreadable grid of content tiles is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Attention Is Not Conversion” principle is ignored.",
+        "composition": "One dominant a phone showing an unreadable grid of content tiles occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Attention Is Not Conversion” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “Views Are Not Sales” and “Trust Comes Before Conversion,” this concept centers a phone showing an unreadable grid of content tiles and the specific attention is not conversion decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "osc-s06a",
+      "visualPremise": "For “Views Are Not Sales,” stage attention failing to cross the gap into trust and purchase through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": null,
+      "recurringConcreteObjects": [
+        "a phone showing an unreadable grid of content tiles",
+        "an empty unbranded checkout basket beside a sealed parcel",
+        "a sample, receipt, and return label arranged as a trust sequence"
+      ],
+      "allowedEnvironments": [
+        "a compact creator workbench connected to a small online shop",
+        "a text-free checkout packing station"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "abundant attention remains physically separated from purchase",
+        "proof objects bridge viewing and buying",
+        "one relevant content path ends at a dispatched parcel"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Views Are Not Sales: attention failing to cross the gap into trust and purchase.",
+        "focalSubjectOrObject": "an empty unbranded checkout basket beside a sealed parcel",
+        "visibleActionOrState": "an empty unbranded checkout basket beside a sealed parcel is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Views Are Not Sales” principle is ignored.",
+        "composition": "One dominant an empty unbranded checkout basket beside a sealed parcel occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Views Are Not Sales” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “Attention Is Not Conversion” and “Trust Comes Before Conversion,” this concept centers an empty unbranded checkout basket beside a sealed parcel and the specific views are not sales decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "osc-s06b",
+      "visualPremise": "For “Trust Comes Before Conversion,” stage attention failing to cross the gap into trust and purchase through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": null,
+      "recurringConcreteObjects": [
+        "a phone showing an unreadable grid of content tiles",
+        "an empty unbranded checkout basket beside a sealed parcel",
+        "a sample, receipt, and return label arranged as a trust sequence"
+      ],
+      "allowedEnvironments": [
+        "a compact creator workbench connected to a small online shop",
+        "a text-free checkout packing station"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "abundant attention remains physically separated from purchase",
+        "proof objects bridge viewing and buying",
+        "one relevant content path ends at a dispatched parcel"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Trust Comes Before Conversion: attention failing to cross the gap into trust and purchase.",
+        "focalSubjectOrObject": "a sample, receipt, and return label arranged as a trust sequence",
+        "visibleActionOrState": "a sample, receipt, and return label arranged as a trust sequence is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Trust Comes Before Conversion” principle is ignored.",
+        "composition": "One dominant a sample, receipt, and return label arranged as a trust sequence occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Trust Comes Before Conversion” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “Attention Is Not Conversion” and “Views Are Not Sales,” this concept centers a sample, receipt, and return label arranged as a trust sequence and the specific trust comes before conversion decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "pos-l01",
+      "visualPremise": "For “Why Being Good At Your Job Isn't Enough,” stage excellent work remaining unseen until concrete proof changes the shortlist through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": null,
+      "recurringConcreteObjects": [
+        "a worn professional toolkit with specific work samples",
+        "two candidate folders beside one evidence-rich portfolio",
+        "a blank name badge placed behind completed proof artifacts"
+      ],
+      "allowedEnvironments": [
+        "a quiet client-selection table",
+        "an expert's practical studio"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "excellent work sits outside the client's view",
+        "recognizable proof alters the shortlist",
+        "the evidence-rich portfolio is selected"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Why Being Good At Your Job Isn't Enough: excellent work remaining unseen until concrete proof changes the shortlist.",
+        "focalSubjectOrObject": "a worn professional toolkit with specific work samples",
+        "visibleActionOrState": "a worn professional toolkit with specific work samples is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Why Being Good At Your Job Isn't Enough” principle is ignored.",
+        "composition": "One dominant a worn professional toolkit with specific work samples occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Why Being Good At Your Job Isn't Enough” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “Being Good Isn't Enough” and “Expertise Vs Perception,” this concept centers a worn professional toolkit with specific work samples and the specific why being good at your job isn't enough decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "pos-l01-s01",
+      "visualPremise": "For “Being Good Isn't Enough,” stage excellent work remaining unseen until concrete proof changes the shortlist through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": null,
+      "recurringConcreteObjects": [
+        "a worn professional toolkit with specific work samples",
+        "two candidate folders beside one evidence-rich portfolio",
+        "a blank name badge placed behind completed proof artifacts"
+      ],
+      "allowedEnvironments": [
+        "a quiet client-selection table",
+        "an expert's practical studio"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "excellent work sits outside the client's view",
+        "recognizable proof alters the shortlist",
+        "the evidence-rich portfolio is selected"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Being Good Isn't Enough: excellent work remaining unseen until concrete proof changes the shortlist.",
+        "focalSubjectOrObject": "two candidate folders beside one evidence-rich portfolio",
+        "visibleActionOrState": "two candidate folders beside one evidence-rich portfolio is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Being Good Isn't Enough” principle is ignored.",
+        "composition": "One dominant two candidate folders beside one evidence-rich portfolio occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Being Good Isn't Enough” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “Why Being Good At Your Job Isn't Enough” and “Expertise Vs Perception,” this concept centers two candidate folders beside one evidence-rich portfolio and the specific being good isn't enough decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "pos-l01-s02",
+      "visualPremise": "For “Expertise Vs Perception,” stage excellent work remaining unseen until concrete proof changes the shortlist through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": {
+        "identityId": "pos-l01-s02-operator",
+        "stableVisibleDescription": "the same mid-career independent professional with shoulder-length dark hair, a cobalt knit top, charcoal trousers, and a slim brass watch",
+        "professionalContext": "an experienced independent expert working directly with clients and tangible business evidence"
+      },
+      "recurringConcreteObjects": [
+        "a worn professional toolkit with specific work samples",
+        "two candidate folders beside one evidence-rich portfolio",
+        "a blank name badge placed behind completed proof artifacts"
+      ],
+      "allowedEnvironments": [
+        "a quiet client-selection table",
+        "an expert's practical studio"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "excellent work sits outside the client's view",
+        "recognizable proof alters the shortlist",
+        "the evidence-rich portfolio is selected"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Expertise Vs Perception: excellent work remaining unseen until concrete proof changes the shortlist.",
+        "focalSubjectOrObject": "a blank name badge placed behind completed proof artifacts",
+        "visibleActionOrState": "a blank name badge placed behind completed proof artifacts is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Expertise Vs Perception” principle is ignored.",
+        "composition": "One dominant a blank name badge placed behind completed proof artifacts occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Expertise Vs Perception” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “Why Being Good At Your Job Isn't Enough” and “Being Good Isn't Enough,” this concept centers a blank name badge placed behind completed proof artifacts and the specific expertise vs perception decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "osc-l05",
+      "visualPremise": "For “Stop Improving The Marketing Fix The Product,” stage promotion failing to compensate for a weak product experience through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": null,
+      "recurringConcreteObjects": [
+        "a damaged unbranded product beside pristine advertising props",
+        "a returned package with refund receipt and torn seal",
+        "two product versions, one cluttered and one repaired"
+      ],
+      "allowedEnvironments": [
+        "a product repair bench beside a campaign setup",
+        "a compact returns inspection table"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "bright promotion points toward a flawed product",
+        "returns and excess options expose the friction",
+        "the repaired simpler product stands without decoration"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Stop Improving The Marketing Fix The Product: promotion failing to compensate for a weak product experience.",
+        "focalSubjectOrObject": "a damaged unbranded product beside pristine advertising props",
+        "visibleActionOrState": "a damaged unbranded product beside pristine advertising props is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Stop Improving The Marketing Fix The Product” principle is ignored.",
+        "composition": "One dominant a damaged unbranded product beside pristine advertising props occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Stop Improving The Marketing Fix The Product” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “Marketing May Not Be The Problem” and “Too Many Choices Kill The Offer,” this concept centers a damaged unbranded product beside pristine advertising props and the specific stop improving the marketing fix the product decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "osc-s05a",
+      "visualPremise": "For “Marketing May Not Be The Problem,” stage promotion failing to compensate for a weak product experience through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": null,
+      "recurringConcreteObjects": [
+        "a damaged unbranded product beside pristine advertising props",
+        "a returned package with refund receipt and torn seal",
+        "two product versions, one cluttered and one repaired"
+      ],
+      "allowedEnvironments": [
+        "a product repair bench beside a campaign setup",
+        "a compact returns inspection table"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "bright promotion points toward a flawed product",
+        "returns and excess options expose the friction",
+        "the repaired simpler product stands without decoration"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Marketing May Not Be The Problem: promotion failing to compensate for a weak product experience.",
+        "focalSubjectOrObject": "a returned package with refund receipt and torn seal",
+        "visibleActionOrState": "a returned package with refund receipt and torn seal is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Marketing May Not Be The Problem” principle is ignored.",
+        "composition": "One dominant a returned package with refund receipt and torn seal occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Marketing May Not Be The Problem” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “Stop Improving The Marketing Fix The Product” and “Too Many Choices Kill The Offer,” this concept centers a returned package with refund receipt and torn seal and the specific marketing may not be the problem decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "osc-s05b",
+      "visualPremise": "For “Too Many Choices Kill The Offer,” stage promotion failing to compensate for a weak product experience through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": null,
+      "recurringConcreteObjects": [
+        "a damaged unbranded product beside pristine advertising props",
+        "a returned package with refund receipt and torn seal",
+        "two product versions, one cluttered and one repaired"
+      ],
+      "allowedEnvironments": [
+        "a product repair bench beside a campaign setup",
+        "a compact returns inspection table"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "bright promotion points toward a flawed product",
+        "returns and excess options expose the friction",
+        "the repaired simpler product stands without decoration"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Too Many Choices Kill The Offer: promotion failing to compensate for a weak product experience.",
+        "focalSubjectOrObject": "two product versions, one cluttered and one repaired",
+        "visibleActionOrState": "two product versions, one cluttered and one repaired is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Too Many Choices Kill The Offer” principle is ignored.",
+        "composition": "One dominant two product versions, one cluttered and one repaired occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Too Many Choices Kill The Offer” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “Stop Improving The Marketing Fix The Product” and “Marketing May Not Be The Problem,” this concept centers two product versions, one cluttered and one repaired and the specific too many choices kill the offer decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "tx-l004",
+      "visualPremise": "For “How to Differentiate When Everyone Offers the Same Thing,” stage meaningful differentiation coming from an operating choice rather than adjectives through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": null,
+      "recurringConcreteObjects": [
+        "three nearly identical unbranded proposal folders",
+        "a distinctive toolkit combining two recognizable tools",
+        "two blank price cards beside visibly different service packages"
+      ],
+      "allowedEnvironments": [
+        "a proposal comparison table",
+        "a specialist workshop"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "interchangeable options form one row",
+        "an observable method breaks the pattern",
+        "the distinctive option wins for a practical reason"
+      ],
+      "thumbnail": {
+        "centralContradiction": "How to Differentiate When Everyone Offers the Same Thing: meaningful differentiation coming from an operating choice rather than adjectives.",
+        "focalSubjectOrObject": "three nearly identical unbranded proposal folders",
+        "visibleActionOrState": "three nearly identical unbranded proposal folders is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “How to Differentiate When Everyone Offers the Same Thing” principle is ignored.",
+        "composition": "One dominant three nearly identical unbranded proposal folders occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “How to Differentiate When Everyone Offers the Same Thing” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “What Do People Remember You For” and “Cheap Pricing Can Make You Harder to Trust,” this concept centers three nearly identical unbranded proposal folders and the specific how to differentiate when everyone offers the same thing decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "pos-l01-s03",
+      "visualPremise": "For “What Do People Remember You For,” stage meaningful differentiation coming from an operating choice rather than adjectives through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": {
+        "identityId": "pos-l01-s03-operator",
+        "stableVisibleDescription": "the same mid-career independent professional with shoulder-length dark hair, a cobalt knit top, charcoal trousers, and a slim brass watch",
+        "professionalContext": "an experienced independent expert working directly with clients and tangible business evidence"
+      },
+      "recurringConcreteObjects": [
+        "three nearly identical unbranded proposal folders",
+        "a distinctive toolkit combining two recognizable tools",
+        "two blank price cards beside visibly different service packages"
+      ],
+      "allowedEnvironments": [
+        "a proposal comparison table",
+        "a specialist workshop"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "interchangeable options form one row",
+        "an observable method breaks the pattern",
+        "the distinctive option wins for a practical reason"
+      ],
+      "thumbnail": {
+        "centralContradiction": "What Do People Remember You For: meaningful differentiation coming from an operating choice rather than adjectives.",
+        "focalSubjectOrObject": "a distinctive toolkit combining two recognizable tools",
+        "visibleActionOrState": "a distinctive toolkit combining two recognizable tools is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “What Do People Remember You For” principle is ignored.",
+        "composition": "One dominant a distinctive toolkit combining two recognizable tools occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “What Do People Remember You For” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “How to Differentiate When Everyone Offers the Same Thing” and “Cheap Pricing Can Make You Harder to Trust,” this concept centers a distinctive toolkit combining two recognizable tools and the specific what do people remember you for decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "tx-s021",
+      "visualPremise": "For “Cheap Pricing Can Make You Harder to Trust,” stage meaningful differentiation coming from an operating choice rather than adjectives through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": null,
+      "recurringConcreteObjects": [
+        "three nearly identical unbranded proposal folders",
+        "a distinctive toolkit combining two recognizable tools",
+        "two blank price cards beside visibly different service packages"
+      ],
+      "allowedEnvironments": [
+        "a proposal comparison table",
+        "a specialist workshop"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "interchangeable options form one row",
+        "an observable method breaks the pattern",
+        "the distinctive option wins for a practical reason"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Cheap Pricing Can Make You Harder to Trust: meaningful differentiation coming from an operating choice rather than adjectives.",
+        "focalSubjectOrObject": "two blank price cards beside visibly different service packages",
+        "visibleActionOrState": "two blank price cards beside visibly different service packages is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Cheap Pricing Can Make You Harder to Trust” principle is ignored.",
+        "composition": "One dominant two blank price cards beside visibly different service packages occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Cheap Pricing Can Make You Harder to Trust” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “How to Differentiate When Everyone Offers the Same Thing” and “What Do People Remember You For,” this concept centers two blank price cards beside visibly different service packages and the specific cheap pricing can make you harder to trust decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "osc-l01",
+      "visualPremise": "For “A Good Business Starts With The Right Business Model,” stage sales volume exposing whether the business model is strong or fragile through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": null,
+      "recurringConcreteObjects": [
+        "a stack of sales receipts feeding separate cost trays",
+        "an order conveyor with returned parcels and retained-value tokens",
+        "a clock beside one appointment and a reusable product system"
+      ],
+      "allowedEnvironments": [
+        "a small-business operations table",
+        "a combined fulfillment and service workspace"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "sales volume masks what remains",
+        "labor, returns, and retained value separate into paths",
+        "a repaired model keeps value as volume grows"
+      ],
+      "thumbnail": {
+        "centralContradiction": "A Good Business Starts With The Right Business Model: sales volume exposing whether the business model is strong or fragile.",
+        "focalSubjectOrObject": "a stack of sales receipts feeding separate cost trays",
+        "visibleActionOrState": "a stack of sales receipts feeding separate cost trays is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “A Good Business Starts With The Right Business Model” principle is ignored.",
+        "composition": "One dominant a stack of sales receipts feeding separate cost trays occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “A Good Business Starts With The Right Business Model” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “Revenue Is Not A Good Business” and “If You Stop Working Does Your Revenue Stop Too,” this concept centers a stack of sales receipts feeding separate cost trays and the specific a good business starts with the right business model decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "osc-s01a",
+      "visualPremise": "For “Revenue Is Not A Good Business,” stage sales volume exposing whether the business model is strong or fragile through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": null,
+      "recurringConcreteObjects": [
+        "a stack of sales receipts feeding separate cost trays",
+        "an order conveyor with returned parcels and retained-value tokens",
+        "a clock beside one appointment and a reusable product system"
+      ],
+      "allowedEnvironments": [
+        "a small-business operations table",
+        "a combined fulfillment and service workspace"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "sales volume masks what remains",
+        "labor, returns, and retained value separate into paths",
+        "a repaired model keeps value as volume grows"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Revenue Is Not A Good Business: sales volume exposing whether the business model is strong or fragile.",
+        "focalSubjectOrObject": "an order conveyor with returned parcels and retained-value tokens",
+        "visibleActionOrState": "an order conveyor with returned parcels and retained-value tokens is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Revenue Is Not A Good Business” principle is ignored.",
+        "composition": "One dominant an order conveyor with returned parcels and retained-value tokens occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Revenue Is Not A Good Business” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “A Good Business Starts With The Right Business Model” and “If You Stop Working Does Your Revenue Stop Too,” this concept centers an order conveyor with returned parcels and retained-value tokens and the specific revenue is not a good business decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "osc-s01b",
+      "visualPremise": "For “If You Stop Working Does Your Revenue Stop Too,” stage sales volume exposing whether the business model is strong or fragile through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": null,
+      "recurringConcreteObjects": [
+        "a stack of sales receipts feeding separate cost trays",
+        "an order conveyor with returned parcels and retained-value tokens",
+        "a clock beside one appointment and a reusable product system"
+      ],
+      "allowedEnvironments": [
+        "a small-business operations table",
+        "a combined fulfillment and service workspace"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "sales volume masks what remains",
+        "labor, returns, and retained value separate into paths",
+        "a repaired model keeps value as volume grows"
+      ],
+      "thumbnail": {
+        "centralContradiction": "If You Stop Working Does Your Revenue Stop Too: sales volume exposing whether the business model is strong or fragile.",
+        "focalSubjectOrObject": "a clock beside one appointment and a reusable product system",
+        "visibleActionOrState": "a clock beside one appointment and a reusable product system is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “If You Stop Working Does Your Revenue Stop Too” principle is ignored.",
+        "composition": "One dominant a clock beside one appointment and a reusable product system occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “If You Stop Working Does Your Revenue Stop Too” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “A Good Business Starts With The Right Business Model” and “Revenue Is Not A Good Business,” this concept centers a clock beside one appointment and a reusable product system and the specific if you stop working does your revenue stop too decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "pos-l04",
+      "visualPremise": "For “The Content Strategy That Makes People Remember You,” stage repeated useful ideas becoming recognizable while random posts disappear through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": {
+        "identityId": "pos-l04-operator",
+        "stableVisibleDescription": "the same mid-career independent professional with shoulder-length dark hair, a cobalt knit top, charcoal trousers, and a slim brass watch",
+        "professionalContext": "an experienced independent expert working directly with clients and tangible business evidence"
+      },
+      "recurringConcreteObjects": [
+        "a scattered pile of unrelated text-free content cards",
+        "three recurring visual topic cards pinned into a coherent series",
+        "a recognition board linking one motif across formats"
+      ],
+      "allowedEnvironments": [
+        "an editorial planning wall",
+        "a creator desk linked to a distribution pinboard"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "unrelated posts disperse",
+        "repeated ideas form an editorial system",
+        "one motif is recalled and shared"
+      ],
+      "thumbnail": {
+        "centralContradiction": "The Content Strategy That Makes People Remember You: repeated useful ideas becoming recognizable while random posts disappear.",
+        "focalSubjectOrObject": "a scattered pile of unrelated text-free content cards",
+        "visibleActionOrState": "a scattered pile of unrelated text-free content cards is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “The Content Strategy That Makes People Remember You” principle is ignored.",
+        "composition": "One dominant a scattered pile of unrelated text-free content cards occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “The Content Strategy That Makes People Remember You” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “Stop Posting Random Content” and “The Goal Is Recognition Not Views,” this concept centers a scattered pile of unrelated text-free content cards and the specific the content strategy that makes people remember you decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "pos-l04-s01",
+      "visualPremise": "For “Stop Posting Random Content,” stage repeated useful ideas becoming recognizable while random posts disappear through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": null,
+      "recurringConcreteObjects": [
+        "a scattered pile of unrelated text-free content cards",
+        "three recurring visual topic cards pinned into a coherent series",
+        "a recognition board linking one motif across formats"
+      ],
+      "allowedEnvironments": [
+        "an editorial planning wall",
+        "a creator desk linked to a distribution pinboard"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "unrelated posts disperse",
+        "repeated ideas form an editorial system",
+        "one motif is recalled and shared"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Stop Posting Random Content: repeated useful ideas becoming recognizable while random posts disappear.",
+        "focalSubjectOrObject": "three recurring visual topic cards pinned into a coherent series",
+        "visibleActionOrState": "three recurring visual topic cards pinned into a coherent series is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Stop Posting Random Content” principle is ignored.",
+        "composition": "One dominant three recurring visual topic cards pinned into a coherent series occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Stop Posting Random Content” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “The Content Strategy That Makes People Remember You” and “The Goal Is Recognition Not Views,” this concept centers three recurring visual topic cards pinned into a coherent series and the specific stop posting random content decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "pos-l04-s02",
+      "visualPremise": "For “The Goal Is Recognition Not Views,” stage repeated useful ideas becoming recognizable while random posts disappear through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": null,
+      "recurringConcreteObjects": [
+        "a scattered pile of unrelated text-free content cards",
+        "three recurring visual topic cards pinned into a coherent series",
+        "a recognition board linking one motif across formats"
+      ],
+      "allowedEnvironments": [
+        "an editorial planning wall",
+        "a creator desk linked to a distribution pinboard"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "unrelated posts disperse",
+        "repeated ideas form an editorial system",
+        "one motif is recalled and shared"
+      ],
+      "thumbnail": {
+        "centralContradiction": "The Goal Is Recognition Not Views: repeated useful ideas becoming recognizable while random posts disappear.",
+        "focalSubjectOrObject": "a recognition board linking one motif across formats",
+        "visibleActionOrState": "a recognition board linking one motif across formats is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “The Goal Is Recognition Not Views” principle is ignored.",
+        "composition": "One dominant a recognition board linking one motif across formats occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “The Goal Is Recognition Not Views” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “The Content Strategy That Makes People Remember You” and “Stop Posting Random Content,” this concept centers a recognition board linking one motif across formats and the specific the goal is recognition not views decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "osc-l04",
+      "visualPremise": "For “How To Build An Offer People Actually Want,” stage a valuable offer becoming easy to understand and buy through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": {
+        "identityId": "osc-l04-operator",
+        "stableVisibleDescription": "the same mid-career independent professional with shoulder-length dark hair, a cobalt knit top, charcoal trousers, and a slim brass watch",
+        "professionalContext": "an experienced independent expert working directly with clients and tangible business evidence"
+      },
+      "recurringConcreteObjects": [
+        "a strong unbranded product trapped behind too many choice cards",
+        "three service components arranged as one package",
+        "a short path from sample to selection to packed order"
+      ],
+      "allowedEnvironments": [
+        "a customer decision counter",
+        "a service-design worktable"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "interest is blocked by clutter",
+        "useful components gather around one outcome",
+        "understanding leads directly to selection"
+      ],
+      "thumbnail": {
+        "centralContradiction": "How To Build An Offer People Actually Want: a valuable offer becoming easy to understand and buy.",
+        "focalSubjectOrObject": "a strong unbranded product trapped behind too many choice cards",
+        "visibleActionOrState": "a strong unbranded product trapped behind too many choice cards is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “How To Build An Offer People Actually Want” principle is ignored.",
+        "composition": "One dominant a strong unbranded product trapped behind too many choice cards occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “How To Build An Offer People Actually Want” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “Why Good Products Still Don't Sell” and “Make Your Offer Easier To Buy,” this concept centers a strong unbranded product trapped behind too many choice cards and the specific how to build an offer people actually want decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "osc-s04a",
+      "visualPremise": "For “Why Good Products Still Don't Sell,” stage a valuable offer becoming easy to understand and buy through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": null,
+      "recurringConcreteObjects": [
+        "a strong unbranded product trapped behind too many choice cards",
+        "three service components arranged as one package",
+        "a short path from sample to selection to packed order"
+      ],
+      "allowedEnvironments": [
+        "a customer decision counter",
+        "a service-design worktable"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "interest is blocked by clutter",
+        "useful components gather around one outcome",
+        "understanding leads directly to selection"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Why Good Products Still Don't Sell: a valuable offer becoming easy to understand and buy.",
+        "focalSubjectOrObject": "three service components arranged as one package",
+        "visibleActionOrState": "three service components arranged as one package is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Why Good Products Still Don't Sell” principle is ignored.",
+        "composition": "One dominant three service components arranged as one package occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Why Good Products Still Don't Sell” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “How To Build An Offer People Actually Want” and “Make Your Offer Easier To Buy,” this concept centers three service components arranged as one package and the specific why good products still don't sell decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "osc-s04b",
+      "visualPremise": "For “Make Your Offer Easier To Buy,” stage a valuable offer becoming easy to understand and buy through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": null,
+      "recurringConcreteObjects": [
+        "a strong unbranded product trapped behind too many choice cards",
+        "three service components arranged as one package",
+        "a short path from sample to selection to packed order"
+      ],
+      "allowedEnvironments": [
+        "a customer decision counter",
+        "a service-design worktable"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "interest is blocked by clutter",
+        "useful components gather around one outcome",
+        "understanding leads directly to selection"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Make Your Offer Easier To Buy: a valuable offer becoming easy to understand and buy.",
+        "focalSubjectOrObject": "a short path from sample to selection to packed order",
+        "visibleActionOrState": "a short path from sample to selection to packed order is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Make Your Offer Easier To Buy” principle is ignored.",
+        "composition": "One dominant a short path from sample to selection to packed order occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Make Your Offer Easier To Buy” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “How To Build An Offer People Actually Want” and “Why Good Products Still Don't Sell,” this concept centers a short path from sample to selection to packed order and the specific make your offer easier to buy decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "pos-l02",
+      "visualPremise": "For “How To Find Your Niche Without Making Yourself Too Small,” stage a focused niche creating relevance and room to expand through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": null,
+      "recurringConcreteObjects": [
+        "a generic market surrounding one specialist toolkit",
+        "a movable spotlight circle isolating a customer situation",
+        "a narrow doorway opening into a larger connected workspace"
+      ],
+      "allowedEnvironments": [
+        "a market hall with customer-use stations",
+        "a specialist studio connected to adjacent applications"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "a broad field offers no clear choice",
+        "one problem meets its specialist tools",
+        "the focused entry opens toward related opportunities"
+      ],
+      "thumbnail": {
+        "centralContradiction": "How To Find Your Niche Without Making Yourself Too Small: a focused niche creating relevance and room to expand.",
+        "focalSubjectOrObject": "a generic market surrounding one specialist toolkit",
+        "visibleActionOrState": "a generic market surrounding one specialist toolkit is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “How To Find Your Niche Without Making Yourself Too Small” principle is ignored.",
+        "composition": "One dominant a generic market surrounding one specialist toolkit occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “How To Find Your Niche Without Making Yourself Too Small” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “Selling To Everyone Is The Problem” and “Why Smaller Niches Can Make You Bigger,” this concept centers a generic market surrounding one specialist toolkit and the specific how to find your niche without making yourself too small decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "pos-l02-s01",
+      "visualPremise": "For “Selling To Everyone Is The Problem,” stage a focused niche creating relevance and room to expand through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": {
+        "identityId": "pos-l02-s01-operator",
+        "stableVisibleDescription": "the same mid-career independent professional with shoulder-length dark hair, a cobalt knit top, charcoal trousers, and a slim brass watch",
+        "professionalContext": "an experienced independent expert working directly with clients and tangible business evidence"
+      },
+      "recurringConcreteObjects": [
+        "a generic market surrounding one specialist toolkit",
+        "a movable spotlight circle isolating a customer situation",
+        "a narrow doorway opening into a larger connected workspace"
+      ],
+      "allowedEnvironments": [
+        "a market hall with customer-use stations",
+        "a specialist studio connected to adjacent applications"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "a broad field offers no clear choice",
+        "one problem meets its specialist tools",
+        "the focused entry opens toward related opportunities"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Selling To Everyone Is The Problem: a focused niche creating relevance and room to expand.",
+        "focalSubjectOrObject": "a movable spotlight circle isolating a customer situation",
+        "visibleActionOrState": "a movable spotlight circle isolating a customer situation is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Selling To Everyone Is The Problem” principle is ignored.",
+        "composition": "One dominant a movable spotlight circle isolating a customer situation occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Selling To Everyone Is The Problem” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “How To Find Your Niche Without Making Yourself Too Small” and “Why Smaller Niches Can Make You Bigger,” this concept centers a movable spotlight circle isolating a customer situation and the specific selling to everyone is the problem decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "pos-l02-s02",
+      "visualPremise": "For “Why Smaller Niches Can Make You Bigger,” stage a focused niche creating relevance and room to expand through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": null,
+      "recurringConcreteObjects": [
+        "a generic market surrounding one specialist toolkit",
+        "a movable spotlight circle isolating a customer situation",
+        "a narrow doorway opening into a larger connected workspace"
+      ],
+      "allowedEnvironments": [
+        "a market hall with customer-use stations",
+        "a specialist studio connected to adjacent applications"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "a broad field offers no clear choice",
+        "one problem meets its specialist tools",
+        "the focused entry opens toward related opportunities"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Why Smaller Niches Can Make You Bigger: a focused niche creating relevance and room to expand.",
+        "focalSubjectOrObject": "a narrow doorway opening into a larger connected workspace",
+        "visibleActionOrState": "a narrow doorway opening into a larger connected workspace is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Why Smaller Niches Can Make You Bigger” principle is ignored.",
+        "composition": "One dominant a narrow doorway opening into a larger connected workspace occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Why Smaller Niches Can Make You Bigger” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “How To Find Your Niche Without Making Yourself Too Small” and “Selling To Everyone Is The Problem,” this concept centers a narrow doorway opening into a larger connected workspace and the specific why smaller niches can make you bigger decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "tx-l011",
+      "visualPremise": "For “Build a Signature Method People Can Understand and Buy,” stage a repeatable method making expertise understandable and buyable through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": {
+        "identityId": "tx-l011-operator",
+        "stableVisibleDescription": "the same mid-career independent professional with shoulder-length dark hair, a cobalt knit top, charcoal trousers, and a slim brass watch",
+        "professionalContext": "an experienced independent expert working directly with clients and tangible business evidence"
+      },
+      "recurringConcreteObjects": [
+        "three method stages represented by physical objects",
+        "a laptop showing an intentionally unreadable landing-page layout",
+        "an old service toolkit transformed into an ordered system"
+      ],
+      "allowedEnvironments": [
+        "a method-design table",
+        "a client demonstration space"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "expertise is scattered",
+        "work becomes observable stages",
+        "a client follows the method to an outcome"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Build a Signature Method People Can Understand and Buy: a repeatable method making expertise understandable and buyable.",
+        "focalSubjectOrObject": "three method stages represented by physical objects",
+        "visibleActionOrState": "three method stages represented by physical objects is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Build a Signature Method People Can Understand and Buy” principle is ignored.",
+        "composition": "One dominant three method stages represented by physical objects occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Build a Signature Method People Can Understand and Buy” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “Your Website Has Five Seconds” and “Change What People Know You For,” this concept centers three method stages represented by physical objects and the specific build a signature method people can understand and buy decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "pos-l03-s03",
+      "visualPremise": "For “Your Website Has Five Seconds,” stage a repeatable method making expertise understandable and buyable through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": null,
+      "recurringConcreteObjects": [
+        "three method stages represented by physical objects",
+        "a laptop showing an intentionally unreadable landing-page layout",
+        "an old service toolkit transformed into an ordered system"
+      ],
+      "allowedEnvironments": [
+        "a method-design table",
+        "a client demonstration space"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "expertise is scattered",
+        "work becomes observable stages",
+        "a client follows the method to an outcome"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Your Website Has Five Seconds: a repeatable method making expertise understandable and buyable.",
+        "focalSubjectOrObject": "a laptop showing an intentionally unreadable landing-page layout",
+        "visibleActionOrState": "a laptop showing an intentionally unreadable landing-page layout is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Your Website Has Five Seconds” principle is ignored.",
+        "composition": "One dominant a laptop showing an intentionally unreadable landing-page layout occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Your Website Has Five Seconds” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “Build a Signature Method People Can Understand and Buy” and “Change What People Know You For,” this concept centers a laptop showing an intentionally unreadable landing-page layout and the specific your website has five seconds decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "pos-l06-s03",
+      "visualPremise": "For “Change What People Know You For,” stage a repeatable method making expertise understandable and buyable through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": {
+        "identityId": "pos-l06-s03-operator",
+        "stableVisibleDescription": "the same mid-career independent professional with shoulder-length dark hair, a cobalt knit top, charcoal trousers, and a slim brass watch",
+        "professionalContext": "an experienced independent expert working directly with clients and tangible business evidence"
+      },
+      "recurringConcreteObjects": [
+        "three method stages represented by physical objects",
+        "a laptop showing an intentionally unreadable landing-page layout",
+        "an old service toolkit transformed into an ordered system"
+      ],
+      "allowedEnvironments": [
+        "a method-design table",
+        "a client demonstration space"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "expertise is scattered",
+        "work becomes observable stages",
+        "a client follows the method to an outcome"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Change What People Know You For: a repeatable method making expertise understandable and buyable.",
+        "focalSubjectOrObject": "an old service toolkit transformed into an ordered system",
+        "visibleActionOrState": "an old service toolkit transformed into an ordered system is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Change What People Know You For” principle is ignored.",
+        "composition": "One dominant an old service toolkit transformed into an ordered system occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Change What People Know You For” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “Build a Signature Method People Can Understand and Buy” and “Your Website Has Five Seconds,” this concept centers an old service toolkit transformed into an ordered system and the specific change what people know you for decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "osc-l02",
+      "visualPremise": "For “Your Ideal Customer Is Not Everyone,” stage relevance increasing when the right customers separate from everyone else through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": {
+        "identityId": "osc-l02-operator",
+        "stableVisibleDescription": "the same mid-career independent professional with shoulder-length dark hair, a cobalt knit top, charcoal trousers, and a slim brass watch",
+        "professionalContext": "an experienced independent expert working directly with clients and tangible business evidence"
+      },
+      "recurringConcreteObjects": [
+        "mismatched customer-use objects around one appropriate toolkit",
+        "three platform frames with one relevant customer context",
+        "a specialist package beside its matching use situation"
+      ],
+      "allowedEnvironments": [
+        "a customer research table",
+        "a text-free channel-selection wall"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "one message spreads across incompatible situations",
+        "need and channel filter the field",
+        "offer and customer meet in the right place"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Your Ideal Customer Is Not Everyone: relevance increasing when the right customers separate from everyone else.",
+        "focalSubjectOrObject": "mismatched customer-use objects around one appropriate toolkit",
+        "visibleActionOrState": "mismatched customer-use objects around one appropriate toolkit is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Your Ideal Customer Is Not Everyone” principle is ignored.",
+        "composition": "One dominant mismatched customer-use objects around one appropriate toolkit occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Your Ideal Customer Is Not Everyone” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “Stop Targeting Everyone” and “Stop Posting Where Your Customers Arent,” this concept centers mismatched customer-use objects around one appropriate toolkit and the specific your ideal customer is not everyone decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "osc-s02a",
+      "visualPremise": "For “Stop Targeting Everyone,” stage relevance increasing when the right customers separate from everyone else through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": null,
+      "recurringConcreteObjects": [
+        "mismatched customer-use objects around one appropriate toolkit",
+        "three platform frames with one relevant customer context",
+        "a specialist package beside its matching use situation"
+      ],
+      "allowedEnvironments": [
+        "a customer research table",
+        "a text-free channel-selection wall"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "one message spreads across incompatible situations",
+        "need and channel filter the field",
+        "offer and customer meet in the right place"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Stop Targeting Everyone: relevance increasing when the right customers separate from everyone else.",
+        "focalSubjectOrObject": "three platform frames with one relevant customer context",
+        "visibleActionOrState": "three platform frames with one relevant customer context is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Stop Targeting Everyone” principle is ignored.",
+        "composition": "One dominant three platform frames with one relevant customer context occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Stop Targeting Everyone” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “Your Ideal Customer Is Not Everyone” and “Stop Posting Where Your Customers Arent,” this concept centers three platform frames with one relevant customer context and the specific stop targeting everyone decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "osc-s02b",
+      "visualPremise": "For “Stop Posting Where Your Customers Arent,” stage relevance increasing when the right customers separate from everyone else through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": {
+        "identityId": "osc-s02b-operator",
+        "stableVisibleDescription": "the same mid-career independent professional with shoulder-length dark hair, a cobalt knit top, charcoal trousers, and a slim brass watch",
+        "professionalContext": "an experienced independent expert working directly with clients and tangible business evidence"
+      },
+      "recurringConcreteObjects": [
+        "mismatched customer-use objects around one appropriate toolkit",
+        "three platform frames with one relevant customer context",
+        "a specialist package beside its matching use situation"
+      ],
+      "allowedEnvironments": [
+        "a customer research table",
+        "a text-free channel-selection wall"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "one message spreads across incompatible situations",
+        "need and channel filter the field",
+        "offer and customer meet in the right place"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Stop Posting Where Your Customers Arent: relevance increasing when the right customers separate from everyone else.",
+        "focalSubjectOrObject": "a specialist package beside its matching use situation",
+        "visibleActionOrState": "a specialist package beside its matching use situation is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Stop Posting Where Your Customers Arent” principle is ignored.",
+        "composition": "One dominant a specialist package beside its matching use situation occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Stop Posting Where Your Customers Arent” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “Your Ideal Customer Is Not Everyone” and “Stop Targeting Everyone,” this concept centers a specialist package beside its matching use situation and the specific stop posting where your customers arent decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "pos-l06",
+      "visualPremise": "For “How To Reposition Yourself When Your Business Changes,” stage a changed business gradually replacing an audience's old mental picture through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": {
+        "identityId": "pos-l06-operator",
+        "stableVisibleDescription": "the same mid-career independent professional with shoulder-length dark hair, a cobalt knit top, charcoal trousers, and a slim brass watch",
+        "professionalContext": "an experienced independent expert working directly with clients and tangible business evidence"
+      },
+      "recurringConcreteObjects": [
+        "an outdated toolkit beside new specialized tools",
+        "old and new profile portrait setups",
+        "a ninety-day sequence of proof objects crossing a small bridge"
+      ],
+      "allowedEnvironments": [
+        "a studio split between old and new services",
+        "an editorial transition wall"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "new work is obscured by old evidence",
+        "proof of the new direction accumulates",
+        "the old sign leaves after the new work coheres"
+      ],
+      "thumbnail": {
+        "centralContradiction": "How To Reposition Yourself When Your Business Changes: a changed business gradually replacing an audience's old mental picture.",
+        "focalSubjectOrObject": "an outdated toolkit beside new specialized tools",
+        "visibleActionOrState": "an outdated toolkit beside new specialized tools is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “How To Reposition Yourself When Your Business Changes” principle is ignored.",
+        "composition": "One dominant an outdated toolkit beside new specialized tools occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “How To Reposition Yourself When Your Business Changes” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “Your Audience Remembers The Old You” and “Changing Your Bio Isn't Repositioning,” this concept centers an outdated toolkit beside new specialized tools and the specific how to reposition yourself when your business changes decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "pos-l06-s01",
+      "visualPremise": "For “Your Audience Remembers The Old You,” stage a changed business gradually replacing an audience's old mental picture through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": {
+        "identityId": "pos-l06-s01-operator",
+        "stableVisibleDescription": "the same mid-career independent professional with shoulder-length dark hair, a cobalt knit top, charcoal trousers, and a slim brass watch",
+        "professionalContext": "an experienced independent expert working directly with clients and tangible business evidence"
+      },
+      "recurringConcreteObjects": [
+        "an outdated toolkit beside new specialized tools",
+        "old and new profile portrait setups",
+        "a ninety-day sequence of proof objects crossing a small bridge"
+      ],
+      "allowedEnvironments": [
+        "a studio split between old and new services",
+        "an editorial transition wall"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "new work is obscured by old evidence",
+        "proof of the new direction accumulates",
+        "the old sign leaves after the new work coheres"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Your Audience Remembers The Old You: a changed business gradually replacing an audience's old mental picture.",
+        "focalSubjectOrObject": "old and new profile portrait setups",
+        "visibleActionOrState": "old and new profile portrait setups is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Your Audience Remembers The Old You” principle is ignored.",
+        "composition": "One dominant old and new profile portrait setups occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Your Audience Remembers The Old You” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “How To Reposition Yourself When Your Business Changes” and “Changing Your Bio Isn't Repositioning,” this concept centers old and new profile portrait setups and the specific your audience remembers the old you decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "pos-l06-s02",
+      "visualPremise": "For “Changing Your Bio Isn't Repositioning,” stage a changed business gradually replacing an audience's old mental picture through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": {
+        "identityId": "pos-l06-s02-operator",
+        "stableVisibleDescription": "the same mid-career independent professional with shoulder-length dark hair, a cobalt knit top, charcoal trousers, and a slim brass watch",
+        "professionalContext": "an experienced independent expert working directly with clients and tangible business evidence"
+      },
+      "recurringConcreteObjects": [
+        "an outdated toolkit beside new specialized tools",
+        "old and new profile portrait setups",
+        "a ninety-day sequence of proof objects crossing a small bridge"
+      ],
+      "allowedEnvironments": [
+        "a studio split between old and new services",
+        "an editorial transition wall"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "new work is obscured by old evidence",
+        "proof of the new direction accumulates",
+        "the old sign leaves after the new work coheres"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Changing Your Bio Isn't Repositioning: a changed business gradually replacing an audience's old mental picture.",
+        "focalSubjectOrObject": "a ninety-day sequence of proof objects crossing a small bridge",
+        "visibleActionOrState": "a ninety-day sequence of proof objects crossing a small bridge is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Changing Your Bio Isn't Repositioning” principle is ignored.",
+        "composition": "One dominant a ninety-day sequence of proof objects crossing a small bridge occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Changing Your Bio Isn't Repositioning” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “How To Reposition Yourself When Your Business Changes” and “Your Audience Remembers The Old You,” this concept centers a ninety-day sequence of proof objects crossing a small bridge and the specific changing your bio isn't repositioning decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "osc-l03",
+      "visualPremise": "For “People Don't Buy Your Product They Buy The Promise,” stage customers choosing the promised change rather than the product alone through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": {
+        "identityId": "osc-l03-operator",
+        "stableVisibleDescription": "the same mid-career independent professional with shoulder-length dark hair, a cobalt knit top, charcoal trousers, and a slim brass watch",
+        "professionalContext": "an experienced independent expert working directly with clients and tangible business evidence"
+      },
+      "recurringConcreteObjects": [
+        "an unbranded package separated from its real-use outcome",
+        "matched before-and-after workspaces connected by one tool",
+        "a finish-state object making the desired result tangible"
+      ],
+      "allowedEnvironments": [
+        "a customer-use setting",
+        "a matched before-and-after stage"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "the product sits isolated",
+        "mechanism connects it to a use situation",
+        "the achieved state becomes primary"
+      ],
+      "thumbnail": {
+        "centralContradiction": "People Don't Buy Your Product They Buy The Promise: customers choosing the promised change rather than the product alone.",
+        "focalSubjectOrObject": "an unbranded package separated from its real-use outcome",
+        "visibleActionOrState": "an unbranded package separated from its real-use outcome is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “People Don't Buy Your Product They Buy The Promise” principle is ignored.",
+        "composition": "One dominant an unbranded package separated from its real-use outcome occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “People Don't Buy Your Product They Buy The Promise” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “What Does Your Customer Really Buy” and “The Promise Formula,” this concept centers an unbranded package separated from its real-use outcome and the specific people don't buy your product they buy the promise decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "osc-s03a",
+      "visualPremise": "For “What Does Your Customer Really Buy,” stage customers choosing the promised change rather than the product alone through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": {
+        "identityId": "osc-s03a-operator",
+        "stableVisibleDescription": "the same mid-career independent professional with shoulder-length dark hair, a cobalt knit top, charcoal trousers, and a slim brass watch",
+        "professionalContext": "an experienced independent expert working directly with clients and tangible business evidence"
+      },
+      "recurringConcreteObjects": [
+        "an unbranded package separated from its real-use outcome",
+        "matched before-and-after workspaces connected by one tool",
+        "a finish-state object making the desired result tangible"
+      ],
+      "allowedEnvironments": [
+        "a customer-use setting",
+        "a matched before-and-after stage"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "the product sits isolated",
+        "mechanism connects it to a use situation",
+        "the achieved state becomes primary"
+      ],
+      "thumbnail": {
+        "centralContradiction": "What Does Your Customer Really Buy: customers choosing the promised change rather than the product alone.",
+        "focalSubjectOrObject": "matched before-and-after workspaces connected by one tool",
+        "visibleActionOrState": "matched before-and-after workspaces connected by one tool is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “What Does Your Customer Really Buy” principle is ignored.",
+        "composition": "One dominant matched before-and-after workspaces connected by one tool occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “What Does Your Customer Really Buy” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “People Don't Buy Your Product They Buy The Promise” and “The Promise Formula,” this concept centers matched before-and-after workspaces connected by one tool and the specific what does your customer really buy decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "osc-s03b",
+      "visualPremise": "For “The Promise Formula,” stage customers choosing the promised change rather than the product alone through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": null,
+      "recurringConcreteObjects": [
+        "an unbranded package separated from its real-use outcome",
+        "matched before-and-after workspaces connected by one tool",
+        "a finish-state object making the desired result tangible"
+      ],
+      "allowedEnvironments": [
+        "a customer-use setting",
+        "a matched before-and-after stage"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "the product sits isolated",
+        "mechanism connects it to a use situation",
+        "the achieved state becomes primary"
+      ],
+      "thumbnail": {
+        "centralContradiction": "The Promise Formula: customers choosing the promised change rather than the product alone.",
+        "focalSubjectOrObject": "a finish-state object making the desired result tangible",
+        "visibleActionOrState": "a finish-state object making the desired result tangible is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “The Promise Formula” principle is ignored.",
+        "composition": "One dominant a finish-state object making the desired result tangible occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “The Promise Formula” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “People Don't Buy Your Product They Buy The Promise” and “What Does Your Customer Really Buy,” this concept centers a finish-state object making the desired result tangible and the specific the promise formula decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "tx-l018",
+      "visualPremise": "For “The Psychology of Memorable Business Storytelling,” stage a concrete change arc making business information memorable through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": null,
+      "recurringConcreteObjects": [
+        "physical obstacle, decision, and changed-result objects",
+        "an open book surrounded by reusable media props",
+        "paired before-and-after objects linked by one carried detail"
+      ],
+      "allowedEnvironments": [
+        "a real-object storyboarding table",
+        "a small editorial studio"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "disconnected information leaves no trace",
+        "obstacle, decision, and consequence form an arc",
+        "the transformed state echoes across formats"
+      ],
+      "thumbnail": {
+        "centralContradiction": "The Psychology of Memorable Business Storytelling: a concrete change arc making business information memorable.",
+        "focalSubjectOrObject": "physical obstacle, decision, and changed-result objects",
+        "visibleActionOrState": "physical obstacle, decision, and changed-result objects is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “The Psychology of Memorable Business Storytelling” principle is ignored.",
+        "composition": "One dominant physical obstacle, decision, and changed-result objects occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “The Psychology of Memorable Business Storytelling” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “Make Other People Talk About Your Expertise” and “One Book Can Become Fifty Pieces Of Content,” this concept centers physical obstacle, decision, and changed-result objects and the specific the psychology of memorable business storytelling decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "pos-l04-s03",
+      "visualPremise": "For “Make Other People Talk About Your Expertise,” stage a concrete change arc making business information memorable through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": {
+        "identityId": "pos-l04-s03-operator",
+        "stableVisibleDescription": "the same mid-career independent professional with shoulder-length dark hair, a cobalt knit top, charcoal trousers, and a slim brass watch",
+        "professionalContext": "an experienced independent expert working directly with clients and tangible business evidence"
+      },
+      "recurringConcreteObjects": [
+        "physical obstacle, decision, and changed-result objects",
+        "an open book surrounded by reusable media props",
+        "paired before-and-after objects linked by one carried detail"
+      ],
+      "allowedEnvironments": [
+        "a real-object storyboarding table",
+        "a small editorial studio"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "disconnected information leaves no trace",
+        "obstacle, decision, and consequence form an arc",
+        "the transformed state echoes across formats"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Make Other People Talk About Your Expertise: a concrete change arc making business information memorable.",
+        "focalSubjectOrObject": "an open book surrounded by reusable media props",
+        "visibleActionOrState": "an open book surrounded by reusable media props is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Make Other People Talk About Your Expertise” principle is ignored.",
+        "composition": "One dominant an open book surrounded by reusable media props occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Make Other People Talk About Your Expertise” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “The Psychology of Memorable Business Storytelling” and “One Book Can Become Fifty Pieces Of Content,” this concept centers an open book surrounded by reusable media props and the specific make other people talk about your expertise decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "pos-l05-s03",
+      "visualPremise": "For “One Book Can Become Fifty Pieces Of Content,” stage a concrete change arc making business information memorable through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": {
+        "identityId": "pos-l05-s03-operator",
+        "stableVisibleDescription": "the same mid-career independent professional with shoulder-length dark hair, a cobalt knit top, charcoal trousers, and a slim brass watch",
+        "professionalContext": "an experienced independent expert working directly with clients and tangible business evidence"
+      },
+      "recurringConcreteObjects": [
+        "physical obstacle, decision, and changed-result objects",
+        "an open book surrounded by reusable media props",
+        "paired before-and-after objects linked by one carried detail"
+      ],
+      "allowedEnvironments": [
+        "a real-object storyboarding table",
+        "a small editorial studio"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "disconnected information leaves no trace",
+        "obstacle, decision, and consequence form an arc",
+        "the transformed state echoes across formats"
+      ],
+      "thumbnail": {
+        "centralContradiction": "One Book Can Become Fifty Pieces Of Content: a concrete change arc making business information memorable.",
+        "focalSubjectOrObject": "paired before-and-after objects linked by one carried detail",
+        "visibleActionOrState": "paired before-and-after objects linked by one carried detail is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “One Book Can Become Fifty Pieces Of Content” principle is ignored.",
+        "composition": "One dominant paired before-and-after objects linked by one carried detail occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “One Book Can Become Fifty Pieces Of Content” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “The Psychology of Memorable Business Storytelling” and “Make Other People Talk About Your Expertise,” this concept centers paired before-and-after objects linked by one carried detail and the specific one book can become fifty pieces of content decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "osc-l07",
+      "visualPremise": "For “Why Selling Feels Difficult,” stage ethical selling replacing pressure with clarity and permission through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": {
+        "identityId": "osc-l07-operator",
+        "stableVisibleDescription": "the same mid-career independent professional with shoulder-length dark hair, a cobalt knit top, charcoal trousers, and a slim brass watch",
+        "professionalContext": "an experienced independent expert working directly with clients and tangible business evidence"
+      },
+      "recurringConcreteObjects": [
+        "a blank price card beside a complete offer package",
+        "an open doorway beside a clearly available exit",
+        "two shape-coded decision tokens for yes and no"
+      ],
+      "allowedEnvironments": [
+        "a calm consultation table",
+        "a balanced service presentation area"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "price discomfort unbalances the exchange",
+        "evidence and boundaries replace pressure",
+        "a voluntary decision preserves composure"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Why Selling Feels Difficult: ethical selling replacing pressure with clarity and permission.",
+        "focalSubjectOrObject": "a blank price card beside a complete offer package",
+        "visibleActionOrState": "a blank price card beside a complete offer package is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Why Selling Feels Difficult” principle is ignored.",
+        "composition": "One dominant a blank price card beside a complete offer package occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Why Selling Feels Difficult” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “Why Selling Feels Uncomfortable” and “Selling Isn't Manipulation,” this concept centers a blank price card beside a complete offer package and the specific why selling feels difficult decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "osc-s07a",
+      "visualPremise": "For “Why Selling Feels Uncomfortable,” stage ethical selling replacing pressure with clarity and permission through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": {
+        "identityId": "osc-s07a-operator",
+        "stableVisibleDescription": "the same mid-career independent professional with shoulder-length dark hair, a cobalt knit top, charcoal trousers, and a slim brass watch",
+        "professionalContext": "an experienced independent expert working directly with clients and tangible business evidence"
+      },
+      "recurringConcreteObjects": [
+        "a blank price card beside a complete offer package",
+        "an open doorway beside a clearly available exit",
+        "two shape-coded decision tokens for yes and no"
+      ],
+      "allowedEnvironments": [
+        "a calm consultation table",
+        "a balanced service presentation area"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "price discomfort unbalances the exchange",
+        "evidence and boundaries replace pressure",
+        "a voluntary decision preserves composure"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Why Selling Feels Uncomfortable: ethical selling replacing pressure with clarity and permission.",
+        "focalSubjectOrObject": "an open doorway beside a clearly available exit",
+        "visibleActionOrState": "an open doorway beside a clearly available exit is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Why Selling Feels Uncomfortable” principle is ignored.",
+        "composition": "One dominant an open doorway beside a clearly available exit occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Why Selling Feels Uncomfortable” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “Why Selling Feels Difficult” and “Selling Isn't Manipulation,” this concept centers an open doorway beside a clearly available exit and the specific why selling feels uncomfortable decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "osc-s07b",
+      "visualPremise": "For “Selling Isn't Manipulation,” stage ethical selling replacing pressure with clarity and permission through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": {
+        "identityId": "osc-s07b-operator",
+        "stableVisibleDescription": "the same mid-career independent professional with shoulder-length dark hair, a cobalt knit top, charcoal trousers, and a slim brass watch",
+        "professionalContext": "an experienced independent expert working directly with clients and tangible business evidence"
+      },
+      "recurringConcreteObjects": [
+        "a blank price card beside a complete offer package",
+        "an open doorway beside a clearly available exit",
+        "two shape-coded decision tokens for yes and no"
+      ],
+      "allowedEnvironments": [
+        "a calm consultation table",
+        "a balanced service presentation area"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "price discomfort unbalances the exchange",
+        "evidence and boundaries replace pressure",
+        "a voluntary decision preserves composure"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Selling Isn't Manipulation: ethical selling replacing pressure with clarity and permission.",
+        "focalSubjectOrObject": "two shape-coded decision tokens for yes and no",
+        "visibleActionOrState": "two shape-coded decision tokens for yes and no is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Selling Isn't Manipulation” principle is ignored.",
+        "composition": "One dominant two shape-coded decision tokens for yes and no occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Selling Isn't Manipulation” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “Why Selling Feels Difficult” and “Why Selling Feels Uncomfortable,” this concept centers two shape-coded decision tokens for yes and no and the specific selling isn't manipulation decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "pos-l03",
+      "visualPremise": "For “How To Position Yourself As An Expert From Zero,” stage expert status being built from proof rather than self-labeling through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": {
+        "identityId": "pos-l03-operator",
+        "stableVisibleDescription": "the same mid-career independent professional with shoulder-length dark hair, a cobalt knit top, charcoal trousers, and a slim brass watch",
+        "professionalContext": "an experienced independent expert working directly with clients and tangible business evidence"
+      },
+      "recurringConcreteObjects": [
+        "an empty portrait frame beside a blank expert badge",
+        "a portfolio of samples, case objects, and teaching props",
+        "completed work, explanation, and endorsement objects"
+      ],
+      "allowedEnvironments": [
+        "a practical expertise studio",
+        "a client evaluation table"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "a label has no support",
+        "work and third-party evidence accumulate",
+        "proof enters the room first"
+      ],
+      "thumbnail": {
+        "centralContradiction": "How To Position Yourself As An Expert From Zero: expert status being built from proof rather than self-labeling.",
+        "focalSubjectOrObject": "an empty portrait frame beside a blank expert badge",
+        "visibleActionOrState": "an empty portrait frame beside a blank expert badge is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “How To Position Yourself As An Expert From Zero” principle is ignored.",
+        "composition": "One dominant an empty portrait frame beside a blank expert badge occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “How To Position Yourself As An Expert From Zero” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “You Can't Just Call Yourself An Expert” and “Three Signals To Build From Zero,” this concept centers an empty portrait frame beside a blank expert badge and the specific how to position yourself as an expert from zero decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "pos-l03-s01",
+      "visualPremise": "For “You Can't Just Call Yourself An Expert,” stage expert status being built from proof rather than self-labeling through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": {
+        "identityId": "pos-l03-s01-operator",
+        "stableVisibleDescription": "the same mid-career independent professional with shoulder-length dark hair, a cobalt knit top, charcoal trousers, and a slim brass watch",
+        "professionalContext": "an experienced independent expert working directly with clients and tangible business evidence"
+      },
+      "recurringConcreteObjects": [
+        "an empty portrait frame beside a blank expert badge",
+        "a portfolio of samples, case objects, and teaching props",
+        "completed work, explanation, and endorsement objects"
+      ],
+      "allowedEnvironments": [
+        "a practical expertise studio",
+        "a client evaluation table"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "a label has no support",
+        "work and third-party evidence accumulate",
+        "proof enters the room first"
+      ],
+      "thumbnail": {
+        "centralContradiction": "You Can't Just Call Yourself An Expert: expert status being built from proof rather than self-labeling.",
+        "focalSubjectOrObject": "a portfolio of samples, case objects, and teaching props",
+        "visibleActionOrState": "a portfolio of samples, case objects, and teaching props is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “You Can't Just Call Yourself An Expert” principle is ignored.",
+        "composition": "One dominant a portfolio of samples, case objects, and teaching props occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “You Can't Just Call Yourself An Expert” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “How To Position Yourself As An Expert From Zero” and “Three Signals To Build From Zero,” this concept centers a portfolio of samples, case objects, and teaching props and the specific you can't just call yourself an expert decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "pos-l03-s02",
+      "visualPremise": "For “Three Signals To Build From Zero,” stage expert status being built from proof rather than self-labeling through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": null,
+      "recurringConcreteObjects": [
+        "an empty portrait frame beside a blank expert badge",
+        "a portfolio of samples, case objects, and teaching props",
+        "completed work, explanation, and endorsement objects"
+      ],
+      "allowedEnvironments": [
+        "a practical expertise studio",
+        "a client evaluation table"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "a label has no support",
+        "work and third-party evidence accumulate",
+        "proof enters the room first"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Three Signals To Build From Zero: expert status being built from proof rather than self-labeling.",
+        "focalSubjectOrObject": "completed work, explanation, and endorsement objects",
+        "visibleActionOrState": "completed work, explanation, and endorsement objects is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Three Signals To Build From Zero” principle is ignored.",
+        "composition": "One dominant completed work, explanation, and endorsement objects occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Three Signals To Build From Zero” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “How To Position Yourself As An Expert From Zero” and “You Can't Just Call Yourself An Expert,” this concept centers completed work, explanation, and endorsement objects and the specific three signals to build from zero decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "osc-l08",
+      "visualPremise": "For “Sales Without Chasing Everyone,” stage selective useful outreach replacing indiscriminate chasing through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": null,
+      "recurringConcreteObjects": [
+        "many generic envelopes beside one prepared sample package",
+        "a follow-up calendar represented by spaced physical markers",
+        "closed doors with one relevant door receiving useful evidence"
+      ],
+      "allowedEnvironments": [
+        "a prospect research desk",
+        "a calm outreach workspace"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "pursuit points at everyone",
+        "research and useful context narrow the field",
+        "a relevant prospect opens the conversation"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Sales Without Chasing Everyone: selective useful outreach replacing indiscriminate chasing.",
+        "focalSubjectOrObject": "many generic envelopes beside one prepared sample package",
+        "visibleActionOrState": "many generic envelopes beside one prepared sample package is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Sales Without Chasing Everyone” principle is ignored.",
+        "composition": "One dominant many generic envelopes beside one prepared sample package occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Sales Without Chasing Everyone” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “Stop Chasing Customers” and “Prospecting Without Being Annoying,” this concept centers many generic envelopes beside one prepared sample package and the specific sales without chasing everyone decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "osc-s08a",
+      "visualPremise": "For “Stop Chasing Customers,” stage selective useful outreach replacing indiscriminate chasing through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": {
+        "identityId": "osc-s08a-operator",
+        "stableVisibleDescription": "the same mid-career independent professional with shoulder-length dark hair, a cobalt knit top, charcoal trousers, and a slim brass watch",
+        "professionalContext": "an experienced independent expert working directly with clients and tangible business evidence"
+      },
+      "recurringConcreteObjects": [
+        "many generic envelopes beside one prepared sample package",
+        "a follow-up calendar represented by spaced physical markers",
+        "closed doors with one relevant door receiving useful evidence"
+      ],
+      "allowedEnvironments": [
+        "a prospect research desk",
+        "a calm outreach workspace"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "pursuit points at everyone",
+        "research and useful context narrow the field",
+        "a relevant prospect opens the conversation"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Stop Chasing Customers: selective useful outreach replacing indiscriminate chasing.",
+        "focalSubjectOrObject": "a follow-up calendar represented by spaced physical markers",
+        "visibleActionOrState": "a follow-up calendar represented by spaced physical markers is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Stop Chasing Customers” principle is ignored.",
+        "composition": "One dominant a follow-up calendar represented by spaced physical markers occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Stop Chasing Customers” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “Sales Without Chasing Everyone” and “Prospecting Without Being Annoying,” this concept centers a follow-up calendar represented by spaced physical markers and the specific stop chasing customers decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "osc-s08b",
+      "visualPremise": "For “Prospecting Without Being Annoying,” stage selective useful outreach replacing indiscriminate chasing through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": {
+        "identityId": "osc-s08b-operator",
+        "stableVisibleDescription": "the same mid-career independent professional with shoulder-length dark hair, a cobalt knit top, charcoal trousers, and a slim brass watch",
+        "professionalContext": "an experienced independent expert working directly with clients and tangible business evidence"
+      },
+      "recurringConcreteObjects": [
+        "many generic envelopes beside one prepared sample package",
+        "a follow-up calendar represented by spaced physical markers",
+        "closed doors with one relevant door receiving useful evidence"
+      ],
+      "allowedEnvironments": [
+        "a prospect research desk",
+        "a calm outreach workspace"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "pursuit points at everyone",
+        "research and useful context narrow the field",
+        "a relevant prospect opens the conversation"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Prospecting Without Being Annoying: selective useful outreach replacing indiscriminate chasing.",
+        "focalSubjectOrObject": "closed doors with one relevant door receiving useful evidence",
+        "visibleActionOrState": "closed doors with one relevant door receiving useful evidence is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Prospecting Without Being Annoying” principle is ignored.",
+        "composition": "One dominant closed doors with one relevant door receiving useful evidence occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Prospecting Without Being Annoying” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “Sales Without Chasing Everyone” and “Stop Chasing Customers,” this concept centers closed doors with one relevant door receiving useful evidence and the specific prospecting without being annoying decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "pos-l05",
+      "visualPremise": "For “Why Writing A Book Can Make You The Expert,” stage a focused book operating as portable proof of expertise through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": {
+        "identityId": "pos-l05-operator",
+        "stableVisibleDescription": "the same mid-career independent professional with shoulder-length dark hair, a cobalt knit top, charcoal trousers, and a slim brass watch",
+        "professionalContext": "an experienced independent expert working directly with clients and tangible business evidence"
+      },
+      "recurringConcreteObjects": [
+        "a concise manuscript beside sprawling unrelated notes",
+        "a finished unbranded book entering a meeting first",
+        "one book surrounded by text-free derivative media cards"
+      ],
+      "allowedEnvironments": [
+        "a focused writing desk",
+        "a speaking and consulting workspace"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "knowledge is too broad",
+        "one problem becomes a coherent manuscript",
+        "the book creates introductions and reusable assets"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Why Writing A Book Can Make You The Expert: a focused book operating as portable proof of expertise.",
+        "focalSubjectOrObject": "a concise manuscript beside sprawling unrelated notes",
+        "visibleActionOrState": "a concise manuscript beside sprawling unrelated notes is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Why Writing A Book Can Make You The Expert” principle is ignored.",
+        "composition": "One dominant a concise manuscript beside sprawling unrelated notes occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Why Writing A Book Can Make You The Expert” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “You Don't Need A Publisher” and “Don't Write A Book About Everything You Know,” this concept centers a concise manuscript beside sprawling unrelated notes and the specific why writing a book can make you the expert decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "pos-l05-s01",
+      "visualPremise": "For “You Don't Need A Publisher,” stage a focused book operating as portable proof of expertise through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": null,
+      "recurringConcreteObjects": [
+        "a concise manuscript beside sprawling unrelated notes",
+        "a finished unbranded book entering a meeting first",
+        "one book surrounded by text-free derivative media cards"
+      ],
+      "allowedEnvironments": [
+        "a focused writing desk",
+        "a speaking and consulting workspace"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "knowledge is too broad",
+        "one problem becomes a coherent manuscript",
+        "the book creates introductions and reusable assets"
+      ],
+      "thumbnail": {
+        "centralContradiction": "You Don't Need A Publisher: a focused book operating as portable proof of expertise.",
+        "focalSubjectOrObject": "a finished unbranded book entering a meeting first",
+        "visibleActionOrState": "a finished unbranded book entering a meeting first is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “You Don't Need A Publisher” principle is ignored.",
+        "composition": "One dominant a finished unbranded book entering a meeting first occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “You Don't Need A Publisher” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “Why Writing A Book Can Make You The Expert” and “Don't Write A Book About Everything You Know,” this concept centers a finished unbranded book entering a meeting first and the specific you don't need a publisher decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "pos-l05-s02",
+      "visualPremise": "For “Don't Write A Book About Everything You Know,” stage a focused book operating as portable proof of expertise through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": {
+        "identityId": "pos-l05-s02-operator",
+        "stableVisibleDescription": "the same mid-career independent professional with shoulder-length dark hair, a cobalt knit top, charcoal trousers, and a slim brass watch",
+        "professionalContext": "an experienced independent expert working directly with clients and tangible business evidence"
+      },
+      "recurringConcreteObjects": [
+        "a concise manuscript beside sprawling unrelated notes",
+        "a finished unbranded book entering a meeting first",
+        "one book surrounded by text-free derivative media cards"
+      ],
+      "allowedEnvironments": [
+        "a focused writing desk",
+        "a speaking and consulting workspace"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "knowledge is too broad",
+        "one problem becomes a coherent manuscript",
+        "the book creates introductions and reusable assets"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Don't Write A Book About Everything You Know: a focused book operating as portable proof of expertise.",
+        "focalSubjectOrObject": "one book surrounded by text-free derivative media cards",
+        "visibleActionOrState": "one book surrounded by text-free derivative media cards is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Don't Write A Book About Everything You Know” principle is ignored.",
+        "composition": "One dominant one book surrounded by text-free derivative media cards occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Don't Write A Book About Everything You Know” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “Why Writing A Book Can Make You The Expert” and “You Don't Need A Publisher,” this concept centers one book surrounded by text-free derivative media cards and the specific don't write a book about everything you know decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "tx-l050",
+      "visualPremise": "For “The Expert Business Flywheel: Positioning → Offer → Content → Sales → Retention,” stage positioning, offer, content, sales, and retention reinforcing one another through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": {
+        "identityId": "tx-l050-operator",
+        "stableVisibleDescription": "the same mid-career independent professional with shoulder-length dark hair, a cobalt knit top, charcoal trousers, and a slim brass watch",
+        "professionalContext": "an experienced independent expert working directly with clients and tangible business evidence"
+      },
+      "recurringConcreteObjects": [
+        "five workstations linked in a circular physical path",
+        "a discounted offer box leaking value tokens",
+        "a returned customer parcel feeding evidence into the next offer"
+      ],
+      "allowedEnvironments": [
+        "a circular expert-business operations table",
+        "a connected delivery and customer studio"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "isolated activities consume effort",
+        "shared proof connects each stage",
+        "retained customers feed the next turn"
+      ],
+      "thumbnail": {
+        "centralContradiction": "The Expert Business Flywheel: Positioning → Offer → Content → Sales → Retention: positioning, offer, content, sales, and retention reinforcing one another.",
+        "focalSubjectOrObject": "five workstations linked in a circular physical path",
+        "visibleActionOrState": "five workstations linked in a circular physical path is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “The Expert Business Flywheel: Positioning → Offer → Content → Sales → Retention” principle is ignored.",
+        "composition": "One dominant five workstations linked in a circular physical path occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “The Expert Business Flywheel: Positioning → Offer → Content → Sales → Retention” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “Market Problem Solution Test” and “Never Discount a Weak Offer,” this concept centers five workstations linked in a circular physical path and the specific the expert business flywheel: positioning → offer → content → sales → retention decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "pos-l02-s03",
+      "visualPremise": "For “Market Problem Solution Test,” stage positioning, offer, content, sales, and retention reinforcing one another through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": null,
+      "recurringConcreteObjects": [
+        "five workstations linked in a circular physical path",
+        "a discounted offer box leaking value tokens",
+        "a returned customer parcel feeding evidence into the next offer"
+      ],
+      "allowedEnvironments": [
+        "a circular expert-business operations table",
+        "a connected delivery and customer studio"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "isolated activities consume effort",
+        "shared proof connects each stage",
+        "retained customers feed the next turn"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Market Problem Solution Test: positioning, offer, content, sales, and retention reinforcing one another.",
+        "focalSubjectOrObject": "a discounted offer box leaking value tokens",
+        "visibleActionOrState": "a discounted offer box leaking value tokens is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Market Problem Solution Test” principle is ignored.",
+        "composition": "One dominant a discounted offer box leaking value tokens occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Market Problem Solution Test” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “The Expert Business Flywheel: Positioning → Offer → Content → Sales → Retention” and “Never Discount a Weak Offer,” this concept centers a discounted offer box leaking value tokens and the specific market problem solution test decision rather than their neighboring mechanism or payoff."
+      }
+    },
+    {
+      "storyId": "tx-s027",
+      "visualPremise": "For “Never Discount a Weak Offer,” stage positioning, offer, content, sales, and retention reinforcing one another through concrete objects and observable decisions.",
+      "anchorVisualLanguage": "Contemporary European editorial realism with warm natural light, restrained cobalt and terracotta accents, tactile materials, and the same object system progressing from problem to proof to consequence.",
+      "protagonist": null,
+      "recurringConcreteObjects": [
+        "five workstations linked in a circular physical path",
+        "a discounted offer box leaking value tokens",
+        "a returned customer parcel feeding evidence into the next offer"
+      ],
+      "allowedEnvironments": [
+        "a circular expert-business operations table",
+        "a connected delivery and customer studio"
+      ],
+      "preferredTreatmentFamilies": [
+        "object-led",
+        "comparison-led",
+        "process-led",
+        "evidence-led",
+        "environment-led",
+        "character-led"
+      ],
+      "forbiddenCliches": [
+        "generic office handshake or celebratory team pose",
+        "floating icons, readable dashboards, labels, logos, or generated copy",
+        "anonymous laptop-only stock imagery"
+      ],
+      "progression": [
+        "isolated activities consume effort",
+        "shared proof connects each stage",
+        "retained customers feed the next turn"
+      ],
+      "thumbnail": {
+        "centralContradiction": "Never Discount a Weak Offer: positioning, offer, content, sales, and retention reinforcing one another.",
+        "focalSubjectOrObject": "a returned customer parcel feeding evidence into the next offer",
+        "visibleActionOrState": "a returned customer parcel feeding evidence into the next offer is shown at the decisive moment where the weak pattern visibly gives way to the stronger alternative.",
+        "practicalTension": "The viewer can immediately see what is lost when the “Never Discount a Weak Offer” principle is ignored.",
+        "composition": "One dominant a returned customer parcel feeding evidence into the next offer occupies roughly two thirds of the frame; the rejected alternative remains smaller and spatially separated, with clean negative space for later packaging outside the generated image.",
+        "titleRelationship": "The image shows the consequence and the title “Never Discount a Weak Offer” names the lesson without repeating visible text.",
+        "neighborDistinction": "Unlike “The Expert Business Flywheel: Positioning → Offer → Content → Sales → Retention” and “Market Problem Solution Test,” this concept centers a returned customer parcel feeding evidence into the next offer and the specific never discount a weak offer decision rather than their neighboring mechanism or payoff."
+      }
+    }
+  ]
+}
+

@@ -707,23 +707,24 @@ function promptFor(input: {
 }): string {
   const ratio = input.format === "long" ? "16:9" : "9:16";
   const depiction = input.scene.depiction;
+  const clause = (value: string) => value.trim().replace(/[.!?]+$/u, "");
   return [
     `Text-free ${ratio} ${input.scene.treatment.strategy}.`,
-    `Depict: ${depiction.description}.`,
-    `Primary subject: ${depiction.primarySubject}. Visible action: ${depiction.primaryAction}.`,
+    `Depict: ${clause(depiction.description)}.`,
+    `Primary subject: ${clause(depiction.primarySubject)}. Visible action: ${clause(depiction.primaryAction)}.`,
     `Concrete objects: ${depiction.concreteObjects.join("; ")}.`,
-    `Spatial relationship: ${depiction.spatialRelationship}. Narrative focus: ${depiction.semanticFocus}.`,
+    `Spatial relationship: ${clause(depiction.spatialRelationship)}. Narrative focus: ${clause(depiction.semanticFocus)}.`,
     ...(input.scene.subject.mode === "character-led" && input.scene.subject.primaryIdentityId && input.identityDescription
       ? [`Identity continuity key ${input.scene.subject.primaryIdentityId}; preserve exactly: ${input.identityDescription}.`]
       : []),
-    `Environment: ${depiction.environment}.`,
-    `Composition: ${input.scene.treatment.composition}. Camera: ${input.scene.treatment.camera}.`,
+    `Environment: ${clause(depiction.environment)}.`,
+    `Composition: ${clause(input.scene.treatment.composition)}. Camera: ${clause(input.scene.treatment.camera)}.`,
     ...(input.scene.multiStateAsset
       ? [
-          `Compose one coherent crop-safe multi-state base image: ${input.scene.multiStateAsset.assetLevelDepiction}.`,
-          `Required spatial layout: ${input.scene.multiStateAsset.spatialLayout}. Safe framing: ${input.scene.multiStateAsset.safeFraming}.`,
+          `Compose one coherent crop-safe multi-state base image: ${clause(input.scene.multiStateAsset.assetLevelDepiction)}.`,
+          `Required spatial layout: ${clause(input.scene.multiStateAsset.spatialLayout)}. Safe framing: ${clause(input.scene.multiStateAsset.safeFraming)}.`,
           ...input.scene.multiStateAsset.states.map((state, index) =>
-            `State ${index + 1} ${state.stateRole}, crop ${state.cropFocus}, communicates ${state.semanticPurpose}.`
+            `State ${index + 1} ${clause(state.stateRole)}, crop ${clause(state.cropFocus)}, communicates ${clause(state.semanticPurpose)}.`
           ),
         ]
       : []),
@@ -1143,14 +1144,14 @@ export async function buildVeronicaUnifiedV3SemanticPlan(input: {
     visualEvents,
     thumbnail: {
       centralContradiction: thumbnail.centralContradiction,
-      primaryObjectOrPerson: thumbnail.primaryObjectOrPerson,
+      primaryObjectOrPerson: thumbnail.focalSubjectOrObject,
       visibleActionOrState: thumbnail.visibleActionOrState,
-      tension: thumbnail.tension,
+      tension: thumbnail.practicalTension,
       composition: thumbnail.composition,
       titleRelationship:
         "thumbnail visualizes the consequence or contradiction; title supplies the claim" as const,
-      authoredTitleRelationship: thumbnail.authoredTitleRelationship,
-      distinctFromNeighboringEpisodes: thumbnail.distinctFromNeighboringEpisodes,
+      authoredTitleRelationship: thumbnail.titleRelationship,
+      distinctFromNeighboringEpisodes: thumbnail.neighborDistinction,
       sourceHash: stableHash({ source: direction.thumbnail, compiled: thumbnail }),
     },
     cadence: {

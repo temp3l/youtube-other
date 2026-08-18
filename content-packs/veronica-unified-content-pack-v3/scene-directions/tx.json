@@ -1,0 +1,936 @@
+[
+  {
+    "storyId": "tx-l004",
+    "scenes": [
+      {
+        "depiction": "A buyer compares six identical cream consultant proposal folders, each carrying the same blank brass badge and the same service kit despite slight color differences.",
+        "primarySubject": "consultant proposal comparison set",
+        "primaryAction": "remains interchangeable beneath the buyer's hovering hand because no folder changes the actual service",
+        "concreteObjects": [
+          "six cream proposal folders",
+          "blank brass badges",
+          "a brass paper clip"
+        ],
+        "environment": "sunlit client selection table",
+        "spatialRelationship": "The six cards form a tight row while one empty comparison space sits beside them.",
+        "semanticFocus": "Vague claims are easy for competitors to copy.",
+        "visualIntent": "Show adjective-led differentiation collapsing into sameness.",
+        "subjectMode": "comparison-led",
+        "treatmentStrategy": "comparison-led editorial still life",
+        "composition": "Overhead wide table with cards aligned across the lower half.",
+        "camera": "overhead 35mm",
+        "transitionRelationship": "introduces",
+        "semanticStates": [
+          {
+            "stateRole": "category overview",
+            "cropFocus": "the repeated proposal row",
+            "semanticPurpose": "Establish the crowded category.",
+            "crop": {
+              "x": 0,
+              "y": 0.03,
+              "width": 0.96,
+              "height": 0.96,
+              "focalObject": "six cream proposal cards"
+            }
+          },
+          {
+            "stateRole": "copyable claim",
+            "cropFocus": "two matching blank brass badges",
+            "semanticPurpose": "Show why the language has no moat.",
+            "crop": {
+              "x": 0.06,
+              "y": 0.18,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "blank brass badges"
+            }
+          },
+          {
+            "stateRole": "buyer impasse",
+            "cropFocus": "the empty comparison space",
+            "semanticPurpose": "End on the absent reason to choose.",
+            "crop": {
+              "x": 0.34,
+              "y": 0.12,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "one empty comparison space"
+            }
+          }
+        ]
+      },
+      {
+        "depiction": "Ten matching consultant folders circle a buyer's shortlist, while extra service tabs spill from every folder.",
+        "primarySubject": "consultant proposal comparison set",
+        "primaryAction": "crowds the buyer's shortlist with indistinguishable service options",
+        "concreteObjects": [
+          "ten gray consultant folders",
+          "colored service tabs",
+          "a buyer shortlist sheet"
+        ],
+        "environment": "sunlit client selection table",
+        "spatialRelationship": "Folders surround the shortlist and leave the buyer no clear path inward.",
+        "semanticFocus": "A broad standard offer turns competition into price comparison.",
+        "visualIntent": "Make commoditization visible as a crowded, same-shaped choice.",
+        "subjectMode": "comparison-led",
+        "treatmentStrategy": "object-led comparison",
+        "composition": "Circular arrangement around a centered blank shortlist.",
+        "camera": "high three-quarter view",
+        "transitionRelationship": "explains",
+        "semanticStates": [
+          {
+            "stateRole": "same offer",
+            "cropFocus": "the ring of folders",
+            "semanticPurpose": "Show a saturated market.",
+            "crop": {
+              "x": 0.02,
+              "y": 0,
+              "width": 0.96,
+              "height": 0.96,
+              "focalObject": "ten gray consultant folders"
+            }
+          },
+          {
+            "stateRole": "service sprawl",
+            "cropFocus": "overflowing colored tabs",
+            "semanticPurpose": "Show the instinct to add more.",
+            "crop": {
+              "x": 0.28,
+              "y": 0.08,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "colored service tabs"
+            }
+          },
+          {
+            "stateRole": "price-only choice",
+            "cropFocus": "the blank shortlist sheet",
+            "semanticPurpose": "Show what remains to compare.",
+            "crop": {
+              "x": 0.04,
+              "y": 0.17,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "a buyer shortlist sheet"
+            }
+          }
+        ]
+      },
+      {
+        "depiction": "Five capability objects—a strategy map, design swatches, facilitation cards, analytics counters, and an industry binder—sit apart on a workshop table with no connection between them.",
+        "primarySubject": "skill-stack workbench",
+        "primaryAction": "holds five useful capabilities apart until a specific pair begins to form a recognizable working combination",
+        "concreteObjects": [
+          "five capability objects",
+          "a workshop table",
+          "thin connecting cord"
+        ],
+        "environment": "quiet strategy workshop table",
+        "spatialRelationship": "The five capability objects are spread widely apart; unused cord lies between them.",
+        "semanticFocus": "Ordinary skills become distinctive through their combination.",
+        "visualIntent": "Move from category sprawl to a possible skill intersection.",
+        "subjectMode": "object-led",
+        "treatmentStrategy": "diagrammatic object still life",
+        "composition": "Wide horizontal tabletop with generous gaps.",
+        "camera": "overhead 50mm",
+        "transitionRelationship": "contrasts",
+        "semanticStates": [
+          {
+            "stateRole": "separate capabilities",
+            "cropFocus": "all five capability objects",
+            "semanticPurpose": "Establish isolated competencies.",
+            "crop": {
+              "x": 0,
+              "y": 0.05,
+              "width": 0.94,
+              "height": 0.94,
+              "focalObject": "five capability objects"
+            }
+          },
+          {
+            "stateRole": "unused connection",
+            "cropFocus": "the loose cord between capability objects",
+            "semanticPurpose": "Suggest a combination not yet made.",
+            "crop": {
+              "x": 0.18,
+              "y": 0.18,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "thin connecting cord"
+            }
+          },
+          {
+            "stateRole": "selected pair",
+            "cropFocus": "strategy map and industry binder brought together",
+            "semanticPurpose": "Introduce the possibility of an intersection.",
+            "crop": {
+              "x": 0.36,
+              "y": 0.1,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "strategy map and industry binder"
+            }
+          }
+        ]
+      },
+      {
+        "depiction": "A specialist's desk pairs a regulatory binder with a pictorial customer leaflet and a marked conversion sketch.",
+        "primarySubject": "skill-stack workbench",
+        "primaryAction": "links complex requirements to clear customer communication",
+        "concreteObjects": [
+          "regulatory binder",
+          "pictorial customer leaflet",
+          "conversion sketch",
+          "red editing pencil"
+        ],
+        "environment": "regulated-industry consultant studio",
+        "spatialRelationship": "The binder opens on the left, leaflet and sketch translate it on the right.",
+        "semanticFocus": "A rare intersection changes the service delivered.",
+        "visualIntent": "Render a concrete skill-stack advantage rather than a new job title.",
+        "subjectMode": "process-led",
+        "treatmentStrategy": "process-led editorial realism",
+        "composition": "Diagonal desk arrangement from dense binder to simple leaflet.",
+        "camera": "top-down 45mm",
+        "transitionRelationship": "demonstrates",
+        "semanticStates": [
+          {
+            "stateRole": "complex source",
+            "cropFocus": "the open regulatory binder",
+            "semanticPurpose": "Show the specialist knowledge.",
+            "crop": {
+              "x": 0.01,
+              "y": 0.06,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "regulatory binder"
+            }
+          },
+          {
+            "stateRole": "translation act",
+            "cropFocus": "the red pencil crossing to leaflet",
+            "semanticPurpose": "Show the connective capability.",
+            "crop": {
+              "x": 0.2,
+              "y": 0.16,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "red editing pencil"
+            }
+          },
+          {
+            "stateRole": "customer clarity",
+            "cropFocus": "the pictorial customer leaflet",
+            "semanticPurpose": "Show the useful output.",
+            "crop": {
+              "x": 0.35,
+              "y": 0.04,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "pictorial customer leaflet"
+            }
+          }
+        ]
+      },
+      {
+        "depiction": "A consultant pins three personal capability cards beside a wall of competitor offer cards, circling the one combination no rival has assembled.",
+        "primarySubject": "skill-stack workbench",
+        "primaryAction": "brings three capability cards into one red-thread combination against a wall of similar competitor offers",
+        "concreteObjects": [
+          "capability cards",
+          "competitor offer cards",
+          "red connecting thread",
+          "pencil circle"
+        ],
+        "environment": "research wall in a small studio",
+        "spatialRelationship": "Personal cards occupy the center; competitor cards create a dense outer border.",
+        "semanticFocus": "Differentiation must be both personal and relative to alternatives.",
+        "visualIntent": "Show a useful combination being tested against the market.",
+        "subjectMode": "evidence-led",
+        "treatmentStrategy": "research-led wall tableau",
+        "composition": "Centered triangle of cards framed by a crowded perimeter.",
+        "camera": "straight-on 50mm",
+        "transitionRelationship": "explains",
+        "semanticStates": [
+          {
+            "stateRole": "self inventory",
+            "cropFocus": "the three central capability cards",
+            "semanticPurpose": "Show what the expert brings.",
+            "crop": {
+              "x": 0.18,
+              "y": 0.08,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "three capability cards"
+            }
+          },
+          {
+            "stateRole": "market scan",
+            "cropFocus": "the outer competitor cards",
+            "semanticPurpose": "Show the alternatives being studied.",
+            "crop": {
+              "x": 0.01,
+              "y": 0.02,
+              "width": 0.96,
+              "height": 0.96,
+              "focalObject": "competitor offer cards"
+            }
+          },
+          {
+            "stateRole": "rare intersection",
+            "cropFocus": "the pencil circle around one combination",
+            "semanticPurpose": "Show a meaningful difference.",
+            "crop": {
+              "x": 0.35,
+              "y": 0.18,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "pencil circle"
+            }
+          }
+        ]
+      },
+      {
+        "depiction": "A category research board repeats the same promise cards while one overlooked customer problem card remains pinned at the edge and a loose route thread leads from it toward open research space.",
+        "primarySubject": "category research board",
+        "primaryAction": "holds repeated promise cards in a grid while one overlooked customer problem and its route thread break the category boundary",
+        "concreteObjects": [
+          "repeated promise cards",
+          "customer problem card",
+          "colored pushpins",
+          "research board",
+          "loose route thread"
+        ],
+        "environment": "category research wall",
+        "spatialRelationship": "The repeated cards fill the center, the overlooked problem hangs alone at the lower edge, and its thread continues into open space beyond the grid.",
+        "semanticFocus": "Competitor research reveals assumptions and neglected problems.",
+        "visualIntent": "Turn category sameness into a visible research finding.",
+        "subjectMode": "evidence-led",
+        "treatmentStrategy": "evidence-led pinboard scene",
+        "composition": "Grid-heavy board with a single off-grid card.",
+        "camera": "straight-on close 60mm",
+        "transitionRelationship": "demonstrates",
+        "semanticStates": [
+          {
+            "stateRole": "repeated language",
+            "cropFocus": "the central grid of promise cards",
+            "semanticPurpose": "Show the category's sameness.",
+            "crop": {
+              "x": 0.02,
+              "y": 0,
+              "width": 0.95,
+              "height": 0.95,
+              "focalObject": "repeated promise cards"
+            }
+          },
+          {
+            "stateRole": "ignored need",
+            "cropFocus": "the isolated customer problem card",
+            "semanticPurpose": "Reveal what competitors leave out.",
+            "crop": {
+              "x": 0.06,
+              "y": 0.24,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "overlooked customer problem card"
+            }
+          },
+          {
+            "stateRole": "research pivot",
+            "cropFocus": "the route thread leaving the competitor grid",
+            "semanticPurpose": "Show the inquiry moving beyond the category's repeated assumptions.",
+            "crop": {
+              "x": 0.35,
+              "y": 0.13,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "loose route thread"
+            }
+          }
+        ]
+      },
+      {
+        "depiction": "A service blueprint is laid beside a museum visitor map and a first-time-user welcome kit, with matching route markers connecting them.",
+        "primarySubject": "cross-industry route comparison",
+        "primaryAction": "aligns the same route pattern across service, museum, and first-user contexts from different industries",
+        "concreteObjects": [
+          "service blueprint",
+          "museum visitor map",
+          "first-user welcome kit",
+          "route markers"
+        ],
+        "environment": "cross-industry research table",
+        "spatialRelationship": "The two maps face each other, linked by three matching markers.",
+        "semanticFocus": "Borrow underlying mechanisms, not another industry's surface style.",
+        "visualIntent": "Show cross-industry research as structural comparison.",
+        "subjectMode": "comparison-led",
+        "treatmentStrategy": "comparison-led tabletop",
+        "composition": "Paired documents with a narrow bridge of markers.",
+        "camera": "overhead 40mm",
+        "transitionRelationship": "contrasts",
+        "semanticStates": [
+          {
+            "stateRole": "home-sector process",
+            "cropFocus": "the service blueprint",
+            "semanticPurpose": "Establish the familiar problem.",
+            "crop": {
+              "x": 0.01,
+              "y": 0.1,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "service blueprint"
+            }
+          },
+          {
+            "stateRole": "outside model",
+            "cropFocus": "the museum visitor map",
+            "semanticPurpose": "Introduce the different context.",
+            "crop": {
+              "x": 0.35,
+              "y": 0.05,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "museum visitor map"
+            }
+          },
+          {
+            "stateRole": "shared mechanism",
+            "cropFocus": "the three matching route markers",
+            "semanticPurpose": "Show what can be translated.",
+            "crop": {
+              "x": 0.17,
+              "y": 0.2,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "route markers"
+            }
+          }
+        ]
+      },
+      {
+        "depiction": "A long final report is replaced by a row of four client checkpoint cards, each with one visible next-action token.",
+        "primarySubject": "progressive client delivery sequence",
+        "primaryAction": "replaces one delayed final report with four checkpoints the client can act on immediately",
+        "concreteObjects": [
+          "long report folder",
+          "four checkpoint cards",
+          "next-action tokens",
+          "client folder"
+        ],
+        "environment": "client project desk",
+        "spatialRelationship": "The closed report sits behind the four cards, which lead toward the client folder.",
+        "semanticFocus": "Translate a mechanism into the client experience instead of copying a surface.",
+        "visualIntent": "Show progressive delivery making insight usable.",
+        "subjectMode": "process-led",
+        "treatmentStrategy": "before-and-after process still life",
+        "composition": "Left-to-right sequence ending at a client folder.",
+        "camera": "overhead 45mm",
+        "transitionRelationship": "demonstrates",
+        "semanticStates": [
+          {
+            "stateRole": "delayed insight",
+            "cropFocus": "the closed long report folder",
+            "semanticPurpose": "Show the old delivery pattern.",
+            "crop": {
+              "x": 0.02,
+              "y": 0.13,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "long report folder"
+            }
+          },
+          {
+            "stateRole": "progressive checkpoints",
+            "cropFocus": "the row of checkpoint cards",
+            "semanticPurpose": "Show the redesigned sequence.",
+            "crop": {
+              "x": 0.12,
+              "y": 0.04,
+              "width": 0.8,
+              "height": 0.8,
+              "focalObject": "four sequential client checkpoint cards"
+            }
+          },
+          {
+            "stateRole": "client action",
+            "cropFocus": "one next-action token beside folder",
+            "semanticPurpose": "Show that insight now changes a decision.",
+            "crop": {
+              "x": 0.35,
+              "y": 0.18,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "next-action tokens"
+            }
+          }
+        ]
+      },
+      {
+        "depiction": "A specialist offer board has a clean boundary line: a strategy compass and fitted offer box remain inside, while social-post cards, ad tokens, and a website wireframe sit outside.",
+        "primarySubject": "service-boundary workbench",
+        "primaryAction": "separates a focused engagement from a pile of adjacent requests",
+        "concreteObjects": [
+          "strategy compass and fitted offer box",
+          "social posting cards",
+          "ad buying cards",
+          "boundary line"
+        ],
+        "environment": "consultant planning desk",
+        "spatialRelationship": "The focused board occupies the left; excluded request cards stack beyond the line.",
+        "semanticFocus": "Subtraction can make an offer clearer and more memorable.",
+        "visualIntent": "Make refusal visible as a useful design choice.",
+        "subjectMode": "comparison-led",
+        "treatmentStrategy": "comparison-led object composition",
+        "composition": "Strong vertical divide with focused board on the left.",
+        "camera": "high three-quarter 50mm",
+        "transitionRelationship": "contrasts",
+        "semanticStates": [
+          {
+            "stateRole": "focused scope",
+            "cropFocus": "the strategy compass and fitted offer box",
+            "semanticPurpose": "Show the work the specialist owns.",
+            "crop": {
+              "x": 0.01,
+              "y": 0.05,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "focused service board"
+            }
+          },
+          {
+            "stateRole": "refused extras",
+            "cropFocus": "the stack outside the line",
+            "semanticPurpose": "Show what is deliberately not absorbed.",
+            "crop": {
+              "x": 0.35,
+              "y": 0.14,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "social posting cards"
+            }
+          },
+          {
+            "stateRole": "sharper category",
+            "cropFocus": "the boundary line",
+            "semanticPurpose": "Let the constraint itself carry the point.",
+            "crop": {
+              "x": 0.2,
+              "y": 0.17,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "clear service boundary line"
+            }
+          }
+        ]
+      },
+      {
+        "depiction": "A cluttered client request board feeds cables into a tangled delivery calendar, while a smaller constrained workflow follows one clean lane.",
+        "primarySubject": "service-boundary workbench",
+        "primaryAction": "shows how accepting every adjacent request creates exceptions",
+        "concreteObjects": [
+          "client request cards",
+          "tangled delivery calendar",
+          "colored cables",
+          "clean workflow lane"
+        ],
+        "environment": "operations planning wall",
+        "spatialRelationship": "Tangled cables cross the large calendar; one uncluttered lane runs along the bottom.",
+        "semanticFocus": "Boundaries protect a repeatable delivery system.",
+        "visualIntent": "Contrast exception-driven work with a constrained process.",
+        "subjectMode": "process-led",
+        "treatmentStrategy": "process-led wall scene",
+        "composition": "Dense upper chaos balanced by one clear lower lane.",
+        "camera": "straight-on 35mm",
+        "transitionRelationship": "explains",
+        "semanticStates": [
+          {
+            "stateRole": "exception load",
+            "cropFocus": "the tangled calendar",
+            "semanticPurpose": "Show unpredictability accumulating.",
+            "crop": {
+              "x": 0.03,
+              "y": 0.02,
+              "width": 0.94,
+              "height": 0.94,
+              "focalObject": "tangled delivery calendar"
+            }
+          },
+          {
+            "stateRole": "source requests",
+            "cropFocus": "the client request cards",
+            "semanticPurpose": "Identify what feeds the chaos.",
+            "crop": {
+              "x": 0.04,
+              "y": 0.18,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "client request cards"
+            }
+          },
+          {
+            "stateRole": "repeatable lane",
+            "cropFocus": "the clean workflow lane",
+            "semanticPurpose": "Show the value of constraints.",
+            "crop": {
+              "x": 0.34,
+              "y": 0.21,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "clean workflow lane"
+            }
+          }
+        ]
+      },
+      {
+        "depiction": "An ornate folder embossed with a meaningless abstract symbol sits beside a simple buyer test made from an hourglass, a fitted key, a risk shield, and a photographed outcome.",
+        "primarySubject": "buyer-value test table",
+        "primaryAction": "pushes the elaborate but empty branded folder behind four concrete buyer criteria",
+        "concreteObjects": [
+          "ornate branded folder",
+          "four concrete buyer-criterion objects",
+          "plain pencil",
+          "service scope kit"
+        ],
+        "environment": "buyer review desk",
+        "spatialRelationship": "The decorative folder is pushed back; the four buyer-criterion objects and service scope kit are in the foreground.",
+        "semanticFocus": "Novelty matters only when it improves a buyer-relevant outcome.",
+        "visualIntent": "Expose decorative differentiation as less valuable than practical change.",
+        "subjectMode": "comparison-led",
+        "treatmentStrategy": "object-led contrast",
+        "composition": "Four buyer-criterion objects are sharply lit in front while the ornate folder remains soft behind them.",
+        "camera": "low tabletop 55mm",
+        "transitionRelationship": "contrasts",
+        "semanticStates": [
+          {
+            "stateRole": "empty novelty",
+            "cropFocus": "the ornate branded folder",
+            "semanticPurpose": "Show a memorable name without substance.",
+            "crop": {
+              "x": 0.35,
+              "y": 0.06,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "ornate branded folder"
+            }
+          },
+          {
+            "stateRole": "buyer criteria",
+            "cropFocus": "the four buyer-criterion objects",
+            "semanticPurpose": "Show what the decision actually tests.",
+            "crop": {
+              "x": 0.01,
+              "y": 0.14,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "four concrete buyer-criterion objects"
+            }
+          },
+          {
+            "stateRole": "operational value",
+            "cropFocus": "the service scope kit",
+            "semanticPurpose": "Connect distinction to a practical improvement.",
+            "crop": {
+              "x": 0.18,
+              "y": 0.21,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "service scope kit"
+            }
+          }
+        ]
+      },
+      {
+        "depiction": "Four translucent shapes paired with a buyer portrait, problem photograph, method sequence, and package components align over one client offer card, each revealing a different edge.",
+        "primarySubject": "differentiated-offer model",
+        "primaryAction": "aligns buyer, problem, method, and package evidence into one differentiated service model",
+        "concreteObjects": [
+          "buyer-portrait overlay",
+          "problem-photograph overlay",
+          "method-sequence overlay",
+          "package-component overlay",
+          "central offer card"
+        ],
+        "environment": "offer design table",
+        "spatialRelationship": "The overlays stack directly over the central offer card.",
+        "semanticFocus": "Differentiation can be built through audience, problem, mechanism, or model.",
+        "visualIntent": "Give the four levers a clear physical form.",
+        "subjectMode": "object-led",
+        "treatmentStrategy": "diagrammatic editorial still life",
+        "composition": "Centered layered square with visible offset corners.",
+        "camera": "overhead macro 60mm",
+        "transitionRelationship": "explains",
+        "semanticStates": [
+          {
+            "stateRole": "audience lens",
+            "cropFocus": "the buyer-portrait overlay corner",
+            "semanticPurpose": "Show who the offer is for.",
+            "crop": {
+              "x": 0.03,
+              "y": 0.1,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "buyer-portrait overlay"
+            }
+          },
+          {
+            "stateRole": "mechanism lens",
+            "cropFocus": "the method-sequence overlay corner",
+            "semanticPurpose": "Show how the work changes experience.",
+            "crop": {
+              "x": 0.34,
+              "y": 0.11,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "method-sequence overlay"
+            }
+          },
+          {
+            "stateRole": "combined offer",
+            "cropFocus": "the aligned central offer card",
+            "semanticPurpose": "Show the levers operating together.",
+            "crop": {
+              "x": 0.16,
+              "y": 0.04,
+              "width": 0.7,
+              "height": 0.7,
+              "focalObject": "central offer card"
+            }
+          }
+        ]
+      },
+      {
+        "depiction": "Three small-company marketing proposals sit on a buyer's desk; only one opens with a diagnostic worksheet and a focused client-fit card.",
+        "primarySubject": "consultant proposal comparison set",
+        "primaryAction": "stands apart because its scope and starting decision are visibly different",
+        "concreteObjects": [
+          "three proposal folders",
+          "diagnostic worksheet",
+          "client-fit card",
+          "monthly hours sheet"
+        ],
+        "environment": "small-company buyer desk",
+        "spatialRelationship": "The two generic folders remain closed at the back; the diagnostic proposal opens in front.",
+        "semanticFocus": "an operational difference should be easy to explain and substantial enough to change the buying decision",
+        "visualIntent": "Show a buying experience changing through a diagnostic-first structure.",
+        "subjectMode": "comparison-led",
+        "treatmentStrategy": "buyer-perspective comparison",
+        "composition": "Open proposal centered, closed alternatives recessed.",
+        "camera": "seated eye-level 50mm",
+        "transitionRelationship": "demonstrates",
+        "semanticStates": [
+          {
+            "stateRole": "generic alternatives",
+            "cropFocus": "two closed monthly-hours folders",
+            "semanticPurpose": "Establish the common option.",
+            "crop": {
+              "x": 0.35,
+              "y": 0.05,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "three proposal folders"
+            }
+          },
+          {
+            "stateRole": "different entry",
+            "cropFocus": "the diagnostic worksheet",
+            "semanticPurpose": "Show the changed first step.",
+            "crop": {
+              "x": 0.04,
+              "y": 0.12,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "diagnostic worksheet"
+            }
+          },
+          {
+            "stateRole": "fit boundary",
+            "cropFocus": "the focused client-fit card",
+            "semanticPurpose": "Show who the offer is for.",
+            "crop": {
+              "x": 0.2,
+              "y": 0.18,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "client-fit card"
+            }
+          }
+        ]
+      },
+      {
+        "depiction": "A buyer lifts an easily copied blank adjective badge away from a compact service system built from a specialist toolkit, method path, client-fit gate, and proof token.",
+        "primarySubject": "differentiated-offer model",
+        "primaryAction": "exposes the operating system beneath the claim while the copyable blank badge is removed from the decision",
+        "concreteObjects": [
+          "copyable blank adjective badge",
+          "specialist toolkit",
+          "method path and client-fit gate",
+          "client proof token"
+        ],
+        "environment": "buyer review desk",
+        "spatialRelationship": "The blank adjective badge lifts from the foreground while the fitted toolkit, method path, client-fit gate, and proof token remain connected beneath it.",
+        "semanticFocus": "Competitors can copy a sentence immediately but need a real combination, method, focus, and proof to copy the system credibly.",
+        "visualIntent": "Contrast instantly copyable language with a layered operating difference.",
+        "subjectMode": "object-led",
+        "treatmentStrategy": "decision-led close still life",
+        "composition": "Removed blank badge in the near foreground with the connected service system revealed beneath.",
+        "camera": "close 85mm",
+        "transitionRelationship": "demonstrates",
+        "semanticStates": [
+          {
+            "stateRole": "copyable badge",
+            "cropFocus": "the blank adjective badge lifting away from the service model",
+            "semanticPurpose": "Show the superficial difference a competitor can reproduce immediately.",
+            "crop": {
+              "x": 0.35,
+              "y": 0.1,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "copyable blank adjective badge"
+            }
+          },
+          {
+            "stateRole": "operating structure",
+            "cropFocus": "the toolkit and method path under the removed card",
+            "semanticPurpose": "Reveal the working combination that cannot be copied as quickly as a phrase.",
+            "crop": {
+              "x": 0.01,
+              "y": 0.05,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "specialist toolkit"
+            }
+          },
+          {
+            "stateRole": "defensible system",
+            "cropFocus": "the client-fit gate connected to the proof token",
+            "semanticPurpose": "Show focus and evidence making the difference credible to the buyer.",
+            "crop": {
+              "x": 0.17,
+              "y": 0.22,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "client proof token"
+            }
+          }
+        ]
+      },
+      {
+        "depiction": "A layered service model is built from fitted niche, skill-stack, method, and boundary pieces, then locked by a proof token, three teaching cards, and a concrete offer box.",
+        "primarySubject": "differentiated-offer model",
+        "primaryAction": "locks together into a structure competitors cannot copy with one sentence",
+        "concreteObjects": [
+          "niche marker",
+          "skill-stack cards",
+          "service method map",
+          "boundary frame and concrete offer box",
+          "proof token and teaching cards"
+        ],
+        "environment": "service architecture table",
+        "spatialRelationship": "The pieces interlock around a central proof token.",
+        "semanticFocus": "Layered differentiation combines relevance, capability, method, and constraints.",
+        "visualIntent": "Show why a system is harder to reproduce than a tagline.",
+        "subjectMode": "object-led",
+        "treatmentStrategy": "assembled-object metaphor",
+        "composition": "Interlocking pieces fill a centered square.",
+        "camera": "overhead 45mm",
+        "transitionRelationship": "resolves",
+        "semanticStates": [
+          {
+            "stateRole": "relevance base",
+            "cropFocus": "the niche marker",
+            "semanticPurpose": "Show the client focus layer.",
+            "crop": {
+              "x": 0.03,
+              "y": 0.18,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "niche marker"
+            }
+          },
+          {
+            "stateRole": "method connection",
+            "cropFocus": "the method map joining pieces",
+            "semanticPurpose": "Show the distinctive way of working.",
+            "crop": {
+              "x": 0.34,
+              "y": 0.07,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "service method map"
+            }
+          },
+          {
+            "stateRole": "defensible whole",
+            "cropFocus": "the completed four-piece model",
+            "semanticPurpose": "Reveal the complete service structure that competitors cannot reproduce with a tagline.",
+            "crop": {
+              "x": 0.13,
+              "y": 0.03,
+              "width": 0.76,
+              "height": 0.76,
+              "focalObject": "four-piece service model"
+            }
+          }
+        ]
+      },
+      {
+        "depiction": "A crowded market shelf contains one service box with a visible skill-stack map, boundary seal, and client-fit marker while similar boxes blur around it.",
+        "primarySubject": "differentiated-offer model",
+        "primaryAction": "stands apart because its difference is built into what the buyer receives",
+        "concreteObjects": [
+          "structured service box",
+          "skill-stack map",
+          "boundary seal",
+          "client-fit marker",
+          "similar service boxes"
+        ],
+        "environment": "client procurement shelf",
+        "spatialRelationship": "The structured box is centered and forward; comparable boxes recede in soft focus.",
+        "semanticFocus": "the service becomes harder to compare because its operating structure gives the buyer a relevant reason to choose",
+        "visualIntent": "End on a service made harder to compare because its structure is visible.",
+        "subjectMode": "object-led",
+        "treatmentStrategy": "product-led editorial realism",
+        "composition": "Single hero box centered with negative space above.",
+        "camera": "front 70mm",
+        "transitionRelationship": "resolves",
+        "semanticStates": [
+          {
+            "stateRole": "crowded market",
+            "cropFocus": "the surrounding similar boxes",
+            "semanticPurpose": "Recall the crowded starting category.",
+            "crop": {
+              "x": 0.01,
+              "y": 0.04,
+              "width": 0.96,
+              "height": 0.96,
+              "focalObject": "similar service boxes"
+            }
+          },
+          {
+            "stateRole": "visible structure",
+            "cropFocus": "the skill-stack map on hero box",
+            "semanticPurpose": "Show why this offer differs.",
+            "crop": {
+              "x": 0.16,
+              "y": 0.12,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "skill-stack map"
+            }
+          },
+          {
+            "stateRole": "buyer fit",
+            "cropFocus": "the client-fit marker",
+            "semanticPurpose": "End on the buyer-facing reason to choose.",
+            "crop": {
+              "x": 0.36,
+              "y": 0.18,
+              "width": 0.62,
+              "height": 0.62,
+              "focalObject": "client-fit marker"
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

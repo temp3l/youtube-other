@@ -1,0 +1,542 @@
+[
+  {
+    "storyId": "osc-l06",
+    "centralContradiction": "A crowded phone stops at a missing bridge while an empty basket waits on the other side.",
+    "focalSubjectOrObject": "crowded phone beside a broken brass customer path",
+    "visibleActionOrState": "a stream of colored attention beads spills from the phone and stops at the missing bridge before the untouched basket",
+    "practicalTension": "visible demand is abundant, but no physical connection carries it toward a purchase",
+    "composition": "Low diagonal tabletop: phone and halted bead stream occupy the lower left, the broken bridge cuts the center, and the empty basket holds the upper right.",
+    "titleRelationship": "The image supplies the broken route; the title identifies why attention alone is not the outcome.",
+    "neighborDistinction": "Unlike the two companion Shorts, this long-form thumbnail shows the full system break from attention through the missing route to purchase."
+  },
+  {
+    "storyId": "osc-s06a",
+    "centralContradiction": "A phone full of viewing activity towers over a fulfillment rail with no orders.",
+    "focalSubjectOrObject": "vertical phone above an entirely empty fulfillment rail",
+    "visibleActionOrState": "unlabeled video tiles glow on the phone while blank parcel slots recede beneath it without a single package",
+    "practicalTension": "the popularity signal is loud, but the order system provides a starkly empty payoff",
+    "composition": "Tall split frame: the phone fills the upper half and a single empty metal rail runs below it into deep shadow.",
+    "titleRelationship": "The visual makes the empty sales outcome immediate; the title names the false equation viewers often make.",
+    "neighborDistinction": "Unlike the long episode's broken journey and the trust Short's proof bridge, this frame concentrates on the empty operational outcome."
+  },
+  {
+    "storyId": "osc-s06b",
+    "centralContradiction": "A glossy purchase tile cannot cross the gap until ordinary proof objects become its foundation.",
+    "focalSubjectOrObject": "glossy purchase tile above a bridge of real proof objects",
+    "visibleActionOrState": "a work sample, receipt, and clear terms card lock together beneath the tile while an unsupported duplicate falls away",
+    "practicalTension": "the attractive request is powerless without credible evidence already carrying the buyer forward",
+    "composition": "Strong upward diagonal: tactile proof objects form the lower bridge, the supported tile rises at center, and the falling duplicate exits at the edge.",
+    "titleRelationship": "The image names the evidence through objects; the title supplies the strategic lesson about when conversion can work.",
+    "neighborDistinction": "Unlike the empty rail in Views Are Not Sales, this thumbnail makes the positive mechanism visible: proof becomes the support beneath the ask."
+  },
+  {
+    "storyId": "pos-l01",
+    "centralContradiction": "Excellent work cannot win a shortlist when its proof stays inside a closed folder.",
+    "focalSubjectOrObject": "a portfolio folder half-hidden beneath a stack of generic proposals",
+    "visibleActionOrState": "one hand pulls the proof folder into the light while anonymous proposal folders slide aside",
+    "practicalTension": "real capability exists, but selection depends on whether anyone can see it",
+    "composition": "Overhead desk scene with the revealed portfolio forming a clean central corridor through clutter.",
+    "titleRelationship": "The image makes invisibility, not lack of skill, the reason the work loses.",
+    "neighborDistinction": "Unlike the two supporting Shorts, this image shows a buyer making an actual shortlist decision from revealed proof rather than only contrasting competence with perception."
+  },
+  {
+    "storyId": "pos-l01-s01",
+    "centralContradiction": "A finished piece of strong work is overlooked beside louder but vaguer claims.",
+    "focalSubjectOrObject": "a carefully made sample object on a crowded review table",
+    "visibleActionOrState": "the sample is pushed to the edge while a reviewer reaches toward a bolder but empty presentation board",
+    "practicalTension": "quality alone does not direct attention",
+    "composition": "Low side angle: the overlooked sample is sharp in the foreground, the chosen board is blurred but visually larger.",
+    "titleRelationship": "It shows why being good is insufficient when the proof is not legible.",
+    "neighborDistinction": "This is about overlooked craft, while the long episode expands into the full hiring or buying shortlist."
+  },
+  {
+    "storyId": "pos-l01-s02",
+    "centralContradiction": "Private expertise and public perception point to two different candidates.",
+    "focalSubjectOrObject": "two presentation folders labeled only by visual cues: one packed with case evidence, one visibly polished",
+    "visibleActionOrState": "a selector's finger hovers over the polished folder while the evidence-rich folder remains unopened",
+    "practicalTension": "the better choice is not the one people can recognize fastest",
+    "composition": "Symmetrical top-down comparison with the hovering hand breaking the balance toward the weaker signal.",
+    "titleRelationship": "The image reveals the gap between actual expertise and what the market notices.",
+    "neighborDistinction": "Unlike Being Good Isn't Enough, this composition forces a direct perception-versus-proof choice."
+  },
+  {
+    "storyId": "osc-l05",
+    "centralContradiction": "More promotion feeds a product experience that still sends customers away.",
+    "focalSubjectOrObject": "a crowded promotional mailer spilling into a damaged product unboxing",
+    "visibleActionOrState": "fresh campaign cards pile up outside the box while a return label is being attached to the disappointing item inside",
+    "practicalTension": "marketing creates arrivals, but the product creates the exit",
+    "composition": "Open box centered in frame; promotional pieces form a noisy border that cannot hide the return label.",
+    "titleRelationship": "The title challenges marketing; the image exposes the product experience it cannot repair.",
+    "neighborDistinction": "This is an after-purchase failure, unlike the choices Short's pre-purchase overload."
+  },
+  {
+    "storyId": "osc-s05a",
+    "centralContradiction": "An expensive campaign cannot compensate for a product that disappoints on arrival.",
+    "focalSubjectOrObject": "a glossy advertising postcard beside an open parcel with a return slip",
+    "visibleActionOrState": "the postcard is pristine while the buyer folds the return slip over the product box",
+    "practicalTension": "the promise is attractive; the lived result is not",
+    "composition": "Tight before-and-after pairing: immaculate promotion on one side, rejected delivery on the other.",
+    "titleRelationship": "The frame asks viewers to inspect the product moment instead of blaming the marketing channel.",
+    "neighborDistinction": "This contrasts campaign promise with disappointment, not a menu of confusing options."
+  },
+  {
+    "storyId": "osc-s05b",
+    "centralContradiction": "An offer becomes harder to buy as choices multiply.",
+    "focalSubjectOrObject": "a counter covered by seven competing service cards",
+    "visibleActionOrState": "a buyer's hand stops above the cards while one clear bundled card is partly buried beneath them",
+    "practicalTension": "more apparent choice prevents a decision",
+    "composition": "High-angle fan of cards with an empty space around the stalled hand.",
+    "titleRelationship": "It makes decision fatigue visible without needing text on the cards.",
+    "neighborDistinction": "Unlike Marketing May Not Be The Problem, the failure occurs before purchase through overload."
+  },
+  {
+    "storyId": "tx-l004",
+    "centralContradiction": "Similar services look interchangeable until one operating choice changes the outcome.",
+    "focalSubjectOrObject": "two nearly identical service kits with one visibly different workflow tool",
+    "visibleActionOrState": "one kit has a clearly sequenced checklist and prepared materials; the other is a loose pile of the same supplies",
+    "practicalTension": "the distinction comes from how the work is done, not a louder label",
+    "composition": "Side-by-side workbench comparison with the ordered kit occupying a crisp diagonal.",
+    "titleRelationship": "The image supplies the concrete operating difference behind the abstract idea of differentiation.",
+    "neighborDistinction": "Unlike the memory and price-signal Shorts, this image compares two complete service kits and makes the operating method—not recall or price—the visible reason to choose."
+  },
+  {
+    "storyId": "pos-l01-s03",
+    "centralContradiction": "People remember one recognizable cue, not a crowded list of capabilities.",
+    "focalSubjectOrObject": "a distinctive cobalt tool among a drawer of similar neutral tools",
+    "visibleActionOrState": "the memorable tool remains visible after the drawer is mostly closed over the others",
+    "practicalTension": "one specific association survives where a broad identity disappears",
+    "composition": "Close crop on the narrowing drawer gap, with the cobalt object as the only retained visual signal.",
+    "titleRelationship": "It answers the title by showing what memory can hold onto.",
+    "neighborDistinction": "Unlike the differentiation long, this is about recall after the encounter rather than a process choice."
+  },
+  {
+    "storyId": "tx-s021",
+    "centralContradiction": "A bargain price can make a capable service look risky.",
+    "focalSubjectOrObject": "a premium-looking repair kit carrying an improbably tiny price tag",
+    "visibleActionOrState": "a customer holds the tag away from the kit while an unsigned warranty card lies between them",
+    "practicalTension": "the low price creates doubt rather than relief",
+    "composition": "Single-object portrait: the tiny tag hangs conspicuously below the solid kit.",
+    "titleRelationship": "The frame makes cheapness feel like a credibility problem, not a saving.",
+    "neighborDistinction": "This focuses on suspicion triggered by price, not on confusion caused by many offers."
+  },
+  {
+    "storyId": "osc-l01",
+    "centralContradiction": "High revenue can leave a business with no room to absorb its own workload.",
+    "focalSubjectOrObject": "an ecommerce packing bench overwhelmed by outgoing parcels",
+    "visibleActionOrState": "refund boxes, support folders, and shipping supplies consume the bench while a tiny tray of retained profit tokens remains clear",
+    "practicalTension": "twice the sales volume has made operations more fragile rather than more secure",
+    "composition": "Wide overhead bench scene, with the small profit tray isolated in a clean corner against the clutter.",
+    "titleRelationship": "The image exposes the fragile cost-and-capacity structure; the title names the need for the right business model.",
+    "neighborDistinction": "Unlike the revenue and time-dependence Shorts, this image combines margin loss, returns, support, and fulfilment strain into one whole-system stress test."
+  },
+  {
+    "storyId": "osc-s01a",
+    "centralContradiction": "A busy sales counter can still produce almost no durable margin.",
+    "focalSubjectOrObject": "a pile of receipts beside a nearly empty cash tray",
+    "visibleActionOrState": "more receipts are fed into the pile while coins remain scarce in the tray",
+    "practicalTension": "transaction volume and retained value visibly diverge",
+    "composition": "Receipt tower dominates the foreground; the shallow cash tray is sharply lit behind it.",
+    "titleRelationship": "It gives revenue a physical counterweight: what remains after the sale.",
+    "neighborDistinction": "Unlike the long business-model frame, this compresses the problem into receipts and margin."
+  },
+  {
+    "storyId": "osc-s01b",
+    "centralContradiction": "A business that stops when its owner steps away has no independent engine.",
+    "focalSubjectOrObject": "an unattended service desk with a stopped order stamp",
+    "visibleActionOrState": "a coat hangs on the empty chair and a queue of order folders waits beneath a motionless stamp",
+    "practicalTension": "the work cannot move without one person present",
+    "composition": "Eye-level view down the desk toward the vacant chair, with the stopped stamp in foreground focus.",
+    "titleRelationship": "The title asks the question; the empty chair gives it a concrete answer.",
+    "neighborDistinction": "This isolates owner dependence, whereas Revenue Is Not A Good Business isolates margin."
+  },
+  {
+    "storyId": "pos-l04",
+    "centralContradiction": "Random posts create noise while a repeated idea becomes a recognizable signal.",
+    "focalSubjectOrObject": "a wall of pinned content cards with one recurring cobalt shape",
+    "visibleActionOrState": "scattered cards peel away from the wall, leaving the repeated shape easy to spot across the remaining sequence",
+    "practicalTension": "frequency matters only when the audience can connect the pieces",
+    "composition": "Wide pinboard with a visual path of matching cards running from lower left to upper right.",
+    "titleRelationship": "It shows how recognition is built across content rather than naming a posting tactic.",
+    "neighborDistinction": "This is a pattern over time, unlike the recognition Short's single moment of recall."
+  },
+  {
+    "storyId": "pos-l04-s01",
+    "centralContradiction": "Posting often can still leave no recognizable trail.",
+    "focalSubjectOrObject": "a calendar crowded with mismatched photo prints",
+    "visibleActionOrState": "the prints cover every date but point in unrelated directions, with no repeated visual anchor",
+    "practicalTension": "activity fills the schedule without accumulating meaning",
+    "composition": "Flat-lay calendar grid; each print tilts differently, creating deliberate visual disorder.",
+    "titleRelationship": "The frame explains why random posting fails even when the calendar is full.",
+    "neighborDistinction": "Unlike the long strategy image, this shows the failure state with no organizing cue."
+  },
+  {
+    "storyId": "pos-l04-s02",
+    "centralContradiction": "A spike in views vanishes faster than a repeated visual association.",
+    "focalSubjectOrObject": "a fading stack of view counters beside three matching field notes",
+    "visibleActionOrState": "the counters blur into the background while the matching notes remain clipped together in front",
+    "practicalTension": "short-lived attention loses to recognition that can be retrieved later",
+    "composition": "Foreground-background contrast: durable matching notes sharp, fading counters soft and distant.",
+    "titleRelationship": "It makes the difference between being seen and being remembered visible.",
+    "neighborDistinction": "This uses decay versus retention, distinct from Stop Posting Random Content's chaotic calendar."
+  },
+  {
+    "storyId": "osc-l04",
+    "centralContradiction": "A valuable service remains unsold when its path to yes is tangled.",
+    "focalSubjectOrObject": "a single service package at the end of a clear tabletop path",
+    "visibleActionOrState": "loose add-on cards have been swept aside, exposing a direct sequence from question card to package to payment tray",
+    "practicalTension": "clarity, not extra features, makes the offer movable",
+    "composition": "A strong central lane runs through three objects; discarded options form a soft perimeter.",
+    "titleRelationship": "The title promises an offer people want; the frame shows an offer people can navigate.",
+    "neighborDistinction": "This is a cleared purchase route, unlike the choice-overload Short's blocked counter."
+  },
+  {
+    "storyId": "osc-s04a",
+    "centralContradiction": "A good product can lose when buyers cannot tell where to begin.",
+    "focalSubjectOrObject": "a well-made kit surrounded by four unlabeled instruction envelopes",
+    "visibleActionOrState": "the buyer holds the kit but cannot choose an envelope; the actual first step is hidden underneath",
+    "practicalTension": "value is present but the entry point is obscured",
+    "composition": "Centered kit viewed from above, ringed by ambiguous envelopes like a maze.",
+    "titleRelationship": "It isolates the explanation problem behind a product that should have sold.",
+    "neighborDistinction": "Unlike Make Your Offer Easier To Buy, this image stays in the buyer's initial confusion."
+  },
+  {
+    "storyId": "osc-s04b",
+    "centralContradiction": "One clear next step beats a pile of persuasive extras.",
+    "focalSubjectOrObject": "a bundled service card on a clean payment tray",
+    "visibleActionOrState": "a buyer slides the single card forward while bonus cards remain stacked and unused at the edge",
+    "practicalTension": "the decision gains momentum when the offer is reduced to one understandable move",
+    "composition": "Minimal center-weighted still life with the hand and card forming one diagonal.",
+    "titleRelationship": "The image supplies the frictionless action the title asks for.",
+    "neighborDistinction": "This is an affirmative choice, unlike Why Good Products Still Don't Sell's stalled decision."
+  },
+  {
+    "storyId": "pos-l02",
+    "centralContradiction": "A smaller target can create a larger field of relevance.",
+    "focalSubjectOrObject": "a map board with one sharply marked neighborhood and a diffuse surrounding region",
+    "visibleActionOrState": "pins gather in the marked neighborhood while broad, scattered pins fail to connect outside it",
+    "practicalTension": "focus appears narrower yet produces more useful concentration",
+    "composition": "Top-down map-like board with a bold circular cluster offset from a sparse outer field.",
+    "titleRelationship": "It makes the expansion created by focus visible without turning the title into a label.",
+    "neighborDistinction": "This is geographic concentration, unlike the everyone Short's rejected crowd."
+  },
+  {
+    "storyId": "pos-l02-s01",
+    "centralContradiction": "A message aimed at everyone lands with no one.",
+    "focalSubjectOrObject": "a megaphone pointing toward a mixed crowd of small paper figures",
+    "visibleActionOrState": "sound-wave cards scatter past every figure while one intended customer card remains face down at the edge",
+    "practicalTension": "broad reach produces no felt relevance",
+    "composition": "The megaphone enters from one corner; the dispersed figures leave a conspicuous empty center.",
+    "titleRelationship": "It turns the vague word everyone into a visibly unreachable audience.",
+    "neighborDistinction": "Unlike the niche long, this depicts diffusion before any deliberate focus is chosen."
+  },
+  {
+    "storyId": "pos-l02-s02",
+    "centralContradiction": "A precise niche makes the right customer easier to find and recognize.",
+    "focalSubjectOrObject": "one bright client folder in a compact row of industry folders",
+    "visibleActionOrState": "the matching folder is pulled forward while unrelated folders remain aligned behind it",
+    "practicalTension": "narrower language creates a stronger signal for the people it serves",
+    "composition": "Shallow-depth shelf shot with one forward folder breaking a calm horizontal line.",
+    "titleRelationship": "The title claims smaller can be bigger; the frame shows the signal becoming easier to select.",
+    "neighborDistinction": "This uses recognition within a shelf, unlike the long episode's broader map of concentration."
+  },
+  {
+    "storyId": "tx-l011",
+    "centralContradiction": "Complex expertise becomes buyable only after it takes a repeatable shape.",
+    "focalSubjectOrObject": "a four-step workshop kit laid out from intake card to finished outcome card",
+    "visibleActionOrState": "the pieces lock into a visible sequence, replacing a loose stack of expert notes",
+    "practicalTension": "the method retains depth while making the route understandable",
+    "composition": "Straight-on worktable with four tactile stations advancing left to right.",
+    "titleRelationship": "It gives the signature method a physical form viewers can understand at a glance.",
+    "neighborDistinction": "This is a repeatable process, unlike the website Short's five-second message test."
+  },
+  {
+    "storyId": "pos-l03-s03",
+    "centralContradiction": "A visitor leaves when a website's first screen makes the offer impossible to identify.",
+    "focalSubjectOrObject": "a laptop showing a deliberately simple but ambiguous homepage layout",
+    "visibleActionOrState": "a visitor's cursor pauses over three equal-looking panels while a clear service card waits beside the laptop",
+    "practicalTension": "the useful answer exists but is not visible within the first glance",
+    "composition": "Over-shoulder screen view with the unresolved cursor centered and the answer card in foreground.",
+    "titleRelationship": "The image demonstrates the costly first five seconds rather than restating them.",
+    "neighborDistinction": "This is an interface hesitation, unlike Change What People Know You For's longer identity shift."
+  },
+  {
+    "storyId": "pos-l06-s03",
+    "centralContradiction": "A new direction cannot take hold while old proof remains the dominant signal.",
+    "focalSubjectOrObject": "a portfolio wall where a new cobalt case study covers an outdated framed sample",
+    "visibleActionOrState": "the new case is being pinned over the old one, but the old frame still protrudes around its edges",
+    "practicalTension": "repositioning requires repeated replacement, not a single announcement",
+    "composition": "Close frontal wall shot emphasizing the layered edges and the unfinished cover-up.",
+    "titleRelationship": "It shows the physical work of changing what people associate with you.",
+    "neighborDistinction": "Unlike the website Short, this is about accumulated public evidence, not first-screen clarity."
+  },
+  {
+    "storyId": "osc-l02",
+    "centralContradiction": "The right customer is obscured when every possible customer receives the same message.",
+    "focalSubjectOrObject": "a sorting table with one clearly matched order card among a flood of mismatched cards",
+    "visibleActionOrState": "an operator moves the matched card into a dedicated lane while the rest pile up at the intake",
+    "practicalTension": "selectivity creates progress; indiscriminate targeting creates backlog",
+    "composition": "Diagonal fulfillment lane cuts through an otherwise crowded tabletop.",
+    "titleRelationship": "The title names an ideal customer; the image shows the practical benefit of sorting for one.",
+    "neighborDistinction": "This focuses on a selection mechanism, not the megaphone failure shown in Stop Targeting Everyone."
+  },
+  {
+    "storyId": "osc-s02a",
+    "centralContradiction": "A broad pitch leaves the most suitable buyer unserved.",
+    "focalSubjectOrObject": "a tray of identical generic brochures and one personalized appointment card",
+    "visibleActionOrState": "the personalized card is nearly buried by brochures being handed toward an indiscriminate queue",
+    "practicalTension": "the relevant person cannot see themselves in the mass message",
+    "composition": "Front-facing counter scene with the buried card peeking from the lower third.",
+    "titleRelationship": "It makes the cost of targeting everyone visible in the one person who matters.",
+    "neighborDistinction": "Unlike the long episode, this is a single lost match rather than a full sorting system."
+  },
+  {
+    "storyId": "osc-s02b",
+    "centralContradiction": "Content placed in the wrong channel passes by the intended buyer.",
+    "focalSubjectOrObject": "a stack of postcards loaded into the wrong display rack",
+    "visibleActionOrState": "the postcards face a busy corridor while the relevant customer waits at a small specialized counter across the room",
+    "practicalTension": "distribution is active but pointed away from the actual need",
+    "composition": "Deep-perspective retail-like interior, with the wrong rack large in foreground and right counter distant but lit.",
+    "titleRelationship": "The frame adds a directional mistake to the title's warning about where to post.",
+    "neighborDistinction": "This is a placement error, unlike Stop Targeting Everyone's message error."
+  },
+  {
+    "storyId": "pos-l06",
+    "centralContradiction": "A business changes before the audience's mental picture catches up.",
+    "focalSubjectOrObject": "a shop window being refitted behind an old painted sign",
+    "visibleActionOrState": "new tools and samples are visible inside while the old sign still blocks part of the window",
+    "practicalTension": "the current work and the remembered identity occupy the same frame",
+    "composition": "Street-level view through glass, layering the fading sign over the new interior.",
+    "titleRelationship": "It turns repositioning into a visible overlap between old and new evidence.",
+    "neighborDistinction": "This is an external audience view, unlike the bio Short's tiny internal edit."
+  },
+  {
+    "storyId": "pos-l06-s01",
+    "centralContradiction": "An audience keeps asking for the old service after the business has moved on.",
+    "focalSubjectOrObject": "an old service request card placed on a desk beside a new project toolkit",
+    "visibleActionOrState": "a client hand offers the outdated card while the consultant turns the new toolkit toward them",
+    "practicalTension": "past recognition keeps pulling the relationship backward",
+    "composition": "Two hands meet across a desk; the old request is centered between them as the obstacle.",
+    "titleRelationship": "The image gives the audience's old memory a tangible form.",
+    "neighborDistinction": "Unlike the long shop-window concept, this is a one-to-one client interaction."
+  },
+  {
+    "storyId": "pos-l06-s02",
+    "centralContradiction": "A rewritten bio changes a label, not the accumulated proof people see.",
+    "focalSubjectOrObject": "a small profile card beside a tall stack of old portfolio pieces",
+    "visibleActionOrState": "a pencil edits the profile card while the much larger stack remains unchanged behind it",
+    "practicalTension": "one sentence cannot outweigh a visible history",
+    "composition": "Extreme scale contrast: tiny card and pencil in front of a vertical tower of old work.",
+    "titleRelationship": "It shows why a bio edit is too small to perform real repositioning.",
+    "neighborDistinction": "This is a scale mismatch, unlike Your Audience Remembers The Old You's client request."
+  },
+  {
+    "storyId": "osc-l03",
+    "centralContradiction": "Customers choose the changed life at the end of an offer, not the object at the start.",
+    "focalSubjectOrObject": "a plain toolkit connected by a clear path to a finished, calmer workspace",
+    "visibleActionOrState": "the toolkit sits at one end while the transformed workspace, with work completed and time reclaimed, occupies the other",
+    "practicalTension": "the product is only valuable as a vehicle toward the promised result",
+    "composition": "Before-and-after diptych joined by one continuous tabletop line.",
+    "titleRelationship": "It visualizes the promise beyond the product without needing copy.",
+    "neighborDistinction": "This is an outcome journey, unlike the promise-formula Short's three-part construction."
+  },
+  {
+    "storyId": "osc-s03a",
+    "centralContradiction": "A buyer is not paying for a tool; they are paying to stop a frustrating condition.",
+    "focalSubjectOrObject": "a compact organizer beside a desk buried under loose client papers",
+    "visibleActionOrState": "the same desk appears cleared on the organizer's far side, with one finished folder ready to leave",
+    "practicalTension": "the object matters because it removes the visible disorder",
+    "composition": "Single-frame transformation with clutter on the left and a resolved work surface on the right.",
+    "titleRelationship": "The image identifies what the customer truly buys: relief and completed work.",
+    "neighborDistinction": "Unlike the long episode, this uses one immediate before-and-after rather than a broader promise path."
+  },
+  {
+    "storyId": "osc-s03b",
+    "centralContradiction": "A strong promise connects a specific person, a painful starting point, and an observable result.",
+    "focalSubjectOrObject": "three physical cards: client situation, blocked task, completed outcome",
+    "visibleActionOrState": "the cards are arranged in a precise arrow, with the blocked-task card visibly transformed into the completed-outcome card",
+    "practicalTension": "a promise is credible only when its change can be pictured",
+    "composition": "Minimal overhead sequence with generous empty space around the three cards.",
+    "titleRelationship": "The title offers a formula; the picture supplies its visual logic.",
+    "neighborDistinction": "This is a compact construction diagram, unlike What Does Your Customer Really Buy's lived workspace."
+  },
+  {
+    "storyId": "tx-l018",
+    "centralContradiction": "Information becomes memorable when it moves through a visible change rather than a list of facts.",
+    "focalSubjectOrObject": "a worn notebook opening from a failed first page to a resolved final page",
+    "visibleActionOrState": "a hand turns the page, revealing a concrete before-and-after sequence made from tickets, notes, and a final receipt",
+    "practicalTension": "the change gives the audience something to follow and remember",
+    "composition": "Open-book spread fills the frame, with the page turn dividing the old condition from the new result.",
+    "titleRelationship": "It shows storytelling as transformation rather than autobiography.",
+    "neighborDistinction": "This uses a narrative object, unlike the expertise conversation Short's social proof."
+  },
+  {
+    "storyId": "pos-l04-s03",
+    "centralContradiction": "Expertise becomes talk-worthy when another person can pass along a concrete result.",
+    "focalSubjectOrObject": "two colleagues examining a simple before-and-after sample on a café table",
+    "visibleActionOrState": "one colleague slides the transformed sample toward the other, who begins taking a photo of it",
+    "practicalTension": "people share an observable change, not an abstract self-description",
+    "composition": "Candid over-table conversation with the sample sharply centered between the two people.",
+    "titleRelationship": "The image reveals the shareable proof that makes people talk about expertise.",
+    "neighborDistinction": "Unlike the storytelling long, this shows word-of-mouth ignition rather than a complete arc."
+  },
+  {
+    "storyId": "pos-l05-s03",
+    "centralContradiction": "One focused book can become many useful ideas without becoming many unrelated topics.",
+    "focalSubjectOrObject": "an open book with colored bookmarks fanning into a set of small content cards",
+    "visibleActionOrState": "each bookmark leads to a card that preserves the same central theme in a different format",
+    "practicalTension": "repurposing works when every piece still points back to one source idea",
+    "composition": "Radial tabletop layout with the book as the hub and cards extending like spokes.",
+    "titleRelationship": "It makes fifty pieces feel like an organized expansion, not content churn.",
+    "neighborDistinction": "This is source-to-series multiplication, unlike the storytelling long's single transformational arc."
+  },
+  {
+    "storyId": "osc-l07",
+    "centralContradiction": "Selling feels manipulative when the buyer has no clear room to choose.",
+    "focalSubjectOrObject": "a consultation table with an open exit path and two plainly arranged options",
+    "visibleActionOrState": "the advisor moves their chair back, leaving the buyer free to compare the options without pressure",
+    "practicalTension": "clarity and permission replace the trapped feeling of a hard close",
+    "composition": "Wide eye-level scene with visible space around the buyer and a doorway in the background.",
+    "titleRelationship": "It reframes difficult selling as a question of conditions, not personality.",
+    "neighborDistinction": "This is spatial permission, unlike the manipulation Short's close-up of a pressured choice."
+  },
+  {
+    "storyId": "osc-s07a",
+    "centralContradiction": "A seller's discomfort often comes from pushing before the buyer understands the fit.",
+    "focalSubjectOrObject": "a consultant's closed notebook beside an unanswered client question card",
+    "visibleActionOrState": "the consultant pauses instead of reaching for a contract, keeping the question card between them",
+    "practicalTension": "the sale cannot feel clean while the buyer's concern remains unresolved",
+    "composition": "Intimate desk-level shot with the untouched contract blurred in the background.",
+    "titleRelationship": "The frame gives discomfort a cause: an unanswered need before the ask.",
+    "neighborDistinction": "Unlike the long episode, this concentrates on the seller's pause before a sale."
+  },
+  {
+    "storyId": "osc-s07b",
+    "centralContradiction": "A transparent choice is the opposite of manipulation.",
+    "focalSubjectOrObject": "two service options displayed on equal-sized cards",
+    "visibleActionOrState": "a buyer turns one card over to inspect its limitations while the seller keeps both hands off the table",
+    "practicalTension": "the buyer retains information, time, and freedom to decline",
+    "composition": "Top-down composition with the buyer's hand central and the seller's hands visibly withdrawn at the edge.",
+    "titleRelationship": "It depicts informed choice rather than merely denying manipulation.",
+    "neighborDistinction": "This is an explicit choice test, unlike Why Selling Feels Uncomfortable's unresolved question."
+  },
+  {
+    "storyId": "pos-l03",
+    "centralContradiction": "Expert status is earned through accumulated proof, not declared on a nameplate.",
+    "focalSubjectOrObject": "a blank brass nameplate beside a growing stack of annotated case materials",
+    "visibleActionOrState": "the nameplate remains unused while a hand adds a completed client result to the evidence stack",
+    "practicalTension": "the visible work must precede the title people grant",
+    "composition": "Low tabletop angle, with the empty nameplate large in front and the proof rising behind it.",
+    "titleRelationship": "It makes the route from zero to expert visible as proof accumulation.",
+    "neighborDistinction": "This is earned authority over time, unlike the self-labeling Short's immediate empty claim."
+  },
+  {
+    "storyId": "pos-l03-s01",
+    "centralContradiction": "Calling yourself an expert cannot substitute for evidence someone else can inspect.",
+    "focalSubjectOrObject": "a polished desk plaque reading only through its blank surface beside an open case file",
+    "visibleActionOrState": "the plaque is turned face down as the case file is opened to its marked results",
+    "practicalTension": "the claim loses weight when proof is available for comparison",
+    "composition": "Tight still life with the face-down plaque forming a dark foreground shape.",
+    "titleRelationship": "The frame turns an unsupported expert label into a rejected physical object.",
+    "neighborDistinction": "Unlike the long episode, this is a single reversal from claim to evidence."
+  },
+  {
+    "storyId": "pos-l03-s02",
+    "centralContradiction": "Credibility grows from several small public signals that reinforce one another.",
+    "focalSubjectOrObject": "three modest proof objects: a marked case page, a client note, and a workshop photo",
+    "visibleActionOrState": "the three objects are clipped into one upright display, each stabilizing the others",
+    "practicalTension": "no single signal is grand, but together they become difficult to dismiss",
+    "composition": "Tripod-like arrangement against a neutral wall, with each proof object occupying a different height.",
+    "titleRelationship": "It visualizes the three signals as a structure rather than a checklist.",
+    "neighborDistinction": "This is a three-part credibility construction, unlike the long episode's accumulating archive."
+  },
+  {
+    "storyId": "osc-l08",
+    "centralContradiction": "More outreach creates more noise until a useful reason gives one message a place to land.",
+    "focalSubjectOrObject": "a desk split between a pile of unopened generic envelopes and one tailored packet with a relevant sample",
+    "visibleActionOrState": "the recipient opens the tailored packet while generic envelopes remain sealed and sliding off the desk",
+    "practicalTension": "selective prospecting earns attention by bringing something useful",
+    "composition": "Diagonal desk split; the opened packet forms a bright focal triangle against a gray envelope pile.",
+    "titleRelationship": "It shows sales without chasing as relevance that gets opened.",
+    "neighborDistinction": "This is an outreach inbox, unlike the annoying-prospecting Short's intrusive interruption."
+  },
+  {
+    "storyId": "osc-s08a",
+    "centralContradiction": "Chasing every lead makes a seller look like another unwanted interruption.",
+    "focalSubjectOrObject": "a phone vibrating beside a stack of repeated follow-up cards",
+    "visibleActionOrState": "the recipient silences the phone and turns it face down while the cards spill from an overfilled tray",
+    "practicalTension": "persistence has crossed into pressure",
+    "composition": "Close, claustrophobic tabletop crop with the silencing hand as the only movement.",
+    "titleRelationship": "The frame shows the response that chasing produces: shutdown.",
+    "neighborDistinction": "Unlike the long outreach concept, this deliberately shows the rejected behavior."
+  },
+  {
+    "storyId": "osc-s08b",
+    "centralContradiction": "A prospecting message can be welcome when it arrives with a relevant observation.",
+    "focalSubjectOrObject": "a handwritten note clipped to a specific product sample",
+    "visibleActionOrState": "the recipient lifts the sample and note together from an otherwise empty inbox tray",
+    "practicalTension": "the contact earns attention by being useful before asking for anything",
+    "composition": "Minimal mailbox-like tray with one paired note-and-sample object centered in clean space.",
+    "titleRelationship": "It makes non-annoying prospecting tangible: one useful, specific reason to respond.",
+    "neighborDistinction": "This is a welcome first contact, unlike Stop Chasing Customers' flood of follow-ups."
+  },
+  {
+    "storyId": "pos-l05",
+    "centralContradiction": "A focused book can carry expertise into rooms where its author is absent.",
+    "focalSubjectOrObject": "a slim authored book standing upright in a prospective client's meeting room",
+    "visibleActionOrState": "a client opens the book to a marked case page while the author's empty chair sits across the table",
+    "practicalTension": "the book continues the authority conversation without its writer present",
+    "composition": "Meeting-table portrait with the open book as the only illuminated object.",
+    "titleRelationship": "It shows why a book makes expertise portable rather than simply prestigious.",
+    "neighborDistinction": "This is authority in an absent author's place, unlike the publisher Short's production barrier."
+  },
+  {
+    "storyId": "pos-l05-s01",
+    "centralContradiction": "A useful book begins as a finished manuscript, not a publisher's permission slip.",
+    "focalSubjectOrObject": "a bound manuscript beside an untouched publisher submission envelope",
+    "visibleActionOrState": "the manuscript is being placed into a small print-ready box while the envelope stays sealed",
+    "practicalTension": "the work can move forward before gatekeepers respond",
+    "composition": "Clean packing-table still life with the active manuscript centered and the envelope pushed to one edge.",
+    "titleRelationship": "The image makes self-directed completion more important than external approval.",
+    "neighborDistinction": "Unlike the long book concept, this is about getting the object into existence."
+  },
+  {
+    "storyId": "pos-l05-s02",
+    "centralContradiction": "A book that tries to contain everything gives readers no clear reason to keep it.",
+    "focalSubjectOrObject": "an overstuffed binder beside a slim book with one marked spine",
+    "visibleActionOrState": "loose pages spill from the binder while the slim book opens directly to a useful case spread",
+    "practicalTension": "breadth creates weight; focus creates a usable promise",
+    "composition": "Vertical comparison with the collapsing binder leaning away from the stable, compact book.",
+    "titleRelationship": "It shows the editorial cost of putting everything you know into one volume.",
+    "neighborDistinction": "This is a focus-versus-overload book contrast, unlike You Don't Need A Publisher's gatekeeper contrast."
+  },
+  {
+    "storyId": "tx-l050",
+    "centralContradiction": "A business grows when each customer-facing stage feeds the next instead of operating as separate piles.",
+    "focalSubjectOrObject": "five connected tabletop stations for positioning, offer, content, sale, and retention",
+    "visibleActionOrState": "a customer token travels from a clear message card through a package and receipt to a returning-client marker",
+    "practicalTension": "the system compounds only when the handoff is visible and unbroken",
+    "composition": "Curving overhead pathway with five distinct stations and one continuous token route.",
+    "titleRelationship": "It turns the flywheel into an operational loop rather than a generic circular diagram.",
+    "neighborDistinction": "This is a connected business system, unlike the offer Short's isolated weak product."
+  },
+  {
+    "storyId": "pos-l02-s03",
+    "centralContradiction": "A market problem and solution only matter when they connect for a real buyer.",
+    "focalSubjectOrObject": "three labeled-by-form cards: a customer need, a specific obstacle, and a fitting service kit",
+    "visibleActionOrState": "the service kit clicks into the gap between the need and obstacle cards while mismatched kits remain outside the line",
+    "practicalTension": "a good idea becomes viable only through a matching chain",
+    "composition": "Three-part bridge across a table, with the fitting kit completing the center span.",
+    "titleRelationship": "The image makes the test an actual connection, not an abstract framework.",
+    "neighborDistinction": "This is a fit test, distinct from Never Discount a Weak Offer's price-based cover-up."
+  },
+  {
+    "storyId": "tx-s027",
+    "centralContradiction": "A discount cannot repair an offer whose core value still feels weak.",
+    "focalSubjectOrObject": "a discounted service card covering a cracked product sample",
+    "visibleActionOrState": "the price sticker peels back to reveal the crack beneath it",
+    "practicalTension": "the lower number hides the problem briefly but does not change it",
+    "composition": "Macro close-up with the peeling sticker creating a sharp reveal line across the damaged object.",
+    "titleRelationship": "It exposes discounting as a cover rather than a cure.",
+    "neighborDistinction": "Unlike the flywheel long, this is a single broken value proposition rather than a connected system."
+  }
+]

@@ -1,0 +1,937 @@
+{
+  "bundles": [
+    {
+      "storyId": "pos-l01",
+      "scenes": [
+        {
+          "depiction": "At a client-selection table, two identical proposal folders sit beside a worn consultant portfolio; the portfolio contains three photographed case cards while the broad folder contains only a crowded service list.",
+          "primarySubject": "consultant proof portfolio",
+          "primaryAction": "a buyer pulls the case-card portfolio into a shortlist tray and leaves the broad-service folder outside it",
+          "concreteObjects": [
+            "two proposal folders",
+            "three case-study cards",
+            "a shortlist tray"
+          ],
+          "environment": "a quiet client-selection table",
+          "spatialRelationship": "the selected folder and tray occupy the near right; the rejected folder remains open on the left",
+          "semanticFocus": "buyers choose from visible signals before they can experience the work",
+          "visualIntent": "make the difference between equal ability and unequal perceived fit immediate",
+        "treatmentStrategy": "comparison-led editorial realism",
+        "subjectMode": "comparison-led",
+          "composition": "overhead diagonal comparison with the shortlist tray as the clear destination",
+          "camera": "high three-quarter close shot",
+          "transitionRelationship": "introduces",
+          "semanticStates": [
+            {
+              "stateRole": "choice context",
+              "cropFocus": "both proposals and the buyer's selection space",
+              "semanticPurpose": "establish two capable options",
+              "crop": {
+                "x": 0,
+                "y": 0,
+                "width": 1,
+                "height": 1,
+                "focalObject": "two consultant proposal folders"
+              }
+            },
+            {
+              "stateRole": "proof detail",
+              "cropFocus": "the three photographed case cards",
+              "semanticPurpose": "show the specific evidence behind the stronger option",
+              "crop": {
+                "x": 0.08,
+                "y": 0.05,
+                "width": 0.78,
+                "height": 0.78,
+                "focalObject": "three case-study cards"
+              }
+            },
+            {
+              "stateRole": "selection result",
+              "cropFocus": "portfolio entering the shortlist tray",
+              "semanticPurpose": "show the buyer's decision",
+              "crop": {
+                "x": 0.22,
+                "y": 0.16,
+                "width": 0.72,
+                "height": 0.72,
+                "focalObject": "a shortlist tray"
+              }
+            }
+          ]
+        },
+        {
+          "depiction": "A consultant's busy desk holds an unlabelled fan of different service samples, while one completed diagnostic report is clipped cleanly at the center.",
+          "primarySubject": "consultant proof portfolio",
+          "primaryAction": "the report is placed over a scattered fan of unrelated service samples",
+          "concreteObjects": [
+            "diagnostic report",
+            "service sample cards",
+            "sturdy binder clip"
+          ],
+          "environment": "an expert's practical studio",
+          "spatialRelationship": "the report forms a central vertical line; the unrelated samples spill beyond it on both sides",
+          "semanticFocus": "a specific association is easier to remember than a long capability list",
+          "visualIntent": "turn broad expertise and a clear front door into a visual hierarchy",
+        "treatmentStrategy": "object-led still life",
+        "subjectMode": "object-led",
+          "composition": "central report against a deliberately crowded perimeter",
+          "camera": "top-down medium shot",
+          "transitionRelationship": "explains",
+          "semanticStates": [
+            {
+              "stateRole": "broad capability field",
+              "cropFocus": "scattered samples around the desk",
+              "semanticPurpose": "show the many things the consultant can do",
+              "crop": {
+                "x": 0,
+                "y": 0.08,
+                "width": 0.82,
+                "height": 0.82,
+                "focalObject": "service sample cards"
+              }
+            },
+            {
+              "stateRole": "hierarchy",
+              "cropFocus": "clipped diagnostic report",
+              "semanticPurpose": "show the one capability that leads",
+              "crop": {
+                "x": 0.16,
+                "y": 0.1,
+                "width": 0.8,
+                "height": 0.8,
+                "focalObject": "a completed diagnostic report"
+              }
+            },
+            {
+              "stateRole": "buyer association",
+              "cropFocus": "diagnostic report isolated from the service fan",
+              "semanticPurpose": "show the specific result the buyer can retrieve from memory",
+              "crop": {
+                "x": 0.27,
+                "y": 0.24,
+                "width": 0.7,
+                "height": 0.7,
+                "focalObject": "sturdy binder clip"
+              }
+            }
+          ]
+        },
+        {
+          "depiction": "A visitor pauses at a studio doorway facing a small display wall: one finished client outcome is lit, while miscellaneous tools remain in shadow behind it.",
+          "primarySubject": "finished client outcome on studio display wall",
+          "primaryAction": "the visitor's gaze follows the lit result before noticing the wider tool collection",
+          "concreteObjects": [
+            "framed before-and-after work sample",
+            "studio tools",
+            "studio doorway"
+          ],
+          "environment": "an expert's practical studio",
+          "spatialRelationship": "the doorway frames the visitor and the result; tools recede behind the result",
+          "semanticFocus": "the market needs a clear doorway into a wider range of expertise",
+          "visualIntent": "show how first impressions guide a stranger toward the right conclusion",
+        "treatmentStrategy": "environment-led editorial realism",
+        "subjectMode": "environment-led",
+          "composition": "doorway-to-display leading line",
+          "camera": "eye-level over-the-shoulder",
+          "transitionRelationship": "explains",
+          "semanticStates": [
+            {
+              "stateRole": "visitor arrival",
+              "cropFocus": "doorway and lit display wall",
+              "semanticPurpose": "place the visitor at the first encounter",
+              "crop": {
+                "x": 0,
+                "y": 0.1,
+                "width": 0.85,
+                "height": 0.85,
+                "focalObject": "studio doorway"
+              }
+            },
+            {
+              "stateRole": "front door",
+              "cropFocus": "framed work sample",
+              "semanticPurpose": "isolate the association the visitor can retain",
+              "crop": {
+                "x": 0.18,
+                "y": 0.12,
+                "width": 0.76,
+                "height": 0.76,
+                "focalObject": "framed before-and-after work sample"
+              }
+            },
+            {
+              "stateRole": "wider capability",
+              "cropFocus": "lit result with the studio tools still visible behind",
+              "semanticPurpose": "show that the clear front door leads into broader expertise",
+              "crop": {
+                "x": 0.28,
+                "y": 0.26,
+                "width": 0.68,
+                "height": 0.68,
+                "focalObject": "studio tools"
+              }
+            }
+          ]
+        },
+        {
+          "depiction": "On a buyer's table, a broad consultant card is covered by eight tiny unlabelled category tabs, while a second card points to one matching client problem file.",
+          "primarySubject": "consultant positioning cards",
+          "primaryAction": "a buyer aligns the focused card with the client problem file and pushes the crowded card aside",
+          "concreteObjects": [
+            "two consultant cards",
+            "client problem file",
+            "small category tabs"
+          ],
+          "environment": "a quiet client-selection table",
+          "spatialRelationship": "the matching card and problem file meet at center; the crowded card is displaced to the edge",
+          "semanticFocus": "being able to do many things does not tell a buyer what to remember",
+          "visualIntent": "contrast an unfocused description with a recognizable specialty",
+        "treatmentStrategy": "comparison-led tabletop scene",
+        "subjectMode": "comparison-led",
+          "composition": "two-card split with one clean physical match",
+          "camera": "top-down close shot",
+          "transitionRelationship": "contrasts",
+          "semanticStates": [
+            {
+              "stateRole": "broad claim",
+              "cropFocus": "card covered in category tabs",
+              "semanticPurpose": "show why the buyer cannot find a clear fit",
+              "crop": {
+                "x": 0,
+                "y": 0,
+                "width": 0.74,
+                "height": 0.74,
+                "focalObject": "small category tabs"
+              }
+            },
+            {
+              "stateRole": "specific fit",
+              "cropFocus": "focused card touching the problem file",
+              "semanticPurpose": "show a recognizable association",
+              "crop": {
+                "x": 0.26,
+                "y": 0.2,
+                "width": 0.74,
+                "height": 0.74,
+                "focalObject": "client problem file"
+              }
+            },
+            {
+              "stateRole": "remembered match",
+              "cropFocus": "focused consultant card aligned with the problem file",
+              "semanticPurpose": "show the association the buyer can store and retrieve",
+              "crop": {
+                "x": 0.18,
+                "y": 0.28,
+                "width": 0.7,
+                "height": 0.7,
+                "focalObject": "two consultant cards"
+              }
+            }
+          ]
+        },
+        {
+          "depiction": "A colleague assembles a referral card beside a tray of completed work, pairing it with one result card instead of a pile of vague role badges.",
+          "primarySubject": "consultant positioning cards",
+          "primaryAction": "the colleague places the result card above the introduction card and leaves the role badges in a loose pile",
+          "concreteObjects": [
+            "client result card",
+            "blank introduction card",
+            "vague role badges",
+            "completed work tray"
+          ],
+          "environment": "a workshop meeting table",
+          "spatialRelationship": "the result card and introduction card make a vertical pair; badges remain scattered below",
+          "semanticFocus": "a useful introduction names the specific problem someone should call you about",
+          "visualIntent": "show positioning as a sentence another person can credibly say",
+        "treatmentStrategy": "process-led tabletop scene",
+        "subjectMode": "process-led",
+          "composition": "tight vertical arrangement with discarded alternatives below",
+          "camera": "overhead close shot",
+          "transitionRelationship": "demonstrates",
+          "semanticStates": [
+            {
+              "stateRole": "many labels",
+              "cropFocus": "loose role badges",
+              "semanticPurpose": "show an introduction that lacks a useful hierarchy",
+              "crop": {
+                "x": 0.05,
+                "y": 0.2,
+                "width": 0.72,
+                "height": 0.72,
+                "focalObject": "vague role badges"
+              }
+            },
+            {
+              "stateRole": "clear introduction",
+              "cropFocus": "result card above the blank card",
+              "semanticPurpose": "show the memorable way to introduce the expert",
+              "crop": {
+                "x": 0.22,
+                "y": 0.05,
+                "width": 0.76,
+                "height": 0.76,
+                "focalObject": "a single result card"
+              }
+            },
+            {
+              "stateRole": "credible referral",
+              "cropFocus": "result card joining the introduction and completed work tray",
+              "semanticPurpose": "show the colleague grounding the introduction in completed work",
+              "crop": {
+                "x": 0.3,
+                "y": 0.22,
+                "width": 0.68,
+                "height": 0.68,
+                "focalObject": "completed work tray"
+              }
+            }
+          ]
+        },
+        {
+          "depiction": "A buyer's hand follows a physical chain from a problem folder to a marked-up diagnosis, a photographed outcome, and a client note, all arranged in one line.",
+          "primarySubject": "consultant proof portfolio",
+          "primaryAction": "the buyer traces the chain from problem to judgment to outcome to client confirmation",
+          "concreteObjects": [
+            "problem folder",
+            "marked-up diagnosis",
+            "outcome photograph",
+            "physical client note"
+          ],
+          "environment": "a client evidence review table",
+          "spatialRelationship": "four artifacts form a left-to-right sequence with clear gaps between steps",
+          "semanticFocus": "relevance, judgment, proof, and coherence give a buyer grounds for confidence",
+          "visualIntent": "make the components of credible positioning visibly cumulative",
+        "treatmentStrategy": "evidence-led editorial still life",
+        "subjectMode": "evidence-led",
+          "composition": "horizontal process line across a clean table",
+          "camera": "top-down wide close shot",
+          "transitionRelationship": "explains",
+          "semanticStates": [
+            {
+              "stateRole": "relevance",
+              "cropFocus": "problem folder meeting the diagnosis",
+              "semanticPurpose": "show that the expert understands the buyer's actual issue",
+              "crop": {
+                "x": 0,
+                "y": 0.12,
+                "width": 0.72,
+                "height": 0.72,
+                "focalObject": "problem folder"
+              }
+            },
+            {
+              "stateRole": "visible proof",
+              "cropFocus": "outcome photograph and client note",
+              "semanticPurpose": "show evidence that the work produced value",
+              "crop": {
+                "x": 0.25,
+                "y": 0.18,
+                "width": 0.72,
+                "height": 0.72,
+                "focalObject": "outcome photograph"
+              }
+            },
+            {
+              "stateRole": "coherent conclusion",
+              "cropFocus": "outcome photograph connected to the client note",
+              "semanticPurpose": "show separate proof signals supporting the same buyer conclusion",
+              "crop": {
+                "x": 0.31,
+                "y": 0.04,
+                "width": 0.68,
+                "height": 0.68,
+                "focalObject": "physical client note"
+              }
+            }
+          ]
+        },
+        {
+          "depiction": "A polished laptop mockup is propped beside an unedited case-study board containing dated photographs and a physical client reference note.",
+          "primarySubject": "consultant proof portfolio",
+          "primaryAction": "the case-study board stays upright while the polished mockup lies flat and secondary",
+          "concreteObjects": [
+            "case-study board",
+            "laptop mockup",
+            "client reference note",
+            "dated work photographs"
+          ],
+          "environment": "an expert's practical studio",
+          "spatialRelationship": "the upright evidence board dominates; the polished but empty screen recedes at lower left",
+          "semanticFocus": "polish without proof is decoration, while real work needs to be visible and relevant",
+          "visualIntent": "separate evidence from presentation polish",
+        "treatmentStrategy": "evidence-led comparison",
+        "subjectMode": "evidence-led",
+          "composition": "upright board versus low flat screen",
+          "camera": "low three-quarter tabletop shot",
+          "transitionRelationship": "contrasts",
+          "semanticStates": [
+            {
+              "stateRole": "decoration",
+              "cropFocus": "polished laptop mockup",
+              "semanticPurpose": "show the weak signal without proof",
+              "crop": {
+                "x": 0,
+                "y": 0.22,
+                "width": 0.74,
+                "height": 0.74,
+                "focalObject": "laptop mockup"
+              }
+            },
+            {
+              "stateRole": "verifiable work",
+              "cropFocus": "photographs and client note",
+              "semanticPurpose": "show the proof a buyer can inspect",
+              "crop": {
+                "x": 0.2,
+                "y": 0.04,
+                "width": 0.78,
+                "height": 0.78,
+                "focalObject": "an unedited case-study board"
+              }
+            },
+            {
+              "stateRole": "relevant application",
+              "cropFocus": "case photographs beside the physical client reference",
+              "semanticPurpose": "show the buyer enough context to judge whether the result applies",
+              "crop": {
+                "x": 0.3,
+                "y": 0.2,
+                "width": 0.68,
+                "height": 0.68,
+                "focalObject": "client reference note"
+              }
+            }
+          ]
+        },
+        {
+          "depiction": "Three competitor price tags hang below identical service folders; one folder is opened to reveal a diagnosis and outcome sequence, changing the comparison.",
+          "primarySubject": "consultant proof portfolio",
+          "primaryAction": "the buyer lifts the folder cover to reveal the diagnosis and outcome sequence behind the price tag",
+          "concreteObjects": [
+            "service folders",
+            "hanging price tags",
+            "diagnosis sheet",
+            "outcome photographs"
+          ],
+          "environment": "a quiet client-selection table",
+          "spatialRelationship": "price tags line the front edge while proof occupies the opened folder behind the middle tag",
+          "semanticFocus": "when value is understandable, price is no longer the only visible difference",
+          "visualIntent": "show why visible expertise changes a price comparison",
+          "treatmentStrategy": "comparison-led editorial realism",
+          "subjectMode": "comparison-led",
+          "composition": "front-row price tags with a single opened depth layer",
+          "camera": "high angle medium shot",
+          "transitionRelationship": "demonstrates",
+          "semanticStates": [
+            {
+              "stateRole": "price-only view",
+              "cropFocus": "three hanging price tags",
+              "semanticPurpose": "show the buyer's initial commodity comparison",
+              "crop": {
+                "x": 0.04,
+                "y": 0.18,
+                "width": 0.78,
+                "height": 0.78,
+                "focalObject": "hanging price tags"
+              }
+            },
+            {
+              "stateRole": "value evidence",
+              "cropFocus": "opened middle folder",
+              "semanticPurpose": "reveal the work that differentiates the offer",
+              "crop": {
+                "x": 0.2,
+                "y": 0.04,
+                "width": 0.78,
+                "height": 0.78,
+                "focalObject": "an opened service folder"
+              }
+            },
+            {
+              "stateRole": "changed comparison",
+              "cropFocus": "outcome photographs rising behind the middle price tag",
+              "semanticPurpose": "show proof replacing price as the only basis for choice",
+              "crop": {
+                "x": 0.29,
+                "y": 0.22,
+                "width": 0.68,
+                "height": 0.68,
+                "focalObject": "outcome photographs"
+              }
+            }
+          ]
+        },
+        {
+          "depiction": "A craftsperson sets a real repaired object beside a plain claim card, leaving the repair marks and used tools visible.",
+          "primarySubject": "repaired client object with visible workmanship",
+          "primaryAction": "the craftsperson places the repaired object in front of the claim card",
+          "concreteObjects": [
+            "repaired object",
+            "plain claim card",
+            "worn repair tools",
+            "before photograph"
+          ],
+          "environment": "an expert's practical studio",
+          "spatialRelationship": "the repaired object is closest to the viewer; claim card and before photograph sit behind it",
+          "semanticFocus": "positioning must make real value legible rather than manufacture an unsupported image",
+          "visualIntent": "ground perceived value in actual capability",
+        "treatmentStrategy": "process-led realism",
+        "subjectMode": "process-led",
+          "composition": "foreground result with supporting process traces",
+          "camera": "hands-level close shot",
+          "transitionRelationship": "resolves",
+          "semanticStates": [
+            {
+              "stateRole": "real work",
+              "cropFocus": "repair marks and tools",
+              "semanticPurpose": "show tangible competence",
+              "crop": {
+                "x": 0,
+                "y": 0.15,
+                "width": 0.76,
+                "height": 0.76,
+                "focalObject": "a repaired object with visible workmanship"
+              }
+            },
+            {
+              "stateRole": "supported claim",
+              "cropFocus": "result beside the before photograph",
+              "semanticPurpose": "connect the claim to visible evidence",
+              "crop": {
+                "x": 0.2,
+                "y": 0.1,
+                "width": 0.78,
+                "height": 0.78,
+                "focalObject": "before photograph"
+              }
+            },
+            {
+              "stateRole": "earned perception",
+              "cropFocus": "repaired object, tools, and before photograph together",
+              "semanticPurpose": "show perceived value resting on demonstrable real value",
+              "crop": {
+                "x": 0.28,
+                "y": 0.26,
+                "width": 0.68,
+                "height": 0.68,
+                "focalObject": "worn repair tools"
+              }
+            }
+          ]
+        },
+        {
+          "depiction": "A stranger's phone rests beside a five-second sand timer and a service page printed as a sparse board with one problem photo, one example, and one contact card.",
+          "primarySubject": "five-second sand timer beside sparse service board",
+          "primaryAction": "sand falls while the stranger's finger moves from the problem photo to the example card",
+          "concreteObjects": [
+            "five-second sand timer",
+            "service board",
+            "problem photograph",
+            "example card",
+            "stranger's phone"
+          ],
+          "environment": "a café decision table",
+          "spatialRelationship": "the timer sits in foreground; the board is readable as a simple path behind it",
+          "semanticFocus": "a brief first encounter should reveal the problem you solve and the proof that supports it",
+          "visualIntent": "turn the five-second website test into a concrete viewing moment",
+        "treatmentStrategy": "object-led editorial realism",
+        "subjectMode": "object-led",
+          "composition": "timer foreground framing a simple three-part board",
+          "camera": "overhead three-quarter shot",
+          "transitionRelationship": "demonstrates",
+          "semanticStates": [
+            {
+              "stateRole": "first glance",
+              "cropFocus": "timer and problem photograph",
+              "semanticPurpose": "show the short attention window",
+              "crop": {
+                "x": 0,
+                "y": 0.1,
+                "width": 0.74,
+                "height": 0.74,
+                "focalObject": "five-second sand timer"
+              }
+            },
+            {
+              "stateRole": "proof scan",
+              "cropFocus": "example card",
+              "semanticPurpose": "show what the stranger looks for next",
+              "crop": {
+                "x": 0.25,
+                "y": 0.18,
+                "width": 0.72,
+                "height": 0.72,
+                "focalObject": "example card"
+              }
+            },
+            {
+              "stateRole": "contact decision",
+              "cropFocus": "finger reaching the contact card after the example",
+              "semanticPurpose": "show clear evidence moving the stranger toward contact",
+              "crop": {
+                "x": 0.31,
+                "y": 0.03,
+                "width": 0.68,
+                "height": 0.68,
+                "focalObject": "stranger's phone"
+              }
+            }
+          ]
+        },
+        {
+          "depiction": "A desk holds a profile card, a website printout, three content cards, and a testimonial card; each points physically toward the same photographed client result.",
+          "primarySubject": "consultant proof portfolio",
+          "primaryAction": "four separate public materials are arranged so their arrows converge on the same result",
+          "concreteObjects": [
+            "profile card",
+            "website printout",
+            "content cards",
+            "testimonial card",
+            "client-result photograph"
+          ],
+          "environment": "a client evidence review table",
+          "spatialRelationship": "the result photograph anchors the center; source materials radiate inward from four sides",
+          "semanticFocus": "different touchpoints should support the same conclusion about the expert",
+          "visualIntent": "make coherence visible across the public presence",
+        "treatmentStrategy": "evidence-led flat lay",
+        "subjectMode": "evidence-led",
+          "composition": "radial convergence around one result",
+          "camera": "top-down wide shot",
+          "transitionRelationship": "explains",
+          "semanticStates": [
+            {
+              "stateRole": "scattered signals",
+              "cropFocus": "profile, site, content, and testimonial",
+              "semanticPurpose": "show the materials a stranger encounters",
+              "crop": {
+                "x": 0,
+                "y": 0,
+                "width": 0.82,
+                "height": 0.82,
+                "focalObject": "content cards"
+              }
+            },
+            {
+              "stateRole": "shared conclusion",
+              "cropFocus": "center result photograph",
+              "semanticPurpose": "show their common direction",
+              "crop": {
+                "x": 0.15,
+                "y": 0.14,
+                "width": 0.8,
+                "height": 0.8,
+                "focalObject": "a photographed client result"
+              }
+            },
+            {
+              "stateRole": "reduced uncertainty",
+              "cropFocus": "testimonial and result photograph meeting at center",
+              "semanticPurpose": "show independent proxy signals reinforcing the same judgment",
+              "crop": {
+                "x": 0.3,
+                "y": 0.25,
+                "width": 0.68,
+                "height": 0.68,
+                "focalObject": "testimonial card"
+              }
+            }
+          ]
+        },
+        {
+          "depiction": "Two equally capable specialist portfolios face a buyer: one offers broad polished claims, while the consultant proof portfolio opens to a diagnosis sequence, repeated mistake examples, and a service built around one costly problem.",
+          "primarySubject": "consultant proof portfolio",
+          "primaryAction": "gives the buyer concrete diagnostic evidence while the broad specialist portfolio remains difficult to evaluate",
+          "concreteObjects": [
+            "two specialist portfolios",
+            "diagnosis sequence",
+            "repeated-mistake example cards",
+            "focused service folder"
+          ],
+          "environment": "a quiet client-selection table",
+          "spatialRelationship": "the broad portfolio stays closed at left while the open proof portfolio and matching client problem occupy the buyer's active space at right",
+          "semanticFocus": "under uncertainty, specific diagnosis and relevant examples make equally capable expertise easier to evaluate",
+          "visualIntent": "show why visible operating evidence creates preference before a client can observe the work directly",
+        "treatmentStrategy": "comparison-led buyer decision",
+        "subjectMode": "comparison-led",
+          "composition": "matched portfolios separated by the buyer's active evidence corridor",
+          "camera": "high three-quarter selection view",
+          "transitionRelationship": "contrasts",
+          "semanticStates": [
+            {
+              "stateRole": "broad specialist",
+              "cropFocus": "closed portfolio with polished but nonspecific claims",
+              "semanticPurpose": "show the capable option that remains hard to evaluate",
+              "crop": {
+                "x": 0,
+                "y": 0.08,
+                "width": 0.82,
+                "height": 0.82,
+                "focalObject": "two specialist portfolios"
+              }
+            },
+            {
+              "stateRole": "diagnostic evidence",
+              "cropFocus": "open diagnosis sequence and repeated-mistake cards",
+              "semanticPurpose": "show how the focused specialist demonstrates judgment",
+              "crop": {
+                "x": 0.18,
+                "y": 0.12,
+                "width": 0.76,
+                "height": 0.76,
+                "focalObject": "diagnosis sequence"
+              }
+            },
+            {
+              "stateRole": "selection clarity",
+              "cropFocus": "focused service folder nearest the buyer's hand",
+              "semanticPurpose": "show why the evidence-rich specialist becomes easier to choose",
+              "crop": {
+                "x": 0.3,
+                "y": 0.24,
+                "width": 0.68,
+                "height": 0.68,
+                "focalObject": "focused service folder"
+              }
+            }
+          ]
+        },
+        {
+          "depiction": "An experienced professional's crowded capability cabinet stands behind one open front-door panel; many specialist tools remain available inside, but only one photographed client problem leads the visitor inward.",
+          "primarySubject": "expert capability cabinet",
+          "primaryAction": "keeps the professional's full range visible at the edges while one client problem controls the entrance",
+          "concreteObjects": [
+            "capability cabinet",
+            "front-door panel",
+            "specialist tools",
+            "client problem photograph"
+          ],
+          "environment": "a multidisciplinary expert studio",
+          "spatialRelationship": "the open panel fills the central entrance while the broader tool collection remains visible only through side compartments",
+          "semanticFocus": "experience creates range, but a clear hierarchy lets the strongest association act as the front door",
+          "visualIntent": "show broad capability organized behind one memorable entry point rather than communicated at equal weight",
+        "treatmentStrategy": "environment-led capability hierarchy",
+        "subjectMode": "environment-led",
+          "composition": "central entrance panel framed by partially open capability compartments",
+          "camera": "eye-level symmetrical studio view",
+          "transitionRelationship": "resolves",
+          "semanticStates": [
+            {
+              "stateRole": "full range",
+              "cropFocus": "open cabinet and varied specialist tools",
+              "semanticPurpose": "show the multidimensional expertise built over time",
+              "crop": {
+                "x": 0,
+                "y": 0,
+                "width": 0.86,
+                "height": 0.86,
+                "focalObject": "capability cabinet"
+              }
+            },
+            {
+              "stateRole": "front-door hierarchy",
+              "cropFocus": "single open panel and client problem photograph",
+              "semanticPurpose": "show what the buyer should understand first",
+              "crop": {
+                "x": 0.18,
+                "y": 0.15,
+                "width": 0.76,
+                "height": 0.76,
+                "focalObject": "front-door panel"
+              }
+            },
+            {
+              "stateRole": "range behind hierarchy",
+              "cropFocus": "front-door panel with side compartments still visible",
+              "semanticPurpose": "show that prioritizing one association does not erase the expert's range",
+              "crop": {
+                "x": 0.29,
+                "y": 0.26,
+                "width": 0.68,
+                "height": 0.68,
+                "focalObject": "specialist tools"
+              }
+            }
+          ]
+        },
+        {
+          "depiction": "A public-presence audit table holds a profile image, homepage printout, ten post cards, offer sheet, testimonial, and consultant proof portfolio; a transparent ruler exposes which materials align with the same client problem and which drift away.",
+          "primarySubject": "consultant proof portfolio",
+          "primaryAction": "anchors the audit while a transparent ruler separates aligned public evidence from signals that send the stranger elsewhere",
+          "concreteObjects": [
+            "consultant proof portfolio",
+            "profile and homepage printouts",
+            "post cards and offer sheet",
+            "testimonial and transparent ruler",
+            "client problem photograph"
+          ],
+          "environment": "a client evidence review table",
+          "spatialRelationship": "the proof portfolio and problem photograph define the center line while inconsistent profile, page, post, offer, and testimonial pieces fan away from it",
+          "semanticFocus": "reviewing the whole public presence reveals whether a stranger receives one obvious and commercially useful conclusion",
+          "visualIntent": "make the outside-in positioning audit concrete and show exactly where hierarchy breaks",
+        "treatmentStrategy": "process-led evidence audit",
+        "subjectMode": "process-led",
+          "composition": "diagonal alignment line separating coherent proof from drifting signals",
+          "camera": "top-down medium audit shot",
+          "transitionRelationship": "demonstrates",
+          "semanticStates": [
+            {
+              "stateRole": "complete public set",
+              "cropFocus": "profile, homepage, posts, offer, testimonial, and proof portfolio",
+              "semanticPurpose": "establish everything a stranger can inspect",
+              "crop": {
+                "x": 0,
+                "y": 0.2,
+                "width": 0.72,
+                "height": 0.72,
+                "focalObject": "profile and homepage printouts"
+              }
+            },
+            {
+              "stateRole": "hierarchy gap",
+              "cropFocus": "ruler crossing the materials that drift from the client problem",
+              "semanticPurpose": "show where inconsistent evidence prevents one clear conclusion",
+              "crop": {
+                "x": 0.24,
+                "y": 0.08,
+                "width": 0.74,
+                "height": 0.74,
+                "focalObject": "testimonial and transparent ruler"
+              }
+            },
+            {
+              "stateRole": "commercial conclusion",
+              "cropFocus": "aligned proof portfolio and client problem photograph",
+              "semanticPurpose": "show the single useful conclusion produced by coherent signals",
+              "crop": {
+                "x": 0.31,
+                "y": 0.21,
+                "width": 0.68,
+                "height": 0.68,
+                "focalObject": "client problem photograph"
+              }
+            }
+          ]
+        },
+        {
+          "depiction": "Two sets of three colored value tokens compare the professional's intended identity with a client's unaided recall; matching shapes are clipped together while mismatched shapes remain separate.",
+          "primarySubject": "paired professional-value token sets",
+          "primaryAction": "a client clips matching value shapes together and leaves the mismatched shapes apart",
+          "concreteObjects": [
+            "self-selected value-token set",
+            "client-recalled value-token set",
+            "binder clips",
+            "feedback pencil"
+          ],
+          "environment": "a feedback conversation table",
+          "spatialRelationship": "matching cards meet along a center seam; differences sit exposed at opposite edges",
+          "semanticFocus": "the gap between intended reputation and received reputation is useful evidence",
+          "visualIntent": "turn feedback into a respectful, concrete diagnostic",
+          "treatmentStrategy": "comparison-led tabletop scene",
+          "subjectMode": "comparison-led",
+          "composition": "paired cards with a visible seam of matches and gaps",
+          "camera": "top-down close shot",
+          "transitionRelationship": "demonstrates",
+          "semanticStates": [
+            {
+              "stateRole": "intended identity",
+              "cropFocus": "self-selected value-token set",
+              "semanticPurpose": "show what the professional believes they communicate",
+              "crop": {
+                "x": 0,
+                "y": 0.12,
+                "width": 0.74,
+                "height": 0.74,
+                "focalObject": "self-selected value-token set"
+              }
+            },
+            {
+              "stateRole": "market response",
+              "cropFocus": "client-recalled token set and unmatched shapes",
+              "semanticPurpose": "show what the market actually recalls",
+              "crop": {
+                "x": 0.24,
+                "y": 0.16,
+                "width": 0.72,
+                "height": 0.72,
+                "focalObject": "client-recalled value-token set"
+              }
+            },
+            {
+              "stateRole": "perception gap",
+              "cropFocus": "clipped matches and exposed mismatches along the center seam",
+              "semanticPurpose": "turn agreement and disagreement into evidence for what to reinforce or change",
+              "crop": {
+                "x": 0.31,
+                "y": 0.03,
+                "width": 0.68,
+                "height": 0.68,
+                "focalObject": "binder clips"
+              }
+            }
+          ]
+        },
+        {
+          "depiction": "A studio noticeboard evolves from an old cluster of client materials to a newly pinned set around a different problem photograph, with older cards still visible at the side.",
+          "primarySubject": "evolving positioning evidence board",
+          "primaryAction": "new cases, posts, and introductions are pinned around the new problem while older materials remain at the board edge",
+          "concreteObjects": [
+            "studio noticeboard",
+            "old case cards",
+            "new case cards",
+            "problem photographs",
+            "colored pushpins"
+          ],
+          "environment": "a working studio wall",
+          "spatialRelationship": "the new cluster occupies the central board; the old cluster is retained but peripheral",
+          "semanticFocus": "positioning is observed, tested, and refined as the work evolves",
+          "visualIntent": "close on deliberate evidence changing over time rather than a one-time declaration",
+        "treatmentStrategy": "process-led editorial realism",
+        "subjectMode": "process-led",
+          "composition": "wall board with a clear center-to-edge transition",
+          "camera": "straight-on medium shot",
+          "transitionRelationship": "resolves",
+          "semanticStates": [
+            {
+              "stateRole": "old association",
+              "cropFocus": "older card cluster at the board edge",
+              "semanticPurpose": "show the position already held in memory",
+              "crop": {
+                "x": 0,
+                "y": 0.16,
+                "width": 0.72,
+                "height": 0.72,
+                "focalObject": "old case cards"
+              }
+            },
+            {
+              "stateRole": "new evidence",
+              "cropFocus": "new central problem photograph and pins",
+              "semanticPurpose": "show the evidence being deliberately repeated",
+              "crop": {
+                "x": 0.2,
+                "y": 0.06,
+                "width": 0.78,
+                "height": 0.78,
+                "focalObject": "a noticeboard changing its central problem photograph"
+              }
+            },
+            {
+              "stateRole": "refined position",
+              "cropFocus": "new cases and introductions surrounding the central problem",
+              "semanticPurpose": "show the chosen perception reinforced through consistent evidence over time",
+              "crop": {
+                "x": 0.3,
+                "y": 0.24,
+                "width": 0.68,
+                "height": 0.68,
+                "focalObject": "new case cards"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
