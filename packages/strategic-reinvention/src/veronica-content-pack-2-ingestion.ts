@@ -9,6 +9,7 @@ import {
 } from "@mediaforge/domain";
 import { ensurePortableRelativePath, fileExists, writeJsonAtomic, writeTextAtomic } from "@mediaforge/shared";
 import { z } from "zod";
+import { veronicaResolvedStoryVisualDirectionSchema } from "./veronica-unified-v3-visual-direction.js";
 
 export const VERONICA_CONTENT_PACK_2_ADAPTER_VERSION =
   "veronica-content-pack-2-adapter.v1" as const;
@@ -64,6 +65,8 @@ export const canonicalSourceEpisodeSchema = z
     ] satisfies readonly VeronicaContentReadiness[]).optional(),
     localeSources: z.array(canonicalSourceDocumentSchema).min(1),
     sourceRevisionHash: z.string().regex(/^[a-f0-9]{64}$/u),
+    visualDirectionHash: z.string().regex(/^[a-f0-9]{64}$/u).optional(),
+    visualDirection: veronicaResolvedStoryVisualDirectionSchema.optional(),
     declaredReusableAssets: z.array(z.never()),
     sourceGrounding: z
       .object({

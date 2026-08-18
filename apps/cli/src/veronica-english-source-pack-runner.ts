@@ -98,6 +98,7 @@ export async function runVeronicaEnglishSourcePackPlan(input: {
       source.registry.stories.map((story) => ({
         storyId: story.storyId,
         contentHash: story.contentHash,
+        visualDirectionHash: story.visualDirectionHash,
         seriesEpisodeOrder: story.seriesEpisodeOrder,
         seriesSlot: story.seriesSlot,
       }))
@@ -146,6 +147,7 @@ export async function runVeronicaEnglishSourcePackPlan(input: {
         format: story.kind,
         status: plan.validation.status === "pass" ? "pass" : "fail",
         sourceHash: english.sourceSha256,
+        visualDirectionHash: story.visualDirectionHash,
         plannerVersion: plan.plannerVersion,
         planHash: plan.planHash,
         planArtifactSha256: sha256(planJson),

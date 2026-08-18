@@ -6,7 +6,8 @@ documented in [the source-of-truth contract](../veronica-content-source-of-truth
 `resolveVeronicaContentSource()` locates the fixed
 `veronica-unified-content-pack-v3` root from the pnpm repository root, validates
 its manifest and series plan, checks every narration is a contained real file,
-and builds one in-memory registry. It does not recursively discover packs or
+validates the 54-entry `visual-direction.v1.json`, and builds one in-memory
+registry. It does not recursively discover packs or
 fall back to older directories.
 
 Use either a series episode or one story:
@@ -25,6 +26,12 @@ locale, readiness, source-revision, and selected narration byte-hash identity in
 `source/canonical-source-episode.v1.json`,
 `source/visual-planner-input.v1.json`, and `manifest.json`. Missing translations
 fail explicitly; English is never substituted for a requested locale.
+
+Each story carries schema-validated visual premise, concrete object and
+environment systems, optional identity continuity, progression, and thumbnail
+direction. Its visual-direction hash participates in the canonical source
+revision, fresh-run portfolio context, and V3 plan hash, so editorial direction
+changes cannot reuse a stale plan.
 
 Production visual planning requires the v2 source descriptor, validates its
 source bytes, and binds derived visual plans to narration and revision hashes.
@@ -60,7 +67,9 @@ node apps/cli/bin/mediaforge.js veronica-media source-pack plan-english \
 
 `--legacy-baseline` creates a separate V2 comparison run only. The default
 creates V3 source-span semantic plans, portfolio validation, and a zero-provider
-ledger; each invocation requires a new output directory.
+ledger; each invocation requires a new output directory. Long plans compile 16
+crop-safe base assets into 48 distinct semantic regions, while provider prompts
+are generated from structured depictions rather than narration-copy claims.
 
 ## Legacy adapters
 

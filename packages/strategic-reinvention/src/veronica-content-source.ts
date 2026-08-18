@@ -24,6 +24,13 @@ import {
   canonicalSourceEpisodeSchema,
   type CanonicalSourceEpisode,
 } from "./veronica-content-pack-2-ingestion.js";
+import {
+  veronicaAuthoredSceneBundleSchema,
+  veronicaResolvedStoryVisualDirectionSchema,
+  veronicaThumbnailDirectionSchema,
+  veronicaVisualDirectionPackSchema,
+  type VeronicaStoryVisualDirection,
+} from "./veronica-unified-v3-visual-direction.js";
 
 export const VERONICA_UNIFIED_CONTENT_ADAPTER_VERSION =
   "veronica-unified-content-pack-adapter.v1" as const;
@@ -276,6 +283,8 @@ export interface VeronicaCanonicalStoryRecord {
   readonly title: string;
   readonly canonicalNarrationPath: string;
   readonly contentHash: string;
+  readonly visualDirection: VeronicaStoryVisualDirection;
+  readonly visualDirectionHash: string;
   readonly localeVariants: ReadonlyMap<SupportedLanguageCode, VeronicaLocaleVariant>;
   readonly readiness: VeronicaContentReadiness;
   readonly relatedStoryIds: readonly [string, string];
@@ -284,6 +293,7 @@ export interface VeronicaCanonicalStoryRecord {
     readonly manifestPath: string;
     readonly seriesPlanPath: string;
     readonly sourceSeries: string;
+    readonly visualDirectionPath: string;
   };
 }
 
@@ -376,6 +386,8 @@ async function buildRegistry(input: {
   readonly packRoot: string;
   readonly manifestPath: string;
   readonly seriesPlanPath: string;
+  readonly visualDirectionPath: string;
+  readonly visualDirections: ReadonlyMap<string, VeronicaStoryVisualDirection>;
   readonly documents: VeronicaParsedPackDocuments;
 }): Promise<VeronicaContentRegistry> {
   const slotByStory = new Map<string, { episode: ParsedSeriesPlan[number]; slot: "long" | "short-a" | "short-b"; title: string }>();
@@ -389,6 +401,11 @@ async function buildRegistry(input: {
   for (const story of input.documents.manifest.stories) {
     const assignment = slotByStory.get(story.id);
     if (!assignment) throw new VeronicaContentSourceError("VERONICA_CANONICAL_MANIFEST_INVALID", `${story.id} is orphaned`);
+    const visualDirection = input.visualDirections.get(story.id);
+    if (!visualDirection) throw new VeronicaContentSourceError("VERONICA_CANONICAL_MANIFEST_INVALID", `${story.id} visual direction is missing`);
+    const visualDirectionHash = createHash("sha256")
+      .update(JSON.stringify(visualDirection), "utf8")
+      .digest("hex");
     const localeVariants = new Map<SupportedLanguageCode, VeronicaLocaleVariant>();
     for (const locale of [...story.locales].sort()) {
       const relativePath = story.paths[locale];
@@ -436,6 +453,8 @@ async function buildRegistry(input: {
       title: assignment.title,
       canonicalNarrationPath: canonical.absolutePath,
       contentHash: canonical.contentHash,
+      visualDirection,
+      visualDirectionHash,
       localeVariants,
       readiness: "CANONICAL_READY",
       relatedStoryIds,
@@ -444,6 +463,7 @@ async function buildRegistry(input: {
         manifestPath: input.manifestPath,
         seriesPlanPath: input.seriesPlanPath,
         sourceSeries: story.series,
+        visualDirectionPath: input.visualDirectionPath,
       },
     });
   }
@@ -487,13 +507,18 @@ export async function resolveVeronicaContentSource(input: {
     const packRoot = path.resolve(repositoryRoot, VERONICA_CONTENT_SOURCE_CONFIG.rootDir);
     const manifestPath = path.join(packRoot, VERONICA_CONTENT_SOURCE_CONFIG.manifestPath);
     const seriesPlanPath = path.join(packRoot, VERONICA_CONTENT_SOURCE_CONFIG.seriesPlanPath);
+    const visualDirectionPath = path.join(packRoot, "visual-direction.v1.json");
+    const sceneDirectionDir = path.join(packRoot, "scene-directions");
     try {
       const rootStat = await fs.lstat(packRoot);
       if (rootStat.isSymbolicLink() || !rootStat.isDirectory()) throw new Error("pack root must be a real directory");
       await Promise.all([
         assertContainedRegularFile(packRoot, manifestPath),
         assertContainedRegularFile(packRoot, seriesPlanPath),
+        assertContainedRegularFile(packRoot, visualDirectionPath),
       ]);
+      const sceneStat = await fs.lstat(sceneDirectionDir);
+      if (sceneStat.isSymbolicLink() || !sceneStat.isDirectory()) throw new Error("scene directions must be a real directory");
     } catch (error) {
       throw new VeronicaContentSourceError(
         "VERONICA_CANONICAL_PACK_NOT_FOUND",
@@ -502,15 +527,59 @@ export async function resolveVeronicaContentSource(input: {
       );
     }
     try {
-      const [manifestRaw, seriesPlanRaw] = await Promise.all([
+      const [manifestRaw, seriesPlanRaw, visualDirectionRaw] = await Promise.all([
         fs.readFile(manifestPath, "utf8"),
         fs.readFile(seriesPlanPath, "utf8"),
+        fs.readFile(visualDirectionPath, "utf8"),
       ]);
       const documents = parseVeronicaCanonicalPackDocuments({
         manifest: JSON.parse(manifestRaw) as unknown,
         seriesPlan: JSON.parse(seriesPlanRaw) as unknown,
       });
-      const registry = await buildRegistry({ packRoot, manifestPath, seriesPlanPath, documents });
+      const visualDirectionPack = veronicaVisualDirectionPackSchema.parse(
+        JSON.parse(visualDirectionRaw) as unknown,
+      );
+      const sceneFiles = (await fs.readdir(sceneDirectionDir, { withFileTypes: true }))
+        .filter((entry) => entry.isFile() && entry.name.endsWith(".json") && entry.name !== "thumbnails.json")
+        .map((entry) => path.join(sceneDirectionDir, entry.name))
+        .sort();
+      const bundles = (await Promise.all(sceneFiles.map(async (file) => {
+        await assertContainedRegularFile(packRoot, file);
+        const parsed = JSON.parse(await fs.readFile(file, "utf8")) as unknown;
+        const values = parsed && typeof parsed === "object" && "bundles" in parsed
+          ? (parsed as { bundles: unknown }).bundles
+          : parsed;
+        return z.array(veronicaAuthoredSceneBundleSchema).parse(values);
+      }))).flat();
+      const authoredByStory = new Map(bundles.map((bundle) => [bundle.storyId, bundle.scenes]));
+      if (authoredByStory.size !== 54 || bundles.length !== 54) {
+        throw new Error(`Expected exactly 54 authored scene bundles; received ${bundles.length}.`);
+      }
+      const thumbnailPath = path.join(sceneDirectionDir, "thumbnails.json");
+      await assertContainedRegularFile(packRoot, thumbnailPath);
+      const thumbnailEntries = z.array(z.object({ storyId: z.string(), ...veronicaThumbnailDirectionSchema.shape }).strict()).parse(
+        JSON.parse(await fs.readFile(thumbnailPath, "utf8")) as unknown,
+      );
+      const thumbnailByStory = new Map(thumbnailEntries.map(({ storyId, ...thumbnail }) => [storyId, thumbnail]));
+      if (thumbnailByStory.size !== 54 || thumbnailEntries.length !== 54) throw new Error(`Expected exactly 54 authored thumbnails; received ${thumbnailEntries.length}.`);
+      const visualDirections = new Map(
+        visualDirectionPack.stories.map((direction) => [
+          direction.storyId,
+          veronicaResolvedStoryVisualDirectionSchema.parse({
+            ...direction,
+            authoredScenes: authoredByStory.get(direction.storyId),
+            thumbnail: thumbnailByStory.get(direction.storyId),
+          }),
+        ]),
+      );
+      const registry = await buildRegistry({
+        packRoot,
+        manifestPath,
+        seriesPlanPath,
+        visualDirectionPath,
+        visualDirections,
+        documents,
+      });
       return { config: VERONICA_CONTENT_SOURCE_CONFIG, repositoryRoot, packRoot, manifestPath, seriesPlanPath, registry };
     } catch (error) {
       if (error instanceof VeronicaContentSourceError) throw error;
@@ -563,6 +632,7 @@ export function canonicalSourceEpisodeFromRegistry(input: {
   const sourceRevisionHash = createHash("sha256").update(JSON.stringify({
     authoredEpisodeKey: input.story.storyId,
     sources: localeSources.map(({ locale, sourcePath, sourceSha256 }) => ({ locale, sourcePath, sourceSha256 })),
+    visualDirectionHash: input.story.visualDirectionHash,
   })).digest("hex");
   return canonicalSourceEpisodeSchema.parse({
     schemaVersion: CANONICAL_SOURCE_EPISODE_SCHEMA_VERSION,
@@ -583,6 +653,8 @@ export function canonicalSourceEpisodeFromRegistry(input: {
     readiness: input.story.readiness,
     localeSources,
     sourceRevisionHash,
+    visualDirectionHash: input.story.visualDirectionHash,
+    visualDirection: input.story.visualDirection,
     declaredReusableAssets: [],
   });
 }

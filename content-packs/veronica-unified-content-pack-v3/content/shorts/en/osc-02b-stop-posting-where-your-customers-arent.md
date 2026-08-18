@@ -6,7 +6,7 @@ Then audit each channel with three questions. Which customer am I reaching here?
 
 A neglected account is not distribution. It is an open door with nobody behind it.
 
-Two channels with real customer signals and reliable follow-up can be worth far more than five profiles maintained from fear of missing out.
+Two channels with real customer signals can be worth more than five profiles maintained from fear of missing out.
 
 If pausing it creates no measurable loss, that is useful evidence too.
 

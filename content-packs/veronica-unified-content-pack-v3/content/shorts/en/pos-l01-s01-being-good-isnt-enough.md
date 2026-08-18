@@ -1,6 +1,6 @@
-Two consultants pitch for the same client. The first may actually be better: ten years of experience, excellent results, deep expertise. But her website says she does strategy, branding, sales, content, and growth. The second is known for solving one specific commercial problem and shows three clear examples of it. Who feels safer to hire?
+Two consultants pitch for the same client. The first may be better: ten years of experience, excellent results, deep expertise. But her website says she does strategy, branding, sales, content, and growth. The second is known for solving one specific commercial problem and shows three clear examples of it. Who feels safer to hire?
 
-That is the uncomfortable part of expertise: customers cannot inspect everything you know before they buy. They see your offer, your content, your website, what other people say about you, and what they remember you for.
+That is the uncomfortable part of expertise: customers cannot inspect everything you know before they buy. They see your offer, content, website, what others say, and what they remember you for.
 
 Being an expert and being perceived as an expert are two different problems.
 

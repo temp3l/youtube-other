@@ -21,6 +21,7 @@ export * from "./positioning-visual-planner.js";
 export * from "./veronica-content-pack-2-ingestion.js";
 export * from "./veronica-content-source.js";
 export * from "./veronica-unified-v3-semantic-plan.js";
+export * from "./veronica-unified-v3-visual-direction.js";
 export * from "./full-transcripted-pack-ingestion.js";
 export * from "./veronica-visual-plan-resolver.js";
 export * from "./veronica-semantic-plan-authority.js";

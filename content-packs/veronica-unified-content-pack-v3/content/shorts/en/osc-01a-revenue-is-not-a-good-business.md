@@ -10,13 +10,13 @@ Take your best-selling product and calculate one sale from start to finish.
 
 Start with what the customer pays. Then subtract production, payment fees, commissions, shipping, support, refunds, and every cost that increases when you sell one more unit.
 
-What remains tells you much more than the order count.
+What remains tells you more than the order count.
 
-And then ask the uncomfortable question: if sales doubled tomorrow, would the business definitely become healthier?
+Then ask: if sales doubled tomorrow, would the business become healthier?
 
 If double the sales means double the workload and almost no additional margin, growth is amplifying a structural weakness.
 
-Before chasing more revenue, understand what happens economically every single time you sell.
+Before chasing more revenue, understand what happens economically when you sell.
 
 A strong business is not the one making the most noise.
 
