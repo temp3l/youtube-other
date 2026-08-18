@@ -24,6 +24,82 @@ function plan(scenes: readonly PlannedScene[]): PositioningVisualPlanV2 {
 }
 
 describe("Veronica pre-image semantic gate", () => {
+  it("replaces an unauthorized inherited treatment with a typed abstention at the producer boundary", () => {
+    const narration = "This remains.";
+    const contaminated = scene({
+      narrationAnchor: narration,
+      treatment: treatment({
+        subjectRequirement: "younger independent product designer",
+        environment: "street-facing public threshold",
+        composition: "designer waits at a doorway",
+        action: "the consultant crosses the threshold",
+        props: ["expertise-recognition badge", "open doorway"],
+      }),
+    });
+    const rebuilt = rebuildVeronicaFinalTreatmentState({
+      plan: plan([contaminated]),
+      sceneTimings: [{ id: contaminated.sceneId, timing: { startSeconds: 0, endSeconds: 5 } }],
+      narrationByScene: [narration],
+    });
+    const result = rebuilt.scenes[0]!;
+    const activeVisual = `${result.treatment.subjectRequirement} ${result.treatment.environment} ${result.treatment.composition} ${result.treatment.action} ${result.treatment.props.join(" ")}`;
+    expect(result.visualEncodingEligibility).toMatchObject({
+      status: "BLOCK",
+      reason: "UNRESOLVED_REQUIRED_MECHANISM",
+    });
+    expect(activeVisual).not.toMatch(/\b(?:doorway|threshold|designer|consultant|expertise-recognition)\b/iu);
+    expect(validateVeronicaProviderReadiness(rebuilt).issues).toContainEqual(expect.objectContaining({
+      code: "SEMANTIC_PROVIDER_PROJECTION_INCONSISTENCY",
+      reason: "NO_SAFE_SEMANTIC_ENCODING:UNRESOLVED_REQUIRED_MECHANISM",
+    }));
+  });
+
+  it("finalizes one deterministic v4 semantic authority without conflating owner and buyer", () => {
+    const narration = "The professional removes the obstacle, so the buyer can choose the matching response.";
+    const first = deriveVeronicaSemanticProposition({ scene: scene(), narration });
+    const second = deriveVeronicaSemanticProposition({ scene: scene(), narration });
+
+    expect(first.schemaVersion).toBe("veronica-semantic-proposition.v4");
+    expect(first.actorRole).toBe("expert");
+    expect(first.buyerPerspective?.role).toBe("buyer");
+    expect(first.buyerPerspective?.interpretation).not.toBe(first.actorAction);
+    expect(first.stateModel.kind).toBe("SINGLE_STATE");
+    expect(first.requiredVisibleConsequence).toBe(first.consequence);
+    expect(first.semanticRevisionHash).toBe(first.propositionHash);
+    expect(second.semanticRevisionHash).toBe(first.semanticRevisionHash);
+    expect(first.visualAuthorization.entities.some((entry) => entry.semanticRole === "expert")).toBe(true);
+  });
+
+  it("does not synthesize a professional for a buyer-owned generic treatment", () => {
+    const narration = "The buyer ignores a broad offer when no specific relevant fit is visible in that situation.";
+    const proposition = deriveVeronicaSemanticProposition({ scene: scene({ narrationAnchor: narration }), narration });
+    const projected = treatment(visualTreatmentFromProposition({ scene: scene({ narrationAnchor: narration }), proposition, preserveEnvironment: false }));
+
+    expect(proposition.actorRole).toBe("buyer");
+    expect(proposition.buyerPerspective?.role).toBe("buyer");
+    expect(projected.actionOwnerRole).toBe("buyer");
+    expect(`${projected.subjectRequirement} ${projected.environment} ${projected.composition} ${projected.action} ${projected.props.join(" ")}`).not.toMatch(/\b(?:professional|customer|visitor|client|advisor|expert|employee|owner|operator)\b/iu);
+    expect(assessVeronicaTreatmentPropositionCompatibility({ treatment: projected, proposition, narration }).status).toBe("PASS");
+  });
+
+  it("keeps source spans, polarity, causality, and transition state stable through finalization", () => {
+    const narration = "If the message becomes more compelling but the experience cannot support it, conversion may rise once and trust may fall later.";
+    const proposition = deriveVeronicaSemanticProposition({ scene: scene(), narration });
+
+    expect(proposition.evidenceSpans.length).toBeGreaterThan(0);
+    expect(proposition.polarity).toBe("TRANSITION_POSITIVE_TO_NEGATIVE");
+    expect(proposition.stateModel).toMatchObject({
+      kind: "MULTI_STATE_SEQUENCE",
+      relation: "SEQUENTIAL_PROGRESSION",
+    });
+    expect(proposition.causalRelationship).toMatchObject({
+      relation: proposition.stateRelation,
+      cause: proposition.cause,
+      consequence: proposition.consequence,
+    });
+    expect(proposition.visualEncodingConstraints.textFree).toBe(true);
+  });
+
   it("rejects concrete positioning semantics leaked into a source-grounded economics treatment", () => {
     const narration = "If sales doubled tomorrow, would the business definitely become healthier?";
     const proposition = deriveVeronicaSemanticProposition({ scene: scene(), narration });
@@ -111,6 +187,38 @@ describe("Veronica pre-image semantic gate", () => {
     expect(projected.action).toContain("controlled capacity");
   });
 
+  it("keeps a promise grounded in the experience that can support it without threshold imagery", () => {
+    const narration = "If the message becomes more compelling but the experience cannot support it, conversion may rise once and trust may fall later.";
+    const proposition = deriveVeronicaSemanticProposition({ scene: scene({ narrationAnchor: narration }), narration });
+    const projected = visualTreatmentFromProposition({ scene: scene({ narrationAnchor: narration }), proposition, preserveEnvironment: false });
+
+    expect(proposition.visualMechanism).toBe("promise-experience-alignment");
+    expect(proposition.polarity).toBe("TRANSITION_POSITIVE_TO_NEGATIVE");
+    expect(proposition.stateRelation).toBe("SEQUENTIAL_PROGRESSION");
+    expect(proposition.contrast).toMatchObject({
+      initialState: "conversion may rise once",
+      desiredState: "trust may fall later",
+      failureState: "trust may fall later",
+    });
+    expect(`${projected.environment} ${projected.composition} ${projected.action} ${projected.props.join(" ")}`).not.toMatch(/doorway|threshold|foothold|future paths?/iu);
+    expect(assessVeronicaTreatmentPropositionCompatibility({ treatment: treatment(projected), proposition, narration }).status).toBe("PASS");
+  });
+
+  it("keeps distinct promise semantics in distinct source-grounded visual mechanisms", () => {
+    const cases = [
+      ["A promise is not a creative slogan. It is a translation of value.", "promise-value-translation"],
+      ["The framework exists to pull you out of technical description.", "description-to-outcome-framing"],
+      ["Ask whether the real experience can deliver the expectation.", "expectation-delivery-check"],
+      ["You do not need a louder promise. You need a more honest promise—or a better product.", "promise-calibration"],
+      ["The promise creates a standard. If the message becomes more compelling but the experience cannot support it, conversion may rise once and trust may fall later.", "promise-experience-alignment"],
+      ["A strong promise is not bigger than reality. It makes reality clearer.", "reality-bounded-clarity"],
+    ] as const;
+
+    for (const [narration, mechanism] of cases) {
+      expect(deriveVeronicaSemanticProposition({ scene: scene({ narrationAnchor: narration }), narration }).visualMechanism).toBe(mechanism);
+    }
+  });
+
   it("blocks unsupported threshold environments while preserving supported doorway stories", () => {
     const narration = "Revenue grows while retained margin remains small.";
     const proposition = deriveVeronicaSemanticProposition({ scene: scene(), narration });
@@ -120,8 +228,45 @@ describe("Veronica pre-image semantic gate", () => {
     ]));
     const supportedNarration = "A specific niche is a doorway, not a wall.";
     const supported = deriveVeronicaSemanticProposition({ scene: scene(), narration: supportedNarration });
+    expect(supported.visualAuthorization.motifs.map((entry) => entry.concept)).toEqual(expect.arrayContaining(["doorway"]));
     const supportedTreatment = treatment(visualTreatmentFromProposition({ scene: scene(), proposition: supported, preserveEnvironment: false }));
+    expect(supportedTreatment.actionOwnerRole).toBe(supported.actorRole);
+    expect(`${supportedTreatment.subjectRequirement} ${supportedTreatment.composition} ${supportedTreatment.action}`).not.toMatch(/\bprofessional\b/iu);
     expect(assessVeronicaTreatmentPropositionCompatibility({ treatment: supportedTreatment, proposition: supported, narration: supportedNarration }).status).toBe("PASS");
+  });
+
+  it("projects a source-grounded professional through a doorway without substituting another persona", () => {
+    const narration = "The professional widens a specific niche doorway while keeping wider paths open.";
+    const proposition = deriveVeronicaSemanticProposition({ scene: scene({ narrationAnchor: narration }), narration });
+    const projected = treatment(visualTreatmentFromProposition({ scene: scene(), proposition, preserveEnvironment: false }));
+
+    expect(proposition.actorRole).toBe("expert");
+    expect(proposition.visualAuthorization.entities).toEqual(expect.arrayContaining([
+      expect.objectContaining({ concept: "professional", authority: "SOURCE_SPAN" }),
+      expect.objectContaining({ semanticRole: "expert" }),
+    ]));
+    expect(projected.action).toMatch(/^the professional widens/iu);
+    expect(projected.action).not.toMatch(/\b(?:customer|visitor|observer)\b/iu);
+    expect(assessVeronicaTreatmentPropositionCompatibility({ treatment: projected, proposition, narration }).status).toBe("PASS");
+  });
+
+  it("uses a people-free threshold encoding when the finalized authority has no primary actor", () => {
+    const narration = "A specific niche is a doorway, not a wall.";
+    const actorlessScene = scene({
+      narrationAnchor: narration,
+      treatment: treatment({
+        action: "the comparison remains visible",
+        actionOwnerRole: "none",
+        strategy: "comparison-composition",
+      }),
+    });
+    const proposition = deriveVeronicaSemanticProposition({ scene: actorlessScene, narration });
+    const projected = treatment(visualTreatmentFromProposition({ scene: actorlessScene, proposition, preserveEnvironment: false }));
+
+    expect(proposition.actorRole).toBe("none");
+    expect(projected.actionOwnerRole).toBe("none");
+    expect(`${projected.subjectRequirement} ${projected.composition} ${projected.action}`).not.toMatch(/\b(?:professional|customer|visitor|observer|buyer)\b/iu);
+    expect(assessVeronicaTreatmentPropositionCompatibility({ treatment: projected, proposition, narration }).status).toBe("PASS");
   });
 
   it("resolves contextual and pronoun-dependent theses from bounded source spans", () => {
@@ -149,6 +294,22 @@ describe("Veronica pre-image semantic gate", () => {
     const ambiguous = deriveVeronicaSemanticProposition({ scene: scene(), narration: "Try this instead." });
     expect(ambiguous.visualMechanism).toBe("UNRESOLVED");
     expect(() => visualTreatmentFromProposition({ scene: scene(), proposition: ambiguous, preserveEnvironment: false })).toThrow("SEMANTIC_REMEDIATION_LOW_CONFIDENCE");
+  });
+
+  it("abstains without mutating the scene when no source-bound operator exists", () => {
+    const ambiguous = scene({
+      narrationAnchor: "Try this instead.",
+      treatment: treatment({ action: "a customer crosses an invented threshold", environment: "invented public threshold" }),
+    });
+    const result = runVeronicaSemanticRemediation({ plan: plan([ambiguous]), narrationByScene: [ambiguous.narrationAnchor] });
+
+    expect(result.noSafeEncodingCount).toBe(1);
+    expect(result.decisions[0]).toMatchObject({
+      encodingStatus: "NO_SAFE_ENCODING",
+      selectedOperator: null,
+    });
+    expect(result.plan.scenes[0]?.treatment.treatmentHash).toBe(ambiguous.treatment.treatmentHash);
+    expect(result.convergenceStatus).toBe("SEMANTIC_REMEDIATION_EXHAUSTED");
   });
 
   it("records and replaces a rejected treatment family instead of recycling it", () => {
@@ -330,7 +491,8 @@ describe("Veronica pre-image semantic gate", () => {
     expect(replacement.semanticProposition?.visualMechanism).toBe("audience-fit-signal");
     expect(replacement.semanticProposition?.actorRole).toBe("buyer");
     expect(replacement.treatment.actionOwnerRole).toBe("buyer");
-    expect(replacement.treatment.action).toMatch(/intended person stops/iu);
+    expect(replacement.treatment.action).toMatch(/^the buyer compares source-grounded specific audience-fit signal evidence while the source-grounded failure remains visibly unresolved/iu);
+    expect(replacement.treatment.action).not.toMatch(/\b(?:intended person|professional|customer|visitor)\b/iu);
     expect(`${replacement.treatment.environment} ${replacement.treatment.props.join(" ")}`).not.toMatch(/light laboratory|prism|shadow grid/iu);
   });
 
@@ -345,7 +507,43 @@ describe("Veronica pre-image semantic gate", () => {
 
   it("fails closed when generic remediation cannot reconcile source action ownership", () => {
     const blocked = scene({ visibleThesis: "topic", treatment: treatment({ actionOwnerRole: "expert", action: "the expert opens a doorway while a buyer compares and chooses" }) });
-    const passing = scene({ sceneId: "scene-002", treatment: treatment({ sceneId: "scene-002", actionOwnerRole: "buyer", action: "a buyer compares the evidence, recognizes the difference, and chooses the clear route" }), visibleThesis: "Clear evidence lets the buyer recognize the difference and choose the relevant route.", newInformation: "This second scene adds the buyer's final evidence comparison and selection." });
+    const passing = scene({
+      sceneId: "scene-002",
+      narrationAnchor: "The buyer compares the final evidence and chooses.",
+      treatment: treatment({
+        sceneId: "scene-002",
+        subjectRequirement: "buyer with visible comparison evidence",
+        environment: "neutral evidence comparison setting",
+        composition: "a buyer compares two relevant evidence objects",
+        actionOwnerRole: "buyer",
+        action: "a buyer compares the evidence, recognizes the difference, and chooses the clear route",
+        props: ["two relevant evidence objects"],
+        grammar: {
+          strategy: "client-decision",
+          subjectArchetype: "buyer",
+          environment: "neutral evidence comparison",
+          composition: "evidence comparison",
+          camera: "40mm",
+          props: ["evidence objects"],
+          topology: "none",
+          semanticTokens: ["buyer", "evidence", "choice"],
+          continuityIdentityId: null,
+        },
+        viewerVisibleFingerprint: {
+          strategyFamily: "client-decision",
+          subjectArchetype: "buyer",
+          environmentArchetype: "evidence comparison",
+          compositionArchetype: "comparison",
+          cameraArchetype: "40mm",
+          lightingArchetype: "daylight",
+          actionArchetype: "compares evidence",
+          dominantObjectArchetype: "evidence objects",
+          motionArchetype: "reveal",
+        },
+      }),
+      visibleThesis: "Clear evidence lets the buyer recognize the difference and choose the relevant route.",
+      newInformation: "This second scene adds the buyer's final evidence comparison and selection.",
+    });
     const original = plan([blocked, passing]);
     const result = runVeronicaSemanticRemediation({ plan: original, narrationByScene: ["The expert makes positioning evidence visible so a buyer can choose.", "The buyer compares the final evidence and chooses."] });
     expect(result.convergenceStatus).toBe("SEMANTIC_REMEDIATION_EXHAUSTED");
@@ -583,7 +781,7 @@ describe("Veronica pre-image semantic gate", () => {
     const conflict = deriveVeronicaSemanticProposition({ scene: scene(), narration: "The profile, website, and offer present conflicting identities, so the visitor cannot categorize the expertise." });
     expect(conflict.polarity).toBe("NEGATIVE_STATE");
     expect(conflict.buyerConsequenceFamily).toBe("HESITATES");
-    expect(visualTreatmentFromProposition({ scene: scene(), proposition: conflict, preserveEnvironment: false }).action).toMatch(/conflicting|without finding/iu);
+    expect(visualTreatmentFromProposition({ scene: scene(), proposition: conflict, preserveEnvironment: false }).action).toMatch(/failure remains visibly unresolved/iu);
     expect(classifyVeronicaSemanticPolarity("The signals conflict at first, but after alignment the visitor understands one coherent category.")).toBe("TRANSITION_NEGATIVE_TO_POSITIVE");
   });
 

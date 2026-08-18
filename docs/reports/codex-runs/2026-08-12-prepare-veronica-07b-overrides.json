@@ -1,0 +1,239 @@
+{
+  "schemaVersion": "veronica-editorial-treatment-overrides.v1",
+  "basePlanHash": "0f38f572486a5c23f03301364853cbfc510f1269a8c4105ba210eacf5abf3a78",
+  "scenes": [
+    {
+      "sceneId": "07b-selling-isnt-manipulation-HOOK",
+      "visibleThesis": "Giving reasons and answering doubts leaves the friend free to say no.",
+      "treatment": {
+        "strategy": "client-decision",
+        "narrativeBeat": "persuasion-leaves-the-decision-free",
+        "communicationIntent": "make-choice-freedom-visible",
+        "subjectRequirement": "two friends choosing between restaurant options without readable menus",
+        "environment": "ordinary restaurant-planning conversation at a table with two distinct place cards kept text-free",
+        "composition": "one friend contributes reasons in conversation with an open hand while the other considers two equal, reachable options",
+        "camera": "documentary eye-level two-person view with both options and the considering gesture visible",
+        "lighting": "soft natural daylight",
+        "action": "the friend hears reasons and doubts answered while keeping both choices available",
+        "actionOwnerRole": "buyer",
+        "props": [
+          "two text-free restaurant place cards",
+          "open-hand explanation gesture",
+          "considering gesture"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "subject-detail",
+          "slow-push"
+        ]
+      },
+      "semantic": {
+        "actorRole": "buyer",
+        "actorAction": "the friend considers the reasons and keeps the ability to say no",
+        "cause": "Friends give reasons and answer doubts about a restaurant choice",
+        "consequence": "The friend keeps the ability to say no",
+        "buyerInterpretation": "the friend sees that the decision remains theirs",
+        "polarity": "NEUTRAL",
+        "stateRelation": "STABLE",
+        "visualMechanism": "relevant-context-participation",
+        "evidenceAnchors": [
+          "If you suggest a restaurant to friends, you give reasons, answer doubts, and try to convince them.",
+          "But the decision stays theirs."
+        ],
+        "buyerConsequenceFamily": "RECOGNIZES",
+        "confidence": {
+          "proposition": "HIGH",
+          "actorOwnership": "HIGH",
+          "consequence": "HIGH",
+          "visualMechanism": "HIGH"
+        }
+      }
+    },
+    {
+      "sceneId": "07b-selling-isnt-manipulation-D04",
+      "visibleThesis": "Relevant information and room for questions leave the customer free to decline.",
+      "treatment": {
+        "strategy": "client-decision",
+        "narrativeBeat": "customer-keeps-an-informed-choice",
+        "communicationIntent": "make-customer-freedom-visible",
+        "subjectRequirement": "a customer and a professional in a text-free consultation",
+        "environment": "quiet one-to-one consultation table with two open, text-free information cards",
+        "composition": "the customer examines the information cards, asks a question, and keeps an open path away from the table",
+        "camera": "documentary three-quarter view showing the customer, the information, and the unblocked departure path",
+        "lighting": "soft natural daylight",
+        "action": "the customer reviews relevant information, asks a question, and remains free to decline",
+        "actionOwnerRole": "buyer",
+        "props": [
+          "two text-free information cards",
+          "customer question gesture",
+          "unblocked chair and departure path"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "subject-detail",
+          "slow-push"
+        ]
+      },
+      "semantic": {
+        "actorRole": "buyer",
+        "actorAction": "the customer reviews information, asks questions, and remains free to decline",
+        "cause": "The customer gets relevant information and room for questions",
+        "consequence": "The customer has genuine freedom to decline",
+        "buyerInterpretation": "the customer can make an informed free decision",
+        "polarity": "NEUTRAL",
+        "stateRelation": "STABLE",
+        "visualMechanism": "customer-context-interpretation",
+        "evidenceAnchors": [
+          "The customer gets relevant information, room for questions, and genuine freedom to decline."
+        ],
+        "buyerConsequenceFamily": "RECOGNIZES",
+        "confidence": {
+          "proposition": "HIGH",
+          "actorOwnership": "HIGH",
+          "consequence": "HIGH",
+          "visualMechanism": "HIGH"
+        }
+      }
+    },
+    {
+      "sceneId": "07b-selling-isnt-manipulation-S03",
+      "visibleThesis": "An informed customer can say yes or no freely.",
+      "treatment": {
+        "strategy": "client-decision",
+        "narrativeBeat": "informed-yes-remains-free",
+        "communicationIntent": "deliver-payoff",
+        "subjectRequirement": "a customer considering a clear offer with a professional listening nearby",
+        "environment": "calm consultation setting with one text-free offer card and open space around the customer",
+        "composition": "the customer holds the information card, faces the professional, and keeps an unobstructed route to leave or continue",
+        "camera": "documentary eye-level view with the customer’s deciding gesture and open space visible",
+        "lighting": "warm natural editorial daylight",
+        "action": "the customer makes an informed choice while the professional leaves the decision free",
+        "actionOwnerRole": "buyer",
+        "props": [
+          "one text-free offer card",
+          "customer deciding gesture",
+          "open space beside the customer"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "subject-detail",
+          "slow-push"
+        ]
+      },
+      "semantic": {
+        "actorRole": "buyer",
+        "actorAction": "the customer makes an informed choice and remains free to say no",
+        "cause": "Healthy selling does not eliminate the no",
+        "consequence": "Healthy selling makes the yes informed and free",
+        "buyerInterpretation": "the customer understands that yes or no remains their decision",
+        "polarity": "NEUTRAL",
+        "stateRelation": "STABLE",
+        "visualMechanism": "customer-context-interpretation",
+        "evidenceAnchors": [
+          "The customer gets relevant information, room for questions, and genuine freedom to decline.",
+          "Healthy selling does not eliminate the no. It makes the yes informed and free."
+        ],
+        "buyerConsequenceFamily": "RECOGNIZES",
+        "confidence": {
+          "proposition": "HIGH",
+          "actorOwnership": "HIGH",
+          "consequence": "HIGH",
+          "visualMechanism": "HIGH"
+        }
+      }
+    },
+    {
+      "sceneId": "07b-selling-isnt-manipulation-S01",
+      "visibleThesis": "Understanding the need lets the professional present a relevant solution.",
+      "treatment": {
+        "strategy": "client-decision",
+        "narrativeBeat": "understand-need-before-presenting-solution",
+        "communicationIntent": "make-need-and-solution-visible",
+        "subjectRequirement": "a professional listening to a customer in a text-free consultation",
+        "environment": "quiet consultation table with a customer context object and one separate solution sample",
+        "composition": "the customer indicates the context object while the professional keeps the solution sample separate until the need is understood",
+        "camera": "documentary three-quarter consultation view with the listening gesture and both objects visible",
+        "lighting": "soft natural daylight",
+        "action": "the professional listens to the customer’s need before presenting the solution",
+        "actionOwnerRole": "expert",
+        "props": [
+          "customer context object",
+          "separate text-free solution sample",
+          "listening gesture"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "subject-detail",
+          "slow-push"
+        ]
+      },
+      "semantic": {
+        "actorRole": "expert",
+        "actorAction": "the professional understands the need before presenting a solution",
+        "cause": "Understand the need",
+        "consequence": "Present a solution",
+        "buyerInterpretation": "the customer sees that the solution follows the need",
+        "polarity": "POSITIVE_STATE",
+        "stateRelation": "STABLE",
+        "visualMechanism": "customer-context-interpretation",
+        "evidenceAnchors": [
+          "Understand the need.",
+          "Present a solution."
+        ],
+        "buyerConsequenceFamily": "RECOGNIZES",
+        "confidence": {
+          "proposition": "HIGH",
+          "actorOwnership": "HIGH",
+          "consequence": "HIGH",
+          "visualMechanism": "HIGH"
+        }
+      }
+    },
+    {
+      "sceneId": "07b-selling-isnt-manipulation-D03",
+      "visibleThesis": "A clear explanation of value lets the customer decide.",
+      "treatment": {
+        "strategy": "client-decision",
+        "narrativeBeat": "explain-value-and-ask-for-decision",
+        "communicationIntent": "make-clear-choice-visible",
+        "subjectRequirement": "a professional explaining one text-free value sample to a customer",
+        "environment": "calm one-to-one conversation with one text-free value sample between both people",
+        "composition": "the professional explains the value sample with an open hand while the customer considers it without pressure",
+        "camera": "documentary eye-level two-person view with the explanation and customer response visible",
+        "lighting": "soft natural daylight",
+        "action": "the professional explains the value clearly and asks the customer for a decision",
+        "actionOwnerRole": "expert",
+        "props": [
+          "one text-free value sample",
+          "open-hand explanation gesture",
+          "customer considering gesture"
+        ],
+        "motionOpportunities": [
+          "establishing-crop",
+          "subject-detail",
+          "slow-push"
+        ]
+      },
+      "semantic": {
+        "actorRole": "expert",
+        "actorAction": "the professional explains the value clearly and asks for a decision",
+        "cause": "You get to explain the value clearly",
+        "consequence": "ask for a decision",
+        "buyerInterpretation": "the customer can consider the clear explanation before deciding",
+        "polarity": "NEUTRAL",
+        "stateRelation": "STABLE",
+        "visualMechanism": "relevant-context-participation",
+        "evidenceAnchors": [
+          "You get to explain the value clearly and ask for a decision."
+        ],
+        "buyerConsequenceFamily": "CHOOSES",
+        "confidence": {
+          "proposition": "HIGH",
+          "actorOwnership": "HIGH",
+          "consequence": "HIGH",
+          "visualMechanism": "HIGH"
+        }
+      }
+    }
+  ]
+}

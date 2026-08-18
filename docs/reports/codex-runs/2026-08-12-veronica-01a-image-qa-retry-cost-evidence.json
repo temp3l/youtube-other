@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "veronica-01a-image-qa-retry-cost-evidence.v1",
+  "reconciledAt": "2026-08-12T14:41:00Z",
+  "reservationId": "veronica-01a-image-qa-retry-2026-08-12",
+  "imageGeneration": {
+    "model": "gpt-image-2",
+    "requests": 1,
+    "successfulRequests": 1,
+    "estimatedCostUsd": 0.007525,
+    "requestId": "req_5b98926124f74a33a1eea8c470a09a45",
+    "source": "episodes/01a-revenue-is-not-a-good-business/openai-cost-summary.json"
+  },
+  "imageQa": {
+    "model": "gpt-5.4-mini",
+    "attemptedRequests": 1,
+    "acceptedReviews": 0,
+    "result": "MALFORMED_OUTPUT",
+    "usageWindowUtc": {
+      "start": "2026-08-12T14:29:00Z",
+      "end": "2026-08-12T14:32:00Z",
+      "bucketWidth": "1m",
+      "organizationModelRequests": 0
+    },
+    "costUsd": 0,
+    "classification": "ZERO_MODEL_USAGE_CONFIRMED_BY_ORGANIZATION_USAGE_API"
+  },
+  "totalCostUsd": 0.007525,
+  "totalCanonicalCostEur": 0.007173,
+  "conversion": {
+    "observedUsdPerEur": 1.154,
+    "safetyMultiplier": 1.1,
+    "conservativeEurPerUsd": 0.953206239
+  }
+}

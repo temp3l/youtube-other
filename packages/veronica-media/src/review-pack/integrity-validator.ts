@@ -24,6 +24,7 @@ export const VISUAL_STATE_REFERENCE_MISSING = "VISUAL_STATE_REFERENCE_MISSING";
 export const PROVENANCE_REFERENCE_MISSING = "PROVENANCE_REFERENCE_MISSING";
 export const CONTACT_SHEET_ASSET_MISMATCH = "CONTACT_SHEET_ASSET_MISMATCH";
 export const PACKAGE_CHECKSUM_MISMATCH = "PACKAGE_CHECKSUM_MISMATCH";
+export const RENDER_IDENTITY_PAIR_MISMATCH = "RENDER_IDENTITY_PAIR_MISMATCH";
 
 export interface EpisodeIntegrityIssue {
   readonly code: string;
@@ -148,6 +149,19 @@ export async function validateEpisodeApprovalPackIntegrity(
         ...(issue.preparedAssetId ? { assetId: issue.preparedAssetId } : {}),
       });
     }
+  }
+
+  if (
+    input.landscapeManifest &&
+    input.portraitManifest &&
+    JSON.stringify(input.landscapeManifest.canonicalContentIdentity) !==
+      JSON.stringify(input.portraitManifest.canonicalContentIdentity)
+  ) {
+    issues.push({
+      code: RENDER_IDENTITY_PAIR_MISMATCH,
+      severity: "blocking-error",
+      message: "Landscape and portrait render manifests have different canonical content identities.",
+    });
   }
 
   for (const aspectRatio of ["16:9", "9:16"] as const) {

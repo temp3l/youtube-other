@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "characterId": "veronica-benini",
+  "identityVersion": "v1",
+  "canonicalSource": {
+    "path": "source/veronica-original.webp",
+    "sha256": "a305233ca236facf03ffc98b765f24ec1308f6566540fbc5f7bd6f5ab4c36041",
+    "authority": "canonical"
+  },
+  "references": [
+    {
+      "id": "front-neutral",
+      "path": "references/front-neutral.png",
+      "view": "front",
+      "framing": "waist-up",
+      "expression": "neutral",
+      "source": "derived",
+      "sha256": "85c916641c9ee0c9efc0832962729053b704eaea68c48f6d6ba16a1fff9a74f1"
+    },
+    {
+      "id": "front-smiling",
+      "path": "references/front-smiling.png",
+      "view": "front",
+      "framing": "waist-up",
+      "expression": "smiling",
+      "source": "derived",
+      "sha256": "081ffe2b4f024a007147eed1d59f7c7854db3307c09c21baa7be6418b337a606"
+    },
+    {
+      "id": "three-quarter-left",
+      "path": "references/three-quarter-left.png",
+      "view": "three-quarter-left",
+      "framing": "waist-up",
+      "expression": "neutral",
+      "source": "derived",
+      "sha256": "85d621036a207d62acc7e277854cd9c31824d75f327651b1f9376499256ec400"
+    },
+    {
+      "id": "profile-left",
+      "path": "references/profile-left.png",
+      "view": "profile-left",
+      "framing": "waist-up",
+      "expression": "neutral",
+      "source": "derived",
+      "sha256": "e35cd9c83104a0027b7e49d1268c63348e275a6e10152c45f046d030dd8f311d"
+    },
+    {
+      "id": "three-quarter-right",
+      "path": "references/three-quarter-right.png",
+      "view": "three-quarter-right",
+      "framing": "waist-up",
+      "expression": "neutral",
+      "source": "derived",
+      "sha256": "bd812a5a40d454103a159934eacd819605f2174f0670850178430db58d06b8af"
+    },
+    {
+      "id": "profile-right",
+      "path": "references/profile-right.png",
+      "view": "profile-right",
+      "framing": "waist-up",
+      "expression": "neutral",
+      "source": "derived",
+      "sha256": "7b621a8f41eb7916b1f79f88d05df2d10424698e5219fa6cfbff4aa39fee1309"
+    },
+    {
+      "id": "gesture-open-hands",
+      "path": "references/gesture-open-hands.png",
+      "view": "front",
+      "framing": "waist-up",
+      "expression": "gesturing",
+      "source": "derived",
+      "sha256": "5851697ae6d59d4e669bfd2c460436455529ff50b2d0c22db2663d1734ae2113"
+    },
+    {
+      "id": "gesture-explaining",
+      "path": "references/gesture-explaining.png",
+      "view": "front",
+      "framing": "waist-up",
+      "expression": "gesturing",
+      "source": "derived",
+      "sha256": "bab6cfce272b09e51cc0fb3ce4acbe012d5a50cb7e9931afeeb0071c9cf165ec"
+    }
+  ],
+  "policy": {
+    "canonicalSourceRemainsAuthoritative": true,
+    "derivedReferencesAreIdentityAssistOnly": true,
+    "defaultMaxReferencesPerGeneration": 2,
+    "doNotInheritFromReference": [
+      "wardrobe",
+      "pose",
+      "background",
+      "lighting",
+      "camera framing"
+    ],
+    "activateForVariants": [
+      "short",
+      "full"
+    ]
+  }
+}

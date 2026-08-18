@@ -1,29 +1,77 @@
 # Veronica source-pack ingestion
 
-Veronica source packs are translated at the ingestion boundary, not in visual, speech, image, or render code.
+Veronica narration enters production only through the canonical content source
+documented in [the source-of-truth contract](../veronica-content-source-of-truth.md).
 
-`VeronicaContentPack2Adapter` discovers `content-packs/vero/veronica-content-pack-2/shorts/<locale>/<authored-key>.md`, groups equal authored keys across locales, hashes the exact source bytes, and emits a canonical source episode. Its stable episode identity is the Pack 2 authored key (for example, `01a-revenue-is-not-a-good-business`), which already satisfies the shared opaque episode-ID contract.
+`resolveVeronicaContentSource()` locates the fixed
+`veronica-unified-content-pack-v3` root from the pnpm repository root, validates
+its manifest and series plan, checks every narration is a contained real file,
+and builds one in-memory registry. It does not recursively discover packs or
+fall back to older directories.
 
-Preparation writes the canonical episode workspace under `episodes/<episode-id>/`, a provenance descriptor, a planner-input artifact, and the current pipeline's canonical locale script. The script is an automatically materialized derived copy; the descriptor retains the external Pack 2 path, SHA-256, locale, pack identity, and adapter version for invalidation.
-
-Use `mediaforge veronica-media source-pack prepare --pack <pack-root> --workspace episodes --episode-id <authored-key> --language en` to perform this prepare-only boundary. It does not invoke planning or any provider.
-
-Pack 2 provides neither a source visual plan nor visual-reuse metadata. Both are intentionally represented as absent/empty in the canonical planner input. During production preparation, the visual-plan resolver runtime-validates this input and its source hashes, then executes the same deterministic Veronica visual planner used by the legacy positioning workflow. It persists `source/visual-plan.json` as a derived compatibility artifact with planner-input, source, configuration, and plan-revision hashes.
-
-Resolution precedence is explicit: a legacy or human-authored plan remains authoritative; a matching derived plan is reused; a stale or missing derived plan is regenerated from `visual-planner-input.v1.json`; and an episode with neither artifact fails closed. The legacy positioning-pack adapter remains unchanged and continues to own `meta/visual-reuse-manifest.json`.
-
-## Full-transcripted Pack Wave 01
-
-`content-packs/full-transcripted-pack/production-wave-01/` contains ten finished, QA-approved English narrations: five Shorts and five long-form videos. The `prepare-full-transcripted` command reads the exact script bytes and Wave 01 `qa.json`, then records the story ID, source transcript IDs, source-quality flags, and QA gates in the canonical source descriptor and episode manifest. The remaining editorial briefs are deliberately excluded until they have an approved narration script and equivalent QA evidence.
-
-Use the short story ID or its canonical slug:
+Use either a series episode or one story:
 
 ```bash
-mediaforge veronica-media source-pack prepare-full-transcripted \
-  --pack content-packs/full-transcripted-pack \
-  --workspace episodes \
-  --episode-id S001 \
-  --format short
+pnpm mediaforge -- veronica-media source-pack prepare \
+  --workspace episodes --episode 7 --language en
+
+pnpm mediaforge -- veronica-media source-pack prepare \
+  --workspace episodes --story-id osc-l04 --language en
 ```
 
-For a long-form narration, use `--episode-id L004 --format long`. Shorts materialize to `languages/short/script-en.md`; long-form scripts materialize to `languages/script-en.md`. Both variants produce `source/canonical-source-episode.v1.json` and `source/visual-planner-input.v1.json`, then continue through `veronica-media prepare-production` and the existing gated QA, review, speech, and image stages.
+Episode preparation materializes the Long and two Shorts as separate canonical
+story workspaces. Each workspace records pack, story, series episode, slot,
+locale, readiness, source-revision, and selected narration byte-hash identity in
+`source/canonical-source-episode.v1.json`,
+`source/visual-planner-input.v1.json`, and `manifest.json`. Missing translations
+fail explicitly; English is never substituted for a requested locale.
+
+Production visual planning requires the v2 source descriptor, validates its
+source bytes, and binds derived visual plans to narration and revision hashes.
+Metadata, narration, image, QA, supplemental, and render command boundaries
+also require the canonical workspace identity. Veronica render manifests embed
+the same identity and fail closed when it is absent or differs during resume.
+
+## Local inspection
+
+```bash
+pnpm veronica:content:status
+pnpm veronica:content:validate
+pnpm veronica:content:validate --strict-locales
+```
+
+These commands are read-only and provider-free. Default validation reports
+known localization work without failing; strict locale mode fails on those
+gaps. Canonical structural or English timing failures always fail closed.
+
+## Fresh English semantic planning
+
+The packaged CLI is the supported zero-provider planner entry. It verifies that
+the CLI, domain, and strategic-reinvention build fingerprints match source
+before running; it never accepts a reused plan as fresh semantic evidence.
+
+```bash
+pnpm --filter @mediaforge/domain build
+pnpm --filter @mediaforge/strategic-reinvention build
+pnpm --filter @mediaforge/cli build
+node apps/cli/bin/mediaforge.js veronica-media source-pack plan-english \
+  --repository-root . --output-dir artifacts/<fresh-run> --json
+```
+
+`--legacy-baseline` creates a separate V2 comparison run only. The default
+creates V3 source-span semantic plans, portfolio validation, and a zero-provider
+ledger; each invocation requires a new output directory.
+
+## Legacy adapters
+
+Pack 2 and full-transcripted adapters remain only for provenance/debug work:
+
+```bash
+mediaforge veronica-media source-pack prepare-legacy-pack2 ...
+mediaforge veronica-media source-pack prepare-legacy-full-transcripted ...
+mediaforge veronica-media legacy-plan-positioning-series ...
+mediaforge veronica-media legacy-plan-positioning-calibration ...
+```
+
+Their descriptors are rejected by production planning. They cannot become the
+active source through discovery order or missing-v2 fallback.

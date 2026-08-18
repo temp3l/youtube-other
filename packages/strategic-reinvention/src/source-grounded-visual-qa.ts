@@ -30,7 +30,7 @@ import {
 export const SOURCE_GROUNDED_SCENE_JUDGE_SCHEMA_VERSION =
   "veronica-source-grounded-scene-judgement.v1" as const;
 export const SOURCE_GROUNDED_SCENE_JUDGE_INSTRUCTION_VERSION =
-  "veronica-source-grounded-scene-judge-instructions.v2" as const;
+  "veronica-source-grounded-scene-judge-instructions.v3" as const;
 export const SOURCE_GROUNDED_BEAT_JUDGE_SCHEMA_VERSION =
   "veronica-source-grounded-visual-beat-judgement.v1" as const;
 export const SOURCE_GROUNDED_BEAT_JUDGE_INSTRUCTION_VERSION =
@@ -89,7 +89,7 @@ export class SourceGroundedQaAdmissionError extends Error {
 }
 
 export const SOURCE_GROUNDED_SCENE_JUDGE_INSTRUCTIONS = `The original narration beat is authoritative. Every derived semantic structure, state, treatment, provider prompt, and prior automated PASS may be wrong.
-Judge whether the exact final scene specification preserves the narration's meaning and whether the exact provider prompt is likely to render that meaning.
+Judge whether the exact final scene specification preserves the narration's meaning and whether the exact provider prompt is likely to render that meaning. When visualBeatCoverage is present, it is the ordered set of stills that renders this semantic scene: assess coverage across that set, and do not require one child still to depict information deliberately assigned to an adjacent child beat.
 Do not reward verbosity, style, cinematography, or internal consistency when source semantics are wrong.
 Identify who performs the narrated action. Preserve causal order. Distinguish seller/expert behavior from buyer/customer behavior; failure from desired state; current state from recommendation; and cause from consequence.
 Detect actor or action-owner inversion, causal inversion, polarity inversion, state-role inversion, explicit source-domain loss, stale visual mechanisms, abstract nonvisual instructions, text dependency under text-free constraints, incompatible multi-state projection, and severe under-coverage.
@@ -454,6 +454,19 @@ export interface SourceGroundedSceneJudgementInput {
     readonly continuity?: string;
   };
   readonly providerPrompt: string;
+  /**
+   * A semantic scene may intentionally be rendered as several ordered stills.
+   * Scene QA evaluates their combined coverage; child beat QA remains the
+   * authority for whether each individual still is source-grounded.
+   */
+  readonly visualBeatCoverage?: readonly {
+    readonly beatId: string;
+    readonly coreMeaning: string;
+    readonly newInformation: string;
+    readonly visualThesis: string;
+    readonly actorRelation?: VisualBeatTreatmentV1["actorRelation"];
+    readonly providerPrompt: string;
+  }[];
   readonly providerProjection?: {
     readonly treatmentPolarity: VeronicaSemanticProposition["polarity"];
     readonly promptPolarity: VeronicaSemanticProposition["polarity"];
@@ -489,6 +502,7 @@ export interface SourceGroundedVisualBeatJudgementInput
     | "visualThesis"
     | "subject"
     | "action"
+    | "actorRelation"
     | "state"
     | "environment"
     | "composition"
@@ -945,7 +959,8 @@ function negativeCacheKey(identity: string): string {
 
 async function activeNegativeCache(
   cache: SourceGroundedVisualQaCachePort,
-  identity: string
+  identity: string,
+  execution?: SourceGroundedQaExecutionPolicy,
 ): Promise<CachedOperationalFailure | null> {
   const value = (await cache.get(
     negativeCacheKey(identity)
@@ -953,6 +968,16 @@ async function activeNegativeCache(
   if (
     value?.schemaVersion !== "veronica-source-grounded-negative-cache.v1" ||
     Date.parse(value.expiresAt) <= Date.now()
+  ) {
+    return null;
+  }
+  // A malformed structured response is not semantic evidence. Keep it for
+  // cache-only runs, but an explicitly budgeted live retry must be able to
+  // obtain a fresh strict-schema response without deleting the audit record.
+  if (
+    value.kind === "DETERMINISTIC_MALFORMED" &&
+    execution?.providerMode === "LIVE_AUTHORIZED" &&
+    execution.retryDeterministicMalformed
   ) {
     return null;
   }
@@ -1151,34 +1176,20 @@ export function beatJudgementConsistencyReasons(
   return reasons;
 }
 
-/**
- * A semantic scene may have multiple beat-scoped image requests. Scene QA must
- * judge one actual provider request, never concatenate independent stills into
- * a fictional storyboard. Child beat QA covers every remaining request.
- */
-function canonicalSingleImageAssetForScene(
+/** Preserve visual-beat order in a decomposed semantic scene. */
+function orderedImageAssetsForScene(
   plan: PositioningVisualPlanV2,
-  scene: PlannedScene,
   providerAssets: readonly GeneratedVisualAsset[],
-): GeneratedVisualAsset | undefined {
-  const propositionSpans = scene.semanticProposition?.evidenceSpans ?? [];
-  const overlapsProposition = (beatId: string | undefined): boolean => {
-    const beat = plan.visualBeatPlan?.beats.find((candidate) => candidate.beatId === beatId);
-    return Boolean(beat && propositionSpans.some((span) =>
-      beat.narrationRef.startOffset < span.endOffset && span.startOffset < beat.narrationRef.endOffset,
-    ));
-  };
+): readonly GeneratedVisualAsset[] {
   const beatOrder = new Map(
     (plan.visualBeatPlan?.beats ?? [])
-      .filter((beat) => beat.sceneId === scene.sceneId)
       .map((beat, index) => [beat.beatId, index] as const),
   );
   return [...providerAssets].sort((left, right) =>
-    Number(overlapsProposition(right.visualBeatId)) - Number(overlapsProposition(left.visualBeatId))
-      || (beatOrder.get(left.visualBeatId ?? "") ?? Number.MAX_SAFE_INTEGER)
+    (beatOrder.get(left.visualBeatId ?? "") ?? Number.MAX_SAFE_INTEGER)
       - (beatOrder.get(right.visualBeatId ?? "") ?? Number.MAX_SAFE_INTEGER)
       || left.assetId.localeCompare(right.assetId),
-  )[0];
+  );
 }
 
 function inputForScene(
@@ -1189,7 +1200,8 @@ function inputForScene(
 ): SourceGroundedSceneJudgementInput {
   const proposition = scene.semanticProposition;
   const contrast = proposition?.contrast;
-  const canonicalAsset = canonicalSingleImageAssetForScene(plan, scene, providerAssets);
+  const orderedAssets = orderedImageAssetsForScene(plan, providerAssets);
+  const canonicalAsset = orderedAssets[0];
   if (!canonicalAsset) throw new Error(`SOURCE_GROUNDED_SCENE_PROVIDER_ASSET_MISSING:${scene.sceneId}`);
   const promptWithoutThesisAndConstraints = canonicalAsset.prompt
     .replace(/Visible thesis:[\s\S]*?(?=(?:No readable|Render this|$))/giu, "")
@@ -1247,7 +1259,26 @@ function inputForScene(
       composition: scene.treatment.composition,
       continuity: scene.continuityGroup ?? plan.continuity.mode,
     },
-    providerPrompt: canonicalAsset.prompt,
+    providerPrompt: orderedAssets.length === 1
+      ? canonicalAsset.prompt
+      : orderedAssets.map((asset, index) =>
+          `VISUAL BEAT ${index + 1} (${asset.visualBeatId ?? asset.assetId}):\n${asset.prompt}`,
+        ).join("\n\n"),
+    ...(orderedAssets.length > 1
+      ? {
+          visualBeatCoverage: orderedAssets.map((asset) => {
+            const beat = plan.visualBeatPlan?.beats.find((candidate) => candidate.beatId === asset.visualBeatId);
+            return {
+              beatId: asset.visualBeatId ?? asset.assetId,
+              coreMeaning: beat?.coreMeaning ?? asset.semanticPurpose,
+              newInformation: beat?.newInformation ?? asset.semanticPurpose,
+              visualThesis: beat?.visualThesis ?? scene.visibleThesis,
+              ...(beat?.actorRelation ? { actorRelation: beat.actorRelation } : {}),
+              providerPrompt: asset.prompt,
+            };
+          }),
+        }
+      : {}),
     providerProjection: {
       treatmentPolarity: classifyVeronicaSemanticPolarity(`${scene.treatment.composition} ${scene.treatment.action} ${scene.treatment.props.join(" ")}`),
       promptPolarity: projectionProvenance[0]?.projectedPolarity
@@ -1300,6 +1331,14 @@ function inputForBeat(
     semantic: {
       ...base.semantic,
       visibleThesis: beat.visualThesis,
+      ...(beat.actorRelation
+        ? {
+            actorRole: beat.actorRelation.outcomeActorRole,
+            actionOwner: beat.actorRelation.causalActionOwnerRole,
+            action: beat.actorRelation.causalAction,
+            consequence: beat.actorRelation.outcomeAction,
+          }
+        : {}),
     },
     structuredState: {
       ...base.structuredState,
@@ -1310,6 +1349,7 @@ function inputForBeat(
       environment: beat.environment,
       actor: beat.subject,
       action: beat.action,
+      ...(beat.actorRelation ? { actorRelation: beat.actorRelation } : {}),
       composition: beat.composition.description,
     },
     beatId: beat.beatId,
@@ -2159,8 +2199,7 @@ async function cachedSceneJudgement(input: {
   if (
     cached?.schemaVersion === "veronica-source-grounded-cache-record.v1" &&
     sourceGroundedSceneJudgementSchema.safeParse(cached.value).success &&
-    cached.outputHash === stableHash(cached.value) &&
-    cached.provenance.revisionId === input.revision.revisionId
+    cached.outputHash === stableHash(cached.value)
   ) {
     const value = sourceGroundedSceneJudgementSchema.parse(cached.value);
     const hitProvenance = {
@@ -2191,7 +2230,7 @@ async function cachedSceneJudgement(input: {
       consistencyReasons: sceneJudgementConsistencyReasons(value),
     };
   }
-  const negative = await activeNegativeCache(input.cache, key);
+  const negative = await activeNegativeCache(input.cache, key, input.execution);
   if (negative) {
     const judgement = unavailableScene(
       `Scene judge suppressed by ${negative.kind.toLowerCase()} backoff: ${negative.reason}`
@@ -2511,8 +2550,7 @@ async function cachedBeatJudgement(input: {
   if (
     cached?.schemaVersion === "veronica-source-grounded-cache-record.v1" &&
     sourceGroundedVisualBeatJudgementSchema.safeParse(cached.value).success &&
-    cached.outputHash === stableHash(cached.value) &&
-    cached.provenance.revisionId === input.revision.revisionId
+    cached.outputHash === stableHash(cached.value)
   ) {
     const value = sourceGroundedVisualBeatJudgementSchema.parse(cached.value);
     return {
@@ -2532,7 +2570,7 @@ async function cachedBeatJudgement(input: {
       consistencyReasons: beatJudgementConsistencyReasons(value),
     };
   }
-  const negative = await activeNegativeCache(input.cache, key);
+  const negative = await activeNegativeCache(input.cache, key, input.execution);
   if (negative) {
     const judgement = unavailableBeat(`Beat judge suppressed by ${negative.kind.toLowerCase()} backoff: ${negative.reason}`);
     return {
@@ -2755,7 +2793,7 @@ async function cachedDirective(input: {
       }),
     };
   }
-  const negative = await activeNegativeCache(input.cache, key);
+  const negative = await activeNegativeCache(input.cache, key, input.execution);
   if (negative) {
     return {
       directive: null,
@@ -2907,7 +2945,7 @@ async function cachedSequence(input: {
       }),
     };
   }
-  const negative = await activeNegativeCache(input.cache, key);
+  const negative = await activeNegativeCache(input.cache, key, input.execution);
   if (negative) {
     const judgement = unavailableSequence(
       `Sequence judge suppressed by ${negative.kind.toLowerCase()} backoff: ${negative.reason}`
@@ -3277,6 +3315,15 @@ export async function runSourceGroundedVisualQaController(input: {
   readonly scheduler?: SourceGroundedQaScheduler;
   readonly signal?: AbortSignal;
   readonly onProgress?: (progress: SourceGroundedQaProgress) => void;
+  readonly onCheckpoint?: (checkpoint: {
+    readonly stage: "SCENES" | "BEATS" | "SEQUENCE";
+    /** Completeness of this stage, never a substitute for final admission. */
+    readonly completeness: "COMPLETE" | "INCOMPLETE" | "FAILED";
+    readonly revision: QaRevision;
+    readonly scenes: readonly SourceGroundedSceneEvaluation[];
+    readonly beats: readonly SourceGroundedVisualBeatEvaluation[];
+    readonly sequence?: EpisodeSequenceJudgement;
+  }) => Promise<void>;
   readonly regenerate?: (input: {
     readonly plan: PositioningVisualPlanV2;
     readonly directives: readonly {
@@ -3680,6 +3727,13 @@ export async function runSourceGroundedVisualQaController(input: {
     narrationByScene: input.narrationByScene,
     policy: input.policy,
   });
+  await input.onCheckpoint?.({
+    stage: "SCENES",
+    completeness: "COMPLETE",
+    revision: finalRevision,
+    scenes: evaluations,
+    beats: [],
+  });
   const requiredBeats = plan.visualBeatPlan?.beats.filter(
     (beat) => beat.assetDecision === "new-image"
   ) ?? [];
@@ -3798,6 +3852,13 @@ export async function runSourceGroundedVisualQaController(input: {
     }));
   }
 
+  await input.onCheckpoint?.({
+    stage: "BEATS",
+    completeness: "COMPLETE",
+    revision: finalRevision,
+    scenes: evaluations,
+    beats: beatEvaluations,
+  });
   const meaningfulSequence =
     evaluations.every((evaluation) => evaluation.judgement.verdict === "PASS") &&
     beatEvaluations.every((evaluation) => evaluation.judgement.verdict === "PASS") &&
@@ -3809,43 +3870,67 @@ export async function runSourceGroundedVisualQaController(input: {
   );
   const sequenceProvenance: SourceGroundedEvaluationProvenance[] = [];
   if (meaningfulSequence && input.sequenceJudge) {
-    const evaluated = await cachedSequence({
-      episodeId: plan.contentId,
-      scenes: sequenceSummary(plan, evaluations, beatEvaluations),
-      policy: input.policy,
-      judge: input.sequenceJudge,
-      model: input.policy.sequenceJudge,
-      component: "SEQUENCE_JUDGE",
-      escalationStatus: "NOT_ESCALATED",
-      cache: input.cache,
-      revision: finalRevision,
-      execution,
-      scheduler,
-      ...(input.signal ? { signal: input.signal } : {}),
-    });
-    sequence = evaluated.judgement;
-    sequenceProvenance.push(evaluated.provenance);
-    allProvenance.push(evaluated.provenance);
-    if (sequence.verdict === "REVIEW" && input.policy.finalAdjudication) {
-      const finalModel =
-        input.policy.finalSequenceAdjudication ?? input.policy.finalAdjudication;
-      const final = await cachedSequence({
+    try {
+      const evaluated = await cachedSequence({
         episodeId: plan.contentId,
         scenes: sequenceSummary(plan, evaluations, beatEvaluations),
         policy: input.policy,
         judge: input.sequenceJudge,
-        model: finalModel,
-        component: "SEQUENCE_JUDGE_FINAL",
-        escalationStatus: "FINAL_ADJUDICATION",
+        model: input.policy.sequenceJudge,
+        component: "SEQUENCE_JUDGE",
+        escalationStatus: "NOT_ESCALATED",
         cache: input.cache,
         revision: finalRevision,
         execution,
         scheduler,
         ...(input.signal ? { signal: input.signal } : {}),
       });
-      sequence = final.judgement;
-      sequenceProvenance.push(final.provenance);
-      allProvenance.push(final.provenance);
+      sequence = evaluated.judgement;
+      sequenceProvenance.push(evaluated.provenance);
+      allProvenance.push(evaluated.provenance);
+      if (sequence.verdict === "REVIEW" && input.policy.finalAdjudication) {
+        const finalModel =
+          input.policy.finalSequenceAdjudication ?? input.policy.finalAdjudication;
+        const final = await cachedSequence({
+          episodeId: plan.contentId,
+          scenes: sequenceSummary(plan, evaluations, beatEvaluations),
+          policy: input.policy,
+          judge: input.sequenceJudge,
+          model: finalModel,
+          component: "SEQUENCE_JUDGE_FINAL",
+          escalationStatus: "FINAL_ADJUDICATION",
+          cache: input.cache,
+          revision: finalRevision,
+          execution,
+          scheduler,
+          ...(input.signal ? { signal: input.signal } : {}),
+        });
+        sequence = final.judgement;
+        sequenceProvenance.push(final.provenance);
+        allProvenance.push(final.provenance);
+      }
+      await input.onCheckpoint?.({
+        stage: "SEQUENCE",
+        completeness: sequence.verdict === "UNAVAILABLE" ? "FAILED" : "COMPLETE",
+        revision: finalRevision,
+        scenes: evaluations,
+        beats: beatEvaluations,
+        sequence,
+      });
+    } catch (error) {
+      await input.onCheckpoint?.({
+        stage: "SEQUENCE",
+        completeness: "FAILED",
+        revision: finalRevision,
+        scenes: evaluations,
+        beats: beatEvaluations,
+        sequence: unavailableSequence(
+          `Sequence judgement failed before completion: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        ),
+      });
+      throw error;
     }
   }
 

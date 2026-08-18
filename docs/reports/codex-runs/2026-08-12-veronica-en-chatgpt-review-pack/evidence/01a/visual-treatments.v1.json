@@ -1,0 +1,384 @@
+{
+  "schemaVersion": "veronica-visual-treatments.v1",
+  "contentId": "01a-revenue-is-not-a-good-business",
+  "masterLocale": "en",
+  "masterNarrationHash": "a7c81683485d7a5647d9eade99aa16cc3bc27cdb6ee951ec9cfedba7306b92e4",
+  "semanticPlanHash": "8a603e9685d7dbcddef8eacd9c23ed01868325ba7a87663339e5c26491869b2e",
+  "treatments": [
+    {
+      "version": 1,
+      "sceneId": "01a-revenue-is-not-a-good-business-HOOK",
+      "narrationRef": {
+        "semanticSceneId": "01a-revenue-is-not-a-good-business-HOOK",
+        "sentenceIds": [
+          "sentence-001",
+          "sentence-002",
+          "sentence-003"
+        ],
+        "startOffset": 0,
+        "endOffset": 288,
+        "spanHash": "ef361c9c6f5c5e8cd5965c13c77eb606bf64aa0a7cb4fe2632f640443c66b16f"
+      },
+      "semanticPurpose": "hook",
+      "coreMeaning": "You can have impressive revenue and still have a weak business. Because revenue and margin are not the same thing. If one hundred euros comes in and ninety-five goes straight back out to produce, ship, support, and sustain the sale, getting more orders may simply make the problem bigger.",
+      "viewerShouldUnderstand": "You can have impressive revenue and still have a weak business. Because revenue and margin are not the same thing. If one hundred euros comes in and ninety-five goes straight back out to produce, ship, support, and sustain the sale, getting more orders may simply make the problem bigger",
+      "visualThesis": "You can have impressive revenue and still have a weak business. Because revenue and margin are not the same thing. If one hundred euros comes in and ninety-five goes straight back out to produce, ship, support, and sustain the sale, getting more orders may simply make the problem bigger.",
+      "visualStrategy": "contrast",
+      "subject": "one occupation-neutral business operator and source-supported transaction objects",
+      "action": "the operator separates the incoming payment into outgoing cost portions and one retained remainder",
+      "state": "NEGATIVE_STATE; STABLE",
+      "environment": "neutral unit-economics worktable with no readable text or numbers",
+      "symbolism": [
+        "incoming payment tokens",
+        "outgoing cost portions",
+        "retained remainder container"
+      ],
+      "emotionalState": "controlled uncertainty without hostility or rejection",
+      "negativeConstraints": [
+        "no readable text, letters, numbers, logos, UI, or watermarks",
+        "do not depict hostility, anger, or rejection when the required state is confusion",
+        "do not transfer canonical identity to an observer, follower, customer, or buyer"
+      ],
+      "composition": {
+        "description": "incoming value dominates the upper frame; outgoing portions peel away toward a small retained remainder",
+        "camera": "documentary eye-level view with the evidence, action, and visible response legible in one frame",
+        "lighting": "soft directional editorial daylight",
+        "subtitleSafeAreaRequired": true
+      },
+      "continuity": {
+        "characterRequired": false,
+        "identityReferenceRequired": false,
+        "episodeAnchorPreferred": false
+      },
+      "referenceRequirements": [],
+      "treatmentHash": "807dd17a5a2897752fe6b6027bb753ce0e1f38c0c56221ad1cff54b30310df6d"
+    },
+    {
+      "version": 1,
+      "sceneId": "01a-revenue-is-not-a-good-business-S01",
+      "narrationRef": {
+        "semanticSceneId": "01a-revenue-is-not-a-good-business-S01",
+        "sentenceIds": [
+          "sentence-001",
+          "sentence-002"
+        ],
+        "startOffset": 0,
+        "endOffset": 93,
+        "spanHash": "a2b88e919af79fa4d8b5216c0276e939a78bb3d2d3498692ea5d4306dcbaba23"
+      },
+      "semanticPurpose": "proof",
+      "coreMeaning": "Take your best-selling product and calculate one sale from start to finish.",
+      "viewerShouldUnderstand": "Take your best-selling product and calculate one sale from start to finish",
+      "visualThesis": "Take your best-selling product and calculate one sale from start to finish.",
+      "visualStrategy": "cause-effect",
+      "subject": "one occupation-neutral business operator and source-supported transaction objects",
+      "action": "the business operator isolates the source-supported best-selling product and traces its customer payment through one complete sale-cost path",
+      "state": "NEUTRAL; STABLE",
+      "environment": "neutral unit-sale breakdown setup with one source-supported sale subject",
+      "symbolism": [
+        "isolated source-supported best-selling product",
+        "incoming customer payment",
+        "downstream sale cost stations"
+      ],
+      "emotionalState": "restrained editorial realism",
+      "negativeConstraints": [
+        "no readable text, letters, numbers, logos, UI, or watermarks",
+        "do not depict hostility, anger, or rejection when the required state is confusion",
+        "do not transfer canonical identity to an observer, follower, customer, or buyer"
+      ],
+      "composition": {
+        "description": "one decisive transition moment; one isolated best-selling product occupies the top of a clear vertical cost path; customer payment begins the same sale before downstream cost stations",
+        "camera": "documentary eye-level view with the evidence, action, and visible response legible in one frame",
+        "lighting": "soft directional editorial daylight",
+        "subtitleSafeAreaRequired": true
+      },
+      "continuity": {
+        "characterRequired": false,
+        "identityReferenceRequired": false,
+        "episodeAnchorPreferred": false
+      },
+      "referenceRequirements": [],
+      "treatmentHash": "3018edc233edd20f0fea062f85661d41767e777800d055003120cd3970f223bc"
+    },
+    {
+      "version": 1,
+      "sceneId": "01a-revenue-is-not-a-good-business-S02",
+      "narrationRef": {
+        "semanticSceneId": "01a-revenue-is-not-a-good-business-S02",
+        "sentenceIds": [
+          "sentence-001"
+        ],
+        "startOffset": 0,
+        "endOffset": 139,
+        "spanHash": "0d230244fc3b678a42a60ca605bb036799cab3e037a654bd0c437df01d59b812"
+      },
+      "semanticPurpose": "problem",
+      "coreMeaning": "Then subtract production, payment fees, commissions, shipping, support, refunds, and every cost that increases when you sell one more unit.",
+      "viewerShouldUnderstand": "Then subtract production, payment fees, commissions, shipping, support, refunds, and every cost that increases when you sell one more unit",
+      "visualThesis": "Then subtract production, payment fees, commissions, shipping, support, refunds, and every cost that increases when you sell one more unit.",
+      "visualStrategy": "cause-effect",
+      "subject": "one occupation-neutral business operator and source-supported transaction objects",
+      "action": "the operator moves one sale through distinct cost stations as each removes a visible portion",
+      "state": "NEUTRAL; STABLE",
+      "environment": "neutral variable-cost breakdown line with distinct transaction stages",
+      "symbolism": [
+        "single sale token",
+        "distinct variable-cost stations",
+        "retained remainder"
+      ],
+      "emotionalState": "restrained editorial realism",
+      "negativeConstraints": [
+        "no readable text, letters, numbers, logos, UI, or watermarks",
+        "do not depict hostility, anger, or rejection when the required state is confusion",
+        "do not transfer canonical identity to an observer, follower, customer, or buyer"
+      ],
+      "composition": {
+        "description": "one decisive transition moment; one sale moves through distinct physical cost-removal stations toward a visibly smaller remainder",
+        "camera": "documentary eye-level view with the evidence, action, and visible response legible in one frame",
+        "lighting": "controlled graphic light with clear shape separation",
+        "subtitleSafeAreaRequired": true
+      },
+      "continuity": {
+        "characterRequired": false,
+        "identityReferenceRequired": false,
+        "episodeAnchorPreferred": false
+      },
+      "referenceRequirements": [],
+      "treatmentHash": "7bcf8a701ff6a4581c150eb8205d8941851d93b3befb853febcadc0febc290b0"
+    },
+    {
+      "version": 1,
+      "sceneId": "01a-revenue-is-not-a-good-business-S03",
+      "narrationRef": {
+        "semanticSceneId": "01a-revenue-is-not-a-good-business-S03",
+        "sentenceIds": [
+          "sentence-002"
+        ],
+        "startOffset": 55,
+        "endOffset": 170,
+        "spanHash": "223e9699d46254ed8ffe9fa3bc7f4bc4abc9b276e61ce1583aa9d9a052ccc721"
+      },
+      "semanticPurpose": "contrast",
+      "coreMeaning": "And then ask the uncomfortable question: if sales doubled tomorrow, would the business definitely become healthier?",
+      "viewerShouldUnderstand": "And then ask the uncomfortable question: if sales doubled tomorrow, would the business definitely become healthier",
+      "visualThesis": "And then ask the uncomfortable question: if sales doubled tomorrow, would the business definitely become healthier?",
+      "visualStrategy": "contrast",
+      "subject": "one occupation-neutral business operator and source-supported transaction objects",
+      "action": "the business operator compares baseline order volume with doubled order volume and checks the retained remainder in each without implying the business is healthier",
+      "state": "NEUTRAL; STABLE",
+      "environment": "neutral order-volume comparison workspace with simultaneous baseline and doubled sale flows",
+      "symbolism": [
+        "baseline order-volume evidence",
+        "doubled order-volume evidence",
+        "paired retained-remainder containers"
+      ],
+      "emotionalState": "restrained editorial realism",
+      "negativeConstraints": [
+        "no readable text, letters, numbers, logos, UI, or watermarks",
+        "do not depict hostility, anger, or rejection when the required state is confusion",
+        "do not transfer canonical identity to an observer, follower, customer, or buyer"
+      ],
+      "composition": {
+        "description": "baseline order-volume evidence at left and doubled order-volume evidence at right; matching retained-remainder containers remain comparable without asserting a healthier business",
+        "camera": "documentary eye-level view with the evidence, action, and visible response legible in one frame",
+        "lighting": "soft directional editorial daylight",
+        "subtitleSafeAreaRequired": true
+      },
+      "continuity": {
+        "characterRequired": false,
+        "identityReferenceRequired": false,
+        "episodeAnchorPreferred": false
+      },
+      "referenceRequirements": [],
+      "treatmentHash": "53e1b4b0f2ef61d1e36bb66b9d7de3df635cd52c07fba9eb418de32e4141f6c8"
+    },
+    {
+      "version": 1,
+      "sceneId": "01a-revenue-is-not-a-good-business-S04",
+      "narrationRef": {
+        "semanticSceneId": "01a-revenue-is-not-a-good-business-S04",
+        "sentenceIds": [
+          "sentence-001"
+        ],
+        "startOffset": 0,
+        "endOffset": 122,
+        "spanHash": "2727a2d87b8e50745059d083fa8aa3a754762d63a62fceb5213a06cd48849d2e"
+      },
+      "semanticPurpose": "solution",
+      "coreMeaning": "If double the sales means double the workload and almost no additional margin, growth is amplifying a structural weakness.",
+      "viewerShouldUnderstand": "growth is amplifying a structural weakness",
+      "visualThesis": "double the sales means double the workload and almost no additional margin; as a result, growth is amplifying a structural weakness.",
+      "visualStrategy": "contrast",
+      "subject": "one occupation-neutral business operator and source-supported transaction objects",
+      "action": "the operator faces an accumulating workload backlog while a small retained result remains isolated at the edge",
+      "state": "NEGATIVE_STATE; STABLE",
+      "environment": "neutral operations evidence surface with an accumulating workload backlog",
+      "symbolism": [
+        "arriving order units",
+        "accumulating workload backlog",
+        "small retained result"
+      ],
+      "emotionalState": "controlled uncertainty without hostility or rejection",
+      "negativeConstraints": [
+        "no readable text, letters, numbers, logos, UI, or watermarks",
+        "do not depict hostility, anger, or rejection when the required state is confusion",
+        "do not transfer canonical identity to an observer, follower, customer, or buyer"
+      ],
+      "composition": {
+        "description": "arriving order units feed one dominant bottleneck and backlog in the center; the small retained result remains visibly isolated at the edge",
+        "camera": "documentary eye-level view with the evidence, action, and visible response legible in one frame",
+        "lighting": "soft directional editorial daylight",
+        "subtitleSafeAreaRequired": true
+      },
+      "continuity": {
+        "characterRequired": false,
+        "identityReferenceRequired": false,
+        "episodeAnchorPreferred": false
+      },
+      "referenceRequirements": [],
+      "treatmentHash": "f05a0a87f2214bf094ad44bcb7fc949857044cf50648f72f0fad3a1f4e2b43d7"
+    },
+    {
+      "version": 1,
+      "sceneId": "01a-revenue-is-not-a-good-business-S05",
+      "narrationRef": {
+        "semanticSceneId": "01a-revenue-is-not-a-good-business-S05",
+        "sentenceIds": [
+          "sentence-001"
+        ],
+        "startOffset": 0,
+        "endOffset": 93,
+        "spanHash": "998104230c7cfcd33969ee24a2b4d12805117ea719b8d67c47783b78029d5109"
+      },
+      "semanticPurpose": "proof",
+      "coreMeaning": "Before chasing more revenue, understand what happens economically every single time you sell.",
+      "viewerShouldUnderstand": "Before chasing more revenue, understand what happens economically every single time you sell",
+      "visualThesis": "Before chasing more revenue, understand what happens economically every single time you sell.",
+      "visualStrategy": "cause-effect",
+      "subject": "one occupation-neutral business operator and source-supported transaction objects",
+      "action": "the business operator checks one already-analyzed sale at the decision checkpoint beside its retained contribution before allowing additional orders through",
+      "state": "POSITIVE_STATE; STABLE",
+      "environment": "neutral isolated diagnostic inspection at a unit-economics decision checkpoint before additional-order pursuit",
+      "symbolism": [
+        "already-analyzed sale token",
+        "visible retained contribution",
+        "waiting additional order units",
+        "clear decision checkpoint"
+      ],
+      "emotionalState": "clarity, confidence, and forward movement",
+      "negativeConstraints": [
+        "no readable text, letters, numbers, logos, UI, or watermarks",
+        "do not depict hostility, anger, or rejection when the required state is confusion",
+        "do not transfer canonical identity to an observer, follower, customer, or buyer"
+      ],
+      "composition": {
+        "description": "one decisive transition moment; the already-analyzed sale reaches a clear checkpoint along the near edge beside its retained contribution; additional order units wait beyond the checkpoint and no cost-decomposition workflow is shown",
+        "camera": "documentary eye-level view with the evidence, action, and visible response legible in one frame",
+        "lighting": "soft directional editorial daylight",
+        "subtitleSafeAreaRequired": true
+      },
+      "continuity": {
+        "characterRequired": false,
+        "identityReferenceRequired": false,
+        "episodeAnchorPreferred": false
+      },
+      "referenceRequirements": [],
+      "treatmentHash": "cdfd2f409f5479de8d19ca48817f2ca7c40c256dc903ffe905089eea2f940d28"
+    },
+    {
+      "version": 1,
+      "sceneId": "01a-revenue-is-not-a-good-business-S06",
+      "narrationRef": {
+        "semanticSceneId": "01a-revenue-is-not-a-good-business-S06",
+        "sentenceIds": [
+          "sentence-002"
+        ],
+        "startOffset": 56,
+        "endOffset": 119,
+        "spanHash": "f45e4288a1dc0351c27cecb842ce46ffbe74b5181a1f567267e01bf15805cddd"
+      },
+      "semanticPurpose": "problem",
+      "coreMeaning": "It is the one whose economics still work when the volume grows.",
+      "viewerShouldUnderstand": "It is the one whose economics still work when the volume grows",
+      "visualThesis": "It is the one whose economics still work when the volume grows.",
+      "visualStrategy": "contrast",
+      "subject": "one occupation-neutral business operator and source-supported transaction objects",
+      "action": "the business operator scales the operation through controlled capacity from baseline to higher order volume while the retained contribution visibly grows with it",
+      "state": "NEUTRAL; STABLE",
+      "environment": "neutral controlled-capacity scaling comparison with baseline and expanded operation",
+      "symbolism": [
+        "baseline order volume",
+        "scaled order volume",
+        "controlled operating capacity",
+        "baseline retained contribution",
+        "larger scaled retained contribution"
+      ],
+      "emotionalState": "restrained editorial realism",
+      "negativeConstraints": [
+        "no readable text, letters, numbers, logos, UI, or watermarks",
+        "do not depict hostility, anger, or rejection when the required state is confusion",
+        "do not transfer canonical identity to an observer, follower, customer, or buyer"
+      ],
+      "composition": {
+        "description": "foreground evidence staging holds baseline operation at left and scaled operation at right; the higher order volume and its larger retained contribution form the primary comparison while operating capacity remains orderly without an accumulating backlog",
+        "camera": "documentary eye-level view with the evidence, action, and visible response legible in one frame",
+        "lighting": "controlled graphic light with clear shape separation",
+        "subtitleSafeAreaRequired": true
+      },
+      "continuity": {
+        "characterRequired": false,
+        "identityReferenceRequired": false,
+        "episodeAnchorPreferred": false
+      },
+      "referenceRequirements": [],
+      "treatmentHash": "ea15a8b41f5ab337d7f91b1ee96642694b88327e1a8fa1c51d2f232e4312a675"
+    },
+    {
+      "version": 1,
+      "sceneId": "01a-revenue-is-not-a-good-business-S07",
+      "narrationRef": {
+        "semanticSceneId": "01a-revenue-is-not-a-good-business-S07",
+        "sentenceIds": [
+          "sentence-001"
+        ],
+        "startOffset": 0,
+        "endOffset": 89,
+        "spanHash": "d1c45b35acf7784853e3055f6500533df9187160e6830ad5d999f0592a73f851"
+      },
+      "semanticPurpose": "resolution",
+      "coreMeaning": "Before chasing the next order, calculate what one additional sale actually leaves behind.",
+      "viewerShouldUnderstand": "Before chasing the next order, calculate what one additional sale actually leaves behind",
+      "visualThesis": "Before chasing the next order, calculate what one additional sale actually leaves behind.",
+      "visualStrategy": "contrast",
+      "subject": "one occupation-neutral business operator and source-supported transaction objects",
+      "action": "the business operator isolates one additional sale beside the small retained contribution it leaves before pursuing the next order",
+      "state": "NEUTRAL; STABLE",
+      "environment": "neutral marginal-contribution evidence surface with one additional sale isolated before the next order",
+      "symbolism": [
+        "one additional sale token",
+        "small retained contribution",
+        "peripheral next-order token"
+      ],
+      "emotionalState": "restrained editorial realism",
+      "negativeConstraints": [
+        "no readable text, letters, numbers, logos, UI, or watermarks",
+        "do not depict hostility, anger, or rejection when the required state is confusion",
+        "do not transfer canonical identity to an observer, follower, customer, or buyer"
+      ],
+      "composition": {
+        "description": "one decisive transition moment; one additional sale occupies the focal area beside the small retained contribution it leaves; the next order remains peripheral and no cost-decomposition workflow is shown",
+        "camera": "documentary eye-level view with the evidence, action, and visible response legible in one frame",
+        "lighting": "controlled graphic light with clear shape separation",
+        "subtitleSafeAreaRequired": true
+      },
+      "continuity": {
+        "characterRequired": false,
+        "identityReferenceRequired": false,
+        "episodeAnchorPreferred": false
+      },
+      "referenceRequirements": [],
+      "treatmentHash": "c37df87391d6bfe6b2519a08389d7f34b6b80d9821ae73e53bf0e21de02b7b2c"
+    }
+  ],
+  "artifactHash": "e978b0afddf8fd47d323741fc99e944d74e8e5546d886dbe49d2dd789b73b037"
+}

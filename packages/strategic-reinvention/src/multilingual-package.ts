@@ -2,8 +2,10 @@ import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import {
+  assertVeronicaCanonicalWorkspaceIdentity,
   multilingualPackageIdentitySchema,
   STRATEGIC_REINVENTION_SCHEMA_VERSION,
+  veronicaCanonicalWorkspaceIdentitySchema,
   type ContentLocale,
 } from "@mediaforge/domain";
 import {
@@ -31,6 +33,7 @@ export const strategicMultilingualPackageSchema = z
   .object({
     schemaVersion: z.literal("strategic-reinvention.multilingual-package.v1"),
     identity: multilingualPackageIdentitySchema,
+    canonicalContentIdentity: veronicaCanonicalWorkspaceIdentitySchema.optional(),
     masterVideo: artifactBindingSchema,
     canonicalAudio: artifactBindingSchema,
     localizedAudio: z.array(
@@ -123,6 +126,22 @@ export async function buildStrategicMultilingualPackage(
   const episodeId = normalizeEpisodeId(input.episodeId);
   const canonicalLocale = input.canonicalLocale ?? "it";
   const resolver = createEpisodePathResolver(input.workspaceRoot);
+  const canonicalContentIdentity = await fs.readFile(
+    path.join(input.workspaceRoot, episodeId, "manifest.json"),
+    "utf8",
+  ).then((raw) => {
+    const manifest = JSON.parse(raw) as { readonly sourceMetadata?: unknown };
+    const metadata = manifest.sourceMetadata;
+    const genre = metadata && typeof metadata === "object"
+      ? Reflect.get(metadata, "genre")
+      : undefined;
+    return genre === "veronicabenini" || genre === "strategic-reinvention"
+      ? assertVeronicaCanonicalWorkspaceIdentity(metadata)
+      : undefined;
+  }).catch((error: unknown) => {
+    if (error && typeof error === "object" && Reflect.get(error, "code") === "ENOENT") return undefined;
+    throw error;
+  });
   const context = {
     episodeId,
     locale: input.locale,
@@ -199,6 +218,7 @@ export async function buildStrategicMultilingualPackage(
   const withoutHash = {
     schemaVersion: "strategic-reinvention.multilingual-package.v1" as const,
     identity,
+    ...(canonicalContentIdentity ? { canonicalContentIdentity } : {}),
     masterVideo: await bindArtifact("render", masterVideoPath, "render-r1"),
     canonicalAudio: await bindArtifact("audio", canonicalAudioPath, "audio-it-r1"),
     localizedAudio,

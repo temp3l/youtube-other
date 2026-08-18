@@ -1,0 +1,253 @@
+{
+  "episodeId": "l02-s01-selling-to-everyone-is-the-problem",
+  "slug": "l02-s01-selling-to-everyone-is-the-problem",
+  "source": {
+    "platform": "local-file",
+    "filePath": "/home/box/workspace/fehmarn-seo/youtube/other-vero/content-packs/veronica-content-pack-1/youtube-positioning-shorts-v3-50s/shorts/en/l02-s01-selling-to-everyone-is-the-problem.md"
+  },
+  "sourceMetadata": {
+    "genre": "veronicabenini",
+    "creatorProfileId": "veronica-benini",
+    "contentId": "L02-S01",
+    "locale": "en",
+    "variant": "short",
+    "positioningPlanHash": "33b4aeb93e2dba9f1032c1eab5f848f2047a8fcd173a5f824fe383831ad337fe",
+    "syntheticCreatorLikenessAllowed": false,
+    "semanticImagePromptBriefHash": "1fdb0b88edacabc1a68ee4574780efacdcddb68eb6c75333603f0541fc1f22dc",
+    "semanticImagePromptCacheKey": "eef0d3826fdcf84c70e7e8ce3b47cb9bba9a1c8ea7a077e6a2d1d5c9d84d7a5e",
+    "semanticImagePromptFinalPromptSetHash": "407d327b553ce39ad4dcbaca9979ccb4397032949db1510ab9c2d3158316d5d6",
+    "semanticImagePromptPlannerVersion": "veronica-semantic-image-prompt-v1",
+    "semanticImagePromptStatus": "ready",
+    "canonicalPreImagePlanHash": "5c70b2f64e03721d2eee5d56b23b7f266f4fea61a5041c412bab1af973bf2e9b",
+    "canonicalLocaleTimingArtifactPath": "locales/en/short/canonical-timing.v1.json",
+    "timingPhase": "post-tts-reconciled"
+  },
+  "scenePlan": {
+    "sourceId": "l02-s01-selling-to-everyone-is-the-problem",
+    "scenes": [
+      {
+        "id": "scene-001",
+        "sequenceNumber": 1,
+        "canonicalNarration": "If your offer is for everyone, your message usually becomes relevant to no one. Different customers have different needs, fears, priorities, and reasons for buying. The more generic your message becomes, the more work the customer has to do to decide whether it applies to them.",
+        "sourceSegmentIds": [
+          "scene-001"
+        ],
+        "estimatedDurationSeconds": 8.93607462586852,
+        "plannedDurationSeconds": 8.936,
+        "reconciledDurationSeconds": 8.93607462586852,
+        "timingSource": "proportional-total-audio-reconciliation",
+        "timingConfidence": "estimated",
+        "timing": {
+          "startSeconds": 0,
+          "endSeconds": 8.93607462586852
+        },
+        "visualPurpose": "HOOK: create-tension",
+        "textRequirement": {
+          "required": false
+        },
+        "subject": "seller addressing every passing audience at once",
+        "action": "many broad signals compete and none earns a stop",
+        "setting": "dense vertical market aisle with competing neutral stalls",
+        "composition": "overloaded foreground messages dissolving into an indifferent crowd",
+        "cameraFraming": "20mm handheld vertical market wide",
+        "mood": "busy mixed market light without focal hierarchy; hook",
+        "continuityReferences": [],
+        "onScreenText": "",
+        "negativeConstraints": [
+          "no readable text, letters, numbers, logos, UI, or watermarks",
+          "no depiction or synthetic likeness of Veronica Benini",
+          "no generic motivational stock montage, laptop-at-desk pose, or stock handshake"
+        ],
+        "aspectRatios": [
+          "9:16"
+        ],
+        "imagePrompt": "Text-free 9:16 Veronica conceptual Short. Subject: seller addressing every passing audience at once. Environment: dense vertical market aisle with competing neutral stalls. Composition: overloaded foreground messages dissolving into an indifferent crowd. Camera: 20mm handheld vertical market wide. Must show: fan of generic signal placards without text, repeated stall objects. Capture one stable condition: many broad signals compete and none earns a stop. Visible thesis: your offer is for everyone; as a result, your message usually becomes relevant to no one. No readable text, logos, UI, occupation proxy, generic stock pose, decorative abstraction, prism, light laboratory, or unexplained diagram.",
+        "expectedImageFilenames": [
+          "scene-001-9x16.png"
+        ],
+        "qualityStatus": "semantic-review-required"
+      },
+      {
+        "id": "scene-002",
+        "sequenceNumber": 2,
+        "canonicalNarration": "A niche solves that problem. It does not mean nobody outside the niche can buy from you. It means one group can immediately recognize, “This is for me.” Specificity is not a restriction.",
+        "sourceSegmentIds": [
+          "scene-002"
+        ],
+        "estimatedDurationSeconds": 12.734106343532872,
+        "plannedDurationSeconds": 12.734000000000002,
+        "reconciledDurationSeconds": 12.734106343532872,
+        "timingSource": "proportional-total-audio-reconciliation",
+        "timingConfidence": "estimated",
+        "timing": {
+          "startSeconds": 8.93607462586852,
+          "endSeconds": 21.670180969401393
+        },
+        "visualPurpose": "PROOF: make-proof-visible",
+        "textRequirement": {
+          "required": false
+        },
+        "subject": "professional and relevant observer with visually distinct roles",
+        "action": "the intended customer scans past the broad display that offers no specific sign of relevance",
+        "setting": "service-design worktable with customer problem evidence and a separate response prototype",
+        "composition": "problem evidence dominates the foreground; the response aligns behind it rather than leading the frame",
+        "cameraFraming": "documentary eye-level view with the evidence, action, and visible response legible in one frame",
+        "mood": "natural public-space practical light; proof",
+        "continuityReferences": [
+          "scene-001"
+        ],
+        "onScreenText": "",
+        "negativeConstraints": [
+          "no readable text, letters, numbers, logos, UI, or watermarks",
+          "no depiction or synthetic likeness of Veronica Benini",
+          "no generic motivational stock montage, laptop-at-desk pose, or stock handshake"
+        ],
+        "aspectRatios": [
+          "9:16"
+        ],
+        "imagePrompt": "Text-free 9:16 Veronica conceptual Short. Subject: professional and relevant observer with visually distinct roles. Environment: service-design worktable with customer problem evidence and a separate response prototype. Composition: problem evidence dominates the foreground; the response aligns behind it rather than leading the frame. Camera: documentary eye-level view with the evidence, action, and visible response legible in one frame. Must show: customer problem evidence, unmatched package, aligned response prototype, specific offer or service presentation, concrete non-textual niche-relevance signal, intended customer-group member with a visibly matching need or situation, prospective customer outside the niche with a visibly non-matching need or situation, shared approach, service, or purchase point accessible to both customer types, An intended niche-group member visibly and immediately recognizes the offer’s relevance through a concrete, non-textual match between their situation and the offer., At least one visibly non-matching prospective customer remains able to approach, engage with, or purchase from the same offer. Capture the decisive causal change in one coherent instant. Prior context: problem evidence dominates the foreground; the response aligns behind it rather than leading the frame. Primary actor: the buyer. Current action: the intended customer scans past the broad display that offers no specific sign of relevance. Emerging consequence: the intended group recognizes “this is for me,” while people outside the niche can still buy. Visible thesis: Before: a specific offer is available to a mixed prospective-customer population. After: the intended group visibly recognizes relevance while a non-matching customer retains the same practical ability to engage or buy. Result: specificity functions as a relevance signal rather than a restriction. No readable text, logos, UI, occupation proxy, generic stock pose, decorative abstraction, prism, light laboratory, or unexplained diagram.",
+        "expectedImageFilenames": [
+          "scene-002-9x16.png"
+        ],
+        "qualityStatus": "semantic-review-required"
+      },
+      {
+        "id": "scene-003",
+        "sequenceNumber": 3,
+        "canonicalNarration": "Compare ‘I help businesses grow’ with ‘I help independent service professionals turn expertise into an offer clients understand quickly.’ The second statement excludes some people, but it also removes work from the right buyer.",
+        "sourceSegmentIds": [
+          "scene-003"
+        ],
+        "estimatedDurationSeconds": 12.734106343532872,
+        "plannedDurationSeconds": 12.734000000000002,
+        "reconciledDurationSeconds": 12.734106343532872,
+        "timingSource": "proportional-total-audio-reconciliation",
+        "timingConfidence": "estimated",
+        "timing": {
+          "startSeconds": 21.670180969401393,
+          "endSeconds": 34.404287312934265
+        },
+        "visualPurpose": "MANIFESTATION: compare-alternatives",
+        "textRequirement": {
+          "required": false
+        },
+        "subject": "professional and relevant observer with visually distinct roles",
+        "action": "the professional aligns distinct offer, profile, proof, and public-context artifacts around one shared expertise cue while an observer follows the connection; a first-time visitor sorts the visible offer into a clear category and points to who it serves",
+        "setting": "customer journey review with distinct profile, site, offer, and content touchpoints",
+        "composition": "one decisive transition moment; four separate touchpoints share one visible evidence cue while unrelated cues remain absent",
+        "cameraFraming": "documentary eye-level view with the evidence, action, and visible response legible in one frame",
+        "mood": "soft directional editorial daylight; manifestation",
+        "continuityReferences": [
+          "scene-002"
+        ],
+        "onScreenText": "",
+        "negativeConstraints": [
+          "no readable text, letters, numbers, logos, UI, or watermarks",
+          "no depiction or synthetic likeness of Veronica Benini",
+          "no generic motivational stock montage, laptop-at-desk pose, or stock handshake"
+        ],
+        "aspectRatios": [
+          "9:16"
+        ],
+        "imagePrompt": "Text-free 9:16 Veronica conceptual Short. Subject: professional and relevant observer with visually distinct roles. Environment: customer journey review with distinct profile, site, offer, and content touchpoints. Composition: one decisive transition moment; four separate touchpoints share one visible evidence cue while unrelated cues remain absent. Camera: documentary eye-level view with the evidence, action, and visible response legible in one frame. Must show: profile touchpoint, website touchpoint, focused offer artifact, content example. Capture the decisive causal change in one coherent instant. Prior context: one decisive transition moment; four separate touchpoints share one visible evidence cue while unrelated cues remain absent. Primary actor: the recurring professional. Current action: the professional aligns distinct offer, profile, proof, and public-context artifacts around one shared expertise cue while an observer follows the connection; a first-time visitor sorts the visible offer into a clear category and points to who it serves. Emerging consequence: Compare ‘I help businesses grow’ with ‘I help independent service professionals turn expertise into an offer clients understand quickly’. Visible thesis: Compare ‘I help businesses grow’ with ‘I help independent service professionals turn expertise into an offer clients understand quickly.’. No readable UI copy, legible brand names, logos, dense interface text, occupation proxy, generic stock pose, decorative abstraction, prism, light laboratory, or unexplained diagram.",
+        "expectedImageFilenames": [
+          "scene-003-9x16.png"
+        ],
+        "qualityStatus": "semantic-review-required"
+      },
+      {
+        "id": "scene-004",
+        "sequenceNumber": 4,
+        "canonicalNarration": "They can recognize themselves, the problem, and the promised direction immediately. That is why a narrower message can create more qualified attention than a broader one.",
+        "sourceSegmentIds": [
+          "scene-004"
+        ],
+        "estimatedDurationSeconds": 12.734106343532865,
+        "plannedDurationSeconds": 12.733999999999995,
+        "reconciledDurationSeconds": 12.734106343532865,
+        "timingSource": "proportional-total-audio-reconciliation",
+        "timingConfidence": "estimated",
+        "timing": {
+          "startSeconds": 34.404287312934265,
+          "endSeconds": 47.13839365646713
+        },
+        "visualPurpose": "REVERSAL: make-proof-visible",
+        "textRequirement": {
+          "required": false
+        },
+        "subject": "professional and relevant observer with visually distinct roles",
+        "action": "people pass the broad display; the intended person stops at the specific situation cue; the customer points to the concrete detail that matches their own situation",
+        "setting": "public choice space with a mixed flow of people and two differently focused service displays",
+        "composition": "broad display recedes beside an uninterested crowd; one specific situation cue stops the intended person",
+        "cameraFraming": "documentary eye-level view with the evidence, action, and visible response legible in one frame",
+        "mood": "soft directional editorial daylight; reversal",
+        "continuityReferences": [
+          "scene-003"
+        ],
+        "onScreenText": "",
+        "negativeConstraints": [
+          "no readable text, letters, numbers, logos, UI, or watermarks",
+          "no depiction or synthetic likeness of Veronica Benini",
+          "no generic motivational stock montage, laptop-at-desk pose, or stock handshake"
+        ],
+        "aspectRatios": [
+          "9:16"
+        ],
+        "imagePrompt": "Text-free 9:16 Veronica conceptual Short. Subject: professional and relevant observer with visually distinct roles. Environment: public choice space with a mixed flow of people and two differently focused service displays. Composition: broad display recedes beside an uninterested crowd; one specific situation cue stops the intended person. Camera: documentary eye-level view with the evidence, action, and visible response legible in one frame. Must show: broad undifferentiated display, specific situation cue, mixed crowd, stopping gesture. Capture one stable condition: people pass the broad display; the intended person stops at the specific situation cue; the customer points to the concrete detail that matches their own situation. Visible thesis: They can recognize themselves, the problem, and the promised direction immediately. No readable text, logos, UI, occupation proxy, generic stock pose, decorative abstraction, prism, light laboratory, or unexplained diagram.",
+        "expectedImageFilenames": [
+          "scene-004-9x16.png"
+        ],
+        "qualityStatus": "semantic-review-required"
+      },
+      {
+        "id": "scene-005",
+        "sequenceNumber": 5,
+        "canonicalNarration": "It is a communication advantage. Before making your offer broader, ask whether making it clearer would work better.",
+        "sourceSegmentIds": [
+          "scene-005"
+        ],
+        "estimatedDurationSeconds": 12.734106343532872,
+        "plannedDurationSeconds": 12.734000000000002,
+        "reconciledDurationSeconds": 12.734106343532872,
+        "timingSource": "proportional-total-audio-reconciliation",
+        "timingConfidence": "estimated",
+        "timing": {
+          "startSeconds": 47.13839365646713,
+          "endSeconds": 59.8725
+        },
+        "visualPurpose": "PAYOFF: deliver-payoff",
+        "textRequirement": {
+          "required": false
+        },
+        "subject": "professional and relevant observer with visually distinct roles",
+        "action": "the professional aligns distinct offer, profile, proof, and public-context artifacts around one shared expertise cue while an observer follows the connection; the visitor follows one matching evidence cue across the profile, website, offer, and content",
+        "setting": "service-design worktable with customer problem evidence and a separate response prototype",
+        "composition": "one decisive transition moment; four separate touchpoints share one visible evidence cue while unrelated cues remain absent",
+        "cameraFraming": "documentary eye-level view with the evidence, action, and visible response legible in one frame",
+        "mood": "soft directional editorial daylight; payoff",
+        "continuityReferences": [
+          "scene-004"
+        ],
+        "onScreenText": "",
+        "negativeConstraints": [
+          "no readable text, letters, numbers, logos, UI, or watermarks",
+          "no depiction or synthetic likeness of Veronica Benini",
+          "no generic motivational stock montage, laptop-at-desk pose, or stock handshake"
+        ],
+        "aspectRatios": [
+          "9:16"
+        ],
+        "imagePrompt": "Text-free 9:16 Veronica conceptual Short. Subject: professional and relevant observer with visually distinct roles. Environment: service-design worktable with customer problem evidence and a separate response prototype. Composition: one decisive transition moment; four separate touchpoints share one visible evidence cue while unrelated cues remain absent. Camera: documentary eye-level view with the evidence, action, and visible response legible in one frame. Must show: customer problem evidence, unmatched package, aligned response prototype, advisor or offer owner, existing offer, clarity-focused version of the existing offer, breadth or expansion option, clarity-versus-breadth comparison mechanism, visible communication advantage, An advisor or offer owner visibly evaluates the existing offer rather than acting as a buyer or recipient. Capture the decisive causal change in one coherent instant. Prior context: one decisive transition moment; four separate touchpoints share one visible evidence cue while unrelated cues remain absent. Primary actor: the recurring professional. Current action: the professional aligns distinct offer, profile, proof, and public-context artifacts around one shared expertise cue while an observer follows the connection. Emerging consequence: Before making your offer broader, ask whether making it clearer would work better. Visible thesis: Before making your offer broader, ask whether making it clearer would work better. No readable text, logos, UI, occupation proxy, generic stock pose, decorative abstraction, prism, light laboratory, or unexplained diagram.",
+        "expectedImageFilenames": [
+          "scene-005-9x16.png"
+        ],
+        "qualityStatus": "semantic-review-required"
+      }
+    ]
+  },
+  "images": [],
+  "artifacts": [],
+  "pipelineRuns": [],
+  "createdAt": "2026-08-10T03:23:23.468Z",
+  "updatedAt": "2026-08-11T01:43:41.032Z"
+}

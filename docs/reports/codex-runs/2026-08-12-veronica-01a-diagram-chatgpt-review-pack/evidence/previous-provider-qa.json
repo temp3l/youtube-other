@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "veronica-post-generation-visual-review.v1",
+  "contentId": "01a-revenue-is-not-a-good-business",
+  "assetId": "scene-007",
+  "imageFingerprint": "782c5a0fcf262948173244c44746a1b260e8cf0f45feacd9372f6f32d1eb3b7f",
+  "semanticBriefHash": "1f9db17f7a85fcd380e9268711ef6ebb54e1bfbcc66c563380698b60ab65c3b0",
+  "finalPromptHash": "73b057d2d258b645e885118da09c2209d3e7004f5e6ac9353d4f2b249126de82",
+  "evaluatorModel": "gpt-5.4-mini",
+  "evaluatorConfigHash": "522dd20a2665315f6bc15fd7999d601ddee7a3f26d31766a078e0833fee5d667",
+  "visualDirectionVersion": "veronica-deterministic-image-prompt-compiler.v5",
+  "createdAt": "2026-08-12T00:00:00Z",
+  "semanticAlignmentScore": 0.66,
+  "instantReadScore": 0.56,
+  "buyerActionVisibilityScore": 0.12,
+  "causeEffectVisibilityScore": 0.58,
+  "narrationSupportScore": 0.54,
+  "visualQualityScore": 0.81,
+  "mustShowCoverage": "partial",
+  "mustNotShowViolations": [],
+  "occupationProxyDrift": "warning",
+  "abstractPropDrift": "warning",
+  "genericBusinessStockDrift": "warning",
+  "passivePortraitDrift": "none",
+  "decorativeConceptDrift": "warning",
+  "textInImageViolation": false,
+  "syntheticVeronicaLikenessRisk": false,
+  "visibleBuyerDecision": false,
+  "visibleHumanAction": true,
+  "requiresNarrationToDecode": true,
+  "regenerationRequired": true,
+  "findings": [
+    {
+      "code": "F1",
+      "severity": "warning",
+      "message": "The cost-subtraction idea is present only as an abstract station sequence; the specific consequence of subtracting variable costs from one sale is not instantly legible."
+    },
+    {
+      "code": "F2",
+      "severity": "warning",
+      "message": "Single sale token is visible, but the full through-line of the token moving through distinct cost stations is not clearly demonstrated."
+    },
+    {
+      "code": "F3",
+      "severity": "warning",
+      "message": "Retained remainder is implied by the tray of blocks, but the relationship between the remainder and the original sale is not explicit enough for one-to-two-second reading."
+    }
+  ],
+  "failedRequirements": [
+    "Must show: Then subtract production, payment fees, commissions, shipping, support, refunds, and every cost that increases when you sell one more unit.",
+    "Must show: distinct variable-cost stations",
+    "Must show: retained remainder"
+  ],
+  "successfulRequirements": [
+    "No readable text, logos, readable UI, or internal labels visible",
+    "No synthetic Veronica likeness detected",
+    "One human subject is present with clear action",
+    "Text-free base image preserved"
+  ],
+  "regenerationInstructions": [
+    "Make the sale token unmistakable as one unit entering the first station.",
+    "Increase visual separation between stations so each cost removal is obvious in sequence.",
+    "Show a visibly reduced remainder after the final station, not just a tray of extra blocks.",
+    "Reduce abstract-concept staging and make the business consequence more explicit without adding text."
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "title": "How to Build an Offer People Actually Want",
+  "thumbnail": "MAKE IT EASY TO BUY",
+  "description": "A good product is not enough when the buying journey is confusing. This episode shows how entry points, friction, proof, urgency, and a coherent path make an offer easier to buy.",
+  "cta": "Next, we test whether marketing is really the problem — or whether the product needs fixing first.",
+  "alternativeTitles": [
+    "Your Product May Be Good — Your Offer Is Hard to Buy",
+    "The 30-Second Offer Test"
+  ],
+  "thumbnailOptions": [
+    "MAKE IT EASY TO BUY",
+    "TOO MUCH FRICTION?",
+    "THE 30-SECOND TEST"
+  ],
+  "youtubeOptimizationVersion": "v2-retention-localization",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  },
+  "shortA": {
+    "title": "A Good Product Can Still Be Hard to Buy",
+    "alternateHook": "Every unnecessary step gives an interested customer another reason to postpone."
+  },
+  "shortB": {
+    "title": "The 30-Second Offer Test",
+    "alternateHook": "Can a new visitor understand the offer, price path, and next step in thirty seconds?"
+  }
+}

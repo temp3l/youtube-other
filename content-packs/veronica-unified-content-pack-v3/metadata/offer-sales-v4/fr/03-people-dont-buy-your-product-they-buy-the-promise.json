@@ -1,0 +1,42 @@
+{
+  "title": "Arrêtez d’expliquer le produit. Traduisez la valeur.",
+  "alternativeTitles": [
+    "Arrêtez d’expliquer le produit. Traduisez la valeur.",
+    "Le test Caractéristique → Résultat → Preuve",
+    "Une promesse forte ne doit jamais dépasser la réalité"
+  ],
+  "thumbnail": "VENDEZ LE CHANGEMENT",
+  "thumbnailOptions": [
+    "VENDEZ LE CHANGEMENT",
+    "QU’ACHÈTENT-ILS VRAIMENT ?",
+    "Arrêtez d’expliquer le produit. Traduisez la valeur."
+  ],
+  "description": "Un excellent produit peut mal se vendre si le client comprend ce qu’il est mais pas pourquoi il devrait le vouloir. Cet épisode montre comment traduire une caractéristique en conséquence, résultat vécu et preuve — sans exagérer la promesse ni emprunter de la crédibilité à une expérience que le produit ne peut pas délivrer.",
+  "cta": "Retirez le nom de votre produit d’une phrase et essayez d’expliquer malgré tout pourquoi le résultat compte pour le client.",
+  "chapters": [
+    "Produit vs résultat",
+    "La traduction de la valeur",
+    "Caractéristique, conséquence, résultat, preuve",
+    "Le test sans nom de produit",
+    "La promesse crédible",
+    "La valeur autour du produit",
+    "Écouter le langage client",
+    "Quand réviser la promesse"
+  ],
+  "shortA": {
+    "title": "Qu’est-ce que votre client achète vraiment ?",
+    "alternateHook": "Retirez le nom du produit : pouvez-vous encore expliquer pourquoi le résultat compte ?"
+  },
+  "shortB": {
+    "title": "Une promesse n’est pas un slogan",
+    "alternateHook": "Une meilleure promesse rend la valeur réelle plus claire ; elle ne rend pas la réalité plus grande."
+  },
+  "youtubeOptimizationVersion": "v4-editorial-continuity-remediation",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  }
+}

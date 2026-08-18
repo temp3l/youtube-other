@@ -72,6 +72,7 @@ import {
 } from "./history-image-plan.js";
 import { resolveHistoricalPersonReferencesForScene } from "./history-person-reference-images.js";
 import {
+  buildVeronicaVisualQaCacheKey,
   buildVeronicaVisualRemediationPrompt,
   defaultVeronicaVisualQaPolicy,
   reviewVeronicaGeneratedImage,
@@ -484,6 +485,8 @@ export type SceneCheckpointStatus =
   | "validation_failed"
   | "provider_requested"
   | "generated"
+  | "semantic_qa_passed"
+  | "semantic_qa_failed"
   | "provider_failed"
   | "skipped_compiled_visual";
 
@@ -574,6 +577,8 @@ export interface PersistedImageGenerationCheckpoint {
     | "validation-failed"
     | "provider-requested"
     | "generated"
+    | "semantic-qa-passed"
+    | "semantic-qa-failed"
     | "provider-failed"
     | "compiled-visual-modality";
   details?: string[];
@@ -993,6 +998,8 @@ const persistedImageGenerationCheckpointSchema = z.object({
     "validation_failed",
     "provider_requested",
     "generated",
+    "semantic_qa_passed",
+    "semantic_qa_failed",
     "provider_failed",
     "skipped_compiled_visual",
   ]),
@@ -1009,6 +1016,8 @@ const persistedImageGenerationCheckpointSchema = z.object({
     "validation-failed",
     "provider-requested",
     "generated",
+    "semantic-qa-passed",
+    "semantic-qa-failed",
     "provider-failed",
     "compiled-visual-modality",
   ]),
@@ -1525,6 +1534,12 @@ async function canReuseSceneImage(input: {
     return false;
   }
   if (!(await fileExists(input.outputPath))) {
+    return false;
+  }
+  if (
+    input.existing.outputSha256 === undefined ||
+    (await hashFile(input.outputPath)) !== input.existing.outputSha256
+  ) {
     return false;
   }
   await assertGeneratedImageFileMatchesSpec({
@@ -3631,7 +3646,8 @@ export function validatePrompt(
   prompt: string,
   current: SceneVisualSpec,
   previousPrompt?: string,
-  previous?: SceneVisualSpec
+  previous?: SceneVisualSpec,
+  options?: { readonly authoritativeSemanticPrompt?: boolean },
 ): string[] {
   const issues = validateSceneVisualSpec(current, previousPrompt, previous);
   const push = (code: SceneVisualPlanIssueCode, message: string): void => {
@@ -3674,7 +3690,7 @@ export function validatePrompt(
       );
     }
   }
-  if (wordCount(prompt) > 450) {
+  if (wordCount(prompt) > 450 && options?.authoritativeSemanticPrompt !== true) {
     push(
       "PROMPT_TOO_VERBOSE",
       "prompt is too verbose for the amount of useful visual information"
@@ -5142,7 +5158,11 @@ async function buildEpisodeScenePlans(args: {
     );
     let validationFailures = [
       ...validationIssues.map((issue) => issue.message),
-      ...validatePrompt(prompt, spec, previousPrompt, previousSpec),
+      ...validatePrompt(prompt, spec, previousPrompt, previousSpec, {
+        authoritativeSemanticPrompt:
+          promptProfile === "strategic-reinvention-editorial" &&
+          scene.imagePrompt.trim().length > 0,
+      }),
     ];
     await loadReferenceImages(
       args.episodeDir,
@@ -5224,6 +5244,98 @@ async function readManifest(
       sceneGenerationManifestSchema.parse(
         value
       ) as unknown as SceneGenerationManifest
+  );
+}
+
+export function resolveVeronicaAcceptedImageBindingPath(
+  episodeDir: string,
+  sceneId: string,
+): string {
+  return path.join(
+    episodeDir,
+    "state",
+    "image-generation",
+    "accepted-image-bindings",
+    `${sceneId}.json`,
+  );
+}
+
+export async function persistVeronicaAcceptedImageBinding(input: {
+  readonly episodeDir: string;
+  readonly sceneId: string;
+  readonly manifest: SceneGenerationManifest;
+  readonly semanticBrief: VeronicaVisualQaBrief;
+  readonly evaluator: Pick<VeronicaVisualQaEvaluator, "model" | "config">;
+  readonly review: Awaited<ReturnType<typeof reviewVeronicaGeneratedImage>>["review"];
+  readonly imageSha256: string;
+  readonly reconciliation?: {
+    readonly inventoryPath: string;
+    readonly inventorySha256: string;
+    readonly previousManifestSha256: string;
+  };
+  readonly generationEvidence?: {
+    readonly providerRequestHash: string | null;
+    readonly promptHash: string;
+    readonly requestId: string | null;
+    readonly attempts: number;
+    readonly recordedAt: string;
+    readonly debugLogPath: string;
+    readonly debugLogSha256: string;
+  };
+}): Promise<void> {
+  const providerResponsePath = resolveEpisodeImageProviderResponsePath(
+    input.episodeDir,
+    input.sceneId,
+  );
+  const providerResponse = await readJsonIfExists(
+    providerResponsePath,
+    (value) => value as PersistedImageProviderResponse,
+  );
+  await writeJsonAtomic(
+    resolveVeronicaAcceptedImageBindingPath(input.episodeDir, input.sceneId),
+    {
+      schemaVersion: "veronica-accepted-image-binding.v1",
+      sceneId: input.sceneId,
+      canonical: {
+        sceneHash: input.manifest.sceneHash ?? null,
+        visualPlanHash: input.manifest.visualPlanHash ?? null,
+        promptHash: input.manifest.promptHash,
+        providerRequestHash: input.manifest.providerRequestHash ?? null,
+        semanticBriefHash: input.semanticBrief.semanticBriefHash,
+      },
+      image: {
+        path: input.manifest.outputPath,
+        sha256: input.imageSha256,
+      },
+      qa: {
+        inputHash: buildVeronicaVisualQaCacheKey({
+          imageFingerprint: input.imageSha256,
+          brief: {
+            ...input.semanticBrief,
+            finalPrompt: input.manifest.finalPrompt,
+          },
+          evaluator: input.evaluator,
+        }),
+        resultHash: hashText(JSON.stringify(input.review)),
+        schemaVersion: input.review.schemaVersion,
+        evaluatorModel: input.review.evaluatorModel,
+        evaluatorConfigHash: input.review.evaluatorConfigHash,
+        verdict: "PASS",
+      },
+      generation: input.generationEvidence ?? (providerResponse
+        ? {
+            providerRequestHash: providerResponse.providerRequestHash,
+            promptHash: providerResponse.promptHash,
+            requestId: providerResponse.requestId ?? null,
+            attempts: providerResponse.attempts,
+            recordedAt: providerResponse.recordedAt,
+          }
+        : null),
+      ...(input.reconciliation
+        ? { reconciliation: input.reconciliation }
+        : {}),
+      acceptedAt: new Date().toISOString(),
+    },
   );
 }
 
@@ -6229,6 +6341,7 @@ export async function generateEpisodeImages(
     refreshVisualDirection?: boolean;
     veronicaVisualQaEvaluator?: VeronicaVisualQaEvaluator;
     veronicaVisualQaBriefs?: readonly VeronicaVisualQaBrief[];
+    maxVeronicaRegenerationAttempts?: number;
   }
 ): Promise<EpisodeImageGenerationResult[]> {
   const context = await resolveEpisodeImageMediaContext(
@@ -7046,6 +7159,13 @@ export async function generateEpisodeImages(
           })
         );
   const veronicaVisualQaEvaluator = options?.veronicaVisualQaEvaluator;
+  const maxVeronicaRegenerationAttempts = Math.max(
+    0,
+    Math.trunc(
+      options?.maxVeronicaRegenerationAttempts ??
+        defaultVeronicaVisualQaPolicy.maxRegenerationAttempts,
+    ),
+  );
   const veronicaQaBriefs = new Map(
     (options?.veronicaVisualQaBriefs ?? []).map(
       (brief) => [brief.assetId, brief] as const
@@ -7097,11 +7217,13 @@ export async function generateEpisodeImages(
               );
               let finalReview = review;
               let outputSha256 = result.outputSha256;
+              let acceptedGeneration: GeneratedImageResult | undefined;
+              let acceptedFinalPrompt = plan.prompt;
+              let regenerationCount = 0;
               for (
                 let attempt = 1;
                 !finalReview.approved &&
-                attempt <=
-                  defaultVeronicaVisualQaPolicy.maxRegenerationAttempts;
+                attempt <= maxVeronicaRegenerationAttempts;
                 attempt += 1
               ) {
                 const remediationPrompt = buildVeronicaVisualRemediationPrompt({
@@ -7138,6 +7260,9 @@ export async function generateEpisodeImages(
                     creatorMedia: { syntheticLikeness: false },
                   },
                 });
+                acceptedGeneration = regenerated;
+                acceptedFinalPrompt = remediationPrompt;
+                regenerationCount = attempt;
                 outputSha256 = regenerated.outputSha256;
                 finalReview = await reviewVeronicaGeneratedImage({
                   cacheDir: path.join(
@@ -7159,6 +7284,24 @@ export async function generateEpisodeImages(
                 });
               }
               if (!finalReview.approved) {
+                const failedOutputSha256 =
+                  outputSha256 ?? (await hashFile(result.outputPath));
+                const failedManifest = await readManifest(result.manifestPath);
+                if (failedManifest) {
+                  await writeManifest(result.manifestPath, {
+                    ...failedManifest,
+                    finalPrompt: acceptedFinalPrompt,
+                    outputSha256: failedOutputSha256,
+                    status: "failed",
+                    attempts: failedManifest.attempts + regenerationCount,
+                    generatedAt: new Date().toISOString(),
+                    error: {
+                      code: "VERONICA_SEMANTIC_QA_REJECTED",
+                      message: "Post-generation semantic QA rejected the current image bytes.",
+                      retryable: false,
+                    },
+                  });
+                }
                 await writeGenerationFailure(episodeDir, {
                   sceneId: scene.id,
                   stage: "semantic-qa",
@@ -7170,8 +7313,17 @@ export async function generateEpisodeImages(
                     review: finalReview.review,
                   }),
                   retryable: false,
-                  attempts:
-                    defaultVeronicaVisualQaPolicy.maxRegenerationAttempts,
+                  attempts: maxVeronicaRegenerationAttempts,
+                  recordedAt: new Date().toISOString(),
+                });
+                await writeGenerationCheckpoint(episodeDir, {
+                  sceneId: scene.id,
+                  status: "semantic_qa_failed",
+                  outputPath: result.outputPath,
+                  promptHash: plan.providerRequest.promptHash,
+                  visualPlanHash: plan.visualPlanHash,
+                  cacheDecision: "semantic-qa-failed",
+                  details: ["current pixels failed strict post-generation semantic QA"],
                   recordedAt: new Date().toISOString(),
                 });
                 settings.logger?.error(
@@ -7182,6 +7334,51 @@ export async function generateEpisodeImages(
               }
               const verifiedOutputSha256 =
                 outputSha256 ?? (await hashFile(result.outputPath));
+              if (acceptedGeneration) {
+                await writeProviderResponseArtifact(
+                  episodeDir,
+                  scene.id,
+                  buildProviderResponseArtifact({
+                    sceneId: scene.id,
+                    generation: acceptedGeneration,
+                  }),
+                );
+              }
+              const acceptedManifest = await readManifest(result.manifestPath);
+              if (!acceptedManifest) {
+                throw new Error(
+                  `Missing scene manifest while accepting Veronica pixels for ${scene.id}.`,
+                );
+              }
+              const finalManifest: SceneGenerationManifest = {
+                ...acceptedManifest,
+                finalPrompt: acceptedFinalPrompt,
+                outputSha256: verifiedOutputSha256,
+                status: "generated",
+                attempts: acceptedManifest.attempts + regenerationCount,
+                generatedAt: new Date().toISOString(),
+              };
+              delete finalManifest.error;
+              await writeManifest(result.manifestPath, finalManifest);
+              await writeGenerationCheckpoint(episodeDir, {
+                sceneId: scene.id,
+                status: "semantic_qa_passed",
+                outputPath: result.outputPath,
+                promptHash: plan.providerRequest.promptHash,
+                visualPlanHash: plan.visualPlanHash,
+                cacheDecision: "semantic-qa-passed",
+                details: ["accepted pixels, manifest hash, and QA binding persisted atomically"],
+                recordedAt: new Date().toISOString(),
+              });
+              await persistVeronicaAcceptedImageBinding({
+                episodeDir,
+                sceneId: scene.id,
+                manifest: finalManifest,
+                semanticBrief,
+                evaluator: veronicaVisualQaEvaluator,
+                review: finalReview.review,
+                imageSha256: verifiedOutputSha256,
+              });
               const registered = await registerVeronicaReusableImage({
                 registryPath: veronicaRegistryPath,
                 workspaceRoot: veronicaWorkspaceRoot,

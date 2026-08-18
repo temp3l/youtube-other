@@ -1,0 +1,31 @@
+{
+  "title": "Sales Without Chasing Everyone",
+  "thumbnail": "STOP CHASING CUSTOMERS",
+  "description": "Prospecting is not about bothering more people. Build a system for discovery, interest, contact, follow-up, and retention so the right people have a clear path toward you.",
+  "cta": "Close the loop: business model, customer, promise, offer, product, conversion, selling, and prospecting have to work as one system.",
+  "alternativeTitles": [
+    "Stop Chasing Customers. Build a Sales Path Instead.",
+    "Follow-Up Without Chasing: The Sales System"
+  ],
+  "thumbnailOptions": [
+    "STOP CHASING CUSTOMERS",
+    "BUILD THE PATH",
+    "FOLLOW-UP ≠ CHASING"
+  ],
+  "youtubeOptimizationVersion": "v2-retention-localization",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  },
+  "shortA": {
+    "title": "Stop Chasing Customers",
+    "alternateHook": "Good prospecting builds a path instead of depending on random outreach."
+  },
+  "shortB": {
+    "title": "Follow-Up vs Chasing",
+    "alternateHook": "Follow-up adds clarity or information. Chasing only asks for attention again."
+  }
+}

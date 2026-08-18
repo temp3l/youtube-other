@@ -1,0 +1,116 @@
+{
+  "schemaVersion": "veronica-ai-editorial-review.v1",
+  "label": "AI_EDITORIAL_REVIEWED",
+  "lenses": [
+    "native-language/spoken-naturalness editor",
+    "semantic-fidelity reviewer",
+    "retention editor",
+    "business-content editor",
+    "series showrunner"
+  ],
+  "recordsReviewed": 270,
+  "suppliedCertification": {
+    "status": "READY_AI_EDITORIAL_REVIEWED",
+    "corpus": {
+      "stories": 54,
+      "longs": 18,
+      "shorts": 36,
+      "locales": 6,
+      "totalNarrationFiles": 324,
+      "localizedNarrations": 270,
+      "missingRequiredNarrations": 0
+    },
+    "english": {
+      "records": 54,
+      "timingPass": 54,
+      "qualityPassAtLeast9_5": 54,
+      "qualityPassStrictlyAbove9_5": 54,
+      "minScore": 9.7,
+      "avgScore": 9.76
+    },
+    "locales": {
+      "de": {
+        "records": 54,
+        "longs": 18,
+        "shorts": 36,
+        "timingPass": 54,
+        "qualityPassAtLeast9_5": 54,
+        "qualityPassStrictlyAbove9_5": 54,
+        "criticalDefects": 0,
+        "minScore": 9.74,
+        "avgScore": 9.78
+      },
+      "es": {
+        "records": 54,
+        "longs": 18,
+        "shorts": 36,
+        "timingPass": 54,
+        "qualityPassAtLeast9_5": 54,
+        "qualityPassStrictlyAbove9_5": 54,
+        "criticalDefects": 0,
+        "minScore": 9.74,
+        "avgScore": 9.8
+      },
+      "fr": {
+        "records": 54,
+        "longs": 18,
+        "shorts": 36,
+        "timingPass": 54,
+        "qualityPassAtLeast9_5": 54,
+        "qualityPassStrictlyAbove9_5": 54,
+        "criticalDefects": 0,
+        "minScore": 9.74,
+        "avgScore": 9.79
+      },
+      "it": {
+        "records": 54,
+        "longs": 18,
+        "shorts": 36,
+        "timingPass": 54,
+        "qualityPassAtLeast9_5": 54,
+        "qualityPassStrictlyAbove9_5": 54,
+        "criticalDefects": 0,
+        "minScore": 9.74,
+        "avgScore": 9.79
+      },
+      "pt": {
+        "records": 54,
+        "longs": 18,
+        "shorts": 36,
+        "timingPass": 54,
+        "qualityPassAtLeast9_5": 54,
+        "qualityPassStrictlyAbove9_5": 54,
+        "criticalDefects": 0,
+        "minScore": 9.74,
+        "avgScore": 9.79
+      }
+    },
+    "localizedOverall": {
+      "records": 270,
+      "timingPass": 270,
+      "qualityPassAtLeast9_5": 270,
+      "qualityPassStrictlyAbove9_5": 270,
+      "criticalDefects": 0,
+      "minScore": 9.74,
+      "avgScore": 9.79
+    },
+    "integrity": {
+      "hygieneHits": 0,
+      "exactDuplicateNarrationPairsWithinLocaleFormat": 0,
+      "duplicateLocalizedRatingPaths": 0
+    },
+    "review": {
+      "english": "Four-persona publication review",
+      "localized": "Five-persona AI editorial review",
+      "localizedPersonas": [
+        "native-language/spoken-naturalness editor",
+        "semantic-fidelity reviewer",
+        "retention editor",
+        "business-content editor",
+        "series showrunner"
+      ],
+      "note": "AI editorial review; not human native-speaker certification."
+    }
+  },
+  "note": "Scores and five-lens findings are sourced from the user-supplied v5 master evidence. No external or repository provider was called."
+}

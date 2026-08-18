@@ -14,6 +14,7 @@ import {
   hashText,
   writeJsonAtomic,
 } from "@mediaforge/shared";
+import { runCommand } from "@mediaforge/process-runner";
 
 export interface VeronicaShortPacingRunResult {
   readonly selectedSpeed: number;
@@ -32,10 +33,11 @@ function calibrationInputFingerprint(input: {
   readonly instructions: string;
   readonly outputFormat: string;
   readonly initialSpeed: number;
+  readonly schemaVersion?: string;
 }): string {
   return hashText(
     JSON.stringify({
-      schemaVersion: VERONICA_SHORT_PACING_CALIBRATION_SCHEMA_VERSION,
+      schemaVersion: input.schemaVersion ?? VERONICA_SHORT_PACING_CALIBRATION_SCHEMA_VERSION,
       narrationHash: input.narrationHash,
       locale: input.locale,
       model: input.model,
@@ -86,16 +88,40 @@ function legacyCandidatePrefixFromArtifact(input: {
     : undefined;
 }
 
-function artifactHash(
-  value: Omit<VeronicaShortPacingCalibration, "artifactHash">
-): string {
+function artifactHash(value: unknown): string {
   return hashText(JSON.stringify(value));
+}
+
+function preferredTempoFactor(input: {
+  readonly wordCount: number;
+  readonly durationSeconds: number;
+  readonly locale: string;
+}): number | undefined {
+  const range = resolveVeronicaShortPacingPolicy(input.locale)?.preferredWpmRange;
+  if (!range || input.wordCount === 0) return undefined;
+  const currentWpm = calculateWordsPerMinute(input.wordCount, input.durationSeconds);
+  if (currentWpm >= range[0] && currentWpm <= range[1]) return undefined;
+  const targetDuration = (input.wordCount / ((range[0] + range[1]) / 2)) * 60;
+  return Math.round((input.durationSeconds / targetDuration) * 10_000) / 10_000;
+}
+
+async function applyPitchPreservingTempo(input: {
+  readonly sourcePath: string;
+  readonly outputPath: string;
+  readonly tempoFactor: number;
+}): Promise<void> {
+  await fs.mkdir(path.dirname(input.outputPath), { recursive: true });
+  await runCommand("ffmpeg", [
+    "-y", "-i", input.sourcePath, "-map", "0:a:0", "-af",
+    `atempo=${input.tempoFactor.toFixed(4)}`,
+    "-c:a", "pcm_s16le", input.outputPath,
+  ], { timeoutMs: 120_000 });
 }
 
 /**
  * One provider request produces a complete Veronica Short candidate. This keeps
- * the live calibration budget at two requests (one initial plus one controlled
- * remediation) rather than multiplying it by
+ * the live calibration budget at three requests (one initial plus two controlled
+ * remediations) rather than multiplying it by
  * narration chunks. The selected candidate is then promoted into the existing
  * canonical compatibility locations used by production timing reconciliation.
  */
@@ -162,10 +188,88 @@ export async function calibrateVeronicaShortNarration(input: {
     });
     try {
       const stored = veronicaShortPacingCalibrationSchema.parse(rawCalibration);
+      const compatibleV3Fingerprint = stored.schemaVersion === "veronica-short-pacing-calibration-v3"
+        ? calibrationInputFingerprint({
+            narrationHash,
+            locale: input.locale,
+            model: input.model,
+            voice: input.voice,
+            instructions: input.baseInstructions,
+            outputFormat: "wav",
+            initialSpeed: input.baselineSpeed,
+            schemaVersion: "veronica-short-pacing-calibration-v3",
+          })
+        : undefined;
       if (
-        stored.inputFingerprint === inputFingerprint &&
+        (stored.inputFingerprint === inputFingerprint || stored.inputFingerprint === compatibleV3Fingerprint) &&
         stored.selectedAudioHash === (await hashFile(selectedAudioPath))
       ) {
+        const tempoFactor = preferredTempoFactor({
+          wordCount: stored.wordCount,
+          durationSeconds: stored.selectedDurationSeconds,
+          locale: input.locale,
+        });
+        if (tempoFactor !== undefined) {
+          const normalizedPath = path.join(
+            narrationRoot,
+            "pacing-calibration",
+            "normalized",
+            `${stored.selectedAudioHash}-${tempoFactor.toFixed(4)}.wav`,
+          );
+          if (!(await fileExists(normalizedPath))) {
+            await applyPitchPreservingTempo({
+              sourcePath: selectedAudioPath,
+              outputPath: normalizedPath,
+              tempoFactor,
+            });
+          }
+          const normalizedDuration = await input.probeDuration(normalizedPath);
+          const normalizedWpm = calculateWordsPerMinute(stored.wordCount, normalizedDuration);
+          const range = policy.preferredWpmRange;
+          if (!range || normalizedWpm < range[0] || normalizedWpm > range[1]) {
+            throw new Error("VERONICA_SHORT_TEMPO_NORMALIZATION_OUTSIDE_TARGET_WPM");
+          }
+          const normalizedHash = await hashFile(normalizedPath);
+          const { artifactHash: _previousHash, ...storedWithoutHash } = stored;
+          const normalizedUnsealed = {
+            ...storedWithoutHash,
+            schemaVersion: VERONICA_SHORT_PACING_CALIBRATION_SCHEMA_VERSION,
+            selectedDurationSeconds: normalizedDuration,
+            selectedWpm: normalizedWpm,
+            selectedPacingStatus: "NATURAL" as const,
+            speedNormalizationApplied: true,
+            selectedAudioHash: normalizedHash,
+            tempoNormalization: {
+              algorithm: "ffmpeg-atempo" as const,
+              tempoFactor,
+              sourceAudioHash: stored.selectedAudioHash,
+              outputAudioHash: normalizedHash,
+              measuredDurationSeconds: normalizedDuration,
+              measuredWpm: normalizedWpm,
+              pitchPreserved: true as const,
+              artificialSilenceAdded: false as const,
+            },
+          };
+          const normalized = veronicaShortPacingCalibrationSchema.parse({
+            ...normalizedUnsealed,
+            artifactHash: artifactHash(normalizedUnsealed),
+          });
+          await writeJsonAtomic(calibrationPath, normalized);
+          await Promise.all([
+            fs.copyFile(normalizedPath, selectedAudioPath),
+            fs.copyFile(normalizedPath, path.join(audioRoot, "narration.wav")),
+            fs.copyFile(normalizedPath, path.join(narrationRoot, "clean-narration.wav")),
+            fs.copyFile(normalizedPath, path.join(narrationRoot, "mastered-narration.wav")),
+          ]);
+          return {
+            selectedSpeed: normalized.selectedSpeed,
+            selectedAudioPath,
+            calibrationPath,
+            calibration: normalized,
+            providerCalls: 0,
+            cacheHits: stored.attempts.length,
+          };
+        }
         await Promise.all([
           fs.copyFile(selectedAudioPath, path.join(audioRoot, "narration.wav")),
           fs.copyFile(

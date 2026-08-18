@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { hashFile, hashText } from "@mediaforge/shared";
 import {
+  createOpenAiVeronicaVisualQaEvaluator,
   reviewVeronicaGeneratedImage,
   type VeronicaVisualQaBrief,
   type VeronicaVisualQaEvaluator,
@@ -149,5 +150,43 @@ describe("Veronica visual QA cache contract", () => {
       evaluator: provider,
     }).catch(() => undefined);
     expect(provider.evaluate).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("OpenAI Veronica visual QA evaluator", () => {
+  it("omits unsupported temperature from Responses requests", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vero-qa-openai-"));
+    const image = path.join(dir, "image.png");
+    await fs.writeFile(image, "one");
+    const create = vi.fn(async () => ({ output_text: "{}" }));
+    const provider = createOpenAiVeronicaVisualQaEvaluator({
+      client: { responses: { create } },
+      model: "gpt-5.4-mini",
+      config: { reasoningEffort: "low" },
+    });
+
+    await provider.evaluate({
+      imagePath: image,
+      brief,
+      imageFingerprint: "a".repeat(64),
+      evaluatorConfigHash: "b".repeat(64),
+    });
+
+    expect(provider.config).not.toHaveProperty("temperature");
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: "gpt-5.4-mini",
+        reasoning: { effort: "low" },
+        max_output_tokens: 2200,
+        text: {
+          format: expect.objectContaining({
+            type: "json_schema",
+            name: "veronica_post_generation_visual_review",
+            strict: true,
+          }),
+        },
+      })
+    );
+    expect(create.mock.calls[0]?.[0]).not.toHaveProperty("temperature");
   });
 });

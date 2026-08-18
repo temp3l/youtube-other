@@ -55,6 +55,7 @@ export interface VeronicaPaidOpenAiQaAuthorization {
   readonly maxFlagshipCallsPerPack: number;
   readonly maxEstimatedInputTokens?: number;
   readonly maxEstimatedOutputTokens?: number;
+  readonly retryDeterministicMalformed?: boolean;
 }
 
 export const VERONICA_SOURCE_GROUNDED_QA_DEFAULT_CEILINGS = {
@@ -667,6 +668,8 @@ export async function createVeronicaSourceGroundedVisualQaComposition(input: {
   const finalPolicy = requireOpenAiResponsesPolicy(runtime.openAiPolicy["veronica-visual-qa-final-adjudication"]);
   const execution = sourceGroundedQaExecutionPolicy(executionProfile, {
     providerMode: input.paidOpenAiQa ? "LIVE_AUTHORIZED" : "CACHE_ONLY",
+    retryDeterministicMalformed:
+      input.paidOpenAiQa?.retryDeterministicMalformed === true,
     promptPrefixCaching: runtime.openAiPromptCacheMode !== "disabled",
     modelPricing: OPENAI_QA_MODEL_PRICING,
     ...(input.paidOpenAiQa

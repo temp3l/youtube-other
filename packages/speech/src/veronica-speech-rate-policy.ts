@@ -1,3 +1,4 @@
+import { VERONICA_PLANNING_TIMING_POLICY } from "@mediaforge/domain";
 import type { LanguageCode } from "@mediaforge/story-localization";
 import type { NarrationVariant } from "./narration-schemas.js";
 
@@ -39,26 +40,34 @@ export const VERONICA_SPEECH_RATE_POLICY: Readonly<
   >
 > = Object.freeze({
   full: Object.freeze({
-    en: policy(150, 140, 160),
-    de: policy(145, 135, 155),
-    es: policy(150, 140, 160),
-    it: policy(150, 140, 160),
-    fr: policy(150, 140, 160),
-    pt: policy(150, 140, 160),
+    en: policy(VERONICA_PLANNING_TIMING_POLICY.long.wpm.en, 140, 160),
+    de: policy(VERONICA_PLANNING_TIMING_POLICY.long.wpm.de, 135, 155),
+    es: policy(VERONICA_PLANNING_TIMING_POLICY.long.wpm.es, 140, 160),
+    it: policy(VERONICA_PLANNING_TIMING_POLICY.long.wpm.it, 140, 160),
+    fr: policy(VERONICA_PLANNING_TIMING_POLICY.long.wpm.fr, 140, 160),
+    pt: policy(VERONICA_PLANNING_TIMING_POLICY.long.wpm.pt, 140, 160),
   }),
   short: Object.freeze({
-    en: policy(155, 145, 165),
-    de: policy(150, 140, 160),
-    es: policy(155, 145, 165),
-    it: policy(155, 145, 165),
-    fr: policy(155, 145, 165),
-    pt: policy(155, 145, 165),
+    en: policy(VERONICA_PLANNING_TIMING_POLICY.short.wpm.en, 145, 165),
+    de: policy(VERONICA_PLANNING_TIMING_POLICY.short.wpm.de, 140, 160),
+    es: policy(VERONICA_PLANNING_TIMING_POLICY.short.wpm.es, 145, 165),
+    it: policy(VERONICA_PLANNING_TIMING_POLICY.short.wpm.it, 145, 165),
+    fr: policy(VERONICA_PLANNING_TIMING_POLICY.short.wpm.fr, 145, 165),
+    pt: policy(VERONICA_PLANNING_TIMING_POLICY.short.wpm.pt, 145, 165),
   }),
 });
 
 export const VERONICA_SCRIPT_DURATION_GUIDANCE_SECONDS: Readonly<
   Record<VeronicaSpeechRateVariant, readonly [number, number]>
-> = Object.freeze({ full: [570, 630], short: [60, 90] });
+> = Object.freeze({
+  full: VERONICA_PLANNING_TIMING_POLICY.long.planningSeconds,
+  short: [
+    (VERONICA_PLANNING_TIMING_POLICY.short.planningWords.en[0] /
+      VERONICA_PLANNING_TIMING_POLICY.short.wpm.en) * 60,
+    (VERONICA_PLANNING_TIMING_POLICY.short.planningWords.de[1] /
+      VERONICA_PLANNING_TIMING_POLICY.short.wpm.de) * 60,
+  ],
+});
 
 function normalizeLocale(locale: string): VeronicaSpeechRateLocale {
   switch (locale.trim().toLowerCase().split("-", 1)[0]) {
@@ -119,15 +128,23 @@ export function getVeronicaScriptLengthGuidance(input: {
     locale: input.locale,
     variant,
   });
-  const durationRangeSeconds =
-    VERONICA_SCRIPT_DURATION_GUIDANCE_SECONDS[variant];
+  const locale = normalizeLocale(input.locale);
+  const shortWords = VERONICA_PLANNING_TIMING_POLICY.short.planningWords[locale];
+  const durationRangeSeconds: readonly [number, number] = variant === "short"
+    ? [
+        (shortWords[0] / resolvedPolicy.targetWpm) * 60,
+        (shortWords[1] / resolvedPolicy.targetWpm) * 60,
+      ]
+    : VERONICA_SCRIPT_DURATION_GUIDANCE_SECONDS[variant];
   return {
     targetWpm: resolvedPolicy.targetWpm,
     durationRangeSeconds,
-    spokenWordCountRange: [
-      (durationRangeSeconds[0] * resolvedPolicy.targetWpm) / 60,
-      (durationRangeSeconds[1] * resolvedPolicy.targetWpm) / 60,
-    ],
+    spokenWordCountRange: variant === "short"
+      ? VERONICA_PLANNING_TIMING_POLICY.short.planningWords[locale]
+      : [
+          (durationRangeSeconds[0] * resolvedPolicy.targetWpm) / 60,
+          (durationRangeSeconds[1] * resolvedPolicy.targetWpm) / 60,
+        ],
   };
 }
 

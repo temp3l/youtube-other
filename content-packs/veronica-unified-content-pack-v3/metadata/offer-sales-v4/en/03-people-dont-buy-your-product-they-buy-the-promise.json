@@ -1,0 +1,32 @@
+{
+  "title": "Stop Explaining Features. Translate the Value.",
+  "thumbnail": "SELL THE CHANGE",
+  "description": "Customers do not buy features alone; they buy the change they believe the product can create. Learn how to translate product value, service, and outcomes into a clear, credible promise.",
+  "cta": "Next, we turn that promise into an offer that is easy to understand, credible, and easy to buy.",
+  "alternativeTitles": [
+    "Stop Explaining Features. Translate the Value.",
+    "People Don't Buy the Product. They Buy the Change.",
+    "Stop Explaining Features. Start Selling the Outcome."
+  ],
+  "thumbnailOptions": [
+    "WHAT ARE THEY REALLY BUYING?",
+    "SELL THE CHANGE",
+    "FEATURES AREN'T THE VALUE"
+  ],
+  "youtubeOptimizationVersion": "v4-editorial-continuity-remediation",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  },
+  "shortA": {
+    "title": "What Is the Customer Really Buying?",
+    "alternateHook": "Remove the product name. Can you still explain why the outcome matters?"
+  },
+  "shortB": {
+    "title": "A Promise Is Not a Slogan",
+    "alternateHook": "A stronger promise should make real value clearer, not make reality bigger."
+  }
+}

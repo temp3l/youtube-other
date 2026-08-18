@@ -43,6 +43,8 @@ export interface SourceGroundedQaExecutionPolicy {
   readonly remediationBatchSize: number;
   readonly transientFailureCacheTtlMs: number;
   readonly deterministicFailureCacheTtlMs: number;
+  /** Explicitly permits one newly authorized run to retry malformed structured output. */
+  readonly retryDeterministicMalformed: boolean;
   readonly budget?: SourceGroundedQaBudgetPolicy;
   readonly modelPricing?: Readonly<Record<string, SourceGroundedQaTokenPricing>>;
   readonly flagshipModels?: readonly string[];
@@ -68,6 +70,7 @@ export function sourceGroundedQaExecutionPolicy(
     remediationBatchSize: 5,
     transientFailureCacheTtlMs: 60_000,
     deterministicFailureCacheTtlMs: 24 * 60 * 60 * 1_000,
+    retryDeterministicMalformed: false,
   } as const;
   if (profile === "COST_OPTIMIZED") {
     return {

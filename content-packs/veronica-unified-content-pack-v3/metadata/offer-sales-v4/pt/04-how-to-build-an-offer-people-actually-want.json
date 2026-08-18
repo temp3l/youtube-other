@@ -1,0 +1,31 @@
+{
+  "title": "Como criar uma oferta que as pessoas realmente querem",
+  "thumbnail": "FACILITE A COMPRA",
+  "description": "Um bom produto não basta quando o caminho de compra é confuso. Este episódio conecta entrada, atrito, prova, urgência e coerência para tornar a oferta mais fácil de comprar.",
+  "cta": "No próximo episódio, testamos se o problema é realmente o marketing ou se o produto precisa ser corrigido primeiro.",
+  "alternativeTitles": [
+    "Seu produto pode ser bom — e sua oferta difícil de comprar",
+    "O teste da oferta em 30 segundos"
+  ],
+  "thumbnailOptions": [
+    "FACILITE A COMPRA",
+    "ATRITO DEMAIS?",
+    "TESTE DE 30 SEGUNDOS"
+  ],
+  "youtubeOptimizationVersion": "v2-retention-localization",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  },
+  "shortA": {
+    "title": "Um bom produto pode ser difícil de comprar",
+    "alternateHook": "Cada etapa desnecessária dá a um cliente interessado mais um motivo para adiar."
+  },
+  "shortB": {
+    "title": "O teste da oferta em 30 segundos",
+    "alternateHook": "Um visitante novo entende oferta, caminho do preço e próximo passo em trinta segundos?"
+  }
+}

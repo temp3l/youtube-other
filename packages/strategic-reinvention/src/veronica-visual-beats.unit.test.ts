@@ -7,8 +7,10 @@ import {
   veronicaImagePromptCompilationInputHash,
 } from "./veronica-image-prompt-compiler.js";
 import type { VeronicaVisualBibleV1 } from "./veronica-visual-artifacts.js";
+import { deriveVeronicaSemanticProposition, finalizeVeronicaSemanticProposition } from "./veronica-semantic-quality.js";
 import {
   calculateVeronicaVisualDensityMetrics,
+  assessVeronicaParentChildSemanticCompatibility,
   deriveVeronicaVisualBeatPlan,
   materializeVeronicaVisualBeatPlan,
   validateVeronicaVisualBeatPlan,
@@ -19,11 +21,27 @@ const hash = (value: unknown): string => stableHash(value);
 
 function sourcePlan(durationMs = 10_000): PositioningVisualPlanV2 {
   const treatmentHash = hash("parent treatment");
-  const propositionHash = hash("parent proposition");
+  const narrationClaim = "A focused book carries useful expertise directly to a reader without publisher prestige.";
+  const semanticProposition = finalizeVeronicaSemanticProposition({
+    narrationClaim,
+    evidenceSpans: [{ sentenceId: "sentence-001", startOffset: 0, endOffset: narrationClaim.length, text: narrationClaim, spanHash: hash("span") }],
+    polarity: "NEUTRAL",
+    stateRelation: "STABLE",
+    cause: "a focused book carries useful expertise directly to a reader",
+    actorRole: "expert",
+    actorAction: "hands a focused book directly to a reader",
+    buyerInterpretation: "Useful knowledge creates the authority signal.",
+    consequence: "the reader recognizes useful expertise without publisher prestige",
+    visualMechanism: "peer-referral",
+    evidenceAnchors: ["focused book", "reader", "no publisher prestige"],
+    buyerConsequenceFamily: "RECOGNIZES",
+    confidence: { proposition: "HIGH", actorOwnership: "HIGH", consequence: "HIGH", visualMechanism: "HIGH" },
+  });
+  const propositionHash = semanticProposition.propositionHash;
   const scene = {
     sceneId: "hook",
     progressionStage: "HOOK" as const,
-    narrationAnchor: "A focused book carries useful expertise directly to a reader without publisher prestige.",
+    narrationAnchor: narrationClaim,
     startMs: 0,
     durationMs,
     treatment: {
@@ -56,23 +74,7 @@ function sourcePlan(durationMs = 10_000): PositioningVisualPlanV2 {
     newInformation: "The direct authority object does not depend on a publisher.",
     narrativeFunction: "introduce" as const,
     visualFamily: "human-decision" as const,
-    semanticProposition: {
-      schemaVersion: "veronica-semantic-proposition.v3" as const,
-      narrationClaim: "A focused book carries useful expertise directly to a reader without publisher prestige.",
-      evidenceSpans: [{ sentenceId: "sentence-001", startOffset: 0, endOffset: 90, text: "A focused book carries useful expertise directly to a reader without publisher prestige.", spanHash: hash("span") }] as const,
-      polarity: "NEUTRAL" as const,
-      stateRelation: "STABLE" as const,
-      cause: "a focused book carries useful expertise directly to a reader",
-      actorRole: "expert" as const,
-      actorAction: "hands a focused book directly to a reader",
-      buyerInterpretation: "Useful knowledge creates the authority signal.",
-      consequence: "the reader recognizes useful expertise without publisher prestige",
-      visualMechanism: "peer-referral" as const,
-      evidenceAnchors: ["focused book", "reader", "no publisher prestige"],
-      buyerConsequenceFamily: "RECOGNIZES" as const,
-      confidence: { proposition: "HIGH" as const, actorOwnership: "HIGH" as const, consequence: "HIGH" as const, visualMechanism: "HIGH" as const },
-      propositionHash,
-    },
+    semanticProposition,
     materializationRevision: { revisionId: hash("revision"), treatmentHash, propositionHash, projectionPolicyVersion: "test" },
   };
   return {
@@ -148,16 +150,73 @@ function bible(): VeronicaVisualBibleV1 {
 }
 
 describe("Veronica visual beat planning", () => {
+  const causalParent = {
+    parentActionOwnerRole: "business-operator" as const,
+    parentNarration: "Is there added value or an obstacle you can remove?",
+  };
+  const enabledCustomer = {
+    coreMeaning: "The operator removes an obstacle for the customer.",
+    viewerShouldUnderstand: "The customer can access the desired result.",
+    action: "the operator swings the gate aside; the customer crosses and lifts the result",
+    state: "blocked customer becomes able to access the result",
+    actorRelation: {
+      causalActionOwnerRole: "business-operator" as const,
+      outcomeActorRole: "buyer" as const,
+      relationship: "ENABLES" as const,
+      causalAction: "operator swings the obstacle gate aside",
+      outcomeAction: "customer crosses and lifts the result",
+    },
+  };
+
+  it("accepts a causal actor whose intervention enables a beneficiary action", () => {
+    expect(assessVeronicaParentChildSemanticCompatibility({ ...causalParent, child: enabledCustomer })).toEqual([]);
+  });
+
+  it("blocks a true action-owner inversion", () => {
+    const child = {
+      ...enabledCustomer,
+      actorRelation: { ...enabledCustomer.actorRelation, causalActionOwnerRole: "buyer" as const, outcomeActorRole: "business-operator" as const },
+    };
+    expect(assessVeronicaParentChildSemanticCompatibility({ ...causalParent, child })).toContain("ACTION_OWNER_INVERSION");
+  });
+
+  it("blocks a customer outcome that drops the causal source mechanism", () => {
+    const child = { ...enabledCustomer, action: "the customer crosses and lifts the result" };
+    expect(assessVeronicaParentChildSemanticCompatibility({ ...causalParent, child })).toContain("SOURCE_DOMAIN_LOST");
+  });
+
+  it("accepts entailed state specialization and blocks conflated state roles", () => {
+    expect(assessVeronicaParentChildSemanticCompatibility({ ...causalParent, child: enabledCustomer })).not.toContain("STATE_ROLE_INVERSION");
+    const child = { ...enabledCustomer, actorRelation: { ...enabledCustomer.actorRelation, outcomeActorRole: "business-operator" as const } };
+    expect(assessVeronicaParentChildSemanticCompatibility({ ...causalParent, child })).toContain("STATE_ROLE_INVERSION");
+  });
+
+  it("keeps unrelated actor and profession drift blocked", () => {
+    const child = {
+      ...enabledCustomer,
+      coreMeaning: "A surgeon performs a wellness procedure.",
+      viewerShouldUnderstand: "The patient admires the clinician.",
+      actorRelation: {
+        ...enabledCustomer.actorRelation,
+        causalAction: "surgeon performs a wellness procedure",
+        outcomeAction: "patient admires the clinician",
+      },
+      action: "a surgeon performs a wellness procedure while a patient admires the clinician",
+    };
+    expect(assessVeronicaParentChildSemanticCompatibility({ ...causalParent, child })).toContain("SEMANTIC_DRIFT");
+  });
+
   it("materializes source-grounded semantic beats for a long compound Short opening", () => {
     const base = sourcePlan(18_000);
     const narration = "Revenue looks large while the retained margin is small. Revenue and margin are not the same thing. Variable costs remove most of one sale before the retained remainder exits.";
     const compound = {
       ...base,
-      scenes: base.scenes.map((entry) => ({ ...entry, narrationAnchor: narration, durationMs: 18_000 })),
+      scenes: base.scenes.map((entry) => ({ ...entry, narrationAnchor: narration, durationMs: 18_000, semanticProposition: deriveVeronicaSemanticProposition({ scene: entry, narration }) })),
     } as PositioningVisualPlanV2;
     const beatPlan = deriveVeronicaVisualBeatPlan({ plan: compound });
     const materialized = materializeVeronicaVisualBeatPlan({ plan: compound, beatPlan });
     expect(beatPlan.beats.length).toBeGreaterThan(1);
+    expect(beatPlan.beats.every((beat) => beat.parentSemanticRevisionHash === compound.scenes[0]!.semanticProposition!.semanticRevisionHash)).toBe(true);
     expect(beatPlan.beats.every((beat) => beat.narrationRef.sentenceIds.length > 0 && beat.narrationRef.endOffset > beat.narrationRef.startOffset)).toBe(true);
     expect(materialized.assets).toHaveLength(beatPlan.beats.length);
     expect(beatPlan.quality.density).toMatchObject({
@@ -170,12 +229,25 @@ describe("Veronica visual beat planning", () => {
   it("blocks a compound first fifteen seconds that only changes crop over one asset", () => {
     const base = sourcePlan(15_000);
     const narration = "Revenue looks large. Margin remains small. Variable costs consume the difference.";
-    const compound = { ...base, scenes: base.scenes.map((entry) => ({ ...entry, narrationAnchor: narration, durationMs: 15_000 })) } as PositioningVisualPlanV2;
+    const compound = { ...base, scenes: base.scenes.map((entry) => ({ ...entry, narrationAnchor: narration, durationMs: 15_000, semanticProposition: deriveVeronicaSemanticProposition({ scene: entry, narration }) })) } as PositioningVisualPlanV2;
     const single = deriveVeronicaVisualBeatPlan({ plan: sourcePlan(5_000) }).beats[0]!;
     const onlyCrop = { ...single, sceneId: "hook", beatId: "hook-B01", timingWeight: 1 };
     const quality = validateVeronicaVisualBeatPlan({ plan: compound, beats: [onlyCrop] });
     expect(quality.status).toBe("FAIL");
     expect(quality.findings).toContainEqual(expect.objectContaining({ code: "INSUFFICIENT_SEMANTIC_ASSET_DENSITY", severity: "blocker" }));
+  });
+
+  it("requires semantic asset density once promise/value opening sentences are grounded", () => {
+    const base = sourcePlan(15_000);
+    const narration = "A promise is not a creative slogan. It is a translation of value. Ask what you sell.";
+    const compound = { ...base, scenes: base.scenes.map((entry) => ({ ...entry, narrationAnchor: narration, durationMs: 15_000, semanticProposition: deriveVeronicaSemanticProposition({ scene: entry, narration }) })) } as PositioningVisualPlanV2;
+    const single = deriveVeronicaVisualBeatPlan({ plan: sourcePlan(5_000) }).beats[0]!;
+    const quality = validateVeronicaVisualBeatPlan({ plan: compound, beats: [{ ...single, sceneId: "hook", beatId: "hook-B01", timingWeight: 1 }] });
+
+    expect(quality.findings).toContainEqual(expect.objectContaining({
+      code: "INSUFFICIENT_SEMANTIC_ASSET_DENSITY",
+      severity: "blocker",
+    }));
   });
 
   it("counts three crop events as one unique asset and reports semantic hold separately", () => {
@@ -196,6 +268,9 @@ describe("Veronica visual beat planning", () => {
     expect(beatPlan.beats).toHaveLength(2);
     expect(materialized.assets).toHaveLength(2);
     expect(materialized.visualEvents).toHaveLength(2);
+    expect(beatPlan.beats.map(({ action, environment, composition }) => ({ action, environment, composition }))).toEqual(
+      overrides().scenes[0]!.beats.map(({ action, environment, composition }) => ({ action, environment, composition })),
+    );
     expect(beatPlan.quality).toMatchObject({
       status: "WARN",
       beatsInFirst5Seconds: 2,
@@ -224,6 +299,49 @@ describe("Veronica visual beat planning", () => {
       expect.objectContaining({ code: "REDUNDANT_PAID_IMAGE_CANDIDATE" }),
     ]));
     expect(() => materializeVeronicaVisualBeatPlan({ plan: parent, beatPlan })).toThrow("VERONICA_VISUAL_BEAT_QUALITY_FAILED");
+    try {
+      materializeVeronicaVisualBeatPlan({ plan: parent, beatPlan });
+    } catch (error) {
+      expect(error).toMatchObject({
+        outcome: "BLOCK",
+        code: "VERONICA_VISUAL_BEAT_QUALITY_FAILED",
+        stage: "visual-beat-quality",
+        paidStageEligible: false,
+        findings: expect.arrayContaining([expect.objectContaining({ code: "REDUNDANT_SIBLING_BEAT" })]),
+      });
+    }
+  });
+
+  it("requires both obstacle removal and the buyer's enabled consequence in one causal frame", () => {
+    const parent = sourcePlan();
+    const base = deriveVeronicaVisualBeatPlan({ plan: parent, overrides: overrides() }).beats[1]!;
+    const incomplete = {
+      ...base,
+      coreMeaning: "Removing one obstacle makes a selected customer result possible.",
+      newInformation: "A physical barrier is removed from the route.",
+      viewerShouldUnderstand: "The customer can act after the obstacle is removed.",
+      visualThesis: "A removed barrier enables the customer result.",
+      subject: "one operator and one customer beside a blocked route",
+      action: "the operator lifts one barrier away from the route",
+      state: "TRANSITION; barrier removed",
+      environment: "neutral route with one removable obstacle",
+      composition: { ...base.composition, description: "the barrier sits aside and the route is empty" },
+    };
+    const blocked = validateVeronicaVisualBeatPlan({ plan: parent, beats: [incomplete] });
+    expect(blocked.findings).toContainEqual(expect.objectContaining({
+      code: "CAUSE_CONSEQUENCE_EVIDENCE_INCOMPLETE",
+      severity: "blocker",
+    }));
+
+    const complete = {
+      ...incomplete,
+      action: "after the operator swings the gate fully aside, the customer steps through the clear gap and takes the selected object",
+      composition: { ...base.composition, description: "the open gate remains visibly aside while the customer reaches the result beyond it" },
+    };
+    const passed = validateVeronicaVisualBeatPlan({ plan: parent, beats: [complete] });
+    expect(passed.findings).not.toContainEqual(expect.objectContaining({
+      code: "CAUSE_CONSEQUENCE_EVIDENCE_INCOMPLETE",
+    }));
   });
 
   it("keeps beat image identity stable across timing/localization changes and invalidates only a changed beat", () => {

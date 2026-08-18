@@ -1,0 +1,264 @@
+{
+  "schemaVersion": "veronica-en-portfolio-cost-ledger.v2",
+  "generatedAt": "2026-08-12T21:19:27.561Z",
+  "canonicalCurrency": "EUR",
+  "budgetCeilingEur": 4.883016,
+  "budgetAuthorizations": {
+    "original": {
+      "amount": 2.5,
+      "currency": "EUR"
+    },
+    "incremental": {
+      "amount": 2.5,
+      "currency": "USD",
+      "conservativeCanonicalAmountEur": 2.383016
+    },
+    "policy": "The incremental USD allowance is added to, not substituted for, the original EUR ceiling."
+  },
+  "providerCurrency": "USD",
+  "conversion": {
+    "observationDate": "2026-08-11",
+    "source": "European Central Bank reference rate",
+    "sourceUrl": "https://data-api.ecb.europa.eu/service/data/EXR/D.USD.EUR.SP00.A",
+    "observedUsdPerEur": 1.154,
+    "policy": "Convert USD to EUR at ECB reference, then apply a 10% adverse-FX safety multiplier.",
+    "safetyMultiplier": 1.1,
+    "conservativeEurPerUsd": 0.953206239
+  },
+  "historicalSpendEnteringRun": {
+    "knownEstimatedCostUsd": 2.334121,
+    "loggedUnpricedProviderCalls": 9,
+    "reconciledZeroCostCalls": 9,
+    "outstandingUnpricedProviderCalls": 0,
+    "knownCanonicalCostEur": 2.224899,
+    "exactCanonicalCostEur": null
+  },
+  "newSpendThisRun": {
+    "providerRequests": 22,
+    "successfulPaidProviderCalls": 18,
+    "rejectedZeroUsageCalls": 4,
+    "costUsd": 0.156173,
+    "costEur": 0.148864
+  },
+  "cumulativeSpend": {
+    "knownEstimatedCostUsd": 2.490294,
+    "knownCanonicalCostEur": 2.373764,
+    "exactCanonicalCostEur": null,
+    "accountingStatus": "COMPLETE_CONSERVATIVE"
+  },
+  "remainingBudgetEur": 2.509252,
+  "conservativeRemainingBudgetEur": 2.509252,
+  "reservationsStillHeldEur": 0,
+  "paidProviderCalls": 175,
+  "failedProviderCalls": 9,
+  "unpricedProviderCalls": 0,
+  "reconciliation": {
+    "evidencePath": "docs/reports/codex-runs/2026-08-12-veronica-en-cost-reconciliation-evidence.json",
+    "status": "COMPLETE_ZERO_USAGE_RECONCILIATION",
+    "httpStatus": 200,
+    "missingScope": null,
+    "loggedUnpricedProviderCalls": 9,
+    "reconciledZeroCostCalls": 9,
+    "outstandingUnpricedProviderCalls": 0,
+    "canaryEvidencePath": "docs/reports/codex-runs/2026-08-12-veronica-01a-image-canary-cost-evidence.json"
+  },
+  "entries": [
+    {
+      "episodeRoot": "episodes/01a-revenue-is-not-a-good-business",
+      "provider": "openai",
+      "paidProviderCalls": 90,
+      "successfulProviderCalls": 87,
+      "failedProviderCalls": 3,
+      "unpricedProviderCalls": 3,
+      "knownEstimatedCostUsd": 1.364073,
+      "totalEstimatedCostUsd": null,
+      "costCoverage": "PARTIAL",
+      "summaryPath": "episodes/01a-revenue-is-not-a-good-business/openai-cost-summary.json",
+      "unpricedOperations": [
+        {
+          "operation": "source-grounded-scene-judge",
+          "calls": 1
+        },
+        {
+          "operation": "source-grounded-scene-judge-batch",
+          "calls": 2
+        }
+      ]
+    },
+    {
+      "episodeRoot": "episodes/02b-stop-posting-where-your-customers-arent",
+      "provider": "openai",
+      "paidProviderCalls": 1,
+      "successfulProviderCalls": 1,
+      "failedProviderCalls": 0,
+      "unpricedProviderCalls": 0,
+      "knownEstimatedCostUsd": 0.01705,
+      "totalEstimatedCostUsd": 0.01705,
+      "costCoverage": "COMPLETE",
+      "summaryPath": "episodes/02b-stop-posting-where-your-customers-arent/openai-cost-summary.json",
+      "unpricedOperations": []
+    },
+    {
+      "episodeRoot": "episodes/03b-the-promise-formula",
+      "provider": "openai",
+      "paidProviderCalls": 1,
+      "successfulProviderCalls": 1,
+      "failedProviderCalls": 0,
+      "unpricedProviderCalls": 0,
+      "knownEstimatedCostUsd": 0.01445,
+      "totalEstimatedCostUsd": 0.01445,
+      "costCoverage": "COMPLETE",
+      "summaryPath": "episodes/03b-the-promise-formula/openai-cost-summary.json",
+      "unpricedOperations": []
+    },
+    {
+      "episodeRoot": "episodes/08b-prospecting-without-being-annoying",
+      "provider": "openai",
+      "paidProviderCalls": 1,
+      "successfulProviderCalls": 1,
+      "failedProviderCalls": 0,
+      "unpricedProviderCalls": 0,
+      "knownEstimatedCostUsd": 0.01645,
+      "totalEstimatedCostUsd": 0.01645,
+      "costCoverage": "COMPLETE",
+      "summaryPath": "episodes/08b-prospecting-without-being-annoying/openai-cost-summary.json",
+      "unpricedOperations": []
+    },
+    {
+      "episodeRoot": "episodes/l01-s01-being-good-isnt-enough",
+      "provider": "openai",
+      "paidProviderCalls": 25,
+      "successfulProviderCalls": 23,
+      "failedProviderCalls": 2,
+      "unpricedProviderCalls": 2,
+      "knownEstimatedCostUsd": 0.516306,
+      "totalEstimatedCostUsd": null,
+      "costCoverage": "PARTIAL",
+      "summaryPath": "episodes/l01-s01-being-good-isnt-enough/openai-cost-summary.json",
+      "unpricedOperations": [
+        {
+          "operation": "source-grounded-scene-judge-batch",
+          "calls": 1
+        },
+        {
+          "operation": "veronica-image-prompt-compilation",
+          "calls": 1
+        }
+      ]
+    },
+    {
+      "episodeRoot": "episodes/l01-s02-expertise-vs-perception",
+      "provider": "openai",
+      "paidProviderCalls": 14,
+      "successfulProviderCalls": 14,
+      "failedProviderCalls": 0,
+      "unpricedProviderCalls": 0,
+      "knownEstimatedCostUsd": 0.09298,
+      "totalEstimatedCostUsd": 0.09298,
+      "costCoverage": "COMPLETE",
+      "summaryPath": "episodes/l01-s02-expertise-vs-perception/openai-cost-summary.json",
+      "unpricedOperations": []
+    },
+    {
+      "episodeRoot": "episodes/l01-s03-what-do-people-remember-you-for",
+      "provider": "openai",
+      "paidProviderCalls": 8,
+      "successfulProviderCalls": 8,
+      "failedProviderCalls": 0,
+      "unpricedProviderCalls": 0,
+      "knownEstimatedCostUsd": 0.051535,
+      "totalEstimatedCostUsd": 0.051535,
+      "costCoverage": "COMPLETE",
+      "summaryPath": "episodes/l01-s03-what-do-people-remember-you-for/openai-cost-summary.json",
+      "unpricedOperations": []
+    },
+    {
+      "episodeRoot": "episodes/l01-why-being-good-at-your-job-isnt-enough",
+      "provider": "openai",
+      "paidProviderCalls": 1,
+      "successfulProviderCalls": 1,
+      "failedProviderCalls": 0,
+      "unpricedProviderCalls": 0,
+      "knownEstimatedCostUsd": 0.132904,
+      "totalEstimatedCostUsd": 0.132904,
+      "costCoverage": "COMPLETE",
+      "summaryPath": "episodes/l01-why-being-good-at-your-job-isnt-enough/openai-cost-summary.json",
+      "unpricedOperations": []
+    },
+    {
+      "episodeRoot": "episodes/l02-s01-selling-to-everyone-is-the-problem",
+      "provider": "openai",
+      "paidProviderCalls": 20,
+      "successfulProviderCalls": 20,
+      "failedProviderCalls": 0,
+      "unpricedProviderCalls": 0,
+      "knownEstimatedCostUsd": 0.132055,
+      "totalEstimatedCostUsd": 0.132055,
+      "costCoverage": "COMPLETE",
+      "summaryPath": "episodes/l02-s01-selling-to-everyone-is-the-problem/openai-cost-summary.json",
+      "unpricedOperations": []
+    },
+    {
+      "episodeRoot": "episodes/l05-s01-you-dont-need-a-publisher",
+      "provider": "openai",
+      "paidProviderCalls": 4,
+      "successfulProviderCalls": 4,
+      "failedProviderCalls": 0,
+      "unpricedProviderCalls": 0,
+      "knownEstimatedCostUsd": 0.045545,
+      "totalEstimatedCostUsd": 0.045545,
+      "costCoverage": "COMPLETE",
+      "summaryPath": "episodes/l05-s01-you-dont-need-a-publisher/openai-cost-summary.json",
+      "unpricedOperations": []
+    },
+    {
+      "episodeRoot": "episodes/l05-s01-you-dont-need-a-publisher.bak",
+      "provider": "openai",
+      "paidProviderCalls": 5,
+      "successfulProviderCalls": 2,
+      "failedProviderCalls": 3,
+      "unpricedProviderCalls": 3,
+      "knownEstimatedCostUsd": 0.014141,
+      "totalEstimatedCostUsd": null,
+      "costCoverage": "PARTIAL",
+      "summaryPath": "episodes/l05-s01-you-dont-need-a-publisher.bak/openai-cost-summary.json",
+      "unpricedOperations": [
+        {
+          "operation": "source-grounded-scene-judge-batch",
+          "calls": 3
+        }
+      ]
+    },
+    {
+      "episodeRoot": "episodes/l06-s01-your-audience-remembers-the-old-you",
+      "provider": "openai",
+      "paidProviderCalls": 2,
+      "successfulProviderCalls": 1,
+      "failedProviderCalls": 1,
+      "unpricedProviderCalls": 1,
+      "knownEstimatedCostUsd": 0.045737,
+      "totalEstimatedCostUsd": null,
+      "costCoverage": "PARTIAL",
+      "summaryPath": "episodes/l06-s01-your-audience-remembers-the-old-you/openai-cost-summary.json",
+      "unpricedOperations": [
+        {
+          "operation": "veronica-image-prompt-compilation",
+          "calls": 1
+        }
+      ]
+    },
+    {
+      "episodeRoot": "episodes/trash/l05-s01-you-dont-need-a-publisher",
+      "provider": "openai",
+      "paidProviderCalls": 3,
+      "successfulProviderCalls": 3,
+      "failedProviderCalls": 0,
+      "unpricedProviderCalls": 0,
+      "knownEstimatedCostUsd": 0.047068,
+      "totalEstimatedCostUsd": 0.047068,
+      "costCoverage": "COMPLETE",
+      "summaryPath": "episodes/trash/l05-s01-you-dont-need-a-publisher/openai-cost-summary.json",
+      "unpricedOperations": []
+    }
+  ]
+}

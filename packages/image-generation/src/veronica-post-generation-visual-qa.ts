@@ -1,10 +1,13 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { zodTextFormat } from "openai/helpers/zod.js";
 import { z } from "zod";
 import {
   fileExists,
   hashFile,
   hashText,
+  serializeOpenAIError,
+  writeOpenAIDebugLog,
   writeJsonAtomic,
 } from "@mediaforge/shared";
 
@@ -107,7 +110,6 @@ export interface VeronicaVisualQaResult {
 }
 
 type OpenAiVeronicaVisualQaConfig = Readonly<Record<string, unknown>> & {
-  readonly temperature?: unknown;
   readonly maxOutputTokens?: unknown;
   readonly reasoningEffort?: unknown;
 };
@@ -124,8 +126,15 @@ export interface OpenAiVisionResponsesClient {
         )[];
       }[];
       readonly max_output_tokens?: number;
-      readonly temperature?: number;
-    }): Promise<{ readonly output_text?: string }>;
+      readonly reasoning?: {
+        readonly effort: "none" | "low" | "medium" | "high";
+      };
+      readonly text?: { readonly format: unknown };
+    }): Promise<{
+      readonly id?: string;
+      readonly output_text?: string;
+      readonly usage?: unknown;
+    }>;
   };
 }
 
@@ -158,14 +167,11 @@ export function createOpenAiVeronicaVisualQaEvaluator(input: {
   readonly config?: Readonly<Record<string, unknown>>;
 }): VeronicaVisualQaEvaluator {
   const config: OpenAiVeronicaVisualQaConfig = {
-    temperature: 0,
     maxOutputTokens: 2200,
     ...(input.config ?? {}),
   };
   const maxOutputTokens =
     typeof config.maxOutputTokens === "number" ? config.maxOutputTokens : 2200;
-  const temperature =
-    typeof config.temperature === "number" ? config.temperature : 0;
   const reasoningEffort =
     config.reasoningEffort === "none" ||
     config.reasoningEffort === "low" ||
@@ -191,11 +197,19 @@ export function createOpenAiVeronicaVisualQaEvaluator(input: {
         evaluatorConfigHash,
         schemaVersion: VERONICA_POST_GENERATION_VISUAL_REVIEW_VERSION,
       };
-      const response = await input.client.responses.create({
+      const episodeRoot = path.resolve(path.dirname(imagePath), "../../..");
+      const request: Parameters<
+        OpenAiVisionResponsesClient["responses"]["create"]
+      >[0] = {
         model: input.model,
         ...(reasoningEffort ? { reasoning: { effort: reasoningEffort } } : {}),
-        temperature,
         max_output_tokens: maxOutputTokens,
+        text: {
+          format: zodTextFormat(
+            veronicaPostGenerationVisualReviewSchema,
+            "veronica_post_generation_visual_review",
+          ),
+        },
         input: [
           {
             role: "system",
@@ -220,7 +234,81 @@ export function createOpenAiVeronicaVisualQaEvaluator(input: {
             ],
           },
         ],
-      });
+      };
+      const debugRequest = {
+        model: input.model,
+        reasoningEffort,
+        maxOutputTokens,
+        responseFormat: "veronica_post_generation_visual_review",
+        imagePath: path.relative(episodeRoot, imagePath),
+        imageFingerprint,
+        semanticBriefHash: brief.semanticBriefHash,
+        evaluatorConfigHash,
+      };
+      const startedAt = Date.now();
+      await writeOpenAIDebugLog({
+        episodeRoot,
+        operation: "veronica-post-generation-visual-qa",
+        mode: "real",
+        paidProviderCalled: false,
+        status: "pre-dispatch",
+        model: input.model,
+        endpoint: "/v1/responses",
+        request: debugRequest,
+        durationMs: 0,
+        attempt: 1,
+        caller: {
+          file: "packages/image-generation/src/veronica-post-generation-visual-qa.ts",
+          function: "createOpenAiVeronicaVisualQaEvaluator.evaluate",
+          stage: brief.assetId,
+        },
+      }).catch(() => undefined);
+      let response: Awaited<ReturnType<OpenAiVisionResponsesClient["responses"]["create"]>>;
+      try {
+        response = await input.client.responses.create(request);
+      } catch (error) {
+        await writeOpenAIDebugLog({
+          episodeRoot,
+          operation: "veronica-post-generation-visual-qa",
+          mode: "real",
+          paidProviderCalled: true,
+          status: "error",
+          model: input.model,
+          endpoint: "/v1/responses",
+          request: debugRequest,
+          error: serializeOpenAIError(error),
+          durationMs: Date.now() - startedAt,
+          attempt: 1,
+          caller: {
+            file: "packages/image-generation/src/veronica-post-generation-visual-qa.ts",
+            function: "createOpenAiVeronicaVisualQaEvaluator.evaluate",
+            stage: brief.assetId,
+          },
+        }).catch(() => undefined);
+        throw error;
+      }
+      await writeOpenAIDebugLog({
+        episodeRoot,
+        operation: "veronica-post-generation-visual-qa",
+        mode: "real",
+        paidProviderCalled: true,
+        status: "success",
+        model: input.model,
+        endpoint: "/v1/responses",
+        request: debugRequest,
+        response: {
+          id: response.id,
+          outputText: response.output_text,
+        },
+        ...(response.usage !== undefined ? { usage: response.usage } : {}),
+        durationMs: Date.now() - startedAt,
+        attempt: 1,
+        caller: {
+          file: "packages/image-generation/src/veronica-post-generation-visual-qa.ts",
+          function: "createOpenAiVeronicaVisualQaEvaluator.evaluate",
+          stage: brief.assetId,
+        },
+      }).catch(() => undefined);
       return parseJsonResponse(response.output_text);
     },
   };

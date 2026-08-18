@@ -1,0 +1,7 @@
+Cien mil visualizaciones y cero ventas no son una contradicción. Awareness y conversión hacen trabajos diferentes. Una te hace conocido y memorable. La otra pide una acción concreta. La atención es solo un input. Para convertir también necesitas confianza, claridad, una oferta relevante y el momento adecuado. Haz un mapa: ¿cuántas personas te descubren?, ¿cuántas entienden el problema?, ¿cuántas profundizan?, ¿cuántas llegan a la oferta?, ¿cuántas actúan? Si mucha gente mira pero nadie avanza, revisa el mensaje. Si avanzan pero no compran, revisa confianza, claridad, relevancia u oferta. Antes de celebrar o descartar un contenido, pregunta qué fase tenía que mover. El objetivo y la métrica tienen que hablar el mismo idioma.
+
+Usa números para localizar la fuga. Vistas a perfil, perfil a página, página a checkout, checkout a compra: cada transición responde a una pregunta distinta. Una sola tasa de conversión puede ocultar dónde empieza el problema real. Diagnostica el paso antes de cambiar todo el embudo.
+
+El diagnóstico mejora cuando mides una transición cada vez en lugar de una única tasa de conversión global. Pocos clics al perfil indican un problema distinto de muchos abandonos en el checkout. Cada etapa te da una hipótesis más concreta para probar. Medir bien también te dice qué no cambiar. Mide cada transición por separado.
+
+Elige una sola transición del funnel y mídela antes de cambiar lo demás.

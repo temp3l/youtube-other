@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "veronica-en-portfolio-combined-run.v1",
+  "terminalState": "PORTFOLIO_QA_COMPLETE",
+  "sourceCensus": {
+    "discoveredEnglishShortSources": 48,
+    "contentPacks": 2,
+    "duplicateCurrentRevisions": 0,
+    "productionReadyPreImageEpisodes": 1,
+    "missingProductionInputs": 36,
+    "staleSourceProvenanceMappings": 11,
+    "episodeMatrixReference": "docs/reports/codex-runs/2026-08-12-veronica-en-preimage-portfolio-census.json"
+  },
+  "episodes": [
+    {"episodeId": "01a-revenue-is-not-a-good-business", "pack": "veronica-content-pack-2", "planning": "READY", "deterministic": "PASS", "paidQa": "PASS", "finalState": "PRE_IMAGE_PRODUCTION_READY", "newSpendUsd": 0.1142835, "nextAction": "Await separate image-generation authorization"},
+    {"episodeId": "l02-s01-selling-to-everyone-is-the-problem", "pack": "veronica-stories-editorial-master-v5", "planning": "DEFERRED", "deterministic": "STALE_SOURCE_PROVENANCE", "paidQa": "NOT_ELIGIBLE", "finalState": "DEFERRED_KEEP_NARRATION", "newSpendUsd": 0, "nextAction": "Renew v5 source, narration audio, and timing together"},
+    {"episodeId": "l02-s02-why-smaller-niches-can-make-you-bigger", "pack": "veronica-stories-editorial-master-v5", "planning": "DEFERRED", "deterministic": "STALE_SOURCE_PROVENANCE", "paidQa": "NOT_ELIGIBLE", "finalState": "DEFERRED_KEEP_NARRATION", "newSpendUsd": 0, "nextAction": "Renew v5 source, narration audio, and timing together"},
+    {"episodeId": "l05-s01-you-dont-need-a-publisher", "pack": "veronica-stories-editorial-master-v5", "planning": "DEFERRED", "deterministic": "STALE_SOURCE_PROVENANCE", "paidQa": "NOT_ELIGIBLE", "finalState": "DEFERRED_KEEP_NARRATION", "newSpendUsd": 0, "nextAction": "Renew v5 source, narration audio, and timing together"}
+  ],
+  "paidQa": {
+    "eligibleEpisodes": 1,
+    "attemptedEpisodes": 1,
+    "completeEpisodes": 1,
+    "passEpisodes": 1,
+    "reviewOrBlockEpisodes": 0,
+    "unavailableOrDeferredEpisodes": 47,
+    "newProviderCalls": {"gpt-5.4-mini": 6},
+    "cacheHits": 0,
+    "cacheMisses": 22,
+    "retries": 0,
+    "reservedProviderCalls": 6,
+    "newEstimatedCommittedSpendUsd": 0.1142835,
+    "historicalEstimatedSpendUsd": 0.24638825,
+    "aggregateEstimatedSpendUsd": 0.36067175,
+    "remainingBudgetUsd": 2.13932825,
+    "hardCeilingUsd": 2.5,
+    "ceilingExceeded": false,
+    "scenePassCount": 8,
+    "beatPassCount": 13,
+    "sequenceVerdict": "PASS"
+  },
+  "providerEffects": {"tts": 0, "images": 0, "thumbnails": 0, "render": 0, "publication": 0},
+  "systemicRemediation": ["reviewed-beat-locking", "grounded-diversity-candidates", "prompt-hierarchy-polarity", "explicit-malformed-cache-retry", "legacy-materialization", "incomplete-locale-skip", "fail-closed-visual-density-persistence"],
+  "nextTranches": {
+    "A": ["01a-revenue-is-not-a-good-business: separate bounded image-generation authorization candidate"],
+    "D": ["36 episodes: audio/timing missing"],
+    "F": ["11 stale source/audio/timing mappings, including L02-S01, L02-S02, and L05-S01; preserve current narration until renewal is explicitly authorized"]
+  },
+  "recommendedNextExecution": "Authorize one bounded image-generation canary for 01A only, or separately authorize a provenance-renewal tranche for stale and missing-input episodes."
+}

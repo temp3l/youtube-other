@@ -1,0 +1,212 @@
+{
+  "schemaVersion": "veronica-visual-beat-overrides.v1",
+  "episodeId": "01a-revenue-is-not-a-good-business",
+  "baseCanonicalImagePlanHash": "5beec0e229e774776936d7d0de581a783312c0b8adf4f40c6690db7bcae55890",
+  "scenes": [
+    {
+      "sceneId": "01a-revenue-is-not-a-good-business-HOOK",
+      "beats": [
+        {
+          "beatId": "01a-revenue-is-not-a-good-business-HOOK-B01",
+          "role": "establish",
+          "coreMeaning": "You can have impressive revenue and still have a weak business.",
+          "newInformation": "You can have impressive revenue and still have a weak business.",
+          "viewerShouldUnderstand": "You can have impressive revenue and still have a weak business",
+          "visualThesis": "You can have impressive revenue and still have a weak business.",
+          "subject": "one occupation-neutral business operator and source-supported transaction objects",
+          "action": "diagonal process progression makes each step visible while the operator separates the incoming payment into outgoing cost portions and one retained remainder",
+          "state": "NEGATIVE_STATE; STABLE; You can have impressive revenue and still have a weak business",
+          "environment": "neutral linear process lane with distinct evidence stations",
+          "composition": { "description": "a diagonal process path leads from the initiating evidence to one visible result", "camera": "oblique documentary view following one evidence path across the frame", "lighting": "soft directional editorial daylight", "subtitleSafeAreaRequired": true },
+          "continuationOfPreviousBeat": false,
+          "assetDecision": "new-image",
+          "reuseSourceBeatId": null,
+          "timingWeight": 0.18,
+          "boundaryKind": "semantic-subspan-aligned"
+        },
+        {
+          "beatId": "01a-revenue-is-not-a-good-business-HOOK-B02",
+          "role": "progression",
+          "coreMeaning": "Because revenue and margin are not the same thing.",
+          "newInformation": "Because revenue and margin are not the same thing.",
+          "viewerShouldUnderstand": "Because revenue and margin are not the same thing",
+          "visualThesis": "Because revenue and margin are not the same thing.",
+          "subject": "one occupation-neutral business operator and source-supported transaction objects",
+          "action": "isolated diagnostic inspection frames the action while the operator places the two depicted measures side by side as separate intact quantities",
+          "state": "NEUTRAL; STABLE; Because revenue and margin are not the same thing",
+          "environment": "neutral diagnostic inspection surface with one isolated evidence cluster",
+          "composition": { "description": "one isolated evidence cluster occupies a dedicated inspection zone; contextual quantities occupy a separate supporting zone", "camera": "slight high-angle evidence view with one isolated focal action", "lighting": "soft directional editorial daylight", "subtitleSafeAreaRequired": true },
+          "continuationOfPreviousBeat": true,
+          "assetDecision": "new-image",
+          "reuseSourceBeatId": null,
+          "timingWeight": 0.25,
+          "boundaryKind": "semantic-subspan-aligned"
+        },
+        {
+          "beatId": "01a-revenue-is-not-a-good-business-HOOK-B03",
+          "role": "progression",
+          "coreMeaning": "If one hundred euros comes in and ninety-five goes straight back out to produce",
+          "newInformation": "If one hundred euros comes in and ninety-five goes straight back out to produce",
+          "viewerShouldUnderstand": "If one hundred euros comes in and ninety-five goes straight back out to produce",
+          "visualThesis": "If one hundred euros comes in and ninety-five goes straight back out to produce.",
+          "subject": "one occupation-neutral business operator and source-supported transaction objects",
+          "action": "foreground evidence staging makes the distinction visible while the operator transfers the depicted payment from intake to the source-supported work it funds",
+          "state": "NEUTRAL; STABLE; If one hundred euros comes in and ninety-five goes straight back out to produce",
+          "environment": "neutral evidence field with background context and one foreground evidence zone",
+          "composition": { "description": "foreground evidence carries the result while supporting quantities recede in depth", "camera": "documentary three-quarter view with foreground evidence and background context legible together", "lighting": "soft directional editorial daylight", "subtitleSafeAreaRequired": true },
+          "continuationOfPreviousBeat": true,
+          "assetDecision": "new-image",
+          "reuseSourceBeatId": null,
+          "timingWeight": 0.285,
+          "boundaryKind": "semantic-subspan-aligned"
+        },
+        {
+          "beatId": "01a-revenue-is-not-a-good-business-HOOK-B04",
+          "role": "progression",
+          "coreMeaning": "More orders can enlarge the problem when nearly all incoming value leaves the business.",
+          "newInformation": "The volume warning is held back as a consequence of the small retained remainder, leaving the later backlog comparison to reveal the operational failure.",
+          "viewerShouldUnderstand": "More orders are not automatically healthier when little remains after one sale.",
+          "visualThesis": "Getting more orders may simply make the problem bigger.",
+          "subject": "one occupation-neutral business operator, one completed sale path, and one additional order marker",
+          "action": "the operator pauses an additional order marker beside the intake point after one completed sale visibly leaves only a small retained remainder",
+          "state": "NEGATIVE_STATE; STABLE; additional volume is a restrained warning rather than a demonstrated scaling outcome",
+          "environment": "single-sale intake point with one completed operating path and no backlog",
+          "composition": { "description": "the completed sale and its small retained remainder occupy the center while one additional order marker waits in a separate edge zone", "camera": "vertical documentary medium view with the withheld order and retained result legible together", "lighting": "soft directional editorial daylight", "subtitleSafeAreaRequired": true },
+          "continuationOfPreviousBeat": true,
+          "assetDecision": "new-image",
+          "reuseSourceBeatId": null,
+          "timingWeight": 0.285,
+          "boundaryKind": "semantic-subspan-aligned"
+        }
+      ]
+    },
+    {
+      "sceneId": "01a-revenue-is-not-a-good-business-S01",
+      "beats": [
+        {
+          "beatId": "01a-revenue-is-not-a-good-business-S01-B01",
+          "role": "primary",
+          "coreMeaning": "Calculate one best-selling product sale from customer payment through the operating chain.",
+          "newInformation": "A concrete product sale gives the calculation a traceable beginning and end.",
+          "viewerShouldUnderstand": "One real sale can be followed through the work it triggers.",
+          "visualThesis": "Take your best-selling product and calculate one sale from start to finish.",
+          "subject": "one source-supported best-selling product, one customer payment, and a traceable fulfillment chain",
+          "action": "a customer completes one product sale while the business operator follows its payment into packaging, dispatch, and support handoffs",
+          "state": "NEUTRAL; STABLE; one sale is traced through its concrete operating chain",
+          "environment": "compact product-sale and fulfillment counter with visible customer-to-operation handoff",
+          "composition": { "description": "the customer payment begins at the near counter and leads through a single continuous product, packing, dispatch, and support path", "camera": "vertical documentary three-quarter view following the sale from customer handoff into operations", "lighting": "clean natural workday light", "subtitleSafeAreaRequired": true },
+          "continuationOfPreviousBeat": false,
+          "assetDecision": "new-image",
+          "reuseSourceBeatId": null,
+          "timingWeight": 1,
+          "boundaryKind": "semantic-subspan-aligned"
+        },
+        {
+          "beatId": "01a-revenue-is-not-a-good-business-S01-B02",
+          "role": "progression",
+          "coreMeaning": "Start the one-sale calculation with what the customer pays.",
+          "newInformation": "The customer payment is the explicit starting point before any cost is subtracted.",
+          "viewerShouldUnderstand": "The calculation begins with the payment for one concrete sale.",
+          "visualThesis": "Start with what the customer pays.",
+          "subject": "one customer handing over payment for the same source-supported product sale",
+          "action": "the customer places the payment beside the sold product while the operator opens the first step of the traceable sale record",
+          "state": "NEUTRAL; STABLE; the customer payment begins the calculation",
+          "environment": "customer payment handoff at the start of the same compact sale-and-fulfillment chain",
+          "composition": { "description": "the customer handoff fills the lower foreground and the product's operating path extends upward from the payment without receding evidence zones", "camera": "vertical close documentary handoff view", "lighting": "clean natural workday light", "subtitleSafeAreaRequired": true },
+          "continuationOfPreviousBeat": true,
+          "assetDecision": "new-image",
+          "reuseSourceBeatId": null,
+          "timingWeight": 1,
+          "boundaryKind": "semantic-subspan-aligned"
+        }
+      ]
+    },
+    {
+      "sceneId": "01a-revenue-is-not-a-good-business-S03",
+      "beats": [
+        {
+          "beatId": "01a-revenue-is-not-a-good-business-S03-B01",
+          "role": "primary",
+          "coreMeaning": "The retained result matters more than the order count.",
+          "newInformation": "A direct comparison makes the imbalance between many orders and little retained value immediately visible.",
+          "viewerShouldUnderstand": "Order volume alone does not show what the business keeps.",
+          "visualThesis": "What remains tells you much more than the order count.",
+          "subject": "one occupation-neutral business operator, a large order-count group, and one small retained result",
+          "action": "the operator places the large order-count group directly beside the much smaller retained result and compares their unequal scale",
+          "state": "NEUTRAL; CONTRAST; order count and retained result are visibly imbalanced",
+          "environment": "open comparison bench for one order-count and retained-value contrast",
+          "composition": { "description": "a large order group and a small retained result face each other at equal visual depth with no foreground-versus-background staging", "camera": "straight-on vertical comparison view", "lighting": "controlled graphic light with clear shape separation", "subtitleSafeAreaRequired": true },
+          "continuationOfPreviousBeat": false,
+          "assetDecision": "new-image",
+          "reuseSourceBeatId": null,
+          "timingWeight": 1,
+          "boundaryKind": "semantic-subspan-aligned"
+        },
+        {
+          "beatId": "01a-revenue-is-not-a-good-business-S03-B02",
+          "role": "progression",
+          "coreMeaning": "Doubling sales is a counterfactual test, not proof that the business becomes healthier.",
+          "newInformation": "Baseline and doubled-sale paths reveal the decision fork without asserting a positive outcome.",
+          "viewerShouldUnderstand": "More sales must be checked against what remains, not assumed to improve the business.",
+          "visualThesis": "If sales doubled tomorrow, would the business definitely become healthier?",
+          "subject": "one occupation-neutral business operator choosing between baseline and doubled-sale paths",
+          "action": "the operator compares a baseline sale path with a doubled-sale path at a visible decision fork and checks the retained result on each path without selecting a healthier outcome",
+          "state": "NEUTRAL; CONDITIONAL_ALTERNATIVES; baseline and doubled sales remain an unresolved test",
+          "environment": "two-branch sales counterfactual station with baseline and doubled paths",
+          "composition": { "description": "one decision fork divides the frame into matched baseline and doubled-sale paths, each ending in a directly comparable retained result", "camera": "vertical overhead decision-fork view", "lighting": "clear contrasting daylight across both paths", "subtitleSafeAreaRequired": true },
+          "continuationOfPreviousBeat": true,
+          "assetDecision": "new-image",
+          "reuseSourceBeatId": null,
+          "timingWeight": 1,
+          "boundaryKind": "semantic-subspan-aligned"
+        }
+      ]
+    },
+    {
+      "sceneId": "01a-revenue-is-not-a-good-business-S05",
+      "beats": [
+        {
+          "beatId": "01a-revenue-is-not-a-good-business-S05-B01",
+          "role": "primary",
+          "coreMeaning": "Understand the economics of each sale before pursuing more revenue.",
+          "newInformation": "The retained contribution becomes a rule-setting criterion for whether more sales should be pursued.",
+          "viewerShouldUnderstand": "Growth should be governed by what each sale leaves behind.",
+          "visualThesis": "Before chasing more revenue, understand what happens economically every single time you sell.",
+          "subject": "one occupation-neutral business operator setting a growth rule from one sale's retained contribution",
+          "action": "the operator sets a clear growth rule from the verified retained contribution of one completed sale before committing to additional sales",
+          "state": "POSITIVE_STATE; STABLE; retained contribution governs the next growth decision",
+          "environment": "strategic operating-rule station distinct from the sale counter and backlog",
+          "composition": { "description": "one verified retained contribution is placed at the center of a rule-setting workspace while additional sales remain outside the decision area", "camera": "vertical editorial medium view centered on the rule-setting gesture", "lighting": "crisp directional light separating the criterion from the wider workspace", "subtitleSafeAreaRequired": true },
+          "continuationOfPreviousBeat": false,
+          "assetDecision": "new-image",
+          "reuseSourceBeatId": null,
+          "timingWeight": 1,
+          "boundaryKind": "narration-aligned"
+        }
+      ]
+    },
+    {
+      "sceneId": "01a-revenue-is-not-a-good-business-S07",
+      "beats": [
+        {
+          "beatId": "01a-revenue-is-not-a-good-business-S07-B01",
+          "role": "payoff",
+          "coreMeaning": "Calculate what one additional sale actually leaves behind before chasing the next order.",
+          "newInformation": "A single marginal sale is followed through to its retained remainder as the final payoff.",
+          "viewerShouldUnderstand": "The useful number is what the next sale leaves after its direct costs.",
+          "visualThesis": "Calculate what one additional sale actually leaves behind.",
+          "subject": "one occupation-neutral business operator, one marginal sale, and one revealed retained remainder",
+          "action": "the operator performs one marginal contribution calculation by following a single additional sale through its direct outflows until its retained remainder is revealed",
+          "state": "NEUTRAL; SEQUENTIAL_PROGRESSION; one additional sale resolves into its retained remainder",
+          "environment": "single-sale marginal-contribution station with no waiting-order checkpoint",
+          "composition": { "description": "one additional sale travels across a clear horizontal calculation path and resolves in a small retained remainder at the far end", "camera": "vertical side-on process view following one transformation", "lighting": "focused editorial light that reveals the final remainder", "subtitleSafeAreaRequired": true },
+          "continuationOfPreviousBeat": false,
+          "assetDecision": "new-image",
+          "reuseSourceBeatId": null,
+          "timingWeight": 1,
+          "boundaryKind": "narration-aligned"
+        }
+      ]
+    }
+  ]
+}

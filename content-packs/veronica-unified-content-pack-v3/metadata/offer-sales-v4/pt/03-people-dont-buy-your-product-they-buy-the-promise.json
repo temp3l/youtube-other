@@ -1,0 +1,32 @@
+{
+  "title": "Pare de explicar funções. Traduza o valor.",
+  "thumbnail": "VENDA A MUDANÇA",
+  "description": "O cliente não compra apenas características: compra a mudança que acredita que o produto pode gerar. Veja como traduzir valor, serviço e resultado em uma promessa clara e crível.",
+  "cta": "No próximo episódio, transformamos essa promessa em uma oferta fácil de entender, crível e fácil de comprar.",
+  "alternativeTitles": [
+    "Pare de explicar funções. Traduza o valor.",
+    "As pessoas não compram o produto. Compram a mudança.",
+    "Pare de explicar funcionalidades. Venda o resultado."
+  ],
+  "thumbnailOptions": [
+    "O QUE ELAS COMPRAM?",
+    "VENDA A MUDANÇA",
+    "FUNÇÃO NÃO É VALOR"
+  ],
+  "youtubeOptimizationVersion": "v4-editorial-continuity-remediation",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  },
+  "shortA": {
+    "title": "O que o cliente realmente compra?",
+    "alternateHook": "Retire o nome do produto: ainda dá para explicar por que o resultado importa?"
+  },
+  "shortB": {
+    "title": "Promessa não é slogan",
+    "alternateHook": "Uma promessa mais forte deixa o valor real mais claro; não aumenta a realidade."
+  }
+}

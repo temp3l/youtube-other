@@ -3,6 +3,10 @@ import type { Dirent } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { episodeIdSchema, episodeManifestSchema, supportedLanguageCodeSchema } from "@mediaforge/domain";
+import {
+  VERONICA_CANONICAL_CONTENT_PACK_ID,
+  type VeronicaContentReadiness,
+} from "@mediaforge/domain";
 import { ensurePortableRelativePath, fileExists, writeJsonAtomic, writeTextAtomic } from "@mediaforge/shared";
 import { z } from "zod";
 
@@ -45,6 +49,19 @@ export const canonicalSourceEpisodeSchema = z
     title: z.string().min(1).optional(),
     contentProfileId: z.literal("veronicabenini"),
     format: z.enum(["short", "long"]),
+    canonicalLocale: supportedLanguageCodeSchema.optional(),
+    contentHash: z.string().regex(/^[a-f0-9]{64}$/u).optional(),
+    seriesEpisodeId: z.string().regex(/^veronica-episode-[0-9]{2}$/u).optional(),
+    seriesEpisodeOrder: z.number().int().min(1).max(18).optional(),
+    seriesSlot: z.enum(["long", "short-a", "short-b"]).optional(),
+    relatedStoryIds: z.array(z.string().min(1)).length(2).optional(),
+    readiness: z.enum([
+      "CANONICAL_READY",
+      "LOCALIZATION_PENDING",
+      "LOCALIZATION_REVIEW_REQUIRED",
+      "TIMING_REVIEW_REQUIRED",
+      "PRODUCTION_READY",
+    ] satisfies readonly VeronicaContentReadiness[]).optional(),
     localeSources: z.array(canonicalSourceDocumentSchema).min(1),
     sourceRevisionHash: z.string().regex(/^[a-f0-9]{64}$/u),
     declaredReusableAssets: z.array(z.never()),
@@ -109,6 +126,26 @@ const DEFAULT_CANONICAL_VISUAL_PLANNING_CONFIGURATION = {
   imageProviderModel: "provider-unbound:text-free-canonical-v1",
   rendererVersion: "ffmpeg-event-compiler.v1",
 } as const;
+
+export function assertCanonicalVeronicaProductionSource(
+  sourceEpisode: CanonicalSourceEpisode,
+): void {
+  if (sourceEpisode.sourcePackId !== VERONICA_CANONICAL_CONTENT_PACK_ID) {
+    throw new Error(
+      `VERONICA_LEGACY_PACK_FORBIDDEN:${sourceEpisode.sourcePackId}`,
+    );
+  }
+  if (
+    sourceEpisode.canonicalLocale !== "en" ||
+    !sourceEpisode.contentHash ||
+    !sourceEpisode.seriesEpisodeId ||
+    sourceEpisode.seriesEpisodeOrder === undefined
+  ) {
+    throw new Error(
+      `VERONICA_CANONICAL_MANIFEST_INVALID:${sourceEpisode.episodeId}:missing canonical identity`,
+    );
+  }
+}
 
 export interface PrepareCanonicalSourceEpisodeWorkspaceInput {
   readonly workspaceRoot: string;
@@ -270,7 +307,10 @@ export function canonicalSourceEpisodePlannerInput(input: {
     sourceEpisode: input.sourceEpisode,
     locale: input.locale,
     narration,
-    planningConfiguration: DEFAULT_CANONICAL_VISUAL_PLANNING_CONFIGURATION,
+    planningConfiguration: {
+      ...DEFAULT_CANONICAL_VISUAL_PLANNING_CONFIGURATION,
+      targetWordsPerMinute: input.sourceEpisode.format === "long" ? 150 : 155,
+    },
     declaredReusableAssets: [],
     visualPlanOverride: null,
   });
@@ -343,6 +383,21 @@ export async function prepareCanonicalSourceEpisodeWorkspace(
       sourcePackId: sourceEpisode.sourcePackId,
       authoredEpisodeKey: sourceEpisode.authoredEpisodeKey,
       contentId: sourceEpisode.episodeId,
+      ...(sourceEpisode.contentHash
+        ? {
+            storyId: sourceEpisode.episodeId,
+            contentHash: plannerInput.narration.sourceSha256,
+          }
+        : {}),
+      ...(sourceEpisode.seriesEpisodeId
+        ? {
+            seriesEpisodeId: sourceEpisode.seriesEpisodeId,
+            seriesEpisodeOrder: sourceEpisode.seriesEpisodeOrder,
+            seriesSlot: sourceEpisode.seriesSlot,
+            relatedStoryIds: sourceEpisode.relatedStoryIds,
+            readiness: sourceEpisode.readiness,
+          }
+        : {}),
       locale: input.locale,
       variant: sourceEpisode.format,
       canonicalSourceDescriptorPath: "source/canonical-source-episode.v1.json",

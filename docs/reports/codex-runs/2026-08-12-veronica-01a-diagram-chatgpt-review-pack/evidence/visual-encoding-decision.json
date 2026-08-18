@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "veronica-human-visual-encoding-decision.v1",
+  "episodeId": "01a-revenue-is-not-a-good-business",
+  "language": "en",
+  "variant": "short",
+  "sceneId": "scene-007",
+  "visualBeatId": "01a-revenue-is-not-a-good-business-S02-B01",
+  "decision": "approved",
+  "reviewer": "operator",
+  "authorizationReference": "user-message-2026-08-12-authorize-recommended-visual-encoding",
+  "approvedAt": "2026-08-12T15:25:20Z",
+  "bindings": {
+    "sourceSha256": "4e82a65208256d74b2171c4475ee624d9506cfd6f0b21b1f055074d4062c7503",
+    "semanticPlanSha256": "fdda87257c6472e6ed00182fc590059c8aaaa0829168f4f833529da0de8eb14e",
+    "reviewManifestPath": "review-packs/pre-image/en-short/run-1786539721886/review-manifest.json",
+    "reviewManifestSha256": "bdac6a0b580ede1ba0c659938f49180b2cf50a64aebb6ed49496f9e645ebb225",
+    "humanApprovalPath": "review-packs/pre-image/en-short/run-1786539721886/human-pre-image-approval.v1.json",
+    "humanApprovalSha256": "1c390eba072c1678e7cf4e145e26f5750c63115c76543040382ec0f73b8ed79e",
+    "failedReviewSha256": "a83cf6b9fe9831749bfb575b68f3eecc2cc9e4bf1fc0bd4060e6aacfa13aca1f",
+    "rejectedImageSha256": "782c5a0fcf262948173244c44746a1b260e8cf0f45feacd9372f6f32d1eb3b7f",
+    "semanticBriefHash": "1f9db17f7a85fcd380e9268711ef6ebb54e1bfbcc66c563380698b60ab65c3b0",
+    "failedPromptHash": "73b057d2d258b645e885118da09c2209d3e7004f5e6ac9353d4f2b249126de82"
+  },
+  "approvedTreatment": {
+    "visualThesis": "One sale enters at full size, successive variable costs visibly remove value, and a strictly smaller remainder exits.",
+    "composition": "One continuous left-to-right tabletop lane in a high three-quarter view, with separated cutting gates and side catch-trays fully visible above the subtitle-safe region.",
+    "mustShow": [
+      "exactly one large coral sale block entering from the left",
+      "one continuous value block becoming physically smaller after each separated gate",
+      "a small removed coral fragment falling into a side catch-tray at every gate",
+      "exactly one final coral remnant in the output tray, visibly smaller than the input block"
+    ],
+    "mustNotShow": [
+      "multiple sale blocks or duplicate input tokens",
+      "a final tray containing more material than the input sale block",
+      "extra unaccounted blocks, decorative inventory, labels, arrows, numbers, currency symbols, logos, or readable text",
+      "a portrait-led composition or synthetic Veronica likeness"
+    ],
+    "promptInstructions": [
+      "Use strict visual conservation: total visible coral material after the gates must not exceed the single input block.",
+      "Make every removal mechanical and causal, with the remaining block visibly reduced at each gate.",
+      "Keep the final output tray isolated and containing only the one small retained remnant.",
+      "Use neutral wood and clear glass for stations so the coral value material is the only repeated semantic signal."
+    ]
+  },
+  "scope": "Approve this exact source-grounded visual encoding for deterministic prompt materialization only; no provider call is authorized."
+}

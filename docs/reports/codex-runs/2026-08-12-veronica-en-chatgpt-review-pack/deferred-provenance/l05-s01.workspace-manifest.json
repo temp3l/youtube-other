@@ -1,0 +1,360 @@
+{
+  "episodeId": "l05-s01-you-dont-need-a-publisher",
+  "slug": "l05-s01-you-dont-need-a-publisher",
+  "source": {
+    "platform": "local-file",
+    "filePath": "/home/box/workspace/fehmarn-seo/youtube/other-vero/content-packs/veronica-content-pack-1/youtube-positioning-shorts-v3-50s/shorts/en/l05-s01-you-dont-need-a-publisher.md"
+  },
+  "sourceMetadata": {
+    "genre": "veronicabenini",
+    "creatorProfileId": "veronica-benini",
+    "contentId": "L05-S01",
+    "locale": "en",
+    "variant": "short",
+    "positioningPlanHash": "ff2e0a0e301ee13847d766ce77f1cd47aa9050f8b3c48a0def8e0dfeb3d40255",
+    "canonicalPreImagePlanHash": "de693c522b57b434c856bc247bcca700acac0718b1c989dd746c52aaab72591b",
+    "canonicalLocaleTimingArtifactPath": "locales/en/short/canonical-timing.v1.json",
+    "providerImagePromptsArtifactPath": "locales/en/short/image-prompts/provider-image-prompts.v1.json",
+    "providerImagePromptsMarkdownPath": "locales/en/short/image-prompts/provider-image-prompts.md",
+    "providerImagePromptsArtifactHash": "7cf3f072a96d27d7dcd049d77c032b04aebcad8d2c36346745ab9ef48f02d91d",
+    "timingPhase": "post-tts-reconciled",
+    "syntheticCreatorLikenessAllowed": false
+  },
+  "scenePlan": {
+    "sourceId": "l05-s01-you-dont-need-a-publisher",
+    "scenes": [
+      {
+        "id": "scene-001",
+        "sequenceNumber": 1,
+        "canonicalNarration": "You do not need a major publisher to use a book as an authority asset. A focused book can be self-published, released as an ebook, or even given away.",
+        "sourceSegmentIds": [
+          "scene-001"
+        ],
+        "estimatedDurationSeconds": 9.655,
+        "plannedDurationSeconds": 7,
+        "reconciledDurationSeconds": 9.655,
+        "timingSource": "derived-audio-silence-alignment",
+        "timingConfidence": "derived",
+        "timing": {
+          "startSeconds": 0,
+          "endSeconds": 9.655
+        },
+        "visualPurpose": "HOOK: create-tension",
+        "textRequirement": {
+          "required": false
+        },
+        "subject": "professional and relevant observer with visually distinct roles",
+        "action": "an observer ignores the title badge and instead inspects a work example, a decision artifact, and a visible result; the observer inspects the concrete work and result before accepting the claimed expertise",
+        "setting": "evidence-review setting with a professional, an observer, and three concrete proof artifacts",
+        "composition": "empty title badge remains peripheral; work example, reasoning artifact, and outcome lead the frame",
+        "cameraFraming": "documentary eye-level view with the evidence, action, and visible response legible in one frame",
+        "mood": "warm workshop task light opening into daylight; hook",
+        "continuityReferences": [],
+        "referenceCharacterIds": [],
+        "onScreenText": "",
+        "negativeConstraints": [
+          "no readable text, letters, numbers, logos, UI, or watermarks",
+          "no depiction or synthetic likeness of Veronica Benini",
+          "no generic motivational stock montage, laptop-at-desk pose, or stock handshake",
+          "observer, follower, and customer identities must remain distinct from the canonical professional"
+        ],
+        "aspectRatios": [
+          "9:16"
+        ],
+        "imagePrompt": "Create one 9:16 short editorial still with one immediately legible visual idea. Visual thesis: You do not need a major publisher to use a book as an authority asset. New visual information: You do not need a major publisher to use a book as an authority asset. Core meaning: You do not need a major publisher to use a book as an authority asset. Viewer takeaway: You do not need a major publisher to use a book as an authority asset. Show professional and relevant observer with visually distinct roles in evidence-review setting with a professional, an observer, and three concrete proof artifacts. Visible action: an observer ignores the title badge and instead inspects a work example, a decision artifact, and a visible result; the observer inspects the concrete work and result before accepting the claimed expertise. Required state: restrained editorial realism. Strategy: claim-to-proof. Stage the scene as follows: empty title badge remains peripheral; work example, reasoning artifact, and outcome lead the frame. Camera: documentary eye-level view with the evidence, action, and visible response legible in one frame. Lighting: warm workshop task light opening into daylight. Editorial direction: contemporary European editorial business-psychology realism. Palette: warm paper, coral accent, ink, glass, unfinished wood. Bible lighting policy: naturalistic editorial light with scene-specific contrast. Emotional direction: restrained editorial realism. Physical evidence: You do not need a major publisher to use a book as an authority asset.; blank title badge; work example; reasoning artifact; visible outcome. No character identity reference is required for this scene. Keep important faces, actions, and evidence outside the subtitle region x=0.12, y=0.72, width=0.76, height=0.16. No readable text, letters, numbers, logos, interface copy, internal labels, watermark, storyboard, or panel grid. no readable text, logos, readable UI, or internal labels; keep observers, followers, customers, and buyers visually distinct from every recurring identity; avoid occupation-specific proxy evidence unless explicitly required by narration; avoid the opposite meaning of the canonical polarity or causal structure; avoid unrelated generic business imagery; native 9:16 composition; no depiction or synthetic likeness of Veronica Benini; single still image, not a storyboard or panel grid. Continuity policy: keep all scene actors visually distinct; no recurring identity is requested.",
+        "expectedImageFilenames": [
+          "scene-001-9x16.png"
+        ],
+        "qualityStatus": "semantic-review-required"
+      },
+      {
+        "id": "scene-002",
+        "sequenceNumber": 2,
+        "canonicalNarration": "The value is not the logo on the cover. The value is that you have organized useful knowledge around the expertise you want people to associate with your name.",
+        "sourceSegmentIds": [
+          "scene-002"
+        ],
+        "estimatedDurationSeconds": 8.910000000000002,
+        "plannedDurationSeconds": 8.633,
+        "reconciledDurationSeconds": 8.910000000000002,
+        "timingSource": "derived-audio-silence-alignment",
+        "timingConfidence": "derived",
+        "timing": {
+          "startSeconds": 9.655,
+          "endSeconds": 18.565
+        },
+        "visualPurpose": "PROOF: make-proof-visible",
+        "textRequirement": {
+          "required": false
+        },
+        "subject": "professional and relevant observer with visually distinct roles",
+        "action": "an observer ignores the title badge and instead inspects a work example, a decision artifact, and a visible result; the customer points to the concrete detail that matches their own situation",
+        "setting": "evidence-review setting with a professional, an observer, and three concrete proof artifacts",
+        "composition": "empty title badge remains peripheral; work example, reasoning artifact, and outcome lead the frame",
+        "cameraFraming": "documentary eye-level view with the evidence, action, and visible response legible in one frame",
+        "mood": "warm raking artifact light; proof",
+        "continuityReferences": [],
+        "referenceCharacterIds": [],
+        "onScreenText": "",
+        "negativeConstraints": [
+          "no readable text, letters, numbers, logos, UI, or watermarks",
+          "no depiction or synthetic likeness of Veronica Benini",
+          "no generic motivational stock montage, laptop-at-desk pose, or stock handshake",
+          "observer, follower, and customer identities must remain distinct from the canonical professional"
+        ],
+        "aspectRatios": [
+          "9:16"
+        ],
+        "imagePrompt": "Create one 9:16 short editorial still with one immediately legible visual idea. Visual thesis: The value is not the logo on the cover. New visual information: The value is not the logo on the cover. Core meaning: The value is not the logo on the cover. Viewer takeaway: The value is not the logo on the cover. Show professional and relevant observer with visually distinct roles in evidence-review setting with a professional, an observer, and three concrete proof artifacts. Visible action: an observer ignores the title badge and instead inspects a work example, a decision artifact, and a visible result; the customer points to the concrete detail that matches their own situation. Required state: restrained editorial realism. Strategy: claim-to-proof. Stage the scene as follows: empty title badge remains peripheral; work example, reasoning artifact, and outcome lead the frame. Camera: documentary eye-level view with the evidence, action, and visible response legible in one frame. Lighting: warm raking artifact light. Editorial direction: contemporary European editorial business-psychology realism. Palette: warm paper, coral accent, ink, glass, unfinished wood. Bible lighting policy: naturalistic editorial light with scene-specific contrast. Emotional direction: restrained editorial realism. Physical evidence: The value is not the logo on the cover.; blank title badge; work example; reasoning artifact; visible outcome. No character identity reference is required for this scene. Keep important faces, actions, and evidence outside the subtitle region x=0.12, y=0.72, width=0.76, height=0.16. No readable text, letters, numbers, logos, interface copy, internal labels, watermark, storyboard, or panel grid. no readable text, logos, readable UI, or internal labels; keep observers, followers, customers, and buyers visually distinct from every recurring identity; avoid occupation-specific proxy evidence unless explicitly required by narration; avoid the opposite meaning of the canonical polarity or causal structure; avoid unrelated generic business imagery; native 9:16 composition; no depiction or synthetic likeness of Veronica Benini; single still image, not a storyboard or panel grid. Continuity policy: keep all scene actors visually distinct; no recurring identity is requested.",
+        "expectedImageFilenames": [
+          "scene-002-9x16.png"
+        ],
+        "qualityStatus": "semantic-review-required"
+      },
+      {
+        "id": "scene-003",
+        "sequenceNumber": 3,
+        "canonicalNarration": "A seventy-page guide that solves one important problem can position you more clearly than a two-hundred-page book that tries to prove how much you know.",
+        "sourceSegmentIds": [
+          "scene-003"
+        ],
+        "estimatedDurationSeconds": 8.529999999999998,
+        "plannedDurationSeconds": 8.633,
+        "reconciledDurationSeconds": 8.529999999999998,
+        "timingSource": "derived-audio-silence-alignment",
+        "timingConfidence": "derived",
+        "timing": {
+          "startSeconds": 18.565,
+          "endSeconds": 27.095
+        },
+        "visualPurpose": "MANIFESTATION: show-consequence",
+        "textRequirement": {
+          "required": false
+        },
+        "subject": "physical light, shadow, and material expressing an invisible idea; older technical consultant",
+        "action": "cause resolves into a visible consequence",
+        "setting": "architectural light laboratory; client point-of-decision zone",
+        "composition": "geometric negative-space study with one changing boundary; central void separating competing signals",
+        "cameraFraming": "90mm orthographic detail; subjective client viewpoint",
+        "mood": "controlled graphic light with clear shape separation; manifestation",
+        "continuityReferences": [],
+        "referenceCharacterIds": [],
+        "onScreenText": "",
+        "negativeConstraints": [
+          "no readable text, letters, numbers, logos, UI, or watermarks",
+          "no depiction or synthetic likeness of Veronica Benini",
+          "no generic motivational stock montage, laptop-at-desk pose, or stock handshake",
+          "observer, follower, and customer identities must remain distinct from the canonical professional"
+        ],
+        "aspectRatios": [
+          "9:16"
+        ],
+        "imagePrompt": "Create one 9:16 short editorial still with one immediately legible visual idea. Visual thesis: A seventy-page guide that solves one important problem can position you more clearly than a two-hundred-page book that tries to prove how much you know. New visual information: A seventy-page guide that solves one important problem can position you more clearly than a two-hundred-page book that tries to prove how much you know. Core meaning: A seventy-page guide that solves one important problem can position you more clearly than a two-hundred-page book that tries to prove how much you know. Viewer takeaway: A seventy-page guide that solves one important problem can position you more clearly than a two-hundred-page book that tries to prove how much you know. Show physical light, shadow, and material expressing an invisible idea; older technical consultant in architectural light laboratory; client point-of-decision zone. Visible action: cause resolves into a visible consequence. Required state: restrained editorial realism. Strategy: UNRESOLVED. Stage the scene as follows: geometric negative-space study with one changing boundary; central void separating competing signals. Camera: 90mm orthographic detail; subjective client viewpoint. Lighting: controlled graphic light with clear shape separation. Editorial direction: contemporary European editorial business-psychology realism. Palette: warm paper, coral accent, ink, glass, unfinished wood. Bible lighting policy: naturalistic editorial light with scene-specific contrast. Emotional direction: restrained editorial realism. Physical evidence: A seventy-page guide that solves one important problem can position you more clearly than a two-hundred-page book that tries to prove how much you know.; translucent planes; prism; shadow grid; buyer evidence artifact. No character identity reference is required for this scene. Keep important faces, actions, and evidence outside the subtitle region x=0.12, y=0.72, width=0.76, height=0.16. No readable text, letters, numbers, logos, interface copy, internal labels, watermark, storyboard, or panel grid. no readable text, logos, readable UI, or internal labels; keep observers, followers, customers, and buyers visually distinct from every recurring identity; avoid occupation-specific proxy evidence unless explicitly required by narration; avoid the opposite meaning of the canonical polarity or causal structure; avoid unrelated generic business imagery; native 9:16 composition; no depiction or synthetic likeness of Veronica Benini; single still image, not a storyboard or panel grid. Continuity policy: keep all scene actors visually distinct; no recurring identity is requested.",
+        "expectedImageFilenames": [
+          "scene-003-9x16.png"
+        ],
+        "qualityStatus": "semantic-review-required"
+      },
+      {
+        "id": "scene-004",
+        "sequenceNumber": 4,
+        "canonicalNarration": "Imagine a prospect hears your name, receives the book from a colleague, and finds a useful framework inside.",
+        "sourceSegmentIds": [
+          "scene-004"
+        ],
+        "estimatedDurationSeconds": 4.315000000000001,
+        "plannedDurationSeconds": 8.633000000000003,
+        "reconciledDurationSeconds": 4.315000000000001,
+        "timingSource": "derived-audio-silence-alignment",
+        "timingConfidence": "derived",
+        "timing": {
+          "startSeconds": 27.095,
+          "endSeconds": 31.41
+        },
+        "visualPurpose": "REVERSAL: explain-causality",
+        "textRequirement": {
+          "required": false
+        },
+        "subject": "professional and relevant observer with visually distinct roles",
+        "action": "an observer ignores the title badge and instead inspects a work example, a decision artifact, and a visible result; the customer points to the concrete detail that matches their own situation",
+        "setting": "evidence-review setting with a professional, an observer, and three concrete proof artifacts",
+        "composition": "empty title badge remains peripheral; work example, reasoning artifact, and outcome lead the frame",
+        "cameraFraming": "documentary eye-level view with the evidence, action, and visible response legible in one frame",
+        "mood": "controlled graphic light with clear shape separation; reversal",
+        "continuityReferences": [],
+        "referenceCharacterIds": [],
+        "onScreenText": "",
+        "negativeConstraints": [
+          "no readable text, letters, numbers, logos, UI, or watermarks",
+          "no depiction or synthetic likeness of Veronica Benini",
+          "no generic motivational stock montage, laptop-at-desk pose, or stock handshake",
+          "observer, follower, and customer identities must remain distinct from the canonical professional"
+        ],
+        "aspectRatios": [
+          "9:16"
+        ],
+        "imagePrompt": "Create one 9:16 short editorial still with one immediately legible visual idea. Visual thesis: Imagine a prospect hears your name, receives the book from a colleague, and finds a useful framework inside. New visual information: Imagine a prospect hears your name, receives the book from a colleague, and finds a useful framework inside. Core meaning: Imagine a prospect hears your name, receives the book from a colleague, and finds a useful framework inside. Viewer takeaway: Imagine a prospect hears your name, receives the book from a colleague, and finds a useful framework inside. Show professional and relevant observer with visually distinct roles in evidence-review setting with a professional, an observer, and three concrete proof artifacts. Visible action: an observer ignores the title badge and instead inspects a work example, a decision artifact, and a visible result; the customer points to the concrete detail that matches their own situation. Required state: restrained editorial realism. Strategy: claim-to-proof. Stage the scene as follows: empty title badge remains peripheral; work example, reasoning artifact, and outcome lead the frame. Camera: documentary eye-level view with the evidence, action, and visible response legible in one frame. Lighting: controlled graphic light with clear shape separation. Editorial direction: contemporary European editorial business-psychology realism. Palette: warm paper, coral accent, ink, glass, unfinished wood. Bible lighting policy: naturalistic editorial light with scene-specific contrast. Emotional direction: restrained editorial realism. Physical evidence: Imagine a prospect hears your name, receives the book from a colleague, and finds a useful framework inside.; blank title badge; work example; reasoning artifact; visible outcome. No character identity reference is required for this scene. Keep important faces, actions, and evidence outside the subtitle region x=0.12, y=0.72, width=0.76, height=0.16. No readable text, letters, numbers, logos, interface copy, internal labels, watermark, storyboard, or panel grid. no readable text, logos, readable UI, or internal labels; keep observers, followers, customers, and buyers visually distinct from every recurring identity; avoid occupation-specific proxy evidence unless explicitly required by narration; avoid the opposite meaning of the canonical polarity or causal structure; avoid unrelated generic business imagery; native 9:16 composition; no depiction or synthetic likeness of Veronica Benini; single still image, not a storyboard or panel grid. Continuity policy: keep all scene actors visually distinct; no recurring identity is requested.",
+        "expectedImageFilenames": [
+          "scene-004-9x16.png"
+        ],
+        "qualityStatus": "semantic-review-required"
+      },
+      {
+        "id": "scene-005",
+        "sequenceNumber": 5,
+        "canonicalNarration": "Now your expertise has something tangible attached to it. The book works because it makes the knowledge easier to consume, share, and connect back to you.",
+        "sourceSegmentIds": [
+          "scene-005"
+        ],
+        "estimatedDurationSeconds": 9.290000000000003,
+        "plannedDurationSeconds": 8.632999999999996,
+        "reconciledDurationSeconds": 9.290000000000003,
+        "timingSource": "derived-audio-silence-alignment",
+        "timingConfidence": "derived",
+        "timing": {
+          "startSeconds": 31.41,
+          "endSeconds": 40.7
+        },
+        "visualPurpose": "METHOD: make-proof-visible",
+        "textRequirement": {
+          "required": false
+        },
+        "subject": "professional and relevant observer with visually distinct roles",
+        "action": "an observer ignores the title badge and instead inspects a work example, a decision artifact, and a visible result; the customer points to the concrete detail that matches their own situation",
+        "setting": "evidence-review setting with a professional, an observer, and three concrete proof artifacts",
+        "composition": "empty title badge remains peripheral; work example, reasoning artifact, and outcome lead the frame",
+        "cameraFraming": "documentary eye-level view with the evidence, action, and visible response legible in one frame",
+        "mood": "warm raking artifact light; method",
+        "continuityReferences": [],
+        "referenceCharacterIds": [],
+        "onScreenText": "",
+        "negativeConstraints": [
+          "no readable text, letters, numbers, logos, UI, or watermarks",
+          "no depiction or synthetic likeness of Veronica Benini",
+          "no generic motivational stock montage, laptop-at-desk pose, or stock handshake",
+          "observer, follower, and customer identities must remain distinct from the canonical professional"
+        ],
+        "aspectRatios": [
+          "9:16"
+        ],
+        "imagePrompt": "Create one 9:16 short editorial still with one immediately legible visual idea. Visual thesis: The book works because it makes the knowledge easier to consume, share, and connect back to you. New visual information: The book works because it makes the knowledge easier to consume, share, and connect back to you. Core meaning: The book works because it makes the knowledge easier to consume, share, and connect back to you. Viewer takeaway: The book works because it makes the knowledge easier to consume, share, and connect back to you. Show professional and relevant observer with visually distinct roles in evidence-review setting with a professional, an observer, and three concrete proof artifacts. Visible action: an observer ignores the title badge and instead inspects a work example, a decision artifact, and a visible result; the customer points to the concrete detail that matches their own situation. Required state: restrained editorial realism. Strategy: claim-to-proof. Stage the scene as follows: empty title badge remains peripheral; work example, reasoning artifact, and outcome lead the frame. Camera: documentary eye-level view with the evidence, action, and visible response legible in one frame. Lighting: warm raking artifact light. Editorial direction: contemporary European editorial business-psychology realism. Palette: warm paper, coral accent, ink, glass, unfinished wood. Bible lighting policy: naturalistic editorial light with scene-specific contrast. Emotional direction: restrained editorial realism. Physical evidence: The book works because it makes the knowledge easier to consume, share, and connect back to you.; blank title badge; work example; reasoning artifact; visible outcome. No character identity reference is required for this scene. Keep important faces, actions, and evidence outside the subtitle region x=0.12, y=0.72, width=0.76, height=0.16. No readable text, letters, numbers, logos, interface copy, internal labels, watermark, storyboard, or panel grid. no readable text, logos, readable UI, or internal labels; keep observers, followers, customers, and buyers visually distinct from every recurring identity; avoid occupation-specific proxy evidence unless explicitly required by narration; avoid the opposite meaning of the canonical polarity or causal structure; avoid unrelated generic business imagery; native 9:16 composition; no depiction or synthetic likeness of Veronica Benini; single still image, not a storyboard or panel grid. Continuity policy: keep all scene actors visually distinct; no recurring identity is requested.",
+        "expectedImageFilenames": [
+          "scene-005-9x16.png"
+        ],
+        "qualityStatus": "semantic-review-required"
+      },
+      {
+        "id": "scene-006",
+        "sequenceNumber": 6,
+        "canonicalNarration": "Publishing does not create expertise. But a strong book gives existing expertise a durable object people can read, recommend, reference, and remember.",
+        "sourceSegmentIds": [
+          "scene-006"
+        ],
+        "estimatedDurationSeconds": 5.975000000000001,
+        "plannedDurationSeconds": 8.633000000000003,
+        "reconciledDurationSeconds": 5.975000000000001,
+        "timingSource": "derived-audio-silence-alignment",
+        "timingConfidence": "derived",
+        "timing": {
+          "startSeconds": 40.7,
+          "endSeconds": 46.675000000000004
+        },
+        "visualPurpose": "PROOF: make-proof-visible",
+        "textRequirement": {
+          "required": false
+        },
+        "subject": "professional and relevant observer with visually distinct roles",
+        "action": "one person points a peer toward the professional's matching work example; another person gathers the varied proof artifacts around one recurring expertise cue and recalls the association",
+        "setting": "small peer conversation beside a concrete work demonstration",
+        "composition": "introducing gesture connects peer, professional, and matching work evidence in one triangle",
+        "cameraFraming": "documentary eye-level view with the evidence, action, and visible response legible in one frame",
+        "mood": "soft directional editorial daylight; proof",
+        "continuityReferences": [],
+        "referenceCharacterIds": [],
+        "onScreenText": "",
+        "negativeConstraints": [
+          "no readable text, letters, numbers, logos, UI, or watermarks",
+          "no depiction or synthetic likeness of Veronica Benini",
+          "no generic motivational stock montage, laptop-at-desk pose, or stock handshake",
+          "observer, follower, and customer identities must remain distinct from the canonical professional"
+        ],
+        "aspectRatios": [
+          "9:16"
+        ],
+        "imagePrompt": "Create one 9:16 short editorial still with one immediately legible visual idea. Visual thesis: But a strong book gives existing expertise a durable object people can read, recommend, reference, and remember. New visual information: But a strong book gives existing expertise a durable object people can read, recommend, reference, and remember. Core meaning: But a strong book gives existing expertise a durable object people can read, recommend, reference, and remember. Viewer takeaway: But a strong book gives existing expertise a durable object people can read, recommend, reference, and remember. Show professional and relevant observer with visually distinct roles in small peer conversation beside a concrete work demonstration. Visible action: one person points a peer toward the professional's matching work example; another person gathers the varied proof artifacts around one recurring expertise cue and recalls the association. Required state: clarity, confidence, and forward movement. Strategy: peer-referral. Stage the scene as follows: introducing gesture connects peer, professional, and matching work evidence in one triangle. Camera: documentary eye-level view with the evidence, action, and visible response legible in one frame. Lighting: soft directional editorial daylight. Editorial direction: contemporary European editorial business-psychology realism. Palette: warm paper, coral accent, ink, glass, unfinished wood. Bible lighting policy: naturalistic editorial light with scene-specific contrast. Emotional direction: clarity, confidence, and forward movement. Physical evidence: But a strong book gives existing expertise a durable object people can read, recommend, reference, and remember.; matching work example; introducing gesture; peer response. No character identity reference is required for this scene. Keep important faces, actions, and evidence outside the subtitle region x=0.12, y=0.72, width=0.76, height=0.16. No readable text, letters, numbers, logos, interface copy, internal labels, watermark, storyboard, or panel grid. no readable text, logos, readable UI, or internal labels; keep observers, followers, customers, and buyers visually distinct from every recurring identity; avoid occupation-specific proxy evidence unless explicitly required by narration; avoid the opposite meaning of the canonical polarity or causal structure; avoid unrelated generic business imagery; native 9:16 composition; no depiction or synthetic likeness of Veronica Benini; single still image, not a storyboard or panel grid. Continuity policy: keep all scene actors visually distinct; no recurring identity is requested.",
+        "expectedImageFilenames": [
+          "scene-006-9x16.png"
+        ],
+        "qualityStatus": "semantic-review-required"
+      },
+      {
+        "id": "scene-007",
+        "sequenceNumber": 7,
+        "canonicalNarration": "Publishing does not create expertise. But a strong book gives existing expertise a durable object people can read, recommend, reference, and remember.",
+        "sourceSegmentIds": [
+          "scene-007"
+        ],
+        "estimatedDurationSeconds": 6.174999999999997,
+        "plannedDurationSeconds": 8.634999999999998,
+        "reconciledDurationSeconds": 6.174999999999997,
+        "timingSource": "derived-audio-silence-alignment",
+        "timingConfidence": "derived",
+        "timing": {
+          "startSeconds": 46.675000000000004,
+          "endSeconds": 52.85
+        },
+        "visualPurpose": "PAYOFF: deliver-payoff",
+        "textRequirement": {
+          "required": false
+        },
+        "subject": "professional and relevant observer with visually distinct roles",
+        "action": "one person points a peer toward the professional's matching work example; another person gathers the varied proof artifacts around one recurring expertise cue and recalls the association",
+        "setting": "small peer conversation beside a concrete work demonstration",
+        "composition": "introducing gesture connects peer, professional, and matching work evidence in one triangle",
+        "cameraFraming": "documentary eye-level view with the evidence, action, and visible response legible in one frame",
+        "mood": "controlled graphic light with clear shape separation; payoff",
+        "continuityReferences": [],
+        "referenceCharacterIds": [],
+        "onScreenText": "",
+        "negativeConstraints": [
+          "no readable text, letters, numbers, logos, UI, or watermarks",
+          "no depiction or synthetic likeness of Veronica Benini",
+          "no generic motivational stock montage, laptop-at-desk pose, or stock handshake",
+          "observer, follower, and customer identities must remain distinct from the canonical professional"
+        ],
+        "aspectRatios": [
+          "9:16"
+        ],
+        "imagePrompt": "Create one 9:16 short editorial still with one immediately legible visual idea. Visual thesis: But a strong book gives existing expertise a durable object people can read, recommend, reference, and remember. New visual information: But a strong book gives existing expertise a durable object people can read, recommend, reference, and remember. Core meaning: But a strong book gives existing expertise a durable object people can read, recommend, reference, and remember. Viewer takeaway: But a strong book gives existing expertise a durable object people can read, recommend, reference, and remember. Show professional and relevant observer with visually distinct roles in small peer conversation beside a concrete work demonstration. Visible action: one person points a peer toward the professional's matching work example; another person gathers the varied proof artifacts around one recurring expertise cue and recalls the association. Required state: clarity, confidence, and forward movement. Strategy: peer-referral. Stage the scene as follows: introducing gesture connects peer, professional, and matching work evidence in one triangle. Camera: documentary eye-level view with the evidence, action, and visible response legible in one frame. Lighting: controlled graphic light with clear shape separation. Editorial direction: contemporary European editorial business-psychology realism. Palette: warm paper, coral accent, ink, glass, unfinished wood. Bible lighting policy: naturalistic editorial light with scene-specific contrast. Emotional direction: clarity, confidence, and forward movement. Physical evidence: But a strong book gives existing expertise a durable object people can read, recommend, reference, and remember.; matching work example; introducing gesture; peer response. No character identity reference is required for this scene. Keep important faces, actions, and evidence outside the subtitle region x=0.12, y=0.72, width=0.76, height=0.16. No readable text, letters, numbers, logos, interface copy, internal labels, watermark, storyboard, or panel grid. no readable text, logos, readable UI, or internal labels; keep observers, followers, customers, and buyers visually distinct from every recurring identity; avoid occupation-specific proxy evidence unless explicitly required by narration; avoid the opposite meaning of the canonical polarity or causal structure; avoid unrelated generic business imagery; native 9:16 composition; no depiction or synthetic likeness of Veronica Benini; single still image, not a storyboard or panel grid. Continuity policy: keep all scene actors visually distinct; no recurring identity is requested.",
+        "expectedImageFilenames": [
+          "scene-007-9x16.png"
+        ],
+        "qualityStatus": "semantic-review-required"
+      }
+    ]
+  },
+  "images": [],
+  "artifacts": [
+    {
+      "id": "artifact-provider-image-prompts-en-short-json",
+      "kind": "provider-image-prompts",
+      "path": "locales/en/short/image-prompts/provider-image-prompts.v1.json",
+      "mimeType": "application/json",
+      "sizeBytes": 30748,
+      "checksumSha256": "94bd940d9321506ac97ca2e92dcf2cac3cf183bd9672b07f37f21db5d5edaae5",
+      "createdAt": "2026-08-11T16:38:43.071Z"
+    },
+    {
+      "id": "artifact-provider-image-prompts-en-short-markdown",
+      "kind": "provider-image-prompts",
+      "path": "locales/en/short/image-prompts/provider-image-prompts.md",
+      "mimeType": "text/markdown",
+      "sizeBytes": 18559,
+      "checksumSha256": "7c4dcf07c6ac188bd2e4a93ff58698f375768b0394bbe22640d2ff97db470b3b",
+      "createdAt": "2026-08-11T16:38:43.071Z"
+    }
+  ],
+  "pipelineRuns": [],
+  "createdAt": "2026-08-11T16:16:20.212Z",
+  "updatedAt": "2026-08-11T16:38:43.071Z"
+}

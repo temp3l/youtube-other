@@ -1,0 +1,31 @@
+{
+  "title": "Vender sem correr atrás de todo mundo",
+  "thumbnail": "PARE DE PERSEGUIR CLIENTES",
+  "description": "Prospecting não é incomodar mais pessoas. Construa um sistema de descoberta, interesse, contato, follow-up e retenção para que as pessoas certas tenham um caminho claro até você.",
+  "cta": "Feche o ciclo: modelo de negócio, cliente, promessa, oferta, produto, conversão, vendas e prospecting precisam funcionar como um único sistema.",
+  "alternativeTitles": [
+    "Pare de correr atrás de clientes. Construa um caminho de vendas.",
+    "Follow-up sem perseguir: o sistema de vendas"
+  ],
+  "thumbnailOptions": [
+    "PARE DE PERSEGUIR CLIENTES",
+    "PARE DE PERSEGUIR",
+    "CONSTRUA O CAMINHO"
+  ],
+  "youtubeOptimizationVersion": "v2-retention-localization",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  },
+  "shortA": {
+    "title": "Pare de correr atrás de clientes",
+    "alternateHook": "Bom prospecting constrói um caminho em vez de depender de abordagens aleatórias."
+  },
+  "shortB": {
+    "title": "Follow-up ou perseguição?",
+    "alternateHook": "Follow-up acrescenta clareza ou informação. Perseguir só pede atenção outra vez."
+  }
+}

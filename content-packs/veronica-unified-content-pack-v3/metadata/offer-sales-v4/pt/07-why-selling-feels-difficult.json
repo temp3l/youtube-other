@@ -1,0 +1,31 @@
+{
+  "title": "Por que vender parece tão difícil",
+  "thumbnail": "POR QUE O PREÇO INCOMODA?",
+  "description": "Desconforto com dinheiro, preço e follow-up muda a forma de vender. Separe persuasão de coerção e transforme vendas em um processo estruturado, mensurável e respeitoso.",
+  "cta": "No próximo episódio, transformamos vendas em um sistema de descoberta, contato e follow-up sem correr atrás de todo mundo.",
+  "alternativeTitles": [
+    "Por que é tão difícil dizer o preço",
+    "Vender sem manipular: um processo melhor"
+  ],
+  "thumbnailOptions": [
+    "POR QUE O PREÇO INCOMODA?",
+    "POR QUE O PREÇO INCOMODA?",
+    "VENDA SEM PRESSÃO"
+  ],
+  "youtubeOptimizationVersion": "v2-retention-localization",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  },
+  "shortA": {
+    "title": "Por que é tão difícil dizer o preço?",
+    "alternateHook": "Se seu comportamento muda quando o dinheiro entra na conversa, o processo de venda também muda."
+  },
+  "shortB": {
+    "title": "Vender não é manipular",
+    "alternateHook": "Persuasão saudável mantém o cliente informado e livre para dizer não."
+  }
+}

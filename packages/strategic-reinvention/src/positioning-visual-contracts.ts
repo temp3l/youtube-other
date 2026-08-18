@@ -10,7 +10,7 @@ import type {
 } from "./source-grounded-visual-qa.js";
 
 export const POSITIONING_PLANNER_VERSION =
-  "veronicabenini-positioning-visual-planner.v2.3" as const;
+  "veronicabenini-positioning-visual-planner.v2.5-m1" as const;
 export const POSITIONING_PLAN_VERSION =
   "veronicabenini-positioning-visual-plan.v2" as const;
 export const POSITIONING_REVIEW_VERSION =
@@ -83,6 +83,22 @@ export const VERONICA_RESOLVED_VISUAL_MECHANISMS = [
   "relevant-context-participation",
   "recognition-accumulation",
   "claim-to-proof",
+  "promise-value-translation",
+  "description-to-outcome-framing",
+  "expectation-delivery-check",
+  "promise-calibration",
+  "promise-experience-alignment",
+  "reality-bounded-clarity",
+  "value-adding-follow-up",
+  "pressure-without-value",
+  "channel-capacity-boundary",
+  "respectful-stop-condition",
+  "useful-follow-up-evidence",
+  "relevance-response-reason",
+  "platform-attention-tax",
+  "response-capacity-readiness",
+  "neglected-account-without-distribution",
+  "customer-signal-channel-decision",
   "work-expertise-separation",
   "signal-coherence",
   "audience-fit-signal",
@@ -107,6 +123,22 @@ export const VERONICA_VISUAL_MECHANISM_ACTION_OWNER = {
   "relevant-context-participation": "expert",
   "recognition-accumulation": "buyer",
   "claim-to-proof": "buyer",
+  "promise-value-translation": "expert",
+  "description-to-outcome-framing": "expert",
+  "expectation-delivery-check": "expert",
+  "promise-calibration": "expert",
+  "promise-experience-alignment": "expert",
+  "reality-bounded-clarity": "expert",
+  "value-adding-follow-up": "expert",
+  "pressure-without-value": "expert",
+  "channel-capacity-boundary": "expert",
+  "respectful-stop-condition": "expert",
+  "useful-follow-up-evidence": "expert",
+  "relevance-response-reason": "expert",
+  "platform-attention-tax": "business-operator",
+  "response-capacity-readiness": "expert",
+  "neglected-account-without-distribution": "business-operator",
+  "customer-signal-channel-decision": "business-operator",
   "work-expertise-separation": "expert",
   "signal-coherence": "buyer",
   "audience-fit-signal": "buyer",
@@ -129,23 +161,89 @@ export interface VeronicaNarrationEvidenceSpan {
   readonly spanHash: string;
 }
 
+export type VeronicaSemanticStateModel =
+  | {
+      readonly kind: "SINGLE_STATE";
+      readonly relation: "STABLE";
+      readonly state: string;
+    }
+  | {
+      readonly kind: "DECISIVE_TRANSITION";
+      readonly relation: "CAUSAL_BEFORE_AFTER" | "CONTRAST";
+      readonly initialState: string;
+      readonly resultingState: string;
+    }
+  | {
+      readonly kind: "MULTI_STATE_SEQUENCE";
+      readonly relation: "CONDITIONAL_ALTERNATIVES" | "SEQUENTIAL_PROGRESSION";
+      readonly states: readonly [string, string, ...string[]];
+    };
+
+export interface VeronicaVisualAuthorizationEntry {
+  readonly concept: string;
+  readonly authority: "SOURCE_SPAN" | "SEMANTIC_ROLE" | "ENCODING_MECHANISM";
+  readonly evidenceSpanHashes: readonly string[];
+  readonly semanticRole?: Exclude<VeronicaActionOwnerRole, "none">;
+}
+
+export interface VeronicaVisualAuthorization {
+  readonly entities: readonly VeronicaVisualAuthorizationEntry[];
+  readonly environments: readonly VeronicaVisualAuthorizationEntry[];
+  readonly motifs: readonly VeronicaVisualAuthorizationEntry[];
+  readonly allowedEncodingMechanisms: readonly VeronicaResolvedVisualMechanism[];
+}
+
+export interface VeronicaVisualEncodingConstraints {
+  readonly textFree: true;
+  readonly neutralObserver: "FORBIDDEN" | "AUTHORIZED";
+  readonly stateEncoding: "SINGLE_FRAME" | "DECISIVE_TRANSITION" | "SEQUENCE_REQUIRED";
+}
+
 export interface VeronicaSemanticProposition {
-  readonly schemaVersion: "veronica-semantic-proposition.v3";
+  readonly schemaVersion: "veronica-semantic-proposition.v4";
   readonly narrationClaim: string;
   readonly evidenceSpans: readonly [VeronicaNarrationEvidenceSpan, ...VeronicaNarrationEvidenceSpan[]];
+  readonly semanticSubject: {
+    readonly description: string;
+    readonly evidenceSpanHashes: readonly string[];
+  };
   readonly polarity: VeronicaSemanticPolarity;
+  /** Derived compatibility view of stateModel.relation. */
   readonly stateRelation: VeronicaSemanticStateRelation;
   readonly cause?: string;
+  readonly causalRelationship: {
+    readonly relation: VeronicaSemanticStateRelation;
+    readonly cause: string;
+    readonly consequence: string;
+  };
+  readonly stateModel: VeronicaSemanticStateModel;
+  /** Canonical action-owner role. Buyer perspective never replaces it. */
   readonly actorRole: VeronicaActionOwnerRole;
   readonly actorAction: string;
+  readonly affectedParty?: {
+    readonly role: Exclude<VeronicaActionOwnerRole, "none">;
+    readonly evidenceSpanHashes: readonly string[];
+  };
+  /** Derived compatibility text; buyerPerspective is the structured view. */
   readonly buyerInterpretation?: string;
+  readonly buyerPerspective?: {
+    readonly role: "buyer";
+    readonly interpretation: string;
+    readonly consequenceFamily: VeronicaSemanticProposition["buyerConsequenceFamily"];
+    readonly evidenceSpanHashes: readonly string[];
+  };
   readonly consequence: string;
+  readonly requiredVisibleConsequence: string;
   readonly contrast?: { readonly relation: Exclude<VeronicaSemanticStateRelation, "STABLE">; readonly initialState?: string; readonly desiredState?: string; readonly failureState?: string; readonly consequence?: string };
   readonly narrationNativeMetaphor?: string;
   readonly visualMechanism: VeronicaVisualMechanism;
   readonly evidenceAnchors: readonly string[];
   readonly buyerConsequenceFamily: "REMEMBERS" | "CATEGORIZES" | "CHOOSES" | "HESITATES" | "TRUSTS" | "IGNORES" | "NOTICES" | "REFERS" | "RECOGNIZES" | "UNDERSTANDS" | "CONNECTS" | "FAILS_TO_ACCUMULATE" | "REJECTS" | "NONE";
   readonly confidence: { readonly proposition: VeronicaSemanticConfidence; readonly actorOwnership: VeronicaSemanticConfidence; readonly consequence: VeronicaSemanticConfidence; readonly visualMechanism: VeronicaSemanticConfidence };
+  readonly visualAuthorization: VeronicaVisualAuthorization;
+  readonly visualEncodingConstraints: VeronicaVisualEncodingConstraints;
+  readonly semanticRevisionHash: string;
+  /** Derived legacy identity alias of semanticRevisionHash. */
   readonly propositionHash: string;
 }
 
@@ -539,6 +637,18 @@ export interface VisualBeatReferenceRequirement {
   readonly required: boolean;
 }
 
+/**
+ * Typed multi-actor causality for a child beat. The causal owner performs the
+ * intervention; the outcome actor supplies visible evidence of its consequence.
+ */
+export interface VisualBeatActorRelation {
+  readonly causalActionOwnerRole: Exclude<VeronicaActionOwnerRole, "none">;
+  readonly outcomeActorRole: Exclude<VeronicaActionOwnerRole, "none">;
+  readonly relationship: "ELICITS" | "ENABLES";
+  readonly causalAction: string;
+  readonly outcomeAction: string;
+}
+
 export interface VisualBeatTreatmentV1 {
   readonly version: 1;
   readonly beatId: string;
@@ -546,6 +656,7 @@ export interface VisualBeatTreatmentV1 {
   readonly role: VisualBeatRole;
   readonly narrationRef: VisualBeatNarrationRef;
   readonly parentTreatmentHash: string;
+  readonly parentSemanticRevisionHash: string;
   readonly coreMeaning: string;
   /** The material visual information this beat adds beyond its preceding beat. */
   readonly newInformation: string;
@@ -553,6 +664,7 @@ export interface VisualBeatTreatmentV1 {
   readonly visualThesis: string;
   readonly subject: string;
   readonly action: string;
+  readonly actorRelation?: VisualBeatActorRelation | undefined;
   readonly state: string;
   readonly environment: string;
   readonly composition: VisualBeatComposition;
@@ -569,7 +681,7 @@ export interface VisualBeatTreatmentV1 {
 export interface VeronicaVisualBeatQuality {
   readonly status: "PASS" | "WARN" | "FAIL";
   readonly findings: readonly {
-    readonly code: "REDUNDANT_SIBLING_BEAT" | "REDUNDANT_PAID_IMAGE_CANDIDATE" | "EVENT_ONLY_DENSITY_INCREASE" | "OPENING_STATIC_HOLD" | "INSUFFICIENT_SEMANTIC_ASSET_DENSITY" | "LONG_STATIC_OPENING_ASSET_HOLD" | "BEAT_OUTSIDE_PARENT_MEANING" | "INVALID_REUSE_SOURCE";
+    readonly code: "REDUNDANT_SIBLING_BEAT" | "REDUNDANT_PAID_IMAGE_CANDIDATE" | "EVENT_ONLY_DENSITY_INCREASE" | "OPENING_STATIC_HOLD" | "INSUFFICIENT_SEMANTIC_ASSET_DENSITY" | "LONG_STATIC_OPENING_ASSET_HOLD" | "BEAT_OUTSIDE_PARENT_MEANING" | "INVALID_REUSE_SOURCE" | "CAUSE_CONSEQUENCE_EVIDENCE_INCOMPLETE" | "ACTION_OWNER_INVERSION" | "STATE_ROLE_INVERSION" | "SEMANTIC_DRIFT" | "SOURCE_DOMAIN_LOST" | "NO_SAFE_BEAT_CANDIDATE";
     readonly severity: "warning" | "blocker";
     readonly sceneId: string;
     readonly beatId: string | null;
@@ -619,14 +731,23 @@ export const VERONICA_DEPICTED_ACTION_FAMILIES = [
 ] as const;
 export type VeronicaDepictedActionFamily = (typeof VERONICA_DEPICTED_ACTION_FAMILIES)[number];
 
-export type VeronicaPresentationMechanism =
-  | "unmodified"
-  | "foreground-evidence"
-  | "isolated-diagnostic"
-  | "modular-system"
-  | "process-path"
-  | "depth-staging"
-  | "other-presentation";
+export const VERONICA_PRESENTATION_MECHANISMS = [
+  "unmodified",
+  "foreground-evidence",
+  "isolated-diagnostic",
+  "modular-system",
+  "process-path",
+  "depth-staging",
+  "intake-threshold",
+  "handoff-chain",
+  "comparison-layout",
+  "decision-fork",
+  "workload-bottleneck",
+  "rule-setting",
+  "calculation-path",
+  "other-presentation",
+] as const;
+export type VeronicaPresentationMechanism = (typeof VERONICA_PRESENTATION_MECHANISMS)[number];
 
 export interface VeronicaVisualTreatmentSignature {
   readonly beatId: string;
@@ -692,6 +813,87 @@ export interface VeronicaSequenceDiversityResult {
   readonly resultHash: string;
 }
 
+export interface VeronicaDerivedBeatCandidate {
+  readonly candidateId: string;
+  readonly operatorId: string;
+  readonly beat: VisualBeatTreatmentV1;
+  readonly sourceReference: VisualBeatNarrationRef;
+  readonly actionFamily: VeronicaDepictedActionFamily;
+  readonly mechanism: string;
+  readonly environmentFamily: string;
+  readonly compositionFamily: string;
+  readonly evidenceCategory: string;
+  readonly actorRoles: readonly string[];
+  readonly stateRelation: string;
+  readonly visibleInformationDelta: {
+    readonly score: number;
+    readonly categories: readonly ("source-span" | "proposition" | "state" | "causal-relation" | "visible-evidence")[];
+  };
+  readonly causalCompleteness: boolean;
+  readonly openingSuitability: number;
+  readonly hardGate: {
+    readonly eligible: boolean;
+    readonly findingCodes: readonly ("SOURCE_GROUNDING_FAILED" | "SEMANTIC_PARENT_MISMATCH" | "ACTOR_AUTHORIZATION_FAILED" | "STATE_FIDELITY_FAILED" | "ENVIRONMENT_AUTHORIZATION_FAILED" | "CAUSAL_EVIDENCE_INCOMPLETE" | "UNRESOLVED_REQUIRED_MECHANISM")[];
+  };
+  readonly treatmentReference: string;
+  readonly semanticParentIdentity: string;
+}
+
+export interface VeronicaCandidateSelectionDiagnostics {
+  readonly schemaVersion: "veronica-beat-candidate-selection.v1";
+  readonly policyVersion: string;
+  readonly maximumCandidatesPerBeat: 6;
+  readonly beamWidth: 4;
+  readonly rollingWindowBeats: 5;
+  readonly candidateCount: number;
+  readonly hardValidCandidateCount: number;
+  readonly noSafeCandidateBeatIds: readonly string[];
+  readonly noSafeReasons: readonly VeronicaNoSafeCandidateDiagnostic[];
+  readonly selectedCandidateIds: readonly string[];
+  readonly candidates: readonly {
+    readonly beatId: string;
+    readonly candidateId: string;
+    readonly hardGateEligible: boolean;
+    readonly hardGateFindingCodes: readonly string[];
+    readonly visibleInformationDelta: number;
+    readonly actionDiversityContribution: number;
+    readonly mechanismDiversityContribution: number;
+    readonly openingNoveltyContribution: number;
+    readonly compositionContribution: number;
+    readonly causalCompleteness: boolean;
+    readonly scoreTuple: readonly number[];
+    readonly selected: boolean;
+    readonly reason: "SELECTED" | "HARD_GATE_REJECTED" | "LOWER_SEQUENCE_SCORE" | "STABLE_TIE_BREAK" | "NO_SAFE_CANDIDATE_FALLBACK";
+    readonly tieBreakKey: string;
+  }[];
+  readonly selectionHash: string;
+}
+
+export type VeronicaNoSafeReason =
+  | { readonly kind: "UNRESOLVED_REQUIRED_MECHANISM"; readonly semanticRelation: VeronicaSemanticStateRelation }
+  | { readonly kind: "ACTOR_AUTHORIZATION_FAILURE"; readonly actorRole: VeronicaActionOwnerRole }
+  | { readonly kind: "NO_AUTHORIZED_MECHANISM"; readonly mechanism: string }
+  | { readonly kind: "CAUSAL_EVIDENCE_INCOMPLETE"; readonly semanticRelation: VeronicaSemanticStateRelation }
+  | { readonly kind: "STATE_RELATION_UNENCODABLE"; readonly semanticRelation: VeronicaSemanticStateRelation }
+  | { readonly kind: "SOURCE_EVIDENCE_INSUFFICIENT"; readonly evidenceSpanCount: number }
+  | { readonly kind: "OPERATOR_APPLICABILITY_MISMATCH"; readonly candidateFamilies: readonly string[] }
+  | { readonly kind: "ALL_CANDIDATES_SEMANTICALLY_INVALID"; readonly rejectionCodes: readonly string[] };
+
+export interface VeronicaNoSafeCandidateDiagnostic {
+  readonly beatId: string;
+  readonly sceneId: string;
+  readonly applicableCandidateFamilies: readonly string[];
+  readonly generatedCandidateIds: readonly string[];
+  readonly hardGateRejectionCodes: readonly string[];
+  readonly primaryReason: VeronicaNoSafeReason;
+  readonly secondaryReasons: readonly VeronicaNoSafeReason[];
+  readonly semanticRelation: VeronicaSemanticStateRelation;
+  readonly actorAuthorization: "AUTHORIZED" | "FAILED" | "UNRESOLVED";
+  readonly environmentAuthorization: "AUTHORIZED" | "FAILED" | "UNRESOLVED";
+  readonly mechanismStatus: "RESOLVED" | "UNRESOLVED" | "UNAUTHORIZED";
+  readonly causalStatus: "NOT_APPLICABLE" | "COMPLETE" | "INCOMPLETE";
+}
+
 export interface VeronicaVisualDensityMetrics {
   readonly semanticSceneCount: number;
   readonly visualBeatCount: number;
@@ -725,6 +927,8 @@ export interface VeronicaVisualBeatPlanV1 {
   readonly semanticSceneCount: number;
   readonly beats: readonly VisualBeatTreatmentV1[];
   readonly quality: VeronicaVisualBeatQuality;
+  /** Present for M2-derived plans; legacy persisted plans remain readable. */
+  readonly candidateSelection?: VeronicaCandidateSelectionDiagnostics | undefined;
   readonly beatPlanHash: string;
 }
 
@@ -757,6 +961,14 @@ export interface PlannedScene {
     readonly propositionInternalCoherence: "PASS" | "FAIL";
     readonly treatmentPropositionCompatibility: "PASS" | "FAIL";
   };
+  /** A BLOCK is an abstention, never a provider-visible generic fallback. */
+  readonly visualEncodingEligibility?:
+    | { readonly status: "ELIGIBLE"; readonly operator: string }
+    | {
+        readonly status: "BLOCK";
+        readonly reason: "UNRESOLVED_REQUIRED_MECHANISM" | "LOW_SEMANTIC_CONFIDENCE" | "UNAUTHORIZED_TREATMENT";
+        readonly rejectionReasons: readonly string[];
+      };
   /** Canonical-pipeline application provenance for an advisor directive. */
   readonly sourceGroundedRemediation?: {
     readonly directiveHash: string;
@@ -999,6 +1211,8 @@ export interface PositioningVisualPlanV2 {
     readonly configurationHash: string;
     readonly planRevisionHash: string;
   };
+  /** Semantic reuse authority. Runtime/cache telemetry is intentionally excluded. */
+  readonly semanticAuthority?: import("./veronica-semantic-plan-authority.js").VeronicaSemanticAuthorityEnvelope;
   readonly validation: {
     readonly status: "pass" | "fail";
     readonly failures: readonly string[];

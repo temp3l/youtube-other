@@ -4,10 +4,12 @@ import {
   type VeronicaMediaPlan,
   type VeronicaRenderManifest,
 } from "../contracts/media-plan.v1.js";
+import type { VeronicaCanonicalContentIdentity } from "@mediaforge/domain";
 import { hashCanonical } from "../canonical-json.js";
 import { resolvePreparedAssetPathForPlacement } from "./manifest-integrity.js";
 
 export function buildRenderManifest(input: {
+  readonly canonicalContentIdentity: VeronicaCanonicalContentIdentity;
   readonly plan: VeronicaMediaPlan;
   readonly aspectRatio: "16:9" | "9:16";
   readonly placements: VeronicaMediaPlan["placements"];
@@ -53,7 +55,8 @@ export function buildRenderManifest(input: {
     });
   });
   const manifestWithoutHash = {
-    schemaVersion: "veronica-render-manifest.v1" as const,
+    schemaVersion: "veronica-render-manifest.v2" as const,
+    canonicalContentIdentity: input.canonicalContentIdentity,
     aspectRatio: input.aspectRatio,
     profile,
     clips,

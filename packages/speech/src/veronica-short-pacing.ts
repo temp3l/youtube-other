@@ -5,7 +5,7 @@ import { getVeronicaSpeechRatePolicy } from "./veronica-speech-rate-policy.js";
 export const VERONICA_SHORT_PACING_POLICY_VERSION =
   "veronica-short-natural-pacing-v3" as const;
 export const VERONICA_SHORT_PACING_CALIBRATION_SCHEMA_VERSION =
-  "veronica-short-pacing-calibration-v3" as const;
+  "veronica-short-pacing-calibration-v4" as const;
 
 export type VeronicaShortDurationAcceptanceStatus =
   | "NORMAL_SHORT"
@@ -65,8 +65,11 @@ export function resolveVeronicaShortPacingPolicy(
     // 1.6) while observed WPM, not this provider-specific value, controls QA.
     maximumSpeed: 2,
     maximumAdjustmentPerAttempt: 0.12,
-    // One initial synthesis plus at most one measured, controlled remediation.
-    maxCalibrationAttempts: 2,
+  // One initial synthesis plus at most two measured, controlled remediations.
+  // A narrow target band can require one final correction when a provider's
+  // observed speed response is nonlinear; the hard cap still prevents
+  // open-ended calibration spend.
+  maxCalibrationAttempts: 3,
     durationToleranceSeconds: 0.02,
     fallbackBehavior: "select-best-safe-natural-candidate",
   };
@@ -166,9 +169,35 @@ const sharedCalibrationShape = {
   inputFingerprint: z.string().regex(/^[a-f0-9]{64}$/u),
 } as const;
 
-const currentCalibrationSchema = z
+const v4CalibrationSchema = z
   .object({
     schemaVersion: z.literal(VERONICA_SHORT_PACING_CALIBRATION_SCHEMA_VERSION),
+    ...sharedCalibrationShape,
+    pacingPolicyVersion: z.literal(VERONICA_SHORT_PACING_POLICY_VERSION),
+    pacingProfileId: z.literal("conceptual-explainer"),
+    platformMaximumDurationSeconds: z.literal(180),
+    editorialLongShortReviewThresholdSeconds: z.literal(120),
+    attempts: z.array(currentAttemptSchema).min(1).max(4),
+    selectedPacingStatus: currentAttemptSchema.shape.pacingStatus,
+    selectedDurationAcceptanceStatus:
+      currentAttemptSchema.shape.durationAcceptanceStatus,
+    calibrationStatus: currentAttemptSchema.shape.durationAcceptanceStatus,
+    tempoNormalization: z.object({
+      algorithm: z.literal("ffmpeg-atempo"),
+      tempoFactor: z.number().positive(),
+      sourceAudioHash: z.string().regex(/^[a-f0-9]{64}$/u),
+      outputAudioHash: z.string().regex(/^[a-f0-9]{64}$/u),
+      measuredDurationSeconds: z.number().positive(),
+      measuredWpm: z.number().positive(),
+      pitchPreserved: z.literal(true),
+      artificialSilenceAdded: z.literal(false),
+    }).strict().optional(),
+  })
+  .strict();
+
+const v3CalibrationSchema = z
+  .object({
+    schemaVersion: z.literal("veronica-short-pacing-calibration-v3"),
     ...sharedCalibrationShape,
     pacingPolicyVersion: z.literal(VERONICA_SHORT_PACING_POLICY_VERSION),
     pacingProfileId: z.literal("conceptual-explainer"),
@@ -196,7 +225,8 @@ const legacyCalibrationSchema = z
   .strict();
 
 export const veronicaShortPacingCalibrationSchema = z.union([
-  currentCalibrationSchema,
+  v4CalibrationSchema,
+  v3CalibrationSchema,
   legacyCalibrationSchema,
 ]);
 export type VeronicaShortPacingCalibration = z.infer<

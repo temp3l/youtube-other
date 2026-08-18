@@ -1,0 +1,592 @@
+[
+  {
+    "path": "EDITORIAL-PERSONA.md",
+    "sha256": "25e1f74536e13a8090616ac2d23ac0e0fec9350bb84e595f337dc24ca8433486",
+    "bytes": 1732
+  },
+  {
+    "path": "README.md",
+    "sha256": "82b55f2b355ac4f74c6ae6887ed3861c324f8bb6eb01a5c0d3539cfdee42a3a9",
+    "bytes": 2652
+  },
+  {
+    "path": "longs/L001-why-being-good-at-your-job-isn-t-enough-positioning-for-experts.md",
+    "sha256": "7b676b5dc265b75893ae4f1cdf340206391bf78815e111cc4cdc8d63dba98bb5",
+    "bytes": 1556
+  },
+  {
+    "path": "longs/L002-how-to-find-a-niche-without-trapping-yourself.md",
+    "sha256": "cce67828697a9f8b05fb2e62e02329c9056453e1a0875ccafc42695c3f4aebb0",
+    "bytes": 1549
+  },
+  {
+    "path": "longs/L003-the-3-layer-positioning-system.md",
+    "sha256": "98434f06a0b49ffc46121a54b0029a0c682a74e9e4d3bb95b2daaa673c1121aa",
+    "bytes": 1501
+  },
+  {
+    "path": "longs/L004-how-to-differentiate-when-everyone-offers-the-same-thing.md",
+    "sha256": "2d4a8b1296e53bd1d8192f304137568b5b7da3a9287165ecc0d417fd3c1f4eca",
+    "bytes": 1528
+  },
+  {
+    "path": "longs/L005-the-skill-stack-advantage-build-a-category-around-yourself.md",
+    "sha256": "61d03150eb10c079718b7a912977fc98aeca59d544aaa45635d3fe77c1f4eef8",
+    "bytes": 1571
+  },
+  {
+    "path": "longs/L006-how-to-study-competitors-without-becoming-a-copy.md",
+    "sha256": "b5ca0c10072f13d26cb1b1f9054466bbe87da4bcc51b52a11c1eaf6275a4adaf",
+    "bytes": 1511
+  },
+  {
+    "path": "longs/L007-borrow-ideas-from-other-industries-without-copying.md",
+    "sha256": "bdbf4e5a5f8b66a4ec004aef90762ca7355ecde61a39c028ece6bc8daf80d3f2",
+    "bytes": 1409
+  },
+  {
+    "path": "longs/L008-how-to-explain-what-you-do-so-people-want-it.md",
+    "sha256": "b8f1206fdfc18d2972d9147ac960ff6539494b8ad5d4515365148da35475902a",
+    "bytes": 1599
+  },
+  {
+    "path": "longs/L009-the-authority-engine-content-proof-method-visibility.md",
+    "sha256": "5a5277fa640890870777991a68f8402b5aa63a0f8a01c98f7c310bc20e516a85",
+    "bytes": 1610
+  },
+  {
+    "path": "longs/L010-from-unknown-to-sought-after-consultant.md",
+    "sha256": "9217830db5325c1bceec9e9d09ca58bf499136d6fc3d45a95ce726312943b946",
+    "bytes": 1650
+  },
+  {
+    "path": "longs/L011-build-a-signature-method-people-can-understand-and-buy.md",
+    "sha256": "f4aea1a28b57accc69f9cf6cd0f0b0de20fb603711b1457a96af92d9dda2c370",
+    "bytes": 1587
+  },
+  {
+    "path": "longs/L012-how-to-productize-expertise-without-giving-away-the-work.md",
+    "sha256": "51224205f021cfcaa08399cf039f5d7ee5fb62695e6ba04aaa0706ed94a0dcad",
+    "bytes": 1604
+  },
+  {
+    "path": "longs/L013-the-expertise-ladder-what-makes-advice-more-valuable.md",
+    "sha256": "4b8bdfef056e1f76f7a11dc33ee4d5fdb0a116007eebf266e17d4ce5643c986c",
+    "bytes": 1533
+  },
+  {
+    "path": "longs/L014-why-your-personal-brand-is-bigger-than-your-visual-identity.md",
+    "sha256": "b8e2dbcec4f84818c9f56d764a4948b5af1ac9e76ddbd86af3b40c24a73fa7ae",
+    "bytes": 1636
+  },
+  {
+    "path": "longs/L015-human-brand-vs-corporate-brand-which-should-you-build.md",
+    "sha256": "9ef53a684e6b24b166c2f94c17b809304744c9e88a0292400a3de097ae3076fa",
+    "bytes": 1535
+  },
+  {
+    "path": "longs/L016-the-credibility-stack-how-experts-become-believable-online.md",
+    "sha256": "016aaa758341692c148a122a073bfae017533349f3572788a4fd0c65ac8babd0",
+    "bytes": 1547
+  },
+  {
+    "path": "longs/L017-how-to-turn-your-personal-story-into-a-business-asset.md",
+    "sha256": "e7f52ea9fd79debccbb5a407bd306c4dfd980e5d56d941cc8b60bd06c159ba30",
+    "bytes": 1570
+  },
+  {
+    "path": "longs/L018-the-psychology-of-memorable-business-storytelling.md",
+    "sha256": "0534cc6542967b7eb10263e5b13281761c4d5fa0b1ee44c6e1df88255ae9bcdf",
+    "bytes": 1552
+  },
+  {
+    "path": "longs/L019-how-great-brands-use-transformation-stories.md",
+    "sha256": "eec5fc9ec24fc802e322e03006ec39b1efbfcd7d9de77ac3fb97482c76bb387b",
+    "bytes": 1519
+  },
+  {
+    "path": "longs/L020-storytelling-for-educational-content-teach-without-boring-people.md",
+    "sha256": "eee573c822157d72f7ee11e6cf7230e4051f6b36954a851a48e1edad206e9752",
+    "bytes": 1619
+  },
+  {
+    "path": "longs/L021-the-irresistible-offer-is-not-a-discount.md",
+    "sha256": "025aab0573ad4d4fbeb3fed2c16b7b561389a591aa1eeb5dc47218f6618aad1c",
+    "bytes": 1420
+  },
+  {
+    "path": "longs/L022-how-to-design-an-offer-people-can-say-yes-to.md",
+    "sha256": "eb1c3e15ee7938af3368a6f294923218bd4956fbf73119151f93fedf9dd25ae7",
+    "bytes": 1547
+  },
+  {
+    "path": "longs/L023-why-your-offer-feels-expensive-even-when-it-isn-t.md",
+    "sha256": "d0192c1eefd805282271e9285d96942c922cab889f96018c2c55a1b78e49fdc4",
+    "bytes": 1576
+  },
+  {
+    "path": "longs/L024-the-offer-twist-how-to-differentiate-the-same-core-service.md",
+    "sha256": "a7d2a7ed1cd57aec68c77579e05f575eafc340ad09ee37d4463a893588721119",
+    "bytes": 1491
+  },
+  {
+    "path": "longs/L025-promise-proof-price-the-anatomy-of-a-strong-offer.md",
+    "sha256": "82c8cc509a1d413c021d7a5582e4da8d4e72e89e975888632b0d42bc839dd796",
+    "bytes": 1518
+  },
+  {
+    "path": "longs/L026-how-to-raise-prices-without-losing-your-best-customers.md",
+    "sha256": "61f88b6bac528bb0d192dfb6a57520a5ad80968d93dc5c5dad31a7ccc82bdf30",
+    "bytes": 1599
+  },
+  {
+    "path": "longs/L027-stop-charging-by-the-hour-pricing-expertise-for-value.md",
+    "sha256": "08b3128f1f1de2fd411142fe2022c22bcc738194fd9862ce7dacc5c5f17edcf6",
+    "bytes": 1466
+  },
+  {
+    "path": "longs/L028-money-psychology-is-quietly-sabotaging-your-sales.md",
+    "sha256": "dd575d3e86f79f7b66b9754909a9f9ec100a30993be4295babc97e44bd3bd333",
+    "bytes": 1512
+  },
+  {
+    "path": "longs/L029-how-much-should-a-consultant-charge.md",
+    "sha256": "a0e39925cedeb9a1fff24088b6866484adaaaa6dc9fee63afcd463de434e9145",
+    "bytes": 1615
+  },
+  {
+    "path": "longs/L030-how-to-rebuild-a-weak-product-or-service.md",
+    "sha256": "ad37c995c18e59dcd03244cdaf7787b6ccecd14f92a2fb671dde5b0cc3ca7f56",
+    "bytes": 1596
+  },
+  {
+    "path": "longs/L031-why-innovation-usually-starts-with-recombination.md",
+    "sha256": "9b9a0795012fb07ff82b32d15f45c932ce75ac8f4a2920a5064b6f525fb31bb6",
+    "bytes": 1522
+  },
+  {
+    "path": "longs/L032-validate-your-idea-before-building-the-perfect-version.md",
+    "sha256": "fccd5487adeb8871ed4a8abd31883bdc47fd5410997377ae4318a879c515ca2c",
+    "bytes": 1399
+  },
+  {
+    "path": "longs/L033-how-to-find-clients-when-nobody-knows-you.md",
+    "sha256": "7a592cc1cd13226158a1673922624cc79aad3ba95b170b4ed681288fd04fb22b",
+    "bytes": 1600
+  },
+  {
+    "path": "longs/L034-prospecting-without-becoming-spammy.md",
+    "sha256": "0e90048e0adea5dfa43662501bc30f424203a54388b7b7e52c0566de6334a3ff",
+    "bytes": 1468
+  },
+  {
+    "path": "longs/L035-the-7-step-social-content-path-from-viewer-to-client.md",
+    "sha256": "77c94724191c4fab7d361a5bf5e45721bcb9b74c1a16d8fa62ed9126d6cf23a9",
+    "bytes": 1643
+  },
+  {
+    "path": "longs/L036-how-to-convert-attention-into-sales.md",
+    "sha256": "0b2f5c909a496871a884a5973dca7c1332ec244d33b3cab2ce1a7fcd32521dc1",
+    "bytes": 1521
+  },
+  {
+    "path": "longs/L037-why-more-leads-won-t-fix-a-broken-conversion-system.md",
+    "sha256": "ed5a9f21d4a1e5da3c6b0aca39f3f7f51ef277ee42b2a9ecfb6a50184e809ae8",
+    "bytes": 1390
+  },
+  {
+    "path": "longs/L038-how-to-win-back-clients-who-went-quiet.md",
+    "sha256": "bd745e449d399343555ef0f77e45a44a0891a1b6e6456824e4460be795954379",
+    "bytes": 1494
+  },
+  {
+    "path": "longs/L039-how-to-say-no-and-still-increase-trust.md",
+    "sha256": "1b299c1508a4ba6d410187dcc13fd91de809b5f87cf4877a2debf567313d659e",
+    "bytes": 1440
+  },
+  {
+    "path": "longs/L040-negotiation-without-desperation-protecting-value-in-sales.md",
+    "sha256": "a737e530d51db5c757bb69a2d8cf9b33234e9ba8a429df53adb240c210741776",
+    "bytes": 1526
+  },
+  {
+    "path": "longs/L041-why-buyer-personas-usually-don-t-help-you-sell.md",
+    "sha256": "98f020b6f1028766967bfc6641280fb22b1a68e990b0435583efef54229d6bf2",
+    "bytes": 1567
+  },
+  {
+    "path": "longs/L042-pain-vs-desire-what-actually-drives-a-purchase.md",
+    "sha256": "ee1ecef30060c54f05f3e3995351dad2eb5daef610550bfe141c35543b10ec7f",
+    "bytes": 1480
+  },
+  {
+    "path": "longs/L043-the-6-decision-triggers-behind-buying.md",
+    "sha256": "93f2b1ba8e70af5f87c5909f764286688c2a1a4ef578bedf5623976b48898073",
+    "bytes": 1518
+  },
+  {
+    "path": "longs/L044-how-to-profile-customers-without-stereotyping-them.md",
+    "sha256": "b16d9e42559dd90eb71bdf9f55dd4fb377e441cd31d56c18f975cfd8fbf9c62f",
+    "bytes": 1485
+  },
+  {
+    "path": "longs/L045-your-customer-doesn-t-want-your-product-they-want-an-outcome.md",
+    "sha256": "ece5e3283db44516d6689ccf0936358b2c82959623b04abd89c5c8c7b4bca16a",
+    "bytes": 1560
+  },
+  {
+    "path": "longs/L046-redesign-your-business-model-before-you-scale.md",
+    "sha256": "5d4944b3fb201fe2453bc47ca82d1e5a33130e2f9129251fe896c17220d1dba6",
+    "bytes": 1463
+  },
+  {
+    "path": "longs/L047-scaling-a-service-business-without-scaling-chaos.md",
+    "sha256": "b103e72c6d360af1b00d804c16e61b846633bf19ef94e2fc3adf4fb818b4cc06",
+    "bytes": 1556
+  },
+  {
+    "path": "longs/L048-growth-without-retention-is-a-leaky-bucket.md",
+    "sha256": "c017266d3600e72462016acfd86f184cf906c9fa38a963fb7948fceac0c8065a",
+    "bytes": 1442
+  },
+  {
+    "path": "longs/L049-how-to-build-a-consulting-business-around-a-repeatable-system.md",
+    "sha256": "3f1e44d15175d1696757c985a586b6897427a696638100215e4b8be1be1e6c94",
+    "bytes": 1695
+  },
+  {
+    "path": "longs/L050-the-expert-business-flywheel-positioning-offer-content-sales-retention.md",
+    "sha256": "8e0e9f2b16ea923491c45708f8620180924987efc98210efe040d4bead363780",
+    "bytes": 1800
+  },
+  {
+    "path": "production-wave-01/README.md",
+    "sha256": "20d0ae435e480fb048639604a36e2343b42ce0ef39d6817919d1c2c70de992f5",
+    "bytes": 1712
+  },
+  {
+    "path": "production-wave-01/qa.json",
+    "sha256": "fb483f33b92684f0dd8773276b385a7e70466851797b3fa00661c8addd5c9614",
+    "bytes": 10745
+  },
+  {
+    "path": "production-wave-01/scripts/longs/L004.txt",
+    "sha256": "a1be53344a362c73f5a94b7effe56755dd2a16c71f52a249ec789573830c0038",
+    "bytes": 9580
+  },
+  {
+    "path": "production-wave-01/scripts/longs/L011.txt",
+    "sha256": "341ced15262ccaab3f01b3c05c5045bd34a0a938dd1781927508a881b28fb421",
+    "bytes": 9551
+  },
+  {
+    "path": "production-wave-01/scripts/longs/L018.txt",
+    "sha256": "da3feb279a51188cca330027bc334bfdcd401efb7ff692393d76b697be7d0bca",
+    "bytes": 9593
+  },
+  {
+    "path": "production-wave-01/scripts/longs/L022.txt",
+    "sha256": "58b680ad6c47090a7c56b8db303f922ff99e153ec2c3fb169ccc7e6e5ea8dd59",
+    "bytes": 9318
+  },
+  {
+    "path": "production-wave-01/scripts/longs/L050.txt",
+    "sha256": "662112e8d4c872a6243622a0aae869e332b4765b0a04c3aaacc1116bcbcd40a5",
+    "bytes": 9503
+  },
+  {
+    "path": "production-wave-01/scripts/shorts/S001.txt",
+    "sha256": "a76edb0919895cfa586393833fe425db4cadc54dba4ca7f4f278d7e8efd97034",
+    "bytes": 1349
+  },
+  {
+    "path": "production-wave-01/scripts/shorts/S021.txt",
+    "sha256": "fab603360a571937bc632051bee44ee9e028f65ec4a640713393ffc2a2d036f2",
+    "bytes": 1366
+  },
+  {
+    "path": "production-wave-01/scripts/shorts/S027.txt",
+    "sha256": "31c4bacba8a2db7ee00e1794115c3da063263820169287201f41a979d6e97bad",
+    "bytes": 1338
+  },
+  {
+    "path": "production-wave-01/scripts/shorts/S031.txt",
+    "sha256": "41b1379765a06f5b893f248fd721b6f622a040ed1e045845ca61bd009f6dc062",
+    "bytes": 1432
+  },
+  {
+    "path": "production-wave-01/scripts/shorts/S041.txt",
+    "sha256": "5db7625d29f40783d4ea5a9784106e8ff2fb2050aae8e975269f6c5dbfce20db",
+    "bytes": 1480
+  },
+  {
+    "path": "shorts/S001-why-being-good-at-your-job-isn-t-enough.md",
+    "sha256": "95374c3794254a852cdbe557d9b5b0999bb998f99d8cadf5fe64ecb2b42acae6",
+    "bytes": 1413
+  },
+  {
+    "path": "shorts/S002-the-fastest-way-to-become-the-expert.md",
+    "sha256": "ac7bb8de2997397e155c295f5b5dcde05395a647b8e65d06dfcab586b990dc01",
+    "bytes": 1430
+  },
+  {
+    "path": "shorts/S003-your-niche-is-probably-still-too-broad.md",
+    "sha256": "c28825ecc1ff9322179766dd63daee3b1bd00c6e706bd8773b7d80821a3a31dc",
+    "bytes": 1332
+  },
+  {
+    "path": "shorts/S004-stop-saying-i-help-everyone.md",
+    "sha256": "6fe89a22e2b7ae9eed5561ecaf00ef1f0be4b56720fd0407a426a875818279d0",
+    "bytes": 1438
+  },
+  {
+    "path": "shorts/S005-positioning-is-not-what-you-say-you-are.md",
+    "sha256": "942a6b8de2d15d8b963c2f86ace4c1d155b016c17a0aaa7ee8699e60ffb17d5a",
+    "bytes": 1388
+  },
+  {
+    "path": "shorts/S006-the-3-questions-behind-strong-positioning.md",
+    "sha256": "f87ce7ca1874faad0c82dbf6d59cb447df23c45a264d0ee8b96c947f81d111f6",
+    "bytes": 1321
+  },
+  {
+    "path": "shorts/S007-if-people-don-t-understand-what-you-do-fix-this.md",
+    "sha256": "bfb2ca6a987cff4827034cdc7c4ea8dcd4e2dd71fd388713fca6b6ee7522a93c",
+    "bytes": 1471
+  },
+  {
+    "path": "shorts/S008-the-best-differentiation-strategy-may-come-from-another-industry.md",
+    "sha256": "696afb2bb708bece18103893e0e25c9be15d10146df68d1dfca9b1b45a26f33f",
+    "bytes": 1432
+  },
+  {
+    "path": "shorts/S009-your-weird-skill-combination-is-an-advantage.md",
+    "sha256": "fcce11c529a103fadb227cf75f6e626246bec1523a021a46fb432b8fec34e657",
+    "bytes": 1453
+  },
+  {
+    "path": "shorts/S010-don-t-study-only-your-competitors.md",
+    "sha256": "01153a71a8837d56a535481f5cdf73413d4dc3c9ddb4c8d5ec99c38694521c59",
+    "bytes": 1469
+  },
+  {
+    "path": "shorts/S011-why-experts-need-a-method.md",
+    "sha256": "5e5ac2e8a504701fb79fd3807e3304639dbbd7ba097c6843b28b3fc488c5aa71",
+    "bytes": 1429
+  },
+  {
+    "path": "shorts/S012-don-t-give-away-your-method-to-prove-you-have-one.md",
+    "sha256": "c8d5b31e9e87c02a572483aa5b3b536f84dfa759b591768d8b98cd133773894e",
+    "bytes": 1404
+  },
+  {
+    "path": "shorts/S013-should-you-name-your-method.md",
+    "sha256": "a5a52eee2073c3eca5da0bb2928f092865d62888c6a8d6e192d7cf3e1b0edc47",
+    "bytes": 1347
+  },
+  {
+    "path": "shorts/S014-authority-before-audience.md",
+    "sha256": "cd68aea2a006dd6bb6613d09b92fc2c00241b7c0a2d9678f80b5902f75c3ffea",
+    "bytes": 1388
+  },
+  {
+    "path": "shorts/S015-the-book-that-positions-you-before-you-enter-the-room.md",
+    "sha256": "7b7e2bcc4ff261090fa5ce3baf190809f622fec9fc4e3a8191fb307fd9d39904",
+    "bytes": 1420
+  },
+  {
+    "path": "shorts/S016-you-don-t-need-more-skills.md",
+    "sha256": "5eb1e2674116b53a584e93cc489957347b934e2d965d44d4f9d8015c63064a9d",
+    "bytes": 1450
+  },
+  {
+    "path": "shorts/S017-what-you-do-and-what-you-refuse-to-do.md",
+    "sha256": "84d8bca7316e04a905df8cf768ad9d2ebd83301acc918e4dc12c4e086b478fe3",
+    "bytes": 1377
+  },
+  {
+    "path": "shorts/S018-why-credibility-beats-polished-branding.md",
+    "sha256": "3c25ba0abd9a61ac9f058c70be63df261b397712013354001b292371838ce878",
+    "bytes": 1338
+  },
+  {
+    "path": "shorts/S019-personal-brand-is-not-your-logo.md",
+    "sha256": "3a757e387f45b7f3f93f9ef149b3b871929233aff44da17cc385710bef712a2b",
+    "bytes": 1388
+  },
+  {
+    "path": "shorts/S020-the-strongest-personal-brands-amplify-not-invent.md",
+    "sha256": "f7b5a2e78139d785d5fc5bdb21992d8728121588015a765ac69bb796b2a8e40d",
+    "bytes": 1496
+  },
+  {
+    "path": "shorts/S021-cheap-pricing-can-make-you-harder-to-trust.md",
+    "sha256": "17d8565b6d9567289edc3c2e0fcd31ed712963a382a807c528f37ed8b57a791f",
+    "bytes": 1428
+  },
+  {
+    "path": "shorts/S022-stop-charging-only-for-your-time.md",
+    "sha256": "66dafe613b6c6d5e07361856367820d146624f0d2339cdb2765ec61d06cd330e",
+    "bytes": 1435
+  },
+  {
+    "path": "shorts/S023-raising-prices-can-create-a-sales-spike.md",
+    "sha256": "e388fcbb00215a81282c91f076517b12fc32a6db5f7656bfcb66c235b2529af3",
+    "bytes": 1379
+  },
+  {
+    "path": "shorts/S024-your-price-problem-might-be-a-positioning-problem.md",
+    "sha256": "d7c9d58041c3b91eb19cab5b0379b9cae5768f853e994c22716bcfb4a4ae481d",
+    "bytes": 1423
+  },
+  {
+    "path": "shorts/S025-why-experts-feel-guilty-charging-more.md",
+    "sha256": "1e1bd9f6450ada0b0e0e6df6900edf06a15857fd78ed1c27baf5f6d0e90ca785",
+    "bytes": 1428
+  },
+  {
+    "path": "shorts/S026-the-price-is-not-just-a-number.md",
+    "sha256": "d619b2bf38b0477965ec8cebf6924191ab74e534dfb97abd2fd67175937012fa",
+    "bytes": 1328
+  },
+  {
+    "path": "shorts/S027-never-discount-a-weak-offer.md",
+    "sha256": "c00af3b0fddc8982206953ba45cb27c8be38c4f3d094c95b4134aec54d059754",
+    "bytes": 1319
+  },
+  {
+    "path": "shorts/S028-discounts-train-customers-to-wait.md",
+    "sha256": "25f48b0a4703323b914f65f225bdcd21bacbe823186725357be1918d7fd755b0",
+    "bytes": 1326
+  },
+  {
+    "path": "shorts/S029-make-the-offer-easier-to-understand-not-cheaper.md",
+    "sha256": "9d7a60003309788357154fd6df5d62ecd3c510d72bf9b99ab6af94d00f9cd140",
+    "bytes": 1448
+  },
+  {
+    "path": "shorts/S030-your-offer-needs-a-twist-not-more-bonuses.md",
+    "sha256": "0d39bdff59145cd1d941228b49a83b385a5841278449d8f480edf875046059a6",
+    "bytes": 1454
+  },
+  {
+    "path": "shorts/S031-people-don-t-buy-services-they-buy-change.md",
+    "sha256": "450e47e915c71740c0ec65e31d763ed0587df37794cc81e0961bae7f6753ca81",
+    "bytes": 1449
+  },
+  {
+    "path": "shorts/S032-the-difference-between-a-product-and-an-offer.md",
+    "sha256": "f481b184af22d08998abbbeb4710b834069a87982e9e3b298238a476eb998875",
+    "bytes": 1474
+  },
+  {
+    "path": "shorts/S033-validate-before-you-perfect.md",
+    "sha256": "b3f2621918940a1bc9046bcb271e393c1b19b74e6e96a7a5d0591c2b690183ed",
+    "bytes": 1385
+  },
+  {
+    "path": "shorts/S034-you-don-t-need-more-leads-if-this-is-broken.md",
+    "sha256": "712b5e51cf46eeef57bbdb0a3f62e9c64f6766a0cc4f584fb4a92cc8157a08bf",
+    "bytes": 1445
+  },
+  {
+    "path": "shorts/S035-why-retention-beats-constant-acquisition.md",
+    "sha256": "5329146a9b45328b441ad160a421da27453b46ede2539fdaee50da3c89d0b062",
+    "bytes": 1352
+  },
+  {
+    "path": "shorts/S036-a-free-advice-request-is-actually-a-positioning-signal.md",
+    "sha256": "a1f9f7463b670eacbf9476166a3291a293e2d78e99921233a5fa51ee05557c48",
+    "bytes": 1397
+  },
+  {
+    "path": "shorts/S037-how-to-say-no-to-free-consulting-without-burning-the-lead.md",
+    "sha256": "75862ebc3876fa537625e548cfee6333379f96637d87a580527d356dec7283d5",
+    "bytes": 1423
+  },
+  {
+    "path": "shorts/S038-how-to-reject-the-wrong-client-without-damaging-your-brand.md",
+    "sha256": "3cafe3b8702546c986cedd4302290ad77fb987233ba904d21b12f2052db955a1",
+    "bytes": 1349
+  },
+  {
+    "path": "shorts/S039-stop-trying-to-close-everyone.md",
+    "sha256": "27b3f58b8aa6f14de2b201e8dee6c680465945273096c3137456bb245c8457ef",
+    "bytes": 1449
+  },
+  {
+    "path": "shorts/S040-awareness-content-and-conversion-content-are-not-the-same.md",
+    "sha256": "d150cf5335dd71e427b1f31426d1c4f73b3cb68055463413de5f15259f6a7edc",
+    "bytes": 1472
+  },
+  {
+    "path": "shorts/S041-your-customer-isn-t-buying-your-solution.md",
+    "sha256": "6a7cbf10da544957b4c841c8bee83b7072096f2758e0d1238c94c696875d793c",
+    "bytes": 1452
+  },
+  {
+    "path": "shorts/S042-sell-the-pain-they-recognize-not-the-solution-you-love.md",
+    "sha256": "e2de323fd462b80e5d74ac7267ccaaab4a637381bc6e2283c1a0757f2b32e0a1",
+    "bytes": 1428
+  },
+  {
+    "path": "shorts/S043-the-6-buying-buttons-behind-decisions.md",
+    "sha256": "5843b93bd38e0c211de935d99dd6ee3344012fcf8e7b0c306731658ce197df6b",
+    "bytes": 1516
+  },
+  {
+    "path": "shorts/S044-buyer-personas-fail-when-they-stop-at-demographics.md",
+    "sha256": "90cdff49d31a511c22b017a3189eb5057d0aba3274e43a5fa9c6afaed44b8bad",
+    "bytes": 1482
+  },
+  {
+    "path": "shorts/S045-storytelling-is-not-tell-your-story.md",
+    "sha256": "e42b5f2d02a209566706ce73b3dfca17b52a843d5d4f9263ec55b19da5eeb771",
+    "bytes": 1438
+  },
+  {
+    "path": "shorts/S046-emotion-makes-information-memorable.md",
+    "sha256": "fc7024958630211789cf5cc7375fd3f11015748cbca548e00127869a8c981ee9",
+    "bytes": 1465
+  },
+  {
+    "path": "shorts/S047-every-business-story-needs-a-before-and-after.md",
+    "sha256": "56b946b5a666340dc7b7b92c605d61c08243b1e7b43bd035c5a3e3aee90e3aab",
+    "bytes": 1382
+  },
+  {
+    "path": "shorts/S048-stop-making-yourself-the-hero.md",
+    "sha256": "5dd910b591b84ded4d1e57e1eab5cb585c31a210ede16e02d9b8623777971ef2",
+    "bytes": 1425
+  },
+  {
+    "path": "shorts/S049-what-batman-can-teach-you-about-branding.md",
+    "sha256": "487666718c0b243818a17974e34192ea32592ead2006dc6b7a9f6a58dcd4e8bb",
+    "bytes": 1634
+  },
+  {
+    "path": "shorts/S050-failure-is-useful-only-if-you-tell-it-this-way.md",
+    "sha256": "1dc122a5ec4da0b292686bcfb2b836924108400395019cd48eafdf5b993a2c55",
+    "bytes": 1496
+  },
+  {
+    "path": "sources/source-index.md",
+    "sha256": "6c1aa2be43de1a5e52945bf453b23c265ab30d55050f9dc819a8e2e0731aae3d",
+    "bytes": 7835
+  },
+  {
+    "path": "sources/source-library.json",
+    "sha256": "b0248ecddc5699e34a965a27d67b382fc3d4ba42a099b26c660d21bf027a29b1",
+    "bytes": 1871224
+  },
+  {
+    "path": "story-slate.json",
+    "sha256": "efff714ebbe84c968a942918a30f90dbfe791cdd5fdb617316b61271b7d00108",
+    "bytes": 116868
+  },
+  {
+    "path": "story-slate.md",
+    "sha256": "c1a9aec3be2acc76ce0793c92d6f6ff06b16cdb3383f1319e06106476a5547f2",
+    "bytes": 12678
+  }
+]

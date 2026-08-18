@@ -139,6 +139,12 @@ export function planVeronicaRenderDerivative(
   if (renderManifest.narrationAudioPath !== voice.audioPath) {
     throw new Error("VERONICA_RENDER_VOICE_AUDIO_MISMATCH");
   }
+  if (
+    renderManifest.canonicalContentIdentity.locale !== input.locale ||
+    renderManifest.canonicalContentIdentity.storyId !== localeEdition.episodeId
+  ) {
+    throw new Error("VERONICA_RENDER_CANONICAL_IDENTITY_MISMATCH");
+  }
   if (localeEdition.locale !== input.locale || localeEdition.productionRevisionId !== input.productionRevisionId) {
     throw new Error("VERONICA_RENDER_LOCALE_REVISION_MISMATCH");
   }

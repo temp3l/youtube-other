@@ -1,0 +1,571 @@
+{
+  "schemaVersion": "veronica-en-autonomous-production-readiness-run.v1",
+  "generatedAt": "2026-08-12T21:19:27.561Z",
+  "finalState": "BLOCKED_SYSTEMIC",
+  "portfolio": {
+    "englishSources": 48,
+    "deterministicPass": 1,
+    "deterministicBlock": 47,
+    "fullyPreImageReady": 1,
+    "imageComplete": 0,
+    "missingProductionInputs": 30,
+    "staleProvenance": 14,
+    "staleAtomicChains": 14,
+    "episodeSpecificFailures": 0,
+    "editorialHumanDecisions": 1,
+    "canaryImagesGenerated": 3
+  },
+  "canary01a": {
+    "sourceHash": "4e82a65208256d74b2171c4475ee624d9506cfd6f0b21b1f055074d4062c7503",
+    "narrationHash": "4e82a65208256d74b2171c4475ee624d9506cfd6f0b21b1f055074d4062c7503",
+    "selectedAudioHash": "2dfc4193f3b325d98bb972d64af168b8dddf9d7f34d267710144965be6190622",
+    "timingHash": "67e2a4539d37d41e6cf574c73e360697cb294d037243bdd1be3daf3c6c7ccbb2",
+    "durationSeconds": 71.6,
+    "wordsPerMinute": 154.2,
+    "deterministicQa": {
+      "scenes": "8/8 PASS",
+      "beats": "13/13 PASS",
+      "sequence": "PASS"
+    },
+    "paidQa": {
+      "preImageAcceptedCalls": 6,
+      "imageQaAttempts": 13,
+      "imageQaCompletedCalls": 9,
+      "imageQaApprovedCalls": 1,
+      "imageQaRejectedOrMalformedZeroUsageCalls": 4,
+      "model": "gpt-5.4-mini"
+    },
+    "currentReviewPack": {
+      "overallValidity": true,
+      "humanHashBoundApproval": true
+    },
+    "imageCanary": "3/3 PIXELS CURRENT; S02-B01 STRICT QA PASS; ADOPTED HOOK-B04 V4 DIAGRAM STRICT QA FAIL; S01-B02 WITHHELD",
+    "completeImageSet": "NOT_RUN",
+    "blocker": "Four bounded HOOK-B04 diagram variants failed strict admission. V4 preserved the legible 19:1 output but the separate blocked-order consequence still required narration (semantic 0.66, instant-read 0.62, narration support 0.58). Further automated diagram retries are stopped pending a different human-selected metaphor."
+  },
+  "systemicRemediation": [
+    {
+      "rootCause": "The narration canary surface used a legacy noncreator dispatch context and the recensus mislabeled current audio/timing chains without visual plans as missing production inputs.",
+      "change": "Add an exact-authorization, one-call-per-episode narration canary with durable reservation/cache/timing provenance and classify current chains independently from downstream visual-plan state.",
+      "regression": "veronica-narration-canary focused tests, CLI typecheck/build, exact source/audio/timing hash checks, and recensus invariants",
+      "result": "PASS; 3/3 requests completed with no retry and all atomic chains are current"
+    },
+    {
+      "rootCause": "Paragraph-level source segmentation manufactured generic duration-filler scenes for multi-sentence Shorts.",
+      "change": "Use sentence-aware balanced source beats and bump the derived-plan identity to v2.4.",
+      "regression": "visual-plan-resolver focused tests",
+      "result": "PASS 9/9; 03b/08b/02b plans contain only source-derived scenes"
+    },
+    {
+      "rootCause": "Density and adjacency gates treated unresolved sentences and the unclassified 'other' action family as proof of semantic duplication.",
+      "change": "Count only resolved proposition identities for density and exclude unknown action classifications from equality evidence.",
+      "regression": "veronica-visual-beats and veronica-sequence-diversity focused tests",
+      "result": "PASS 22/22; all three provider-free preparation canaries completed"
+    },
+    {
+      "rootCause": "Streaming WAV unknown-length sentinels were interpreted as literal audio size, and HELD reservations were omitted from conservative remaining budget.",
+      "change": "Clamp WAV data to completed bytes, discover reservations dynamically, and subtract HELD canonical ceilings.",
+      "regression": "Affected-package builds, three timing rematerializations, duration/hash checks, and recensus ledger checks",
+      "result": "PASS; durations restored to 57.8/65.8/68.2 seconds and the unused QA reservation released in full"
+    },
+    {
+      "rootCause": "Reviewed beat overrides were being diversified after review.",
+      "change": "Lock reviewed beat IDs during deterministic sequence refinement.",
+      "regression": "veronica-visual-beats and veronica-sequence-diversity focused tests",
+      "result": "PASS"
+    },
+    {
+      "rootCause": "Grounded economic/audience actions collapsed into repeated visual families.",
+      "change": "Expand proposition-preserving action and presentation families without prompt-only variation.",
+      "regression": "veronica-sequence-diversity focused tests",
+      "result": "PASS"
+    },
+    {
+      "rootCause": "Prompt hierarchy checks treated negated/per-clause hierarchy language as inversion.",
+      "change": "Clause-aware hierarchy polarity and negation handling.",
+      "regression": "veronica-image-prompt-compiler focused tests",
+      "result": "PASS"
+    },
+    {
+      "rootCause": "Malformed strict-schema cache records could suppress an explicitly authorized bounded retry.",
+      "change": "Require an explicit retry flag and preserve budget limits and audit records.",
+      "regression": "source-grounded-visual-qa and CLI composition focused tests",
+      "result": "PASS"
+    },
+    {
+      "rootCause": "Legacy remediation ownership and incomplete locale trees could corrupt deterministic materialization.",
+      "change": "Explicit rebase option, complete-locale checks, and fail-closed persistence.",
+      "regression": "adapter, CLI, resolver, and visual-beat focused tests",
+      "result": "PASS"
+    },
+    {
+      "rootCause": "The bounded combined-run total was being mistaken for the global historical ledger.",
+      "change": "Aggregate every durable active/archived call summary and store provider USD plus conservative canonical EUR.",
+      "regression": "Recensus invariant checks and cost-ledger path reconciliation",
+      "result": "PASS; 9 failed calls retained and reconciled to USD 0 from zero organization usage in every affected minute"
+    },
+    {
+      "rootCause": "The post-generation Responses evaluator sent an unsupported temperature parameter to gpt-5.4-mini.",
+      "change": "Remove temperature from the evaluator configuration and provider request while retaining reasoning and output-token controls.",
+      "regression": "Affected-package TypeScript build; provider retry intentionally withheld at the request ceiling.",
+      "result": "PASS (build); live replacement QA pending authorization"
+    },
+    {
+      "rootCause": "The former QA-existing resume route still entered image planning, so plan-hash drift could trigger generation.",
+      "change": "Route existing-pixel QA through a separate sequential hash-verifying path that never constructs the image generator and forbids force/regeneration.",
+      "regression": "images-resume-command focused test",
+      "result": "PASS 7/7"
+    },
+    {
+      "rootCause": "A reviewed code-native diagram could not become a canonical scene asset through a resumable, provenance-bound operation.",
+      "change": "Add one-scene deterministic adoption with strict artifact/source/review bindings, failed-pixel archival, atomic replacement, replay safety, immediate QA-only continuation, and a strict union for scene-specific geometry contracts.",
+      "regression": "images-resume-command focused adoption test, CLI typecheck/build, and recensus adoption identity assertions",
+      "result": "PASS 9/9; both legacy stepped-path and generalized radial-funnel provenance remain fail-closed"
+    },
+    {
+      "rootCause": "HOOK-B04 provider pixels were portrait-dominant generic business imagery, obscuring the withheld-order and weak-unit-economics consequence.",
+      "change": "Create one noncanonical text-free radial funnel prototype with exact 20 = 19 cost + 1 retained conservation and a separate withheld prospective order.",
+      "regression": "SVG/PNG hash, dimension, conservation, subtitle-safe, text/external-asset, and visual-distinction checks",
+      "result": "PASS locally; exact-hash modality review required before adoption or paid QA"
+    },
+    {
+      "rootCause": "HOOK-B04 v1's abstract order disk left narration support below the strict threshold despite passing must-show and causal checks.",
+      "change": "Replace the abstract disk in a noncanonical v2 prototype with two matching parcel/payment bundles separated by a raised physical stop; retain the radial cost grammar and exact conservation.",
+      "regression": "V2 SVG/PNG hashes, dimensions, output-pellet conservation, subtitle-safe, text/external-asset, likeness, visual-distinction checks, and chained-adoption focused test",
+      "result": "PASS locally and adoption provenance current; strict QA FAIL because four similar cost trays obscured the 19:1 relationship"
+    },
+    {
+      "rootCause": "HOOK-B04 v2's four similar cost trays communicated peer categories before the intended 19:1 magnitude.",
+      "change": "Create a noncanonical v3 with one dominant reservoir containing a regular 5 + 5 + 5 + 4 field and one equal-size pellet isolated in a tiny retained container; preserve the successful order and stop geometry.",
+      "regression": "V3 SVG/PNG hashes, 864x1536 dimensions, 19 + 1 pellet counts, subtitle-safe bounds, no text/external refs, canonical-asset immutability, visual inspection, and recensus identity assertions",
+      "result": "PASS locally and adopted; strict QA recognized the 19-unit reservoir and one retained unit but narrowly failed because the withheld-order stop remained ambiguous"
+    },
+    {
+      "rootCause": "The strict deterministic-adoption union did not yet represent v3's single-reservoir geometry contract.",
+      "change": "Add a strict v3 schema and route it through the existing chained source/review/adoption/archive checks without weakening any identity or QA gate.",
+      "regression": "images-resume-command focused test extended through a third chained adoption, CLI typecheck, and CLI build",
+      "result": "PASS 9/9; canonical v2 adoption and pixels archived; image-provider calls 0"
+    },
+    {
+      "rootCause": "HOOK-B04 v3's thin gray stop did not make the withheld second order unmistakable within the strict instant-read window.",
+      "change": "Create a noncanonical v4 with a wide grounded coral gate, move the matching parcel/payment bundle entirely outside it, reduce hand/arm clutter, and preserve the accepted v3 19:1 output geometry.",
+      "regression": "V4 hashes, 864x1536 dimensions, exact 19 + 1 count, no text/external refs, canonical-v3 immutability, visual inspection, and recensus identity assertions",
+      "result": "PASS locally and adopted; strict QA FAIL because the gate/order consequence still required narration, so the automated diagram-iteration loop is stopped"
+    },
+    {
+      "rootCause": "The strict deterministic-adoption union did not yet represent v4's grounded-gate geometry contract.",
+      "change": "Add a strict v4 schema and preserve the same chained source/review/adoption/archive invariants.",
+      "regression": "images-resume-command focused test extended through four chained versions, CLI typecheck, and CLI build",
+      "result": "PASS 9/9; canonical v3 adoption and pixels archived; image-provider calls 0"
+    },
+    {
+      "rootCause": "The evaluator relied on prompted JSON and did not persist Responses usage evidence.",
+      "change": "Use strict Responses text.format json_schema and write episode-local pre-dispatch/terminal usage logs.",
+      "regression": "veronica-post-generation-visual-qa focused test",
+      "result": "PASS 4/4; verified against official OpenAI structured-output documentation"
+    },
+    {
+      "rootCause": "A failed-review remediation could not start directly from persisted QA instructions without spending first on the base prompt.",
+      "change": "Add a one-scene, hash-bound remediation-review path that preserves rejected pixels, requires force, and forbids automatic retries.",
+      "regression": "images-resume-command focused test and CLI typecheck/build",
+      "result": "PASS 8/8; live path dispatched exactly one image and one QA request"
+    },
+    {
+      "rootCause": "Materializing a fully rendered provider prompt as the compiler prompt duplicated provider wrappers.",
+      "change": "Bind review identity to the prior manifest prompt but construct remediation from the canonical compiler prompt.",
+      "regression": "Focused test assertion added; not rerun after the final one-line correction because the task verification budget was exhausted.",
+      "result": "SOURCE FIXED; CLI BUILD PASS"
+    },
+    {
+      "rootCause": "The approved S02-B01 conservation treatment existed only in conversational state and was not reproducibly bound to production provenance.",
+      "change": "Persist a strict operator decision artifact and verify source, semantic plan, review pack, human approval, failed review, prompt, and rejected-pixel hashes before prompt materialization.",
+      "regression": "images-resume-command focused test and recensus identity assertions",
+      "result": "PASS; decision state CURRENT_APPROVED"
+    }
+  ],
+  "providerActivity": {
+    "thisRun": {
+      "qa": {
+        "requests": 13,
+        "completed": 9,
+        "approved": 1,
+        "materialFailures": 8,
+        "providerRejectedOrMalformedZeroUsage": 4
+      },
+      "tts": {
+        "requests": 3,
+        "completed": 3,
+        "failed": 0
+      },
+      "images": {
+        "requests": 6,
+        "successful": 6,
+        "unauthorizedDuringQaOnly": 1
+      },
+      "thumbnails": 0,
+      "renders": 0,
+      "publication": 0,
+      "playlists": 0
+    },
+    "cacheReuse": {
+      "adoptedExistingPixelsCurrent": 3,
+      "currentAuthorizedReplacementPixels": 0,
+      "narrationCacheHits": 0,
+      "qaCacheMisses": 9,
+      "retries": 0,
+      "reservationsCreated": 13,
+      "reservationsReleasedBeforeDispatch": 1,
+      "reservationsStillHeld": 0
+    },
+    "cumulativeOpenAiPaidCalls": 175,
+    "cumulativeLoggedTerminalFailedCalls": 9,
+    "historicalLoggedUnpricedCalls": 9,
+    "historicalReconciledZeroCostCalls": 9,
+    "historicalUnpricedCalls": 0
+  },
+  "cost": {
+    "schemaVersion": "veronica-en-portfolio-cost-ledger.v2",
+    "generatedAt": "2026-08-12T21:19:27.561Z",
+    "canonicalCurrency": "EUR",
+    "budgetCeilingEur": 4.883016,
+    "budgetAuthorizations": {
+      "original": {
+        "amount": 2.5,
+        "currency": "EUR"
+      },
+      "incremental": {
+        "amount": 2.5,
+        "currency": "USD",
+        "conservativeCanonicalAmountEur": 2.383016
+      },
+      "policy": "The incremental USD allowance is added to, not substituted for, the original EUR ceiling."
+    },
+    "providerCurrency": "USD",
+    "conversion": {
+      "observationDate": "2026-08-11",
+      "source": "European Central Bank reference rate",
+      "sourceUrl": "https://data-api.ecb.europa.eu/service/data/EXR/D.USD.EUR.SP00.A",
+      "observedUsdPerEur": 1.154,
+      "policy": "Convert USD to EUR at ECB reference, then apply a 10% adverse-FX safety multiplier.",
+      "safetyMultiplier": 1.1,
+      "conservativeEurPerUsd": 0.953206239
+    },
+    "historicalSpendEnteringRun": {
+      "knownEstimatedCostUsd": 2.334121,
+      "loggedUnpricedProviderCalls": 9,
+      "reconciledZeroCostCalls": 9,
+      "outstandingUnpricedProviderCalls": 0,
+      "knownCanonicalCostEur": 2.224899,
+      "exactCanonicalCostEur": null
+    },
+    "newSpendThisRun": {
+      "providerRequests": 22,
+      "successfulPaidProviderCalls": 18,
+      "rejectedZeroUsageCalls": 4,
+      "costUsd": 0.156173,
+      "costEur": 0.148864
+    },
+    "cumulativeSpend": {
+      "knownEstimatedCostUsd": 2.490294,
+      "knownCanonicalCostEur": 2.373764,
+      "exactCanonicalCostEur": null,
+      "accountingStatus": "COMPLETE_CONSERVATIVE"
+    },
+    "remainingBudgetEur": 2.509252,
+    "conservativeRemainingBudgetEur": 2.509252,
+    "reservationsStillHeldEur": 0,
+    "paidProviderCalls": 175,
+    "failedProviderCalls": 9,
+    "unpricedProviderCalls": 0,
+    "reconciliation": {
+      "evidencePath": "docs/reports/codex-runs/2026-08-12-veronica-en-cost-reconciliation-evidence.json",
+      "status": "COMPLETE_ZERO_USAGE_RECONCILIATION",
+      "httpStatus": 200,
+      "missingScope": null,
+      "loggedUnpricedProviderCalls": 9,
+      "reconciledZeroCostCalls": 9,
+      "outstandingUnpricedProviderCalls": 0,
+      "canaryEvidencePath": "docs/reports/codex-runs/2026-08-12-veronica-01a-image-canary-cost-evidence.json"
+    },
+    "entries": [
+      {
+        "episodeRoot": "episodes/01a-revenue-is-not-a-good-business",
+        "provider": "openai",
+        "paidProviderCalls": 90,
+        "successfulProviderCalls": 87,
+        "failedProviderCalls": 3,
+        "unpricedProviderCalls": 3,
+        "knownEstimatedCostUsd": 1.364073,
+        "totalEstimatedCostUsd": null,
+        "costCoverage": "PARTIAL",
+        "summaryPath": "episodes/01a-revenue-is-not-a-good-business/openai-cost-summary.json",
+        "unpricedOperations": [
+          {
+            "operation": "source-grounded-scene-judge",
+            "calls": 1
+          },
+          {
+            "operation": "source-grounded-scene-judge-batch",
+            "calls": 2
+          }
+        ]
+      },
+      {
+        "episodeRoot": "episodes/02b-stop-posting-where-your-customers-arent",
+        "provider": "openai",
+        "paidProviderCalls": 1,
+        "successfulProviderCalls": 1,
+        "failedProviderCalls": 0,
+        "unpricedProviderCalls": 0,
+        "knownEstimatedCostUsd": 0.01705,
+        "totalEstimatedCostUsd": 0.01705,
+        "costCoverage": "COMPLETE",
+        "summaryPath": "episodes/02b-stop-posting-where-your-customers-arent/openai-cost-summary.json",
+        "unpricedOperations": []
+      },
+      {
+        "episodeRoot": "episodes/03b-the-promise-formula",
+        "provider": "openai",
+        "paidProviderCalls": 1,
+        "successfulProviderCalls": 1,
+        "failedProviderCalls": 0,
+        "unpricedProviderCalls": 0,
+        "knownEstimatedCostUsd": 0.01445,
+        "totalEstimatedCostUsd": 0.01445,
+        "costCoverage": "COMPLETE",
+        "summaryPath": "episodes/03b-the-promise-formula/openai-cost-summary.json",
+        "unpricedOperations": []
+      },
+      {
+        "episodeRoot": "episodes/08b-prospecting-without-being-annoying",
+        "provider": "openai",
+        "paidProviderCalls": 1,
+        "successfulProviderCalls": 1,
+        "failedProviderCalls": 0,
+        "unpricedProviderCalls": 0,
+        "knownEstimatedCostUsd": 0.01645,
+        "totalEstimatedCostUsd": 0.01645,
+        "costCoverage": "COMPLETE",
+        "summaryPath": "episodes/08b-prospecting-without-being-annoying/openai-cost-summary.json",
+        "unpricedOperations": []
+      },
+      {
+        "episodeRoot": "episodes/l01-s01-being-good-isnt-enough",
+        "provider": "openai",
+        "paidProviderCalls": 25,
+        "successfulProviderCalls": 23,
+        "failedProviderCalls": 2,
+        "unpricedProviderCalls": 2,
+        "knownEstimatedCostUsd": 0.516306,
+        "totalEstimatedCostUsd": null,
+        "costCoverage": "PARTIAL",
+        "summaryPath": "episodes/l01-s01-being-good-isnt-enough/openai-cost-summary.json",
+        "unpricedOperations": [
+          {
+            "operation": "source-grounded-scene-judge-batch",
+            "calls": 1
+          },
+          {
+            "operation": "veronica-image-prompt-compilation",
+            "calls": 1
+          }
+        ]
+      },
+      {
+        "episodeRoot": "episodes/l01-s02-expertise-vs-perception",
+        "provider": "openai",
+        "paidProviderCalls": 14,
+        "successfulProviderCalls": 14,
+        "failedProviderCalls": 0,
+        "unpricedProviderCalls": 0,
+        "knownEstimatedCostUsd": 0.09298,
+        "totalEstimatedCostUsd": 0.09298,
+        "costCoverage": "COMPLETE",
+        "summaryPath": "episodes/l01-s02-expertise-vs-perception/openai-cost-summary.json",
+        "unpricedOperations": []
+      },
+      {
+        "episodeRoot": "episodes/l01-s03-what-do-people-remember-you-for",
+        "provider": "openai",
+        "paidProviderCalls": 8,
+        "successfulProviderCalls": 8,
+        "failedProviderCalls": 0,
+        "unpricedProviderCalls": 0,
+        "knownEstimatedCostUsd": 0.051535,
+        "totalEstimatedCostUsd": 0.051535,
+        "costCoverage": "COMPLETE",
+        "summaryPath": "episodes/l01-s03-what-do-people-remember-you-for/openai-cost-summary.json",
+        "unpricedOperations": []
+      },
+      {
+        "episodeRoot": "episodes/l01-why-being-good-at-your-job-isnt-enough",
+        "provider": "openai",
+        "paidProviderCalls": 1,
+        "successfulProviderCalls": 1,
+        "failedProviderCalls": 0,
+        "unpricedProviderCalls": 0,
+        "knownEstimatedCostUsd": 0.132904,
+        "totalEstimatedCostUsd": 0.132904,
+        "costCoverage": "COMPLETE",
+        "summaryPath": "episodes/l01-why-being-good-at-your-job-isnt-enough/openai-cost-summary.json",
+        "unpricedOperations": []
+      },
+      {
+        "episodeRoot": "episodes/l02-s01-selling-to-everyone-is-the-problem",
+        "provider": "openai",
+        "paidProviderCalls": 20,
+        "successfulProviderCalls": 20,
+        "failedProviderCalls": 0,
+        "unpricedProviderCalls": 0,
+        "knownEstimatedCostUsd": 0.132055,
+        "totalEstimatedCostUsd": 0.132055,
+        "costCoverage": "COMPLETE",
+        "summaryPath": "episodes/l02-s01-selling-to-everyone-is-the-problem/openai-cost-summary.json",
+        "unpricedOperations": []
+      },
+      {
+        "episodeRoot": "episodes/l05-s01-you-dont-need-a-publisher",
+        "provider": "openai",
+        "paidProviderCalls": 4,
+        "successfulProviderCalls": 4,
+        "failedProviderCalls": 0,
+        "unpricedProviderCalls": 0,
+        "knownEstimatedCostUsd": 0.045545,
+        "totalEstimatedCostUsd": 0.045545,
+        "costCoverage": "COMPLETE",
+        "summaryPath": "episodes/l05-s01-you-dont-need-a-publisher/openai-cost-summary.json",
+        "unpricedOperations": []
+      },
+      {
+        "episodeRoot": "episodes/l05-s01-you-dont-need-a-publisher.bak",
+        "provider": "openai",
+        "paidProviderCalls": 5,
+        "successfulProviderCalls": 2,
+        "failedProviderCalls": 3,
+        "unpricedProviderCalls": 3,
+        "knownEstimatedCostUsd": 0.014141,
+        "totalEstimatedCostUsd": null,
+        "costCoverage": "PARTIAL",
+        "summaryPath": "episodes/l05-s01-you-dont-need-a-publisher.bak/openai-cost-summary.json",
+        "unpricedOperations": [
+          {
+            "operation": "source-grounded-scene-judge-batch",
+            "calls": 3
+          }
+        ]
+      },
+      {
+        "episodeRoot": "episodes/l06-s01-your-audience-remembers-the-old-you",
+        "provider": "openai",
+        "paidProviderCalls": 2,
+        "successfulProviderCalls": 1,
+        "failedProviderCalls": 1,
+        "unpricedProviderCalls": 1,
+        "knownEstimatedCostUsd": 0.045737,
+        "totalEstimatedCostUsd": null,
+        "costCoverage": "PARTIAL",
+        "summaryPath": "episodes/l06-s01-your-audience-remembers-the-old-you/openai-cost-summary.json",
+        "unpricedOperations": [
+          {
+            "operation": "veronica-image-prompt-compilation",
+            "calls": 1
+          }
+        ]
+      },
+      {
+        "episodeRoot": "episodes/trash/l05-s01-you-dont-need-a-publisher",
+        "provider": "openai",
+        "paidProviderCalls": 3,
+        "successfulProviderCalls": 3,
+        "failedProviderCalls": 0,
+        "unpricedProviderCalls": 0,
+        "knownEstimatedCostUsd": 0.047068,
+        "totalEstimatedCostUsd": 0.047068,
+        "costCoverage": "COMPLETE",
+        "summaryPath": "episodes/trash/l05-s01-you-dont-need-a-publisher/openai-cost-summary.json",
+        "unpricedOperations": []
+      }
+    ]
+  },
+  "remainingBlockers": {
+    "BUDGET_UNAVAILABLE": [],
+    "PROVENANCE_STALE": [
+      "14 source/narration/audio/timing chains require atomic renewal."
+    ],
+    "MISSING_PRODUCTION_INPUT": [
+      "30 episodes genuinely lack a current narration/audio/timing chain."
+    ],
+    "CONFIGURATION": [],
+    "SYSTEMIC_ALGORITHM": [
+      "The three narration canaries have current plans but fail deterministic provider admission: unsupported doorway motif leakage and unresolved promise/experience semantics; 08b also has one harmful adjacent repetition."
+    ],
+    "EPISODE_SPECIFIC": [],
+    "EDITORIAL_HUMAN_DECISION": [
+      "HOOK-B04 needs a different human-selected metaphor; no fifth automated diagram iteration is justified."
+    ],
+    "AUTHORIZATION_BOUNDARY": [
+      "A 03b paid-QA reservation was released in full because deterministic admission stopped dispatch before any provider call."
+    ]
+  },
+  "nextAction": {
+    "schemaVersion": "veronica-en-next-tranche-plan.v1",
+    "generatedAt": "2026-08-12T21:19:27.561Z",
+    "tranche": "EN_SHORT_SEMANTIC_ADMISSION_REPAIR",
+    "episodes": [
+      "03b-the-promise-formula",
+      "08b-prospecting-without-being-annoying",
+      "02b-stop-posting-where-your-customers-arent"
+    ],
+    "operations": [
+      "Preserve the three current source/narration/audio/timing chains and v2.4 derived plans",
+      "Remove unsupported doorway/public-threshold motif leakage from source-derived hook/payoff treatments",
+      "Extend source-grounded promise/experience semantic mechanisms and explicit transition-state extraction without source edits",
+      "Replay 03b first; continue to 08b and 02b only after deterministic semantic and provider readiness pass"
+    ],
+    "providers": [
+      {
+        "provider": "none",
+        "model": "deterministic-template",
+        "reasoning": "not-applicable",
+        "purpose": "systemic semantic-admission repair",
+        "maxRequests": 0
+      }
+    ],
+    "maxRequests": 0,
+    "estimatedCostUsd": 0,
+    "estimatedCostEur": 0,
+    "conservativeCeilingUsd": 0,
+    "conservativeCeilingEur": 0,
+    "successCriteria": [
+      "03b validation, semanticQuality, and providerReadiness all pass without source edits",
+      "No unsupported cross-episode motif or unresolved promise semantics remain",
+      "Current source/audio hashes and measured 57.8-second timing identity remain intact",
+      "08b and 02b reproduce the same systemic fix without episode-specific overrides"
+    ],
+    "stopConditions": [
+      "The same focused failure survives two targeted fixes",
+      "More than three fixtures require edits or an assertion/gate would need weakening",
+      "Any provider request is proposed before deterministic readiness",
+      "Any source text, selected audio, or current timing identity would be invalidated"
+    ],
+    "authorizationRequired": null
+  },
+  "staleArtifactsSuperseded": [
+    {
+      "path": "docs/reports/codex-runs/2026-08-12-veronica-en-preimage-portfolio-census.json",
+      "reason": "Predates complete 01A QA and classifies three stale v5 narration chains as missing-input-only."
+    },
+    {
+      "path": "docs/reports/codex-runs/2026-08-12-veronica-en-preimage-portfolio-census.md",
+      "reason": "Human-readable projection of the superseded census JSON."
+    },
+    {
+      "path": "docs/reports/codex-runs/2026-08-12-veronica-en-portfolio-combined-run.json",
+      "reason": "Correct for its bounded run, but not a global historical cost ledger and not the latest full source/provenance census."
+    },
+    {
+      "path": "docs/reports/codex-runs/2026-08-12-veronica-en-portfolio-combined-run.md",
+      "reason": "Human-readable projection of the superseded bounded-run state."
+    }
+  ]
+}

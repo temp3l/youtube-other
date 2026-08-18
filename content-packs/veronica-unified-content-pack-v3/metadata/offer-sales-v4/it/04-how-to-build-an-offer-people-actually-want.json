@@ -1,0 +1,31 @@
+{
+  "title": "Come costruire un’offerta che le persone vogliono davvero",
+  "thumbnail": "RENDI FACILE COMPRARE",
+  "description": "Un buon prodotto non basta se il percorso d’acquisto è confuso. In questo episodio costruiamo un’offerta coerente attraverso ingresso, attrito, prova, urgenza e percorso.",
+  "cta": "Nel prossimo episodio controlliamo se il problema è davvero il marketing — o se è il prodotto che va sistemato prima.",
+  "alternativeTitles": [
+    "Il prodotto può essere buono — ma l’offerta difficile da comprare",
+    "Il test dell’offerta in 30 secondi"
+  ],
+  "thumbnailOptions": [
+    "RENDI FACILE COMPRARE",
+    "TROPPO ATTRITO?",
+    "TEST: 30 SECONDI"
+  ],
+  "youtubeOptimizationVersion": "v2-retention-localization",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  },
+  "shortA": {
+    "title": "Un buon prodotto può essere difficile da comprare",
+    "alternateHook": "Ogni passaggio inutile dà a un cliente interessato un altro motivo per rimandare."
+  },
+  "shortB": {
+    "title": "Il test dell’offerta in 30 secondi",
+    "alternateHook": "Un nuovo visitatore capisce offerta, percorso del prezzo e prossimo passo in trenta secondi?"
+  }
+}

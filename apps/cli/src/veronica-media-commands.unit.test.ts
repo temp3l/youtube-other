@@ -44,6 +44,10 @@ describe("veronica media commands", () => {
         "short"
       )?.maxProviderCalls
     ).toBe(0);
+    expect(resolveVeronicaPaidQaAuthorization(
+      { allowPaidOpenaiQa: true, retryMalformedQa: true },
+      "short",
+    )?.retryDeterministicMalformed).toBe(true);
   });
 
   it("registers the isolated Veronica media subcommands", () => {
@@ -62,15 +66,20 @@ describe("veronica media commands", () => {
       "speech",
       "pilot",
       "run",
-      "plan-positioning-series",
-      "plan-positioning-calibration",
+      "legacy-plan-positioning-series",
+      "legacy-plan-positioning-calibration",
       "review-pack",
       "validate",
       "render",
     ]);
+    const visualDensity = veronica?.commands.find((command) => command.name() === "plan-visual-density");
+    expect(visualDensity?.options.map((option) => option.long)).toContain("--rebase-stale-remediation");
     expect(sourcePack?.commands.map((command) => command.name())).toEqual([
       "prepare",
-      "prepare-full-transcripted",
+      "prepare-legacy-pack2",
+      "prepare-legacy-full-transcripted",
+      "status",
+      "validate",
     ]);
     const images = veronica?.commands.find((command) => command.name() === "images");
     const preparation = veronica?.commands.find((command) => command.name() === "prepare-production");
@@ -80,6 +89,7 @@ describe("veronica media commands", () => {
       "derive-image-prompts",
       "inspect-image-prompts",
       "review-pack",
+      "approve-review-pack",
       "generate",
     ]);
     const imageGenerate = images?.commands.find((command) => command.name() === "generate");
@@ -115,6 +125,7 @@ describe("veronica media commands", () => {
     expect(sourceGroundedQa?.options.find((option) => option.long === "--max-estimated-output-tokens")?.description).toContain("Short 20000; full 40000");
     const speech = veronica?.commands.find((command) => command.name() === "speech");
     expect(speech?.commands.map((command) => command.name())).toEqual([
+      "canary",
       "plan",
       "generate",
       "validate",

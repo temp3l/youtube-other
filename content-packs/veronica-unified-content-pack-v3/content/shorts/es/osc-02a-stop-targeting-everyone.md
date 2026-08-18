@@ -1,0 +1,7 @@
+Si tu cliente ideal es «cualquiera que podría comprar», no has definido un cliente. Has evitado elegir. Y si no sabes para quién hablas, tampoco sabes qué problema poner en el centro, qué ejemplo utilizar o qué objeción anticipar. Dos personas pueden comprar el mismo producto por motivos completamente distintos. Por eso no empieces por edad y ciudad. Empieza por la necesidad: ¿qué intenta conseguir, sentir o evitar esta persona? Después prueba tu buyer persona con una decisión real. ¿Te ayuda a decidir qué problema poner en el título, qué objeción abordar o dónde publicar? Si no cambia nada, probablemente sea decoración de marketing. Construye la definición con tres elementos: necesidad, contexto y comportamiento observable. Ser específico no significa excluir a todo el mundo. Significa crear un mensaje que la persona adecuada pueda reconocer como relevante.
+
+Una definición útil del cliente cambia la creatividad antes de publicar. El problema del gancho, el ejemplo del centro, la objeción que respondes y el siguiente paso pueden cambiar cuando cambia el contexto de compra. Ahí es donde la especificidad se vuelve operativa: mejora una decisión, no solo una diapositiva de marketing.
+
+La prueba es práctica, no demográfica: una mejor definición del cliente debe cambiar una decisión real. Debería modificar el gancho, el ejemplo, la objeción, la oferta o el canal elegido.
+
+Si tu buyer persona no cambia al menos una decisión concreta, hazla más específica.

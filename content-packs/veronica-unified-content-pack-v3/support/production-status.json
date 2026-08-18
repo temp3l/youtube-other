@@ -1,0 +1,11 @@
+{
+  "status": "MERGE_COMPLETE_PRE_TTS_READY",
+  "uniqueStories": 54,
+  "uniqueLongs": 18,
+  "uniqueShorts": 36,
+  "narrationFiles": 270,
+  "allPreTtsTimingPass": true,
+  "finalTtsQaRequired": true,
+  "pack2ShortsChangedDuringMerge": true,
+  "oldPack2RatingsReCertificationRequiredForChangedShorts": true
+}

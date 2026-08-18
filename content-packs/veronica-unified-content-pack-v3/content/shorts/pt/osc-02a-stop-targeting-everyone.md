@@ -1,0 +1,7 @@
+Se o seu cliente ideal é “qualquer pessoa que poderia comprar”, você ainda não definiu um cliente. Você só evitou escolher. E, se não sabe para quem está falando, também não sabe qual problema colocar no centro, qual exemplo usar ou qual objeção antecipar. Duas pessoas podem comprar o mesmo produto por motivos completamente diferentes. Então não comece por idade e cidade. Comece pela necessidade: o que essa pessoa quer alcançar, sentir ou evitar? Depois teste sua buyer persona com uma decisão real. Ela ajuda a decidir qual problema entra no título, qual objeção você deve responder ou onde publicar? Se nada muda, provavelmente é só decoração de marketing. Construa a definição com três elementos: necessidade, contexto e comportamento observável. Ser específico não significa excluir todo mundo. Significa criar uma mensagem que a pessoa certa consiga reconhecer como relevante.
+
+Uma definição útil de cliente muda a criação antes de você publicar. O problema do gancho, o exemplo no meio, a objeção respondida e o próximo passo podem mudar quando o contexto de compra muda. É assim que a especificidade vira algo operacional: ela melhora uma decisão, em vez de apenas preencher um slide de marketing.
+
+O teste é prático, não demográfico: uma definição melhor do cliente precisa mudar uma decisão real. A especificidade só cria valor quando muda a execução.
+
+Se sua persona não muda pelo menos uma decisão concreta, torne-a mais específica.

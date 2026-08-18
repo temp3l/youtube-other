@@ -3,7 +3,7 @@ import type { GeneratedVisualAsset, PlannedScene, PositioningVisualPlanV2, Posit
 import { calculateDiversityMetrics, finalizeSemanticPlanHash, semanticTokens, stableHash } from "./positioning-visual-semantics.js";
 import { resolveVeronicaProductionPolicy } from "./veronica-production-policy.js";
 import type { SemanticRemediationDirective } from "./source-grounded-visual-qa.js";
-import { assessVeronicaNarrationClaimIntegrity, assessVeronicaPropositionInternalCoherence, assessVeronicaSourceGroundedSemanticConsistency, assessVeronicaTreatmentPropositionCompatibility, assessVeronicaVisibleThesisQuality, classifyVeronicaSemanticPolarity, deriveVeronicaSemanticProposition, providerPromptInternalLanguageReasons, providerPromptLexicalIntegrityReasons, renderVeronicaVisibleThesis, resolveVeronicaVisiblePrimaryActionOwner, visualTreatmentFromProposition, VERONICA_PROMPT_SANITATION_VERSION, VERONICA_PROVIDER_PROMPT_QUALITY_VERSION, VERONICA_TREATMENT_COMPATIBILITY_VERSION } from "./veronica-semantic-quality.js";
+import { assessVeronicaNarrationClaimIntegrity, assessVeronicaPropositionInternalCoherence, assessVeronicaSourceGroundedSemanticConsistency, assessVeronicaTreatmentPropositionCompatibility, assessVeronicaVisibleThesisQuality, assessVeronicaVisualConceptAuthorization, classifyVeronicaSemanticPolarity, deriveVeronicaSemanticProposition, finalizeVeronicaSemanticProposition, isFinalizedVeronicaSemanticProposition, providerPromptInternalLanguageReasons, providerPromptLexicalIntegrityReasons, renderVeronicaVisibleThesis, resolveVeronicaVisiblePrimaryActionOwner, visualTreatmentFromProposition, VERONICA_PROMPT_SANITATION_VERSION, VERONICA_PROVIDER_PROMPT_QUALITY_VERSION, VERONICA_TREATMENT_COMPATIBILITY_VERSION } from "./veronica-semantic-quality.js";
 
 export const VERONICA_PRE_IMAGE_SEMANTIC_REVIEW_VERSION = "veronica-pre-image-semantic-review.v4" as const;
 export const VERONICA_PRE_IMAGE_SEMANTIC_GATE_VERSION = "veronica-pre-image-semantic-gate.v8" as const;
@@ -249,6 +249,50 @@ function refreshFinalTreatmentDerivedState(
   return { ...finalTreatment, treatmentHash: stableHash(finalTreatment) };
 }
 
+function blockedVisualEncodingScene(input: {
+  readonly scene: PlannedScene;
+  readonly proposition: VeronicaSemanticProposition;
+  readonly reason: "UNRESOLVED_REQUIRED_MECHANISM" | "LOW_SEMANTIC_CONFIDENCE" | "UNAUTHORIZED_TREATMENT";
+  readonly rejectionReasons: readonly string[];
+}): PlannedScene {
+  const baseTreatment: PositioningVisualTreatment = {
+    ...input.scene.treatment,
+    narrativeBeat: input.proposition.narrationClaim,
+    subjectRequirement: "the cited source span authorizes no visible subject",
+    environment: "the cited source span authorizes no visible environment",
+    composition: "the cited source span authorizes no visible composition",
+    camera: "not applicable",
+    action: "the cited source span authorizes no visible action",
+    actionOwnerRole: input.proposition.actorRole,
+    props: [],
+    diagram: null,
+    motionOpportunities: [],
+  };
+  const treatment = refreshFinalTreatmentDerivedState(
+    baseTreatment,
+    input.proposition.actorRole,
+    input.proposition.propositionHash,
+  );
+  return {
+    ...input.scene,
+    visibleThesis: input.proposition.narrationClaim,
+    newInformation: input.proposition.consequence,
+    treatment,
+    semanticProposition: input.proposition,
+    semanticCoherence: {
+      claimIntegrity: assessVeronicaNarrationClaimIntegrity(input.proposition.narrationClaim).status,
+      polarityCoherence: assessVeronicaPropositionInternalCoherence(input.proposition).status,
+      propositionInternalCoherence: assessVeronicaPropositionInternalCoherence(input.proposition).status,
+      treatmentPropositionCompatibility: "FAIL",
+    },
+    visualEncodingEligibility: {
+      status: "BLOCK",
+      reason: input.reason,
+      rejectionReasons: [...new Set(input.rejectionReasons)],
+    },
+  };
+}
+
 function eventKindForFinalTreatment(treatment: PositioningVisualTreatment, ordinal: number): VisualEventKind {
   const opportunities = treatment.motionOpportunities ?? ["establishing-crop", "slow-push"] as const;
   const permitted = treatment.diagram === null
@@ -360,7 +404,10 @@ export function normalizeProviderPromptSentence(value: string): string {
   return /[.!?]$/u.test(withoutRepeatedTerminal) ? withoutRepeatedTerminal : `${withoutRepeatedTerminal}.`;
 }
 
-function resolveActionOwner(scene: PlannedScene): { readonly role: VeronicaActionOwnerRole | "unresolved"; readonly source: "final-treatment" | "action-grammar" | "continuity" | "unresolved" } {
+function resolveActionOwner(scene: PlannedScene): { readonly role: VeronicaActionOwnerRole | "unresolved"; readonly source: "semantic-authority" | "final-treatment" | "action-grammar" | "continuity" | "unresolved" } {
+  if (isFinalizedVeronicaSemanticProposition(scene.semanticProposition)) {
+    return { role: scene.semanticProposition.actorRole, source: "semantic-authority" };
+  }
   if (scene.sourceGroundedRemediation && scene.treatment.actionOwnerRole) {
     return { role: scene.treatment.actionOwnerRole, source: "final-treatment" };
   }
@@ -838,14 +885,7 @@ export function applyVeronicaSourceGroundedRemediationDirectives(input: {
           evidenceAnchors: [...new Set([...derived.evidenceAnchors, ...directive.requiredVisibleEvidence, ...directive.requiredDomainObjects])],
           ...(contrast ? { contrast } : {}),
         };
-    const propositionWithoutHash = propositionBase;
-    const proposition: VeronicaSemanticProposition = {
-      ...propositionWithoutHash,
-      propositionHash: stableHash({
-        ...propositionWithoutHash,
-        directiveHash: stableHash(directive),
-      }),
-    };
+    const proposition: VeronicaSemanticProposition = finalizeVeronicaSemanticProposition(propositionBase);
     if (proposition.visualMechanism === "UNRESOLVED") {
       throw new Error(`SOURCE_GROUNDED_REMEDIATION_UNRESOLVED:${scene.sceneId}`);
     }
@@ -904,8 +944,6 @@ export function rebuildVeronicaFinalTreatmentState(input: {
 }): PositioningVisualPlanV2 {
   const policy = resolveVeronicaProductionPolicy(input.plan.format);
   const continuity = input.plan.continuity ?? { mode: "ensemble-independent" as const, variationDimensions: ["age", "gender-presentation", "profession", "environment", "framing"] as const, scenesShareIdentity: false as const };
-  const motifProvenanceMatchesEpisode = !input.plan.selectedRecurringMotif?.episodeContentId || input.plan.selectedRecurringMotif.episodeContentId === input.plan.contentId;
-  const episodeMotifSupported = Boolean(input.plan.selectedRecurringMotif && doorway.test(input.plan.selectedRecurringMotif.concept) && motifProvenanceMatchesEpisode && input.plan.scenes.some((scene, index) => doorway.test(input.narrationByScene?.[index] ?? scene.narrationAnchor)));
   const timingByIndex = input.sceneTimings;
   if (timingByIndex.length !== input.plan.scenes.length) throw new Error("PRODUCTION_TIMELINE_MISMATCH: scene count differs from final treatment plan.");
   const scenes = input.plan.scenes.map((scene, index) => {
@@ -919,7 +957,7 @@ export function rebuildVeronicaFinalTreatmentState(input: {
     // A source-grounded directive is applied by the canonical regeneration
     // boundary below. Preserve that canonical proposition on downstream
     // rebuilds; ordinary scenes are always re-derived from source narration.
-    const proposition = (scene.sourceGroundedRemediation || scene.editorialTreatmentOverride) && scene.semanticProposition
+    const proposition = (scene.sourceGroundedRemediation || scene.editorialTreatmentOverride) && isFinalizedVeronicaSemanticProposition(scene.semanticProposition)
       ? scene.semanticProposition
       : deriveVeronicaSemanticProposition({ scene: sourceScene, narration: narrationAnchor });
     const propositionCoherence = assessVeronicaPropositionInternalCoherence(proposition);
@@ -927,14 +965,50 @@ export function rebuildVeronicaFinalTreatmentState(input: {
     if ((scene.sourceGroundedRemediation || scene.editorialTreatmentOverride) && visibleOwner && visibleOwner !== proposition.actorRole) {
       throw new Error(`SOURCE_GROUNDED_REMEDIATION_ACTION_OWNER_MISMATCH:${scene.sceneId}:${proposition.actorRole}:${visibleOwner}`);
     }
+    const owner = proposition.actorRole;
+    const lowConfidence = Object.values(proposition.confidence).some((value) => value === "LOW");
+    const reviewedTreatment = Boolean(scene.sourceGroundedRemediation || scene.editorialTreatmentOverride);
+    const projected = reviewedTreatment || proposition.visualMechanism === "UNRESOLVED" || lowConfidence
+      ? null
+      : visualTreatmentFromProposition({
+          scene: sourceScene,
+          proposition,
+          preserveEnvironment: false,
+        });
+    const activeScene = reviewedTreatment
+      ? {
+          ...sourceScene,
+          visualEncodingEligibility: {
+            status: "ELIGIBLE" as const,
+            operator: scene.editorialTreatmentOverride ? "EDITORIAL_OVERRIDE" : "SOURCE_GROUNDED_DIRECTIVE",
+          },
+        }
+      : projected
+      ? {
+          ...sourceScene,
+          treatment: { ...sourceScene.treatment, ...projected },
+          visualEncodingEligibility: {
+            status: "ELIGIBLE" as const,
+            operator: proposition.visualMechanism,
+          },
+        }
+      : blockedVisualEncodingScene({
+          scene: sourceScene,
+          proposition,
+          reason: proposition.visualMechanism === "UNRESOLVED"
+            ? "UNRESOLVED_REQUIRED_MECHANISM"
+            : "LOW_SEMANTIC_CONFIDENCE",
+          rejectionReasons: proposition.visualMechanism === "UNRESOLVED"
+            ? ["semantic mechanism is unresolved"]
+            : ["one or more finalized semantic confidence fields are LOW"],
+        });
     const baseTreatment = refreshFinalTreatmentDerivedState(
-      scene.treatment,
-      scene.sourceGroundedRemediation ? proposition.actorRole : visibleOwner ?? proposition.actorRole,
+      activeScene.treatment,
+      owner,
       proposition.propositionHash,
     );
-    const owner = baseTreatment.actionOwnerRole ?? proposition.actorRole;
     const actorOwnership = actorAssignmentsForScene({
-      scene: { ...sourceScene, treatment: baseTreatment },
+      scene: { ...activeScene, treatment: baseTreatment },
       narration: narrationAnchor,
       continuity,
       owner,
@@ -944,9 +1018,16 @@ export function rebuildVeronicaFinalTreatmentState(input: {
       owner,
       proposition.propositionHash,
     );
-    const treatmentCompatibility = assessVeronicaTreatmentPropositionCompatibility({ treatment, proposition, narration: narrationAnchor, episodeMotifSupported });
-    const visibleThesis = proposition.narrationNativeMetaphor ? scene.visibleThesis : renderVeronicaVisibleThesis(proposition);
-    const finalScene = { ...sourceScene, visibleThesis, treatment, semanticProposition: proposition };
+    const treatmentCompatibility = assessVeronicaTreatmentPropositionCompatibility({
+      treatment,
+      proposition,
+      narration: narrationAnchor,
+      episodeMotifSupported: Boolean(proposition.narrationNativeMetaphor),
+    });
+    const visibleThesis = activeScene.visualEncodingEligibility?.status === "BLOCK"
+      ? proposition.narrationClaim
+      : proposition.narrationNativeMetaphor ? activeScene.visibleThesis : renderVeronicaVisibleThesis(proposition);
+    const finalScene = { ...activeScene, visibleThesis, treatment, semanticProposition: proposition };
     return { ...finalScene, semanticCoherence: { claimIntegrity: assessVeronicaNarrationClaimIntegrity(proposition.narrationClaim).status, polarityCoherence: propositionCoherence.status, propositionInternalCoherence: propositionCoherence.status, treatmentPropositionCompatibility: treatmentCompatibility.status }, startMs: Math.round(timing.timing.startSeconds * 1_000), durationMs, stateComplexity: resolveFinalStateComplexity(finalScene, input.plan.format) };
   });
   const materializedScenes = scenes.map((scene) => {
@@ -1085,6 +1166,8 @@ export interface VeronicaSemanticRemediationDecision {
   readonly propositionHash: string;
   readonly remediationConfidence: VeronicaSemanticProposition["confidence"];
   readonly remediationStrategy: VeronicaSemanticProposition["visualMechanism"];
+  readonly encodingStatus: "ENCODED" | "NO_SAFE_ENCODING";
+  readonly selectedOperator: VeronicaVisualEncodingOperatorId | null;
   readonly rejectedTreatmentFamilies: readonly string[];
   readonly rejectionReasons: readonly string[];
 }
@@ -1098,7 +1181,82 @@ export interface VeronicaSemanticRemediationResult {
   readonly rounds: number;
   readonly convergenceStatus: "CONVERGED" | "NO_OP" | "SEMANTIC_REMEDIATION_EXHAUSTED";
   readonly remainingFindings: readonly VeronicaPreImageSemanticReview["findings"][number][];
+  readonly noSafeEncodingCount: number;
   readonly semanticPlanHash: string;
+}
+
+export type VeronicaVisualEncodingOperatorId =
+  | "COMPARISON"
+  | "STATE_TRANSITION"
+  | "CAUSAL_CONSEQUENCE"
+  | "EVIDENCE_TRANSFER"
+  | "OBSTACLE_REMOVAL"
+  | "ALIGNMENT_MISMATCH"
+  | "CONSTRAINED_CHOICE";
+
+type VeronicaVisualEncodingResult =
+  | {
+      readonly kind: "ENCODED";
+      readonly operator: VeronicaVisualEncodingOperatorId;
+      readonly scene: PlannedScene;
+      readonly proposition: VeronicaSemanticProposition;
+    }
+  | {
+      readonly kind: "NO_SAFE_ENCODING";
+      readonly reason: "AMBIGUOUS" | "UNSUPPORTED_ENTITY" | "UNSUPPORTED_ENVIRONMENT" | "MULTI_STATE" | "NO_OPERATOR";
+      readonly operator: VeronicaVisualEncodingOperatorId | null;
+      readonly proposition: VeronicaSemanticProposition;
+      readonly rejectionReasons: readonly string[];
+      readonly scene: PlannedScene;
+    };
+
+function operatorForMechanism(
+  mechanism: VeronicaSemanticProposition["visualMechanism"],
+): VeronicaVisualEncodingOperatorId | null {
+  switch (mechanism) {
+    case "quantity-comparison":
+    case "scaling-relation":
+      return "COMPARISON";
+    case "identity-bridge":
+    case "promise-calibration":
+    case "promise-experience-alignment":
+    case "reality-bounded-clarity":
+      return "STATE_TRANSITION";
+    case "input-output-flow":
+    case "retained-remainder":
+    case "workload-accumulation":
+    case "platform-attention-tax":
+    case "neglected-account-without-distribution":
+      return "CAUSAL_CONSEQUENCE";
+    case "claim-to-proof":
+    case "recognition-accumulation":
+    case "relevant-context-participation":
+    case "peer-referral":
+    case "useful-follow-up-evidence":
+      return "EVIDENCE_TRANSFER";
+    case "problem-first-sequence":
+    case "promise-value-translation":
+    case "pressure-without-value":
+      return "OBSTACLE_REMOVAL";
+    case "market-problem-solution-chain":
+    case "signal-coherence":
+    case "description-to-outcome-framing":
+    case "expectation-delivery-check":
+    case "channel-capacity-boundary":
+    case "response-capacity-readiness":
+      return "ALIGNMENT_MISMATCH";
+    case "website-first-impression":
+    case "audience-fit-signal":
+    case "customer-context-interpretation":
+    case "value-adding-follow-up":
+    case "respectful-stop-condition":
+    case "relevance-response-reason":
+    case "customer-signal-channel-decision":
+    case "work-expertise-separation":
+      return "CONSTRAINED_CHOICE";
+    case "UNRESOLVED":
+      return null;
+  }
 }
 
 function gatePlan(input: {
@@ -1222,6 +1380,13 @@ export function validateVeronicaProviderReadiness(plan: PositioningVisualPlanV2)
     const proposition = scene.semanticProposition;
     const actorAssignments = scene.treatment.actors ?? [];
     const ownerAssignment = actorAssignments.find((actor) => actor.actorId === scene.treatment.actionOwnerActorId);
+    if (scene.visualEncodingEligibility?.status === "BLOCK") {
+      issues.push({
+        sceneId: scene.sceneId,
+        code: "SEMANTIC_PROVIDER_PROJECTION_INCONSISTENCY",
+        reason: `NO_SAFE_SEMANTIC_ENCODING:${scene.visualEncodingEligibility.reason}`,
+      });
+    }
     const invalidActorReference = actorAssignments.some((actor) => actor.role !== "expert" && actor.identityAuthority === "canonical-protagonist")
       || (plan.continuity?.mode === "persistent-protagonist" && actorAssignments.some((actor) => actor.role === "expert" && actor.identityAuthority !== "canonical-protagonist"));
     if (actorAssignments.length === 0 || invalidActorReference || ((scene.treatment.actionOwnerRole === "expert" || scene.treatment.actionOwnerRole === "buyer" || scene.treatment.actionOwnerRole === "business-operator") && ownerAssignment?.actionOwnership !== "primary")) {
@@ -1384,10 +1549,59 @@ function repairBlockedScene(input: {
   readonly narration: string;
   readonly findings: readonly VeronicaPreImageSemanticReview["findings"][number][];
   readonly format: PositioningVisualPlanV2["format"];
-}): PlannedScene {
+}): VeronicaVisualEncodingResult {
   const codes = new Set(input.findings.map((finding) => finding.code));
   const proposition = deriveVeronicaSemanticProposition({ scene: input.scene, narration: input.narration });
-  const projected = proposition.visualMechanism === "UNRESOLVED" ? undefined : visualTreatmentFromProposition({ scene: input.scene, proposition, preserveEnvironment: false });
+  const operator = operatorForMechanism(proposition.visualMechanism);
+  if (!operator) {
+    const rejectionReasons = ["semantic mechanism is unresolved"];
+    return {
+      kind: "NO_SAFE_ENCODING",
+      reason: "NO_OPERATOR",
+      operator: null,
+      proposition,
+      rejectionReasons,
+      scene: blockedVisualEncodingScene({
+        scene: input.scene,
+        proposition,
+        reason: "UNRESOLVED_REQUIRED_MECHANISM",
+        rejectionReasons,
+      }),
+    };
+  }
+  const projected = visualTreatmentFromProposition({ scene: input.scene, proposition, preserveEnvironment: false });
+  const projectedTreatment = { ...input.scene.treatment, ...projected };
+  const authorization = assessVeronicaVisualConceptAuthorization({
+    proposition,
+    treatment: projectedTreatment,
+  });
+  const projectedCompatibility = assessVeronicaTreatmentPropositionCompatibility({
+    treatment: projectedTreatment,
+    proposition,
+    narration: input.narration,
+  });
+  if (authorization.status === "FAIL" || projectedCompatibility.status === "FAIL") {
+    const rejectionReasons = [...new Set([...authorization.reasons, ...projectedCompatibility.reasons])];
+    return {
+      kind: "NO_SAFE_ENCODING",
+      reason: rejectionReasons.some((reason) => reason.includes("environment") || reason.includes("doorway") || reason.includes("threshold"))
+        ? "UNSUPPORTED_ENVIRONMENT"
+        : rejectionReasons.some((reason) => reason.includes("entity") || reason.includes("concept"))
+          ? "UNSUPPORTED_ENTITY"
+          : proposition.stateModel.kind === "MULTI_STATE_SEQUENCE"
+            ? "MULTI_STATE"
+            : "AMBIGUOUS",
+      operator,
+      proposition,
+      rejectionReasons,
+      scene: blockedVisualEncodingScene({
+        scene: input.scene,
+        proposition,
+        reason: "UNAUTHORIZED_TREATMENT",
+        rejectionReasons,
+      }),
+    };
+  }
   const currentCompatibility = assessVeronicaTreatmentPropositionCompatibility({ treatment: input.scene.treatment, proposition, narration: input.narration });
   const strongReplan = ["ABSTRACT_PROP_DRIFT", "SEMANTICALLY_DECORATIVE_SCENE", "NARRATION_RELATIONSHIP_MISMATCH", "MALFORMED_VISIBLE_THESIS", "SEMANTIC_REMEDIATION_LOW_CONFIDENCE", "REMEDIATION_TEMPLATE_COLLAPSE", "INCOMPLETE_NARRATION_CLAIM", "SEMANTIC_POLARITY_MISMATCH", "SEMANTIC_PROPOSITION_INTERNAL_CONTRADICTION", "TREATMENT_PROPOSITION_COMPATIBILITY", "PROVIDER_PROJECTION_SEMANTIC_MISMATCH", "CROSS_EPISODE_MOTIF_LEAKAGE", "HARMFUL_REPETITION"].some((code) => codes.has(code as VeronicaSemanticFindingCode)) || currentCompatibility.status === "FAIL";
   const needsBuyer = codes.has("BUYER_PERSPECTIVE_REQUIRED");
@@ -1410,7 +1624,7 @@ function repairBlockedScene(input: {
         ...(needsCompactState && projected ? { composition: `one decisive transition moment; ${projected.composition}`, action: projected.action, actionOwnerRole: projected.actionOwnerRole } : {}),
       };
   const treatment = refreshFinalTreatmentDerivedState(baseTreatment, baseTreatment.actionOwnerRole ?? proposition.actorRole, proposition.propositionHash);
-  return {
+  return { kind: "ENCODED", operator, proposition, scene: {
     ...input.scene,
     narrationAnchor: input.narration,
     treatment,
@@ -1426,7 +1640,7 @@ function repairBlockedScene(input: {
       treatmentPropositionCompatibility: assessVeronicaTreatmentPropositionCompatibility({ treatment, proposition, narration: input.narration }).status,
     },
     ...(needsCompactState ? { stateComplexity: "DECISIVE_TRANSITION_MOMENT" as const } : {}),
-  };
+  } };
 }
 
 /** Gate-driven, provider-free, bounded semantic remediation. No content ID is special-cased. */
@@ -1450,6 +1664,7 @@ export function runVeronicaSemanticRemediation(input: {
       rounds: 0,
       convergenceStatus: "NO_OP",
       remainingFindings: initialReviews.flatMap((review) => actionable(review)),
+      noSafeEncodingCount: 0,
       semanticPlanHash: input.plan.planHash,
     };
   }
@@ -1462,10 +1677,11 @@ export function runVeronicaSemanticRemediation(input: {
     const targets = plan.scenes.filter((scene) => (findingsByScene.get(scene.sceneId)?.length ?? 0) > 0);
     if (targets.length === 0) break;
     rounds = round;
+    let changedSceneCount = 0;
     const scenes = plan.scenes.map((scene, index) => {
       const findings = findingsByScene.get(scene.sceneId) ?? [];
       if (findings.length === 0) return scene;
-      const repaired = repairBlockedScene({ scene, narration: input.narrationByScene[index] ?? scene.narrationAnchor, findings, format: plan.format });
+      const encoding = repairBlockedScene({ scene, narration: input.narrationByScene[index] ?? scene.narrationAnchor, findings, format: plan.format });
       const rejectedCompatibility = assessVeronicaTreatmentPropositionCompatibility({
         treatment: scene.treatment,
         proposition: deriveVeronicaSemanticProposition({ scene, narration: input.narrationByScene[index] ?? scene.narrationAnchor }),
@@ -1476,18 +1692,23 @@ export function runVeronicaSemanticRemediation(input: {
         remediationRound: round,
         sourceFindingCodes: [...new Set(findings.map((finding) => finding.code))],
         treatmentBeforeHash: scene.treatment.treatmentHash,
-        treatmentAfterHash: repaired.treatment.treatmentHash,
+        treatmentAfterHash: encoding.scene.treatment.treatmentHash,
         remediationPolicyVersion: policy.policyVersion,
-        propositionHash: repaired.semanticProposition!.propositionHash,
-        remediationConfidence: repaired.semanticProposition!.confidence,
-        remediationStrategy: repaired.semanticProposition!.visualMechanism,
+        propositionHash: encoding.proposition.propositionHash,
+        remediationConfidence: encoding.proposition.confidence,
+        remediationStrategy: encoding.proposition.visualMechanism,
+        encodingStatus: encoding.kind,
+        selectedOperator: encoding.operator,
         rejectedTreatmentFamilies: rejectedCompatibility.reasons
           .filter((reason) => reason.startsWith("treatment-family-mismatch:") || reason.startsWith("unsupported-treatment-"))
           .map((reason) => reason.split(":").at(-1)!)
           .filter((family, familyIndex, families) => families.indexOf(family) === familyIndex),
-        rejectionReasons: rejectedCompatibility.reasons,
+        rejectionReasons: encoding.kind === "NO_SAFE_ENCODING"
+          ? [...new Set([...rejectedCompatibility.reasons, ...encoding.rejectionReasons])]
+          : rejectedCompatibility.reasons,
       });
-      return repaired;
+      if (encoding.scene.treatment.treatmentHash !== scene.treatment.treatmentHash) changedSceneCount += 1;
+      return encoding.scene;
     });
     const remainingBase = {
       ...plan,
@@ -1496,11 +1717,12 @@ export function runVeronicaSemanticRemediation(input: {
     };
     plan = finalizeSemanticPlanHash({ ...remainingBase, planHash: plan.planHash }) as PositioningVisualPlanV2;
     reviews = applyEpisodeQualityFindings(gatePlan({ plan, narrationByScene: input.narrationByScene }), plan);
+    if (changedSceneCount === 0) break;
     if (reviews.every((review) => actionable(review).length === 0)) break;
   }
   const remainingFindings = reviews.flatMap((review) => actionable(review));
   const convergenceStatus = remainingFindings.length === 0 ? "CONVERGED" as const : "SEMANTIC_REMEDIATION_EXHAUSTED" as const;
-  const remediatedSceneIds = new Set(decisions.map((decision) => decision.sceneId));
+  const remediatedSceneIds = new Set(decisions.filter((decision) => decision.encodingStatus === "ENCODED").map((decision) => decision.sceneId));
   const provenance = {
     schemaVersion: "veronica-semantic-remediation.v1",
     policyVersion: policy.policyVersion,
@@ -1529,6 +1751,7 @@ export function runVeronicaSemanticRemediation(input: {
     rounds,
     convergenceStatus,
     remainingFindings,
+    noSafeEncodingCount: decisions.filter((decision) => decision.encodingStatus === "NO_SAFE_ENCODING").length,
     semanticPlanHash: finalPlan.planHash,
   };
 }

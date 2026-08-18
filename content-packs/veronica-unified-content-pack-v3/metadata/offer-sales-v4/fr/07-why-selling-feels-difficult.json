@@ -1,0 +1,42 @@
+{
+  "title": "Pourquoi annoncer le prix devient inconfortable",
+  "alternativeTitles": [
+    "Pourquoi vendre semble parfois « mal » — même quand l’offre est honnête",
+    "Vendre sans manipulation : le processus qui protège les deux côtés",
+    "Le prix, le silence et la peur du jugement"
+  ],
+  "thumbnail": "POURQUOI LE PRIX BLOQUE ?",
+  "thumbnailOptions": [
+    "POURQUOI VENDRE MET MAL À L’AISE ?",
+    "Pourquoi vendre semble parfois « mal » — même quand l’offre est honnête",
+    "Vendre sans manipulation : le processus qui protège les deux côtés"
+  ],
+  "description": "Le malaise autour de la vente change le comportement : rabais trop rapide, trop de bonus, suivi évité, justification après le prix. Cet épisode sépare inconfort et éthique, transforme le prix en donnée de business et propose un processus de vente clair où le client reste libre de dire non.",
+  "cta": "Écrivez votre prix dans une phrase neutre, dites-la à voix haute et entraînez-vous à laisser le silence exister sans ajouter immédiatement une remise.",
+  "chapters": [
+    "Où l’inconfort commence",
+    "Inconfort vs éthique",
+    "Prix et valeur personnelle",
+    "Dire le prix sans s’excuser",
+    "Structurer la conversation",
+    "Comprendre les objections",
+    "Suivre sans harceler",
+    "Persuasion sans coercition"
+  ],
+  "shortA": {
+    "title": "Pourquoi annoncer le prix est si difficile",
+    "alternateHook": "Si votre comportement change dès que l’argent entre dans la conversation, votre processus commercial change lui aussi."
+  },
+  "shortB": {
+    "title": "Vendre n’est pas manipuler",
+    "alternateHook": "Une persuasion saine informe le client et lui laisse une vraie liberté de refuser."
+  },
+  "youtubeOptimizationVersion": "v4-editorial-continuity-remediation",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  }
+}

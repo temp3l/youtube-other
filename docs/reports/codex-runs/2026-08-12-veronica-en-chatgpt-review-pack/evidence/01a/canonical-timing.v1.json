@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "veronica-canonical-locale-timing.v3",
+  "locale": "en",
+  "variant": "short",
+  "timingAlgorithmVersion": "veronica-canonical-audio-alignment.v1",
+  "timingPhase": "post-tts-reconciled",
+  "timingSource": "derived-audio-silence-alignment",
+  "timingConfidence": "derived",
+  "narrationHash": "4e82a65208256d74b2171c4475ee624d9506cfd6f0b21b1f055074d4062c7503",
+  "selectedAudioHash": "2dfc4193f3b325d98bb972d64af168b8dddf9d7f34d267710144965be6190622",
+  "timingFingerprint": "ef44d1a105909cdba18fb2c1676578a965313a3f6fa0bd14ce7a1174b14afdd0",
+  "narrationDurationSeconds": 71.6,
+  "scenes": [
+    {
+      "sceneId": "scene-001",
+      "plannedDurationSeconds": 7,
+      "reconciledDurationSeconds": 18.855,
+      "startSeconds": 0,
+      "endSeconds": 18.855
+    },
+    {
+      "sceneId": "scene-002",
+      "plannedDurationSeconds": 9.175,
+      "reconciledDurationSeconds": 8.625,
+      "startSeconds": 18.855,
+      "endSeconds": 27.48
+    },
+    {
+      "sceneId": "scene-003",
+      "plannedDurationSeconds": 9.175,
+      "reconciledDurationSeconds": 7.495000000000001,
+      "startSeconds": 27.48,
+      "endSeconds": 34.975
+    },
+    {
+      "sceneId": "scene-004",
+      "plannedDurationSeconds": 9.174999999999997,
+      "reconciledDurationSeconds": 10.43,
+      "startSeconds": 34.975,
+      "endSeconds": 45.405
+    },
+    {
+      "sceneId": "scene-005",
+      "plannedDurationSeconds": 9.175000000000004,
+      "reconciledDurationSeconds": 7.625,
+      "startSeconds": 45.405,
+      "endSeconds": 53.03
+    },
+    {
+      "sceneId": "scene-006",
+      "plannedDurationSeconds": 9.174999999999997,
+      "reconciledDurationSeconds": 5.640000000000001,
+      "startSeconds": 53.03,
+      "endSeconds": 58.67
+    },
+    {
+      "sceneId": "scene-007",
+      "plannedDurationSeconds": 9.174999999999997,
+      "reconciledDurationSeconds": 7.150000000000006,
+      "startSeconds": 58.67,
+      "endSeconds": 65.82000000000001
+    },
+    {
+      "sceneId": "scene-008",
+      "plannedDurationSeconds": 9.176000000000002,
+      "reconciledDurationSeconds": 5.779999999999987,
+      "startSeconds": 65.82000000000001,
+      "endSeconds": 71.6
+    }
+  ]
+}

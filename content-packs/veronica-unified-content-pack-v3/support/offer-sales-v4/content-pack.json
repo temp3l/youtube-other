@@ -1,0 +1,104 @@
+{
+  "packId": "veronica-content-pack-2",
+  "version": "v4-editorial-continuity-remediation",
+  "languages": [
+    "it",
+    "en",
+    "de",
+    "es",
+    "fr",
+    "pt"
+  ],
+  "localeMap": {
+    "it": "it-IT",
+    "en": "en-US",
+    "de": "de-DE",
+    "es": "es-ES",
+    "fr": "fr-FR",
+    "pt": "pt-BR"
+  },
+  "counts": {
+    "longPerLanguage": 8,
+    "shortsPerLanguage": 16,
+    "totalLong": 48,
+    "totalShorts": 96
+  },
+  "timingTargets": {
+    "longSeconds": [
+      570,
+      630
+    ],
+    "shortsSeconds": [
+      60,
+      90
+    ],
+    "centralWpm": {
+      "long": {
+        "en": 150,
+        "es": 150,
+        "it": 150,
+        "fr": 150,
+        "pt": 150,
+        "de": 145
+      },
+      "shorts": {
+        "en": 155,
+        "es": 155,
+        "it": 155,
+        "fr": 155,
+        "pt": 155,
+        "de": 150
+      }
+    },
+    "timingAuthority": "selected-audio",
+    "scriptPlanningRule": "word-count / central WPM is pre-TTS planning only; selected audio duration is canonical for production QA",
+    "scriptPlanningGuardSeconds": {
+      "long": [
+        580,
+        620
+      ],
+      "shorts": [
+        65,
+        85
+      ]
+    },
+    "scriptPlanningGuardRule": "internal pre-TTS guard only; public acceptance remains 9:30–10:30 long and 1:00–1:30 shorts; selected audio is canonical"
+  },
+  "long": {
+    "osc-01": "01-a-good-business-starts-with-the-right-business-model",
+    "osc-02": "02-your-ideal-customer-is-not-everyone",
+    "osc-03": "03-people-dont-buy-your-product-they-buy-the-promise",
+    "osc-04": "04-how-to-build-an-offer-people-actually-want",
+    "osc-05": "05-stop-improving-the-marketing-fix-the-product",
+    "osc-06": "06-attention-is-not-conversion",
+    "osc-07": "07-why-selling-feels-difficult",
+    "osc-08": "08-sales-without-chasing-everyone"
+  },
+  "shorts": {
+    "osc-01-a": "01a-revenue-is-not-a-good-business",
+    "osc-01-b": "01b-if-you-stop-working-does-your-revenue-stop-too",
+    "osc-02-a": "02a-stop-targeting-everyone",
+    "osc-02-b": "02b-stop-posting-where-your-customers-arent",
+    "osc-03-a": "03a-what-does-your-customer-really-buy",
+    "osc-03-b": "03b-the-promise-formula",
+    "osc-04-a": "04a-why-good-products-still-dont-sell",
+    "osc-04-b": "04b-make-your-offer-easier-to-buy",
+    "osc-05-a": "05a-marketing-may-not-be-the-problem",
+    "osc-05-b": "05b-too-many-choices-kill-the-offer",
+    "osc-06-a": "06a-views-are-not-sales",
+    "osc-06-b": "06b-trust-comes-before-conversion",
+    "osc-07-a": "07a-why-selling-feels-uncomfortable",
+    "osc-07-b": "07b-selling-isnt-manipulation",
+    "osc-08-a": "08a-stop-chasing-customers",
+    "osc-08-b": "08b-prospecting-without-being-annoying"
+  },
+  "mockAudio": false,
+  "mockAudioCanonical": false,
+  "audioIncluded": false,
+  "productionStatus": "SCRIPT_PRODUCTION_READY_SELECTED_AUDIO_PENDING",
+  "editorialGate": {
+    "minimumStoryScore": 9.5,
+    "status": "PASS",
+    "continuityLintRequired": true
+  }
+}

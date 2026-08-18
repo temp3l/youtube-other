@@ -34,7 +34,15 @@ function buildManifest(input: {
       ? VERONICA_DEFAULT_LANDSCAPE_PROFILE
       : VERONICA_DEFAULT_PORTRAIT_PROFILE;
   return veronicaRenderManifestSchema.parse({
-    schemaVersion: "veronica-render-manifest.v1",
+    schemaVersion: "veronica-render-manifest.v2",
+    canonicalContentIdentity: {
+      contentPackId: "veronica-unified-content-pack-v2",
+      storyId: "episode-001",
+      episodeId: "veronica-episode-01",
+      locale: "it",
+      variant: "long",
+      contentHash: "b".repeat(64),
+    },
     aspectRatio: input.aspectRatio,
     profile,
     clips: [

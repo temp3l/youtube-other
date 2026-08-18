@@ -152,10 +152,12 @@ describe("OpenAI source-grounded QA adapter", () => {
         maxProviderCalls: 3,
         maxEstimatedCostUsd: 0.1,
         maxFlagshipCallsPerPack: 1,
+        retryDeterministicMalformed: true,
       },
     });
     expect(paid.policy.execution).toMatchObject({
       providerMode: "LIVE_AUTHORIZED",
+      retryDeterministicMalformed: true,
       budget: {
         maxProviderCalls: 3,
         maxEstimatedCostUsd: 0.1,

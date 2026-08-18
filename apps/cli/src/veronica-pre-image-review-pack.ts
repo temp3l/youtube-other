@@ -8,9 +8,12 @@ import { runCommand } from "@mediaforge/process-runner";
 import { assessVeronicaShortPacing, probeAudioWithFfprobe, resolveVeronicaShortPacingPolicy, veronicaShortPacingCalibrationSchema } from "@mediaforge/speech";
 import {
   loadVeronicaProviderImagePromptArtifact,
+  buildVeronicaSemanticAuthorityIdentityInputs,
+  parseVeronicaLegacySemanticAuthorityEvidence,
   positioningProductionPlanSchema,
   preparePositioningProductionEpisode,
   reviewVeronicaPreImageTreatment,
+  resolveVeronicaSemanticPlanAuthority,
   sourceGroundedQaAdmissionIdentitySchema,
   type PositioningVisualPlanV2,
   type PreparePositioningProductionEpisodeInput,
@@ -18,6 +21,7 @@ import {
 import { z } from "zod";
 
 const PACK_SCHEMA_VERSION = "veronica-pre-image-review-pack.v10" as const;
+const HUMAN_APPROVAL_SCHEMA_VERSION = "veronica-pre-image-human-approval.v1" as const;
 const AUDIO_INTEGRITY_SCHEMA_VERSION = "veronica-review-audio-integrity.v1" as const;
 const REVIEW_AUDIO_PREVIEW_CODEC = "opus" as const;
 const REVIEW_AUDIO_PREVIEW_BITRATE_KBPS = 64;
@@ -391,6 +395,45 @@ const reviewManifestSchema = z.strictObject({
   ]),
 });
 
+const humanApprovalSchema = z.strictObject({
+  schemaVersion: z.literal(HUMAN_APPROVAL_SCHEMA_VERSION),
+  episodeId: z.string().min(1),
+  language: z.string().min(1),
+  variant: z.enum(["full", "short"]),
+  decision: z.literal("approved"),
+  reviewer: z.string().min(1),
+  authorizationReference: z.string().min(1),
+  approvedAt: z.string().datetime(),
+  reviewManifestSha256: z.string().regex(/^[a-f0-9]{64}$/u),
+  packagingFingerprint: z.string().regex(/^[a-f0-9]{64}$/u),
+  qaAdmissionIdentity: z.string().regex(/^[a-f0-9]{64}$/u),
+  semanticPlanFileSha256: z.string().regex(/^[a-f0-9]{64}$/u),
+  providerPromptProjectionHash: z.string().regex(/^[a-f0-9]{64}$/u),
+  qaRevisionId: z.string().regex(/^[a-f0-9]{64}$/u),
+});
+
+export type VeronicaPreImageHumanApproval = z.infer<typeof humanApprovalSchema>;
+
+export function assertVeronicaHumanApprovalBinding(input: {
+  readonly approval: VeronicaPreImageHumanApproval;
+  readonly reviewManifestSha256: string;
+  readonly episodeId: string;
+  readonly language: string;
+  readonly variant: "full" | "short";
+}): void {
+  const { approval } = input;
+  if (
+    approval.reviewManifestSha256 !== input.reviewManifestSha256 ||
+    approval.episodeId !== input.episodeId ||
+    approval.language !== input.language ||
+    approval.variant !== input.variant
+  ) {
+    throw new Error(
+      "Veronica image generation is blocked: human pre-image approval is stale or belongs to a different review pack.",
+    );
+  }
+}
+
 export interface VeronicaTimingIntegrityResult {
   readonly status: "PASS" | "FAIL";
   readonly errorCode?: "SELECTED_AUDIO_TIMING_MISMATCH";
@@ -504,7 +547,10 @@ function waveAudioMetadata(bytes: Buffer): WavAudioMetadata {
       byteRate = bytes.readUInt32LE(offset + 16);
     }
     if (id === "data") {
-      dataSize = size;
+      // OpenAI streaming WAVs can retain the RIFF unknown-length sentinel;
+      // clamp it to the completed file rather than reporting a multi-hour
+      // narration duration.
+      dataSize = Math.min(size, Math.max(0, bytes.length - (offset + 8)));
       break;
     }
     offset += 8 + size + (size % 2);
@@ -783,14 +829,51 @@ export async function createVeronicaPreImageReviewPack(input: PackInput): Promis
     .digest("hex");
   const narrationPathBeforePreparation = path.join(input.episodeDir, "locales", input.language, input.variant, "audio", "narration.wav");
   await requireCanonicalNarration(narrationPathBeforePreparation);
-  // Planning is prepared only when its canonical artifact does not already
-  // exist. Packaging-mode changes must not re-run semantic remediation.
+  // File existence is not authority. Packaging reuses only current derived,
+  // explicitly accepted, or policy-declared compatibility authority.
   const existingSourcePlanPath = path.join(input.episodeDir, "source", "pre-image-semantic-plan.v1.json");
   const sourcePlanExists = await fs
     .access(existingSourcePlanPath)
     .then(() => true)
     .catch(() => false);
-  if (!sourcePlanExists) {
+  let reusableSemanticAuthority = false;
+  if (sourcePlanExists) {
+    const visualPlanValue = await fs.readFile(
+      path.join(input.episodeDir, "source", "visual-plan.json"),
+      "utf8",
+    ).then((value) => JSON.parse(value) as unknown).catch(() => null);
+    const semanticPlanValue = await fs.readFile(existingSourcePlanPath, "utf8")
+      .then((value) => JSON.parse(value) as unknown)
+      .catch(() => null);
+    const visualPlan = positioningProductionPlanSchema.safeParse(
+      visualPlanValue,
+    );
+    const semanticPlan = positioningProductionPlanSchema.safeParse(
+      semanticPlanValue,
+    );
+    const semanticReviews = await fs.readFile(
+      path.join(input.episodeDir, "shared", "pre-image-semantic-reviews.v1.json"),
+      "utf8",
+    ).then((value) => JSON.parse(value) as unknown).catch(() => null);
+    if (visualPlan.success) {
+      const expected = buildVeronicaSemanticAuthorityIdentityInputs({
+        plan: visualPlan.data,
+      });
+      const typedSemanticPlan = semanticPlan.success ? semanticPlan.data : null;
+      const legacyEvidence = typedSemanticPlan && semanticReviews
+        ? parseVeronicaLegacySemanticAuthorityEvidence({
+            plan: typedSemanticPlan,
+            semanticReviews,
+          })
+        : undefined;
+      reusableSemanticAuthority = resolveVeronicaSemanticPlanAuthority({
+        plan: typedSemanticPlan,
+        expected,
+        ...(legacyEvidence ? { legacyEvidence } : {}),
+      }).reusable;
+    }
+  }
+  if (!reusableSemanticAuthority) {
     await preparePositioningProductionEpisode({
       workspaceRoot: path.dirname(input.episodeDir),
       episodeId: path.basename(input.episodeDir),
@@ -1621,9 +1704,24 @@ export async function assertVeronicaPreImageReviewPackCurrent(input: PackInput):
   ) {
     throw new Error("Veronica image generation is blocked: semantic/provider prompt readiness integrity failed; regenerate and review the pack.");
   }
-  if (!stored.providerRequestsAllowed) {
-    throw new Error("Veronica image generation is blocked: this pack is awaiting explicit human pre-image approval.");
+  const approvalPath = path.join(path.dirname(manifestPath), "human-pre-image-approval.v1.json");
+  let approval: VeronicaPreImageHumanApproval;
+  try {
+    approval = humanApprovalSchema.parse(
+      JSON.parse(await fs.readFile(approvalPath, "utf8")) as unknown,
+    );
+  } catch {
+    throw new Error(
+      "Veronica image generation is blocked: this pack is awaiting explicit human pre-image approval.",
+    );
   }
+  assertVeronicaHumanApprovalBinding({
+    approval,
+    reviewManifestSha256: await fileHash(manifestPath),
+    episodeId: stored.episodeId,
+    language: stored.language,
+    variant: stored.variant,
+  });
   if (!("pre-image-semantic-reviews.v1.json" in stored.artifactHashes)) {
     throw new Error(
       "Veronica image generation requires a review pack containing current semantic-gate evidence. Regenerate the Veronica pre-image review pack, obtain human approval, then retry image generation.",
@@ -1634,24 +1732,87 @@ export async function assertVeronicaPreImageReviewPackCurrent(input: PackInput):
   }
   for (const source of stored.sources) {
     const fileName = source.name;
-    const sourcePath =
-      fileName === "narration.wav"
-        ? path.join(input.episodeDir, "locales", input.language, input.variant, "audio", "narration.wav")
-        : fileName === "script.md"
-          ? path.join(input.episodeDir, "locales", input.language, input.variant, "script.md")
-          : fileName === "retimed-scene-plan.json"
-            ? path.join(input.episodeDir, "locales", input.language, input.variant, "scene-plan.json")
-            : fileName === "visual-plan.json"
-              ? path.join(input.episodeDir, "source", "pre-image-semantic-plan.v1.json")
-              : fileName === "episode-manifest.json"
-                ? path.join(input.episodeDir, "manifest.json")
-                : fileName === "canonical-locale-timing.v1.json" || fileName === "retimed-visual-events.json"
-                  ? path.join(input.episodeDir, "locales", input.language, input.variant, fileName)
-                  : fileName === "pacing-calibration.v1.json"
-                    ? path.join(input.episodeDir, "locales", input.language, input.variant, "audio", "narration", fileName)
-                    : path.join(input.episodeDir, "shared", fileName);
+    const sourcePath = path.resolve(input.episodeDir, source.path);
+    const relativeSourcePath = path.relative(input.episodeDir, sourcePath);
+    if (
+      relativeSourcePath.startsWith(`..${path.sep}`) ||
+      path.isAbsolute(relativeSourcePath)
+    ) {
+      throw new Error(
+        `Veronica pre-image review pack contains an unsafe source path for ${fileName}.`,
+      );
+    }
     if ((await fileHash(sourcePath)) !== source.sha256) {
       throw new Error(`Veronica pre-image review pack is stale because ${fileName} changed. Recreate it before image generation.`);
     }
   }
+}
+
+export async function approveVeronicaPreImageReviewPack(input: PackInput & {
+  readonly reviewer: string;
+  readonly authorizationReference: string;
+}): Promise<{
+  readonly approvalPath: string;
+  readonly approval: VeronicaPreImageHumanApproval;
+}> {
+  const latestPath = path.join(packRoot(input), "latest.json");
+  const latest = z
+    .object({
+      schemaVersion: z.literal("veronica-pre-image-review-pack-latest.v1"),
+      packDir: z.string().regex(/^run-\d+$/u),
+    })
+    .parse(JSON.parse(await fs.readFile(latestPath, "utf8")) as unknown);
+  const manifestPath = path.join(packRoot(input), latest.packDir, "review-manifest.json");
+  const stored = reviewManifestSchema.parse(
+    JSON.parse(await fs.readFile(manifestPath, "utf8")) as unknown,
+  );
+  if (
+    !stored.overallPackValidity ||
+    stored.providerProjectionIntegrity.status !== "PASS" ||
+    stored.providerPromptQuality.status !== "PASS" ||
+    stored.semanticCoherenceIntegrity.status !== "PASS" ||
+    stored.semanticQuality.status !== "PASS" ||
+    !stored.sourceGroundedVisualQa.sourceFidelityReady ||
+    !stored.canonicalReviewState.qaCurrent ||
+    stored.canonicalReviewState.qaAdmissionIdentity === null ||
+    stored.canonicalReviewState.qaRevisionId === null
+  ) {
+    throw new Error(
+      "Veronica pre-image approval is blocked: the latest review pack is not fully current and valid.",
+    );
+  }
+  if (
+    stored.episodeId !== path.basename(input.episodeDir) ||
+    stored.language !== input.language ||
+    stored.variant !== input.variant
+  ) {
+    throw new Error(
+      "Veronica pre-image approval is blocked: the latest review pack identity does not match the requested episode, language, and variant.",
+    );
+  }
+  const approval = humanApprovalSchema.parse({
+    schemaVersion: HUMAN_APPROVAL_SCHEMA_VERSION,
+    episodeId: stored.episodeId,
+    language: stored.language,
+    variant: stored.variant,
+    decision: "approved",
+    reviewer: input.reviewer,
+    authorizationReference: input.authorizationReference,
+    approvedAt: new Date().toISOString(),
+    reviewManifestSha256: await fileHash(manifestPath),
+    packagingFingerprint: stored.packagingFingerprint,
+    qaAdmissionIdentity: stored.canonicalReviewState.qaAdmissionIdentity,
+    semanticPlanFileSha256: stored.canonicalReviewState.semanticPlanFileSha256,
+    providerPromptProjectionHash:
+      stored.canonicalReviewState.providerPromptProjectionHash,
+    qaRevisionId: stored.canonicalReviewState.qaRevisionId,
+  });
+  const approvalPath = path.join(
+    path.dirname(manifestPath),
+    "human-pre-image-approval.v1.json",
+  );
+  const temporaryPath = `${approvalPath}.${process.pid}.tmp`;
+  await fs.writeFile(temporaryPath, `${JSON.stringify(approval, null, 2)}\n`, "utf8");
+  await fs.rename(temporaryPath, approvalPath);
+  return { approvalPath, approval };
 }

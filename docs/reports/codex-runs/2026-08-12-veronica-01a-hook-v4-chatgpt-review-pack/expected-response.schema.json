@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "decision",
+    "candidatePngSha256",
+    "completedOrderLegible",
+    "withheldOrderLegible",
+    "gateReadsAsPhysicalStop",
+    "nineteenToOneOutputLegible",
+    "weakUnitEconomicsLegibleWithoutNarration",
+    "instantReadPass",
+    "materiallyDistinctFromS02B01",
+    "subtitleSafe",
+    "violations",
+    "blockingReasons",
+    "nonBlockingNotes"
+  ],
+  "properties": {
+    "decision": { "enum": ["APPROVE", "REJECT"] },
+    "candidatePngSha256": { "const": "22731f2fc9b6c84c02c2195d7527e476696106cbb0b0233ad51bdb5c0b6cb5b3" },
+    "completedOrderLegible": { "type": "boolean" },
+    "withheldOrderLegible": { "type": "boolean" },
+    "gateReadsAsPhysicalStop": { "type": "boolean" },
+    "nineteenToOneOutputLegible": { "type": "boolean" },
+    "weakUnitEconomicsLegibleWithoutNarration": { "type": "boolean" },
+    "instantReadPass": { "type": "boolean" },
+    "materiallyDistinctFromS02B01": { "type": "boolean" },
+    "subtitleSafe": { "type": "boolean" },
+    "violations": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "READABLE_TEXT",
+          "LOGO_OR_UI",
+          "CURRENCY_SYMBOL",
+          "CREATOR_LIKENESS",
+          "OCCUPATIONAL_DRIFT",
+          "PORTRAIT_DOMINANCE",
+          "UNSUPPORTED_CLAIM",
+          "CONSERVATION_AMBIGUITY",
+          "STOP_AMBIGUITY",
+          "NARRATION_DEPENDENCE",
+          "TEMPLATE_REPETITION"
+        ]
+      }
+    },
+    "blockingReasons": { "type": "array", "items": { "type": "string" } },
+    "nonBlockingNotes": { "type": "array", "items": { "type": "string" } }
+  }
+}

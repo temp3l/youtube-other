@@ -2,6 +2,10 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import { createHash } from "node:crypto";
 import {
+  veronicaCanonicalContentIdentitySchema,
+  type VeronicaCanonicalContentIdentity,
+} from "@mediaforge/domain";
+import {
   veronicaRenderManifestSchema,
   type VeronicaMediaPlan,
   type VeronicaRenderManifest,
@@ -37,6 +41,7 @@ import { computeVeronicaPipelineInputFingerprint } from "./input-fingerprint.js"
 import { finalizeVeronicaEpisodePlan } from "./finalize-episode-plan.js";
 
 export interface VeronicaPipelineInput {
+  readonly canonicalContentIdentity: VeronicaCanonicalContentIdentity;
   readonly workspaceRoot: string;
   readonly episodeId: string;
   readonly originalNarration: string;
@@ -115,6 +120,7 @@ export async function loadVeronicaPipelineResult(input: {
   readonly stateDir: string;
   readonly episodeId: string;
   readonly targetLanguage: string;
+  readonly canonicalContentIdentity: VeronicaCanonicalContentIdentity;
 }): Promise<VeronicaPipelineResult | null> {
   const planPath = path.join(input.stateDir, "veronica-media-plan.json");
   try {
@@ -137,6 +143,15 @@ export async function loadVeronicaPipelineResult(input: {
     const portraitManifest = veronicaRenderManifestSchema.parse(
       JSON.parse(await fs.readFile(portraitPath, "utf8")) as unknown
     );
+    const expectedIdentity = veronicaCanonicalContentIdentitySchema.parse(
+      input.canonicalContentIdentity
+    );
+    if (
+      JSON.stringify(landscapeManifest.canonicalContentIdentity) !== JSON.stringify(expectedIdentity) ||
+      JSON.stringify(portraitManifest.canonicalContentIdentity) !== JSON.stringify(expectedIdentity)
+    ) {
+      return null;
+    }
     const timingReconciliation = veronicaTimingReconciliationSchema.parse(
       JSON.parse(
         await fs.readFile(
@@ -181,6 +196,22 @@ export async function loadVeronicaPipelineResult(input: {
 export async function runVeronicaSupplementalMediaPipeline(
   input: VeronicaPipelineInput
 ): Promise<VeronicaPipelineResult> {
+  const canonicalContentIdentity = veronicaCanonicalContentIdentitySchema.parse(
+    input.canonicalContentIdentity
+  );
+  const renderedNarration = input.revisedNarration ?? input.originalNarration;
+  const renderedNarrationHash = createHash("sha256")
+    .update(renderedNarration, "utf8")
+    .digest("hex");
+  if (
+    canonicalContentIdentity.storyId !== input.episodeId ||
+    canonicalContentIdentity.locale !== input.targetLanguage ||
+    canonicalContentIdentity.contentHash !== renderedNarrationHash
+  ) {
+    throw new Error(
+      `VERONICA_CANONICAL_RENDER_IDENTITY_MISMATCH:${input.episodeId}/${input.targetLanguage}`
+    );
+  }
   const stateDir = veronicaEpisodeStateDir(
     input.workspaceRoot,
     input.episodeId
@@ -198,6 +229,7 @@ export async function runVeronicaSupplementalMediaPipeline(
           stateDir,
           episodeId: input.episodeId,
           targetLanguage: input.targetLanguage,
+          canonicalContentIdentity,
         });
         if (cached) return cached;
       }
@@ -329,6 +361,7 @@ export async function runVeronicaSupplementalMediaPipeline(
     ])
   );
   const landscapeManifest = buildRenderManifest({
+    canonicalContentIdentity,
     plan,
     aspectRatio: "16:9",
     placements: plan.landscapePlacements,
@@ -338,6 +371,7 @@ export async function runVeronicaSupplementalMediaPipeline(
     reconciledDwellSecondsByPlacement,
   });
   const portraitManifest = buildRenderManifest({
+    canonicalContentIdentity,
     plan,
     aspectRatio: "9:16",
     placements: plan.portraitPlacements,

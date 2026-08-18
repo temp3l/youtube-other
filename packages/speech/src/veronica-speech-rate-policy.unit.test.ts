@@ -46,7 +46,7 @@ describe("Veronica speech-rate policy", () => {
     expect(
       getVeronicaScriptLengthGuidance({ locale: "en", variant: "short" })
         .spokenWordCountRange
-    ).toEqual([155, 232.5]);
+    ).toEqual([225, 240]);
     expect(
       getVeronicaScriptLengthGuidance({ locale: "de", variant: "full" })
         .spokenWordCountRange
@@ -67,11 +67,18 @@ describe("Veronica speech-rate policy", () => {
     ).toMatchObject({ observedWpm: 155, status: "within-target" });
     expect(
       assessVeronicaSpeechRate({
-        spokenWordCount: 150,
+        spokenWordCount: 158,
         audioDurationSeconds: 60,
         policy,
       })
-    ).toMatchObject({ observedWpm: 150, status: "within-target" });
+    ).toMatchObject({ observedWpm: 158, status: "within-target" });
+    expect(
+      assessVeronicaSpeechRate({
+        spokenWordCount: 162,
+        audioDurationSeconds: 60,
+        policy,
+      }).status
+    ).toBe("within-target");
     expect(
       assessVeronicaSpeechRate({
         spokenWordCount: 145,
@@ -81,11 +88,11 @@ describe("Veronica speech-rate policy", () => {
     ).toBe("within-target");
     expect(
       assessVeronicaSpeechRate({
-        spokenWordCount: 165,
+        spokenWordCount: 166,
         audioDurationSeconds: 60,
         policy,
       }).status
-    ).toBe("within-target");
+    ).toBe("soft-high");
     expect(
       assessVeronicaSpeechRate({
         spokenWordCount: 144,
@@ -93,13 +100,6 @@ describe("Veronica speech-rate policy", () => {
         policy,
       }).status
     ).toBe("soft-low");
-    expect(
-      assessVeronicaSpeechRate({
-        spokenWordCount: 166,
-        audioDurationSeconds: 60,
-        policy,
-      }).status
-    ).toBe("soft-high");
     expect(
       assessVeronicaSpeechRate({
         spokenWordCount: 155,

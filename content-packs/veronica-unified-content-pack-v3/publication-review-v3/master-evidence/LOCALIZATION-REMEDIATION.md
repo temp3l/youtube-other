@@ -1,0 +1,103 @@
+# Localization Remediation Ledger
+
+- Added missing localizations: **54**
+- Modified/synchronized/timing-remediated localizations: **39**
+- Preserved localizations: **177**
+
+## Changed localized files
+
+| Story | Locale | Status | Reasons | Words | Score |
+|---|---|---|---|---:|---:|
+| osc-l03 | fr | MODIFIED | known-timing-remediation | 1573 | 9.79 |
+| osc-l07 | de | MODIFIED | synchronized-to-v4-English | 1518 | 9.81 |
+| osc-l07 | es | MODIFIED | synchronized-to-v4-English | 1534 | 9.83 |
+| osc-l07 | fr | MODIFIED | synchronized-to-v4-English|known-timing-remediation | 1475 | 9.85 |
+| osc-l07 | it | MODIFIED | synchronized-to-v4-English | 1491 | 9.85 |
+| osc-l07 | pt | MODIFIED | synchronized-to-v4-English | 1540 | 9.83 |
+| osc-l08 | fr | MODIFIED | known-timing-remediation | 1573 | 9.79 |
+| osc-s01a | fr | MODIFIED | known-timing-remediation | 240 | 9.82 |
+| osc-s02b | fr | MODIFIED | known-timing-remediation | 240 | 9.79 |
+| osc-s03b | fr | MODIFIED | known-timing-remediation | 240 | 9.79 |
+| osc-s04b | fr | MODIFIED | known-timing-remediation | 240 | 9.79 |
+| pos-l01 | es | ADDED | missing-translation-completed | 1552 | 9.81 |
+| pos-l01-s01 | de | MODIFIED | synchronized-to-v4-English | 219 | 9.81 |
+| pos-l01-s01 | es | ADDED | missing-translation-completed | 240 | 9.81 |
+| pos-l01-s01 | fr | MODIFIED | synchronized-to-v4-English|known-timing-remediation | 239 | 9.81 |
+| pos-l01-s01 | it | MODIFIED | synchronized-to-v4-English | 225 | 9.81 |
+| pos-l01-s01 | pt | MODIFIED | synchronized-to-v4-English | 227 | 9.81 |
+| pos-l01-s02 | es | ADDED | missing-translation-completed | 228 | 9.81 |
+| pos-l01-s02 | fr | MODIFIED | known-timing-remediation | 239 | 9.79 |
+| pos-l01-s03 | es | ADDED | missing-translation-completed | 230 | 9.85 |
+| pos-l02 | de | MODIFIED | synchronized-to-v4-English | 1498 | 9.83 |
+| pos-l02 | es | ADDED | missing-translation-completed | 1551 | 9.83 |
+| pos-l02 | fr | MODIFIED | synchronized-to-v4-English|known-timing-remediation | 1575 | 9.81 |
+| pos-l02 | it | MODIFIED | synchronized-to-v4-English | 1467 | 9.83 |
+| pos-l02 | pt | MODIFIED | synchronized-to-v4-English | 1476 | 9.85 |
+| pos-l02-s01 | es | ADDED | missing-translation-completed | 240 | 9.79 |
+| pos-l02-s01 | fr | MODIFIED | known-timing-remediation | 240 | 9.79 |
+| pos-l02-s02 | es | ADDED | missing-translation-completed | 239 | 9.79 |
+| pos-l02-s03 | de | MODIFIED | synchronized-to-v4-English | 222 | 9.83 |
+| pos-l02-s03 | es | ADDED | missing-translation-completed | 232 | 9.85 |
+| pos-l02-s03 | fr | MODIFIED | synchronized-to-v4-English|known-timing-remediation | 240 | 9.81 |
+| pos-l02-s03 | it | MODIFIED | synchronized-to-v4-English | 231 | 9.85 |
+| pos-l02-s03 | pt | MODIFIED | synchronized-to-v4-English | 234 | 9.85 |
+| pos-l03 | es | ADDED | missing-translation-completed | 1428 | 9.79 |
+| pos-l03-s01 | es | ADDED | missing-translation-completed | 228 | 9.81 |
+| pos-l03-s01 | fr | MODIFIED | known-timing-remediation | 232 | 9.83 |
+| pos-l03-s02 | es | ADDED | missing-translation-completed | 240 | 9.79 |
+| pos-l03-s03 | es | ADDED | missing-translation-completed | 225 | 9.81 |
+| pos-l03-s03 | fr | MODIFIED | known-timing-remediation | 240 | 9.81 |
+| pos-l04 | es | ADDED | missing-translation-completed | 1543 | 9.81 |
+| pos-l04-s01 | es | ADDED | missing-translation-completed | 230 | 9.83 |
+| pos-l04-s01 | fr | MODIFIED | known-timing-remediation | 235 | 9.83 |
+| pos-l04-s02 | es | ADDED | missing-translation-completed | 229 | 9.84 |
+| pos-l04-s02 | fr | MODIFIED | known-timing-remediation | 240 | 9.82 |
+| pos-l04-s03 | es | ADDED | missing-translation-completed | 232 | 9.85 |
+| pos-l04-s03 | fr | MODIFIED | known-timing-remediation | 238 | 9.81 |
+| pos-l05 | es | ADDED | missing-translation-completed | 1575 | 9.79 |
+| pos-l05 | fr | MODIFIED | known-timing-remediation | 1569 | 9.79 |
+| pos-l05-s01 | es | ADDED | missing-translation-completed | 240 | 9.79 |
+| pos-l05-s02 | es | ADDED | missing-translation-completed | 226 | 9.79 |
+| pos-l05-s02 | fr | MODIFIED | known-timing-remediation | 240 | 9.79 |
+| pos-l05-s03 | de | MODIFIED | synchronized-to-v4-English | 218 | 9.81 |
+| pos-l05-s03 | es | ADDED | missing-translation-completed | 240 | 9.81 |
+| pos-l05-s03 | fr | MODIFIED | synchronized-to-v4-English | 239 | 9.81 |
+| pos-l05-s03 | it | MODIFIED | synchronized-to-v4-English | 227 | 9.81 |
+| pos-l05-s03 | pt | MODIFIED | synchronized-to-v4-English | 237 | 9.83 |
+| pos-l06 | es | ADDED | missing-translation-completed | 1507 | 9.83 |
+| pos-l06 | fr | MODIFIED | known-timing-remediation | 1575 | 9.79 |
+| pos-l06-s01 | es | ADDED | missing-translation-completed | 233 | 9.85 |
+| pos-l06-s02 | es | ADDED | missing-translation-completed | 238 | 9.79 |
+| pos-l06-s02 | fr | MODIFIED | known-timing-remediation | 240 | 9.79 |
+| pos-l06-s03 | es | ADDED | missing-translation-completed | 237 | 9.83 |
+| pos-l06-s03 | fr | MODIFIED | known-timing-remediation | 240 | 9.81 |
+| tx-l004 | de | ADDED | missing-translation-completed | 1402 | 9.83 |
+| tx-l004 | es | ADDED | missing-translation-completed | 1471 | 9.83 |
+| tx-l004 | fr | ADDED | missing-translation-completed | 1569 | 9.81 |
+| tx-l004 | it | ADDED | missing-translation-completed | 1430 | 9.81 |
+| tx-l004 | pt | ADDED | missing-translation-completed | 1456 | 9.83 |
+| tx-l011 | de | ADDED | missing-translation-completed | 1420 | 9.83 |
+| tx-l011 | es | ADDED | missing-translation-completed | 1490 | 9.85 |
+| tx-l011 | fr | ADDED | missing-translation-completed | 1561 | 9.81 |
+| tx-l011 | it | ADDED | missing-translation-completed | 1471 | 9.83 |
+| tx-l011 | pt | ADDED | missing-translation-completed | 1499 | 9.85 |
+| tx-l018 | de | ADDED | missing-translation-completed | 1409 | 9.81 |
+| tx-l018 | es | ADDED | missing-translation-completed | 1510 | 9.83 |
+| tx-l018 | fr | ADDED | missing-translation-completed | 1570 | 9.79 |
+| tx-l018 | it | ADDED | missing-translation-completed | 1460 | 9.81 |
+| tx-l018 | pt | ADDED | missing-translation-completed | 1523 | 9.83 |
+| tx-l050 | de | ADDED | missing-translation-completed | 1471 | 9.85 |
+| tx-l050 | es | ADDED | missing-translation-completed | 1560 | 9.81 |
+| tx-l050 | fr | ADDED | missing-translation-completed | 1573 | 9.81 |
+| tx-l050 | it | ADDED | missing-translation-completed | 1522 | 9.85 |
+| tx-l050 | pt | ADDED | missing-translation-completed | 1561 | 9.81 |
+| tx-s021 | de | ADDED | missing-translation-completed | 228 | 9.83 |
+| tx-s021 | es | ADDED | missing-translation-completed | 225 | 9.79 |
+| tx-s021 | fr | ADDED | missing-translation-completed | 239 | 9.79 |
+| tx-s021 | it | ADDED | missing-translation-completed | 233 | 9.83 |
+| tx-s021 | pt | ADDED | missing-translation-completed | 236 | 9.81 |
+| tx-s027 | de | ADDED | missing-translation-completed | 233 | 9.81 |
+| tx-s027 | es | ADDED | missing-translation-completed | 237 | 9.83 |
+| tx-s027 | fr | ADDED | missing-translation-completed | 236 | 9.83 |
+| tx-s027 | it | ADDED | missing-translation-completed | 236 | 9.83 |
+| tx-s027 | pt | ADDED | missing-translation-completed | 238 | 9.81 |

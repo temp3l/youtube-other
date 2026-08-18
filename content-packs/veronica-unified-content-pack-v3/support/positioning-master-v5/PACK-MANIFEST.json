@@ -1,0 +1,504 @@
+{
+  "pack": "veronica-stories-editorial-master-v5",
+  "status": "PASS",
+  "canonicalLocale": "en",
+  "locales": [
+    "en",
+    "de",
+    "it",
+    "fr",
+    "pt"
+  ],
+  "storiesPerLocale": 24,
+  "longPerLocale": 6,
+  "shortsPerLocale": 18,
+  "totalNarrationFiles": 120,
+  "localizedNarrationFiles": 96,
+  "minimumReleaseRating": 9.6,
+  "allRatingsStrictlyAbove9_5": true,
+  "allTimingPreflightPass": true,
+  "allNarrationIntegrityPass": true,
+  "timingAuthorityAfterTts": "selected decoded narration audio",
+  "files": [
+    {
+      "path": "long/en/01-why-being-good-at-your-job-isnt-enough.md",
+      "sha256": "8f6573034f8f42ac00d048e8912db09689e2d6d8d1a9b1f6cb8c4443c653193b"
+    },
+    {
+      "path": "long/en/02-how-to-find-your-niche-without-making-yourself-too-small.md",
+      "sha256": "383460197b4fbe39bd8a6b4d060a9b00d49de027592066f7db3e67280f42030d"
+    },
+    {
+      "path": "long/en/03-how-to-position-yourself-as-an-expert-from-zero.md",
+      "sha256": "f74ce16cf1bc10ef60db46d548cbac2ec2763879b940bfaed60e4a86b27b5eb3"
+    },
+    {
+      "path": "long/en/04-the-content-strategy-that-makes-people-remember-you.md",
+      "sha256": "777045eae70970fa7c27ccf445c2fb2c38705785430f837917b7811d686321f9"
+    },
+    {
+      "path": "long/en/05-why-writing-a-book-can-make-you-the-expert.md",
+      "sha256": "708a684fe976e49760b5b6deaa309158c833647686232c1fffda6fb53e10746b"
+    },
+    {
+      "path": "long/en/06-how-to-reposition-yourself-when-your-business-changes.md",
+      "sha256": "1a41cd30d25e0644e2cec726112c58e57c79cbae7629ad84d6cdabdf0cfb9f41"
+    },
+    {
+      "path": "shorts/en/l01-s01-being-good-isnt-enough.md",
+      "sha256": "62034fc2f704563cc2cba77341575d73dabc5b1953a4c244f50f54063be9e21a"
+    },
+    {
+      "path": "shorts/en/l01-s02-expertise-vs-perception.md",
+      "sha256": "d7d5d69b09fc9151fee98d0fc9283456161be175083fce39b17b8514810d4c7e"
+    },
+    {
+      "path": "shorts/en/l01-s03-what-do-people-remember-you-for.md",
+      "sha256": "0d4c6ae84685ac65f429261643aa30a90623a8271f627c9698f9f3d0b1343725"
+    },
+    {
+      "path": "shorts/en/l02-s01-selling-to-everyone-is-the-problem.md",
+      "sha256": "40355503cb33e8e17648293b34789981d7581757cc26735120a2b1a4a6d6f256"
+    },
+    {
+      "path": "shorts/en/l02-s02-why-smaller-niches-can-make-you-bigger.md",
+      "sha256": "6621811be1900a19f27abf3b6a0e604e5384e200170bec53afdcc9abe12110aa"
+    },
+    {
+      "path": "shorts/en/l02-s03-market-problem-solution-test.md",
+      "sha256": "fa10b9a6fda3cd25f02f22a492acc6cd7d77742d9921b5df6b59f462fb4845ab"
+    },
+    {
+      "path": "shorts/en/l03-s01-you-cant-just-call-yourself-an-expert.md",
+      "sha256": "439a28f30f0b24f355452e748b693e74478d2d4bff3a1e1e2d6bdc0138ad85e9"
+    },
+    {
+      "path": "shorts/en/l03-s02-three-signals-to-build-from-zero.md",
+      "sha256": "d6b7afd645cb24283e32f14aec4684a01f42dac48cc44ede44658b20d9309165"
+    },
+    {
+      "path": "shorts/en/l03-s03-your-website-has-five-seconds.md",
+      "sha256": "d28f994b2e96d2ce494422b0bae35028b5c5d77b2c5afd426fcab79ef0f8ce3c"
+    },
+    {
+      "path": "shorts/en/l04-s01-stop-posting-random-content.md",
+      "sha256": "b8027767ab11c03183a9c01fac1b2b16a25f54f10544da292db308110854c019"
+    },
+    {
+      "path": "shorts/en/l04-s02-the-goal-is-recognition-not-views.md",
+      "sha256": "20c6d845061ae0c6b13dc66c3ce995f21173fb51c03a05bfe40de8a17aaa1a23"
+    },
+    {
+      "path": "shorts/en/l04-s03-make-other-people-talk-about-your-expertise.md",
+      "sha256": "7af960f43aed69de8f4333a406a8c7d86933b15b82dcc486febe6324905502c7"
+    },
+    {
+      "path": "shorts/en/l05-s01-you-dont-need-a-publisher.md",
+      "sha256": "beb47947f95399c821b7fc47224720c76ecc60a4431725b76896bc18497eefdb"
+    },
+    {
+      "path": "shorts/en/l05-s02-dont-write-a-book-about-everything-you-know.md",
+      "sha256": "0244e2313d75a739735c897305b8ca864e08f841470546d02e24e2124e13d077"
+    },
+    {
+      "path": "shorts/en/l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+      "sha256": "b485f421c5b743d4572b23ccd5f9ff6276f2178d9623df80168ef209a2fb3c05"
+    },
+    {
+      "path": "shorts/en/l06-s01-your-audience-remembers-the-old-you.md",
+      "sha256": "2e390b097d9fbede9bb1d269ded455a1c5e31747b7da8ec84982ce8055069cf2"
+    },
+    {
+      "path": "shorts/en/l06-s02-changing-your-bio-isnt-repositioning.md",
+      "sha256": "92c3038ce773ec589db5667bbe36092e7bde752e5e9e3ccd1741907b9ab75243"
+    },
+    {
+      "path": "shorts/en/l06-s03-change-what-people-know-you-for.md",
+      "sha256": "2c8934e704409b51f917e920f84fab7954939f9d8a481a7f35186c187c7cce3e"
+    },
+    {
+      "path": "long/de/01-why-being-good-at-your-job-isnt-enough.md",
+      "sha256": "8ad92126383016a848ac0d900ca333603a4c45ff57a2562179cb5adec34bd85d"
+    },
+    {
+      "path": "long/de/02-how-to-find-your-niche-without-making-yourself-too-small.md",
+      "sha256": "ed8fe66c0db3d2ef5cd0016edd7ba7b8d15de97de4f5c8113ba55f54578930dd"
+    },
+    {
+      "path": "long/de/03-how-to-position-yourself-as-an-expert-from-zero.md",
+      "sha256": "b5e04fffbef61016432a2d6318ad4dfbfee55a9633d99d114cfee7357e80108e"
+    },
+    {
+      "path": "long/de/04-the-content-strategy-that-makes-people-remember-you.md",
+      "sha256": "896473f7d14cbc9815aa87cb9112f20c4687afb8b2f05032f034cec849ee3a8f"
+    },
+    {
+      "path": "long/de/05-why-writing-a-book-can-make-you-the-expert.md",
+      "sha256": "fc01cfe227475538694ae8b09743310776aff1091c2bdd1ba9fb27146da76e70"
+    },
+    {
+      "path": "long/de/06-how-to-reposition-yourself-when-your-business-changes.md",
+      "sha256": "2116be0c4b7e5d6e71f5ceff695f3fdf75c061e93eeadc93ab59e08cf321a65f"
+    },
+    {
+      "path": "shorts/de/l01-s01-being-good-isnt-enough.md",
+      "sha256": "625a7f3f5c0a4232c57b69154d6489911a2a81e6edc364836095bf256f7785f3"
+    },
+    {
+      "path": "shorts/de/l01-s02-expertise-vs-perception.md",
+      "sha256": "03adbcd62b1b689fdbf37eafb3d2225e5afee04a0a6262aacf0e3e88408fff07"
+    },
+    {
+      "path": "shorts/de/l01-s03-what-do-people-remember-you-for.md",
+      "sha256": "335af42e79f6b0b62b7a271f6b0e522b0887aa4ef4b878f219ea8a86376def48"
+    },
+    {
+      "path": "shorts/de/l02-s01-selling-to-everyone-is-the-problem.md",
+      "sha256": "7a2a6612d47032bcf537fdf9c90eb422a35b6e253ac2ec3b82427ae1644aaf8e"
+    },
+    {
+      "path": "shorts/de/l02-s02-why-smaller-niches-can-make-you-bigger.md",
+      "sha256": "e5e59ba8134407bbbdad42406debff79be4e21c7f1f7873ecf991fa4e7830778"
+    },
+    {
+      "path": "shorts/de/l02-s03-market-problem-solution-test.md",
+      "sha256": "4a564942a839d071767dc62e6908832e224d4415179846a81c4f987381600b86"
+    },
+    {
+      "path": "shorts/de/l03-s01-you-cant-just-call-yourself-an-expert.md",
+      "sha256": "baf62f86cf69fc0a2f70a78fa437f4a7f1c452af343991791c2ecf7ea84346a8"
+    },
+    {
+      "path": "shorts/de/l03-s02-three-signals-to-build-from-zero.md",
+      "sha256": "49c5e10c201f968fafc1a8e736155e80c02737466dcd8428cd208401cfad0a87"
+    },
+    {
+      "path": "shorts/de/l03-s03-your-website-has-five-seconds.md",
+      "sha256": "0edba15157d07b3000c91bbe5063472d6120f7afe0b4d1e51b51fa2d408a04b1"
+    },
+    {
+      "path": "shorts/de/l04-s01-stop-posting-random-content.md",
+      "sha256": "8aa58be539b45cb09bfca03a36ec626242621fb11251698f4e6955f7721cf67a"
+    },
+    {
+      "path": "shorts/de/l04-s02-the-goal-is-recognition-not-views.md",
+      "sha256": "8ae50b61fd8d126e26d06d0a2dc387e8a9f3910664b5489a7bc7dc76e636b608"
+    },
+    {
+      "path": "shorts/de/l04-s03-make-other-people-talk-about-your-expertise.md",
+      "sha256": "153943600c79b7a1e09dbbf7ae109df8f75f72c6f5917a8f7fea044cecb6d2a2"
+    },
+    {
+      "path": "shorts/de/l05-s01-you-dont-need-a-publisher.md",
+      "sha256": "910ba4eb4961dda9beaf6147f4d46a475637fe4b78089cb284c2e482b3ed89cc"
+    },
+    {
+      "path": "shorts/de/l05-s02-dont-write-a-book-about-everything-you-know.md",
+      "sha256": "a1039b8ab1fd9602b535ceb650446c68f9ac85714d818e5b6374554f234c7cab"
+    },
+    {
+      "path": "shorts/de/l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+      "sha256": "2f4348d1cf7c321300919c25587aa58276d0ddba7876807ddd318213e2dbae23"
+    },
+    {
+      "path": "shorts/de/l06-s01-your-audience-remembers-the-old-you.md",
+      "sha256": "d530fd8b9ab2155d58d31e50562ce7ef321819bae5dc2559244da5b7f2ea505b"
+    },
+    {
+      "path": "shorts/de/l06-s02-changing-your-bio-isnt-repositioning.md",
+      "sha256": "f3da3bf25da2d29e0530a565376e4170b6adc6a62b09e4d43d2fb72db6cd0fee"
+    },
+    {
+      "path": "shorts/de/l06-s03-change-what-people-know-you-for.md",
+      "sha256": "a5e4e794ecbcccc74820ad37dac4c6e8c645cba6bb8f915981df7d6873ca9eec"
+    },
+    {
+      "path": "long/it/01-why-being-good-at-your-job-isnt-enough.md",
+      "sha256": "58193de57b7c482ae67934078ab00fa0163d278c4066a1e2caf317cbf69d4a1a"
+    },
+    {
+      "path": "long/it/02-how-to-find-your-niche-without-making-yourself-too-small.md",
+      "sha256": "5cbfbc8c110b4c7d6244c1229569d5b45954542f98dd730fd1721abddbfadc88"
+    },
+    {
+      "path": "long/it/03-how-to-position-yourself-as-an-expert-from-zero.md",
+      "sha256": "ceefa90042f1ec075458462fdfd80cd5457dee9c92a3954e56c575d4aa760c39"
+    },
+    {
+      "path": "long/it/04-the-content-strategy-that-makes-people-remember-you.md",
+      "sha256": "46b45d4a3eb73ebb3faacf836cf063315fb49138eb01665193ae487af3ccae32"
+    },
+    {
+      "path": "long/it/05-why-writing-a-book-can-make-you-the-expert.md",
+      "sha256": "823f1ce503945bbbf48e182ec08881d2dd4e40f0a4e0ffae92db3cc6b96d3373"
+    },
+    {
+      "path": "long/it/06-how-to-reposition-yourself-when-your-business-changes.md",
+      "sha256": "dec03573cc559ddccd5d9329273c5c1dfd9b889919a8e0014236b5bbcf7d36b9"
+    },
+    {
+      "path": "shorts/it/l01-s01-being-good-isnt-enough.md",
+      "sha256": "7471ab3a23c8f8c5f175151cc9ce930194311c7963dac06714529dff327ce33b"
+    },
+    {
+      "path": "shorts/it/l01-s02-expertise-vs-perception.md",
+      "sha256": "87d7c7d05b4774fbc99e11154fa68a8124aabb8ada3b2cfe1af7b25bda27b642"
+    },
+    {
+      "path": "shorts/it/l01-s03-what-do-people-remember-you-for.md",
+      "sha256": "30ceb51c6f4b8fc512e3d86426864a6da5493f091f7ad3b992f6187fc8ca6627"
+    },
+    {
+      "path": "shorts/it/l02-s01-selling-to-everyone-is-the-problem.md",
+      "sha256": "3aaac2a3ae4b4bd264e80b90ee7b4aa2fcc3dc2a6e65f35a8c6e01b333168cd7"
+    },
+    {
+      "path": "shorts/it/l02-s02-why-smaller-niches-can-make-you-bigger.md",
+      "sha256": "5d9d642842c6e5ec35e8720a4fea9d73d2d2b848594159fc8a1771b26d8d3497"
+    },
+    {
+      "path": "shorts/it/l02-s03-market-problem-solution-test.md",
+      "sha256": "cf9dda5341e3d830a21fbbf6d8e73c5f592c103f49f935301a8ee34764f3ead6"
+    },
+    {
+      "path": "shorts/it/l03-s01-you-cant-just-call-yourself-an-expert.md",
+      "sha256": "0c2fcd37789782c7d1e9ea2a31bf0733caaabd3411495328e87d185ae27e5cc8"
+    },
+    {
+      "path": "shorts/it/l03-s02-three-signals-to-build-from-zero.md",
+      "sha256": "6e362e2ace3aaae6f3222829502f80122ea952e2c2008fe0e1cfacff07fdc920"
+    },
+    {
+      "path": "shorts/it/l03-s03-your-website-has-five-seconds.md",
+      "sha256": "542612c5cdcdea77f333bed954d7f075b1b96bb22848cc5d67741b2e6a24bd98"
+    },
+    {
+      "path": "shorts/it/l04-s01-stop-posting-random-content.md",
+      "sha256": "c859155e6ca0b3eff1cf3297446a7a1ef42bcda1043f839f71034f96e04aae80"
+    },
+    {
+      "path": "shorts/it/l04-s02-the-goal-is-recognition-not-views.md",
+      "sha256": "40db6203d747c3e66cdcf8743e6c1c370c9d5613aaef64f282533dd59b892f90"
+    },
+    {
+      "path": "shorts/it/l04-s03-make-other-people-talk-about-your-expertise.md",
+      "sha256": "a2ee8abce4b5f8d939a98e6ff1b8228911326ced6fe17c52c11817bf148357da"
+    },
+    {
+      "path": "shorts/it/l05-s01-you-dont-need-a-publisher.md",
+      "sha256": "ad22a5a0983c817feb9945694ce3ab0c7bfcabedbceef906201de7f59ce5c009"
+    },
+    {
+      "path": "shorts/it/l05-s02-dont-write-a-book-about-everything-you-know.md",
+      "sha256": "b6b09828d1d37bf1bb3c8e61ebb42f2b61c92f31318faedea774f333bcdd4472"
+    },
+    {
+      "path": "shorts/it/l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+      "sha256": "a6bb87257edaa90b9ee8bb8846b1886a8d1747b2f8cfd8e9e8bd6a0e0cbde299"
+    },
+    {
+      "path": "shorts/it/l06-s01-your-audience-remembers-the-old-you.md",
+      "sha256": "63a1e445ff359c80c617c16886ac2f8c4cf5ae956aebcf4f437f7b63e790d7ee"
+    },
+    {
+      "path": "shorts/it/l06-s02-changing-your-bio-isnt-repositioning.md",
+      "sha256": "4cc0bdfcfbfd8b6f7a29ab519aa4d2b62c063d3e0d95a5e3aca6bad99cf3cf77"
+    },
+    {
+      "path": "shorts/it/l06-s03-change-what-people-know-you-for.md",
+      "sha256": "8d19664c43ebe671b21171aca9199c32e2a52ec227c72f072998bb06400bba52"
+    },
+    {
+      "path": "long/fr/01-why-being-good-at-your-job-isnt-enough.md",
+      "sha256": "960bfe22954f1566c72166f3987fb4daeea698c080efa5cfc99e898b223c3fcf"
+    },
+    {
+      "path": "long/fr/02-how-to-find-your-niche-without-making-yourself-too-small.md",
+      "sha256": "7b48a6e2dfd763332a7022c9eebc57917bebb0aa4d836a6cda0d2dd4a712072e"
+    },
+    {
+      "path": "long/fr/03-how-to-position-yourself-as-an-expert-from-zero.md",
+      "sha256": "0d48a2ad284efbde8529fe1e45fcde9db365fb72813152f82ed19fd54b9a5a17"
+    },
+    {
+      "path": "long/fr/04-the-content-strategy-that-makes-people-remember-you.md",
+      "sha256": "8145d5254ed816314277064a38eb259fd272f4db9757fa6f92d3f82154c340de"
+    },
+    {
+      "path": "long/fr/05-why-writing-a-book-can-make-you-the-expert.md",
+      "sha256": "7e314399914379d20d40000957c082fb95b443a5c9941da6a265f8f1323f26bc"
+    },
+    {
+      "path": "long/fr/06-how-to-reposition-yourself-when-your-business-changes.md",
+      "sha256": "4b48e0679184a0ec3e65d26ace700aa1c40ea1240a71a3c4aa54a40e0a446170"
+    },
+    {
+      "path": "shorts/fr/l01-s01-being-good-isnt-enough.md",
+      "sha256": "f235e220c1b0cfee5df22cba6e91ef07522a145834dd7d0fbb1fdecdc80bb57e"
+    },
+    {
+      "path": "shorts/fr/l01-s02-expertise-vs-perception.md",
+      "sha256": "235b0d669a437f7415d19ab5f15dee42c4acda0466deac0000f21c095b267c1d"
+    },
+    {
+      "path": "shorts/fr/l01-s03-what-do-people-remember-you-for.md",
+      "sha256": "9c81ab00a18f3ca0fd4621ee4c61a627b932ccab98c82605389ea36c64acdb6d"
+    },
+    {
+      "path": "shorts/fr/l02-s01-selling-to-everyone-is-the-problem.md",
+      "sha256": "8b3b5216614ebce3e2a497c5065a9cc04a9bc31f6559f800b7a8500469b01604"
+    },
+    {
+      "path": "shorts/fr/l02-s02-why-smaller-niches-can-make-you-bigger.md",
+      "sha256": "0630d55e3957a72c92b7c140fe79f937eed2241e6d7f48f7b93e8a5d775c9497"
+    },
+    {
+      "path": "shorts/fr/l02-s03-market-problem-solution-test.md",
+      "sha256": "188b58f1ca50bf1c839033cb2afceb6ed43cce9130159e56fe92fd4c80b97e06"
+    },
+    {
+      "path": "shorts/fr/l03-s01-you-cant-just-call-yourself-an-expert.md",
+      "sha256": "dc2ccc97dd8cf46e678459260aac356f030b1be91e9de4a280da9d70a931c65f"
+    },
+    {
+      "path": "shorts/fr/l03-s02-three-signals-to-build-from-zero.md",
+      "sha256": "1e68097a43e7dee8325a1ac0b5861ae355d0841fc8ac749989533539975622bb"
+    },
+    {
+      "path": "shorts/fr/l03-s03-your-website-has-five-seconds.md",
+      "sha256": "85bd3f1529c0e1b078f2b9c4679f6bbf15761e9998e28a78fef08bd7596dfbbe"
+    },
+    {
+      "path": "shorts/fr/l04-s01-stop-posting-random-content.md",
+      "sha256": "1f876c433f7926fb901e9dbd17f9b07f206f34ce2ba04c4bbaa29ef3813fd05b"
+    },
+    {
+      "path": "shorts/fr/l04-s02-the-goal-is-recognition-not-views.md",
+      "sha256": "95cb3606552aaf70d2ff781c4849ab4afac52caed00bed968074068ddc539811"
+    },
+    {
+      "path": "shorts/fr/l04-s03-make-other-people-talk-about-your-expertise.md",
+      "sha256": "d40f98c674a6071b76bc8684d934d983bcf9e04719e830ad00047b452305e304"
+    },
+    {
+      "path": "shorts/fr/l05-s01-you-dont-need-a-publisher.md",
+      "sha256": "82cc71ac73962d4a2fcd907a7f4ed93ea6d3beb0370ca98f5167cd1461b40e72"
+    },
+    {
+      "path": "shorts/fr/l05-s02-dont-write-a-book-about-everything-you-know.md",
+      "sha256": "36a8d423d2f4c6aa4558926bd4ca956d28dc7858df84bb144373b8ac356017a2"
+    },
+    {
+      "path": "shorts/fr/l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+      "sha256": "d5e3c391b851d7fccbeb308d42ef3b8bc887d52092640ceacf262bacfb134c08"
+    },
+    {
+      "path": "shorts/fr/l06-s01-your-audience-remembers-the-old-you.md",
+      "sha256": "2f2b6bb145a9f98930c57f94e2d40ee4babef3184e0839b153d2ebe151393613"
+    },
+    {
+      "path": "shorts/fr/l06-s02-changing-your-bio-isnt-repositioning.md",
+      "sha256": "38df80d03f17f7b92a1c35b587e2fb9e13a04af59945ffd4a97ff4d75b179bff"
+    },
+    {
+      "path": "shorts/fr/l06-s03-change-what-people-know-you-for.md",
+      "sha256": "4822d11c5c3660c7886144a45c66188cef4b37e7bf254c714ff612b1f11160f1"
+    },
+    {
+      "path": "long/pt/01-why-being-good-at-your-job-isnt-enough.md",
+      "sha256": "7b94d25d9a2a7c01eeb6aad01cf1f22589af09b0ca7d404f5dbd241c41a81046"
+    },
+    {
+      "path": "long/pt/02-how-to-find-your-niche-without-making-yourself-too-small.md",
+      "sha256": "b5d84ea8fd0be4c9f2de14d799abf6489e0381d44e93a5fc78d329a7e64732c1"
+    },
+    {
+      "path": "long/pt/03-how-to-position-yourself-as-an-expert-from-zero.md",
+      "sha256": "614faaa630fc65b640f6179eef8c25c2cfe0793d2de56fc2499519bc89cd5811"
+    },
+    {
+      "path": "long/pt/04-the-content-strategy-that-makes-people-remember-you.md",
+      "sha256": "2d9d3739208ab91e8c33e2cc559c689e96b8ac54ee158dd5df34651f953bc036"
+    },
+    {
+      "path": "long/pt/05-why-writing-a-book-can-make-you-the-expert.md",
+      "sha256": "22969daaa90397c8f07eafac8fd8c9a58faaf41b8ca851dbd936098ef9d4995d"
+    },
+    {
+      "path": "long/pt/06-how-to-reposition-yourself-when-your-business-changes.md",
+      "sha256": "afea70d5fc883437e6b9f8ef252be1ce21e358faa2be9cfbbb37cfc4b5c46182"
+    },
+    {
+      "path": "shorts/pt/l01-s01-being-good-isnt-enough.md",
+      "sha256": "a1222286b3781b99bd330ff844097f0687176b675bb5dd4ff01b1289bc72ecfd"
+    },
+    {
+      "path": "shorts/pt/l01-s02-expertise-vs-perception.md",
+      "sha256": "e7bf8a6f05cf0fb4274e11d3fdbe11d29585976989cb16d4932c5607c656c6b3"
+    },
+    {
+      "path": "shorts/pt/l01-s03-what-do-people-remember-you-for.md",
+      "sha256": "d0b8bd5ef3e68825e9fb1084835a8de0c20c164bbf2b0c20d2ec395df9624776"
+    },
+    {
+      "path": "shorts/pt/l02-s01-selling-to-everyone-is-the-problem.md",
+      "sha256": "1bbab9a551bc61af94f83d18d90fedb68d6b7900a096ddee2da17baf00a7c9e1"
+    },
+    {
+      "path": "shorts/pt/l02-s02-why-smaller-niches-can-make-you-bigger.md",
+      "sha256": "bf4b2122bb69ce6371f981d34400d16c77ca29242c5cc1f6a0d54238c9e7d8c8"
+    },
+    {
+      "path": "shorts/pt/l02-s03-market-problem-solution-test.md",
+      "sha256": "c616988de2922e73fe9097e1b5372c50bfeb3ce3ec17eb6cab6f943e5dfc119a"
+    },
+    {
+      "path": "shorts/pt/l03-s01-you-cant-just-call-yourself-an-expert.md",
+      "sha256": "c627269e67034eeafa55c4ab43ece0cdbb76c67f6ceb6606f97f1a5bc0146558"
+    },
+    {
+      "path": "shorts/pt/l03-s02-three-signals-to-build-from-zero.md",
+      "sha256": "2b74d9985da5f6ded53493d469cdb48f932ea407b2888f27ba5f686804c0acb7"
+    },
+    {
+      "path": "shorts/pt/l03-s03-your-website-has-five-seconds.md",
+      "sha256": "a88b5ebf1971fc157c6ed8e989ddf2bc682b38fb90ae100cc440a3c7c1194cfe"
+    },
+    {
+      "path": "shorts/pt/l04-s01-stop-posting-random-content.md",
+      "sha256": "bca6d2267305f3e36507ce1108f17040df2ae4d0146b3fb1a17754fbe4101a26"
+    },
+    {
+      "path": "shorts/pt/l04-s02-the-goal-is-recognition-not-views.md",
+      "sha256": "5fd5b3300f2ad99aacf473254b416a0f5b32c4ef91bbee6faee55b4fcc6ef270"
+    },
+    {
+      "path": "shorts/pt/l04-s03-make-other-people-talk-about-your-expertise.md",
+      "sha256": "7011a7079ecf5f5b2cd36194da6318e719ef761ef22e67600e6b50442be8ce16"
+    },
+    {
+      "path": "shorts/pt/l05-s01-you-dont-need-a-publisher.md",
+      "sha256": "19d9b12534c45cc36cb4d4e2d616bba2c2ba834abf14aee4c312ba2870cf0073"
+    },
+    {
+      "path": "shorts/pt/l05-s02-dont-write-a-book-about-everything-you-know.md",
+      "sha256": "d8a3b7184cea1792692d8b1b5114aee5c5dd42acd85b1ca06052a12e48fcdfd6"
+    },
+    {
+      "path": "shorts/pt/l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+      "sha256": "a2585772eca55ef49c2d68fb5a6defd98e671c388e13a58cad02fe10999467d7"
+    },
+    {
+      "path": "shorts/pt/l06-s01-your-audience-remembers-the-old-you.md",
+      "sha256": "f286716ee34b21c16c319abf2054e672778d28a66fe31132bbccf07703055170"
+    },
+    {
+      "path": "shorts/pt/l06-s02-changing-your-bio-isnt-repositioning.md",
+      "sha256": "2840b4ad78cb60fcd92bb304d7dbd0f74f1673a710145ce5ff0508e54664daac"
+    },
+    {
+      "path": "shorts/pt/l06-s03-change-what-people-know-you-for.md",
+      "sha256": "1abd00fe9692f7a26a0824e817cf0991300f2b205b7f2501781e93a79ae320b1"
+    }
+  ]
+}

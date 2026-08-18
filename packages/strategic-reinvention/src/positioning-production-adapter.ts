@@ -13,8 +13,14 @@ import {
   VERONICA_PRE_IMAGE_SEMANTIC_GATE_VERSION,
 } from "./veronica-pre-image-semantic-gate.js";
 import { resolveVeronicaProductionPolicy } from "./veronica-production-policy.js";
+import { VERONICA_RESOLVED_VISUAL_MECHANISMS } from "./positioning-visual-contracts.js";
 import type { PositioningVisualPlanV2, PositioningVisualTreatment, VeronicaSemanticProposition, VeronicaVisualDensityMetrics, VisualEvent } from "./positioning-visual-contracts.js";
-import { deriveVeronicaSemanticProposition, visualTreatmentFromProposition } from "./veronica-semantic-quality.js";
+import {
+  deriveVeronicaSemanticProposition,
+  finalizeVeronicaSemanticProposition,
+  resolveVeronicaVisiblePrimaryActionOwner,
+  visualTreatmentFromProposition,
+} from "./veronica-semantic-quality.js";
 import {
   finalizeSemanticPlanHash,
   hasValidSemanticPlanHash,
@@ -65,8 +71,22 @@ import {
   deriveVeronicaVisualBeatPlan,
   materializeVeronicaVisualBeatPlan,
   persistVeronicaVisualBeatPlan,
+  VERONICA_VISUAL_BEAT_PLANNER_VERSION,
   veronicaVisualBeatOverrideArtifactSchema,
 } from "./veronica-visual-beats.js";
+import { VERONICA_SEQUENCE_DIVERSITY_POLICY_VERSION } from "./veronica-sequence-diversity.js";
+import {
+  buildVeronicaSemanticAuthorityIdentityInputs,
+  computeVeronicaSemanticAuthorityIdentity,
+  createVeronicaDerivedSemanticAuthority,
+  invalidateVeronicaSemanticDescendants,
+  parseVeronicaLegacySemanticAuthorityEvidence,
+  publishVeronicaSemanticPlanAuthorityAtomic,
+  preserveSupersededVeronicaSemanticPlan,
+  resolveVeronicaSemanticPlanAuthority,
+  type VeronicaSemanticPlanAuthorityResolution,
+} from "./veronica-semantic-plan-authority.js";
+import { VeronicaExpectedDeterministicOutcomeError } from "./veronica-deterministic-outcome.js";
 import {
   positioningProductionPlanSchema,
   resolveVeronicaVisualPlan,
@@ -129,6 +149,7 @@ export interface PreparePositioningProductionEpisodeResult {
   readonly semanticRemediationStatus: "CONVERGED" | "NO_OP" | "SEMANTIC_REMEDIATION_EXHAUSTED";
   readonly sourceGroundedVisualQaStatus: "PASS" | "BLOCKED";
   readonly visualPlanResolution?: VeronicaVisualPlanResolutionEvidence;
+  readonly semanticPlanAuthority?: VeronicaSemanticPlanAuthorityResolution;
 }
 
 export function isVeronicaDeterministicVisualQaEligible(
@@ -140,8 +161,8 @@ export function isVeronicaDeterministicVisualQaEligible(
   const compoundShortSceneRequiresBeats = plan.format === "short" && plan.scenes.some((scene) =>
     scene.durationMs >= 8_000 && (scene.narrationAnchor.match(/[.!?…]+/gu)?.length ?? 0) >= 2);
   const currentSequenceDiversity = plan.format !== "short" || (
-    plan.visualBeatPlan?.policyVersion.includes("veronica-visual-beat-planner.v4") === true &&
-    plan.visualBeatPlan.quality.sequenceDiversity?.policyVersion === "veronica-sequence-diversity-policy.v2" &&
+    plan.visualBeatPlan?.policyVersion.includes(VERONICA_VISUAL_BEAT_PLANNER_VERSION) === true &&
+    plan.visualBeatPlan.quality.sequenceDiversity?.policyVersion === VERONICA_SEQUENCE_DIVERSITY_POLICY_VERSION &&
     !["BLOCK", "REVIEW_REQUIRED"].includes(plan.visualBeatPlan.quality.sequenceDiversity.status)
   );
   return (
@@ -569,7 +590,12 @@ export async function runExistingVeronicaSourceGroundedPreImageQa(input: {
         input.sourceGroundedVisualQa.remediationAdvisor,
         assertAdmissionCurrent
       )
-    : undefined;
+      : undefined;
+  const checkpointPath = path.join(
+    episodeDir,
+    "shared",
+    "source-grounded-visual-qa.checkpoint.v1.json"
+  );
   const qaRun = await runSourceGroundedVisualQaController({
     plan,
     narrationByScene,
@@ -591,6 +617,32 @@ export async function runExistingVeronicaSourceGroundedPreImageQa(input: {
     ...(input.sourceGroundedVisualQa.onProgress
       ? { onProgress: input.sourceGroundedVisualQa.onProgress }
       : {}),
+    onCheckpoint: async (checkpoint) => {
+      const base = {
+        schemaVersion: "veronica-source-grounded-visual-qa-checkpoint.v1",
+        stage: checkpoint.stage,
+        completeness: checkpoint.completeness,
+        revision: checkpoint.revision,
+        scenes: checkpoint.scenes,
+        beats: checkpoint.beats,
+        ...(checkpoint.sequence ? { sequence: checkpoint.sequence } : {}),
+      } as const;
+      const payload = {
+        ...base,
+        checkpointHash: stableHash(base),
+      };
+      await Promise.all([
+        writeJsonAtomic(checkpointPath, payload),
+        writeJsonAtomic(
+          path.join(
+            episodeDir,
+            "shared",
+            `source-grounded-visual-qa.${checkpoint.stage.toLowerCase()}.checkpoint.v1.json`
+          ),
+          payload
+        ),
+      ]);
+    },
     // Intentionally no `regenerate`: this command is an audit, never a replan.
   });
   await assertAdmissionCurrent();
@@ -1058,7 +1110,9 @@ function waveDurationSeconds(bytes: Buffer): number | null {
     const size = bytes.readUInt32LE(offset + 4);
     if (id === "fmt " && offset + 16 <= bytes.length) byteRate = bytes.readUInt32LE(offset + 16);
     if (id === "data") {
-      dataSize = size;
+      // Streaming WAV responses may use 0xffffffff as an unknown-length
+      // sentinel. The bytes on disk are authoritative for a completed asset.
+      dataSize = Math.min(size, Math.max(0, bytes.length - (offset + 8)));
       break;
     }
     offset += 8 + size + (size % 2);
@@ -1343,9 +1397,13 @@ const editorialTreatmentOverrideSchema = z.strictObject({
     visibleThesis: z.string().min(1).optional(),
     treatment: z.object({
       strategy: z.string(), subjectRequirement: z.string(), environment: z.string(), composition: z.string(), camera: z.string(), lighting: z.string(), action: z.string(), actionOwnerRole: z.enum(["expert", "buyer", "business-operator", "shared", "none"]), props: z.array(z.string().min(1)), motionOpportunities: z.array(z.string()), narrativeBeat: z.string(), communicationIntent: z.string(),
+      actors: z.array(z.strictObject({ actorId: z.string().min(1), role: z.enum(["expert", "business-operator", "observer", "existing-follower", "prospective-buyer"]), actionOwnership: z.enum(["primary", "supporting", "context"]), identityAuthority: z.enum(["canonical-protagonist", "distinct-scene-actor"]), visibleAction: z.string().min(1) })),
+      actionOwnerActorId: z.string().min(1),
     }).partial().strict(),
     semantic: z.object({
-      actorRole: z.enum(["expert", "buyer", "business-operator", "shared", "none"]), actorAction: z.string(), cause: z.string().optional(), consequence: z.string(), buyerInterpretation: z.string().optional(), polarity: z.enum(["POSITIVE_STATE", "NEGATIVE_STATE", "CONTRAST", "TRANSITION_NEGATIVE_TO_POSITIVE", "TRANSITION_POSITIVE_TO_NEGATIVE", "NEUTRAL"]), stateRelation: z.enum(["STABLE", "CAUSAL_BEFORE_AFTER", "CONTRAST", "CONDITIONAL_ALTERNATIVES", "SEQUENTIAL_PROGRESSION"]), visualMechanism: z.string(), evidenceAnchors: z.array(z.string().min(1)), buyerConsequenceFamily: z.string(), confidence: z.object({ proposition: z.enum(["HIGH", "MEDIUM", "LOW"]), actorOwnership: z.enum(["HIGH", "MEDIUM", "LOW"]), consequence: z.enum(["HIGH", "MEDIUM", "LOW"]), visualMechanism: z.enum(["HIGH", "MEDIUM", "LOW"]) }),
+      narrationClaim: z.string().min(1),
+      evidenceSpans: z.array(z.strictObject({ sentenceId: z.string().min(1), startOffset: z.number().int().nonnegative(), endOffset: z.number().int().positive(), text: z.string().min(1), spanHash: z.string().regex(/^[a-f0-9]{64}$/u) })).min(1),
+      actorRole: z.enum(["expert", "buyer", "business-operator", "shared", "none"]), actorAction: z.string(), cause: z.string().optional(), consequence: z.string(), buyerInterpretation: z.string().optional(), polarity: z.enum(["POSITIVE_STATE", "NEGATIVE_STATE", "CONTRAST", "TRANSITION_NEGATIVE_TO_POSITIVE", "TRANSITION_POSITIVE_TO_NEGATIVE", "NEUTRAL"]), stateRelation: z.enum(["STABLE", "CAUSAL_BEFORE_AFTER", "CONTRAST", "CONDITIONAL_ALTERNATIVES", "SEQUENTIAL_PROGRESSION"]), visualMechanism: z.enum([...VERONICA_RESOLVED_VISUAL_MECHANISMS, "UNRESOLVED"]), evidenceAnchors: z.array(z.string().min(1)), buyerConsequenceFamily: z.enum(["REMEMBERS", "CATEGORIZES", "CHOOSES", "HESITATES", "TRUSTS", "IGNORES", "NOTICES", "REFERS", "RECOGNIZES", "UNDERSTANDS", "CONNECTS", "FAILS_TO_ACCUMULATE", "REJECTS", "NONE"]), confidence: z.object({ proposition: z.enum(["HIGH", "MEDIUM", "LOW"]), actorOwnership: z.enum(["HIGH", "MEDIUM", "LOW"]), consequence: z.enum(["HIGH", "MEDIUM", "LOW"]), visualMechanism: z.enum(["HIGH", "MEDIUM", "LOW"]) }), contrast: z.object({ relation: z.enum(["CAUSAL_BEFORE_AFTER", "CONTRAST", "CONDITIONAL_ALTERNATIVES", "SEQUENTIAL_PROGRESSION"]), initialState: z.string().optional(), desiredState: z.string().optional(), failureState: z.string().optional(), consequence: z.string().optional() }).strict(),
     }).partial().strict().optional(),
   })).min(1),
 });
@@ -1376,9 +1434,56 @@ export async function remediateExistingVeronicaPreImagePlan(input: {
       const treatment = { ...treatmentBase, treatmentHash: stableHash(treatmentBase) } as PositioningVisualTreatment;
       const semantic = patch.semantic && scene.semanticProposition
         ? (() => {
-            const { propositionHash: _oldPropositionHash, ...oldProposition } = scene.semanticProposition;
-            const base = { ...oldProposition, ...patch.semantic } as Omit<VeronicaSemanticProposition, "propositionHash">;
-            return { ...base, propositionHash: stableHash({ ...base, overrideHash: stableHash(patch) }) } as VeronicaSemanticProposition;
+            const current = scene.semanticProposition;
+            const semanticPatch = patch.semantic;
+            const cause = semanticPatch.cause ?? current.cause;
+            const buyerInterpretation = semanticPatch.buyerInterpretation ?? current.buyerInterpretation;
+            const patchedEvidenceSpans = semanticPatch.evidenceSpans ?? current.evidenceSpans;
+            const [firstEvidenceSpan, ...remainingEvidenceSpans] = patchedEvidenceSpans;
+            if (!firstEvidenceSpan) throw new Error("VERONICA_EDITORIAL_TREATMENT_OVERRIDE_EVIDENCE_REQUIRED");
+            const contrast = semanticPatch.contrast
+              ? {
+                  relation: semanticPatch.contrast.relation,
+                  ...(semanticPatch.contrast.initialState !== undefined
+                    ? { initialState: semanticPatch.contrast.initialState }
+                    : current.contrast?.initialState !== undefined
+                      ? { initialState: current.contrast.initialState }
+                      : {}),
+                  ...(semanticPatch.contrast.desiredState !== undefined
+                    ? { desiredState: semanticPatch.contrast.desiredState }
+                    : current.contrast?.desiredState !== undefined
+                      ? { desiredState: current.contrast.desiredState }
+                      : {}),
+                  ...(semanticPatch.contrast.failureState !== undefined
+                    ? { failureState: semanticPatch.contrast.failureState }
+                    : current.contrast?.failureState !== undefined
+                      ? { failureState: current.contrast.failureState }
+                      : {}),
+                  ...(semanticPatch.contrast.consequence !== undefined
+                    ? { consequence: semanticPatch.contrast.consequence }
+                    : current.contrast?.consequence !== undefined
+                      ? { consequence: current.contrast.consequence }
+                      : {}),
+                }
+              : current.contrast;
+            const base = {
+              narrationClaim: semanticPatch.narrationClaim ?? current.narrationClaim,
+              evidenceSpans: [firstEvidenceSpan, ...remainingEvidenceSpans] as const,
+              polarity: semanticPatch.polarity ?? current.polarity,
+              stateRelation: semanticPatch.stateRelation ?? current.stateRelation,
+              ...(cause ? { cause } : {}),
+              actorRole: semanticPatch.actorRole ?? current.actorRole,
+              actorAction: semanticPatch.actorAction ?? current.actorAction,
+              ...(buyerInterpretation ? { buyerInterpretation } : {}),
+              consequence: semanticPatch.consequence ?? current.consequence,
+              ...(contrast ? { contrast } : {}),
+              ...(current.narrationNativeMetaphor ? { narrationNativeMetaphor: current.narrationNativeMetaphor } : {}),
+              visualMechanism: semanticPatch.visualMechanism ?? current.visualMechanism,
+              evidenceAnchors: semanticPatch.evidenceAnchors ?? current.evidenceAnchors,
+              buyerConsequenceFamily: semanticPatch.buyerConsequenceFamily ?? current.buyerConsequenceFamily,
+              confidence: semanticPatch.confidence ?? current.confidence,
+            };
+            return finalizeVeronicaSemanticProposition(base);
           })()
         : scene.semanticProposition;
       return { ...scene, treatment, ...(semantic ? { semanticProposition: semantic } : {}), ...(patch.visibleThesis ? { visibleThesis: patch.visibleThesis } : {}), editorialTreatmentOverride: { overrideHash: stableHash(patch), appliedAt: new Date().toISOString() } };
@@ -1427,6 +1532,8 @@ export async function planExistingVeronicaVisualDensity(input: {
   readonly workspaceRoot: string;
   readonly episodeId: string;
   readonly overridePath?: string;
+  /** Explicitly re-derive only legacy QA-remediated scenes whose persisted actor contract contradicts the visible treatment owner. */
+  readonly rebaseStaleRemediation?: boolean;
   readonly imagePromptCompiler: NonNullable<PreparePositioningProductionEpisodeInput["imagePromptCompiler"]>;
 }): Promise<{
   readonly episodeId: string;
@@ -1456,8 +1563,34 @@ export async function planExistingVeronicaVisualDensity(input: {
   const overrides = overrideRaw === null ? undefined : veronicaVisualBeatOverrideArtifactSchema.parse(JSON.parse(overrideRaw) as unknown);
   if (overrides && overrides.episodeId !== episodeId) throw new Error("VERONICA_VISUAL_BEAT_OVERRIDE_EPISODE_MISMATCH");
   const enScenePlan = scenePlanSchema.parse(JSON.parse(scenePlanRaw) as unknown);
-  const beatPlan = deriveVeronicaVisualBeatPlan({ plan, ...(overrides ? { overrides } : {}) });
-  const beatMaterialized = materializeVeronicaVisualBeatPlan({ plan, beatPlan });
+  const materializationPlan = input.rebaseStaleRemediation
+    ? {
+        ...plan,
+        scenes: plan.scenes.map((scene) => {
+          const visibleOwner = resolveVeronicaVisiblePrimaryActionOwner(scene.treatment);
+          const isContradictoryLegacyRemediation = Boolean(
+            scene.sourceGroundedRemediation
+            && !scene.materializationRevision
+            && scene.semanticProposition
+            && visibleOwner
+            && visibleOwner !== scene.semanticProposition.actorRole,
+          );
+          if (!isContradictoryLegacyRemediation) return scene;
+          const { sourceGroundedRemediation: _staleRemediation, ...sourceScene } = scene;
+          return sourceScene;
+        }),
+      }
+    : plan;
+  const currentPlan = rebuildVeronicaFinalTreatmentState({
+    plan: materializationPlan,
+    sceneTimings: enScenePlan.scenes.map((scene) => ({
+      id: scene.id,
+      timing: scene.timing,
+    })),
+    narrationByScene: enScenePlan.scenes.map((scene) => scene.canonicalNarration),
+  });
+  const beatPlan = deriveVeronicaVisualBeatPlan({ plan: currentPlan, ...(overrides ? { overrides } : {}) });
+  const beatMaterialized = materializeVeronicaVisualBeatPlan({ plan: currentPlan, beatPlan });
   const bible = await buildVeronicaVisualBibleArtifact({ workspaceRoot, plan: beatMaterialized });
   const compiled = await compileVeronicaImagePrompts({
     episodeId,
@@ -1468,6 +1601,16 @@ export async function planExistingVeronicaVisualDensity(input: {
     model: input.imagePromptCompiler.model,
     reasonForRegeneration: "visual-beat-density-plan",
   });
+  if (!isVeronicaDeterministicVisualQaEligible(compiled)) {
+    const failures = [
+      ...compiled.validation.failures,
+      ...(compiled.semanticQuality?.status === "PASS" ? [] : compiled.semanticQuality?.findingCodes ?? ["SEMANTIC_QUALITY_NOT_READY"]),
+      ...(compiled.providerReadiness?.status === "PASS"
+        ? []
+        : compiled.providerReadiness?.issues.map((issue) => `${issue.code}:${issue.sceneId}`) ?? ["PROVIDER_READINESS_NOT_READY"]),
+    ];
+    throw new Error(`VERONICA_VISUAL_DENSITY_DETERMINISTIC_READINESS_FAILED:${[...new Set(failures)].join(",")}`);
+  }
   const visualArtifacts = await persistVeronicaVisualArtifacts({ workspaceRoot, episodeDir, plan: compiled });
   const enAudio = await fs.readFile(path.join(episodeDir, "locales", "en", "short", "audio", "narration.wav"));
   const persistedPrompts = await persistVeronicaProviderImagePromptArtifact({
@@ -1522,7 +1665,13 @@ export async function planExistingVeronicaVisualDensity(input: {
       const language = entry.name as "en" | "de" | "es" | "fr" | "pt" | "it";
       const localeRoot = path.join(episodeDir, "locales", language, "short");
       const audioPath = path.join(localeRoot, "audio", "narration.wav");
-      if (!(await fileExists(audioPath))) return null;
+      const requiredLocaleInputs = [
+        audioPath,
+        path.join(localeRoot, "scene-plan.json"),
+        path.join(localeRoot, "canonical-timing.v1.json"),
+        path.join(localeRoot, "script.md"),
+      ];
+      if (!(await Promise.all(requiredLocaleInputs.map(fileExists))).every(Boolean)) return null;
       const [scenePlanRaw, timingRaw, narration, audioBytes, treatmentsRaw, bibleRaw] = await Promise.all([
         fs.readFile(path.join(localeRoot, "scene-plan.json"), "utf8"),
         fs.readFile(path.join(localeRoot, "canonical-timing.v1.json"), "utf8"),
@@ -1596,17 +1745,20 @@ export async function reconcileExistingVeronicaProductionTiming(
   const localeRoot = path.join(episodeDir, "locales", input.language, input.variant);
   const sourcePlanPath = path.join(episodeDir, "source", "pre-image-semantic-plan.v1.json");
   const scenePlanPath = path.join(localeRoot, "scene-plan.json");
+  const canonicalSharedScenePlanPath = path.join(episodeDir, "shared", "scenes.json");
+  const episodeManifestPath = path.join(episodeDir, "manifest.json");
   const scriptPath = path.join(localeRoot, "script.md");
   const narrationPath = path.join(localeRoot, "audio", "narration.wav");
   const timingPath = path.join(localeRoot, "canonical-timing.v1.json");
   const retimedEventsPath = path.join(localeRoot, "retimed-visual-events.json");
-  const [planRaw, scenePlanRaw, narration, audioBytes, treatmentsRaw, bibleRaw] = await Promise.all([
+  const [planRaw, scenePlanRaw, narration, audioBytes, treatmentsRaw, bibleRaw, manifestRaw] = await Promise.all([
     fs.readFile(sourcePlanPath, "utf8"),
     fs.readFile(scenePlanPath, "utf8"),
     fs.readFile(scriptPath, "utf8"),
     fs.readFile(narrationPath),
     fs.readFile(path.join(episodeDir, "shared", "visual-treatments.v1.json"), "utf8"),
     fs.readFile(path.join(episodeDir, "shared", "visual-bible.v1.json"), "utf8"),
+    fs.readFile(episodeManifestPath, "utf8"),
   ]);
   const plan = positioningProductionPlanSchema.parse(JSON.parse(planRaw) as unknown) as unknown as PositioningVisualPlanV2;
   const scenePlan = scenePlanSchema.parse(JSON.parse(scenePlanRaw) as unknown);
@@ -1642,6 +1794,7 @@ export async function reconcileExistingVeronicaProductionTiming(
     : null;
   const treatments = veronicaVisualTreatmentsArtifactSchema.parse(JSON.parse(treatmentsRaw) as unknown);
   const bible = veronicaVisualBibleV1Schema.parse(JSON.parse(bibleRaw) as unknown);
+  const episodeManifest = episodeManifestSchema.parse(JSON.parse(manifestRaw) as unknown);
   const localized = await persistVeronicaLocalizedProduction({
     episodeDir,
     episodeId,
@@ -1689,6 +1842,21 @@ export async function reconcileExistingVeronicaProductionTiming(
       visualDensityMetrics,
       events: visualEvents,
     }),
+    ...(input.language === "en" && input.variant === "short"
+      ? [
+          writeJsonAtomic(canonicalSharedScenePlanPath, reconciliation.scenePlan),
+          writeJsonAtomic(episodeManifestPath, {
+            ...episodeManifest,
+            scenePlan: reconciliation.scenePlan,
+            sourceMetadata: {
+              ...(episodeManifest.sourceMetadata ?? {}),
+              canonicalLocaleTimingArtifactPath:
+                "locales/en/short/canonical-timing.v1.json",
+              timingPhase: "post-tts-reconciled",
+            },
+          }),
+        ]
+      : []),
   ]);
   return {
     episodeId,
@@ -1735,6 +1903,59 @@ export async function preparePositioningProductionEpisode(input: PreparePosition
   const expectedFormat = input.variant === "short" ? "short" : "long";
   if (plan.format !== expectedFormat) {
     throw new Error(`Veronica plan format ${plan.format} does not match requested ${input.variant} production.`);
+  }
+  const semanticPlanPath = path.join(episodeDir, "source", "pre-image-semantic-plan.v1.json");
+  const expectedSemanticAuthorityInputs = buildVeronicaSemanticAuthorityIdentityInputs({
+    plan,
+  });
+  const expectedSemanticIdentity = computeVeronicaSemanticAuthorityIdentity(expectedSemanticAuthorityInputs);
+  let priorSemanticAuthority: VeronicaSemanticPlanAuthorityResolution = {
+    state: "UNKNOWN",
+    reusable: false,
+    semanticIdentity: null,
+    reason: "semantic plan does not yet exist",
+  };
+  let priorSemanticPlanRaw: string | null = null;
+  if (await fileExists(semanticPlanPath)) {
+    priorSemanticPlanRaw = await fs.readFile(semanticPlanPath, "utf8");
+    const existingPlan = positioningProductionPlanSchema.safeParse(
+      JSON.parse(priorSemanticPlanRaw) as unknown,
+    );
+    const semanticReviews = await fs.readFile(
+      path.join(episodeDir, "shared", "pre-image-semantic-reviews.v1.json"),
+      "utf8",
+    ).then((value) => JSON.parse(value) as unknown).catch(() => null);
+    const typedExistingPlan = existingPlan.success ? existingPlan.data : null;
+    const legacyEvidence = typedExistingPlan && semanticReviews
+      ? parseVeronicaLegacySemanticAuthorityEvidence({
+          plan: typedExistingPlan,
+          semanticReviews,
+        })
+      : undefined;
+    priorSemanticAuthority = resolveVeronicaSemanticPlanAuthority({
+      plan: typedExistingPlan,
+      expected: expectedSemanticAuthorityInputs,
+      ...(legacyEvidence ? { legacyEvidence } : {}),
+    });
+    if (priorSemanticAuthority.state === "ACCEPTED_HUMAN_AUTHORITY") {
+      throw new VeronicaExpectedDeterministicOutcomeError(
+        "REVIEW",
+        "ACCEPTED_HUMAN_SEMANTIC_AUTHORITY_IMMUTABLE",
+        "semantic-authority",
+        [],
+        "Accepted human semantic authority is immutable; explicit review is required before replacement.",
+      );
+    }
+    if (!priorSemanticAuthority.reusable) {
+      await preserveSupersededVeronicaSemanticPlan({
+        planPath: semanticPlanPath,
+        raw: priorSemanticPlanRaw,
+        classification: priorSemanticAuthority.state,
+        supersededReason: priorSemanticAuthority.reason,
+        sourceIdentity: expectedSemanticAuthorityInputs,
+        replacementSemanticIdentity: expectedSemanticIdentity,
+      });
+    }
   }
   const semanticSegmentation = expandVeronicaLongFormSemanticScenes({
     plan: plan as unknown as PositioningVisualPlanV2,
@@ -1874,6 +2095,7 @@ export async function preparePositioningProductionEpisode(input: PreparePosition
     ...sourcePlan,
     sourceGroundedVisualQa: sourceGrounded.qa,
     hierarchicalReadiness,
+    semanticAuthority: createVeronicaDerivedSemanticAuthority(expectedSemanticAuthorityInputs),
   };
   canonicalPlan = finalizeSemanticPlanHash({
     ...sourceGroundedPlanBase,
@@ -1957,6 +2179,14 @@ export async function preparePositioningProductionEpisode(input: PreparePosition
   const materializationReasons = positioningScenePlanMaterializationReasons({ plan: canonicalPlan, scenePlan: finalScenePlan });
   if (materializationReasons.length > 0) {
     throw new Error(`PROVIDER_SCENE_MATERIALIZATION_INCOHERENT:${materializationReasons.join(",")}`);
+  }
+  await publishVeronicaSemanticPlanAuthorityAtomic({ planPath: semanticPlanPath, plan: canonicalPlan });
+  if (priorSemanticPlanRaw && priorSemanticAuthority.semanticIdentity !== expectedSemanticIdentity) {
+    await invalidateVeronicaSemanticDescendants({
+      episodeDir,
+      language: input.language,
+      variant: input.variant,
+    });
   }
   const visualArtifacts = await persistVeronicaVisualArtifacts({
     workspaceRoot,
@@ -2060,7 +2290,6 @@ export async function preparePositioningProductionEpisode(input: PreparePosition
     writeJsonAtomic(manifestPath, manifest),
     writeJsonAtomic(scenePlanPath, finalScenePlan),
     writeJsonAtomic(path.join(episodeDir, "locales", input.language, input.variant, "scene-plan.json"), finalScenePlan),
-    writeJsonAtomic(path.join(episodeDir, "source", "pre-image-semantic-plan.v1.json"), canonicalPlan),
     fs.rm(path.join(episodeDir, "shared", "source-grounded-qa-admission.v1.json"), { force: true }),
     writeJsonAtomic(path.join(episodeDir, "shared", "pre-image-semantic-reviews.v1.json"), {
       schemaVersion: "veronica-pre-image-semantic-reviews.v5",
@@ -2130,5 +2359,13 @@ export async function preparePositioningProductionEpisode(input: PreparePosition
     semanticRemediationStatus: finalConvergenceStatus,
     sourceGroundedVisualQaStatus: canonicalPlan.sourceGroundedVisualQa?.sourceFidelityReady ? "PASS" : "BLOCKED",
     visualPlanResolution: visualPlanResolution.evidence,
+    semanticPlanAuthority: {
+      state: "CURRENT_DERIVED_AUTHORITY",
+      reusable: true,
+      semanticIdentity: expectedSemanticIdentity,
+      reason: priorSemanticAuthority.state === "STALE_DERIVED_AUTHORITY"
+        ? "stale derived authority was preserved and deterministically replaced exactly once"
+        : "newly derived semantic authority matches current semantic-byte inputs",
+    },
   };
 }

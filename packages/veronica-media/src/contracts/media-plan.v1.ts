@@ -1,3 +1,4 @@
+import { veronicaCanonicalContentIdentitySchema } from "@mediaforge/domain";
 import { z } from "zod";
 
 export const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/u);
@@ -320,7 +321,8 @@ export const veronicaRenderClipSchema = z.strictObject({
 });
 
 export const veronicaRenderManifestSchema = z.strictObject({
-  schemaVersion: z.literal("veronica-render-manifest.v1"),
+  schemaVersion: z.literal("veronica-render-manifest.v2"),
+  canonicalContentIdentity: veronicaCanonicalContentIdentitySchema,
   aspectRatio: veronicaAspectRatioSchema,
   profile: veronicaAspectRatioProfileSchema,
   clips: z.array(veronicaRenderClipSchema).min(1),

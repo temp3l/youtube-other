@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Veronica S02-B01 deterministic diagram review",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "verdict",
+    "reviewedPrototypeSha256",
+    "instantRead",
+    "sourceFidelity",
+    "causalPolarity",
+    "singleInput",
+    "continuousShrinkage",
+    "distinctCostRemovals",
+    "singleSmallerRemainder",
+    "adjacentBeatDistinctness",
+    "visualBibleContinuity",
+    "subtitleSafety",
+    "textLogoUiSafety",
+    "likenessSafety",
+    "mustShowCoverage",
+    "blockingFindings",
+    "requiredEdits",
+    "reason"
+  ],
+  "properties": {
+    "verdict": {
+      "enum": [
+        "APPROVE_PROTOTYPE",
+        "APPROVE_WITH_REQUIRED_EDITS",
+        "REJECT_MODALITY"
+      ]
+    },
+    "reviewedPrototypeSha256": {
+      "const": "5e11f15cee0b397ad8bbcd2b8d897ae8ca91764f65e728deb218a0dc7cde5bbe"
+    },
+    "instantRead": { "$ref": "#/$defs/result" },
+    "sourceFidelity": { "$ref": "#/$defs/result" },
+    "causalPolarity": { "$ref": "#/$defs/result" },
+    "singleInput": { "$ref": "#/$defs/result" },
+    "continuousShrinkage": { "$ref": "#/$defs/result" },
+    "distinctCostRemovals": { "$ref": "#/$defs/result" },
+    "singleSmallerRemainder": { "$ref": "#/$defs/result" },
+    "adjacentBeatDistinctness": { "$ref": "#/$defs/result" },
+    "visualBibleContinuity": { "$ref": "#/$defs/result" },
+    "subtitleSafety": { "$ref": "#/$defs/result" },
+    "textLogoUiSafety": { "$ref": "#/$defs/result" },
+    "likenessSafety": { "$ref": "#/$defs/result" },
+    "mustShowCoverage": { "enum": ["PASS", "PARTIAL", "FAIL"] },
+    "blockingFindings": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "requiredEdits": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["target", "problem", "edit"],
+        "properties": {
+          "target": { "type": "string", "minLength": 1 },
+          "problem": { "type": "string", "minLength": 1 },
+          "edit": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "reason": { "type": "string", "minLength": 1 }
+  },
+  "$defs": {
+    "result": { "enum": ["PASS", "PARTIAL", "FAIL"] }
+  }
+}

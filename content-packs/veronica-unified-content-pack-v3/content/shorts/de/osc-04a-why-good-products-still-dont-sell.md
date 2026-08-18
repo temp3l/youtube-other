@@ -1,0 +1,7 @@
+Du kannst ein gutes Produkt und ein klares Versprechen haben und den Kauf trotzdem zu schwer machen. Genau hier beginnt das Angebot. Der Kunde muss verstehen, wo er anfangen soll, was er wählen kann, warum er dir vertrauen sollte und wie der Kauf funktioniert. Wenn er Informationen zusammensuchen, zehn unnötige Schritte durchlaufen und jeden Zweifel selbst klären muss, erzeugst du Reibung. Ein gutes Produkt kompensiert kein verwirrendes Angebot. Prüfe den Weg wie ein Neukunde: Was ist enthalten? Welche Option ist richtig? Sind die wichtigsten Informationen ohne Rückfrage auffindbar? Jeder unnötige Schritt ist zusätzliche Arbeit – und zusätzliche Arbeit ist ein Grund, die Entscheidung zu verschieben. Bevor du den nächsten Bonus hinzufügst, entferne zuerst eine echte Reibung.
+
+Reibung steckt oft in kleinen Dingen: ein unklarer Paketname, ein fehlender Preis, ein Formular mit unnötigen Fragen oder ein Checkout, der Zweifel erzeugt. Einen solchen Punkt zu entfernen kann mehr bewirken als ein weiterer Werbeclaim, weil du einem bereits interessierten Käufer konkrete Arbeit abnimmst.
+
+Reibung ist besonders teuer, wenn Interesse schon da ist, denn der Kunde hat bereits Aufmerksamkeit investiert. Dann können Unsicherheit über Preis, Umfang, Lieferung oder nächste Schritte den Impuls stoppen. Beantworte Fragen auf der Seite, bevor du dafür ein Gespräch erzwingst. Klarheit bewahrt die Kaufabsicht, die dein Marketing bereits erzeugt hat.
+
+Öffne heute deinen Kaufweg wie ein Neukunde und entferne einen Schritt, der keinen Wert schafft.

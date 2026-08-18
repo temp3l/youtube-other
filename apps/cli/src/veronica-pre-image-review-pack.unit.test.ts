@@ -3,10 +3,52 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { resolveVeronicaCurrentReviewState, validateVeronicaTimingIntegrity, veronicaPreImageReviewInstruction } from "./veronica-pre-image-review-pack.js";
+import {
+  assertVeronicaHumanApprovalBinding,
+  resolveVeronicaCurrentReviewState,
+  validateVeronicaTimingIntegrity,
+  veronicaPreImageReviewInstruction,
+} from "./veronica-pre-image-review-pack.js";
 import { calibrateVeronicaShortNarration } from "./veronica-short-pacing.js";
 
 describe("Veronica pre-image review instructions", () => {
+  it("accepts only human approval bound to the exact review manifest identity", () => {
+    const approval = {
+      schemaVersion: "veronica-pre-image-human-approval.v1",
+      episodeId: "01a-revenue-is-not-a-good-business",
+      language: "en",
+      variant: "short",
+      decision: "approved",
+      reviewer: "operator",
+      authorizationReference: "operator-message-2026-08-12",
+      approvedAt: "2026-08-12T13:45:00.000Z",
+      reviewManifestSha256: "a".repeat(64),
+      packagingFingerprint: "b".repeat(64),
+      qaAdmissionIdentity: "c".repeat(64),
+      semanticPlanFileSha256: "d".repeat(64),
+      providerPromptProjectionHash: "e".repeat(64),
+      qaRevisionId: "f".repeat(64),
+    } as const;
+    expect(() =>
+      assertVeronicaHumanApprovalBinding({
+        approval,
+        reviewManifestSha256: "a".repeat(64),
+        episodeId: approval.episodeId,
+        language: "en",
+        variant: "short",
+      }),
+    ).not.toThrow();
+    expect(() =>
+      assertVeronicaHumanApprovalBinding({
+        approval,
+        reviewManifestSha256: "0".repeat(64),
+        episodeId: approval.episodeId,
+        language: "en",
+        variant: "short",
+      }),
+    ).toThrow("human pre-image approval is stale");
+  });
+
   it("keeps Short-specific review criteria on the short variant", () => {
     const instruction = veronicaPreImageReviewInstruction("short");
     expect(instruction).toContain("Review this Short");

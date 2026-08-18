@@ -1,0 +1,7 @@
+The difference between follow-up and chasing is simple: follow-up adds value. It answers a question, sends useful information, reminds someone about a real deadline, or returns at an agreed moment. Chasing keeps asking for attention without adding anything. Give every follow-up a reason. If the only message is “have you decided yet?”, you may be adding pressure rather than clarity. And do not open five channels if you cannot answer on any of them. Two channels you manage well are better than five neglected doors. Professional follow-up also knows when to stop. If someone does not respond after reasonable, relevant contacts, give them space. Being present does not mean being relentless. Consistency plus respect is a sales discipline, not pressure.
+
+A useful follow-up can send the answer to an unresolved question, a relevant example, a requested document, or a genuine deadline. If you have nothing new to add, another message may only add pressure. Relevance is what separates persistence from chasing.
+
+Define the reason for the next contact before you send the current one. That could be an agreed date, missing information, a decision deadline, or a relevant new example. A visible follow-up rule also makes stopping easier because the boundary is decided before emotion takes over. Professional persistence has both a purpose and an endpoint.
+
+Every follow-up should add clarity, information, or a real reason to respond.

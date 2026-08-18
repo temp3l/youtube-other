@@ -1,0 +1,31 @@
+{
+  "title": "Stop Improving the Marketing. Fix the Product.",
+  "thumbnail": "MAYBE IT IS THE PRODUCT",
+  "description": "More traffic cannot rescue a weak product. Use validation, simplification, competition, operational cost, and inventory risk to diagnose what needs fixing before buying more attention.",
+  "cta": "Next, we separate attention from conversion and find the exact point where sales are being lost.",
+  "alternativeTitles": [
+    "Before You Spend More on Marketing, Test the Product",
+    "More Traffic Can Make a Bad Product Problem Worse"
+  ],
+  "thumbnailOptions": [
+    "MAYBE IT IS THE PRODUCT",
+    "MAYBE IT'S THE PRODUCT",
+    "DON'T BUY MORE TRAFFIC"
+  ],
+  "youtubeOptimizationVersion": "v2-retention-localization",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  },
+  "shortA": {
+    "title": "Maybe You Do Not Have a Marketing Problem",
+    "alternateHook": "More traffic cannot rescue a product that does not survive real customer interest."
+  },
+  "shortB": {
+    "title": "Too Many Choices Can Hurt Sales",
+    "alternateHook": "More options can create more confusion, inventory, errors, and slower decisions."
+  }
+}

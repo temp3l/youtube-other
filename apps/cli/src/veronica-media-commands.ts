@@ -3,12 +3,28 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import { loadRuntimeConfig } from "@mediaforge/config";
-import { supportedLanguageCodeSchema } from "@mediaforge/domain";
-import { YOUTUBE_METADATA_PROMPT_VERSION, type YoutubeMetadataGenerationOptions } from "@mediaforge/metadata";
+import {
+  assertVeronicaCanonicalWorkspaceIdentity,
+  supportedLanguageCodeSchema,
+} from "@mediaforge/domain";
+import {
+  YOUTUBE_METADATA_PROMPT_VERSION,
+  type YoutubeMetadataGenerationOptions,
+} from "@mediaforge/metadata";
 import { runCommand } from "@mediaforge/process-runner";
-import { inspectSemanticImagePromptCache, requireOpenAiResponsesPolicy } from "@mediaforge/shared";
+import {
+  inspectSemanticImagePromptCache,
+  requireOpenAiResponsesPolicy,
+} from "@mediaforge/shared";
+import {
+  getVeronicaSpeechRatePolicy,
+  loadSpeechVoiceSettings,
+  OpenAiCompatibleSpeechProvider,
+  probeAudioWithFfprobe,
+} from "@mediaforge/speech";
 import {
   createVeronicaPilotFixtures,
+  createVeronicaPilotCanonicalContentIdentity,
   executeVeronicaRender,
   loadVeronicaPipelineResult,
   runVeronicaSupplementalMediaPipeline,
@@ -28,53 +44,99 @@ import {
   runExistingVeronicaSourceGroundedPreImageQa,
   positioningProductionPlanSchema,
   resolveVeronicaSemanticImagePromptPaths,
+  loadVeronicaCanonicalContentIdentity,
   runStrategicSupplementalMediaBridge,
   discoverVeronicaContentPack2Shorts,
   discoverFullTranscriptedPackEpisodes,
+  canonicalSourceEpisodeFromRegistry,
   prepareCanonicalSourceEpisodeWorkspace,
+  resolveVeronicaContentSource,
+  validateVeronicaContentSource,
   type PositioningVisualPlanV2,
 } from "@mediaforge/strategic-reinvention";
 import { createVeronicaImagePromptCompilerComposition } from "./veronica-image-prompt-compiler-composition.js";
-import { createVeronicaPreImageReviewPack, createVeronicaPromptCompilationReviewPack, reviewPackModeSchema } from "./veronica-pre-image-review-pack.js";
+import {
+  approveVeronicaPreImageReviewPack,
+  createVeronicaPreImageReviewPack,
+  createVeronicaPromptCompilationReviewPack,
+  reviewPackModeSchema,
+} from "./veronica-pre-image-review-pack.js";
 import {
   createVeronicaSourceGroundedVisualQaComposition,
   VERONICA_SOURCE_GROUNDED_QA_DEFAULT_CEILINGS,
   type VeronicaPaidOpenAiQaAuthorization,
 } from "./veronica-source-grounded-visual-qa-composition.js";
+import {
+  runVeronicaNarrationCanary,
+  veronicaNarrationReservationSchema,
+} from "./veronica-narration-canary.js";
+import { runVeronicaEnglishSourcePackPlan } from "./veronica-english-source-pack-runner.js";
 
-const mediaforgeBinPath = fileURLToPath(new URL("../bin/mediaforge.js", import.meta.url));
+const mediaforgeBinPath = fileURLToPath(
+  new URL("../bin/mediaforge.js", import.meta.url)
+);
 
 type VeronicaLanguage = "en" | "de" | "es" | "fr" | "pt" | "it";
 type VeronicaVariant = "full" | "short";
 
-function parseVeronicaVariant(value: string): VeronicaVariant {
-  if (value === "full" || value === "short") return value;
-  throw new Error(`Unsupported Veronica metadata variant: ${value}. Expected full or short.`);
+async function assertCanonicalVeronicaWorkspace(
+  episodeDir: string
+): Promise<void> {
+  const manifest = JSON.parse(
+    await fs.readFile(path.join(episodeDir, "manifest.json"), "utf8")
+  ) as { readonly sourceMetadata?: unknown };
+  assertVeronicaCanonicalWorkspaceIdentity(manifest.sourceMetadata);
 }
 
-function parseSourceGroundedQaProfile(value: string): "INTERACTIVE" | "COST_OPTIMIZED" | "BULK" {
+function parseVeronicaVariant(value: string): VeronicaVariant {
+  if (value === "full" || value === "short") return value;
+  throw new Error(
+    `Unsupported Veronica metadata variant: ${value}. Expected full or short.`
+  );
+}
+
+function parseSourceGroundedQaProfile(
+  value: string
+): "INTERACTIVE" | "COST_OPTIMIZED" | "BULK" {
   if (value === "interactive") return "INTERACTIVE";
   if (value === "cost-optimized") return "COST_OPTIMIZED";
   if (value === "bulk") return "BULK";
-  throw new Error(`Unsupported source-grounded QA profile: ${value}. Expected interactive, cost-optimized, or bulk.`);
+  throw new Error(
+    `Unsupported source-grounded QA profile: ${value}. Expected interactive, cost-optimized, or bulk.`
+  );
 }
 
-async function veronicaMetadataOptions(input: { readonly workspace: string; readonly force: boolean; readonly dryRun: boolean }): Promise<YoutubeMetadataGenerationOptions> {
+async function veronicaMetadataOptions(input: {
+  readonly workspace: string;
+  readonly force: boolean;
+  readonly dryRun: boolean;
+}): Promise<YoutubeMetadataGenerationOptions> {
   const runtime = await loadRuntimeConfig({
     workspaceDir: path.resolve(input.workspace),
   });
-  const metadataPolicy = requireOpenAiResponsesPolicy(runtime.openAiPolicy["youtube-metadata"]);
-  const repairPolicy = requireOpenAiResponsesPolicy(runtime.openAiPolicy["metadata-repair"]);
-  const baseUrl = runtime.openAiCompatibleBaseUrl ?? process.env["OPENAI_BASE_URL"];
+  const metadataPolicy = requireOpenAiResponsesPolicy(
+    runtime.openAiPolicy["youtube-metadata"]
+  );
+  const repairPolicy = requireOpenAiResponsesPolicy(
+    runtime.openAiPolicy["metadata-repair"]
+  );
+  const baseUrl =
+    runtime.openAiCompatibleBaseUrl ?? process.env["OPENAI_BASE_URL"];
   return {
-    apiKey: runtime.openAiCompatibleApiKey ?? process.env["OPENAI_API_KEY"] ?? "",
+    apiKey:
+      runtime.openAiCompatibleApiKey ?? process.env["OPENAI_API_KEY"] ?? "",
     model: metadataPolicy.model,
     maxOutputTokens: runtime.openAiMetadataMaxOutputTokens,
     repairModel: repairPolicy.model,
     repairReasoningEffort: repairPolicy.reasoning,
-    repairMaxOutputTokens: runtime.openAiValidatorMaxOutputTokens ?? runtime.openAiMetadataMaxOutputTokens,
+    repairMaxOutputTokens:
+      runtime.openAiValidatorMaxOutputTokens ??
+      runtime.openAiMetadataMaxOutputTokens,
     language: "en",
-    promptText: await fs.readFile(path.resolve("prompts", "youtube-metadata.prompt.md"), "utf8"),
+    promptText: await fs.readFile(
+      path.resolve("prompts", "youtube-metadata.prompt.md"),
+      "utf8"
+    ),
     promptVersion: YOUTUBE_METADATA_PROMPT_VERSION,
     maxRetries: runtime.openAiMetadataMaxRetries ?? 3,
     timeoutMs: runtime.openAiMetadataTimeoutMs ?? 120000,
@@ -86,16 +148,30 @@ async function veronicaMetadataOptions(input: { readonly workspace: string; read
   };
 }
 
-async function resolveCanonicalNarrationFromManifest(input: { readonly workspace: string; readonly episodeDir: string; readonly canonicalNarrationSource: string }): Promise<string | null> {
+async function resolveCanonicalNarrationFromManifest(input: {
+  readonly workspace: string;
+  readonly episodeDir: string;
+  readonly canonicalNarrationSource: string;
+}): Promise<string | null> {
   try {
-    const manifest = JSON.parse(await fs.readFile(path.join(input.episodeDir, "manifest.json"), "utf8")) as { readonly source?: { readonly filePath?: unknown } };
+    const manifest = JSON.parse(
+      await fs.readFile(path.join(input.episodeDir, "manifest.json"), "utf8")
+    ) as { readonly source?: { readonly filePath?: unknown } };
     const sourcePath = manifest.source?.filePath;
-    if (typeof sourcePath !== "string" || path.isAbsolute(sourcePath)) return null;
+    if (typeof sourcePath !== "string" || path.isAbsolute(sourcePath))
+      return null;
     const normalized = sourcePath.replaceAll("\\", "/");
     const packageBoundary = normalized.indexOf("/shorts/");
-    const packageRoot = packageBoundary >= 0 ? normalized.slice(0, packageBoundary) : normalized.slice(0, Math.max(normalized.lastIndexOf("/"), 0));
+    const packageRoot =
+      packageBoundary >= 0
+        ? normalized.slice(0, packageBoundary)
+        : normalized.slice(0, Math.max(normalized.lastIndexOf("/"), 0));
     if (!packageRoot) return null;
-    return path.resolve(path.dirname(path.resolve(input.workspace)), packageRoot, input.canonicalNarrationSource);
+    return path.resolve(
+      path.dirname(path.resolve(input.workspace)),
+      packageRoot,
+      input.canonicalNarrationSource
+    );
   } catch {
     return null;
   }
@@ -133,6 +209,7 @@ interface PaidQaCliOptions {
   readonly maxEstimatedInputTokens?: number;
   readonly maxEstimatedOutputTokens?: number;
   readonly maxAutomaticRemediationRounds?: number;
+  readonly retryMalformedQa?: boolean;
 }
 
 export function resolveVeronicaPaidQaAuthorization(
@@ -151,6 +228,7 @@ export function resolveVeronicaPaidQaAuthorization(
       options.maxEstimatedInputTokens ?? defaults.maxEstimatedInputTokens,
     maxEstimatedOutputTokens:
       options.maxEstimatedOutputTokens ?? defaults.maxEstimatedOutputTokens,
+    ...(options.retryMalformedQa ? { retryDeterministicMalformed: true } : {}),
   };
 }
 
@@ -167,23 +245,41 @@ function addSourceGroundedQaCostControls(command: Command): Command {
       "Explicitly authorize live paid source-grounded OpenAI QA",
       false
     )
-    .option("--max-provider-calls <number>", `Hard provider-request ceiling; 0 enforces exact-cache-only execution (Short ${VERONICA_SOURCE_GROUNDED_QA_DEFAULT_CEILINGS.short.maxProviderCalls}; full ${VERONICA_SOURCE_GROUNDED_QA_DEFAULT_CEILINGS.full.maxProviderCalls})`, (value) =>
-      parseNonNegativeInteger(value, "--max-provider-calls")
+    .option(
+      "--retry-malformed-qa",
+      "Explicitly retry active malformed-output negative-cache records within the paid-QA ceiling",
+      false
     )
-    .option("--max-estimated-cost-usd <number>", "Hard estimated-spend ceiling (Short $0.40; full $0.60)", (value) =>
-      parsePositiveNumber(value, "--max-estimated-cost-usd")
+    .option(
+      "--max-provider-calls <number>",
+      `Hard provider-request ceiling; 0 enforces exact-cache-only execution (Short ${VERONICA_SOURCE_GROUNDED_QA_DEFAULT_CEILINGS.short.maxProviderCalls}; full ${VERONICA_SOURCE_GROUNDED_QA_DEFAULT_CEILINGS.full.maxProviderCalls})`,
+      (value) => parseNonNegativeInteger(value, "--max-provider-calls")
     )
-    .option("--max-flagship-calls-per-pack <number>", "Hard flagship-request ceiling per pack (default 1)", (value) =>
-      parsePositiveInteger(value, "--max-flagship-calls-per-pack")
+    .option(
+      "--max-estimated-cost-usd <number>",
+      "Hard estimated-spend ceiling (Short $0.40; full $0.60)",
+      (value) => parsePositiveNumber(value, "--max-estimated-cost-usd")
     )
-    .option("--max-estimated-input-tokens <number>", `Estimated input-token ceiling (Short ${VERONICA_SOURCE_GROUNDED_QA_DEFAULT_CEILINGS.short.maxEstimatedInputTokens}; full ${VERONICA_SOURCE_GROUNDED_QA_DEFAULT_CEILINGS.full.maxEstimatedInputTokens})`, (value) =>
-      parsePositiveInteger(value, "--max-estimated-input-tokens")
+    .option(
+      "--max-flagship-calls-per-pack <number>",
+      "Hard flagship-request ceiling per pack (default 1)",
+      (value) => parsePositiveInteger(value, "--max-flagship-calls-per-pack")
     )
-    .option("--max-estimated-output-tokens <number>", `Estimated output-token ceiling (Short ${VERONICA_SOURCE_GROUNDED_QA_DEFAULT_CEILINGS.short.maxEstimatedOutputTokens}; full ${VERONICA_SOURCE_GROUNDED_QA_DEFAULT_CEILINGS.full.maxEstimatedOutputTokens})`, (value) =>
-      parsePositiveInteger(value, "--max-estimated-output-tokens")
+    .option(
+      "--max-estimated-input-tokens <number>",
+      `Estimated input-token ceiling (Short ${VERONICA_SOURCE_GROUNDED_QA_DEFAULT_CEILINGS.short.maxEstimatedInputTokens}; full ${VERONICA_SOURCE_GROUNDED_QA_DEFAULT_CEILINGS.full.maxEstimatedInputTokens})`,
+      (value) => parsePositiveInteger(value, "--max-estimated-input-tokens")
     )
-    .option("--max-automatic-remediation-rounds <number>", "Automatic rounds (default 1; 2 must be explicit)", (value) =>
-      parsePositiveInteger(value, "--max-automatic-remediation-rounds")
+    .option(
+      "--max-estimated-output-tokens <number>",
+      `Estimated output-token ceiling (Short ${VERONICA_SOURCE_GROUNDED_QA_DEFAULT_CEILINGS.short.maxEstimatedOutputTokens}; full ${VERONICA_SOURCE_GROUNDED_QA_DEFAULT_CEILINGS.full.maxEstimatedOutputTokens})`,
+      (value) => parsePositiveInteger(value, "--max-estimated-output-tokens")
+    )
+    .option(
+      "--max-automatic-remediation-rounds <number>",
+      "Automatic rounds (default 1; 2 must be explicit)",
+      (value) =>
+        parsePositiveInteger(value, "--max-automatic-remediation-rounds")
     );
 }
 
@@ -199,18 +295,26 @@ async function loadVeronicaSemanticInputs(input: {
   readonly canonicalNarration: string;
 }> {
   const episodeDir = path.join(path.resolve(input.workspace), input.episodeId);
-  const generatedPreImagePlan = path.join(episodeDir, "source", "pre-image-semantic-plan.v1.json");
+  await assertCanonicalVeronicaWorkspace(episodeDir);
+  const generatedPreImagePlan = path.join(
+    episodeDir,
+    "source",
+    "pre-image-semantic-plan.v1.json"
+  );
   const defaultPlanPath = await fs
     .access(generatedPreImagePlan)
     .then(() => generatedPreImagePlan)
     .catch(() => path.join(episodeDir, "source", "visual-plan.json"));
   const planPath = path.resolve(input.planPath ?? defaultPlanPath);
-  const plan = positioningProductionPlanSchema.parse(JSON.parse(await fs.readFile(planPath, "utf8")) as unknown) as unknown as PositioningVisualPlanV2;
-  const manifestCanonicalNarration = await resolveCanonicalNarrationFromManifest({
-    workspace: input.workspace,
-    episodeDir,
-    canonicalNarrationSource: plan.canonicalNarrationSource,
-  });
+  const plan = positioningProductionPlanSchema.parse(
+    JSON.parse(await fs.readFile(planPath, "utf8")) as unknown
+  ) as unknown as PositioningVisualPlanV2;
+  const manifestCanonicalNarration =
+    await resolveCanonicalNarrationFromManifest({
+      workspace: input.workspace,
+      episodeDir,
+      canonicalNarrationSource: plan.canonicalNarrationSource,
+    });
   const candidates = input.narrationPath
     ? [path.resolve(input.narrationPath)]
     : input.variant === "short"
@@ -237,196 +341,480 @@ async function loadVeronicaSemanticInputs(input: {
       // Try the next canonical-only location.
     }
   }
-  throw new Error(`Canonical Veronica narration not found: ${candidates.join(", ")}.`);
+  throw new Error(
+    `Canonical Veronica narration not found: ${candidates.join(", ")}.`
+  );
 }
 
 export function registerVeronicaMediaCommands(program: Command): void {
-  const veronica = program.command("veronica-media").description("Veronica Benini supplemental media planning and rendering");
+  const veronica = program
+    .command("veronica-media")
+    .description("Veronica Benini supplemental media planning and rendering");
   const sourcePack = veronica
     .command("source-pack")
-    .description("Discover and prepare canonical Veronica source-pack episodes without media production");
+    .description(
+      "Discover and prepare canonical Veronica source-pack episodes without media production"
+    );
 
   sourcePack
     .command("prepare")
-    .description("Prepare one Veronica Content Pack 2 source episode and canonical planner input")
-    .requiredOption("--pack <path>", "Veronica Content Pack 2 root")
+    .description(
+      "Prepare canonical unified-pack assets for one series episode or story"
+    )
+    .option("--repository-root <path>", "Repository root", ".")
     .requiredOption("--workspace <path>", "Canonical episode workspace root")
+    .option(
+      "--episode <number>",
+      "Series episode order (prepares its Long and two Shorts)",
+      (value) => parsePositiveInteger(value, "--episode")
+    )
+    .option("--story-id <id>", "Prepare one canonical story ID")
+    .option("--language <code>", "Locale to materialize", "en")
+    .option("--json", "Emit machine-readable output", false)
+    .action(
+      async (options: {
+        repositoryRoot: string;
+        workspace: string;
+        episode?: number;
+        storyId?: string;
+        language: string;
+        json: boolean;
+      }) => {
+        if (
+          (options.episode === undefined) ===
+          (options.storyId === undefined)
+        ) {
+          throw new Error("Specify exactly one of --episode or --story-id.");
+        }
+        const language = supportedLanguageCodeSchema.parse(options.language);
+        const source = await resolveVeronicaContentSource({
+          repositoryRoot: path.resolve(options.repositoryRoot),
+        });
+        const records =
+          options.episode !== undefined
+            ? (() => {
+                const episode = source.registry.episodeByOrder.get(
+                  options.episode
+                );
+                if (!episode)
+                  throw new Error(
+                    `Canonical Veronica series episode not found: ${options.episode}`
+                  );
+                return [episode.long, ...episode.shorts];
+              })()
+            : (() => {
+                const story = source.registry.storyById.get(
+                  options.storyId ?? ""
+                );
+                if (!story)
+                  throw new Error(
+                    `Canonical Veronica story not found: ${options.storyId}`
+                  );
+                return [story];
+              })();
+        const prepared = [];
+        for (const record of records) {
+          const localized = record.localeVariants.get(language);
+          if (!localized) {
+            throw new Error(
+              `VERONICA_LOCALE_UNAVAILABLE:${record.storyId}/${language}`
+            );
+          }
+          const sourceEpisode = canonicalSourceEpisodeFromRegistry({
+            story: record,
+          });
+          const result = await prepareCanonicalSourceEpisodeWorkspace({
+            workspaceRoot: path.resolve(options.workspace),
+            sourceEpisode,
+            locale: language,
+          });
+          prepared.push({
+            ...result,
+            channel: "veronica",
+            contentPackId: source.registry.contentPackId,
+            storyId: record.storyId,
+            seriesEpisodeId: record.seriesEpisodeId,
+            locale: language,
+            variant: record.kind,
+            readiness: localized.readiness,
+            contentHash: record.contentHash,
+            providerDispatchEnabled: false,
+          });
+        }
+        const payload = {
+          canonicalPackId: source.registry.contentPackId,
+          canonicalPackPath: source.packRoot,
+          manifestPath: source.manifestPath,
+          prepared,
+          providerCalls: 0,
+        };
+        process.stdout.write(
+          `${JSON.stringify(payload, options.json ? null : undefined, options.json ? 2 : undefined)}\n`
+        );
+      }
+    );
+
+  sourcePack
+    .command("prepare-legacy-pack2")
+    .description(
+      "Explicit legacy/debug preparation from Veronica Content Pack 2"
+    )
+    .requiredOption("--pack <path>", "Veronica Content Pack 2 root")
+    .requiredOption("--workspace <path>", "Legacy diagnostic workspace root")
     .requiredOption("--episode-id <id>", "Stable authored Pack 2 episode key")
     .option("--language <code>", "Locale to materialize", "en")
     .option("--json", "Emit machine-readable output", false)
-    .action(async (options: { pack: string; workspace: string; episodeId: string; language: string; json: boolean }) => {
-      const language = supportedLanguageCodeSchema.parse(options.language);
-      const episodes = await discoverVeronicaContentPack2Shorts({
-        packDir: path.resolve(options.pack),
-      });
-      const sourceEpisode = episodes.find((episode) => episode.episodeId === options.episodeId);
-      if (!sourceEpisode) {
-        throw new Error(`Veronica Content Pack 2 episode not found: ${options.episodeId}`);
+    .action(
+      async (options: {
+        pack: string;
+        workspace: string;
+        episodeId: string;
+        language: string;
+        json: boolean;
+      }) => {
+        const language = supportedLanguageCodeSchema.parse(options.language);
+        const episodes = await discoverVeronicaContentPack2Shorts({
+          packDir: path.resolve(options.pack),
+        });
+        const sourceEpisode = episodes.find(
+          (episode) => episode.episodeId === options.episodeId
+        );
+        if (!sourceEpisode)
+          throw new Error(
+            `Legacy Veronica Content Pack 2 episode not found: ${options.episodeId}`
+          );
+        const result = await prepareCanonicalSourceEpisodeWorkspace({
+          workspaceRoot: path.resolve(options.workspace),
+          sourceEpisode,
+          locale: language,
+        });
+        process.stdout.write(
+          `${JSON.stringify({ ...result, legacy: true, sourcePackId: sourceEpisode.sourcePackId, providerCalls: 0 }, options.json ? null : undefined, options.json ? 2 : undefined)}\n`
+        );
       }
-      const result = await prepareCanonicalSourceEpisodeWorkspace({
-        workspaceRoot: path.resolve(options.workspace),
-        sourceEpisode,
-        locale: language,
+    );
+
+  sourcePack
+    .command("prepare-legacy-full-transcripted")
+    .description(
+      "Explicit legacy/debug preparation from the QA-approved full-transcripted pack"
+    )
+    .requiredOption("--pack <path>", "Full-transcripted content pack root")
+    .requiredOption("--workspace <path>", "Canonical episode workspace root")
+    .requiredOption(
+      "--episode-id <id>",
+      "Wave story ID (for example S001) or canonical episode ID"
+    )
+    .option("--format <short|long>", "Limit discovery to one video format")
+    .option("--json", "Emit machine-readable output", false)
+    .action(
+      async (options: {
+        pack: string;
+        workspace: string;
+        episodeId: string;
+        format?: "short" | "long";
+        json: boolean;
+      }) => {
+        if (
+          options.format !== undefined &&
+          options.format !== "short" &&
+          options.format !== "long"
+        ) {
+          throw new Error("--format must be short or long.");
+        }
+        const episodes = await discoverFullTranscriptedPackEpisodes({
+          packDir: path.resolve(options.pack),
+          ...(options.format ? { format: options.format } : {}),
+        });
+        const requestedId = options.episodeId.trim();
+        const sourceEpisode = episodes.find(
+          (episode) =>
+            episode.episodeId === requestedId.toLowerCase() ||
+            episode.sourceGrounding?.storyId === requestedId.toUpperCase()
+        );
+        if (!sourceEpisode) {
+          throw new Error(
+            `QA-approved full-transcripted Pack Wave 01 episode not found: ${options.episodeId}`
+          );
+        }
+        const result = await prepareCanonicalSourceEpisodeWorkspace({
+          workspaceRoot: path.resolve(options.workspace),
+          sourceEpisode,
+          locale: "en",
+        });
+        const payload = {
+          ...result,
+          sourcePackId: sourceEpisode.sourcePackId,
+          sourceRevisionHash: sourceEpisode.sourceRevisionHash,
+          format: sourceEpisode.format,
+          sourceGrounding: sourceEpisode.sourceGrounding,
+          providerCalls: 0,
+        };
+        process.stdout.write(
+          `${JSON.stringify(payload, options.json ? null : undefined, options.json ? 2 : undefined)}\n`
+        );
+      }
+    );
+
+  sourcePack
+    .command("status")
+    .description(
+      "Inspect the canonical Veronica content source using local reads only"
+    )
+    .option("--repository-root <path>", "Repository root", ".")
+    .option("--json", "Emit machine-readable output", false)
+    .action(async (options: { repositoryRoot: string; json: boolean }) => {
+      const result = await validateVeronicaContentSource({
+        repositoryRoot: path.resolve(options.repositoryRoot),
       });
-      const payload = {
-        ...result,
-        sourcePackId: sourceEpisode.sourcePackId,
-        sourceRevisionHash: sourceEpisode.sourceRevisionHash,
-        sourceLocales: sourceEpisode.localeSources.map((source) => source.locale),
-        providerCalls: 0,
-      };
-      process.stdout.write(`${JSON.stringify(payload, options.json ? null : undefined, options.json ? 2 : undefined)}\n`);
+      if (options.json) {
+        process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+        return;
+      }
+      process.stdout.write(
+        [
+          `Canonical pack: ${result.canonicalPackId}`,
+          `Canonical path: ${result.packRoot}`,
+          `Manifest: ${result.manifestPath}`,
+          `Episodes: ${result.episodes}`,
+          `Longs: ${result.longs}`,
+          `Shorts: ${result.shorts}`,
+          `Canonical English assets: ${result.canonicalEnglishAssets}`,
+          `Locales discovered: ${result.locales.join(", ")}`,
+          `Missing translation sets: ${result.missingTranslations.length}`,
+          `Localized timing violations: ${result.timingViolations.length}`,
+          "Legacy fallback: disabled",
+          "Paid providers invoked: no",
+        ].join("\n") + "\n"
+      );
     });
 
   sourcePack
-    .command("prepare-full-transcripted")
-    .description("Prepare one QA-approved Wave 01 narration from the full-transcripted Veronica pack")
-    .requiredOption("--pack <path>", "Full-transcripted content pack root")
-    .requiredOption("--workspace <path>", "Canonical episode workspace root")
-    .requiredOption("--episode-id <id>", "Wave story ID (for example S001) or canonical episode ID")
-    .option("--format <short|long>", "Limit discovery to one video format")
+    .command("validate")
+    .description(
+      "Validate canonical Veronica structure, timing, localization, and identity without providers"
+    )
+    .option("--repository-root <path>", "Repository root", ".")
+    .option(
+      "--strict-locales",
+      "Fail on known localization gaps or timing violations",
+      false
+    )
     .option("--json", "Emit machine-readable output", false)
-    .action(async (options: { pack: string; workspace: string; episodeId: string; format?: "short" | "long"; json: boolean }) => {
-      if (options.format !== undefined && options.format !== "short" && options.format !== "long") {
-        throw new Error("--format must be short or long.");
+    .action(
+      async (options: {
+        repositoryRoot: string;
+        strictLocales: boolean;
+        json: boolean;
+      }) => {
+        const result = await validateVeronicaContentSource({
+          repositoryRoot: path.resolve(options.repositoryRoot),
+          strictLocales: options.strictLocales,
+        });
+        process.stdout.write(
+          `${JSON.stringify(result, options.json ? null : undefined, options.json ? 2 : undefined)}\n`
+        );
       }
-      const episodes = await discoverFullTranscriptedPackEpisodes({
-        packDir: path.resolve(options.pack),
-        ...(options.format ? { format: options.format } : {}),
-      });
-      const requestedId = options.episodeId.trim();
-      const sourceEpisode = episodes.find((episode) =>
-        episode.episodeId === requestedId.toLowerCase() ||
-        episode.sourceGrounding?.storyId === requestedId.toUpperCase(),
-      );
-      if (!sourceEpisode) {
-        throw new Error(`QA-approved full-transcripted Pack Wave 01 episode not found: ${options.episodeId}`);
+    );
+
+  sourcePack
+    .command("plan-english")
+    .description(
+      "Freshly plan all canonical English stories locally without provider dispatch"
+    )
+    .option("--repository-root <path>", "Repository root", ".")
+    .requiredOption(
+      "--output-dir <path>",
+      "New directory for fresh plan artifacts and the zero-provider ledger"
+    )
+    .option(
+      "--legacy-baseline",
+      "Use the pre-remediation V2 planner for the T02 before-state",
+      false
+    )
+    .option("--json", "Emit machine-readable output", false)
+    .action(
+      async (options: {
+        repositoryRoot: string;
+        outputDir: string;
+        legacyBaseline: boolean;
+        json: boolean;
+      }) => {
+        const result = await runVeronicaEnglishSourcePackPlan({
+          repositoryRoot: path.resolve(options.repositoryRoot),
+          outputDir: path.resolve(options.outputDir),
+          legacyBaseline: options.legacyBaseline,
+        });
+        process.stdout.write(
+          `${JSON.stringify(result, options.json ? null : undefined, options.json ? 2 : undefined)}\n`
+        );
+        if (result.corpusValidation.status === "fail") process.exitCode = 1;
       }
-      const result = await prepareCanonicalSourceEpisodeWorkspace({
-        workspaceRoot: path.resolve(options.workspace),
-        sourceEpisode,
-        locale: "en",
-      });
-      const payload = {
-        ...result,
-        sourcePackId: sourceEpisode.sourcePackId,
-        sourceRevisionHash: sourceEpisode.sourceRevisionHash,
-        format: sourceEpisode.format,
-        sourceGrounding: sourceEpisode.sourceGrounding,
-        providerCalls: 0,
-      };
-      process.stdout.write(`${JSON.stringify(payload, options.json ? null : undefined, options.json ? 2 : undefined)}\n`);
-    });
+    );
 
   veronica
     .command("metadata")
-    .description("Generate or plan variant-aware YouTube metadata from the selected narration")
+    .description(
+      "Generate or plan variant-aware YouTube metadata from the selected narration"
+    )
     .requiredOption("--workspace <path>", "Episode workspace root")
     .requiredOption("--episode-id <id>", "Episode identifier")
     .option("--locale <code>", "Metadata locale", "en")
     .option("--variant <full|short>", "Narration variant", "full")
     .option("--force", "Bypass a valid metadata cache", false)
-    .option("--dry-run", "Resolve narration and metadata cache without provider calls", false)
+    .option(
+      "--dry-run",
+      "Resolve narration and metadata cache without provider calls",
+      false
+    )
     .option("--json", "Emit machine-readable output", false)
-    .action(async (options: { workspace: string; episodeId: string; locale: string; variant: string; force: boolean; dryRun: boolean; json: boolean }) => {
-      const dryRun = options.dryRun || program.opts<{ readonly dryRun?: boolean }>().dryRun === true;
-      const result = await generateVeronicaYoutubeMetadata({
-        workspaceRoot: options.workspace,
-        episodeId: options.episodeId,
-        locale: options.locale,
-        variant: parseVeronicaVariant(options.variant),
-        generationOptions: await veronicaMetadataOptions({
-          workspace: options.workspace,
-          force: options.force,
-          dryRun,
-        }),
-      });
-      process.stdout.write(`${JSON.stringify(result, options.json ? null : undefined, options.json ? 2 : undefined)}\n`);
-    });
-
-  addSourceGroundedQaCostControls(
-    veronica
-    .command("prepare-production")
-    .description("Adapt an approved Veronica positioning plan to canonical image and speech episode artifacts")
-    .requiredOption("--workspace <path>", "Episode workspace root")
-    .requiredOption("--episode-id <id>", "Episode identifier")
-    .requiredOption("-L, --language <code>", "Narration language")
-    .requiredOption("--variant <full|short>", "Production variant")
-    .option("--plan <path>", "Positioning visual plan (defaults to source/visual-plan.json)")
-    .option("--script <path>", "Narration script override")
-    .option("--source-grounded-fixture <path>", "Offline strict source-grounded QA fixture")
-    .option("--source-grounded-qa-profile <profile>", "interactive, cost-optimized, or bulk", "interactive")
-    .option("--json", "Emit machine-readable output", false)
-  )
     .action(
       async (options: {
         workspace: string;
         episodeId: string;
-        language: VeronicaLanguage;
-        variant: VeronicaVariant;
-        plan?: string;
-        script?: string;
-        sourceGroundedFixture?: string;
-        sourceGroundedQaProfile: string;
-        allowPaidOpenaiQa?: boolean;
-        maxProviderCalls?: number;
-        maxEstimatedCostUsd?: number;
-        maxFlagshipCallsPerPack?: number;
-        maxEstimatedInputTokens?: number;
-        maxEstimatedOutputTokens?: number;
-        maxAutomaticRemediationRounds?: number;
+        locale: string;
+        variant: string;
+        force: boolean;
+        dryRun: boolean;
         json: boolean;
       }) => {
-        const workspaceRoot = path.resolve(options.workspace);
-        const episodeDir = path.join(workspaceRoot, options.episodeId);
-        const paidOpenAiQa = resolveVeronicaPaidQaAuthorization(
-          options,
-          options.variant
-        );
-        const maxAutomaticRemediationRounds = remediationRounds(
-          options.maxAutomaticRemediationRounds
-        );
-        const result = await preparePositioningProductionEpisode({
-          workspaceRoot,
+        const dryRun =
+          options.dryRun ||
+          program.opts<{ readonly dryRun?: boolean }>().dryRun === true;
+        const result = await generateVeronicaYoutubeMetadata({
+          workspaceRoot: options.workspace,
           episodeId: options.episodeId,
-          language: options.language,
-          variant: options.variant,
-          imagePromptCompiler: await createVeronicaImagePromptCompilerComposition({
-            workspaceRoot,
-            episodeDir,
+          locale: options.locale,
+          variant: parseVeronicaVariant(options.variant),
+          generationOptions: await veronicaMetadataOptions({
+            workspace: options.workspace,
+            force: options.force,
+            dryRun,
           }),
-          sourceGroundedVisualQa: await createVeronicaSourceGroundedVisualQaComposition({
+        });
+        process.stdout.write(
+          `${JSON.stringify(result, options.json ? null : undefined, options.json ? 2 : undefined)}\n`
+        );
+      }
+    );
+
+  addSourceGroundedQaCostControls(
+    veronica
+      .command("prepare-production")
+      .description(
+        "Adapt an approved Veronica positioning plan to canonical image and speech episode artifacts"
+      )
+      .requiredOption("--workspace <path>", "Episode workspace root")
+      .requiredOption("--episode-id <id>", "Episode identifier")
+      .requiredOption("-L, --language <code>", "Narration language")
+      .requiredOption("--variant <full|short>", "Production variant")
+      .option(
+        "--plan <path>",
+        "Positioning visual plan (defaults to source/visual-plan.json)"
+      )
+      .option("--script <path>", "Narration script override")
+      .option(
+        "--source-grounded-fixture <path>",
+        "Offline strict source-grounded QA fixture"
+      )
+      .option(
+        "--source-grounded-qa-profile <profile>",
+        "interactive, cost-optimized, or bulk",
+        "interactive"
+      )
+      .option("--json", "Emit machine-readable output", false)
+  ).action(
+    async (options: {
+      workspace: string;
+      episodeId: string;
+      language: VeronicaLanguage;
+      variant: VeronicaVariant;
+      plan?: string;
+      script?: string;
+      sourceGroundedFixture?: string;
+      sourceGroundedQaProfile: string;
+      allowPaidOpenaiQa?: boolean;
+      maxProviderCalls?: number;
+      maxEstimatedCostUsd?: number;
+      maxFlagshipCallsPerPack?: number;
+      maxEstimatedInputTokens?: number;
+      maxEstimatedOutputTokens?: number;
+      maxAutomaticRemediationRounds?: number;
+      json: boolean;
+    }) => {
+      const workspaceRoot = path.resolve(options.workspace);
+      const episodeDir = path.join(workspaceRoot, options.episodeId);
+      await assertCanonicalVeronicaWorkspace(episodeDir);
+      const paidOpenAiQa = resolveVeronicaPaidQaAuthorization(
+        options,
+        options.variant
+      );
+      const maxAutomaticRemediationRounds = remediationRounds(
+        options.maxAutomaticRemediationRounds
+      );
+      const result = await preparePositioningProductionEpisode({
+        workspaceRoot,
+        episodeId: options.episodeId,
+        language: options.language,
+        variant: options.variant,
+        imagePromptCompiler: await createVeronicaImagePromptCompilerComposition(
+          {
             workspaceRoot,
             episodeDir,
-            ...(options.sourceGroundedFixture ? { fixturePath: options.sourceGroundedFixture } : {}),
-            executionProfile: parseSourceGroundedQaProfile(options.sourceGroundedQaProfile),
+          }
+        ),
+        sourceGroundedVisualQa:
+          await createVeronicaSourceGroundedVisualQaComposition({
+            workspaceRoot,
+            episodeDir,
+            ...(options.sourceGroundedFixture
+              ? { fixturePath: options.sourceGroundedFixture }
+              : {}),
+            executionProfile: parseSourceGroundedQaProfile(
+              options.sourceGroundedQaProfile
+            ),
             ...(paidOpenAiQa ? { paidOpenAiQa } : {}),
             ...(maxAutomaticRemediationRounds
               ? { maxAutomaticRemediationRounds }
               : {}),
           }),
-          ...(options.plan ? { planPath: path.resolve(options.plan) } : {}),
-          ...(options.script ? { scriptPath: path.resolve(options.script) } : {}),
-        });
-        if (options.json) {
-          process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
-          return;
-        }
-        process.stdout.write(`Prepared ${result.episodeId} (${result.language}/${result.variant}) with ${result.sceneCount} canonical scenes.\nManifest: ${result.manifestPath}\n`);
-      },
-    );
+        ...(options.plan ? { planPath: path.resolve(options.plan) } : {}),
+        ...(options.script ? { scriptPath: path.resolve(options.script) } : {}),
+      });
+      if (options.json) {
+        process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+        return;
+      }
+      process.stdout.write(
+        `Prepared ${result.episodeId} (${result.language}/${result.variant}) with ${result.sceneCount} canonical scenes.\nManifest: ${result.manifestPath}\n`
+      );
+    }
+  );
 
   addSourceGroundedQaCostControls(
     veronica
       .command("source-grounded-qa")
-      .description("Run source-grounded QA for an existing Veronica plan without replanning or producing media")
+      .description(
+        "Run source-grounded QA for an existing Veronica plan without replanning or producing media"
+      )
       .requiredOption("--workspace <path>", "Episode workspace root")
       .requiredOption("--episode-id <id>", "Episode identifier")
       .option("-L, --language <code>", "Canonical narration language", "en")
       .option("--variant <full|short>", "Narration variant", "short")
-      .option("--source-grounded-fixture <path>", "Offline strict source-grounded QA fixture")
-      .option("--source-grounded-qa-profile <profile>", "interactive, cost-optimized, or bulk", "interactive")
-      .option("--admission-only", "Validate deterministic artifacts and establish a fresh QA admission without dispatching judges", false)
+      .option(
+        "--source-grounded-fixture <path>",
+        "Offline strict source-grounded QA fixture"
+      )
+      .option(
+        "--source-grounded-qa-profile <profile>",
+        "interactive, cost-optimized, or bulk",
+        "interactive"
+      )
+      .option(
+        "--admission-only",
+        "Validate deterministic artifacts and establish a fresh QA admission without dispatching judges",
+        false
+      )
       .option("--json", "Emit machine-readable output", false)
   ).action(
     async (options: {
@@ -448,6 +836,7 @@ export function registerVeronicaMediaCommands(program: Command): void {
     }) => {
       const workspaceRoot = path.resolve(options.workspace);
       const episodeDir = path.join(workspaceRoot, options.episodeId);
+      await assertCanonicalVeronicaWorkspace(episodeDir);
       const paidOpenAiQa = resolveVeronicaPaidQaAuthorization(
         options,
         options.variant
@@ -488,43 +877,96 @@ export function registerVeronicaMediaCommands(program: Command): void {
 
   veronica
     .command("remediate-pre-image")
-    .description("Apply reviewed episode VisualTreatment overrides and recompile deterministic prompts without narration, QA, or images")
+    .description(
+      "Apply reviewed episode VisualTreatment overrides and recompile deterministic prompts without narration, QA, or images"
+    )
     .requiredOption("--workspace <path>", "Episode workspace root")
     .requiredOption("--episode-id <id>", "Episode identifier")
-    .requiredOption("--overrides <path>", "Reviewed visual-treatment override artifact")
+    .requiredOption(
+      "--overrides <path>",
+      "Reviewed visual-treatment override artifact"
+    )
     .option("--json", "Emit machine-readable output", false)
-    .action(async (options: { workspace: string; episodeId: string; overrides: string; json: boolean }) => {
-      const workspaceRoot = path.resolve(options.workspace);
-      const episodeDir = path.join(workspaceRoot, options.episodeId);
-      const result = await remediateExistingVeronicaPreImagePlan({
-        workspaceRoot,
-        episodeId: options.episodeId,
-        overridePath: path.resolve(options.overrides),
-        imagePromptCompiler: await createVeronicaImagePromptCompilerComposition({ workspaceRoot, episodeDir }),
-      });
-      process.stdout.write(`${JSON.stringify(result, options.json ? null : undefined, options.json ? 2 : undefined)}\n`);
-    });
+    .action(
+      async (options: {
+        workspace: string;
+        episodeId: string;
+        overrides: string;
+        json: boolean;
+      }) => {
+        const workspaceRoot = path.resolve(options.workspace);
+        const episodeDir = path.join(workspaceRoot, options.episodeId);
+        await assertCanonicalVeronicaWorkspace(episodeDir);
+        const result = await remediateExistingVeronicaPreImagePlan({
+          workspaceRoot,
+          episodeId: options.episodeId,
+          overridePath: path.resolve(options.overrides),
+          imagePromptCompiler:
+            await createVeronicaImagePromptCompilerComposition({
+              workspaceRoot,
+              episodeDir,
+            }),
+        });
+        process.stdout.write(
+          `${JSON.stringify(result, options.json ? null : undefined, options.json ? 2 : undefined)}\n`
+        );
+      }
+    );
 
   veronica
     .command("plan-visual-density")
-    .description("Materialize visual beats for an approved Veronica Short without changing semantic scenes or producing images")
+    .description(
+      "Materialize visual beats for an approved Veronica Short without changing semantic scenes or producing images"
+    )
     .requiredOption("--workspace <path>", "Episode workspace root")
     .requiredOption("--episode-id <id>", "Episode identifier")
-    .option("--overrides <path>", "Optional reviewed visual-beat override artifact; otherwise use deterministic treatment diversification")
+    .option(
+      "--overrides <path>",
+      "Optional reviewed visual-beat override artifact; otherwise use deterministic treatment diversification"
+    )
+    .option(
+      "--rebase-stale-remediation",
+      "Explicitly re-derive contradictory legacy QA-remediation ownership from persisted narration",
+      false
+    )
     .option("--json", "Emit machine-readable output", false)
-    .action(async (options: { workspace: string; episodeId: string; overrides?: string; json: boolean }) => {
-      const workspaceRoot = path.resolve(options.workspace);
-      const episodeDir = path.join(workspaceRoot, options.episodeId);
-      const result = await planExistingVeronicaVisualDensity({
-        workspaceRoot,
-        episodeId: options.episodeId,
-        ...(options.overrides ? { overridePath: path.resolve(options.overrides) } : {}),
-        imagePromptCompiler: await createVeronicaImagePromptCompilerComposition({ workspaceRoot, episodeDir }),
-      });
-      process.stdout.write(`${JSON.stringify(result, options.json ? null : undefined, options.json ? 2 : undefined)}\n`);
-    });
+    .action(
+      async (options: {
+        workspace: string;
+        episodeId: string;
+        overrides?: string;
+        rebaseStaleRemediation: boolean;
+        json: boolean;
+      }) => {
+        const workspaceRoot = path.resolve(options.workspace);
+        const episodeDir = path.join(workspaceRoot, options.episodeId);
+        await assertCanonicalVeronicaWorkspace(episodeDir);
+        const result = await planExistingVeronicaVisualDensity({
+          workspaceRoot,
+          episodeId: options.episodeId,
+          ...(options.overrides
+            ? { overridePath: path.resolve(options.overrides) }
+            : {}),
+          ...(options.rebaseStaleRemediation
+            ? { rebaseStaleRemediation: true }
+            : {}),
+          imagePromptCompiler:
+            await createVeronicaImagePromptCompilerComposition({
+              workspaceRoot,
+              episodeDir,
+            }),
+        });
+        process.stdout.write(
+          `${JSON.stringify(result, options.json ? null : undefined, options.json ? 2 : undefined)}\n`
+        );
+      }
+    );
 
-  const images = veronica.command("images").description("Generate Veronica positioning images through the canonical image pipeline");
+  const images = veronica
+    .command("images")
+    .description(
+      "Generate Veronica positioning images through the canonical image pipeline"
+    );
   images
     .command("derive-image-prompts")
     .description("Verify the atomically compiled Veronica provider prompts")
@@ -532,10 +974,22 @@ export function registerVeronicaMediaCommands(program: Command): void {
     .requiredOption("--episode-id <id>", "Episode identifier")
     .option("--variant <full|short>", "Canonical narration variant", "full")
     .option("--plan <path>", "Approved positioning visual plan")
-    .option("--canonical-narration <path>", "Canonical English narration override")
-    .option("--refresh-image-prompt-brief", "refresh only the semantic prompt brief")
-    .option("--fixture-response <path>", "offline strict structured-output fixture")
-    .option("--dry-run", "show cache identity without calling OpenAI or writing artifacts")
+    .option(
+      "--canonical-narration <path>",
+      "Canonical English narration override"
+    )
+    .option(
+      "--refresh-image-prompt-brief",
+      "refresh only the semantic prompt brief"
+    )
+    .option(
+      "--fixture-response <path>",
+      "offline strict structured-output fixture"
+    )
+    .option(
+      "--dry-run",
+      "show cache identity without calling OpenAI or writing artifacts"
+    )
     .option("--json", "Emit machine-readable output", false)
     .action(
       async (options: {
@@ -554,21 +1008,39 @@ export function registerVeronicaMediaCommands(program: Command): void {
           episodeId: options.episodeId,
           variant: options.variant,
           ...(options.plan ? { planPath: options.plan } : {}),
-          ...(options.canonicalNarration ? { narrationPath: options.canonicalNarration } : {}),
+          ...(options.canonicalNarration
+            ? { narrationPath: options.canonicalNarration }
+            : {}),
         });
-        const dryRun = options.dryRun || program.opts<{ readonly dryRun?: boolean }>().dryRun;
-        if (source.plan.imagePromptGenerationStrategy !== "deterministic-v1" || !source.plan.imagePromptCompilation) {
-          throw new Error("VERONICA_DETERMINISTIC_IMAGE_PROMPTS_NOT_COMPILED: run prepare-production to compile canonical provider prompts before image generation.");
+        const dryRun =
+          options.dryRun ||
+          program.opts<{ readonly dryRun?: boolean }>().dryRun;
+        if (
+          source.plan.imagePromptGenerationStrategy !== "deterministic-v1" ||
+          !source.plan.imagePromptCompilation
+        ) {
+          throw new Error(
+            "VERONICA_DETERMINISTIC_IMAGE_PROMPTS_NOT_COMPILED: run prepare-production to compile canonical provider prompts before image generation."
+          );
         }
-        const incoherent = source.plan.assets.filter((asset) =>
-          !asset.promptCompilation
-          || asset.promptCompilation.result.imagePrompt !== asset.prompt
-          || asset.promptCompilation.input.provenance.materializationRevisionId
-            !== source.plan.scenes.find((scene) => scene.sceneId === asset.sceneId)?.materializationRevision?.revisionId
+        const incoherent = source.plan.assets.filter(
+          (asset) =>
+            !asset.promptCompilation ||
+            asset.promptCompilation.result.imagePrompt !== asset.prompt ||
+            asset.promptCompilation.input.provenance
+              .materializationRevisionId !==
+              source.plan.scenes.find(
+                (scene) => scene.sceneId === asset.sceneId
+              )?.materializationRevision?.revisionId
         );
-        if (incoherent.length > 0) throw new Error(`VERONICA_COMPILED_PROMPT_SNAPSHOT_MISMATCH:${incoherent.map((asset) => asset.assetId).join(",")}`);
+        if (incoherent.length > 0)
+          throw new Error(
+            `VERONICA_COMPILED_PROMPT_SNAPSHOT_MISMATCH:${incoherent.map((asset) => asset.assetId).join(",")}`
+          );
         if (dryRun) {
-          process.stdout.write(`${JSON.stringify({ dryRun: true, contentId: source.plan.contentId, ...source.plan.imagePromptCompilation }, null, 2)}\n`);
+          process.stdout.write(
+            `${JSON.stringify({ dryRun: true, contentId: source.plan.contentId, ...source.plan.imagePromptCompilation }, null, 2)}\n`
+          );
           return;
         }
         const reviewPack = await createVeronicaPromptCompilationReviewPack({
@@ -585,99 +1057,205 @@ export function registerVeronicaMediaCommands(program: Command): void {
           preImageReviewPack: reviewPack.packDir,
           imageGenerationCalls: 0,
         };
-        process.stdout.write(`${JSON.stringify(payload, options.json ? null : undefined, options.json ? 2 : undefined)}\n`);
-      },
+        process.stdout.write(
+          `${JSON.stringify(payload, options.json ? null : undefined, options.json ? 2 : undefined)}\n`
+        );
+      }
     );
 
   images
     .command("inspect-image-prompts")
-    .description("Inspect cached Veronica semantic prompt previews without provider calls")
+    .description(
+      "Inspect cached Veronica semantic prompt previews without provider calls"
+    )
     .requiredOption("--workspace <path>", "Episode workspace root")
     .requiredOption("--episode-id <id>", "Episode identifier")
     .option("--json", "Emit machine-readable output", false)
-    .action(async (options: { workspace: string; episodeId: string; json: boolean }) => {
-      const episodeDir = path.join(path.resolve(options.workspace), options.episodeId);
-      const paths = resolveVeronicaSemanticImagePromptPaths(episodeDir);
-      const artifact = await inspectSemanticImagePromptCache(paths.cachePath);
-      const review = JSON.parse(await fs.readFile(paths.reviewPath, "utf8")) as unknown;
-      process.stdout.write(`${JSON.stringify({ cachePath: paths.cachePath, reviewPath: paths.reviewPath, artifact, review }, null, options.json ? 2 : undefined)}\n`);
-    });
+    .action(
+      async (options: {
+        workspace: string;
+        episodeId: string;
+        json: boolean;
+      }) => {
+        const episodeDir = path.join(
+          path.resolve(options.workspace),
+          options.episodeId
+        );
+        await assertCanonicalVeronicaWorkspace(episodeDir);
+        const paths = resolveVeronicaSemanticImagePromptPaths(episodeDir);
+        const artifact = await inspectSemanticImagePromptCache(paths.cachePath);
+        const review = JSON.parse(
+          await fs.readFile(paths.reviewPath, "utf8")
+        ) as unknown;
+        process.stdout.write(
+          `${JSON.stringify({ cachePath: paths.cachePath, reviewPath: paths.reviewPath, artifact, review }, null, options.json ? 2 : undefined)}\n`
+        );
+      }
+    );
   addSourceGroundedQaCostControls(
     images
-    .command("review-pack")
-    .description("Create a local review pack before Veronica image-provider requests")
+      .command("review-pack")
+      .description(
+        "Create a local review pack before Veronica image-provider requests"
+      )
+      .requiredOption("--workspace <path>", "Episode workspace root")
+      .requiredOption("--episode-id <id>", "Episode identifier")
+      .option("--language <code>", "Narration language", "en")
+      .option("--variant <full|short>", "Narration variant", "short")
+      .option(
+        "--review-pack-mode <compact|listening|forensic>",
+        "compact: metadata-only audio integrity; listening: review-only compressed narration; forensic: canonical production WAV",
+        "compact"
+      )
+      .option(
+        "--source-grounded-fixture <path>",
+        "Offline strict source-grounded QA fixture"
+      )
+      .option(
+        "--source-grounded-qa-profile <profile>",
+        "interactive, cost-optimized, or bulk",
+        "interactive"
+      )
+      .option("--json", "Emit machine-readable output", false)
+  ).action(
+    async (options: {
+      workspace: string;
+      episodeId: string;
+      language: VeronicaLanguage;
+      variant: VeronicaVariant;
+      reviewPackMode: string;
+      sourceGroundedFixture?: string;
+      sourceGroundedQaProfile: string;
+      allowPaidOpenaiQa?: boolean;
+      maxProviderCalls?: number;
+      maxEstimatedCostUsd?: number;
+      maxFlagshipCallsPerPack?: number;
+      maxEstimatedInputTokens?: number;
+      maxEstimatedOutputTokens?: number;
+      maxAutomaticRemediationRounds?: number;
+      json: boolean;
+    }) => {
+      const workspaceRoot = path.resolve(options.workspace);
+      const episodeDir = path.join(workspaceRoot, options.episodeId);
+      await assertCanonicalVeronicaWorkspace(episodeDir);
+      const paidOpenAiQa = resolveVeronicaPaidQaAuthorization(
+        options,
+        options.variant
+      );
+      const maxAutomaticRemediationRounds = remediationRounds(
+        options.maxAutomaticRemediationRounds
+      );
+      const result = await createVeronicaPreImageReviewPack({
+        episodeDir,
+        language: options.language,
+        variant: options.variant,
+        reviewPackMode: reviewPackModeSchema.parse(options.reviewPackMode),
+        imagePromptCompiler: await createVeronicaImagePromptCompilerComposition(
+          {
+            workspaceRoot,
+            episodeDir,
+          }
+        ),
+        sourceGroundedVisualQa:
+          await createVeronicaSourceGroundedVisualQaComposition({
+            workspaceRoot,
+            episodeDir,
+            ...(options.sourceGroundedFixture
+              ? { fixturePath: options.sourceGroundedFixture }
+              : {}),
+            executionProfile: parseSourceGroundedQaProfile(
+              options.sourceGroundedQaProfile
+            ),
+            ...(paidOpenAiQa ? { paidOpenAiQa } : {}),
+            ...(maxAutomaticRemediationRounds
+              ? { maxAutomaticRemediationRounds }
+              : {}),
+          }),
+      });
+      process.stdout.write(
+        options.json
+          ? `${JSON.stringify(result, null, 2)}\n`
+          : `Created pre-image review pack: ${result.packDir}\nZIP: ${result.zipPath}\n`
+      );
+    }
+  );
+  images
+    .command("approve-review-pack")
+    .description(
+      "Record human pre-image approval bound to the latest Veronica review-pack hash"
+    )
     .requiredOption("--workspace <path>", "Episode workspace root")
     .requiredOption("--episode-id <id>", "Episode identifier")
     .option("--language <code>", "Narration language", "en")
     .option("--variant <full|short>", "Narration variant", "short")
-    .option("--review-pack-mode <compact|listening|forensic>", "compact: metadata-only audio integrity; listening: review-only compressed narration; forensic: canonical production WAV", "compact")
-    .option("--source-grounded-fixture <path>", "Offline strict source-grounded QA fixture")
-    .option("--source-grounded-qa-profile <profile>", "interactive, cost-optimized, or bulk", "interactive")
+    .requiredOption("--reviewer <id>", "Human reviewer or operator identifier")
+    .requiredOption(
+      "--authorization-reference <reference>",
+      "Durable reference to the explicit human authorization"
+    )
     .option("--json", "Emit machine-readable output", false)
-  )
     .action(
       async (options: {
         workspace: string;
         episodeId: string;
         language: VeronicaLanguage;
         variant: VeronicaVariant;
-        reviewPackMode: string;
-        sourceGroundedFixture?: string;
-        sourceGroundedQaProfile: string;
-        allowPaidOpenaiQa?: boolean;
-        maxProviderCalls?: number;
-        maxEstimatedCostUsd?: number;
-        maxFlagshipCallsPerPack?: number;
-        maxEstimatedInputTokens?: number;
-        maxEstimatedOutputTokens?: number;
-        maxAutomaticRemediationRounds?: number;
+        reviewer: string;
+        authorizationReference: string;
         json: boolean;
       }) => {
-        const workspaceRoot = path.resolve(options.workspace);
-        const episodeDir = path.join(workspaceRoot, options.episodeId);
-        const paidOpenAiQa = resolveVeronicaPaidQaAuthorization(
-          options,
-          options.variant
+        const episodeDir = path.join(
+          path.resolve(options.workspace),
+          options.episodeId
         );
-        const maxAutomaticRemediationRounds = remediationRounds(
-          options.maxAutomaticRemediationRounds
-        );
-        const result = await createVeronicaPreImageReviewPack({
+        await assertCanonicalVeronicaWorkspace(episodeDir);
+        const result = await approveVeronicaPreImageReviewPack({
           episodeDir,
           language: options.language,
           variant: options.variant,
-          reviewPackMode: reviewPackModeSchema.parse(options.reviewPackMode),
-          imagePromptCompiler: await createVeronicaImagePromptCompilerComposition({
-            workspaceRoot,
-            episodeDir,
-          }),
-          sourceGroundedVisualQa: await createVeronicaSourceGroundedVisualQaComposition({
-            workspaceRoot,
-            episodeDir,
-            ...(options.sourceGroundedFixture ? { fixturePath: options.sourceGroundedFixture } : {}),
-            executionProfile: parseSourceGroundedQaProfile(options.sourceGroundedQaProfile),
-            ...(paidOpenAiQa ? { paidOpenAiQa } : {}),
-            ...(maxAutomaticRemediationRounds
-              ? { maxAutomaticRemediationRounds }
-              : {}),
-          }),
+          reviewer: options.reviewer,
+          authorizationReference: options.authorizationReference,
         });
-        process.stdout.write(options.json ? `${JSON.stringify(result, null, 2)}\n` : `Created pre-image review pack: ${result.packDir}\nZIP: ${result.zipPath}\n`);
-      },
+        process.stdout.write(
+          options.json
+            ? `${JSON.stringify(result, null, 2)}\n`
+            : `Approved current Veronica pre-image review pack: ${result.approvalPath}\n`
+        );
+      }
     );
   images
     .command("generate")
     .requiredOption("--workspace <path>", "Episode workspace root")
     .requiredOption("--episode-id <id>", "Episode identifier")
-    .option("--mode <sync|batch>", "Synchronous or provider-batch execution", "sync")
+    .option(
+      "--mode <sync|batch>",
+      "Synchronous or provider-batch execution",
+      "sync"
+    )
     .option("--language <code>", "Batch localization coordinate", "it")
     .option("--variant <full|short>", "Image production variant", "full")
-    .option("--concurrency <number>", "Bounded synchronous scene concurrency", (value) => parsePositiveInteger(value, "--concurrency"))
-    .option("--max-batch-size <number>", "Maximum provider requests per image batch", (value) => parsePositiveInteger(value, "--max-batch-size"))
-    .option("--phase <auto|references|scenes>", "Image batch planning phase", "auto")
+    .option(
+      "--concurrency <number>",
+      "Bounded synchronous scene concurrency",
+      (value) => parsePositiveInteger(value, "--concurrency")
+    )
+    .option(
+      "--max-batch-size <number>",
+      "Maximum provider requests per image batch",
+      (value) => parsePositiveInteger(value, "--max-batch-size")
+    )
+    .option(
+      "--phase <auto|references|scenes>",
+      "Image batch planning phase",
+      "auto"
+    )
     .option("--dry-run", "Plan work without provider submission", false)
     .option("--force", "Regenerate existing canonical images", false)
-    .option("--refresh-image-prompt-brief", "refresh semantic prompts before image execution", false)
+    .option(
+      "--refresh-image-prompt-brief",
+      "refresh semantic prompts before image execution",
+      false
+    )
     .option("--json", "Emit machine-readable output", false)
     .action(
       async (options: {
@@ -694,6 +1272,9 @@ export function registerVeronicaMediaCommands(program: Command): void {
         refreshImagePromptBrief: boolean;
         json: boolean;
       }) => {
+        await assertCanonicalVeronicaWorkspace(
+          path.join(path.resolve(options.workspace), options.episodeId)
+        );
         if (!options.dryRun) {
           const preflight = await runCommand(
             process.execPath,
@@ -708,10 +1289,12 @@ export function registerVeronicaMediaCommands(program: Command): void {
               options.episodeId,
               "--variant",
               options.variant,
-              ...(options.refreshImagePromptBrief ? ["--refresh-image-prompt-brief"] : []),
+              ...(options.refreshImagePromptBrief
+                ? ["--refresh-image-prompt-brief"]
+                : []),
               "--json",
             ],
-            { allowNonZeroExit: true },
+            { allowNonZeroExit: true }
           );
           if (preflight.exitCode !== 0) {
             if (preflight.stdout) process.stdout.write(preflight.stdout);
@@ -720,15 +1303,36 @@ export function registerVeronicaMediaCommands(program: Command): void {
             return;
           }
         }
-        const args = [mediaforgeBinPath, ...(options.json ? ["--json"] : []), "images"];
+        const args = [
+          mediaforgeBinPath,
+          ...(options.json ? ["--json"] : []),
+          "images",
+        ];
         if (options.mode === "batch") {
-          args.push("batch", "prepare", "--episode", options.episodeId, "--languages", options.language, "--variants", options.variant, "--phase", options.phase);
+          args.push(
+            "batch",
+            "prepare",
+            "--episode",
+            options.episodeId,
+            "--languages",
+            options.language,
+            "--variants",
+            options.variant,
+            "--phase",
+            options.phase
+          );
           if (options.maxBatchSize !== undefined) {
             args.push("--max-batch-size", String(options.maxBatchSize));
           }
           if (options.dryRun) args.push("--dry-run");
         } else {
-          args.push("resume", "--episode", options.episodeId, "--variant", options.variant);
+          args.push(
+            "resume",
+            "--episode",
+            options.episodeId,
+            "--variant",
+            options.variant
+          );
           if (options.json) args.push("--json");
           if (options.force) args.push("--force");
           if (options.concurrency !== undefined) {
@@ -741,13 +1345,135 @@ export function registerVeronicaMediaCommands(program: Command): void {
         process.stdout.write(result.stdout);
         if (result.stderr) process.stderr.write(result.stderr);
         if (result.exitCode !== 0) process.exitCode = result.exitCode;
-      },
+      }
     );
 
-  const speech = veronica.command("speech").description("Run the canonical staged narration pipeline for Veronica episodes");
+  const speech = veronica
+    .command("speech")
+    .description(
+      "Run the canonical staged narration pipeline for Veronica episodes"
+    );
+  speech
+    .command("canary")
+    .description(
+      "Run a source-bound, authorization-aware Veronica narration canary with one provider request per episode"
+    )
+    .requiredOption("--workspace <path>", "Episode workspace root")
+    .requiredOption("--reservation <path>", "HELD narration cost reservation")
+    .requiredOption(
+      "--max-provider-calls <number>",
+      "Hard total speech-provider request ceiling",
+      (value) => parsePositiveInteger(value, "--max-provider-calls")
+    )
+    .requiredOption(
+      "--max-estimated-cost-usd <number>",
+      "Hard conservative provider-currency ceiling",
+      (value) => parsePositiveNumber(value, "--max-estimated-cost-usd")
+    )
+    .requiredOption(
+      "--max-canonical-cost-eur <number>",
+      "Hard conservative canonical-budget ceiling",
+      (value) => parsePositiveNumber(value, "--max-canonical-cost-eur")
+    )
+    .option("--json", "Emit machine-readable output", false)
+    .action(
+      async (options: {
+        workspace: string;
+        reservation: string;
+        maxProviderCalls: number;
+        maxEstimatedCostUsd: number;
+        maxCanonicalCostEur: number;
+        json: boolean;
+      }) => {
+        const reservationPath = path.resolve(options.reservation);
+        const reservation = veronicaNarrationReservationSchema.parse(
+          JSON.parse(await fs.readFile(reservationPath, "utf8")) as unknown
+        );
+        if (
+          options.maxProviderCalls !== reservation.limits.maxProviderCalls ||
+          Math.abs(
+            options.maxEstimatedCostUsd - reservation.limits.providerCeilingUsd
+          ) > 0.000001 ||
+          Math.abs(
+            options.maxCanonicalCostEur - reservation.limits.canonicalCeilingEur
+          ) > 0.000001
+        ) {
+          throw new Error(
+            "NARRATION_CANARY_CLI_LIMITS_DO_NOT_MATCH_RESERVATION"
+          );
+        }
+        const runtime = await loadRuntimeConfig({
+          workspaceDir: path.resolve(options.workspace),
+        });
+        if (
+          runtime.ttsProvider !== "openai-compatible" ||
+          !runtime.openAiCompatibleApiKey
+        ) {
+          throw new Error("NARRATION_CANARY_OPENAI_TTS_CONFIGURATION_REQUIRED");
+        }
+        const model =
+          runtime.openAiSpeechModel ??
+          runtime.openAiCompatibleModel ??
+          "gpt-4o-mini-tts";
+        const voice =
+          runtime.openAiSpeechVoice ??
+          runtime.openAiCompatibleTtsVoice ??
+          reservation.voice;
+        if (model !== reservation.model || voice !== reservation.voice) {
+          throw new Error(
+            "NARRATION_CANARY_PROVIDER_IDENTITY_DOES_NOT_MATCH_RESERVATION"
+          );
+        }
+        const ratePolicy = getVeronicaSpeechRatePolicy({
+          locale: "en",
+          variant: "short",
+        });
+        const settings = loadSpeechVoiceSettings({
+          language: "en",
+          artifactType: "short",
+          paceWpm: ratePolicy.targetWpm,
+          model,
+          voice,
+        });
+        if (settings.speed === undefined) {
+          throw new Error("NARRATION_CANARY_PROVIDER_SPEED_REQUIRED");
+        }
+        const provider = new OpenAiCompatibleSpeechProvider({
+          apiKey: runtime.openAiCompatibleApiKey,
+          ...(runtime.openAiCompatibleOrganization
+            ? { organization: runtime.openAiCompatibleOrganization }
+            : {}),
+          ...(runtime.openAiCompatibleProject
+            ? { project: runtime.openAiCompatibleProject }
+            : {}),
+          ...(runtime.openAiCompatibleBaseUrl
+            ? { baseUrl: runtime.openAiCompatibleBaseUrl }
+            : {}),
+          model,
+          voice,
+          instructions: settings.instructions,
+          speed: settings.speed,
+          responseFormat: "wav",
+          fallbackModels: [],
+        });
+        const result = await runVeronicaNarrationCanary({
+          workspaceRoot: options.workspace,
+          reservationPath,
+          provider,
+          voiceProfile: settings.profile,
+          instructions: settings.instructions,
+          speed: settings.speed,
+          probeDuration: async (filePath) =>
+            (await probeAudioWithFfprobe(filePath)).durationSeconds,
+        });
+        process.stdout.write(
+          `${JSON.stringify(result, options.json ? null : undefined, options.json ? 2 : undefined)}\n`
+        );
+      }
+    );
   for (const entry of [
     { name: "plan", stage: "plan", validationOnly: false },
-    { name: "generate", stage: "validate", validationOnly: false },
+    { name: "generate", stage: "generate", validationOnly: false },
     { name: "validate", stage: "validate", validationOnly: true },
     { name: "status", stage: "status", validationOnly: false },
   ] as const) {
@@ -758,9 +1484,17 @@ export function registerVeronicaMediaCommands(program: Command): void {
       .option("--language <code>", "Narration language", "it")
       .option("--languages <codes>", "Comma-separated narration languages")
       .option("--variant <full|short>", "Narration variant", "full")
-      .option("--all-languages", "Process all available script languages", false)
+      .option(
+        "--all-languages",
+        "Process all available script languages",
+        false
+      )
       .option("--all-variants", "Process full and short variants", false)
-      .option("--concurrency <number>", "Bounded narration chunk concurrency", (value) => parsePositiveInteger(value, "--concurrency"))
+      .option(
+        "--concurrency <number>",
+        "Bounded narration chunk concurrency",
+        (value) => parsePositiveInteger(value, "--concurrency")
+      )
       .option("--resume", "Reuse valid narration artifacts", false)
       .option("--dry-run", "Plan speech work without provider dispatch", false)
       .option("--strict", "Treat warnings as a non-zero result", false)
@@ -797,7 +1531,9 @@ export function registerVeronicaMediaCommands(program: Command): void {
             ...(options.languages ? ["--languages", options.languages] : []),
             ...(options.allLanguages ? ["--all-languages"] : []),
             ...(options.allVariants ? ["--all-variants"] : []),
-            ...(options.concurrency !== undefined ? ["--concurrency", String(options.concurrency)] : []),
+            ...(options.concurrency !== undefined
+              ? ["--concurrency", String(options.concurrency)]
+              : []),
             ...(options.resume ? ["--resume"] : []),
             ...(options.dryRun ? ["--dry-run"] : []),
             ...(options.strict ? ["--strict"] : []),
@@ -809,195 +1545,328 @@ export function registerVeronicaMediaCommands(program: Command): void {
           process.stdout.write(result.stdout);
           if (result.stderr) process.stderr.write(result.stderr);
           if (result.exitCode !== 0) process.exitCode = result.exitCode;
-        },
+        }
       );
   }
 
   veronica
     .command("pilot")
-    .description("Run the deterministic Veronica supplemental-media pilot fixture")
+    .description(
+      "Run the deterministic Veronica supplemental-media pilot fixture"
+    )
     .requiredOption("--workspace <path>", "Episode workspace root")
     .option("--episode-id <id>", "Episode identifier", "episode-pilot")
     .option("--json", "Emit machine-readable output", false)
-    .action(async (options: { workspace: string; episodeId: string; json: boolean }) => {
-      const fixtures = createVeronicaPilotFixtures();
-      const result = await runVeronicaSupplementalMediaPipeline({
-        workspaceRoot: path.resolve(options.workspace),
-        episodeId: options.episodeId,
-        originalNarration: fixtures.narration.original,
-        revisedNarration: fixtures.narration.revised,
-        targetLanguage: "it",
-        sourceLanguage: "it",
-        supplementalFiles: fixtures.files,
-        alignedSegments: fixtures.alignedSegments,
-      });
-      emitResult(options, result);
-    });
+    .action(
+      async (options: {
+        workspace: string;
+        episodeId: string;
+        json: boolean;
+      }) => {
+        const fixtures = createVeronicaPilotFixtures();
+        const result = await runVeronicaSupplementalMediaPipeline({
+          canonicalContentIdentity: createVeronicaPilotCanonicalContentIdentity(
+            options.episodeId
+          ),
+          workspaceRoot: path.resolve(options.workspace),
+          episodeId: options.episodeId,
+          originalNarration: fixtures.narration.original,
+          revisedNarration: fixtures.narration.revised,
+          targetLanguage: "it",
+          sourceLanguage: "it",
+          supplementalFiles: fixtures.files,
+          alignedSegments: fixtures.alignedSegments,
+        });
+        emitResult(options, result);
+      }
+    );
 
   veronica
     .command("run")
-    .description("Run supplemental media planning for a strategic-reinvention episode")
+    .description(
+      "Run supplemental media planning for a strategic-reinvention episode"
+    )
     .requiredOption("--workspace <path>", "Episode workspace root")
     .requiredOption("--episode-id <id>", "Episode identifier")
     .option("--narration <path>", "Optional narration script path override")
-    .option("--supplemental-dir <path>", "Optional supplemental media directory override")
+    .option(
+      "--supplemental-dir <path>",
+      "Optional supplemental media directory override"
+    )
     .option("--no-resume", "Disable resume from cached pipeline state")
     .option("--json", "Emit machine-readable output", false)
-    .action(async (options: { workspace: string; episodeId: string; narration?: string; supplementalDir?: string; resume: boolean; json: boolean }) => {
-      const result = await runStrategicSupplementalMediaBridge({
-        workspaceRoot: path.resolve(options.workspace),
-        episodeId: options.episodeId,
-        resume: options.resume,
-        ...(options.narration ? { narrationPath: options.narration } : {}),
-        ...(options.supplementalDir ? { supplementalDir: options.supplementalDir } : {}),
-      });
-      emitResult(
-        {
-          workspace: options.workspace,
+    .action(
+      async (options: {
+        workspace: string;
+        episodeId: string;
+        narration?: string;
+        supplementalDir?: string;
+        resume: boolean;
+        json: boolean;
+      }) => {
+        await assertCanonicalVeronicaWorkspace(
+          path.join(path.resolve(options.workspace), options.episodeId)
+        );
+        const result = await runStrategicSupplementalMediaBridge({
+          workspaceRoot: path.resolve(options.workspace),
           episodeId: options.episodeId,
-          json: options.json,
-        },
-        result,
-      );
-    });
+          resume: options.resume,
+          ...(options.narration ? { narrationPath: options.narration } : {}),
+          ...(options.supplementalDir
+            ? { supplementalDir: options.supplementalDir }
+            : {}),
+        });
+        emitResult(
+          {
+            workspace: options.workspace,
+            episodeId: options.episodeId,
+            json: options.json,
+          },
+          result
+        );
+      }
+    );
 
   veronica
-    .command("plan-positioning-series")
-    .description("Create canonical locale-independent visual plans for a Veronica positioning narration pack")
-    .requiredOption("--pack <path>", "Extracted optimized positioning-series content pack")
+    .command("legacy-plan-positioning-series")
+    .description(
+      "Explicit legacy/debug visual planning for an externally selected positioning pack"
+    )
+    .requiredOption(
+      "--pack <path>",
+      "Extracted optimized positioning-series content pack"
+    )
     .requiredOption("--output <path>", "Visual-plan review output directory")
     .option("--json", "Emit machine-readable output", false)
-    .action(async (options: { pack: string; output: string; json: boolean }) => {
-      const result = await generatePositioningVisualPlans({
-        packDir: path.resolve(options.pack),
-        outputDir: path.resolve(options.output),
-      });
-      if (options.json) {
-        process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
-        return;
+    .action(
+      async (options: { pack: string; output: string; json: boolean }) => {
+        const result = await generatePositioningVisualPlans({
+          packDir: path.resolve(options.pack),
+          outputDir: path.resolve(options.output),
+        });
+        if (options.json) {
+          process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+          return;
+        }
+        process.stdout.write(
+          `Generated ${result.contentIds.length} canonical positioning visual plans.\nBulk review: ${result.reviewPackPath}\n`
+        );
       }
-      process.stdout.write(`Generated ${result.contentIds.length} canonical positioning visual plans.\nBulk review: ${result.reviewPackPath}\n`);
-    });
+    );
 
   veronica
-    .command("plan-positioning-calibration")
-    .description("Create provider-free plan and prompt previews for selected Veronica content IDs")
-    .requiredOption("--pack <path>", "Extracted optimized positioning-series content pack")
+    .command("legacy-plan-positioning-calibration")
+    .description(
+      "Explicit legacy/debug calibration for an externally selected positioning pack"
+    )
+    .requiredOption(
+      "--pack <path>",
+      "Extracted optimized positioning-series content pack"
+    )
     .requiredOption("--output <path>", "Calibration output directory")
-    .requiredOption("--content-id <id...>", "Long-form parent and/or Short content IDs to refresh")
+    .requiredOption(
+      "--content-id <id...>",
+      "Long-form parent and/or Short content IDs to refresh"
+    )
     .option("--json", "Emit machine-readable output", false)
-    .action(async (options: { pack: string; output: string; contentId: string[]; json: boolean }) => {
-      const result = await generatePositioningVisualPlanCalibration({
-        packDir: path.resolve(options.pack),
-        outputDir: path.resolve(options.output),
-        contentIds: options.contentId,
-      });
-      process.stdout.write(options.json ? `${JSON.stringify(result, null, 2)}\n` : `Generated ${result.contentIds.length} provider-free calibration plans.\nPrompt previews: ${result.previewPath}\n`);
-    });
+    .action(
+      async (options: {
+        pack: string;
+        output: string;
+        contentId: string[];
+        json: boolean;
+      }) => {
+        const result = await generatePositioningVisualPlanCalibration({
+          packDir: path.resolve(options.pack),
+          outputDir: path.resolve(options.output),
+          contentIds: options.contentId,
+        });
+        process.stdout.write(
+          options.json
+            ? `${JSON.stringify(result, null, 2)}\n`
+            : `Generated ${result.contentIds.length} provider-free calibration plans.\nPrompt previews: ${result.previewPath}\n`
+        );
+      }
+    );
 
   veronica
     .command("review-pack")
     .description("Generate per-episode and bulk Veronica approval review packs")
-    .requiredOption("--workspace <path>", "Episode workspace root containing veronica-benini episodes")
+    .requiredOption(
+      "--workspace <path>",
+      "Episode workspace root containing veronica-benini episodes"
+    )
     .option("--bulk-dir <path>", "Bulk aggregate output directory")
-    .option("--content-matrix <path>", "Discovery content-matrix.csv used to scaffold missing episodes")
-    .option("--scaffold-missing", "Scaffold episodes from the content matrix when absent", false)
+    .option(
+      "--content-matrix <path>",
+      "Discovery content-matrix.csv used to scaffold missing episodes"
+    )
+    .option(
+      "--scaffold-missing",
+      "Scaffold episodes from the content matrix when absent",
+      false
+    )
     .option("--no-resume", "Disable resume from cached pipeline state")
     .option("--json", "Emit machine-readable output", false)
-    .action(async (options: { workspace: string; bulkDir?: string; contentMatrix?: string; scaffoldMissing: boolean; resume: boolean; json: boolean }) => {
-      const workspaceRoot = path.resolve(options.workspace);
-      const bulkOutputDir = options.bulkDir ?? path.join(workspaceRoot, "approval-packs");
-      const result = await generateVeronicaBeniniReviewPacks({
-        workspaceRoot,
-        bulkOutputDir,
-        scaffoldMissing: options.scaffoldMissing,
-        resume: options.resume,
-        ...(options.contentMatrix ? { contentMatrixPath: path.resolve(options.contentMatrix) } : {}),
-      });
-      const payload = {
-        episodeCount: result.episodes.length,
-        workspaceRoot: result.workspaceRoot,
-        bulkOutputDir: result.bulk.outputDir,
-        aggregateReviewPath: result.bulk.aggregateReviewPath,
-        findingsPath: result.bulk.findingsPath,
-        episodes: result.episodes,
-      };
-      if (options.json) {
-        process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
-        return;
+    .action(
+      async (options: {
+        workspace: string;
+        bulkDir?: string;
+        contentMatrix?: string;
+        scaffoldMissing: boolean;
+        resume: boolean;
+        json: boolean;
+      }) => {
+        const workspaceRoot = path.resolve(options.workspace);
+        const bulkOutputDir =
+          options.bulkDir ?? path.join(workspaceRoot, "approval-packs");
+        const result = await generateVeronicaBeniniReviewPacks({
+          workspaceRoot,
+          bulkOutputDir,
+          scaffoldMissing: options.scaffoldMissing,
+          resume: options.resume,
+          ...(options.contentMatrix
+            ? { contentMatrixPath: path.resolve(options.contentMatrix) }
+            : {}),
+        });
+        const payload = {
+          episodeCount: result.episodes.length,
+          workspaceRoot: result.workspaceRoot,
+          bulkOutputDir: result.bulk.outputDir,
+          aggregateReviewPath: result.bulk.aggregateReviewPath,
+          findingsPath: result.bulk.findingsPath,
+          episodes: result.episodes,
+        };
+        if (options.json) {
+          process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
+          return;
+        }
+        process.stdout.write(
+          [
+            `Generated ${payload.episodeCount} Veronica review packs.`,
+            `Workspace: ${payload.workspaceRoot}`,
+            `Bulk review: ${payload.aggregateReviewPath}`,
+            `Findings: ${payload.findingsPath}`,
+          ].join("\n") + "\n"
+        );
       }
-      process.stdout.write(
-        [`Generated ${payload.episodeCount} Veronica review packs.`, `Workspace: ${payload.workspaceRoot}`, `Bulk review: ${payload.aggregateReviewPath}`, `Findings: ${payload.findingsPath}`].join(
-          "\n",
-        ) + "\n",
-      );
-    });
+    );
 
   veronica
     .command("validate")
     .description("Validate an existing Veronica media plan artifact")
     .requiredOption("--plan <path>", "Path to veronica-media-plan.json")
     .action(async (options: { plan: string }) => {
-      const raw = JSON.parse(await fs.readFile(path.resolve(options.plan), "utf8")) as unknown;
+      const raw = JSON.parse(
+        await fs.readFile(path.resolve(options.plan), "utf8")
+      ) as unknown;
       veronicaMediaPlanSchema.parse(raw);
       process.stdout.write(`Valid plan: ${options.plan}\n`);
     });
 
   veronica
     .command("render")
-    .description("Compile or execute FFmpeg renders for cached Veronica manifests")
+    .description(
+      "Compile or execute FFmpeg renders for cached Veronica manifests"
+    )
     .requiredOption("--workspace <path>", "Episode workspace root")
     .requiredOption("--episode-id <id>", "Episode identifier")
     .option("--aspect <16:9|9:16>", "Aspect ratio to render", "16:9")
-    .option("--execute", "Execute FFmpeg on the host (default is compile-only)", false)
+    .option(
+      "--execute",
+      "Execute FFmpeg on the host (default is compile-only)",
+      false
+    )
     .option("--json", "Emit machine-readable output", false)
-    .action(async (options: { workspace: string; episodeId: string; aspect: "16:9" | "9:16"; execute: boolean; json: boolean }) => {
-      const stateDir = veronicaEpisodeStateDir(path.resolve(options.workspace), options.episodeId);
-      const cached = await loadVeronicaPipelineResult({
-        stateDir,
-        episodeId: options.episodeId,
-        targetLanguage: "it",
-      });
-      if (!cached) {
-        throw new Error(`No cached Veronica pipeline state found under ${stateDir}. Run veronica-media run first.`);
+    .action(
+      async (options: {
+        workspace: string;
+        episodeId: string;
+        aspect: "16:9" | "9:16";
+        execute: boolean;
+        json: boolean;
+      }) => {
+        await assertCanonicalVeronicaWorkspace(
+          path.join(path.resolve(options.workspace), options.episodeId)
+        );
+        const stateDir = veronicaEpisodeStateDir(
+          path.resolve(options.workspace),
+          options.episodeId
+        );
+        const canonicalContentIdentity =
+          await loadVeronicaCanonicalContentIdentity(
+            path.resolve(options.workspace),
+            options.episodeId
+          );
+        const cached = await loadVeronicaPipelineResult({
+          stateDir,
+          episodeId: options.episodeId,
+          targetLanguage: canonicalContentIdentity.locale,
+          canonicalContentIdentity,
+        });
+        if (!cached) {
+          throw new Error(
+            `No cached Veronica pipeline state found under ${stateDir}. Run veronica-media run first.`
+          );
+        }
+        const manifestPath = path.join(
+          stateDir,
+          "renders",
+          options.aspect === "16:9"
+            ? "landscape-manifest.json"
+            : "portrait-manifest.json"
+        );
+        const manifest = veronicaRenderManifestSchema.parse(
+          JSON.parse(await fs.readFile(manifestPath, "utf8")) as unknown
+        );
+        const result = executeVeronicaRender({
+          manifest,
+          execute: options.execute,
+        });
+        const payload = {
+          episodeId: options.episodeId,
+          aspect: options.aspect,
+          executed: result.executed,
+          outputPath: result.outputPath,
+          commandCount: result.commands.length,
+          skippedReason: result.skippedReason ?? null,
+        };
+        if (options.json) {
+          process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
+          return;
+        }
+        process.stdout.write(
+          [
+            `Veronica render ${result.executed ? "executed" : "compiled"} for ${options.episodeId}.`,
+            `Aspect: ${options.aspect}`,
+            `Output: ${result.outputPath}`,
+            `Commands: ${result.commands.length}`,
+            result.skippedReason ? `Note: ${result.skippedReason}` : "",
+          ]
+            .filter(Boolean)
+            .join("\n") + "\n"
+        );
       }
-      const manifestPath = path.join(stateDir, "renders", options.aspect === "16:9" ? "landscape-manifest.json" : "portrait-manifest.json");
-      const manifest = veronicaRenderManifestSchema.parse(JSON.parse(await fs.readFile(manifestPath, "utf8")) as unknown);
-      const result = executeVeronicaRender({
-        manifest,
-        execute: options.execute,
-      });
-      const payload = {
-        episodeId: options.episodeId,
-        aspect: options.aspect,
-        executed: result.executed,
-        outputPath: result.outputPath,
-        commandCount: result.commands.length,
-        skippedReason: result.skippedReason ?? null,
-      };
-      if (options.json) {
-        process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
-        return;
-      }
-      process.stdout.write(
-        [
-          `Veronica render ${result.executed ? "executed" : "compiled"} for ${options.episodeId}.`,
-          `Aspect: ${options.aspect}`,
-          `Output: ${result.outputPath}`,
-          `Commands: ${result.commands.length}`,
-          result.skippedReason ? `Note: ${result.skippedReason}` : "",
-        ]
-          .filter(Boolean)
-          .join("\n") + "\n",
-      );
-    });
+    );
 }
 
-function emitResult(options: { workspace: string; episodeId: string; json: boolean }, result: Awaited<ReturnType<typeof runVeronicaSupplementalMediaPipeline>>): void {
+function emitResult(
+  options: { workspace: string; episodeId: string; json: boolean },
+  result: Awaited<ReturnType<typeof runVeronicaSupplementalMediaPipeline>>
+): void {
   const payload = {
     episodeId: options.episodeId,
-    stateDir: veronicaEpisodeStateDir(path.resolve(options.workspace), options.episodeId),
-    planPath: path.join(veronicaEpisodeStateDir(path.resolve(options.workspace), options.episodeId), "veronica-media-plan.json"),
+    stateDir: veronicaEpisodeStateDir(
+      path.resolve(options.workspace),
+      options.episodeId
+    ),
+    planPath: path.join(
+      veronicaEpisodeStateDir(
+        path.resolve(options.workspace),
+        options.episodeId
+      ),
+      "veronica-media-plan.json"
+    ),
     approvalPackDir: result.approvalPackDir,
     renderEligible: result.plan.approvalEligibility.renderEligible,
     landscapeClips: result.landscapeManifest.clips.length,
@@ -1018,6 +1887,6 @@ function emitResult(options: { workspace: string; episodeId: string; json: boole
       `Resumed: ${payload.resumed}`,
       `Landscape clips: ${payload.landscapeClips}`,
       `Portrait clips: ${payload.portraitClips}`,
-    ].join("\n") + "\n",
+    ].join("\n") + "\n"
   );
 }

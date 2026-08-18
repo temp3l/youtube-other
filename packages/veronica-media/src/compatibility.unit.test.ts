@@ -9,7 +9,15 @@ import {
 describe("veronica genre compatibility", () => {
   it("compiles typed ffmpeg manifests without shell interpolation", () => {
     const manifest = veronicaRenderManifestSchema.parse({
-      schemaVersion: "veronica-render-manifest.v1",
+      schemaVersion: "veronica-render-manifest.v2",
+      canonicalContentIdentity: {
+        contentPackId: "veronica-unified-content-pack-v2",
+        storyId: "episode-001",
+        episodeId: "veronica-episode-01",
+        locale: "it",
+        variant: "long",
+        contentHash: "b".repeat(64),
+      },
       aspectRatio: "16:9",
       profile: VERONICA_DEFAULT_LANDSCAPE_PROFILE,
       clips: [

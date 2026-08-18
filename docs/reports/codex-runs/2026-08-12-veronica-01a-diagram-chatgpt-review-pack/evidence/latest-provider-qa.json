@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "veronica-post-generation-visual-review.v1",
+  "contentId": "01a-revenue-is-not-a-good-business",
+  "assetId": "scene-007",
+  "imageFingerprint": "88304fe721604380b69c51c34cd239bcb7c6bfdcde1ef68985877089a15b80ad",
+  "semanticBriefHash": "1f9db17f7a85fcd380e9268711ef6ebb54e1bfbcc66c563380698b60ab65c3b0",
+  "finalPromptHash": "46a5f4cfa328fae72d1d31a387d55e2d56b5b801d949c8e3bef7a7a848cf7c1b",
+  "evaluatorModel": "gpt-5.4-mini",
+  "evaluatorConfigHash": "522dd20a2665315f6bc15fd7999d601ddee7a3f26d31766a078e0833fee5d667",
+  "visualDirectionVersion": "veronica-deterministic-image-prompt-compiler.v5",
+  "createdAt": "2026-08-12T00:00:00Z",
+  "semanticAlignmentScore": 0.84,
+  "instantReadScore": 0.77,
+  "buyerActionVisibilityScore": 0.18,
+  "causeEffectVisibilityScore": 0.88,
+  "narrationSupportScore": 0.86,
+  "visualQualityScore": 0.89,
+  "mustShowCoverage": "partial",
+  "mustNotShowViolations": [],
+  "occupationProxyDrift": "warning",
+  "abstractPropDrift": "warning",
+  "genericBusinessStockDrift": "warning",
+  "passivePortraitDrift": "warning",
+  "decorativeConceptDrift": "warning",
+  "textInImageViolation": false,
+  "syntheticVeronicaLikenessRisk": false,
+  "visibleBuyerDecision": false,
+  "visibleHumanAction": true,
+  "requiresNarrationToDecode": false,
+  "regenerationRequired": false,
+  "findings": [
+    {
+      "code": "FINDING_CAUTIOUS_STAGING",
+      "severity": "info",
+      "message": "One operator moves a large coral sale block through multiple clear stations, and the remaining block visibly shrinks, so the cost-subtraction sequence is legible."
+    },
+    {
+      "code": "FINDING_BUYER_ACTION_NOT_APPLICABLE",
+      "severity": "info",
+      "message": "No buyer decision is depicted; the contract centers on cost subtraction rather than purchase choice."
+    },
+    {
+      "code": "FINDING_PROXY_DRIFT",
+      "severity": "warning",
+      "message": "The image relies on an abstract tabletop business metaphor with staged blocks and a single operator, which slightly drifts toward conceptual proxy evidence."
+    }
+  ],
+  "failedRequirements": [],
+  "successfulRequirements": [
+    "No readable text, logos, UI, or watermark present.",
+    "One human operator is visible and actively moving the sale token.",
+    "Distinct sequential stations are visible across depth.",
+    "A visibly smaller retained remainder is present in the output tray.",
+    "Cause-and-effect between stations and reduction is clear without narration."
+  ],
+  "regenerationInstructions": []
+}

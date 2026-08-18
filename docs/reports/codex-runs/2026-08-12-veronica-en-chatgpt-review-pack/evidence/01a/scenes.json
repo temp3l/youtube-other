@@ -1,0 +1,357 @@
+{
+  "sourceId": "01a-revenue-is-not-a-good-business",
+  "scenes": [
+    {
+      "id": "scene-001",
+      "sequenceNumber": 1,
+      "canonicalNarration": "You can have impressive revenue and still have a weak business. Because revenue and margin are not the same thing. If one hundred euros comes in and ninety-five goes straight back out to produce, ship, support, and sustain the sale, getting more orders may simply make the problem bigger.",
+      "sourceSegmentIds": [
+        "scene-001"
+      ],
+      "estimatedDurationSeconds": 18.855,
+      "plannedDurationSeconds": 7,
+      "reconciledDurationSeconds": 18.855,
+      "timingSource": "derived-audio-silence-alignment",
+      "timingConfidence": "derived",
+      "timing": {
+        "startSeconds": 0,
+        "endSeconds": 18.855
+      },
+      "visualPurpose": "HOOK: create-tension",
+      "textRequirement": {
+        "required": false
+      },
+      "subject": "one occupation-neutral business operator and source-supported transaction objects",
+      "action": "the operator separates the incoming payment into outgoing cost portions and one retained remainder",
+      "setting": "neutral unit-economics worktable with no readable text or numbers",
+      "composition": "incoming value dominates the upper frame; outgoing portions peel away toward a small retained remainder",
+      "cameraFraming": "documentary eye-level view with the evidence, action, and visible response legible in one frame",
+      "mood": "soft directional editorial daylight; hook",
+      "continuityReferences": [],
+      "referenceCharacterIds": [],
+      "onScreenText": "",
+      "negativeConstraints": [
+        "no readable text, letters, numbers, logos, UI, or watermarks",
+        "no depiction or synthetic likeness of Veronica Benini",
+        "no generic motivational stock montage, laptop-at-desk pose, or stock handshake",
+        "observer, follower, and customer identities must remain distinct from the canonical professional"
+      ],
+      "aspectRatios": [
+        "9:16"
+      ],
+      "imagePrompt": "Create one 9:16 short editorial still with one immediately legible visual idea. Visual thesis: You can have impressive revenue and still have a weak business. New visual information: You can have impressive revenue and still have a weak business. Core meaning: You can have impressive revenue and still have a weak business. Viewer takeaway: You can have impressive revenue and still have a weak business. Show one occupation-neutral business operator and source-supported transaction objects in neutral linear process lane with distinct evidence stations. Visible action: diagonal process progression makes each step visible while the operator separates the incoming payment into outgoing cost portions and one retained remainder. Required state: NEGATIVE_STATE; STABLE; You can have impressive revenue and still have a weak business. Strategy: establish. Stage the scene as follows: a diagonal process path leads from the initiating evidence to one visible result. Camera: oblique documentary view following one evidence path across the frame. Lighting: soft directional editorial daylight. Editorial direction: contemporary European editorial business-psychology realism. Palette: warm paper, coral accent, ink, glass, unfinished wood. Bible lighting policy: naturalistic editorial light with scene-specific contrast. Emotional direction: controlled uncertainty without anger, hostility, or rejection. Physical evidence: You can have impressive revenue and still have a weak business.; Because revenue and margin are not the same thing.; If one hundred euros comes in and ninety-five goes straight back out to produce, ship, support, and sustain the sale, getting more orders may simply make the problem bigger.; incoming payment tokens; outgoing cost portions; retained remainder container. No character identity reference is required for this scene. Keep important faces, actions, and evidence outside the subtitle region x=0.12, y=0.72, width=0.76, height=0.16. No readable text, letters, numbers, logos, interface copy, internal labels, watermark, storyboard, or panel grid. no readable text, logos, readable UI, or internal labels; keep observers, followers, customers, and buyers visually distinct from every recurring identity; avoid occupation-specific proxy evidence unless explicitly required by narration; avoid the opposite meaning of the canonical polarity or causal structure; avoid unrelated generic business imagery; native 9:16 composition; no depiction or synthetic likeness of Veronica Benini; single still image, not a storyboard or panel grid. Continuity policy: keep all scene actors visually distinct; no recurring identity is requested.",
+      "expectedImageFilenames": [
+        "scene-001-9x16.png"
+      ],
+      "qualityStatus": "semantic-review-required"
+    },
+    {
+      "id": "scene-002",
+      "sequenceNumber": 2,
+      "canonicalNarration": "Try this instead. Take your best-selling product and calculate one sale from start to finish. Start with what the customer pays.",
+      "sourceSegmentIds": [
+        "scene-002"
+      ],
+      "estimatedDurationSeconds": 8.625,
+      "plannedDurationSeconds": 9.175,
+      "reconciledDurationSeconds": 8.625,
+      "timingSource": "derived-audio-silence-alignment",
+      "timingConfidence": "derived",
+      "timing": {
+        "startSeconds": 18.855,
+        "endSeconds": 27.48
+      },
+      "visualPurpose": "PROOF: make-proof-visible",
+      "textRequirement": {
+        "required": false
+      },
+      "subject": "one occupation-neutral business operator and source-supported transaction objects",
+      "action": "the business operator isolates the source-supported best-selling product and traces its customer payment through one complete sale-cost path",
+      "setting": "neutral unit-sale breakdown setup with one source-supported sale subject",
+      "composition": "one decisive transition moment; one isolated best-selling product occupies the top of a clear vertical cost path; customer payment begins the same sale before downstream cost stations",
+      "cameraFraming": "documentary eye-level view with the evidence, action, and visible response legible in one frame",
+      "mood": "soft directional editorial daylight; proof",
+      "continuityReferences": [],
+      "referenceCharacterIds": [],
+      "onScreenText": "",
+      "negativeConstraints": [
+        "no readable text, letters, numbers, logos, UI, or watermarks",
+        "no depiction or synthetic likeness of Veronica Benini",
+        "no generic motivational stock montage, laptop-at-desk pose, or stock handshake",
+        "observer, follower, and customer identities must remain distinct from the canonical professional"
+      ],
+      "aspectRatios": [
+        "9:16"
+      ],
+      "imagePrompt": "Create one 9:16 short editorial still with one immediately legible visual idea. Visual thesis: Take your best-selling product and calculate one sale from start to finish. New visual information: Take your best-selling product and calculate one sale from start to finish. Core meaning: Take your best-selling product and calculate one sale from start to finish. Viewer takeaway: Take your best-selling product and calculate one sale from start to finish. Show one occupation-neutral business operator and source-supported transaction objects in neutral diagnostic inspection surface with one isolated evidence cluster. Visible action: isolated diagnostic inspection frames the action while the business operator isolates the source-supported best-selling product and traces its customer payment through one complete sale-cost path. Required state: NEUTRAL; STABLE; Take your best-selling product and calculate one sale from start to finish. Strategy: primary. Stage the scene as follows: one isolated evidence cluster occupies a dedicated inspection zone; contextual quantities occupy a separate supporting zone. Camera: slight high-angle evidence view with one isolated focal action. Lighting: soft directional editorial daylight. Editorial direction: contemporary European editorial business-psychology realism. Palette: warm paper, coral accent, ink, glass, unfinished wood. Bible lighting policy: naturalistic editorial light with scene-specific contrast. Emotional direction: restrained editorial realism. Physical evidence: Try this instead.; Take your best-selling product and calculate one sale from start to finish.; isolated source-supported best-selling product; incoming customer payment; downstream sale cost stations. No character identity reference is required for this scene. Keep important faces, actions, and evidence outside the subtitle region x=0.12, y=0.72, width=0.76, height=0.16. No readable text, letters, numbers, logos, interface copy, internal labels, watermark, storyboard, or panel grid. no readable text, logos, readable UI, or internal labels; keep observers, followers, customers, and buyers visually distinct from every recurring identity; avoid occupation-specific proxy evidence unless explicitly required by narration; avoid the opposite meaning of the canonical polarity or causal structure; avoid unrelated generic business imagery; native 9:16 composition; no depiction or synthetic likeness of Veronica Benini; single still image, not a storyboard or panel grid. Continuity policy: keep all scene actors visually distinct; no recurring identity is requested.",
+      "expectedImageFilenames": [
+        "scene-002-9x16.png"
+      ],
+      "qualityStatus": "semantic-review-required"
+    },
+    {
+      "id": "scene-003",
+      "sequenceNumber": 3,
+      "canonicalNarration": "Then subtract production, payment fees, commissions, shipping, support, refunds, and every cost that increases when you sell one more unit.",
+      "sourceSegmentIds": [
+        "scene-003"
+      ],
+      "estimatedDurationSeconds": 7.495000000000001,
+      "plannedDurationSeconds": 9.175,
+      "reconciledDurationSeconds": 7.495000000000001,
+      "timingSource": "derived-audio-silence-alignment",
+      "timingConfidence": "derived",
+      "timing": {
+        "startSeconds": 27.48,
+        "endSeconds": 34.975
+      },
+      "visualPurpose": "MANIFESTATION: show-consequence",
+      "textRequirement": {
+        "required": false
+      },
+      "subject": "one occupation-neutral business operator and source-supported transaction objects",
+      "action": "the operator moves one sale through distinct cost stations as each removes a visible portion",
+      "setting": "neutral variable-cost breakdown line with distinct transaction stages",
+      "composition": "one decisive transition moment; one sale moves through distinct physical cost-removal stations toward a visibly smaller remainder",
+      "cameraFraming": "documentary eye-level view with the evidence, action, and visible response legible in one frame",
+      "mood": "controlled graphic light with clear shape separation; manifestation",
+      "continuityReferences": [],
+      "referenceCharacterIds": [],
+      "onScreenText": "",
+      "negativeConstraints": [
+        "no readable text, letters, numbers, logos, UI, or watermarks",
+        "no depiction or synthetic likeness of Veronica Benini",
+        "no generic motivational stock montage, laptop-at-desk pose, or stock handshake",
+        "observer, follower, and customer identities must remain distinct from the canonical professional"
+      ],
+      "aspectRatios": [
+        "9:16"
+      ],
+      "imagePrompt": "Create one 9:16 short editorial still with one immediately legible visual idea. Visual thesis: Then subtract production, payment fees, commissions, shipping, support, refunds, and every cost that increases when you sell one more unit. New visual information: Then subtract production, payment fees, commissions, shipping, support, refunds, and every cost that increases when you sell one more unit; Then subtract production, payment fees, commissions, shipping, support, refunds, and every cost that increases when you sell one more unit. Core meaning: Then subtract production, payment fees, commissions, shipping, support, refunds, and every cost that increases when you sell one more unit. Viewer takeaway: Then subtract production, payment fees, commissions, shipping, support, refunds, and every cost that increases when you sell one more unit. Show one occupation-neutral business operator and source-supported transaction objects in neutral linear process lane with distinct evidence stations. Visible action: diagonal process progression makes each step visible while the operator moves one sale through distinct cost stations as each removes a visible portion. Required state: NEUTRAL; STABLE. Strategy: primary. Stage the scene as follows: a diagonal process path leads from the initiating evidence to one visible result. Camera: oblique documentary view following one evidence path across the frame. Lighting: controlled graphic light with clear shape separation. Editorial direction: contemporary European editorial business-psychology realism. Palette: warm paper, coral accent, ink, glass, unfinished wood. Bible lighting policy: naturalistic editorial light with scene-specific contrast. Emotional direction: restrained editorial realism. Physical evidence: Then subtract production, payment fees, commissions, shipping, support, refunds, and every cost that increases when you sell one more unit.; single sale token; distinct variable-cost stations; retained remainder. No character identity reference is required for this scene. Keep important faces, actions, and evidence outside the subtitle region x=0.12, y=0.72, width=0.76, height=0.16. No readable text, letters, numbers, logos, interface copy, internal labels, watermark, storyboard, or panel grid. no readable text, logos, readable UI, or internal labels; keep observers, followers, customers, and buyers visually distinct from every recurring identity; avoid occupation-specific proxy evidence unless explicitly required by narration; avoid the opposite meaning of the canonical polarity or causal structure; avoid unrelated generic business imagery; native 9:16 composition; no depiction or synthetic likeness of Veronica Benini; single still image, not a storyboard or panel grid. Continuity policy: keep all scene actors visually distinct; no recurring identity is requested.",
+      "expectedImageFilenames": [
+        "scene-003-9x16.png"
+      ],
+      "qualityStatus": "semantic-review-required"
+    },
+    {
+      "id": "scene-004",
+      "sequenceNumber": 4,
+      "canonicalNarration": "What remains tells you much more than the order count. And then ask the uncomfortable question: if sales doubled tomorrow, would the business definitely become healthier?",
+      "sourceSegmentIds": [
+        "scene-004"
+      ],
+      "estimatedDurationSeconds": 10.43,
+      "plannedDurationSeconds": 9.174999999999997,
+      "reconciledDurationSeconds": 10.43,
+      "timingSource": "derived-audio-silence-alignment",
+      "timingConfidence": "derived",
+      "timing": {
+        "startSeconds": 34.975,
+        "endSeconds": 45.405
+      },
+      "visualPurpose": "REVERSAL: prompt-decision",
+      "textRequirement": {
+        "required": false
+      },
+      "subject": "one occupation-neutral business operator and source-supported transaction objects",
+      "action": "the business operator compares baseline order volume with doubled order volume and checks the retained remainder in each without implying the business is healthier",
+      "setting": "neutral order-volume comparison workspace with simultaneous baseline and doubled sale flows",
+      "composition": "baseline order-volume evidence at left and doubled order-volume evidence at right; matching retained-remainder containers remain comparable without asserting a healthier business",
+      "cameraFraming": "documentary eye-level view with the evidence, action, and visible response legible in one frame",
+      "mood": "soft directional editorial daylight; reversal",
+      "continuityReferences": [],
+      "referenceCharacterIds": [],
+      "onScreenText": "",
+      "negativeConstraints": [
+        "no readable text, letters, numbers, logos, UI, or watermarks",
+        "no depiction or synthetic likeness of Veronica Benini",
+        "no generic motivational stock montage, laptop-at-desk pose, or stock handshake",
+        "observer, follower, and customer identities must remain distinct from the canonical professional"
+      ],
+      "aspectRatios": [
+        "9:16"
+      ],
+      "imagePrompt": "Create one 9:16 short editorial still with one immediately legible visual idea. Visual thesis: What remains tells you much more than the order count. New visual information: What remains tells you much more than the order count. Core meaning: What remains tells you much more than the order count. Viewer takeaway: What remains tells you much more than the order count. Show one occupation-neutral business operator and source-supported transaction objects in neutral evidence field with background context and one foreground evidence zone. Visible action: foreground evidence staging makes the distinction visible while the business operator isolates the small retained-value evidence from the much larger contextual mass of order units. Required state: NEUTRAL; STABLE; What remains tells you much more than the order count. Strategy: primary. Stage the scene as follows: foreground evidence carries the result while supporting quantities recede in depth. Camera: documentary three-quarter view with foreground evidence and background context legible together. Lighting: soft directional editorial daylight. Editorial direction: contemporary European editorial business-psychology realism. Palette: warm paper, coral accent, ink, glass, unfinished wood. Bible lighting policy: naturalistic editorial light with scene-specific contrast. Emotional direction: restrained editorial realism. Physical evidence: And then ask the uncomfortable question: if sales doubled tomorrow, would the business definitely become healthier?; baseline order-volume evidence; doubled order-volume evidence; paired retained-remainder containers; What remains tells you much more than the order count. No character identity reference is required for this scene. Keep important faces, actions, and evidence outside the subtitle region x=0.12, y=0.72, width=0.76, height=0.16. No readable text, letters, numbers, logos, interface copy, internal labels, watermark, storyboard, or panel grid. no readable text, logos, readable UI, or internal labels; keep observers, followers, customers, and buyers visually distinct from every recurring identity; avoid occupation-specific proxy evidence unless explicitly required by narration; avoid the opposite meaning of the canonical polarity or causal structure; avoid unrelated generic business imagery; native 9:16 composition; no depiction or synthetic likeness of Veronica Benini; single still image, not a storyboard or panel grid. Continuity policy: keep all scene actors visually distinct; no recurring identity is requested.",
+      "expectedImageFilenames": [
+        "scene-004-9x16.png"
+      ],
+      "qualityStatus": "semantic-review-required"
+    },
+    {
+      "id": "scene-005",
+      "sequenceNumber": 5,
+      "canonicalNarration": "If double the sales means double the workload and almost no additional margin, growth is amplifying a structural weakness.",
+      "sourceSegmentIds": [
+        "scene-005"
+      ],
+      "estimatedDurationSeconds": 7.625,
+      "plannedDurationSeconds": 9.175000000000004,
+      "reconciledDurationSeconds": 7.625,
+      "timingSource": "derived-audio-silence-alignment",
+      "timingConfidence": "derived",
+      "timing": {
+        "startSeconds": 45.405,
+        "endSeconds": 53.03
+      },
+      "visualPurpose": "METHOD: explain-causality",
+      "textRequirement": {
+        "required": false
+      },
+      "subject": "one occupation-neutral business operator and source-supported transaction objects",
+      "action": "the operator faces an accumulating workload backlog while a small retained result remains isolated at the edge",
+      "setting": "neutral operations evidence surface with an accumulating workload backlog",
+      "composition": "arriving order units feed one dominant bottleneck and backlog in the center; the small retained result remains visibly isolated at the edge",
+      "cameraFraming": "documentary eye-level view with the evidence, action, and visible response legible in one frame",
+      "mood": "soft directional editorial daylight; method",
+      "continuityReferences": [],
+      "referenceCharacterIds": [],
+      "onScreenText": "",
+      "negativeConstraints": [
+        "no readable text, letters, numbers, logos, UI, or watermarks",
+        "no depiction or synthetic likeness of Veronica Benini",
+        "no generic motivational stock montage, laptop-at-desk pose, or stock handshake",
+        "observer, follower, and customer identities must remain distinct from the canonical professional"
+      ],
+      "aspectRatios": [
+        "9:16"
+      ],
+      "imagePrompt": "Create one 9:16 short editorial still with one immediately legible visual idea. Visual thesis: double the sales means double the workload and almost no additional margin; as a result, growth is amplifying a structural weakness. New visual information: double the sales means double the workload and almost no additional margin; growth is amplifying a structural weakness. Core meaning: If double the sales means double the workload and almost no additional margin, growth is amplifying a structural weakness. Viewer takeaway: growth is amplifying a structural weakness. Show one occupation-neutral business operator and source-supported transaction objects in neutral operations evidence surface with an accumulating workload backlog. Visible action: the operator faces an accumulating workload backlog while a small retained result remains isolated at the edge. Required state: NEGATIVE_STATE; STABLE. Strategy: primary. Stage the scene as follows: arriving order units feed one dominant bottleneck and backlog in the center; the small retained result remains visibly isolated at the edge. Camera: documentary eye-level view with the evidence, action, and visible response legible in one frame. Lighting: soft directional editorial daylight. Editorial direction: contemporary European editorial business-psychology realism. Palette: warm paper, coral accent, ink, glass, unfinished wood. Bible lighting policy: naturalistic editorial light with scene-specific contrast. Emotional direction: controlled uncertainty without anger, hostility, or rejection. Physical evidence: If double the sales means double the workload and almost no additional margin, growth is amplifying a structural weakness.; arriving order units; accumulating workload backlog; small retained result. No character identity reference is required for this scene. Keep important faces, actions, and evidence outside the subtitle region x=0.12, y=0.72, width=0.76, height=0.16. No readable text, letters, numbers, logos, interface copy, internal labels, watermark, storyboard, or panel grid. no readable text, logos, readable UI, or internal labels; keep observers, followers, customers, and buyers visually distinct from every recurring identity; avoid occupation-specific proxy evidence unless explicitly required by narration; avoid the opposite meaning of the canonical polarity or causal structure; avoid unrelated generic business imagery; native 9:16 composition; no depiction or synthetic likeness of Veronica Benini; single still image, not a storyboard or panel grid. Continuity policy: keep all scene actors visually distinct; no recurring identity is requested.",
+      "expectedImageFilenames": [
+        "scene-005-9x16.png"
+      ],
+      "qualityStatus": "semantic-review-required"
+    },
+    {
+      "id": "scene-006",
+      "sequenceNumber": 6,
+      "canonicalNarration": "Before chasing more revenue, understand what happens economically every single time you sell.",
+      "sourceSegmentIds": [
+        "scene-006"
+      ],
+      "estimatedDurationSeconds": 5.640000000000001,
+      "plannedDurationSeconds": 9.174999999999997,
+      "reconciledDurationSeconds": 5.640000000000001,
+      "timingSource": "derived-audio-silence-alignment",
+      "timingConfidence": "derived",
+      "timing": {
+        "startSeconds": 53.03,
+        "endSeconds": 58.67
+      },
+      "visualPurpose": "PROOF: make-proof-visible",
+      "textRequirement": {
+        "required": false
+      },
+      "subject": "one occupation-neutral business operator and source-supported transaction objects",
+      "action": "the business operator checks one already-analyzed sale at the decision checkpoint beside its retained contribution before allowing additional orders through",
+      "setting": "neutral isolated diagnostic inspection at a unit-economics decision checkpoint before additional-order pursuit",
+      "composition": "one decisive transition moment; the already-analyzed sale reaches a clear checkpoint along the near edge beside its retained contribution; additional order units wait beyond the checkpoint and no cost-decomposition workflow is shown",
+      "cameraFraming": "documentary eye-level view with the evidence, action, and visible response legible in one frame",
+      "mood": "soft directional editorial daylight; proof",
+      "continuityReferences": [],
+      "referenceCharacterIds": [],
+      "onScreenText": "",
+      "negativeConstraints": [
+        "no readable text, letters, numbers, logos, UI, or watermarks",
+        "no depiction or synthetic likeness of Veronica Benini",
+        "no generic motivational stock montage, laptop-at-desk pose, or stock handshake",
+        "observer, follower, and customer identities must remain distinct from the canonical professional"
+      ],
+      "aspectRatios": [
+        "9:16"
+      ],
+      "imagePrompt": "Create one 9:16 short editorial still with one immediately legible visual idea. Visual thesis: Before chasing more revenue, understand what happens economically every single time you sell. New visual information: Before chasing more revenue, understand what happens economically every single time you sell; Before chasing more revenue, understand what happens economically every single time you sell. Core meaning: Before chasing more revenue, understand what happens economically every single time you sell. Viewer takeaway: Before chasing more revenue, understand what happens economically every single time you sell. Show one occupation-neutral business operator and source-supported transaction objects in neutral isolated diagnostic inspection at a unit-economics decision checkpoint before additional-order pursuit. Visible action: the business operator checks one already-analyzed sale at the decision checkpoint beside its retained contribution before allowing additional orders through. Required state: POSITIVE_STATE; STABLE. Strategy: primary. Stage the scene as follows: one decisive transition moment; the already-analyzed sale reaches a clear checkpoint along the near edge beside its retained contribution; additional order units wait beyond the checkpoint and no cost-decomposition workflow is shown. Camera: documentary eye-level view with the evidence, action, and visible response legible in one frame. Lighting: soft directional editorial daylight. Editorial direction: contemporary European editorial business-psychology realism. Palette: warm paper, coral accent, ink, glass, unfinished wood. Bible lighting policy: naturalistic editorial light with scene-specific contrast. Emotional direction: clarity, confidence, and forward movement. Physical evidence: Before chasing more revenue, understand what happens economically every single time you sell.; already-analyzed sale token; visible retained contribution; waiting additional order units; clear decision checkpoint. No character identity reference is required for this scene. Keep important faces, actions, and evidence outside the subtitle region x=0.12, y=0.72, width=0.76, height=0.16. No readable text, letters, numbers, logos, interface copy, internal labels, watermark, storyboard, or panel grid. no readable text, logos, readable UI, or internal labels; keep observers, followers, customers, and buyers visually distinct from every recurring identity; avoid occupation-specific proxy evidence unless explicitly required by narration; avoid the opposite meaning of the canonical polarity or causal structure; avoid unrelated generic business imagery; native 9:16 composition; no depiction or synthetic likeness of Veronica Benini; single still image, not a storyboard or panel grid. Continuity policy: keep all scene actors visually distinct; no recurring identity is requested.",
+      "expectedImageFilenames": [
+        "scene-006-9x16.png"
+      ],
+      "qualityStatus": "semantic-review-required"
+    },
+    {
+      "id": "scene-007",
+      "sequenceNumber": 7,
+      "canonicalNarration": "A strong business is not the one making the most noise. It is the one whose economics still work when the volume grows.",
+      "sourceSegmentIds": [
+        "scene-007"
+      ],
+      "estimatedDurationSeconds": 7.150000000000006,
+      "plannedDurationSeconds": 9.174999999999997,
+      "reconciledDurationSeconds": 7.150000000000006,
+      "timingSource": "derived-audio-silence-alignment",
+      "timingConfidence": "derived",
+      "timing": {
+        "startSeconds": 58.67,
+        "endSeconds": 65.82000000000001
+      },
+      "visualPurpose": "MANIFESTATION: show-consequence",
+      "textRequirement": {
+        "required": false
+      },
+      "subject": "one occupation-neutral business operator and source-supported transaction objects",
+      "action": "the business operator scales the operation through controlled capacity from baseline to higher order volume while the retained contribution visibly grows with it",
+      "setting": "neutral controlled-capacity scaling comparison with baseline and expanded operation",
+      "composition": "foreground evidence staging holds baseline operation at left and scaled operation at right; the higher order volume and its larger retained contribution form the primary comparison while operating capacity remains orderly without an accumulating backlog",
+      "cameraFraming": "documentary eye-level view with the evidence, action, and visible response legible in one frame",
+      "mood": "controlled graphic light with clear shape separation; manifestation",
+      "continuityReferences": [],
+      "referenceCharacterIds": [],
+      "onScreenText": "",
+      "negativeConstraints": [
+        "no readable text, letters, numbers, logos, UI, or watermarks",
+        "no depiction or synthetic likeness of Veronica Benini",
+        "no generic motivational stock montage, laptop-at-desk pose, or stock handshake",
+        "observer, follower, and customer identities must remain distinct from the canonical professional"
+      ],
+      "aspectRatios": [
+        "9:16"
+      ],
+      "imagePrompt": "Create one 9:16 short editorial still with one immediately legible visual idea. Visual thesis: It is the one whose economics still work when the volume grows. New visual information: It is the one whose economics still work when the volume grows; It is the one whose economics still work when the volume grows. Core meaning: It is the one whose economics still work when the volume grows. Viewer takeaway: It is the one whose economics still work when the volume grows. Show one occupation-neutral business operator and source-supported transaction objects in neutral controlled-capacity scaling comparison with baseline and expanded operation. Visible action: the business operator scales the operation through controlled capacity from baseline to higher order volume while the retained contribution visibly grows with it. Required state: NEUTRAL; STABLE. Strategy: primary. Stage the scene as follows: foreground evidence staging holds baseline operation at left and scaled operation at right; the higher order volume and its larger retained contribution form the primary comparison while operating capacity remains orderly without an accumulating backlog. Camera: documentary eye-level view with the evidence, action, and visible response legible in one frame. Lighting: controlled graphic light with clear shape separation. Editorial direction: contemporary European editorial business-psychology realism. Palette: warm paper, coral accent, ink, glass, unfinished wood. Bible lighting policy: naturalistic editorial light with scene-specific contrast. Emotional direction: restrained editorial realism. Physical evidence: It is the one whose economics still work when the volume grows.; baseline order volume; scaled order volume; controlled operating capacity; baseline retained contribution; larger scaled retained contribution. No character identity reference is required for this scene. Keep important faces, actions, and evidence outside the subtitle region x=0.12, y=0.72, width=0.76, height=0.16. No readable text, letters, numbers, logos, interface copy, internal labels, watermark, storyboard, or panel grid. no readable text, logos, readable UI, or internal labels; keep observers, followers, customers, and buyers visually distinct from every recurring identity; avoid occupation-specific proxy evidence unless explicitly required by narration; avoid the opposite meaning of the canonical polarity or causal structure; avoid unrelated generic business imagery; native 9:16 composition; no depiction or synthetic likeness of Veronica Benini; single still image, not a storyboard or panel grid. Continuity policy: keep all scene actors visually distinct; no recurring identity is requested.",
+      "expectedImageFilenames": [
+        "scene-007-9x16.png"
+      ],
+      "qualityStatus": "semantic-review-required"
+    },
+    {
+      "id": "scene-008",
+      "sequenceNumber": 8,
+      "canonicalNarration": "Before chasing the next order, calculate what one additional sale actually leaves behind.",
+      "sourceSegmentIds": [
+        "scene-008"
+      ],
+      "estimatedDurationSeconds": 5.779999999999987,
+      "plannedDurationSeconds": 9.176000000000002,
+      "reconciledDurationSeconds": 5.779999999999987,
+      "timingSource": "derived-audio-silence-alignment",
+      "timingConfidence": "derived",
+      "timing": {
+        "startSeconds": 65.82000000000001,
+        "endSeconds": 71.6
+      },
+      "visualPurpose": "PAYOFF: deliver-payoff",
+      "textRequirement": {
+        "required": false
+      },
+      "subject": "one occupation-neutral business operator and source-supported transaction objects",
+      "action": "the business operator isolates one additional sale beside the small retained contribution it leaves before pursuing the next order",
+      "setting": "neutral marginal-contribution evidence surface with one additional sale isolated before the next order",
+      "composition": "one decisive transition moment; one additional sale occupies the focal area beside the small retained contribution it leaves; the next order remains peripheral and no cost-decomposition workflow is shown",
+      "cameraFraming": "documentary eye-level view with the evidence, action, and visible response legible in one frame",
+      "mood": "controlled graphic light with clear shape separation; payoff",
+      "continuityReferences": [],
+      "referenceCharacterIds": [],
+      "onScreenText": "",
+      "negativeConstraints": [
+        "no readable text, letters, numbers, logos, UI, or watermarks",
+        "no depiction or synthetic likeness of Veronica Benini",
+        "no generic motivational stock montage, laptop-at-desk pose, or stock handshake",
+        "observer, follower, and customer identities must remain distinct from the canonical professional"
+      ],
+      "aspectRatios": [
+        "9:16"
+      ],
+      "imagePrompt": "Create one 9:16 short editorial still with one immediately legible visual idea. Visual thesis: Before chasing the next order, calculate what one additional sale actually leaves behind. New visual information: Before chasing the next order, calculate what one additional sale actually leaves behind; Before chasing the next order, calculate what one additional sale actually leaves behind. Core meaning: Before chasing the next order, calculate what one additional sale actually leaves behind. Viewer takeaway: Before chasing the next order, calculate what one additional sale actually leaves behind. Show one occupation-neutral business operator and source-supported transaction objects in neutral marginal-contribution evidence surface with one additional sale isolated before the next order. Visible action: the business operator isolates one additional sale beside the small retained contribution it leaves before pursuing the next order. Required state: NEUTRAL; STABLE. Strategy: payoff. Stage the scene as follows: one decisive transition moment; one additional sale occupies the focal area beside the small retained contribution it leaves; the next order remains peripheral and no cost-decomposition workflow is shown. Camera: documentary eye-level view with the evidence, action, and visible response legible in one frame. Lighting: controlled graphic light with clear shape separation. Editorial direction: contemporary European editorial business-psychology realism. Palette: warm paper, coral accent, ink, glass, unfinished wood. Bible lighting policy: naturalistic editorial light with scene-specific contrast. Emotional direction: restrained editorial realism. Physical evidence: Before chasing the next order, calculate what one additional sale actually leaves behind.; one additional sale token; small retained contribution; peripheral next-order token. No character identity reference is required for this scene. Keep important faces, actions, and evidence outside the subtitle region x=0.12, y=0.72, width=0.76, height=0.16. No readable text, letters, numbers, logos, interface copy, internal labels, watermark, storyboard, or panel grid. no readable text, logos, readable UI, or internal labels; keep observers, followers, customers, and buyers visually distinct from every recurring identity; avoid occupation-specific proxy evidence unless explicitly required by narration; avoid the opposite meaning of the canonical polarity or causal structure; avoid unrelated generic business imagery; native 9:16 composition; no depiction or synthetic likeness of Veronica Benini; single still image, not a storyboard or panel grid. Continuity policy: keep all scene actors visually distinct; no recurring identity is requested.",
+      "expectedImageFilenames": [
+        "scene-008-9x16.png"
+      ],
+      "qualityStatus": "semantic-review-required"
+    }
+  ]
+}

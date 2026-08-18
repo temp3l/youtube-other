@@ -1,0 +1,4183 @@
+{
+  "schemaVersion": "veronica-en-production-readiness-census.v1",
+  "generatedAt": "2026-08-12T21:19:27.561Z",
+  "scope": "Active English Markdown sources discovered from configured Pack 2 and editorial-master-v5 source roots",
+  "discoveryAuthority": [
+    {
+      "pack": "veronica-content-pack-2",
+      "variant": "short",
+      "directory": "content-packs/vero/veronica-content-pack-2/shorts/en"
+    },
+    {
+      "pack": "veronica-content-pack-2",
+      "variant": "full",
+      "directory": "content-packs/vero/veronica-content-pack-2/long/en"
+    },
+    {
+      "pack": "veronica-stories-editorial-master-v5",
+      "variant": "short",
+      "directory": "content-packs/vero/veronica-stories-editorial-master-v5/shorts/en"
+    },
+    {
+      "pack": "veronica-stories-editorial-master-v5",
+      "variant": "full",
+      "directory": "content-packs/vero/veronica-stories-editorial-master-v5/long/en"
+    }
+  ],
+  "summary": {
+    "englishSources": 48,
+    "deterministicPass": 1,
+    "deterministicBlock": 47,
+    "fullyPreImageReady": 1,
+    "imageComplete": 0,
+    "missingProductionInputs": 30,
+    "staleProvenance": 14,
+    "staleAtomicChains": 14,
+    "episodeSpecificFailures": 0,
+    "editorialHumanDecisions": 1,
+    "canaryImagesGenerated": 3
+  },
+  "staleArtifactsSuperseded": [
+    {
+      "path": "docs/reports/codex-runs/2026-08-12-veronica-en-preimage-portfolio-census.json",
+      "reason": "Predates complete 01A QA and classifies three stale v5 narration chains as missing-input-only."
+    },
+    {
+      "path": "docs/reports/codex-runs/2026-08-12-veronica-en-preimage-portfolio-census.md",
+      "reason": "Human-readable projection of the superseded census JSON."
+    },
+    {
+      "path": "docs/reports/codex-runs/2026-08-12-veronica-en-portfolio-combined-run.json",
+      "reason": "Correct for its bounded run, but not a global historical cost ledger and not the latest full source/provenance census."
+    },
+    {
+      "path": "docs/reports/codex-runs/2026-08-12-veronica-en-portfolio-combined-run.md",
+      "reason": "Human-readable projection of the superseded bounded-run state."
+    }
+  ],
+  "episodes": [
+    {
+      "episodeId": "01-a-good-business-starts-with-the-right-business-model",
+      "pack": "veronica-content-pack-2",
+      "variant": "full",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-content-pack-2/long/en/01-a-good-business-starts-with-the-right-business-model.md",
+      "sourceHash": "681279cccf63bcc17c300b753cb8911fe67d682ff46cd195abd49e38612ba68a",
+      "wordCount": 1515,
+      "workspacePath": "episodes/01-a-good-business-starts-with-the-right-business-model",
+      "productionInputStatus": "MISSING_AUDIO_AND_TIMING",
+      "plannerInputStatus": "MISSING",
+      "visualPlanStatus": "MISSING",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "INCOMPLETE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": null,
+      "workspaceScriptWordCount": null,
+      "sourceWordDelta": null,
+      "selectedAudioHash": null,
+      "timingHash": null,
+      "timingNarrationHash": null,
+      "timingSelectedAudioHash": null,
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": null,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 586.5,
+      "primaryBlocker": "MISSING_NARRATION_AUDIO_AND_TIMING",
+      "blockerClass": "MISSING_PRODUCTION_INPUT",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 0,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FOR_MISSING_NARRATION",
+      "regenerationRequirement": "PROVISION_MISSING_NARRATION_AND_REBUILD_ATOMIC_TIMING_CHAIN",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.544633,
+      "conservativeSyntheticTtsCostEur": 0.519148,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": false
+    },
+    {
+      "episodeId": "02-your-ideal-customer-is-not-everyone",
+      "pack": "veronica-content-pack-2",
+      "variant": "full",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-content-pack-2/long/en/02-your-ideal-customer-is-not-everyone.md",
+      "sourceHash": "350b83531b55a46587a97a87fec89b9cb3d6e63a1d039ae6c3a4e5e8547f25d9",
+      "wordCount": 1526,
+      "workspacePath": "episodes/02-your-ideal-customer-is-not-everyone",
+      "productionInputStatus": "MISSING_AUDIO_AND_TIMING",
+      "plannerInputStatus": "MISSING",
+      "visualPlanStatus": "MISSING",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "INCOMPLETE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": null,
+      "workspaceScriptWordCount": null,
+      "sourceWordDelta": null,
+      "selectedAudioHash": null,
+      "timingHash": null,
+      "timingNarrationHash": null,
+      "timingSelectedAudioHash": null,
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": null,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 590.7,
+      "primaryBlocker": "MISSING_NARRATION_AUDIO_AND_TIMING",
+      "blockerClass": "MISSING_PRODUCTION_INPUT",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 0,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FOR_MISSING_NARRATION",
+      "regenerationRequirement": "PROVISION_MISSING_NARRATION_AND_REBUILD_ATOMIC_TIMING_CHAIN",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.548298,
+      "conservativeSyntheticTtsCostEur": 0.522641,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": false
+    },
+    {
+      "episodeId": "03-people-dont-buy-your-product-they-buy-the-promise",
+      "pack": "veronica-content-pack-2",
+      "variant": "full",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-content-pack-2/long/en/03-people-dont-buy-your-product-they-buy-the-promise.md",
+      "sourceHash": "a3c885c1dcfa8575d7bc1828ffd4864b720d858d2a9ef7f81e060ff5c425833d",
+      "wordCount": 1508,
+      "workspacePath": "episodes/03-people-dont-buy-your-product-they-buy-the-promise",
+      "productionInputStatus": "MISSING_AUDIO_AND_TIMING",
+      "plannerInputStatus": "MISSING",
+      "visualPlanStatus": "MISSING",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "INCOMPLETE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": null,
+      "workspaceScriptWordCount": null,
+      "sourceWordDelta": null,
+      "selectedAudioHash": null,
+      "timingHash": null,
+      "timingNarrationHash": null,
+      "timingSelectedAudioHash": null,
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": null,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 583.7,
+      "primaryBlocker": "MISSING_NARRATION_AUDIO_AND_TIMING",
+      "blockerClass": "MISSING_PRODUCTION_INPUT",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 0,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FOR_MISSING_NARRATION",
+      "regenerationRequirement": "PROVISION_MISSING_NARRATION_AND_REBUILD_ATOMIC_TIMING_CHAIN",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.54194,
+      "conservativeSyntheticTtsCostEur": 0.516581,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": false
+    },
+    {
+      "episodeId": "04-how-to-build-an-offer-people-actually-want",
+      "pack": "veronica-content-pack-2",
+      "variant": "full",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-content-pack-2/long/en/04-how-to-build-an-offer-people-actually-want.md",
+      "sourceHash": "832037b16a9bc64004ccaf486884a55e5ccc9e08822173931f877c1ca9a47c17",
+      "wordCount": 1546,
+      "workspacePath": "episodes/04-how-to-build-an-offer-people-actually-want",
+      "productionInputStatus": "MISSING_AUDIO_AND_TIMING",
+      "plannerInputStatus": "MISSING",
+      "visualPlanStatus": "MISSING",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "INCOMPLETE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": null,
+      "workspaceScriptWordCount": null,
+      "sourceWordDelta": null,
+      "selectedAudioHash": null,
+      "timingHash": null,
+      "timingNarrationHash": null,
+      "timingSelectedAudioHash": null,
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": null,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 598.5,
+      "primaryBlocker": "MISSING_NARRATION_AUDIO_AND_TIMING",
+      "blockerClass": "MISSING_PRODUCTION_INPUT",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 0,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FOR_MISSING_NARRATION",
+      "regenerationRequirement": "PROVISION_MISSING_NARRATION_AND_REBUILD_ATOMIC_TIMING_CHAIN",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.555424,
+      "conservativeSyntheticTtsCostEur": 0.529434,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": false
+    },
+    {
+      "episodeId": "05-stop-improving-the-marketing-fix-the-product",
+      "pack": "veronica-content-pack-2",
+      "variant": "full",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-content-pack-2/long/en/05-stop-improving-the-marketing-fix-the-product.md",
+      "sourceHash": "32b91cd330eef4ff509e9a1d804484bb27bc4f2db93e7ed7617632766193996a",
+      "wordCount": 1465,
+      "workspacePath": "episodes/05-stop-improving-the-marketing-fix-the-product",
+      "productionInputStatus": "MISSING_AUDIO_AND_TIMING",
+      "plannerInputStatus": "MISSING",
+      "visualPlanStatus": "MISSING",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "INCOMPLETE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": null,
+      "workspaceScriptWordCount": null,
+      "sourceWordDelta": null,
+      "selectedAudioHash": null,
+      "timingHash": null,
+      "timingNarrationHash": null,
+      "timingSelectedAudioHash": null,
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": null,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 567.1,
+      "primaryBlocker": "MISSING_NARRATION_AUDIO_AND_TIMING",
+      "blockerClass": "MISSING_PRODUCTION_INPUT",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 0,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FOR_MISSING_NARRATION",
+      "regenerationRequirement": "PROVISION_MISSING_NARRATION_AND_REBUILD_ATOMIC_TIMING_CHAIN",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.526867,
+      "conservativeSyntheticTtsCostEur": 0.502213,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": false
+    },
+    {
+      "episodeId": "06-attention-is-not-conversion",
+      "pack": "veronica-content-pack-2",
+      "variant": "full",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-content-pack-2/long/en/06-attention-is-not-conversion.md",
+      "sourceHash": "2ee091a57b2bfbcd799b5b171fd531e38c01affa1fca05765f53bb21096ccf79",
+      "wordCount": 1546,
+      "workspacePath": "episodes/06-attention-is-not-conversion",
+      "productionInputStatus": "MISSING_AUDIO_AND_TIMING",
+      "plannerInputStatus": "MISSING",
+      "visualPlanStatus": "MISSING",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "INCOMPLETE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": null,
+      "workspaceScriptWordCount": null,
+      "sourceWordDelta": null,
+      "selectedAudioHash": null,
+      "timingHash": null,
+      "timingNarrationHash": null,
+      "timingSelectedAudioHash": null,
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": null,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 598.5,
+      "primaryBlocker": "MISSING_NARRATION_AUDIO_AND_TIMING",
+      "blockerClass": "MISSING_PRODUCTION_INPUT",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 0,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FOR_MISSING_NARRATION",
+      "regenerationRequirement": "PROVISION_MISSING_NARRATION_AND_REBUILD_ATOMIC_TIMING_CHAIN",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.555489,
+      "conservativeSyntheticTtsCostEur": 0.529496,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": false
+    },
+    {
+      "episodeId": "07-why-selling-feels-difficult",
+      "pack": "veronica-content-pack-2",
+      "variant": "full",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-content-pack-2/long/en/07-why-selling-feels-difficult.md",
+      "sourceHash": "03b3ecc938ba7a9024b25395786a0b43075c62d6158d212f879c8a549aa040a8",
+      "wordCount": 1479,
+      "workspacePath": "episodes/07-why-selling-feels-difficult",
+      "productionInputStatus": "MISSING_AUDIO_AND_TIMING",
+      "plannerInputStatus": "MISSING",
+      "visualPlanStatus": "MISSING",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "INCOMPLETE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": null,
+      "workspaceScriptWordCount": null,
+      "sourceWordDelta": null,
+      "selectedAudioHash": null,
+      "timingHash": null,
+      "timingNarrationHash": null,
+      "timingSelectedAudioHash": null,
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": null,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 572.5,
+      "primaryBlocker": "MISSING_NARRATION_AUDIO_AND_TIMING",
+      "blockerClass": "MISSING_PRODUCTION_INPUT",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 0,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FOR_MISSING_NARRATION",
+      "regenerationRequirement": "PROVISION_MISSING_NARRATION_AND_REBUILD_ATOMIC_TIMING_CHAIN",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.531304,
+      "conservativeSyntheticTtsCostEur": 0.506442,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": false
+    },
+    {
+      "episodeId": "08-sales-without-chasing-everyone",
+      "pack": "veronica-content-pack-2",
+      "variant": "full",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-content-pack-2/long/en/08-sales-without-chasing-everyone.md",
+      "sourceHash": "3c96054f3ab8d13c382f9ee6d4ec8bcac958511ee537736a8be68803613187c9",
+      "wordCount": 1511,
+      "workspacePath": "episodes/08-sales-without-chasing-everyone",
+      "productionInputStatus": "MISSING_AUDIO_AND_TIMING",
+      "plannerInputStatus": "MISSING",
+      "visualPlanStatus": "MISSING",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "INCOMPLETE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": null,
+      "workspaceScriptWordCount": null,
+      "sourceWordDelta": null,
+      "selectedAudioHash": null,
+      "timingHash": null,
+      "timingNarrationHash": null,
+      "timingSelectedAudioHash": null,
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": null,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 584.9,
+      "primaryBlocker": "MISSING_NARRATION_AUDIO_AND_TIMING",
+      "blockerClass": "MISSING_PRODUCTION_INPUT",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 0,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FOR_MISSING_NARRATION",
+      "regenerationRequirement": "PROVISION_MISSING_NARRATION_AND_REBUILD_ATOMIC_TIMING_CHAIN",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.543348,
+      "conservativeSyntheticTtsCostEur": 0.517923,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": false
+    },
+    {
+      "episodeId": "01a-revenue-is-not-a-good-business",
+      "pack": "veronica-content-pack-2",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-content-pack-2/shorts/en/01a-revenue-is-not-a-good-business.md",
+      "sourceHash": "4e82a65208256d74b2171c4475ee624d9506cfd6f0b21b1f055074d4062c7503",
+      "wordCount": 184,
+      "workspacePath": "episodes/01a-revenue-is-not-a-good-business",
+      "productionInputStatus": "CURRENT_ATOMIC_CHAIN",
+      "plannerInputStatus": "CURRENT",
+      "visualPlanStatus": "CURRENT_PASS",
+      "promptReadiness": "PASS",
+      "deterministicAdmissionState": "PASS",
+      "existingQaState": "PASS",
+      "provenanceState": "CONSISTENT",
+      "sourceMappingCurrent": true,
+      "workspaceScriptHash": "4e82a65208256d74b2171c4475ee624d9506cfd6f0b21b1f055074d4062c7503",
+      "workspaceScriptWordCount": 184,
+      "sourceWordDelta": 0,
+      "selectedAudioHash": "2dfc4193f3b325d98bb972d64af168b8dddf9d7f34d267710144965be6190622",
+      "timingHash": "67e2a4539d37d41e6cf574c73e360697cb294d037243bdd1be3daf3c6c7ccbb2",
+      "timingNarrationHash": "4e82a65208256d74b2171c4475ee624d9506cfd6f0b21b1f055074d4062c7503",
+      "timingSelectedAudioHash": "2dfc4193f3b325d98bb972d64af168b8dddf9d7f34d267710144965be6190622",
+      "admissionIdentityHash": "0eb338f0d6a1069350afcabc541ccdcb5332f19ef13803a4d35978a09eae1043",
+      "admissionSourceHash": "4e82a65208256d74b2171c4475ee624d9506cfd6f0b21b1f055074d4062c7503",
+      "durationSeconds": 71.6,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 71.2,
+      "primaryBlocker": "HOOK_B04_V4_DETERMINISTIC_DIAGRAM_STRICT_QA_FAILED",
+      "blockerClass": "EDITORIAL_HUMAN_DECISION",
+      "paidWorkRequired": false,
+      "exactPaidOperation": "No further paid HOOK-B04 operation justified. Four bounded diagram variants failed strict admission; v4 preserved the successful 19:1 split but the withheld-order consequence still required narration. Human editorial review must choose a different metaphor or accept deferral.",
+      "imageApprovalState": "HUMAN_HASH_BOUND_APPROVED",
+      "fullyPreImageReady": true,
+      "imageComplete": false,
+      "imageCount": 3,
+      "expectedImageCount": 13,
+      "generatedImages": [
+        {
+          "sceneId": "scene-004",
+          "outputPath": "episodes/01a-revenue-is-not-a-good-business/shared/images/generated/01a-revenue-is-not-a-good-business-hook-beat-04-9x16.png",
+          "outputSha256": "22731f2fc9b6c84c02c2195d7527e476696106cbb0b0233ad51bdb5c0b6cb5b3",
+          "model": "deterministic-svg",
+          "generatedAt": "2026-08-12T20:31:52.059Z"
+        },
+        {
+          "sceneId": "scene-006",
+          "outputPath": "episodes/01a-revenue-is-not-a-good-business/shared/images/generated/01a-revenue-is-not-a-good-business-s01-beat-02-9x16.png",
+          "outputSha256": "dcd881681049d4147344e3fb563c09eed88f468c95c0369e4c1491076706a779",
+          "model": "gpt-image-2",
+          "generatedAt": "2026-08-12T14:05:08.439Z"
+        },
+        {
+          "sceneId": "scene-007",
+          "outputPath": "episodes/01a-revenue-is-not-a-good-business/shared/images/generated/01a-revenue-is-not-a-good-business-s02-beat-01-9x16.png",
+          "outputSha256": "5e11f15cee0b397ad8bbcd2b8d897ae8ca91764f65e728deb218a0dc7cde5bbe",
+          "model": "deterministic-svg",
+          "generatedAt": "2026-08-12T16:12:18.266Z"
+        }
+      ],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 2,
+        "approved": 1,
+        "rejected": 1,
+        "state": "FAIL",
+        "reviews": [
+          {
+            "sceneId": "scene-004",
+            "imageSha256": "22731f2fc9b6c84c02c2195d7527e476696106cbb0b0233ad51bdb5c0b6cb5b3",
+            "approved": false,
+            "reviewPath": "episodes/01a-revenue-is-not-a-good-business/state/image-generation/veronica-post-generation-visual-qa/scene-004.97111c4dbb38304d85c567581fe466f9e8e40d576a5559e488fd441065f4b830.json",
+            "reviewSha256": "e9d4696e56750fa65dffbe48e71835592e018824d9e2fbc568e867d37d05586e",
+            "semanticBriefHash": "3833188a998836608874f4a5e53590ae8fb83c23adc6be7d6425bc7f51cb6ba9",
+            "finalPromptHash": "1c78240452d805f18c0ab04191260a57e8f090bb64c6e8243164d179d389d79d",
+            "scores": {
+              "semanticAlignment": 0.66,
+              "instantRead": 0.62,
+              "narrationSupport": 0.58
+            },
+            "mustShowCoverage": "partial",
+            "failedRequirements": [
+              "one matching parcel plus payment emblem entirely left of a wide coral raised gate with grounded feet",
+              "one separate withheld prospective order clearly blocked outside the gate",
+              "Getting more orders may simply make the problem bigger shown as a separate blocked next order"
+            ],
+            "regenerationInstructions": [
+              "Add a clearly visible wide coral raised gate with grounded feet between the first completed-sale path and the second prospective order.",
+              "Place the withheld parcel and payment emblem entirely outside the gate, with no overlap or crossing.",
+              "Keep exactly one completed order draining into the 19+1 split, and make the blocked second order unmistakable at a glance.",
+              "Preserve the no-text constraint and the 19 pellets in the main reservoir plus 1 pellet in the small retained container."
+            ]
+          },
+          {
+            "sceneId": "scene-007",
+            "imageSha256": "5e11f15cee0b397ad8bbcd2b8d897ae8ca91764f65e728deb218a0dc7cde5bbe",
+            "approved": true,
+            "reviewPath": "episodes/01a-revenue-is-not-a-good-business/state/image-generation/veronica-post-generation-visual-qa/scene-007.93f3ad3273ea2b2f71d1cb2323dabef8cc90dc218e5b26c387fefc3b56a559b9.json",
+            "reviewSha256": "0f5388034ec6a966f0e6dc2503a8065a60b41d30b9222392829c237827bc81e3",
+            "semanticBriefHash": "1f9db17f7a85fcd380e9268711ef6ebb54e1bfbcc66c563380698b60ab65c3b0",
+            "finalPromptHash": "2d7abcf51717121145e00bfb191f76ab66af568dccde0c22c88183761f42c106",
+            "scores": {
+              "semanticAlignment": 0.86,
+              "instantRead": 0.9,
+              "narrationSupport": 0.84
+            },
+            "mustShowCoverage": "pass",
+            "failedRequirements": [],
+            "regenerationInstructions": []
+          }
+        ]
+      },
+      "visualEncodingDecision": {
+        "state": "CURRENT_APPROVED",
+        "path": "episodes/01a-revenue-is-not-a-good-business/review-packs/pre-image/en-short/run-1786539721886/human-visual-encoding-decision.v1.json",
+        "sha256": "3c501dc4836d4cb1bd841f7c605e279c83ed45efdb8de19f3b4b6e5b199da4ad",
+        "visualBeatId": "01a-revenue-is-not-a-good-business-S02-B01",
+        "authorizationReference": "user-message-2026-08-12-authorize-recommended-visual-encoding"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "ADOPTED_STRICT_QA_PASS",
+        "path": "episodes/01a-revenue-is-not-a-good-business/review-packs/pre-image/en-short/run-1786539721886/prototypes/s02-b01-deterministic-diagram-prototype.v1.json",
+        "sha256": "d77fcf8d0ecc1943057e60789d05bf95f7c68b266a7d034a187ed484e3d4300d",
+        "svgSha256": "ddbfe4408b59341e840e76a831703bd5f2f3f97c71ac7ec30f29c3e4bd9bf4a2",
+        "pngSha256": "5e11f15cee0b397ad8bbcd2b8d897ae8ca91764f65e728deb218a0dc7cde5bbe",
+        "canonicalAssetReplaced": false,
+        "localChecks": {
+          "nativeDimensions": "PASS",
+          "exactConservation": "PASS",
+          "singleContinuousValuePath": "PASS",
+          "singleFinalRemainder": "PASS",
+          "subtitleSafeComposition": "PASS",
+          "svgTextElementsAbsent": "PASS",
+          "externalAssetsAbsent": "PASS",
+          "logosAndUiAbsent": "PASS",
+          "syntheticCreatorLikenessAbsent": "PASS",
+          "providerCalls": 0,
+          "paidQaCalls": 0
+        },
+        "adoptionPath": "episodes/01a-revenue-is-not-a-good-business/state/image-generation/deterministic-adoptions/scene-007.json",
+        "adoptionSha256": "00182de8a21d909a43d2e94622f7402ccba1d29aef83af5eb6b260d0395afa83",
+        "adoptedImageSha256": "5e11f15cee0b397ad8bbcd2b8d897ae8ca91764f65e728deb218a0dc7cde5bbe"
+      },
+      "hookDeterministicPrototype": {
+        "state": "STALE_OR_INVALID",
+        "path": "episodes/01a-revenue-is-not-a-good-business/review-packs/pre-image/en-short/run-1786539721886/prototypes/hook-b04-deterministic-diagram-prototype.v1.json",
+        "sha256": "696bec33742eed4f9cb79373d2a660668bbfdaa9937341427c5ba8f6281bf974",
+        "svgSha256": "864626e312f9cb70434150508c3145882d653cca5cc8774195f32debf01a0ba6",
+        "pngSha256": "cc10c8772d12f53565fbf2dcb86cc0a264a066baf425e070ba18742660a7bf4a",
+        "canonicalAssetReplaced": false,
+        "localChecks": {
+          "nativeDimensions": "PASS",
+          "exactConservation": "PASS",
+          "singleCompletedSalePath": "PASS",
+          "singleWithheldProspectiveOrder": "PASS",
+          "subtitleSafeComposition": "PASS",
+          "materiallyDistinctFromS02B01": "PASS",
+          "svgTextElementsAbsent": "PASS",
+          "externalAssetsAbsent": "PASS",
+          "logosAndUiAbsent": "PASS",
+          "syntheticCreatorLikenessAbsent": "PASS",
+          "providerCalls": 0,
+          "paidQaCalls": 0
+        },
+        "adoptionPath": "episodes/01a-revenue-is-not-a-good-business/state/image-generation/deterministic-adoptions/scene-004.json",
+        "adoptionSha256": "65913805a8ff31651f3eed0c14b122db04dcc8af50dfa9195cf1f0ded4b916f0",
+        "adoptedImageSha256": "22731f2fc9b6c84c02c2195d7527e476696106cbb0b0233ad51bdb5c0b6cb5b3"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "STALE_OR_INVALID",
+        "path": "episodes/01a-revenue-is-not-a-good-business/review-packs/pre-image/en-short/run-1786539721886/prototypes/hook-b04-deterministic-diagram-prototype.v2.json",
+        "sha256": "8951d3b09cf5bad6fe516fb1a0fc9aa5056b735600bd8be8a3076478df31b053",
+        "svgSha256": "0dc3762dd6441d2a8cd3fac80f86380807b102f89b5712cbff8bf2f4bb5b38be",
+        "pngSha256": "4b0d6b2cded1fdc428a898aec798730a9a2af11556e987e9ba23ac251e12adc9",
+        "canonicalAssetReplaced": false,
+        "localChecks": {
+          "nativeDimensions": "PASS",
+          "exactConservation": "PASS",
+          "singleCompletedOrderBundle": "PASS",
+          "singleWithheldMatchingOrderBundle": "PASS",
+          "physicalStopSeparation": "PASS",
+          "subtitleSafeComposition": "PASS",
+          "materiallyDistinctFromS02B01": "PASS",
+          "svgTextElementsAbsent": "PASS",
+          "externalAssetsAbsent": "PASS",
+          "logosAndUiAbsent": "PASS",
+          "syntheticCreatorLikenessAbsent": "PASS",
+          "providerCalls": 0,
+          "paidQaCalls": 0
+        }
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "STALE_OR_INVALID",
+        "path": "episodes/01a-revenue-is-not-a-good-business/review-packs/pre-image/en-short/run-1786539721886/prototypes/hook-b04-deterministic-diagram-prototype.v3.json",
+        "sha256": "aef08423f7633f2630b1973cc07ed0c429ed7bb811792eb34c142d7eab558d00",
+        "svgSha256": "aa2e7d1d853f19a0d364278894ab1261412b61c2a0fad578bcb8cdbda2eaa336",
+        "pngSha256": "ed527430bbceac95141d078234d5a145d1976a5607c64311193d75bf570cc72a",
+        "canonicalAssetReplaced": false,
+        "localChecks": {
+          "nativeDimensions": "PASS",
+          "exactConservation": "PASS",
+          "singleContinuousCostReservoir": "PASS",
+          "singleRetainedContainer": "PASS",
+          "singleCompletedOrderBundle": "PASS",
+          "singleWithheldMatchingOrderBundle": "PASS",
+          "physicalStopSeparation": "PASS",
+          "subtitleSafeComposition": "PASS",
+          "materiallyDistinctFromS02B01": "PASS",
+          "materiallyDistinctFromHookV2": "PASS",
+          "svgTextElementsAbsent": "PASS",
+          "externalAssetsAbsent": "PASS",
+          "logosAndUiAbsent": "PASS",
+          "syntheticCreatorLikenessAbsent": "PASS",
+          "providerCalls": 0,
+          "paidQaCalls": 0
+        }
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "ADOPTED_STRICT_QA_FAIL",
+        "path": "episodes/01a-revenue-is-not-a-good-business/review-packs/pre-image/en-short/run-1786539721886/prototypes/hook-b04-deterministic-diagram-prototype.v4.json",
+        "sha256": "48ab5f708056c7cc0703282f4cd30467715c6b53307711accc31eed8998665e8",
+        "svgSha256": "dd79379b6be74300c1177ebf866855a7a3d5f822541b3306910847cf265bc1fc",
+        "pngSha256": "22731f2fc9b6c84c02c2195d7527e476696106cbb0b0233ad51bdb5c0b6cb5b3",
+        "canonicalAssetReplaced": true,
+        "localChecks": {
+          "nativeDimensions": "PASS",
+          "exactConservation": "PASS",
+          "singleContinuousCostReservoir": "PASS",
+          "singleRetainedContainer": "PASS",
+          "singleCompletedOrderBundle": "PASS",
+          "singleWithheldMatchingOrderBundle": "PASS",
+          "wideGroundedGate": "PASS",
+          "withheldBundleEntirelyOutsideGate": "PASS",
+          "reducedHandArmClutter": "PASS",
+          "v3OutputGeometryPreserved": "PASS",
+          "subtitleSafeComposition": "PASS",
+          "materiallyDistinctFromS02B01": "PASS",
+          "materiallyDistinctFromHookV3": "PASS",
+          "svgTextElementsAbsent": "PASS",
+          "externalAssetsAbsent": "PASS",
+          "logosAndUiAbsent": "PASS",
+          "syntheticCreatorLikenessAbsent": "PASS",
+          "providerCalls": 0,
+          "paidQaCalls": 0
+        },
+        "adoptionPath": "episodes/01a-revenue-is-not-a-good-business/state/image-generation/deterministic-adoptions/scene-004.json",
+        "adoptionSha256": "65913805a8ff31651f3eed0c14b122db04dcc8af50dfa9195cf1f0ded4b916f0",
+        "adoptedImageSha256": "22731f2fc9b6c84c02c2195d7527e476696106cbb0b0233ad51bdb5c0b6cb5b3",
+        "strictQaReview": {
+          "sceneId": "scene-004",
+          "imageSha256": "22731f2fc9b6c84c02c2195d7527e476696106cbb0b0233ad51bdb5c0b6cb5b3",
+          "approved": false,
+          "reviewPath": "episodes/01a-revenue-is-not-a-good-business/state/image-generation/veronica-post-generation-visual-qa/scene-004.97111c4dbb38304d85c567581fe466f9e8e40d576a5559e488fd441065f4b830.json",
+          "reviewSha256": "e9d4696e56750fa65dffbe48e71835592e018824d9e2fbc568e867d37d05586e",
+          "semanticBriefHash": "3833188a998836608874f4a5e53590ae8fb83c23adc6be7d6425bc7f51cb6ba9",
+          "finalPromptHash": "1c78240452d805f18c0ab04191260a57e8f090bb64c6e8243164d179d389d79d",
+          "scores": {
+            "semanticAlignment": 0.66,
+            "instantRead": 0.62,
+            "narrationSupport": 0.58
+          },
+          "mustShowCoverage": "partial",
+          "failedRequirements": [
+            "one matching parcel plus payment emblem entirely left of a wide coral raised gate with grounded feet",
+            "one separate withheld prospective order clearly blocked outside the gate",
+            "Getting more orders may simply make the problem bigger shown as a separate blocked next order"
+          ],
+          "regenerationInstructions": [
+            "Add a clearly visible wide coral raised gate with grounded feet between the first completed-sale path and the second prospective order.",
+            "Place the withheld parcel and payment emblem entirely outside the gate, with no overlap or crossing.",
+            "Keep exactly one completed order draining into the 19+1 split, and make the blocked second order unmistakable at a glance.",
+            "Preserve the no-text constraint and the 19 pellets in the main reservoir plus 1 pellet in the small retained container."
+          ]
+        }
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "CURRENT_NARRATION_AUDIO_TIMING_PLAN_PROMPTS_QA",
+      "regenerationRequirement": "NONE",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0,
+      "conservativeSyntheticTtsCostEur": 0,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [],
+      "workspace": true
+    },
+    {
+      "episodeId": "01b-if-you-stop-working-does-your-revenue-stop-too",
+      "pack": "veronica-content-pack-2",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-content-pack-2/shorts/en/01b-if-you-stop-working-does-your-revenue-stop-too.md",
+      "sourceHash": "6867c8f2b8cdeeb235dfff44e521be37f09f48b4de8161be82953b20f568f86f",
+      "wordCount": 192,
+      "workspacePath": "episodes/01b-if-you-stop-working-does-your-revenue-stop-too",
+      "productionInputStatus": "MISSING_AUDIO_AND_TIMING",
+      "plannerInputStatus": "MISSING",
+      "visualPlanStatus": "MISSING",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "INCOMPLETE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": null,
+      "workspaceScriptWordCount": null,
+      "sourceWordDelta": null,
+      "selectedAudioHash": null,
+      "timingHash": null,
+      "timingNarrationHash": null,
+      "timingSelectedAudioHash": null,
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": null,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 74.3,
+      "primaryBlocker": "MISSING_NARRATION_AUDIO_AND_TIMING",
+      "blockerClass": "MISSING_PRODUCTION_INPUT",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 0,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FOR_MISSING_NARRATION",
+      "regenerationRequirement": "PROVISION_MISSING_NARRATION_AND_REBUILD_ATOMIC_TIMING_CHAIN",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.068983,
+      "conservativeSyntheticTtsCostEur": 0.065755,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": false
+    },
+    {
+      "episodeId": "02a-stop-targeting-everyone",
+      "pack": "veronica-content-pack-2",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-content-pack-2/shorts/en/02a-stop-targeting-everyone.md",
+      "sourceHash": "3728f2d20384e91eb8400d717aa45221f6668305e371b099af0c9e60fd931992",
+      "wordCount": 216,
+      "workspacePath": "episodes/02a-stop-targeting-everyone",
+      "productionInputStatus": "MISSING_AUDIO_AND_TIMING",
+      "plannerInputStatus": "MISSING",
+      "visualPlanStatus": "MISSING",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "INCOMPLETE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": null,
+      "workspaceScriptWordCount": null,
+      "sourceWordDelta": null,
+      "selectedAudioHash": null,
+      "timingHash": null,
+      "timingNarrationHash": null,
+      "timingSelectedAudioHash": null,
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": null,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 83.6,
+      "primaryBlocker": "MISSING_NARRATION_AUDIO_AND_TIMING",
+      "blockerClass": "MISSING_PRODUCTION_INPUT",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 0,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FOR_MISSING_NARRATION",
+      "regenerationRequirement": "PROVISION_MISSING_NARRATION_AND_REBUILD_ATOMIC_TIMING_CHAIN",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.07753,
+      "conservativeSyntheticTtsCostEur": 0.073902,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": false
+    },
+    {
+      "episodeId": "02b-stop-posting-where-your-customers-arent",
+      "pack": "veronica-content-pack-2",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-content-pack-2/shorts/en/02b-stop-posting-where-your-customers-arent.md",
+      "sourceHash": "3aa705449bc7d8e6f6db24395e15a110d847ca672802e9ca903b810cd28e94da",
+      "wordCount": 175,
+      "workspacePath": "episodes/02b-stop-posting-where-your-customers-arent",
+      "productionInputStatus": "CURRENT_ATOMIC_CHAIN",
+      "plannerInputStatus": "CURRENT",
+      "visualPlanStatus": "CURRENT_DETERMINISTIC_FAIL",
+      "promptReadiness": "CURRENT_BLOCKED",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "CONSISTENT",
+      "sourceMappingCurrent": true,
+      "workspaceScriptHash": "3aa705449bc7d8e6f6db24395e15a110d847ca672802e9ca903b810cd28e94da",
+      "workspaceScriptWordCount": 175,
+      "sourceWordDelta": 0,
+      "selectedAudioHash": "19016c1411c33fd3713c09adeb1bb3265f4b03a55ac619f4a672c29c08bc078f",
+      "timingHash": "83f17c045c449731b9406ea303fe5a1f3160adc4183ddbe923fc582fe1e2ccc1",
+      "timingNarrationHash": "3aa705449bc7d8e6f6db24395e15a110d847ca672802e9ca903b810cd28e94da",
+      "timingSelectedAudioHash": "19016c1411c33fd3713c09adeb1bb3265f4b03a55ac619f4a672c29c08bc078f",
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": 68.2,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 67.7,
+      "primaryBlocker": "DETERMINISTIC_PROVIDER_ADMISSION_FAILED",
+      "blockerClass": "SYSTEMIC_ALGORITHM",
+      "paidWorkRequired": false,
+      "exactPaidOperation": "No paid operation is admissible until deterministic semantic/provider readiness passes",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 8,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "CURRENT_NARRATION_AUDIO_TIMING_PLAN_PROMPTS",
+      "regenerationRequirement": "NONE",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0,
+      "conservativeSyntheticTtsCostEur": 0,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [],
+      "workspace": true
+    },
+    {
+      "episodeId": "03a-what-does-your-customer-really-buy",
+      "pack": "veronica-content-pack-2",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-content-pack-2/shorts/en/03a-what-does-your-customer-really-buy.md",
+      "sourceHash": "497d7c7da9f27aa18679bd4a7186d976133d5d7f4adbf77497a06b2a00c8d48b",
+      "wordCount": 194,
+      "workspacePath": "episodes/03a-what-does-your-customer-really-buy",
+      "productionInputStatus": "MISSING_AUDIO_AND_TIMING",
+      "plannerInputStatus": "MISSING",
+      "visualPlanStatus": "MISSING",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "INCOMPLETE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": null,
+      "workspaceScriptWordCount": null,
+      "sourceWordDelta": null,
+      "selectedAudioHash": null,
+      "timingHash": null,
+      "timingNarrationHash": null,
+      "timingSelectedAudioHash": null,
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": null,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 75.1,
+      "primaryBlocker": "MISSING_NARRATION_AUDIO_AND_TIMING",
+      "blockerClass": "MISSING_PRODUCTION_INPUT",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 0,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FOR_MISSING_NARRATION",
+      "regenerationRequirement": "PROVISION_MISSING_NARRATION_AND_REBUILD_ATOMIC_TIMING_CHAIN",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.069624,
+      "conservativeSyntheticTtsCostEur": 0.066366,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": false
+    },
+    {
+      "episodeId": "03b-the-promise-formula",
+      "pack": "veronica-content-pack-2",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-content-pack-2/shorts/en/03b-the-promise-formula.md",
+      "sourceHash": "3f889ea133dd6fa27723d28ed3f209a7499369275bfe4f52f502b289c38574c3",
+      "wordCount": 168,
+      "workspacePath": "episodes/03b-the-promise-formula",
+      "productionInputStatus": "CURRENT_ATOMIC_CHAIN",
+      "plannerInputStatus": "CURRENT",
+      "visualPlanStatus": "CURRENT_DETERMINISTIC_FAIL",
+      "promptReadiness": "CURRENT_BLOCKED",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "CONSISTENT",
+      "sourceMappingCurrent": true,
+      "workspaceScriptHash": "3f889ea133dd6fa27723d28ed3f209a7499369275bfe4f52f502b289c38574c3",
+      "workspaceScriptWordCount": 168,
+      "sourceWordDelta": 0,
+      "selectedAudioHash": "ffa99330d37713f30a37a714b49e5d149ec6e9914ad2e24c29f1a2b045727ecd",
+      "timingHash": "ae08b4cb7dc56ffca98b1a9c33cb870483252bb3da03872bafea165136759815",
+      "timingNarrationHash": "3f889ea133dd6fa27723d28ed3f209a7499369275bfe4f52f502b289c38574c3",
+      "timingSelectedAudioHash": "ffa99330d37713f30a37a714b49e5d149ec6e9914ad2e24c29f1a2b045727ecd",
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": 57.8,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 65,
+      "primaryBlocker": "DETERMINISTIC_PROVIDER_ADMISSION_FAILED",
+      "blockerClass": "SYSTEMIC_ALGORITHM",
+      "paidWorkRequired": false,
+      "exactPaidOperation": "No paid operation is admissible until deterministic semantic/provider readiness passes",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 7,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "CURRENT_NARRATION_AUDIO_TIMING_PLAN_PROMPTS",
+      "regenerationRequirement": "NONE",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0,
+      "conservativeSyntheticTtsCostEur": 0,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [],
+      "workspace": true
+    },
+    {
+      "episodeId": "04a-why-good-products-still-dont-sell",
+      "pack": "veronica-content-pack-2",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-content-pack-2/shorts/en/04a-why-good-products-still-dont-sell.md",
+      "sourceHash": "36d557f37c9e74d9dea8d5d121f2c0c2083aa3bf28185016fc3f094928e7426c",
+      "wordCount": 206,
+      "workspacePath": "episodes/04a-why-good-products-still-dont-sell",
+      "productionInputStatus": "MISSING_AUDIO_AND_TIMING",
+      "plannerInputStatus": "MISSING",
+      "visualPlanStatus": "MISSING",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "INCOMPLETE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": null,
+      "workspaceScriptWordCount": null,
+      "sourceWordDelta": null,
+      "selectedAudioHash": null,
+      "timingHash": null,
+      "timingNarrationHash": null,
+      "timingSelectedAudioHash": null,
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": null,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 79.7,
+      "primaryBlocker": "MISSING_NARRATION_AUDIO_AND_TIMING",
+      "blockerClass": "MISSING_PRODUCTION_INPUT",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 0,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FOR_MISSING_NARRATION",
+      "regenerationRequirement": "PROVISION_MISSING_NARRATION_AND_REBUILD_ATOMIC_TIMING_CHAIN",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.073885,
+      "conservativeSyntheticTtsCostEur": 0.070428,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": false
+    },
+    {
+      "episodeId": "04b-make-your-offer-easier-to-buy",
+      "pack": "veronica-content-pack-2",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-content-pack-2/shorts/en/04b-make-your-offer-easier-to-buy.md",
+      "sourceHash": "6a1a1568815f91a6d4819117968d8ebf5a7cc7835bbedb969eeaaf40c5f97d57",
+      "wordCount": 178,
+      "workspacePath": "episodes/04b-make-your-offer-easier-to-buy",
+      "productionInputStatus": "MISSING_AUDIO_AND_TIMING",
+      "plannerInputStatus": "MISSING",
+      "visualPlanStatus": "MISSING",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "INCOMPLETE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": null,
+      "workspaceScriptWordCount": null,
+      "sourceWordDelta": null,
+      "selectedAudioHash": null,
+      "timingHash": null,
+      "timingNarrationHash": null,
+      "timingSelectedAudioHash": null,
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": null,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 68.9,
+      "primaryBlocker": "MISSING_NARRATION_AUDIO_AND_TIMING",
+      "blockerClass": "MISSING_PRODUCTION_INPUT",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 0,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FOR_MISSING_NARRATION",
+      "regenerationRequirement": "PROVISION_MISSING_NARRATION_AND_REBUILD_ATOMIC_TIMING_CHAIN",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.063907,
+      "conservativeSyntheticTtsCostEur": 0.060917,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": false
+    },
+    {
+      "episodeId": "05a-marketing-may-not-be-the-problem",
+      "pack": "veronica-content-pack-2",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-content-pack-2/shorts/en/05a-marketing-may-not-be-the-problem.md",
+      "sourceHash": "e1896eb1dafaf7f158cf59786976bb1053a97ab6efae932caadd77f6ca91d147",
+      "wordCount": 203,
+      "workspacePath": "episodes/05a-marketing-may-not-be-the-problem",
+      "productionInputStatus": "MISSING_AUDIO_AND_TIMING",
+      "plannerInputStatus": "MISSING",
+      "visualPlanStatus": "MISSING",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "INCOMPLETE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": null,
+      "workspaceScriptWordCount": null,
+      "sourceWordDelta": null,
+      "selectedAudioHash": null,
+      "timingHash": null,
+      "timingNarrationHash": null,
+      "timingSelectedAudioHash": null,
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": null,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 78.6,
+      "primaryBlocker": "MISSING_NARRATION_AUDIO_AND_TIMING",
+      "blockerClass": "MISSING_PRODUCTION_INPUT",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 0,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FOR_MISSING_NARRATION",
+      "regenerationRequirement": "PROVISION_MISSING_NARRATION_AND_REBUILD_ATOMIC_TIMING_CHAIN",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.07288,
+      "conservativeSyntheticTtsCostEur": 0.06947,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": false
+    },
+    {
+      "episodeId": "05b-too-many-choices-kill-the-offer",
+      "pack": "veronica-content-pack-2",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-content-pack-2/shorts/en/05b-too-many-choices-kill-the-offer.md",
+      "sourceHash": "3de6b71ee4d4dd62aa5b72d8157cb4d4ed4974500e2fc0e1f3650353f0c6fe1f",
+      "wordCount": 184,
+      "workspacePath": "episodes/05b-too-many-choices-kill-the-offer",
+      "productionInputStatus": "MISSING_AUDIO_AND_TIMING",
+      "plannerInputStatus": "MISSING",
+      "visualPlanStatus": "MISSING",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "INCOMPLETE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": null,
+      "workspaceScriptWordCount": null,
+      "sourceWordDelta": null,
+      "selectedAudioHash": null,
+      "timingHash": null,
+      "timingNarrationHash": null,
+      "timingSelectedAudioHash": null,
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": null,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 71.2,
+      "primaryBlocker": "MISSING_NARRATION_AUDIO_AND_TIMING",
+      "blockerClass": "MISSING_PRODUCTION_INPUT",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 0,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FOR_MISSING_NARRATION",
+      "regenerationRequirement": "PROVISION_MISSING_NARRATION_AND_REBUILD_ATOMIC_TIMING_CHAIN",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.066148,
+      "conservativeSyntheticTtsCostEur": 0.063053,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": false
+    },
+    {
+      "episodeId": "06a-views-are-not-sales",
+      "pack": "veronica-content-pack-2",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-content-pack-2/shorts/en/06a-views-are-not-sales.md",
+      "sourceHash": "88b556ec16eaf3a6dcc972ae5d00ac244280168e547a42a5055e755087eea4b5",
+      "wordCount": 184,
+      "workspacePath": "episodes/06a-views-are-not-sales",
+      "productionInputStatus": "MISSING_AUDIO_AND_TIMING",
+      "plannerInputStatus": "MISSING",
+      "visualPlanStatus": "MISSING",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "INCOMPLETE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": null,
+      "workspaceScriptWordCount": null,
+      "sourceWordDelta": null,
+      "selectedAudioHash": null,
+      "timingHash": null,
+      "timingNarrationHash": null,
+      "timingSelectedAudioHash": null,
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": null,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 71.2,
+      "primaryBlocker": "MISSING_NARRATION_AUDIO_AND_TIMING",
+      "blockerClass": "MISSING_PRODUCTION_INPUT",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 0,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FOR_MISSING_NARRATION",
+      "regenerationRequirement": "PROVISION_MISSING_NARRATION_AND_REBUILD_ATOMIC_TIMING_CHAIN",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.066073,
+      "conservativeSyntheticTtsCostEur": 0.062981,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": false
+    },
+    {
+      "episodeId": "06b-trust-comes-before-conversion",
+      "pack": "veronica-content-pack-2",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-content-pack-2/shorts/en/06b-trust-comes-before-conversion.md",
+      "sourceHash": "403ea8747b2e27b3925cbf5360fbbe8f64ff3e63aa82cec0918a5282c3a26fc6",
+      "wordCount": 192,
+      "workspacePath": "episodes/06b-trust-comes-before-conversion",
+      "productionInputStatus": "MISSING_AUDIO_AND_TIMING",
+      "plannerInputStatus": "MISSING",
+      "visualPlanStatus": "MISSING",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "INCOMPLETE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": null,
+      "workspaceScriptWordCount": null,
+      "sourceWordDelta": null,
+      "selectedAudioHash": null,
+      "timingHash": null,
+      "timingNarrationHash": null,
+      "timingSelectedAudioHash": null,
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": null,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 74.3,
+      "primaryBlocker": "MISSING_NARRATION_AUDIO_AND_TIMING",
+      "blockerClass": "MISSING_PRODUCTION_INPUT",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 0,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FOR_MISSING_NARRATION",
+      "regenerationRequirement": "PROVISION_MISSING_NARRATION_AND_REBUILD_ATOMIC_TIMING_CHAIN",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.0689,
+      "conservativeSyntheticTtsCostEur": 0.065676,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": false
+    },
+    {
+      "episodeId": "07a-why-selling-feels-uncomfortable",
+      "pack": "veronica-content-pack-2",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-content-pack-2/shorts/en/07a-why-selling-feels-uncomfortable.md",
+      "sourceHash": "313cfbec2aaa83fb0ee0e632c68a9c6da8f93daed91736d49a5ce446144e0477",
+      "wordCount": 192,
+      "workspacePath": "episodes/07a-why-selling-feels-uncomfortable",
+      "productionInputStatus": "MISSING_AUDIO_AND_TIMING",
+      "plannerInputStatus": "MISSING",
+      "visualPlanStatus": "MISSING",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "INCOMPLETE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": null,
+      "workspaceScriptWordCount": null,
+      "sourceWordDelta": null,
+      "selectedAudioHash": null,
+      "timingHash": null,
+      "timingNarrationHash": null,
+      "timingSelectedAudioHash": null,
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": null,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 74.3,
+      "primaryBlocker": "MISSING_NARRATION_AUDIO_AND_TIMING",
+      "blockerClass": "MISSING_PRODUCTION_INPUT",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 0,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FOR_MISSING_NARRATION",
+      "regenerationRequirement": "PROVISION_MISSING_NARRATION_AND_REBUILD_ATOMIC_TIMING_CHAIN",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.068978,
+      "conservativeSyntheticTtsCostEur": 0.06575,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": false
+    },
+    {
+      "episodeId": "07b-selling-isnt-manipulation",
+      "pack": "veronica-content-pack-2",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-content-pack-2/shorts/en/07b-selling-isnt-manipulation.md",
+      "sourceHash": "fcb8eb578c9d8962113849258f0c8f1f56d9b3f083dd32da98c7757de21ad4a0",
+      "wordCount": 179,
+      "workspacePath": "episodes/07b-selling-isnt-manipulation",
+      "productionInputStatus": "MISSING_AUDIO_AND_TIMING_RENEWAL",
+      "plannerInputStatus": "CURRENT",
+      "visualPlanStatus": "CURRENT_PENDING_QA",
+      "promptReadiness": "CURRENT_PENDING_QA",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "INCOMPLETE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": true,
+      "workspaceScriptHash": "fcb8eb578c9d8962113849258f0c8f1f56d9b3f083dd32da98c7757de21ad4a0",
+      "workspaceScriptWordCount": 179,
+      "sourceWordDelta": 0,
+      "selectedAudioHash": null,
+      "timingHash": "1b3b3af1ea8dbee65913f385700d68b530cac2e3767c5e7df20f5d03a01e7496",
+      "timingNarrationHash": "fcb8eb578c9d8962113849258f0c8f1f56d9b3f083dd32da98c7757de21ad4a0",
+      "timingSelectedAudioHash": null,
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": 69.29,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 69.3,
+      "primaryBlocker": "MISSING_NARRATION_AUDIO_ATOMIC_TIMING_RENEWAL_REQUIRED",
+      "blockerClass": "MISSING_PRODUCTION_INPUT",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 8,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FOR_MISSING_NARRATION",
+      "regenerationRequirement": "PROVISION_MISSING_NARRATION_AND_REBUILD_ATOMIC_TIMING_CHAIN",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.064264,
+      "conservativeSyntheticTtsCostEur": 0.061257,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": true
+    },
+    {
+      "episodeId": "08a-stop-chasing-customers",
+      "pack": "veronica-content-pack-2",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-content-pack-2/shorts/en/08a-stop-chasing-customers.md",
+      "sourceHash": "7ab2d99105136faec8bb1467246e3898d459acaf7f940820e6d4d47a3153cad4",
+      "wordCount": 194,
+      "workspacePath": "episodes/08a-stop-chasing-customers",
+      "productionInputStatus": "MISSING_AUDIO_AND_TIMING",
+      "plannerInputStatus": "MISSING",
+      "visualPlanStatus": "MISSING",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "INCOMPLETE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": null,
+      "workspaceScriptWordCount": null,
+      "sourceWordDelta": null,
+      "selectedAudioHash": null,
+      "timingHash": null,
+      "timingNarrationHash": null,
+      "timingSelectedAudioHash": null,
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": null,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 75.1,
+      "primaryBlocker": "MISSING_NARRATION_AUDIO_AND_TIMING",
+      "blockerClass": "MISSING_PRODUCTION_INPUT",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 0,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FOR_MISSING_NARRATION",
+      "regenerationRequirement": "PROVISION_MISSING_NARRATION_AND_REBUILD_ATOMIC_TIMING_CHAIN",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.069649,
+      "conservativeSyntheticTtsCostEur": 0.06639,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": false
+    },
+    {
+      "episodeId": "08b-prospecting-without-being-annoying",
+      "pack": "veronica-content-pack-2",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-content-pack-2/shorts/en/08b-prospecting-without-being-annoying.md",
+      "sourceHash": "f00d4cda7aef8d7438df1e4533c17b285b8f023c82bc138e9fb2b943d5d5550a",
+      "wordCount": 173,
+      "workspacePath": "episodes/08b-prospecting-without-being-annoying",
+      "productionInputStatus": "CURRENT_ATOMIC_CHAIN",
+      "plannerInputStatus": "CURRENT",
+      "visualPlanStatus": "CURRENT_DETERMINISTIC_FAIL",
+      "promptReadiness": "CURRENT_BLOCKED",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "CONSISTENT",
+      "sourceMappingCurrent": true,
+      "workspaceScriptHash": "f00d4cda7aef8d7438df1e4533c17b285b8f023c82bc138e9fb2b943d5d5550a",
+      "workspaceScriptWordCount": 173,
+      "sourceWordDelta": 0,
+      "selectedAudioHash": "3741b13efd5212f797a51ec37cc93c16ea94d3aa3a44e82b4ab07f2b489baea2",
+      "timingHash": "88c727c2bbe1a3e4f06b4356c8834d7198193ac12fc51ee855d3288654c2f742",
+      "timingNarrationHash": "f00d4cda7aef8d7438df1e4533c17b285b8f023c82bc138e9fb2b943d5d5550a",
+      "timingSelectedAudioHash": "3741b13efd5212f797a51ec37cc93c16ea94d3aa3a44e82b4ab07f2b489baea2",
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": 65.8,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 67,
+      "primaryBlocker": "DETERMINISTIC_PROVIDER_ADMISSION_FAILED",
+      "blockerClass": "SYSTEMIC_ALGORITHM",
+      "paidWorkRequired": false,
+      "exactPaidOperation": "No paid operation is admissible until deterministic semantic/provider readiness passes",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 7,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "CURRENT_NARRATION_AUDIO_TIMING_PLAN_PROMPTS",
+      "regenerationRequirement": "NONE",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0,
+      "conservativeSyntheticTtsCostEur": 0,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [],
+      "workspace": true
+    },
+    {
+      "episodeId": "l01-why-being-good-at-your-job-isnt-enough",
+      "pack": "veronica-stories-editorial-master-v5",
+      "variant": "full",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-stories-editorial-master-v5/long/en/01-why-being-good-at-your-job-isnt-enough.md",
+      "sourceHash": "8f6573034f8f42ac00d048e8912db09689e2d6d8d1a9b1f6cb8c4443c653193b",
+      "wordCount": 1468,
+      "workspacePath": "episodes/l01-why-being-good-at-your-job-isnt-enough",
+      "productionInputStatus": "STALE_ATOMIC_CHAIN",
+      "plannerInputStatus": "STALE_SOURCE_MAPPING",
+      "visualPlanStatus": "STALE",
+      "promptReadiness": "CURRENT_BLOCKED",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "STALE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": "53755aa0a77150f6e8e8d4707c1894a4347926f060bbc4fb4685537f87fb49c2",
+      "workspaceScriptWordCount": 1000,
+      "sourceWordDelta": 468,
+      "selectedAudioHash": "6741a64ec12224a884d21955ae81a3babf4f22d7e569309fdabfff3add3c50d5",
+      "timingHash": "88348bbb7ad8e84005ffa872c69153ed19ec4d051960b23643fcc7352a2142e1",
+      "timingNarrationHash": "53755aa0a77150f6e8e8d4707c1894a4347926f060bbc4fb4685537f87fb49c2",
+      "timingSelectedAudioHash": "6741a64ec12224a884d21955ae81a3babf4f22d7e569309fdabfff3add3c50d5",
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": 412.8,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 568.3,
+      "primaryBlocker": "SOURCE_NARRATION_AUDIO_TIMING_CHAIN_STALE",
+      "blockerClass": "PROVENANCE_STALE",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 25,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FROM_NARRATION_AUDIO_TIMING_CHAIN; preserve files as historical evidence only",
+      "regenerationRequirement": "SOURCE_TO_NARRATION_TO_SELECTED_AUDIO_TO_TIMING_ATOMIC_RENEWAL",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.527906,
+      "conservativeSyntheticTtsCostEur": 0.503203,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": true
+    },
+    {
+      "episodeId": "l02-how-to-find-your-niche-without-making-yourself-too-small",
+      "pack": "veronica-stories-editorial-master-v5",
+      "variant": "full",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-stories-editorial-master-v5/long/en/02-how-to-find-your-niche-without-making-yourself-too-small.md",
+      "sourceHash": "383460197b4fbe39bd8a6b4d060a9b00d49de027592066f7db3e67280f42030d",
+      "wordCount": 1504,
+      "workspacePath": "episodes/l02-how-to-find-your-niche-without-making-yourself-too-small",
+      "productionInputStatus": "STALE_ATOMIC_CHAIN",
+      "plannerInputStatus": "STALE_SOURCE_MAPPING",
+      "visualPlanStatus": "STALE",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "STALE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": "85d067e4f642aeca3df4fa20e77524466b06c7cada0c18fd191988cc528452e4",
+      "workspaceScriptWordCount": 1023,
+      "sourceWordDelta": 481,
+      "selectedAudioHash": "f95aded0e85fadf1a86100af7221f43832f89fd2620d9e745a29f443a77b94d8",
+      "timingHash": "860a27f30fe3ea5e5cb159f1fd2de953b1f88b350eb1003881f7d8961e985d87",
+      "timingNarrationHash": "85d067e4f642aeca3df4fa20e77524466b06c7cada0c18fd191988cc528452e4",
+      "timingSelectedAudioHash": "f95aded0e85fadf1a86100af7221f43832f89fd2620d9e745a29f443a77b94d8",
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": 407.11,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 582.2,
+      "primaryBlocker": "SOURCE_NARRATION_AUDIO_TIMING_CHAIN_STALE",
+      "blockerClass": "PROVENANCE_STALE",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 37,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FROM_NARRATION_AUDIO_TIMING_CHAIN; preserve files as historical evidence only",
+      "regenerationRequirement": "SOURCE_TO_NARRATION_TO_SELECTED_AUDIO_TO_TIMING_ATOMIC_RENEWAL",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.540761,
+      "conservativeSyntheticTtsCostEur": 0.515457,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": true
+    },
+    {
+      "episodeId": "l03-how-to-position-yourself-as-an-expert-from-zero",
+      "pack": "veronica-stories-editorial-master-v5",
+      "variant": "full",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-stories-editorial-master-v5/long/en/03-how-to-position-yourself-as-an-expert-from-zero.md",
+      "sourceHash": "f74ce16cf1bc10ef60db46d548cbac2ec2763879b940bfaed60e4a86b27b5eb3",
+      "wordCount": 1479,
+      "workspacePath": "episodes/l03-how-to-position-yourself-as-an-expert-from-zero",
+      "productionInputStatus": "STALE_ATOMIC_CHAIN",
+      "plannerInputStatus": "STALE_SOURCE_MAPPING",
+      "visualPlanStatus": "STALE",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "STALE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": "c843e0dcc37debc69a8fb19af034207fa80c22079f40bffcc2a22907cec62096",
+      "workspaceScriptWordCount": 1033,
+      "sourceWordDelta": 446,
+      "selectedAudioHash": "23a39ee4cd66d94799704ff7c4f54af0c2d4e113e34d0b05de0c25f294be18d5",
+      "timingHash": "8f51f93cfb730e363587f9e3e86cae49c322ca10e94c4e9c15af0bd6ae86f843",
+      "timingNarrationHash": "c843e0dcc37debc69a8fb19af034207fa80c22079f40bffcc2a22907cec62096",
+      "timingSelectedAudioHash": "23a39ee4cd66d94799704ff7c4f54af0c2d4e113e34d0b05de0c25f294be18d5",
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": 354.70345833333334,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 572.5,
+      "primaryBlocker": "SOURCE_NARRATION_AUDIO_TIMING_CHAIN_STALE",
+      "blockerClass": "PROVENANCE_STALE",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 37,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FROM_NARRATION_AUDIO_TIMING_CHAIN; preserve files as historical evidence only",
+      "regenerationRequirement": "SOURCE_TO_NARRATION_TO_SELECTED_AUDIO_TO_TIMING_ATOMIC_RENEWAL",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.532006,
+      "conservativeSyntheticTtsCostEur": 0.507111,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": true
+    },
+    {
+      "episodeId": "l04-the-content-strategy-that-makes-people-remember-you",
+      "pack": "veronica-stories-editorial-master-v5",
+      "variant": "full",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-stories-editorial-master-v5/long/en/04-the-content-strategy-that-makes-people-remember-you.md",
+      "sourceHash": "777045eae70970fa7c27ccf445c2fb2c38705785430f837917b7811d686321f9",
+      "wordCount": 1495,
+      "workspacePath": "episodes/l04-the-content-strategy-that-makes-people-remember-you",
+      "productionInputStatus": "MISSING_AUDIO_AND_TIMING",
+      "plannerInputStatus": "MISSING",
+      "visualPlanStatus": "MISSING",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "INCOMPLETE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": null,
+      "workspaceScriptWordCount": null,
+      "sourceWordDelta": null,
+      "selectedAudioHash": null,
+      "timingHash": null,
+      "timingNarrationHash": null,
+      "timingSelectedAudioHash": null,
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": null,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 578.7,
+      "primaryBlocker": "MISSING_NARRATION_AUDIO_AND_TIMING",
+      "blockerClass": "MISSING_PRODUCTION_INPUT",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 0,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FOR_MISSING_NARRATION",
+      "regenerationRequirement": "PROVISION_MISSING_NARRATION_AND_REBUILD_ATOMIC_TIMING_CHAIN",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.53788,
+      "conservativeSyntheticTtsCostEur": 0.512711,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": false
+    },
+    {
+      "episodeId": "l05-why-writing-a-book-can-make-you-the-expert",
+      "pack": "veronica-stories-editorial-master-v5",
+      "variant": "full",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-stories-editorial-master-v5/long/en/05-why-writing-a-book-can-make-you-the-expert.md",
+      "sourceHash": "708a684fe976e49760b5b6deaa309158c833647686232c1fffda6fb53e10746b",
+      "wordCount": 1543,
+      "workspacePath": "episodes/l05-why-writing-a-book-can-make-you-the-expert",
+      "productionInputStatus": "MISSING_AUDIO_AND_TIMING",
+      "plannerInputStatus": "MISSING",
+      "visualPlanStatus": "MISSING",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "INCOMPLETE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": null,
+      "workspaceScriptWordCount": null,
+      "sourceWordDelta": null,
+      "selectedAudioHash": null,
+      "timingHash": null,
+      "timingNarrationHash": null,
+      "timingSelectedAudioHash": null,
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": null,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 597.3,
+      "primaryBlocker": "MISSING_NARRATION_AUDIO_AND_TIMING",
+      "blockerClass": "MISSING_PRODUCTION_INPUT",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 0,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FOR_MISSING_NARRATION",
+      "regenerationRequirement": "PROVISION_MISSING_NARRATION_AND_REBUILD_ATOMIC_TIMING_CHAIN",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.554494,
+      "conservativeSyntheticTtsCostEur": 0.528547,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": false
+    },
+    {
+      "episodeId": "l06-how-to-reposition-yourself-when-your-business-changes",
+      "pack": "veronica-stories-editorial-master-v5",
+      "variant": "full",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-stories-editorial-master-v5/long/en/06-how-to-reposition-yourself-when-your-business-changes.md",
+      "sourceHash": "1a41cd30d25e0644e2cec726112c58e57c79cbae7629ad84d6cdabdf0cfb9f41",
+      "wordCount": 1512,
+      "workspacePath": "episodes/l06-how-to-reposition-yourself-when-your-business-changes",
+      "productionInputStatus": "MISSING_AUDIO_AND_TIMING",
+      "plannerInputStatus": "MISSING",
+      "visualPlanStatus": "MISSING",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "INCOMPLETE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": null,
+      "workspaceScriptWordCount": null,
+      "sourceWordDelta": null,
+      "selectedAudioHash": null,
+      "timingHash": null,
+      "timingNarrationHash": null,
+      "timingSelectedAudioHash": null,
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": null,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 585.3,
+      "primaryBlocker": "MISSING_NARRATION_AUDIO_AND_TIMING",
+      "blockerClass": "MISSING_PRODUCTION_INPUT",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 0,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FOR_MISSING_NARRATION",
+      "regenerationRequirement": "PROVISION_MISSING_NARRATION_AND_REBUILD_ATOMIC_TIMING_CHAIN",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.543649,
+      "conservativeSyntheticTtsCostEur": 0.51821,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": false
+    },
+    {
+      "episodeId": "l01-s01-being-good-isnt-enough",
+      "pack": "veronica-stories-editorial-master-v5",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-stories-editorial-master-v5/shorts/en/l01-s01-being-good-isnt-enough.md",
+      "sourceHash": "62034fc2f704563cc2cba77341575d73dabc5b1953a4c244f50f54063be9e21a",
+      "wordCount": 232,
+      "workspacePath": "episodes/l01-s01-being-good-isnt-enough",
+      "productionInputStatus": "STALE_ATOMIC_CHAIN",
+      "plannerInputStatus": "STALE_SOURCE_MAPPING",
+      "visualPlanStatus": "STALE",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "STALE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": "a1fc4a1f8822e5c647b12fc437d049da0e68754ee34c2c9064dd04f34506eed7",
+      "workspaceScriptWordCount": 160,
+      "sourceWordDelta": 72,
+      "selectedAudioHash": null,
+      "timingHash": "be55f24ddd7189bd641c4c96d449a579aa66ca69776734ca4d66763cf3695e5b",
+      "timingNarrationHash": "a1fc4a1f8822e5c647b12fc437d049da0e68754ee34c2c9064dd04f34506eed7",
+      "timingSelectedAudioHash": null,
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": 52.3,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 89.8,
+      "primaryBlocker": "SOURCE_NARRATION_AUDIO_TIMING_CHAIN_STALE",
+      "blockerClass": "PROVENANCE_STALE",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 6,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FROM_NARRATION_AUDIO_TIMING_CHAIN; preserve files as historical evidence only",
+      "regenerationRequirement": "SOURCE_TO_NARRATION_TO_SELECTED_AUDIO_TO_TIMING_ATOMIC_RENEWAL",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.083367,
+      "conservativeSyntheticTtsCostEur": 0.079466,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": true
+    },
+    {
+      "episodeId": "l01-s02-expertise-vs-perception",
+      "pack": "veronica-stories-editorial-master-v5",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-stories-editorial-master-v5/shorts/en/l01-s02-expertise-vs-perception.md",
+      "sourceHash": "d7d5d69b09fc9151fee98d0fc9283456161be175083fce39b17b8514810d4c7e",
+      "wordCount": 230,
+      "workspacePath": "episodes/l01-s02-expertise-vs-perception",
+      "productionInputStatus": "STALE_ATOMIC_CHAIN",
+      "plannerInputStatus": "STALE_SOURCE_MAPPING",
+      "visualPlanStatus": "STALE",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "STALE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": "e1c8af129a3accabfa643e4181efcd4995f324aad822951fe1f661b5575b5ce7",
+      "workspaceScriptWordCount": 79,
+      "sourceWordDelta": 151,
+      "selectedAudioHash": "473a183e763276bdde59d747ed30e6ecd0f41db5d7c418347f56b8bfc347a5f7",
+      "timingHash": null,
+      "timingNarrationHash": null,
+      "timingSelectedAudioHash": null,
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": null,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 89,
+      "primaryBlocker": "SOURCE_NARRATION_AUDIO_TIMING_CHAIN_STALE",
+      "blockerClass": "PROVENANCE_STALE",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 0,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 5,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FROM_NARRATION_AUDIO_TIMING_CHAIN; preserve files as historical evidence only",
+      "regenerationRequirement": "SOURCE_TO_NARRATION_TO_SELECTED_AUDIO_TO_TIMING_ATOMIC_RENEWAL",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.082708,
+      "conservativeSyntheticTtsCostEur": 0.078838,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": true
+    },
+    {
+      "episodeId": "l01-s03-what-do-people-remember-you-for",
+      "pack": "veronica-stories-editorial-master-v5",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-stories-editorial-master-v5/shorts/en/l01-s03-what-do-people-remember-you-for.md",
+      "sourceHash": "0d4c6ae84685ac65f429261643aa30a90623a8271f627c9698f9f3d0b1343725",
+      "wordCount": 229,
+      "workspacePath": "episodes/l01-s03-what-do-people-remember-you-for",
+      "productionInputStatus": "STALE_ATOMIC_CHAIN",
+      "plannerInputStatus": "STALE_SOURCE_MAPPING",
+      "visualPlanStatus": "STALE",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "STALE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": "1fcffbc90c4754ef588e08ddc88074b367ce5bf85007c329477b675006ee8f30",
+      "workspaceScriptWordCount": 159,
+      "sourceWordDelta": 70,
+      "selectedAudioHash": "aaeb733c758dc805f653f56a2cc62a2d48b44c969f5b1da1a3777bcfd2873b81",
+      "timingHash": null,
+      "timingNarrationHash": null,
+      "timingSelectedAudioHash": null,
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": null,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 88.6,
+      "primaryBlocker": "SOURCE_NARRATION_AUDIO_TIMING_CHAIN_STALE",
+      "blockerClass": "PROVENANCE_STALE",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 0,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 5,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FROM_NARRATION_AUDIO_TIMING_CHAIN; preserve files as historical evidence only",
+      "regenerationRequirement": "SOURCE_TO_NARRATION_TO_SELECTED_AUDIO_TO_TIMING_ATOMIC_RENEWAL",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.082244,
+      "conservativeSyntheticTtsCostEur": 0.078395,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": true
+    },
+    {
+      "episodeId": "l02-s01-selling-to-everyone-is-the-problem",
+      "pack": "veronica-stories-editorial-master-v5",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-stories-editorial-master-v5/shorts/en/l02-s01-selling-to-everyone-is-the-problem.md",
+      "sourceHash": "40355503cb33e8e17648293b34789981d7581757cc26735120a2b1a4a6d6f256",
+      "wordCount": 229,
+      "workspacePath": "episodes/l02-s01-selling-to-everyone-is-the-problem",
+      "productionInputStatus": "STALE_ATOMIC_CHAIN",
+      "plannerInputStatus": "STALE_SOURCE_MAPPING",
+      "visualPlanStatus": "STALE",
+      "promptReadiness": "CURRENT_BLOCKED",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "STALE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": "6a6edd56d51f7c931892470020f4eb0aa5f78a396be1ea4cb28f0af28c0a8c93",
+      "workspaceScriptWordCount": 157,
+      "sourceWordDelta": 72,
+      "selectedAudioHash": "4ee21dbba569a628f1f2150845b941763863ca976e8973566c9419657e4f2528",
+      "timingHash": "6125fd45fb253f6328ef03743d3081627c6de10c7ef32c71e452c0ad536a9619",
+      "timingNarrationHash": "6a6edd56d51f7c931892470020f4eb0aa5f78a396be1ea4cb28f0af28c0a8c93",
+      "timingSelectedAudioHash": "4ee21dbba569a628f1f2150845b941763863ca976e8973566c9419657e4f2528",
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": 59.8725,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 88.6,
+      "primaryBlocker": "SOURCE_NARRATION_AUDIO_TIMING_CHAIN_STALE",
+      "blockerClass": "PROVENANCE_STALE",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 10,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 7,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FROM_NARRATION_AUDIO_TIMING_CHAIN; preserve files as historical evidence only",
+      "regenerationRequirement": "SOURCE_TO_NARRATION_TO_SELECTED_AUDIO_TO_TIMING_ATOMIC_RENEWAL",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.082424,
+      "conservativeSyntheticTtsCostEur": 0.078567,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": true
+    },
+    {
+      "episodeId": "l02-s02-why-smaller-niches-can-make-you-bigger",
+      "pack": "veronica-stories-editorial-master-v5",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-stories-editorial-master-v5/shorts/en/l02-s02-why-smaller-niches-can-make-you-bigger.md",
+      "sourceHash": "6621811be1900a19f27abf3b6a0e604e5384e200170bec53afdcc9abe12110aa",
+      "wordCount": 226,
+      "workspacePath": "episodes/l02-s02-why-smaller-niches-can-make-you-bigger",
+      "productionInputStatus": "STALE_ATOMIC_CHAIN",
+      "plannerInputStatus": "STALE_SOURCE_MAPPING",
+      "visualPlanStatus": "STALE",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "STALE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": "f6e9f062fa52b3875c4c2d8dc6bdda1c707b71cf07312567ddf220a8cfdd9a39",
+      "workspaceScriptWordCount": 161,
+      "sourceWordDelta": 65,
+      "selectedAudioHash": "9363cfd3cabb67c3da016ee8d0fb438c4ec04ace9aff0ea1282ec41ba47d7978",
+      "timingHash": "0ef5d701f3c99921f33fc1a7800a62574dddf6cb674e73221d872f9c65344988",
+      "timingNarrationHash": "f6e9f062fa52b3875c4c2d8dc6bdda1c707b71cf07312567ddf220a8cfdd9a39",
+      "timingSelectedAudioHash": "9363cfd3cabb67c3da016ee8d0fb438c4ec04ace9aff0ea1282ec41ba47d7978",
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": 57.916291666666666,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 87.5,
+      "primaryBlocker": "SOURCE_NARRATION_AUDIO_TIMING_CHAIN_STALE",
+      "blockerClass": "PROVENANCE_STALE",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 7,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FROM_NARRATION_AUDIO_TIMING_CHAIN; preserve files as historical evidence only",
+      "regenerationRequirement": "SOURCE_TO_NARRATION_TO_SELECTED_AUDIO_TO_TIMING_ATOMIC_RENEWAL",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.081299,
+      "conservativeSyntheticTtsCostEur": 0.077495,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": true
+    },
+    {
+      "episodeId": "l02-s03-market-problem-solution-test",
+      "pack": "veronica-stories-editorial-master-v5",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-stories-editorial-master-v5/shorts/en/l02-s03-market-problem-solution-test.md",
+      "sourceHash": "fa10b9a6fda3cd25f02f22a492acc6cd7d77742d9921b5df6b59f462fb4845ab",
+      "wordCount": 229,
+      "workspacePath": "episodes/l02-s03-market-problem-solution-test",
+      "productionInputStatus": "STALE_ATOMIC_CHAIN",
+      "plannerInputStatus": "STALE_SOURCE_MAPPING",
+      "visualPlanStatus": "STALE",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "STALE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": "7948c18f3656b64edea6cdf4f6495b76730c6b66972743ada8150a119d8b8f83",
+      "workspaceScriptWordCount": 151,
+      "sourceWordDelta": 78,
+      "selectedAudioHash": "778c411a9f05fc69748927b759974d5c709f28524e3a43d9b60d29cccfd543ed",
+      "timingHash": "edb13edfec09a69f6f7ff29378e3037d4795d72da398bade8aed2e5d84ee8e6e",
+      "timingNarrationHash": "7948c18f3656b64edea6cdf4f6495b76730c6b66972743ada8150a119d8b8f83",
+      "timingSelectedAudioHash": "778c411a9f05fc69748927b759974d5c709f28524e3a43d9b60d29cccfd543ed",
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": 57.440041666666666,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 88.6,
+      "primaryBlocker": "SOURCE_NARRATION_AUDIO_TIMING_CHAIN_STALE",
+      "blockerClass": "PROVENANCE_STALE",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 5,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FROM_NARRATION_AUDIO_TIMING_CHAIN; preserve files as historical evidence only",
+      "regenerationRequirement": "SOURCE_TO_NARRATION_TO_SELECTED_AUDIO_TO_TIMING_ATOMIC_RENEWAL",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.082366,
+      "conservativeSyntheticTtsCostEur": 0.078512,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": true
+    },
+    {
+      "episodeId": "l03-s01-you-cant-just-call-yourself-an-expert",
+      "pack": "veronica-stories-editorial-master-v5",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-stories-editorial-master-v5/shorts/en/l03-s01-you-cant-just-call-yourself-an-expert.md",
+      "sourceHash": "439a28f30f0b24f355452e748b693e74478d2d4bff3a1e1e2d6bdc0138ad85e9",
+      "wordCount": 225,
+      "workspacePath": "episodes/l03-s01-you-cant-just-call-yourself-an-expert",
+      "productionInputStatus": "STALE_ATOMIC_CHAIN",
+      "plannerInputStatus": "STALE_SOURCE_MAPPING",
+      "visualPlanStatus": "STALE",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "STALE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": "816e4793e408c027f464dd9c2f14b1913902ba29d407beb0f96f2edddb9d2b6e",
+      "workspaceScriptWordCount": 167,
+      "sourceWordDelta": 58,
+      "selectedAudioHash": "9acf512e5c04ba076e7603a09abf4f474dea5be843b9dd64c5673e3344398983",
+      "timingHash": "d9223ce364ad95acc70050e55e92e978ad04f0b42f4857855af4ae2caa7fbaa7",
+      "timingNarrationHash": "816e4793e408c027f464dd9c2f14b1913902ba29d407beb0f96f2edddb9d2b6e",
+      "timingSelectedAudioHash": "9acf512e5c04ba076e7603a09abf4f474dea5be843b9dd64c5673e3344398983",
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": 57.437083333333334,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 87.1,
+      "primaryBlocker": "SOURCE_NARRATION_AUDIO_TIMING_CHAIN_STALE",
+      "blockerClass": "PROVENANCE_STALE",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 5,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FROM_NARRATION_AUDIO_TIMING_CHAIN; preserve files as historical evidence only",
+      "regenerationRequirement": "SOURCE_TO_NARRATION_TO_SELECTED_AUDIO_TO_TIMING_ATOMIC_RENEWAL",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.080804,
+      "conservativeSyntheticTtsCostEur": 0.077023,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": true
+    },
+    {
+      "episodeId": "l03-s02-three-signals-to-build-from-zero",
+      "pack": "veronica-stories-editorial-master-v5",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-stories-editorial-master-v5/shorts/en/l03-s02-three-signals-to-build-from-zero.md",
+      "sourceHash": "d6b7afd645cb24283e32f14aec4684a01f42dac48cc44ede44658b20d9309165",
+      "wordCount": 231,
+      "workspacePath": "episodes/l03-s02-three-signals-to-build-from-zero",
+      "productionInputStatus": "STALE_ATOMIC_CHAIN",
+      "plannerInputStatus": "STALE_SOURCE_MAPPING",
+      "visualPlanStatus": "STALE",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "STALE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": "c41cd9bc94875c43b39f025eac1891426873b8941d426f116808252da5160b04",
+      "workspaceScriptWordCount": 153,
+      "sourceWordDelta": 78,
+      "selectedAudioHash": "04ca17d61105abb890d57753f3f174730778fa142a661f35fcf33adc148d349d",
+      "timingHash": "11d663dff9078341c1f85fc75ac4c1ec306622e39efb45c713533161c6725b84",
+      "timingNarrationHash": "c41cd9bc94875c43b39f025eac1891426873b8941d426f116808252da5160b04",
+      "timingSelectedAudioHash": "04ca17d61105abb890d57753f3f174730778fa142a661f35fcf33adc148d349d",
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": 56.767875,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 89.4,
+      "primaryBlocker": "SOURCE_NARRATION_AUDIO_TIMING_CHAIN_STALE",
+      "blockerClass": "PROVENANCE_STALE",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 5,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FROM_NARRATION_AUDIO_TIMING_CHAIN; preserve files as historical evidence only",
+      "regenerationRequirement": "SOURCE_TO_NARRATION_TO_SELECTED_AUDIO_TO_TIMING_ATOMIC_RENEWAL",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.082955,
+      "conservativeSyntheticTtsCostEur": 0.079073,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": true
+    },
+    {
+      "episodeId": "l03-s03-your-website-has-five-seconds",
+      "pack": "veronica-stories-editorial-master-v5",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-stories-editorial-master-v5/shorts/en/l03-s03-your-website-has-five-seconds.md",
+      "sourceHash": "d28f994b2e96d2ce494422b0bae35028b5c5d77b2c5afd426fcab79ef0f8ce3c",
+      "wordCount": 239,
+      "workspacePath": "episodes/l03-s03-your-website-has-five-seconds",
+      "productionInputStatus": "STALE_ATOMIC_CHAIN",
+      "plannerInputStatus": "STALE_SOURCE_MAPPING",
+      "visualPlanStatus": "STALE",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "STALE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": "997eaa6f43c976dec713be0d94e51a8cf480a27f1a1e3f3d69f75d079280507f",
+      "workspaceScriptWordCount": 163,
+      "sourceWordDelta": 76,
+      "selectedAudioHash": "aae39214ce967c25db55c571dc71e73e3086a60f2385b8ff1ec0ff59b941dd49",
+      "timingHash": "66292f4516266952049a5e290651931b52d7089cf998c88a0456640e5e5dde4f",
+      "timingNarrationHash": "997eaa6f43c976dec713be0d94e51a8cf480a27f1a1e3f3d69f75d079280507f",
+      "timingSelectedAudioHash": "aae39214ce967c25db55c571dc71e73e3086a60f2385b8ff1ec0ff59b941dd49",
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": 58.23925,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 92.5,
+      "primaryBlocker": "SOURCE_NARRATION_AUDIO_TIMING_CHAIN_STALE",
+      "blockerClass": "PROVENANCE_STALE",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 5,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FROM_NARRATION_AUDIO_TIMING_CHAIN; preserve files as historical evidence only",
+      "regenerationRequirement": "SOURCE_TO_NARRATION_TO_SELECTED_AUDIO_TO_TIMING_ATOMIC_RENEWAL",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.085781,
+      "conservativeSyntheticTtsCostEur": 0.081767,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": true
+    },
+    {
+      "episodeId": "l04-s01-stop-posting-random-content",
+      "pack": "veronica-stories-editorial-master-v5",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-stories-editorial-master-v5/shorts/en/l04-s01-stop-posting-random-content.md",
+      "sourceHash": "b8027767ab11c03183a9c01fac1b2b16a25f54f10544da292db308110854c019",
+      "wordCount": 229,
+      "workspacePath": "episodes/l04-s01-stop-posting-random-content",
+      "productionInputStatus": "MISSING_AUDIO_AND_TIMING",
+      "plannerInputStatus": "MISSING",
+      "visualPlanStatus": "MISSING",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "INCOMPLETE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": null,
+      "workspaceScriptWordCount": null,
+      "sourceWordDelta": null,
+      "selectedAudioHash": null,
+      "timingHash": null,
+      "timingNarrationHash": null,
+      "timingSelectedAudioHash": null,
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": null,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 88.6,
+      "primaryBlocker": "MISSING_NARRATION_AUDIO_AND_TIMING",
+      "blockerClass": "MISSING_PRODUCTION_INPUT",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 0,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FOR_MISSING_NARRATION",
+      "regenerationRequirement": "PROVISION_MISSING_NARRATION_AND_REBUILD_ATOMIC_TIMING_CHAIN",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.082415,
+      "conservativeSyntheticTtsCostEur": 0.078558,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": false
+    },
+    {
+      "episodeId": "l04-s02-the-goal-is-recognition-not-views",
+      "pack": "veronica-stories-editorial-master-v5",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-stories-editorial-master-v5/shorts/en/l04-s02-the-goal-is-recognition-not-views.md",
+      "sourceHash": "20c6d845061ae0c6b13dc66c3ce995f21173fb51c03a05bfe40de8a17aaa1a23",
+      "wordCount": 230,
+      "workspacePath": "episodes/l04-s02-the-goal-is-recognition-not-views",
+      "productionInputStatus": "MISSING_AUDIO_AND_TIMING",
+      "plannerInputStatus": "MISSING",
+      "visualPlanStatus": "MISSING",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "INCOMPLETE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": null,
+      "workspaceScriptWordCount": null,
+      "sourceWordDelta": null,
+      "selectedAudioHash": null,
+      "timingHash": null,
+      "timingNarrationHash": null,
+      "timingSelectedAudioHash": null,
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": null,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 89,
+      "primaryBlocker": "MISSING_NARRATION_AUDIO_AND_TIMING",
+      "blockerClass": "MISSING_PRODUCTION_INPUT",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 0,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FOR_MISSING_NARRATION",
+      "regenerationRequirement": "PROVISION_MISSING_NARRATION_AND_REBUILD_ATOMIC_TIMING_CHAIN",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.08269,
+      "conservativeSyntheticTtsCostEur": 0.078821,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": false
+    },
+    {
+      "episodeId": "l04-s03-make-other-people-talk-about-your-expertise",
+      "pack": "veronica-stories-editorial-master-v5",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-stories-editorial-master-v5/shorts/en/l04-s03-make-other-people-talk-about-your-expertise.md",
+      "sourceHash": "7af960f43aed69de8f4333a406a8c7d86933b15b82dcc486febe6324905502c7",
+      "wordCount": 235,
+      "workspacePath": "episodes/l04-s03-make-other-people-talk-about-your-expertise",
+      "productionInputStatus": "MISSING_AUDIO_AND_TIMING",
+      "plannerInputStatus": "MISSING",
+      "visualPlanStatus": "MISSING",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "INCOMPLETE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": null,
+      "workspaceScriptWordCount": null,
+      "sourceWordDelta": null,
+      "selectedAudioHash": null,
+      "timingHash": null,
+      "timingNarrationHash": null,
+      "timingSelectedAudioHash": null,
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": null,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 91,
+      "primaryBlocker": "MISSING_NARRATION_AUDIO_AND_TIMING",
+      "blockerClass": "MISSING_PRODUCTION_INPUT",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 0,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FOR_MISSING_NARRATION",
+      "regenerationRequirement": "PROVISION_MISSING_NARRATION_AND_REBUILD_ATOMIC_TIMING_CHAIN",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.084573,
+      "conservativeSyntheticTtsCostEur": 0.080616,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": false
+    },
+    {
+      "episodeId": "l05-s01-you-dont-need-a-publisher",
+      "pack": "veronica-stories-editorial-master-v5",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-stories-editorial-master-v5/shorts/en/l05-s01-you-dont-need-a-publisher.md",
+      "sourceHash": "beb47947f95399c821b7fc47224720c76ecc60a4431725b76896bc18497eefdb",
+      "wordCount": 239,
+      "workspacePath": "episodes/l05-s01-you-dont-need-a-publisher",
+      "productionInputStatus": "STALE_ATOMIC_CHAIN",
+      "plannerInputStatus": "STALE_SOURCE_MAPPING",
+      "visualPlanStatus": "STALE",
+      "promptReadiness": "CURRENT_BLOCKED",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "STALE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": "6368ef82eb0af3289b3e27c73cfa61d238916f0971582599bcedf193bc23019c",
+      "workspaceScriptWordCount": 149,
+      "sourceWordDelta": 90,
+      "selectedAudioHash": "f48cc055806d265b6cb31bf90d325f01301718748af54c95d8f5b3323fce5d4b",
+      "timingHash": "2de502d5a61758a78f6df40e220a38726e6d588db025a69e5c847f7ec9bbab0c",
+      "timingNarrationHash": "6368ef82eb0af3289b3e27c73cfa61d238916f0971582599bcedf193bc23019c",
+      "timingSelectedAudioHash": "f48cc055806d265b6cb31bf90d325f01301718748af54c95d8f5b3323fce5d4b",
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": 52.85,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 92.5,
+      "primaryBlocker": "SOURCE_NARRATION_AUDIO_TIMING_CHAIN_STALE",
+      "blockerClass": "PROVENANCE_STALE",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 7,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FROM_NARRATION_AUDIO_TIMING_CHAIN; preserve files as historical evidence only",
+      "regenerationRequirement": "SOURCE_TO_NARRATION_TO_SELECTED_AUDIO_TO_TIMING_ATOMIC_RENEWAL",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.085792,
+      "conservativeSyntheticTtsCostEur": 0.081777,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": true
+    },
+    {
+      "episodeId": "l05-s02-dont-write-a-book-about-everything-you-know",
+      "pack": "veronica-stories-editorial-master-v5",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-stories-editorial-master-v5/shorts/en/l05-s02-dont-write-a-book-about-everything-you-know.md",
+      "sourceHash": "0244e2313d75a739735c897305b8ca864e08f841470546d02e24e2124e13d077",
+      "wordCount": 237,
+      "workspacePath": "episodes/l05-s02-dont-write-a-book-about-everything-you-know",
+      "productionInputStatus": "MISSING_AUDIO_AND_TIMING",
+      "plannerInputStatus": "MISSING",
+      "visualPlanStatus": "MISSING",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "INCOMPLETE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": null,
+      "workspaceScriptWordCount": null,
+      "sourceWordDelta": null,
+      "selectedAudioHash": null,
+      "timingHash": null,
+      "timingNarrationHash": null,
+      "timingSelectedAudioHash": null,
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": null,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 91.7,
+      "primaryBlocker": "MISSING_NARRATION_AUDIO_AND_TIMING",
+      "blockerClass": "MISSING_PRODUCTION_INPUT",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 0,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FOR_MISSING_NARRATION",
+      "regenerationRequirement": "PROVISION_MISSING_NARRATION_AND_REBUILD_ATOMIC_TIMING_CHAIN",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.08519,
+      "conservativeSyntheticTtsCostEur": 0.081204,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": false
+    },
+    {
+      "episodeId": "l05-s03-one-book-can-become-fifty-pieces-of-content",
+      "pack": "veronica-stories-editorial-master-v5",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-stories-editorial-master-v5/shorts/en/l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+      "sourceHash": "b485f421c5b743d4572b23ccd5f9ff6276f2178d9623df80168ef209a2fb3c05",
+      "wordCount": 240,
+      "workspacePath": "episodes/l05-s03-one-book-can-become-fifty-pieces-of-content",
+      "productionInputStatus": "MISSING_AUDIO_AND_TIMING",
+      "plannerInputStatus": "MISSING",
+      "visualPlanStatus": "MISSING",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "INCOMPLETE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": null,
+      "workspaceScriptWordCount": null,
+      "sourceWordDelta": null,
+      "selectedAudioHash": null,
+      "timingHash": null,
+      "timingNarrationHash": null,
+      "timingSelectedAudioHash": null,
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": null,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 92.9,
+      "primaryBlocker": "MISSING_NARRATION_AUDIO_AND_TIMING",
+      "blockerClass": "MISSING_PRODUCTION_INPUT",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 0,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FOR_MISSING_NARRATION",
+      "regenerationRequirement": "PROVISION_MISSING_NARRATION_AND_REBUILD_ATOMIC_TIMING_CHAIN",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.086242,
+      "conservativeSyntheticTtsCostEur": 0.082206,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": false
+    },
+    {
+      "episodeId": "l06-s01-your-audience-remembers-the-old-you",
+      "pack": "veronica-stories-editorial-master-v5",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-stories-editorial-master-v5/shorts/en/l06-s01-your-audience-remembers-the-old-you.md",
+      "sourceHash": "2e390b097d9fbede9bb1d269ded455a1c5e31747b7da8ec84982ce8055069cf2",
+      "wordCount": 234,
+      "workspacePath": "episodes/l06-s01-your-audience-remembers-the-old-you",
+      "productionInputStatus": "STALE_ATOMIC_CHAIN",
+      "plannerInputStatus": "STALE_SOURCE_MAPPING",
+      "visualPlanStatus": "STALE",
+      "promptReadiness": "CURRENT_BLOCKED",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "STALE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": "cca91c4ce5d5e0afa529e77fe776b2a565577d3afdf60f54b9e2ca4eecaa964f",
+      "workspaceScriptWordCount": 164,
+      "sourceWordDelta": 70,
+      "selectedAudioHash": "cc7b7ee37e8065c81d978d175101ee4a2445fe6172d8a1995efdf0a3daf7f1eb",
+      "timingHash": "cc6bb379695d01285b8b12b197fad7f211122d14f67dd2ff6248a58c516b34f4",
+      "timingNarrationHash": "2502b2cf6ec08ba92025bef2177197f0539cb4e6d9c021dceec4043e85e2c713",
+      "timingSelectedAudioHash": "cc7b7ee37e8065c81d978d175101ee4a2445fe6172d8a1995efdf0a3daf7f1eb",
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": 61.77908333333333,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 90.6,
+      "primaryBlocker": "SOURCE_NARRATION_AUDIO_TIMING_CHAIN_STALE",
+      "blockerClass": "PROVENANCE_STALE",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 6,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FROM_NARRATION_AUDIO_TIMING_CHAIN; preserve files as historical evidence only",
+      "regenerationRequirement": "SOURCE_TO_NARRATION_TO_SELECTED_AUDIO_TO_TIMING_ATOMIC_RENEWAL",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.084031,
+      "conservativeSyntheticTtsCostEur": 0.080099,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": true
+    },
+    {
+      "episodeId": "l06-s02-changing-your-bio-isnt-repositioning",
+      "pack": "veronica-stories-editorial-master-v5",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-stories-editorial-master-v5/shorts/en/l06-s02-changing-your-bio-isnt-repositioning.md",
+      "sourceHash": "92c3038ce773ec589db5667bbe36092e7bde752e5e9e3ccd1741907b9ab75243",
+      "wordCount": 231,
+      "workspacePath": "episodes/l06-s02-changing-your-bio-isnt-repositioning",
+      "productionInputStatus": "MISSING_AUDIO_AND_TIMING",
+      "plannerInputStatus": "MISSING",
+      "visualPlanStatus": "MISSING",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "INCOMPLETE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": null,
+      "workspaceScriptWordCount": null,
+      "sourceWordDelta": null,
+      "selectedAudioHash": null,
+      "timingHash": null,
+      "timingNarrationHash": null,
+      "timingSelectedAudioHash": null,
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": null,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 89.4,
+      "primaryBlocker": "MISSING_NARRATION_AUDIO_AND_TIMING",
+      "blockerClass": "MISSING_PRODUCTION_INPUT",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 0,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FOR_MISSING_NARRATION",
+      "regenerationRequirement": "PROVISION_MISSING_NARRATION_AND_REBUILD_ATOMIC_TIMING_CHAIN",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.083097,
+      "conservativeSyntheticTtsCostEur": 0.079209,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": false
+    },
+    {
+      "episodeId": "l06-s03-change-what-people-know-you-for",
+      "pack": "veronica-stories-editorial-master-v5",
+      "variant": "short",
+      "locale": "en",
+      "sourcePath": "content-packs/vero/veronica-stories-editorial-master-v5/shorts/en/l06-s03-change-what-people-know-you-for.md",
+      "sourceHash": "2c8934e704409b51f917e920f84fab7954939f9d8a481a7f35186c187c7cce3e",
+      "wordCount": 233,
+      "workspacePath": "episodes/l06-s03-change-what-people-know-you-for",
+      "productionInputStatus": "MISSING_AUDIO_AND_TIMING",
+      "plannerInputStatus": "MISSING",
+      "visualPlanStatus": "MISSING",
+      "promptReadiness": "NOT_AVAILABLE",
+      "deterministicAdmissionState": "BLOCK",
+      "existingQaState": "NOT_CURRENT",
+      "provenanceState": "INCOMPLETE_ATOMIC_CHAIN",
+      "sourceMappingCurrent": false,
+      "workspaceScriptHash": null,
+      "workspaceScriptWordCount": null,
+      "sourceWordDelta": null,
+      "selectedAudioHash": null,
+      "timingHash": null,
+      "timingNarrationHash": null,
+      "timingSelectedAudioHash": null,
+      "admissionIdentityHash": null,
+      "admissionSourceHash": null,
+      "durationSeconds": null,
+      "targetWpm": 155,
+      "expectedDurationSeconds": 90.2,
+      "primaryBlocker": "MISSING_NARRATION_AUDIO_AND_TIMING",
+      "blockerClass": "MISSING_PRODUCTION_INPUT",
+      "paidWorkRequired": true,
+      "exactPaidOperation": "No provider dispatch authorized; ingest supplied-human narration, or obtain separate synthetic-narration approval, then derive timing",
+      "imageApprovalState": "NOT_APPROVED",
+      "fullyPreImageReady": false,
+      "imageComplete": false,
+      "imageCount": 0,
+      "expectedImageCount": 0,
+      "generatedImages": [],
+      "invalidatedGeneratedImages": [],
+      "imageQa": {
+        "evaluated": 0,
+        "approved": 0,
+        "rejected": 0,
+        "state": "NOT_RUN",
+        "reviews": []
+      },
+      "visualEncodingDecision": {
+        "state": "MISSING"
+      },
+      "deterministicDiagramPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototype": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV2": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV3": {
+        "state": "MISSING"
+      },
+      "hookDeterministicPrototypeV4": {
+        "state": "MISSING"
+      },
+      "historicalOrStaleGeneratedImageCount": 0,
+      "narrationRequirement": "SUPPLIED_HUMAN_VOICE_REQUIRED_BY_PROFILE",
+      "possibleReuse": "NONE_FOR_MISSING_NARRATION",
+      "regenerationRequirement": "PROVISION_MISSING_NARRATION_AND_REBUILD_ATOMIC_TIMING_CHAIN",
+      "estimatedProviderCost": null,
+      "conservativeSyntheticTtsCostUsd": 0.083876,
+      "conservativeSyntheticTtsCostEur": 0.079951,
+      "syntheticTtsAuthorized": false,
+      "downstreamInvalidations": [
+        "timing",
+        "semantic-plan",
+        "provider-prompts",
+        "admission",
+        "QA-cache"
+      ],
+      "workspace": false
+    }
+  ]
+}

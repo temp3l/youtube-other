@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "decision",
+    "candidatePngSha256",
+    "completedOrderLegible",
+    "withheldOrderLegible",
+    "singleCostFieldLegible",
+    "nineteenDrainedUnitsLegible",
+    "oneRetainedUnitLegible",
+    "weakUnitEconomicsLegibleWithoutNarration",
+    "instantReadPass",
+    "materiallyDistinctFromS02B01",
+    "subtitleSafe",
+    "violations",
+    "blockingReasons",
+    "nonBlockingNotes"
+  ],
+  "properties": {
+    "decision": { "enum": ["APPROVE", "REJECT"] },
+    "candidatePngSha256": { "const": "ed527430bbceac95141d078234d5a145d1976a5607c64311193d75bf570cc72a" },
+    "completedOrderLegible": { "type": "boolean" },
+    "withheldOrderLegible": { "type": "boolean" },
+    "singleCostFieldLegible": { "type": "boolean" },
+    "nineteenDrainedUnitsLegible": { "type": "boolean" },
+    "oneRetainedUnitLegible": { "type": "boolean" },
+    "weakUnitEconomicsLegibleWithoutNarration": { "type": "boolean" },
+    "instantReadPass": { "type": "boolean" },
+    "materiallyDistinctFromS02B01": { "type": "boolean" },
+    "subtitleSafe": { "type": "boolean" },
+    "violations": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "READABLE_TEXT",
+          "LOGO_OR_UI",
+          "CURRENCY_SYMBOL",
+          "CREATOR_LIKENESS",
+          "OCCUPATIONAL_DRIFT",
+          "PORTRAIT_DOMINANCE",
+          "UNSUPPORTED_CLAIM",
+          "CONSERVATION_AMBIGUITY",
+          "NARRATION_DEPENDENCE",
+          "TEMPLATE_REPETITION"
+        ]
+      }
+    },
+    "blockingReasons": { "type": "array", "items": { "type": "string" } },
+    "nonBlockingNotes": { "type": "array", "items": { "type": "string" } }
+  }
+}

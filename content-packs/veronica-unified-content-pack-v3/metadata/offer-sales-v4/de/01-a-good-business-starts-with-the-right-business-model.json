@@ -1,0 +1,42 @@
+{
+  "title": "Dein Umsatz kann wachsen, während dein Business schwächer wird",
+  "alternativeTitles": [
+    "Mehr Verkäufe retten kein schlechtes Geschäftsmodell",
+    "Ist dein Business wirklich profitabel oder nur beschäftigt?",
+    "Der Geschäftsmodell-Test, den viele Selbstständige überspringen"
+  ],
+  "thumbnail": "MEHR UMSATZ. MEHR RISIKO?",
+  "thumbnailOptions": [
+    "MEHR UMSATZ. MEHR RISIKO?",
+    "MEHR UMSATZ. SCHLECHTERES BUSINESS?",
+    "UMSATZ ≠ MARGE"
+  ],
+  "description": "Mehr Umsatz bedeutet nicht automatisch ein gesünderes Business. In dieser Folge geht es um die Struktur hinter einem tragfähigen Geschäftsmodell: Marge, variable und fixe Kosten, Auslieferungszeit, Skalierbarkeit, Vertriebskanäle und die Frage, ob du ein Produktformat oder das eigentliche Kundenbedürfnis schützt. Am Ende bekommst du einen einfachen Fünf-Punkte-Audit und einen Stresstest: Wenn sich deine Verkäufe morgen verdoppeln, wird dein Business dadurch wirklich stärker?\n\nIn der nächsten Folge: Warum dein idealer Kunde nicht „jeder“ ist.",
+  "cta": "Mach den Fünf-Punkte-Audit aus dem Video und wähle genau eine strukturelle Hypothese, die du in den nächsten Wochen testest.",
+  "chapters": [
+    "Umsatz ist nicht das Geschäftsmodell",
+    "Die versteckten Kosten eines Kanalwechsels",
+    "Produktformat oder Kundenproblem?",
+    "Der Zeit-Test",
+    "Was Skalierbarkeit wirklich bedeutet",
+    "Der Anpassungs-Test",
+    "Dein Fünf-Punkte-Business-Audit",
+    "Was du als Nächstes testest"
+  ],
+  "shortA": {
+    "title": "Mehr Umsatz kann ein schwaches Business verschlimmern",
+    "alternateHook": "Wenn sich deine Verkäufe morgen verdoppeln, wäre dein Business wirklich gesünder?"
+  },
+  "shortB": {
+    "title": "Stoppt dein Umsatz, sobald du aufhörst zu arbeiten?",
+    "alternateHook": "Dein größtes Wachstumslimit könnte in deinem Kalender stecken."
+  },
+  "youtubeOptimizationVersion": "v4-editorial-continuity-remediation",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  }
+}

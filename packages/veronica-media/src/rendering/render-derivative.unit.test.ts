@@ -61,7 +61,15 @@ function input() {
     },
   };
   const renderManifest = veronicaRenderManifestSchema.parse({
-    schemaVersion: "veronica-render-manifest.v1",
+    schemaVersion: "veronica-render-manifest.v2",
+    canonicalContentIdentity: {
+      contentPackId: "veronica-unified-content-pack-v2",
+      storyId: "episode-001",
+      episodeId: "veronica-episode-01",
+      locale: "it",
+      variant: "long",
+      contentHash: hash("9"),
+    },
     aspectRatio: "16:9",
     profile: VERONICA_DEFAULT_LANDSCAPE_PROFILE,
     clips: [{ clipId: "clip-001", placementId: "placement-001", startSeconds: 0, endSeconds: 4, operations: [{ kind: "contain", assetPath: "/safe/frame.png", x: 0, y: 0, width: 1920, height: 1080 }] }],
@@ -101,6 +109,17 @@ describe("Veronica render derivative planning", () => {
     expect(() => planVeronicaRenderDerivative({ ...unapproved, composition: { ...unapproved.composition, approval: { state: "review" } } })).toThrow("VERONICA_RENDER_APPROVAL_REQUIRED");
     const mismatch = input();
     expect(() => planVeronicaRenderDerivative({ ...mismatch, voice: { ...mismatch.voice, audioPath: "/safe/other.wav" } })).toThrow("VERONICA_RENDER_VOICE_AUDIO_MISMATCH");
+    const identityMismatch = input();
+    expect(() => planVeronicaRenderDerivative({
+      ...identityMismatch,
+      renderManifest: {
+        ...identityMismatch.renderManifest,
+        canonicalContentIdentity: {
+          ...identityMismatch.renderManifest.canonicalContentIdentity,
+          locale: "de",
+        },
+      },
+    })).toThrow("VERONICA_RENDER_CANONICAL_IDENTITY_MISMATCH");
     const redacted = redactVeronicaRenderDerivativeFailure(new Error("/private/path leaked"));
     expect(redacted).toMatchObject({ code: "VERONICA_RENDER_INVALID" });
     expect(redacted.message).not.toContain("private");

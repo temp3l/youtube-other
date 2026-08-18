@@ -2,10 +2,15 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { buildSemanticMediaPlan } from "../planning/semantic-planner.js";
 import { ingestSupplementalMediaAsset } from "../ingestion/secure-ingest.js";
-import { createVeronicaPilotFixtures } from "../fixtures/pilot.js";
+import {
+  createVeronicaPilotCanonicalContentIdentity,
+  createVeronicaPilotFixtures,
+} from "../fixtures/pilot.js";
 import { buildRenderManifest } from "./build-render-manifest.js";
+import { veronicaRenderManifestSchema } from "../contracts/media-plan.v1.js";
 import {
   RENDER_ASPECT_ASSET_MISMATCH,
+  RENDER_CANONICAL_IDENTITY_MISMATCH,
   validateRenderManifestAspectIntegrity,
 } from "./manifest-integrity.js";
 
@@ -26,9 +31,13 @@ describe("render manifest aspect integrity", () => {
       path.join("/tmp", prepared.relativePath),
     ]),
   );
+  const canonicalContentIdentity = createVeronicaPilotCanonicalContentIdentity(
+    "episode-manifest-test",
+  );
 
   it("accepts landscape manifest referencing landscape prepared assets", () => {
     const manifest = buildRenderManifest({
+      canonicalContentIdentity,
       plan,
       aspectRatio: "16:9",
       placements: plan.landscapePlacements,
@@ -38,10 +47,21 @@ describe("render manifest aspect integrity", () => {
     });
     const result = validateRenderManifestAspectIntegrity({ manifest, plan, preparedAssetPaths });
     expect(result.valid).toBe(true);
+    expect(manifest.canonicalContentIdentity).toEqual(canonicalContentIdentity);
+    expect(Object.isFrozen(manifest.canonicalContentIdentity)).toBe(true);
+    expect(() => veronicaRenderManifestSchema.parse({
+      ...manifest,
+      canonicalContentIdentity: undefined,
+    })).toThrow();
+    expect(() => veronicaRenderManifestSchema.parse({
+      ...manifest,
+      schemaVersion: "veronica-render-manifest.v1",
+    })).toThrow();
   });
 
   it("accepts portrait manifest referencing portrait prepared assets", () => {
     const manifest = buildRenderManifest({
+      canonicalContentIdentity,
       plan,
       aspectRatio: "9:16",
       placements: plan.portraitPlacements,
@@ -63,6 +83,7 @@ describe("render manifest aspect integrity", () => {
 
   it("rejects portrait manifest that references landscape prepared assets", () => {
     const portraitManifest = buildRenderManifest({
+      canonicalContentIdentity,
       plan,
       aspectRatio: "9:16",
       placements: plan.portraitPlacements,
@@ -97,5 +118,28 @@ describe("render manifest aspect integrity", () => {
     });
     expect(result.valid).toBe(false);
     expect(result.issues.some((issue) => issue.code === RENDER_ASPECT_ASSET_MISMATCH)).toBe(true);
+  });
+
+  it("rejects a manifest whose embedded story identity differs from the plan", () => {
+    const manifest = buildRenderManifest({
+      canonicalContentIdentity: createVeronicaPilotCanonicalContentIdentity(
+        "different-story",
+      ),
+      plan,
+      aspectRatio: "16:9",
+      placements: plan.landscapePlacements,
+      preparedAssetPaths,
+      outputPath: "/tmp/landscape.mp4",
+      narrationAudioPath: "/tmp/narration.wav",
+    });
+    const result = validateRenderManifestAspectIntegrity({
+      manifest,
+      plan,
+      preparedAssetPaths,
+    });
+    expect(result.valid).toBe(false);
+    expect(result.issues.some(
+      (issue) => issue.code === RENDER_CANONICAL_IDENTITY_MISMATCH,
+    )).toBe(true);
   });
 });

@@ -1,0 +1,542 @@
+[
+  {
+    "storyId": "osc-l06",
+    "episodeId": "veronica-episode-01",
+    "variant": "long",
+    "path": "content/long/en/osc-06-attention-is-not-conversion.md",
+    "rawSha256": "2ee091a57b2bfbcd799b5b171fd531e38c01affa1fca05765f53bb21096ccf79",
+    "normalizedHash": "2ee091a57b2bfbcd799b5b171fd531e38c01affa1fca05765f53bb21096ccf79",
+    "wordCount": 1546,
+    "durationSeconds": 618.4
+  },
+  {
+    "storyId": "osc-s06a",
+    "episodeId": "veronica-episode-01",
+    "variant": "short",
+    "path": "content/shorts/en/osc-06a-views-are-not-sales.md",
+    "rawSha256": "d57d794f37376a931de578c279ba04d869123199381ebedc8510f81978281f31",
+    "normalizedHash": "d57d794f37376a931de578c279ba04d869123199381ebedc8510f81978281f31",
+    "wordCount": 235,
+    "durationSeconds": 90.96774193548387
+  },
+  {
+    "storyId": "osc-s06b",
+    "episodeId": "veronica-episode-01",
+    "variant": "short",
+    "path": "content/shorts/en/osc-06b-trust-comes-before-conversion.md",
+    "rawSha256": "6571a2340cc01e68c98fa47816c7390ce8c0824ed655308cf0fab5be118782ba",
+    "normalizedHash": "6571a2340cc01e68c98fa47816c7390ce8c0824ed655308cf0fab5be118782ba",
+    "wordCount": 230,
+    "durationSeconds": 89.03225806451613
+  },
+  {
+    "storyId": "pos-l01",
+    "episodeId": "veronica-episode-02",
+    "variant": "long",
+    "path": "content/long/en/pos-01-why-being-good-at-your-job-isnt-enough.md",
+    "rawSha256": "88f33815cd23cdba46d865fd7a8555d467bcb6cef62c1609106cd2be34d66932",
+    "normalizedHash": "88f33815cd23cdba46d865fd7a8555d467bcb6cef62c1609106cd2be34d66932",
+    "wordCount": 1501,
+    "durationSeconds": 600.4
+  },
+  {
+    "storyId": "pos-l01-s01",
+    "episodeId": "veronica-episode-02",
+    "variant": "short",
+    "path": "content/shorts/en/pos-l01-s01-being-good-isnt-enough.md",
+    "rawSha256": "f604e2d567ce62fb548f2ae2eedd05476b333ff9eb44075189cfb48d9118cfd0",
+    "normalizedHash": "f604e2d567ce62fb548f2ae2eedd05476b333ff9eb44075189cfb48d9118cfd0",
+    "wordCount": 228,
+    "durationSeconds": 88.25806451612902
+  },
+  {
+    "storyId": "pos-l01-s02",
+    "episodeId": "veronica-episode-02",
+    "variant": "short",
+    "path": "content/shorts/en/pos-l01-s02-expertise-vs-perception.md",
+    "rawSha256": "d7d5d69b09fc9151fee98d0fc9283456161be175083fce39b17b8514810d4c7e",
+    "normalizedHash": "d7d5d69b09fc9151fee98d0fc9283456161be175083fce39b17b8514810d4c7e",
+    "wordCount": 230,
+    "durationSeconds": 89.03225806451613
+  },
+  {
+    "storyId": "osc-l05",
+    "episodeId": "veronica-episode-03",
+    "variant": "long",
+    "path": "content/long/en/osc-05-stop-improving-the-marketing-fix-the-product.md",
+    "rawSha256": "32b91cd330eef4ff509e9a1d804484bb27bc4f2db93e7ed7617632766193996a",
+    "normalizedHash": "32b91cd330eef4ff509e9a1d804484bb27bc4f2db93e7ed7617632766193996a",
+    "wordCount": 1465,
+    "durationSeconds": 586
+  },
+  {
+    "storyId": "osc-s05a",
+    "episodeId": "veronica-episode-03",
+    "variant": "short",
+    "path": "content/shorts/en/osc-05a-marketing-may-not-be-the-problem.md",
+    "rawSha256": "1f62ee349ecf56891b1541e7e6751c10eb98f8103a22d4aaba5899164c49503f",
+    "normalizedHash": "1f62ee349ecf56891b1541e7e6751c10eb98f8103a22d4aaba5899164c49503f",
+    "wordCount": 234,
+    "durationSeconds": 90.58064516129033
+  },
+  {
+    "storyId": "osc-s05b",
+    "episodeId": "veronica-episode-03",
+    "variant": "short",
+    "path": "content/shorts/en/osc-05b-too-many-choices-kill-the-offer.md",
+    "rawSha256": "075d293d09c39496a90311686d97b4b5f77d6dca551d64d1e862eb879072b1cf",
+    "normalizedHash": "075d293d09c39496a90311686d97b4b5f77d6dca551d64d1e862eb879072b1cf",
+    "wordCount": 234,
+    "durationSeconds": 90.58064516129033
+  },
+  {
+    "storyId": "tx-l004",
+    "episodeId": "veronica-episode-04",
+    "variant": "long",
+    "path": "content/long/en/tx-l004.md",
+    "rawSha256": "a1be53344a362c73f5a94b7effe56755dd2a16c71f52a249ec789573830c0038",
+    "normalizedHash": "a1be53344a362c73f5a94b7effe56755dd2a16c71f52a249ec789573830c0038",
+    "wordCount": 1476,
+    "durationSeconds": 590.4
+  },
+  {
+    "storyId": "pos-l01-s03",
+    "episodeId": "veronica-episode-04",
+    "variant": "short",
+    "path": "content/shorts/en/pos-l01-s03-what-do-people-remember-you-for.md",
+    "rawSha256": "0d4c6ae84685ac65f429261643aa30a90623a8271f627c9698f9f3d0b1343725",
+    "normalizedHash": "0d4c6ae84685ac65f429261643aa30a90623a8271f627c9698f9f3d0b1343725",
+    "wordCount": 229,
+    "durationSeconds": 88.64516129032259
+  },
+  {
+    "storyId": "tx-s021",
+    "episodeId": "veronica-episode-04",
+    "variant": "short",
+    "path": "content/shorts/en/tx-s021.md",
+    "rawSha256": "fab603360a571937bc632051bee44ee9e028f65ec4a640713393ffc2a2d036f2",
+    "normalizedHash": "fab603360a571937bc632051bee44ee9e028f65ec4a640713393ffc2a2d036f2",
+    "wordCount": 234,
+    "durationSeconds": 90.58064516129033
+  },
+  {
+    "storyId": "osc-l01",
+    "episodeId": "veronica-episode-05",
+    "variant": "long",
+    "path": "content/long/en/osc-01-a-good-business-starts-with-the-right-business-model.md",
+    "rawSha256": "681279cccf63bcc17c300b753cb8911fe67d682ff46cd195abd49e38612ba68a",
+    "normalizedHash": "681279cccf63bcc17c300b753cb8911fe67d682ff46cd195abd49e38612ba68a",
+    "wordCount": 1515,
+    "durationSeconds": 606
+  },
+  {
+    "storyId": "osc-s01a",
+    "episodeId": "veronica-episode-05",
+    "variant": "short",
+    "path": "content/shorts/en/osc-01a-revenue-is-not-a-good-business.md",
+    "rawSha256": "de2a27988438c40abe4a09273438666a5ceb734c5a19ec3d12af3d6b3b11af99",
+    "normalizedHash": "de2a27988438c40abe4a09273438666a5ceb734c5a19ec3d12af3d6b3b11af99",
+    "wordCount": 229,
+    "durationSeconds": 88.64516129032259
+  },
+  {
+    "storyId": "osc-s01b",
+    "episodeId": "veronica-episode-05",
+    "variant": "short",
+    "path": "content/shorts/en/osc-01b-if-you-stop-working-does-your-revenue-stop-too.md",
+    "rawSha256": "5113698f83418f1c7de51adfd190e1747944dfbc5fb6b0e792f8a244e353205d",
+    "normalizedHash": "5113698f83418f1c7de51adfd190e1747944dfbc5fb6b0e792f8a244e353205d",
+    "wordCount": 233,
+    "durationSeconds": 90.19354838709677
+  },
+  {
+    "storyId": "pos-l04",
+    "episodeId": "veronica-episode-06",
+    "variant": "long",
+    "path": "content/long/en/pos-04-the-content-strategy-that-makes-people-remember-you.md",
+    "rawSha256": "777045eae70970fa7c27ccf445c2fb2c38705785430f837917b7811d686321f9",
+    "normalizedHash": "777045eae70970fa7c27ccf445c2fb2c38705785430f837917b7811d686321f9",
+    "wordCount": 1495,
+    "durationSeconds": 598
+  },
+  {
+    "storyId": "pos-l04-s01",
+    "episodeId": "veronica-episode-06",
+    "variant": "short",
+    "path": "content/shorts/en/pos-l04-s01-stop-posting-random-content.md",
+    "rawSha256": "b8027767ab11c03183a9c01fac1b2b16a25f54f10544da292db308110854c019",
+    "normalizedHash": "b8027767ab11c03183a9c01fac1b2b16a25f54f10544da292db308110854c019",
+    "wordCount": 229,
+    "durationSeconds": 88.64516129032259
+  },
+  {
+    "storyId": "pos-l04-s02",
+    "episodeId": "veronica-episode-06",
+    "variant": "short",
+    "path": "content/shorts/en/pos-l04-s02-the-goal-is-recognition-not-views.md",
+    "rawSha256": "20c6d845061ae0c6b13dc66c3ce995f21173fb51c03a05bfe40de8a17aaa1a23",
+    "normalizedHash": "20c6d845061ae0c6b13dc66c3ce995f21173fb51c03a05bfe40de8a17aaa1a23",
+    "wordCount": 230,
+    "durationSeconds": 89.03225806451613
+  },
+  {
+    "storyId": "osc-l04",
+    "episodeId": "veronica-episode-07",
+    "variant": "long",
+    "path": "content/long/en/osc-04-how-to-build-an-offer-people-actually-want.md",
+    "rawSha256": "832037b16a9bc64004ccaf486884a55e5ccc9e08822173931f877c1ca9a47c17",
+    "normalizedHash": "832037b16a9bc64004ccaf486884a55e5ccc9e08822173931f877c1ca9a47c17",
+    "wordCount": 1546,
+    "durationSeconds": 618.4
+  },
+  {
+    "storyId": "osc-s04a",
+    "episodeId": "veronica-episode-07",
+    "variant": "short",
+    "path": "content/shorts/en/osc-04a-why-good-products-still-dont-sell.md",
+    "rawSha256": "0b672b2d725ae7b498b05787c3fe3f21c61e52cfa0f6b517f8eb07b7212bb3af",
+    "normalizedHash": "0b672b2d725ae7b498b05787c3fe3f21c61e52cfa0f6b517f8eb07b7212bb3af",
+    "wordCount": 232,
+    "durationSeconds": 89.80645161290323
+  },
+  {
+    "storyId": "osc-s04b",
+    "episodeId": "veronica-episode-07",
+    "variant": "short",
+    "path": "content/shorts/en/osc-04b-make-your-offer-easier-to-buy.md",
+    "rawSha256": "4f566a253f9f4d77b098f7fdc140e25d3eb5e67db24feabed9c602cf0a68f75d",
+    "normalizedHash": "4f566a253f9f4d77b098f7fdc140e25d3eb5e67db24feabed9c602cf0a68f75d",
+    "wordCount": 235,
+    "durationSeconds": 90.96774193548387
+  },
+  {
+    "storyId": "pos-l02",
+    "episodeId": "veronica-episode-08",
+    "variant": "long",
+    "path": "content/long/en/pos-02-how-to-find-your-niche-without-making-yourself-too-small.md",
+    "rawSha256": "69d5454b2acd2788ed33f2e2435510817910815c975ab88b5aa234acff72a2ac",
+    "normalizedHash": "69d5454b2acd2788ed33f2e2435510817910815c975ab88b5aa234acff72a2ac",
+    "wordCount": 1520,
+    "durationSeconds": 608
+  },
+  {
+    "storyId": "pos-l02-s01",
+    "episodeId": "veronica-episode-08",
+    "variant": "short",
+    "path": "content/shorts/en/pos-l02-s01-selling-to-everyone-is-the-problem.md",
+    "rawSha256": "6afff50edfb22fb00bc04701d37b1859e7d88b55d5d70ab1c82ab66aad6cbe89",
+    "normalizedHash": "6afff50edfb22fb00bc04701d37b1859e7d88b55d5d70ab1c82ab66aad6cbe89",
+    "wordCount": 235,
+    "durationSeconds": 90.96774193548387
+  },
+  {
+    "storyId": "pos-l02-s02",
+    "episodeId": "veronica-episode-08",
+    "variant": "short",
+    "path": "content/shorts/en/pos-l02-s02-why-smaller-niches-can-make-you-bigger.md",
+    "rawSha256": "6621811be1900a19f27abf3b6a0e604e5384e200170bec53afdcc9abe12110aa",
+    "normalizedHash": "6621811be1900a19f27abf3b6a0e604e5384e200170bec53afdcc9abe12110aa",
+    "wordCount": 226,
+    "durationSeconds": 87.48387096774194
+  },
+  {
+    "storyId": "tx-l011",
+    "episodeId": "veronica-episode-09",
+    "variant": "long",
+    "path": "content/long/en/tx-l011.md",
+    "rawSha256": "341ced15262ccaab3f01b3c05c5045bd34a0a938dd1781927508a881b28fb421",
+    "normalizedHash": "341ced15262ccaab3f01b3c05c5045bd34a0a938dd1781927508a881b28fb421",
+    "wordCount": 1522,
+    "durationSeconds": 608.8
+  },
+  {
+    "storyId": "pos-l03-s03",
+    "episodeId": "veronica-episode-09",
+    "variant": "short",
+    "path": "content/shorts/en/pos-l03-s03-your-website-has-five-seconds.md",
+    "rawSha256": "d28f994b2e96d2ce494422b0bae35028b5c5d77b2c5afd426fcab79ef0f8ce3c",
+    "normalizedHash": "d28f994b2e96d2ce494422b0bae35028b5c5d77b2c5afd426fcab79ef0f8ce3c",
+    "wordCount": 239,
+    "durationSeconds": 92.51612903225806
+  },
+  {
+    "storyId": "pos-l06-s03",
+    "episodeId": "veronica-episode-09",
+    "variant": "short",
+    "path": "content/shorts/en/pos-l06-s03-change-what-people-know-you-for.md",
+    "rawSha256": "2c8934e704409b51f917e920f84fab7954939f9d8a481a7f35186c187c7cce3e",
+    "normalizedHash": "2c8934e704409b51f917e920f84fab7954939f9d8a481a7f35186c187c7cce3e",
+    "wordCount": 233,
+    "durationSeconds": 90.19354838709677
+  },
+  {
+    "storyId": "osc-l02",
+    "episodeId": "veronica-episode-10",
+    "variant": "long",
+    "path": "content/long/en/osc-02-your-ideal-customer-is-not-everyone.md",
+    "rawSha256": "9e6f79f51600c8942ee26d022d71148813bfa136461cbaadbe24ea1ce0a9f367",
+    "normalizedHash": "9e6f79f51600c8942ee26d022d71148813bfa136461cbaadbe24ea1ce0a9f367",
+    "wordCount": 1526,
+    "durationSeconds": 610.4
+  },
+  {
+    "storyId": "osc-s02a",
+    "episodeId": "veronica-episode-10",
+    "variant": "short",
+    "path": "content/shorts/en/osc-02a-stop-targeting-everyone.md",
+    "rawSha256": "9816eef539cde17d0ecbb746ceb1c819c12024e7fd3695210601db8f709b0e27",
+    "normalizedHash": "9816eef539cde17d0ecbb746ceb1c819c12024e7fd3695210601db8f709b0e27",
+    "wordCount": 226,
+    "durationSeconds": 87.48387096774194
+  },
+  {
+    "storyId": "osc-s02b",
+    "episodeId": "veronica-episode-10",
+    "variant": "short",
+    "path": "content/shorts/en/osc-02b-stop-posting-where-your-customers-arent.md",
+    "rawSha256": "8e2a806a62887663fb77f515c17b5e7ad743f1d55fcd92334127018920c70f60",
+    "normalizedHash": "8e2a806a62887663fb77f515c17b5e7ad743f1d55fcd92334127018920c70f60",
+    "wordCount": 228,
+    "durationSeconds": 88.25806451612902
+  },
+  {
+    "storyId": "pos-l06",
+    "episodeId": "veronica-episode-11",
+    "variant": "long",
+    "path": "content/long/en/pos-06-how-to-reposition-yourself-when-your-business-changes.md",
+    "rawSha256": "1a41cd30d25e0644e2cec726112c58e57c79cbae7629ad84d6cdabdf0cfb9f41",
+    "normalizedHash": "1a41cd30d25e0644e2cec726112c58e57c79cbae7629ad84d6cdabdf0cfb9f41",
+    "wordCount": 1512,
+    "durationSeconds": 604.8
+  },
+  {
+    "storyId": "pos-l06-s01",
+    "episodeId": "veronica-episode-11",
+    "variant": "short",
+    "path": "content/shorts/en/pos-l06-s01-your-audience-remembers-the-old-you.md",
+    "rawSha256": "2e390b097d9fbede9bb1d269ded455a1c5e31747b7da8ec84982ce8055069cf2",
+    "normalizedHash": "2e390b097d9fbede9bb1d269ded455a1c5e31747b7da8ec84982ce8055069cf2",
+    "wordCount": 234,
+    "durationSeconds": 90.58064516129033
+  },
+  {
+    "storyId": "pos-l06-s02",
+    "episodeId": "veronica-episode-11",
+    "variant": "short",
+    "path": "content/shorts/en/pos-l06-s02-changing-your-bio-isnt-repositioning.md",
+    "rawSha256": "92c3038ce773ec589db5667bbe36092e7bde752e5e9e3ccd1741907b9ab75243",
+    "normalizedHash": "92c3038ce773ec589db5667bbe36092e7bde752e5e9e3ccd1741907b9ab75243",
+    "wordCount": 231,
+    "durationSeconds": 89.41935483870967
+  },
+  {
+    "storyId": "osc-l03",
+    "episodeId": "veronica-episode-12",
+    "variant": "long",
+    "path": "content/long/en/osc-03-people-dont-buy-your-product-they-buy-the-promise.md",
+    "rawSha256": "03d486a80a9de5a202ac427cc6df9109abc876aa23b3020c05e7e2b4f98f5b4d",
+    "normalizedHash": "03d486a80a9de5a202ac427cc6df9109abc876aa23b3020c05e7e2b4f98f5b4d",
+    "wordCount": 1515,
+    "durationSeconds": 606
+  },
+  {
+    "storyId": "osc-s03a",
+    "episodeId": "veronica-episode-12",
+    "variant": "short",
+    "path": "content/shorts/en/osc-03a-what-does-your-customer-really-buy.md",
+    "rawSha256": "31ae6b6f692d803b3d5216091e52e7eed288bdb8a60a0d29be13eb4b65727cd6",
+    "normalizedHash": "31ae6b6f692d803b3d5216091e52e7eed288bdb8a60a0d29be13eb4b65727cd6",
+    "wordCount": 234,
+    "durationSeconds": 90.58064516129033
+  },
+  {
+    "storyId": "osc-s03b",
+    "episodeId": "veronica-episode-12",
+    "variant": "short",
+    "path": "content/shorts/en/osc-03b-the-promise-formula.md",
+    "rawSha256": "e2f6790ca4c52e1c52dcbf2d359ac01b8667001acd567f7e63d81a57fe2a2bb4",
+    "normalizedHash": "e2f6790ca4c52e1c52dcbf2d359ac01b8667001acd567f7e63d81a57fe2a2bb4",
+    "wordCount": 240,
+    "durationSeconds": 92.90322580645162
+  },
+  {
+    "storyId": "tx-l018",
+    "episodeId": "veronica-episode-13",
+    "variant": "long",
+    "path": "content/long/en/tx-l018.md",
+    "rawSha256": "da3feb279a51188cca330027bc334bfdcd401efb7ff692393d76b697be7d0bca",
+    "normalizedHash": "da3feb279a51188cca330027bc334bfdcd401efb7ff692393d76b697be7d0bca",
+    "wordCount": 1526,
+    "durationSeconds": 610.4
+  },
+  {
+    "storyId": "pos-l04-s03",
+    "episodeId": "veronica-episode-13",
+    "variant": "short",
+    "path": "content/shorts/en/pos-l04-s03-make-other-people-talk-about-your-expertise.md",
+    "rawSha256": "7af960f43aed69de8f4333a406a8c7d86933b15b82dcc486febe6324905502c7",
+    "normalizedHash": "7af960f43aed69de8f4333a406a8c7d86933b15b82dcc486febe6324905502c7",
+    "wordCount": 235,
+    "durationSeconds": 90.96774193548387
+  },
+  {
+    "storyId": "pos-l05-s03",
+    "episodeId": "veronica-episode-13",
+    "variant": "short",
+    "path": "content/shorts/en/pos-l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+    "rawSha256": "3ce3d5c2d59b4d009f5187700d90f58d2d137cfe099442e9978abc12e2b2735e",
+    "normalizedHash": "3ce3d5c2d59b4d009f5187700d90f58d2d137cfe099442e9978abc12e2b2735e",
+    "wordCount": 229,
+    "durationSeconds": 88.64516129032259
+  },
+  {
+    "storyId": "osc-l07",
+    "episodeId": "veronica-episode-14",
+    "variant": "long",
+    "path": "content/long/en/osc-07-why-selling-feels-difficult.md",
+    "rawSha256": "cc589e587c4c4dfc05cd259056e1a4db9e452b47a3507f531e642e07cca7c21a",
+    "normalizedHash": "cc589e587c4c4dfc05cd259056e1a4db9e452b47a3507f531e642e07cca7c21a",
+    "wordCount": 1521,
+    "durationSeconds": 608.4000000000001
+  },
+  {
+    "storyId": "osc-s07a",
+    "episodeId": "veronica-episode-14",
+    "variant": "short",
+    "path": "content/shorts/en/osc-07a-why-selling-feels-uncomfortable.md",
+    "rawSha256": "78ba880498b3caa1964d2f9e58f54ec9ed02a578b594f6a1abe0a310195d7580",
+    "normalizedHash": "78ba880498b3caa1964d2f9e58f54ec9ed02a578b594f6a1abe0a310195d7580",
+    "wordCount": 233,
+    "durationSeconds": 90.19354838709677
+  },
+  {
+    "storyId": "osc-s07b",
+    "episodeId": "veronica-episode-14",
+    "variant": "short",
+    "path": "content/shorts/en/osc-07b-selling-isnt-manipulation.md",
+    "rawSha256": "2ceaf0d75e301ecf0695ffdecff3d8973dd85a5e560b7ada74f73eb954ea8608",
+    "normalizedHash": "2ceaf0d75e301ecf0695ffdecff3d8973dd85a5e560b7ada74f73eb954ea8608",
+    "wordCount": 230,
+    "durationSeconds": 89.03225806451613
+  },
+  {
+    "storyId": "pos-l03",
+    "episodeId": "veronica-episode-15",
+    "variant": "long",
+    "path": "content/long/en/pos-03-how-to-position-yourself-as-an-expert-from-zero.md",
+    "rawSha256": "4b49bdc6b803ac78290079d0f83a6a8027ab562980b50635143754b1475e2db9",
+    "normalizedHash": "4b49bdc6b803ac78290079d0f83a6a8027ab562980b50635143754b1475e2db9",
+    "wordCount": 1456,
+    "durationSeconds": 582.4
+  },
+  {
+    "storyId": "pos-l03-s01",
+    "episodeId": "veronica-episode-15",
+    "variant": "short",
+    "path": "content/shorts/en/pos-l03-s01-you-cant-just-call-yourself-an-expert.md",
+    "rawSha256": "8f179db91e01d7ca6543fe456c904f4298da9f0037202736c67dc01d42a67007",
+    "normalizedHash": "8f179db91e01d7ca6543fe456c904f4298da9f0037202736c67dc01d42a67007",
+    "wordCount": 226,
+    "durationSeconds": 87.48387096774194
+  },
+  {
+    "storyId": "pos-l03-s02",
+    "episodeId": "veronica-episode-15",
+    "variant": "short",
+    "path": "content/shorts/en/pos-l03-s02-three-signals-to-build-from-zero.md",
+    "rawSha256": "7b9352a197056d96ca929b31ac828934a00b31c46eaf38f6911857366c84638a",
+    "normalizedHash": "7b9352a197056d96ca929b31ac828934a00b31c46eaf38f6911857366c84638a",
+    "wordCount": 235,
+    "durationSeconds": 90.96774193548387
+  },
+  {
+    "storyId": "osc-l08",
+    "episodeId": "veronica-episode-16",
+    "variant": "long",
+    "path": "content/long/en/osc-08-sales-without-chasing-everyone.md",
+    "rawSha256": "3c96054f3ab8d13c382f9ee6d4ec8bcac958511ee537736a8be68803613187c9",
+    "normalizedHash": "3c96054f3ab8d13c382f9ee6d4ec8bcac958511ee537736a8be68803613187c9",
+    "wordCount": 1511,
+    "durationSeconds": 604.4000000000001
+  },
+  {
+    "storyId": "osc-s08a",
+    "episodeId": "veronica-episode-16",
+    "variant": "short",
+    "path": "content/shorts/en/osc-08a-stop-chasing-customers.md",
+    "rawSha256": "d51232b6636cbd7466d1024d5d56ecaeb348ce53b1eafa19ca87592432c2b637",
+    "normalizedHash": "d51232b6636cbd7466d1024d5d56ecaeb348ce53b1eafa19ca87592432c2b637",
+    "wordCount": 233,
+    "durationSeconds": 90.19354838709677
+  },
+  {
+    "storyId": "osc-s08b",
+    "episodeId": "veronica-episode-16",
+    "variant": "short",
+    "path": "content/shorts/en/osc-08b-prospecting-without-being-annoying.md",
+    "rawSha256": "84078ce8d98aa3f4c83ae3401740768846c54c02aa6ca4700450078ba1b30f37",
+    "normalizedHash": "84078ce8d98aa3f4c83ae3401740768846c54c02aa6ca4700450078ba1b30f37",
+    "wordCount": 228,
+    "durationSeconds": 88.25806451612902
+  },
+  {
+    "storyId": "pos-l05",
+    "episodeId": "veronica-episode-17",
+    "variant": "long",
+    "path": "content/long/en/pos-05-why-writing-a-book-can-make-you-the-expert.md",
+    "rawSha256": "4a09f21a1ed6cb6f6b917a7f3ed53814675ae50c82c2a499f9b1f4f4758b47c9",
+    "normalizedHash": "4a09f21a1ed6cb6f6b917a7f3ed53814675ae50c82c2a499f9b1f4f4758b47c9",
+    "wordCount": 1575,
+    "durationSeconds": 630
+  },
+  {
+    "storyId": "pos-l05-s01",
+    "episodeId": "veronica-episode-17",
+    "variant": "short",
+    "path": "content/shorts/en/pos-l05-s01-you-dont-need-a-publisher.md",
+    "rawSha256": "7e9bb0f98ed34323af379ae2e810badbc6b12d30bc471f4d6dca57c2ab369a1a",
+    "normalizedHash": "7e9bb0f98ed34323af379ae2e810badbc6b12d30bc471f4d6dca57c2ab369a1a",
+    "wordCount": 234,
+    "durationSeconds": 90.58064516129033
+  },
+  {
+    "storyId": "pos-l05-s02",
+    "episodeId": "veronica-episode-17",
+    "variant": "short",
+    "path": "content/shorts/en/pos-l05-s02-dont-write-a-book-about-everything-you-know.md",
+    "rawSha256": "910c7e0aa78e8dcfd6c25f368b3685ce515fc0f501d733bd7522b7fb5d25aa88",
+    "normalizedHash": "910c7e0aa78e8dcfd6c25f368b3685ce515fc0f501d733bd7522b7fb5d25aa88",
+    "wordCount": 237,
+    "durationSeconds": 91.74193548387098
+  },
+  {
+    "storyId": "tx-l050",
+    "episodeId": "veronica-episode-18",
+    "variant": "long",
+    "path": "content/long/en/tx-l050.md",
+    "rawSha256": "153abf00631b183fcd3a86d427c42934b2a9d72ace81124bee607ea108651d7d",
+    "normalizedHash": "153abf00631b183fcd3a86d427c42934b2a9d72ace81124bee607ea108651d7d",
+    "wordCount": 1554,
+    "durationSeconds": 621.5999999999999
+  },
+  {
+    "storyId": "pos-l02-s03",
+    "episodeId": "veronica-episode-18",
+    "variant": "short",
+    "path": "content/shorts/en/pos-l02-s03-market-problem-solution-test.md",
+    "rawSha256": "3f29c7be9a11fa04b7f891c3b370854d1f7a038478fc94fa79ee3717fd31cd2a",
+    "normalizedHash": "3f29c7be9a11fa04b7f891c3b370854d1f7a038478fc94fa79ee3717fd31cd2a",
+    "wordCount": 225,
+    "durationSeconds": 87.09677419354838
+  },
+  {
+    "storyId": "tx-s027",
+    "episodeId": "veronica-episode-18",
+    "variant": "short",
+    "path": "content/shorts/en/tx-s027.md",
+    "rawSha256": "31c4bacba8a2db7ee00e1794115c3da063263820169287201f41a979d6e97bad",
+    "normalizedHash": "31c4bacba8a2db7ee00e1794115c3da063263820169287201f41a979d6e97bad",
+    "wordCount": 231,
+    "durationSeconds": 89.41935483870967
+  }
+]

@@ -1,0 +1,46 @@
+[
+  {
+    "excludedId": "L022",
+    "source": "full-transcripted-pack-wave-01",
+    "retainedId": "osc-l04",
+    "reason": "near-duplicate offer-design angle; multilingual Pack 2 v4 retained"
+  },
+  {
+    "excludedId": "S001",
+    "source": "full-transcripted-pack-wave-01",
+    "retainedId": "pos-l01-s01",
+    "reason": "direct duplicate title/thesis; Pack 1 v5 retained"
+  },
+  {
+    "excludedId": "S031",
+    "source": "full-transcripted-pack-wave-01",
+    "retainedId": "osc-s03a",
+    "reason": "near-duplicate outcome-over-product thesis; multilingual Pack 2 retained"
+  },
+  {
+    "excludedId": "S041",
+    "source": "full-transcripted-pack-wave-01",
+    "retainedId": "osc-s03a",
+    "reason": "near-duplicate customer-buys-outcome thesis; multilingual Pack 2 retained"
+  },
+  {
+    "excluded": "veronica-content-pack-1 production scripts",
+    "retained": "vero/veronica-stories-editorial-master-v5",
+    "reason": "editorial-master-v5 is the later timing/editorial authority"
+  },
+  {
+    "excluded": "veronica-content-pack-1/packed and youtube-positioning-shorts-v3-50s",
+    "retained": "vero/veronica-stories-editorial-master-v5",
+    "reason": "older/too-short derived exports superseded by v5"
+  },
+  {
+    "excluded": "vero/veronica-content-pack-2",
+    "retained": "veronica-content-pack-2",
+    "reason": "exact duplicate narration tree (48/48 longs and 96/96 shorts byte-identical)"
+  },
+  {
+    "excluded": "veronica-offer-sales-multilingual-youtube-optimized-v2 production narrations",
+    "retained": "veronica-content-pack-2 v4",
+    "reason": "older Pack 2 generation; v4 is later editorial/continuity authority"
+  }
+]

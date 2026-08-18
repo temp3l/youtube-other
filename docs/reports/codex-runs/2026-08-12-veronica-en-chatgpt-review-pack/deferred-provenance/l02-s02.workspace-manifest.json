@@ -1,0 +1,336 @@
+{
+  "episodeId": "l02-s02-why-smaller-niches-can-make-you-bigger",
+  "slug": "l02-s02-why-smaller-niches-can-make-you-bigger",
+  "source": {
+    "platform": "local-file",
+    "filePath": "/home/box/workspace/fehmarn-seo/youtube/other-vero/content-packs/veronica-content-pack-1/youtube-positioning-shorts-v3-50s/shorts/en/l02-s02-why-smaller-niches-can-make-you-bigger.md"
+  },
+  "sourceMetadata": {
+    "genre": "veronicabenini",
+    "creatorProfileId": "veronica-benini",
+    "contentId": "L02-S02",
+    "locale": "en",
+    "variant": "short",
+    "positioningPlanHash": "356fb894b7588ea9620f5191b7cb6dc4886a28dae82f9148303f3f0f81a43e13",
+    "syntheticCreatorLikenessAllowed": false,
+    "canonicalPreImagePlanHash": "f700a51165a3cdc5f246d740b553f249a9a5498030a218f07dc0d9372d7d3521",
+    "canonicalLocaleTimingArtifactPath": "locales/en/short/canonical-timing.v1.json",
+    "timingPhase": "post-tts-reconciled"
+  },
+  "scenePlan": {
+    "sourceId": "l02-s02-why-smaller-niches-can-make-you-bigger",
+    "scenes": [
+      {
+        "id": "scene-001",
+        "sequenceNumber": 1,
+        "canonicalNarration": "Choosing a smaller niche can feel like throwing customers away. But early positioning often needs the opposite of breadth. A specific niche gives people a simple reason to remember you.",
+        "sourceSegmentIds": [
+          "scene-001"
+        ],
+        "estimatedDurationSeconds": 6.3740320996500675,
+        "plannedDurationSeconds": 6.374,
+        "reconciledDurationSeconds": 6.3740320996500675,
+        "timingSource": "proportional-total-audio-reconciliation",
+        "timingConfidence": "estimated",
+        "timing": {
+          "startSeconds": 0,
+          "endSeconds": 6.3740320996500675
+        },
+        "visualPurpose": "HOOK: create-tension",
+        "textRequirement": {
+          "required": false
+        },
+        "subject": "professional and relevant observer with visually distinct roles",
+        "action": "people pass the broad display; the intended person stops at the specific situation cue; another person gathers the varied proof artifacts around one recurring expertise cue and recalls the association",
+        "setting": "public choice space with a mixed flow of people and two differently focused service displays",
+        "composition": "broad display recedes beside an uninterested crowd; one specific situation cue stops the intended person",
+        "cameraFraming": "documentary eye-level view with the evidence, action, and visible response legible in one frame",
+        "mood": "dim broad corridor against bright focused room; hook",
+        "continuityReferences": [],
+        "onScreenText": "",
+        "negativeConstraints": [
+          "no readable text, letters, numbers, logos, UI, or watermarks",
+          "no depiction or synthetic likeness of Veronica Benini",
+          "no generic motivational stock montage, laptop-at-desk pose, or stock handshake"
+        ],
+        "aspectRatios": [
+          "9:16"
+        ],
+        "imagePrompt": "Text-free 9:16 Veronica conceptual Short. Subject: professional and relevant observer with visually distinct roles. Environment: public choice space with a mixed flow of people and two differently focused service displays. Composition: broad display recedes beside an uninterested crowd; one specific situation cue stops the intended person. Camera: documentary eye-level view with the evidence, action, and visible response legible in one frame. Must show: broad undifferentiated display, specific situation cue, mixed crowd, stopping gesture. Capture one stable condition: people pass the broad display; the intended person stops at the specific situation cue; another person gathers the varied proof artifacts around one recurring expertise cue and recalls the association. Visible thesis: A specific niche gives people a simple reason to remember you. No readable text, logos, UI, occupation proxy, generic stock pose, decorative abstraction, prism, light laboratory, or unexplained diagram.",
+        "expectedImageFilenames": [
+          "scene-001-9x16.png"
+        ],
+        "qualityStatus": "semantic-review-required"
+      },
+      {
+        "id": "scene-002",
+        "sequenceNumber": 2,
+        "canonicalNarration": "It makes your examples sharper, your content easier to plan, and your offer easier to understand. Once the market knows what you are the person for, you can expand from a position of strength.",
+        "sourceSegmentIds": [
+          "scene-002"
+        ],
+        "estimatedDurationSeconds": 8.590043259490757,
+        "plannedDurationSeconds": 8.59,
+        "reconciledDurationSeconds": 8.590043259490757,
+        "timingSource": "proportional-total-audio-reconciliation",
+        "timingConfidence": "estimated",
+        "timing": {
+          "startSeconds": 6.3740320996500675,
+          "endSeconds": 14.964075359140825
+        },
+        "visualPurpose": "PROOF: define-category",
+        "textRequirement": {
+          "required": false
+        },
+        "subject": "professional and relevant observer with visually distinct roles",
+        "action": "the professional aligns distinct offer, profile, proof, and public-context artifacts around one shared expertise cue while an observer follows the connection; a first-time visitor sorts the visible offer into a clear category and points to who it serves",
+        "setting": "service-design worktable with customer problem evidence and a separate response prototype",
+        "composition": "one decisive transition moment; four separate touchpoints share one visible evidence cue while unrelated cues remain absent",
+        "cameraFraming": "documentary eye-level view with the evidence, action, and visible response legible in one frame",
+        "mood": "soft directional editorial daylight; proof",
+        "continuityReferences": [
+          "scene-001"
+        ],
+        "onScreenText": "",
+        "negativeConstraints": [
+          "no readable text, letters, numbers, logos, UI, or watermarks",
+          "no depiction or synthetic likeness of Veronica Benini",
+          "no generic motivational stock montage, laptop-at-desk pose, or stock handshake"
+        ],
+        "aspectRatios": [
+          "9:16"
+        ],
+        "imagePrompt": "Text-free 9:16 Veronica conceptual Short. Subject: professional and relevant observer with visually distinct roles. Environment: service-design worktable with customer problem evidence and a separate response prototype. Composition: one decisive transition moment; four separate touchpoints share one visible evidence cue while unrelated cues remain absent. Camera: documentary eye-level view with the evidence, action, and visible response legible in one frame. Must show: customer problem evidence, unmatched package, aligned response prototype, clear category, focused market position, professional, buyers or market observers, examples, content planning materials, offer. Capture the decisive causal change in one coherent instant. Prior context: one decisive transition moment; four separate touchpoints share one visible evidence cue while unrelated cues remain absent. Primary actor: the recurring professional. Current action: the professional aligns distinct offer, profile, proof, and public-context artifacts around one shared expertise cue while an observer follows the connection; a first-time visitor sorts the visible offer into a clear category and points to who it serves. Emerging consequence: It makes your examples sharper, your content easier to plan, and your offer easier to understand. Visible thesis: It makes your examples sharper, your content easier to plan, and your offer easier to understand. No readable text, logos, UI, occupation proxy, generic stock pose, decorative abstraction, prism, light laboratory, or unexplained diagram.",
+        "expectedImageFilenames": [
+          "scene-002-9x16.png"
+        ],
+        "qualityStatus": "semantic-review-required"
+      },
+      {
+        "id": "scene-003",
+        "sequenceNumber": 3,
+        "canonicalNarration": "Starting broad is harder because nobody knows which part of your expertise to remember first. The niche is a doorway, not a wall.",
+        "sourceSegmentIds": [
+          "scene-003"
+        ],
+        "estimatedDurationSeconds": 8.590043259490754,
+        "plannedDurationSeconds": 8.589999999999998,
+        "reconciledDurationSeconds": 8.590043259490754,
+        "timingSource": "proportional-total-audio-reconciliation",
+        "timingConfidence": "estimated",
+        "timing": {
+          "startSeconds": 14.964075359140825,
+          "endSeconds": 23.554118618631577
+        },
+        "visualPurpose": "MANIFESTATION: show-consequence",
+        "textRequirement": {
+          "required": false
+        },
+        "subject": "professional and intended audience with visually distinct roles",
+        "action": "the intended person enters through the specific doorway while the professional keeps the wider routes visibly open",
+        "setting": "public threshold with a focused entrance and visibly open routes beyond",
+        "composition": "the intended person stops at the focused entrance while wider accessible paths remain visible beyond the threshold",
+        "cameraFraming": "documentary eye-level view with the choice point and open continuation legible in one frame",
+        "mood": "controlled graphic light with clear shape separation; manifestation",
+        "continuityReferences": [
+          "scene-002"
+        ],
+        "onScreenText": "",
+        "negativeConstraints": [
+          "no readable text, letters, numbers, logos, UI, or watermarks",
+          "no depiction or synthetic likeness of Veronica Benini",
+          "no generic motivational stock montage, laptop-at-desk pose, or stock handshake"
+        ],
+        "aspectRatios": [
+          "9:16"
+        ],
+        "imagePrompt": "Text-free 9:16 Veronica conceptual Short. Subject: professional and intended audience with visually distinct roles. Environment: public threshold with a focused entrance and visibly open routes beyond. Composition: the intended person stops at the focused entrance while wider accessible paths remain visible beyond the threshold. Camera: documentary eye-level view with the choice point and open continuation legible in one frame. Must show: specific open doorway, intended audience cue, wider paths beyond. Capture the decisive causal change in one coherent instant. Prior context: the intended person stops at the focused entrance while wider accessible paths remain visible beyond the threshold. Primary actor: the buyer. Current action: the buyer commits through the clear threshold. Emerging consequence: a focused relevant audience is visible beyond the doorway. Visible thesis: A specific doorway gives the intended audience a visible point of entry while leaving wider paths accessible beyond it. No readable text, logos, UI, occupation proxy, generic stock pose, decorative abstraction, prism, light laboratory, or unexplained diagram.",
+        "expectedImageFilenames": [
+          "scene-003-9x16.png"
+        ],
+        "qualityStatus": "semantic-review-required"
+      },
+      {
+        "id": "scene-004",
+        "sequenceNumber": 4,
+        "canonicalNarration": "It gives referrals a simple sentence, gives your content recurring problems to explore, and gives prospects a faster way to decide whether you are relevant.",
+        "sourceSegmentIds": [
+          "scene-004"
+        ],
+        "estimatedDurationSeconds": 8.590043259490757,
+        "plannedDurationSeconds": 8.59,
+        "reconciledDurationSeconds": 8.590043259490757,
+        "timingSource": "proportional-total-audio-reconciliation",
+        "timingConfidence": "estimated",
+        "timing": {
+          "startSeconds": 23.554118618631577,
+          "endSeconds": 32.14416187812233
+        },
+        "visualPurpose": "REVERSAL: define-category",
+        "textRequirement": {
+          "required": false
+        },
+        "subject": "people responding to two simultaneous visible conditions",
+        "action": "a first-time visitor scans the opening screen and points to the single dominant service cue; the visitor follows one matching evidence cue across the profile, website, offer, and content",
+        "setting": "quiet usability-test setting with one text-free website opening screen",
+        "composition": "visitor in profile beside one large opening screen; one dominant service cue occupies the first visual hierarchy",
+        "cameraFraming": "documentary eye-level view with the evidence, action, and visible response legible in one frame",
+        "mood": "soft directional editorial daylight; reversal",
+        "continuityReferences": [
+          "scene-003"
+        ],
+        "onScreenText": "",
+        "negativeConstraints": [
+          "no readable text, letters, numbers, logos, UI, or watermarks",
+          "no depiction or synthetic likeness of Veronica Benini",
+          "no generic motivational stock montage, laptop-at-desk pose, or stock handshake"
+        ],
+        "aspectRatios": [
+          "9:16"
+        ],
+        "imagePrompt": "Text-free 9:16 Veronica conceptual Short. Subject: people responding to two simultaneous visible conditions. Environment: quiet usability-test setting with one text-free website opening screen. Composition: visitor in profile beside one large opening screen; one dominant service cue occupies the first visual hierarchy. Camera: documentary eye-level view with the evidence, action, and visible response legible in one frame. Must show: text-free opening screen, single dominant service cue, visitor attention gesture, positioning or message system being described, referrals, compact referral communication cue, content, recurring customer-problem cues, content examples, prospects. Capture the decisive causal change in one coherent instant. Prior context: visitor in profile beside one large opening screen; one dominant service cue occupies the first visual hierarchy. Primary actor: the buyer. Current action: a first-time visitor scans the opening screen and points to the single dominant service cue; the visitor follows one matching evidence cue across the profile, website, offer, and content. Emerging consequence: referrals can communicate the offer simply, content gains recurring problem themes, and prospects can assess relevance faster. Visible thesis: It gives referrals a simple sentence, gives your content recurring problems to explore, and gives prospects a faster way to decide whether you are relevant; as a result, referrals can communicate the offer simply, content gains recurring problem themes, and prospects can assess relevance faster. No readable UI copy, legible brand names, logos, dense interface text, occupation proxy, generic stock pose, decorative abstraction, prism, light laboratory, or unexplained diagram.",
+        "expectedImageFilenames": [
+          "scene-004-9x16.png"
+        ],
+        "qualityStatus": "semantic-review-required"
+      },
+      {
+        "id": "scene-005",
+        "sequenceNumber": 5,
+        "canonicalNarration": "Later, if adjacent customers begin arriving for the same underlying expertise, you can widen the doorway.",
+        "sourceSegmentIds": [
+          "scene-005"
+        ],
+        "estimatedDurationSeconds": 8.590043259490761,
+        "plannedDurationSeconds": 8.590000000000003,
+        "reconciledDurationSeconds": 8.590043259490761,
+        "timingSource": "proportional-total-audio-reconciliation",
+        "timingConfidence": "estimated",
+        "timing": {
+          "startSeconds": 32.14416187812233,
+          "endSeconds": 40.734205137613095
+        },
+        "visualPurpose": "METHOD: explain-causality",
+        "textRequirement": {
+          "required": false
+        },
+        "subject": "professional and intended audience with visually distinct roles",
+        "action": "the professional widens the established doorway as adjacent intended people arrive",
+        "setting": "public threshold with a focused entrance and visibly open routes beyond",
+        "composition": "adjacent intended people arrive at the focused threshold as the professional visibly widens it",
+        "cameraFraming": "documentary eye-level view with the choice point and open continuation legible in one frame",
+        "mood": "soft directional editorial daylight; method",
+        "continuityReferences": [
+          "scene-004"
+        ],
+        "onScreenText": "",
+        "negativeConstraints": [
+          "no readable text, letters, numbers, logos, UI, or watermarks",
+          "no depiction or synthetic likeness of Veronica Benini",
+          "no generic motivational stock montage, laptop-at-desk pose, or stock handshake"
+        ],
+        "aspectRatios": [
+          "9:16"
+        ],
+        "imagePrompt": "Text-free 9:16 Veronica conceptual Short. Subject: professional and intended audience with visually distinct roles. Environment: public threshold with a focused entrance and visibly open routes beyond. Composition: adjacent intended people arrive at the focused threshold as the professional visibly widens it. Camera: documentary eye-level view with the choice point and open continuation legible in one frame. Must show: specific open doorway, intended audience cue, wider paths beyond. Capture the decisive causal change in one coherent instant. Prior context: adjacent intended people arrive at the focused threshold as the professional visibly widens it. Primary actor: the recurring professional. Current action: the recurring professional actively opens the established threshold wider. Emerging consequence: adjacent buyers are visible at the expanding edge. Visible thesis: Recognition lets the professional widen the doorway for adjacent customers with the same underlying expertise. No readable text, logos, UI, occupation proxy, generic stock pose, decorative abstraction, prism, light laboratory, or unexplained diagram.",
+        "expectedImageFilenames": [
+          "scene-005-9x16.png"
+        ],
+        "qualityStatus": "semantic-review-required"
+      },
+      {
+        "id": "scene-006",
+        "sequenceNumber": 6,
+        "canonicalNarration": "Expanding after recognition is very different from asking the market to remember everything about you from day one.",
+        "sourceSegmentIds": [
+          "scene-006"
+        ],
+        "estimatedDurationSeconds": 8.590043259490754,
+        "plannedDurationSeconds": 8.589999999999996,
+        "reconciledDurationSeconds": 8.590043259490754,
+        "timingSource": "proportional-total-audio-reconciliation",
+        "timingConfidence": "estimated",
+        "timing": {
+          "startSeconds": 40.734205137613095,
+          "endSeconds": 49.32424839710385
+        },
+        "visualPurpose": "PROOF: make-proof-visible",
+        "textRequirement": {
+          "required": false
+        },
+        "subject": "professional and relevant observer with visually distinct roles",
+        "action": "another person groups several different proof artifacts around the same professional and recalls the shared association; another person gathers the varied proof artifacts around one recurring expertise cue and recalls the association",
+        "setting": "public evidence wall assembled from varied but related work outputs",
+        "composition": "one decisive transition moment; different proof formats form one coherent cluster around a single expertise cue",
+        "cameraFraming": "documentary eye-level view with the evidence, action, and visible response legible in one frame",
+        "mood": "soft directional editorial daylight; proof",
+        "continuityReferences": [
+          "scene-005"
+        ],
+        "onScreenText": "",
+        "negativeConstraints": [
+          "no readable text, letters, numbers, logos, UI, or watermarks",
+          "no depiction or synthetic likeness of Veronica Benini",
+          "no generic motivational stock montage, laptop-at-desk pose, or stock handshake"
+        ],
+        "aspectRatios": [
+          "9:16"
+        ],
+        "imagePrompt": "Text-free 9:16 Veronica conceptual Short. Subject: professional and relevant observer with visually distinct roles. Environment: public evidence wall assembled from varied but related work outputs. Composition: one decisive transition moment; different proof formats form one coherent cluster around a single expertise cue. Camera: documentary eye-level view with the evidence, action, and visible response legible in one frame. Must show: related proof artifacts, recognition gesture, single recurring expertise cue. Capture the decisive causal change in one coherent instant. Prior context: one decisive transition moment; different proof formats form one coherent cluster around a single expertise cue. Primary actor: the buyer. Current action: another person groups several different proof artifacts around the same professional and recalls the shared association. Emerging consequence: Expanding after recognition is very different from asking the market to remember everything about you from day one. Visible thesis: Expanding after recognition is very different from asking the market to remember everything about you from day one. No readable text, logos, UI, occupation proxy, generic stock pose, decorative abstraction, prism, light laboratory, or unexplained diagram.",
+        "expectedImageFilenames": [
+          "scene-006-9x16.png"
+        ],
+        "qualityStatus": "semantic-review-required"
+      },
+      {
+        "id": "scene-007",
+        "sequenceNumber": 7,
+        "canonicalNarration": "A niche gives you a foothold. It does not have to define your entire future.",
+        "sourceSegmentIds": [
+          "scene-007"
+        ],
+        "estimatedDurationSeconds": 8.592043269562815,
+        "plannedDurationSeconds": 8.591999999999999,
+        "reconciledDurationSeconds": 8.592043269562815,
+        "timingSource": "proportional-total-audio-reconciliation",
+        "timingConfidence": "estimated",
+        "timing": {
+          "startSeconds": 49.32424839710385,
+          "endSeconds": 57.916291666666666
+        },
+        "visualPurpose": "PAYOFF: deliver-payoff",
+        "textRequirement": {
+          "required": false
+        },
+        "subject": "professional and intended audience with visually distinct roles",
+        "action": "the intended person steadies at the specific doorway while the professional keeps the wider routes visibly open",
+        "setting": "public threshold with a focused entrance and visibly open routes beyond",
+        "composition": "the intended person gains a stable foothold at the focused entrance while wider routes remain visible beyond",
+        "cameraFraming": "documentary eye-level view with the choice point and open continuation legible in one frame",
+        "mood": "soft directional editorial daylight; payoff",
+        "continuityReferences": [
+          "scene-006"
+        ],
+        "onScreenText": "",
+        "negativeConstraints": [
+          "no readable text, letters, numbers, logos, UI, or watermarks",
+          "no depiction or synthetic likeness of Veronica Benini",
+          "no generic motivational stock montage, laptop-at-desk pose, or stock handshake"
+        ],
+        "aspectRatios": [
+          "9:16"
+        ],
+        "imagePrompt": "Text-free 9:16 Veronica conceptual Short. Subject: professional and intended audience with visually distinct roles. Environment: public threshold with a focused entrance and visibly open routes beyond. Composition: the intended person gains a stable foothold at the focused entrance while wider routes remain visible beyond. Camera: documentary eye-level view with the choice point and open continuation legible in one frame. Must show: specific open doorway, intended audience cue, wider paths beyond, niche, foothold, open future, a stable entry point or foothold supplied by the niche, continued openness beyond the foothold, multiple onward possibilities remaining available, the initial foothold visibly does not confine the future. Capture one stable condition: the intended person steadies at the specific doorway while the professional keeps the wider routes visibly open. Visible thesis: A niche gives you a foothold; as a result, a stable starting point is gained without the niche determining the entire future. No readable text, logos, UI, occupation proxy, generic stock pose, decorative abstraction, prism, light laboratory, or unexplained diagram.",
+        "expectedImageFilenames": [
+          "scene-007-9x16.png"
+        ],
+        "qualityStatus": "semantic-review-required"
+      }
+    ]
+  },
+  "images": [],
+  "artifacts": [],
+  "pipelineRuns": [],
+  "createdAt": "2026-08-10T13:57:45.659Z",
+  "updatedAt": "2026-08-11T01:44:00.868Z"
+}

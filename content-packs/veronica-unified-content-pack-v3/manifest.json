@@ -1,0 +1,1406 @@
+{
+  "packId": "veronica-unified-content-pack-v3",
+  "generatedAt": "2026-08-18T02:38:00+00:00",
+  "canonicalLocale": "en",
+  "timingPolicy": {
+    "shortTargetSeconds": 90,
+    "longTargetSeconds": 600,
+    "shortWpm": {
+      "en": 155,
+      "es": 155,
+      "it": 155,
+      "fr": 155,
+      "pt": 155,
+      "de": 150
+    },
+    "longWpm": {
+      "en": 150,
+      "es": 150,
+      "it": 150,
+      "fr": 150,
+      "pt": 150,
+      "de": 145
+    },
+    "shortPlanningWordBands": {
+      "en": [
+        215,
+        230
+      ],
+      "es": [
+        225,
+        240
+      ],
+      "it": [
+        225,
+        240
+      ],
+      "fr": [
+        225,
+        240
+      ],
+      "pt": [
+        225,
+        240
+      ],
+      "de": [
+        218,
+        233
+      ]
+    },
+    "englishShortWordPolicy": {
+      "preferred": [
+        215,
+        225
+      ],
+      "actionableWarning": [
+        226,
+        230
+      ],
+      "hardMinimum": 215,
+      "hardMaximum": 230
+    },
+    "longPublicSeconds": [
+      570,
+      630
+    ],
+    "selectedAudioBecomesCanonicalAfterTTS": true
+  },
+  "counts": {
+    "logicalLongs": 18,
+    "logicalShorts": 36,
+    "logicalTotal": 54,
+    "narrationFiles": 324,
+    "locales": [
+      "de",
+      "en",
+      "es",
+      "fr",
+      "it",
+      "pt"
+    ]
+  },
+  "allPreTtsTimingPass": true,
+  "stories": [
+    {
+      "id": "osc-l01",
+      "format": "long",
+      "series": "offer-sales-conversion",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/long/de/osc-01-a-good-business-starts-with-the-right-business-model.md",
+        "en": "content/long/en/osc-01-a-good-business-starts-with-the-right-business-model.md",
+        "es": "content/long/es/osc-01-a-good-business-starts-with-the-right-business-model.md",
+        "fr": "content/long/fr/osc-01-a-good-business-starts-with-the-right-business-model.md",
+        "it": "content/long/it/osc-01-a-good-business-starts-with-the-right-business-model.md",
+        "pt": "content/long/pt/osc-01-a-good-business-starts-with-the-right-business-model.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "osc-l02",
+      "format": "long",
+      "series": "offer-sales-conversion",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/long/de/osc-02-your-ideal-customer-is-not-everyone.md",
+        "en": "content/long/en/osc-02-your-ideal-customer-is-not-everyone.md",
+        "es": "content/long/es/osc-02-your-ideal-customer-is-not-everyone.md",
+        "fr": "content/long/fr/osc-02-your-ideal-customer-is-not-everyone.md",
+        "it": "content/long/it/osc-02-your-ideal-customer-is-not-everyone.md",
+        "pt": "content/long/pt/osc-02-your-ideal-customer-is-not-everyone.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "osc-l03",
+      "format": "long",
+      "series": "offer-sales-conversion",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/long/de/osc-03-people-dont-buy-your-product-they-buy-the-promise.md",
+        "en": "content/long/en/osc-03-people-dont-buy-your-product-they-buy-the-promise.md",
+        "es": "content/long/es/osc-03-people-dont-buy-your-product-they-buy-the-promise.md",
+        "fr": "content/long/fr/osc-03-people-dont-buy-your-product-they-buy-the-promise.md",
+        "it": "content/long/it/osc-03-people-dont-buy-your-product-they-buy-the-promise.md",
+        "pt": "content/long/pt/osc-03-people-dont-buy-your-product-they-buy-the-promise.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "osc-l04",
+      "format": "long",
+      "series": "offer-sales-conversion",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/long/de/osc-04-how-to-build-an-offer-people-actually-want.md",
+        "en": "content/long/en/osc-04-how-to-build-an-offer-people-actually-want.md",
+        "es": "content/long/es/osc-04-how-to-build-an-offer-people-actually-want.md",
+        "fr": "content/long/fr/osc-04-how-to-build-an-offer-people-actually-want.md",
+        "it": "content/long/it/osc-04-how-to-build-an-offer-people-actually-want.md",
+        "pt": "content/long/pt/osc-04-how-to-build-an-offer-people-actually-want.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "osc-l05",
+      "format": "long",
+      "series": "offer-sales-conversion",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/long/de/osc-05-stop-improving-the-marketing-fix-the-product.md",
+        "en": "content/long/en/osc-05-stop-improving-the-marketing-fix-the-product.md",
+        "es": "content/long/es/osc-05-stop-improving-the-marketing-fix-the-product.md",
+        "fr": "content/long/fr/osc-05-stop-improving-the-marketing-fix-the-product.md",
+        "it": "content/long/it/osc-05-stop-improving-the-marketing-fix-the-product.md",
+        "pt": "content/long/pt/osc-05-stop-improving-the-marketing-fix-the-product.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "osc-l06",
+      "format": "long",
+      "series": "offer-sales-conversion",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/long/de/osc-06-attention-is-not-conversion.md",
+        "en": "content/long/en/osc-06-attention-is-not-conversion.md",
+        "es": "content/long/es/osc-06-attention-is-not-conversion.md",
+        "fr": "content/long/fr/osc-06-attention-is-not-conversion.md",
+        "it": "content/long/it/osc-06-attention-is-not-conversion.md",
+        "pt": "content/long/pt/osc-06-attention-is-not-conversion.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "osc-l07",
+      "format": "long",
+      "series": "offer-sales-conversion",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/long/de/osc-07-why-selling-feels-difficult.md",
+        "en": "content/long/en/osc-07-why-selling-feels-difficult.md",
+        "es": "content/long/es/osc-07-why-selling-feels-difficult.md",
+        "fr": "content/long/fr/osc-07-why-selling-feels-difficult.md",
+        "it": "content/long/it/osc-07-why-selling-feels-difficult.md",
+        "pt": "content/long/pt/osc-07-why-selling-feels-difficult.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "osc-l08",
+      "format": "long",
+      "series": "offer-sales-conversion",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/long/de/osc-08-sales-without-chasing-everyone.md",
+        "en": "content/long/en/osc-08-sales-without-chasing-everyone.md",
+        "es": "content/long/es/osc-08-sales-without-chasing-everyone.md",
+        "fr": "content/long/fr/osc-08-sales-without-chasing-everyone.md",
+        "it": "content/long/it/osc-08-sales-without-chasing-everyone.md",
+        "pt": "content/long/pt/osc-08-sales-without-chasing-everyone.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "pos-l01",
+      "format": "long",
+      "series": "positioning",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/long/de/pos-01-why-being-good-at-your-job-isnt-enough.md",
+        "en": "content/long/en/pos-01-why-being-good-at-your-job-isnt-enough.md",
+        "es": "content/long/es/pos-01-why-being-good-at-your-job-isnt-enough.md",
+        "fr": "content/long/fr/pos-01-why-being-good-at-your-job-isnt-enough.md",
+        "it": "content/long/it/pos-01-why-being-good-at-your-job-isnt-enough.md",
+        "pt": "content/long/pt/pos-01-why-being-good-at-your-job-isnt-enough.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "pos-l02",
+      "format": "long",
+      "series": "positioning",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/long/de/pos-02-how-to-find-your-niche-without-making-yourself-too-small.md",
+        "en": "content/long/en/pos-02-how-to-find-your-niche-without-making-yourself-too-small.md",
+        "es": "content/long/es/pos-02-how-to-find-your-niche-without-making-yourself-too-small.md",
+        "fr": "content/long/fr/pos-02-how-to-find-your-niche-without-making-yourself-too-small.md",
+        "it": "content/long/it/pos-02-how-to-find-your-niche-without-making-yourself-too-small.md",
+        "pt": "content/long/pt/pos-02-how-to-find-your-niche-without-making-yourself-too-small.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "pos-l03",
+      "format": "long",
+      "series": "positioning",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/long/de/pos-03-how-to-position-yourself-as-an-expert-from-zero.md",
+        "en": "content/long/en/pos-03-how-to-position-yourself-as-an-expert-from-zero.md",
+        "es": "content/long/es/pos-03-how-to-position-yourself-as-an-expert-from-zero.md",
+        "fr": "content/long/fr/pos-03-how-to-position-yourself-as-an-expert-from-zero.md",
+        "it": "content/long/it/pos-03-how-to-position-yourself-as-an-expert-from-zero.md",
+        "pt": "content/long/pt/pos-03-how-to-position-yourself-as-an-expert-from-zero.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "pos-l04",
+      "format": "long",
+      "series": "positioning",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/long/de/pos-04-the-content-strategy-that-makes-people-remember-you.md",
+        "en": "content/long/en/pos-04-the-content-strategy-that-makes-people-remember-you.md",
+        "es": "content/long/es/pos-04-the-content-strategy-that-makes-people-remember-you.md",
+        "fr": "content/long/fr/pos-04-the-content-strategy-that-makes-people-remember-you.md",
+        "it": "content/long/it/pos-04-the-content-strategy-that-makes-people-remember-you.md",
+        "pt": "content/long/pt/pos-04-the-content-strategy-that-makes-people-remember-you.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "pos-l05",
+      "format": "long",
+      "series": "positioning",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/long/de/pos-05-why-writing-a-book-can-make-you-the-expert.md",
+        "en": "content/long/en/pos-05-why-writing-a-book-can-make-you-the-expert.md",
+        "es": "content/long/es/pos-05-why-writing-a-book-can-make-you-the-expert.md",
+        "fr": "content/long/fr/pos-05-why-writing-a-book-can-make-you-the-expert.md",
+        "it": "content/long/it/pos-05-why-writing-a-book-can-make-you-the-expert.md",
+        "pt": "content/long/pt/pos-05-why-writing-a-book-can-make-you-the-expert.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "pos-l06",
+      "format": "long",
+      "series": "positioning",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/long/de/pos-06-how-to-reposition-yourself-when-your-business-changes.md",
+        "en": "content/long/en/pos-06-how-to-reposition-yourself-when-your-business-changes.md",
+        "es": "content/long/es/pos-06-how-to-reposition-yourself-when-your-business-changes.md",
+        "fr": "content/long/fr/pos-06-how-to-reposition-yourself-when-your-business-changes.md",
+        "it": "content/long/it/pos-06-how-to-reposition-yourself-when-your-business-changes.md",
+        "pt": "content/long/pt/pos-06-how-to-reposition-yourself-when-your-business-changes.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "tx-l004",
+      "format": "long",
+      "series": "transcript-derived",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/long/de/tx-l004.md",
+        "en": "content/long/en/tx-l004.md",
+        "es": "content/long/es/tx-l004.md",
+        "fr": "content/long/fr/tx-l004.md",
+        "it": "content/long/it/tx-l004.md",
+        "pt": "content/long/pt/tx-l004.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "tx-l011",
+      "format": "long",
+      "series": "transcript-derived",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/long/de/tx-l011.md",
+        "en": "content/long/en/tx-l011.md",
+        "es": "content/long/es/tx-l011.md",
+        "fr": "content/long/fr/tx-l011.md",
+        "it": "content/long/it/tx-l011.md",
+        "pt": "content/long/pt/tx-l011.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "tx-l018",
+      "format": "long",
+      "series": "transcript-derived",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/long/de/tx-l018.md",
+        "en": "content/long/en/tx-l018.md",
+        "es": "content/long/es/tx-l018.md",
+        "fr": "content/long/fr/tx-l018.md",
+        "it": "content/long/it/tx-l018.md",
+        "pt": "content/long/pt/tx-l018.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "tx-l050",
+      "format": "long",
+      "series": "transcript-derived",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/long/de/tx-l050.md",
+        "en": "content/long/en/tx-l050.md",
+        "es": "content/long/es/tx-l050.md",
+        "fr": "content/long/fr/tx-l050.md",
+        "it": "content/long/it/tx-l050.md",
+        "pt": "content/long/pt/tx-l050.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "osc-s01a",
+      "format": "short",
+      "series": "offer-sales-conversion",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/osc-01a-revenue-is-not-a-good-business.md",
+        "en": "content/shorts/en/osc-01a-revenue-is-not-a-good-business.md",
+        "es": "content/shorts/es/osc-01a-revenue-is-not-a-good-business.md",
+        "fr": "content/shorts/fr/osc-01a-revenue-is-not-a-good-business.md",
+        "it": "content/shorts/it/osc-01a-revenue-is-not-a-good-business.md",
+        "pt": "content/shorts/pt/osc-01a-revenue-is-not-a-good-business.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "osc-s01b",
+      "format": "short",
+      "series": "offer-sales-conversion",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/osc-01b-if-you-stop-working-does-your-revenue-stop-too.md",
+        "en": "content/shorts/en/osc-01b-if-you-stop-working-does-your-revenue-stop-too.md",
+        "es": "content/shorts/es/osc-01b-if-you-stop-working-does-your-revenue-stop-too.md",
+        "fr": "content/shorts/fr/osc-01b-if-you-stop-working-does-your-revenue-stop-too.md",
+        "it": "content/shorts/it/osc-01b-if-you-stop-working-does-your-revenue-stop-too.md",
+        "pt": "content/shorts/pt/osc-01b-if-you-stop-working-does-your-revenue-stop-too.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "osc-s02a",
+      "format": "short",
+      "series": "offer-sales-conversion",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/osc-02a-stop-targeting-everyone.md",
+        "en": "content/shorts/en/osc-02a-stop-targeting-everyone.md",
+        "es": "content/shorts/es/osc-02a-stop-targeting-everyone.md",
+        "fr": "content/shorts/fr/osc-02a-stop-targeting-everyone.md",
+        "it": "content/shorts/it/osc-02a-stop-targeting-everyone.md",
+        "pt": "content/shorts/pt/osc-02a-stop-targeting-everyone.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "osc-s02b",
+      "format": "short",
+      "series": "offer-sales-conversion",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/osc-02b-stop-posting-where-your-customers-arent.md",
+        "en": "content/shorts/en/osc-02b-stop-posting-where-your-customers-arent.md",
+        "es": "content/shorts/es/osc-02b-stop-posting-where-your-customers-arent.md",
+        "fr": "content/shorts/fr/osc-02b-stop-posting-where-your-customers-arent.md",
+        "it": "content/shorts/it/osc-02b-stop-posting-where-your-customers-arent.md",
+        "pt": "content/shorts/pt/osc-02b-stop-posting-where-your-customers-arent.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "osc-s03a",
+      "format": "short",
+      "series": "offer-sales-conversion",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/osc-03a-what-does-your-customer-really-buy.md",
+        "en": "content/shorts/en/osc-03a-what-does-your-customer-really-buy.md",
+        "es": "content/shorts/es/osc-03a-what-does-your-customer-really-buy.md",
+        "fr": "content/shorts/fr/osc-03a-what-does-your-customer-really-buy.md",
+        "it": "content/shorts/it/osc-03a-what-does-your-customer-really-buy.md",
+        "pt": "content/shorts/pt/osc-03a-what-does-your-customer-really-buy.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "osc-s03b",
+      "format": "short",
+      "series": "offer-sales-conversion",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/osc-03b-the-promise-formula.md",
+        "en": "content/shorts/en/osc-03b-the-promise-formula.md",
+        "es": "content/shorts/es/osc-03b-the-promise-formula.md",
+        "fr": "content/shorts/fr/osc-03b-the-promise-formula.md",
+        "it": "content/shorts/it/osc-03b-the-promise-formula.md",
+        "pt": "content/shorts/pt/osc-03b-the-promise-formula.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "osc-s04a",
+      "format": "short",
+      "series": "offer-sales-conversion",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/osc-04a-why-good-products-still-dont-sell.md",
+        "en": "content/shorts/en/osc-04a-why-good-products-still-dont-sell.md",
+        "es": "content/shorts/es/osc-04a-why-good-products-still-dont-sell.md",
+        "fr": "content/shorts/fr/osc-04a-why-good-products-still-dont-sell.md",
+        "it": "content/shorts/it/osc-04a-why-good-products-still-dont-sell.md",
+        "pt": "content/shorts/pt/osc-04a-why-good-products-still-dont-sell.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "osc-s04b",
+      "format": "short",
+      "series": "offer-sales-conversion",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/osc-04b-make-your-offer-easier-to-buy.md",
+        "en": "content/shorts/en/osc-04b-make-your-offer-easier-to-buy.md",
+        "es": "content/shorts/es/osc-04b-make-your-offer-easier-to-buy.md",
+        "fr": "content/shorts/fr/osc-04b-make-your-offer-easier-to-buy.md",
+        "it": "content/shorts/it/osc-04b-make-your-offer-easier-to-buy.md",
+        "pt": "content/shorts/pt/osc-04b-make-your-offer-easier-to-buy.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "osc-s05a",
+      "format": "short",
+      "series": "offer-sales-conversion",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/osc-05a-marketing-may-not-be-the-problem.md",
+        "en": "content/shorts/en/osc-05a-marketing-may-not-be-the-problem.md",
+        "es": "content/shorts/es/osc-05a-marketing-may-not-be-the-problem.md",
+        "fr": "content/shorts/fr/osc-05a-marketing-may-not-be-the-problem.md",
+        "it": "content/shorts/it/osc-05a-marketing-may-not-be-the-problem.md",
+        "pt": "content/shorts/pt/osc-05a-marketing-may-not-be-the-problem.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "osc-s05b",
+      "format": "short",
+      "series": "offer-sales-conversion",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/osc-05b-too-many-choices-kill-the-offer.md",
+        "en": "content/shorts/en/osc-05b-too-many-choices-kill-the-offer.md",
+        "es": "content/shorts/es/osc-05b-too-many-choices-kill-the-offer.md",
+        "fr": "content/shorts/fr/osc-05b-too-many-choices-kill-the-offer.md",
+        "it": "content/shorts/it/osc-05b-too-many-choices-kill-the-offer.md",
+        "pt": "content/shorts/pt/osc-05b-too-many-choices-kill-the-offer.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "osc-s06a",
+      "format": "short",
+      "series": "offer-sales-conversion",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/osc-06a-views-are-not-sales.md",
+        "en": "content/shorts/en/osc-06a-views-are-not-sales.md",
+        "es": "content/shorts/es/osc-06a-views-are-not-sales.md",
+        "fr": "content/shorts/fr/osc-06a-views-are-not-sales.md",
+        "it": "content/shorts/it/osc-06a-views-are-not-sales.md",
+        "pt": "content/shorts/pt/osc-06a-views-are-not-sales.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "osc-s06b",
+      "format": "short",
+      "series": "offer-sales-conversion",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/osc-06b-trust-comes-before-conversion.md",
+        "en": "content/shorts/en/osc-06b-trust-comes-before-conversion.md",
+        "es": "content/shorts/es/osc-06b-trust-comes-before-conversion.md",
+        "fr": "content/shorts/fr/osc-06b-trust-comes-before-conversion.md",
+        "it": "content/shorts/it/osc-06b-trust-comes-before-conversion.md",
+        "pt": "content/shorts/pt/osc-06b-trust-comes-before-conversion.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "osc-s07a",
+      "format": "short",
+      "series": "offer-sales-conversion",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/osc-07a-why-selling-feels-uncomfortable.md",
+        "en": "content/shorts/en/osc-07a-why-selling-feels-uncomfortable.md",
+        "es": "content/shorts/es/osc-07a-why-selling-feels-uncomfortable.md",
+        "fr": "content/shorts/fr/osc-07a-why-selling-feels-uncomfortable.md",
+        "it": "content/shorts/it/osc-07a-why-selling-feels-uncomfortable.md",
+        "pt": "content/shorts/pt/osc-07a-why-selling-feels-uncomfortable.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "osc-s07b",
+      "format": "short",
+      "series": "offer-sales-conversion",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/osc-07b-selling-isnt-manipulation.md",
+        "en": "content/shorts/en/osc-07b-selling-isnt-manipulation.md",
+        "es": "content/shorts/es/osc-07b-selling-isnt-manipulation.md",
+        "fr": "content/shorts/fr/osc-07b-selling-isnt-manipulation.md",
+        "it": "content/shorts/it/osc-07b-selling-isnt-manipulation.md",
+        "pt": "content/shorts/pt/osc-07b-selling-isnt-manipulation.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "osc-s08a",
+      "format": "short",
+      "series": "offer-sales-conversion",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/osc-08a-stop-chasing-customers.md",
+        "en": "content/shorts/en/osc-08a-stop-chasing-customers.md",
+        "es": "content/shorts/es/osc-08a-stop-chasing-customers.md",
+        "fr": "content/shorts/fr/osc-08a-stop-chasing-customers.md",
+        "it": "content/shorts/it/osc-08a-stop-chasing-customers.md",
+        "pt": "content/shorts/pt/osc-08a-stop-chasing-customers.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "osc-s08b",
+      "format": "short",
+      "series": "offer-sales-conversion",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/osc-08b-prospecting-without-being-annoying.md",
+        "en": "content/shorts/en/osc-08b-prospecting-without-being-annoying.md",
+        "es": "content/shorts/es/osc-08b-prospecting-without-being-annoying.md",
+        "fr": "content/shorts/fr/osc-08b-prospecting-without-being-annoying.md",
+        "it": "content/shorts/it/osc-08b-prospecting-without-being-annoying.md",
+        "pt": "content/shorts/pt/osc-08b-prospecting-without-being-annoying.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "pos-l01-s01",
+      "format": "short",
+      "series": "positioning",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/pos-l01-s01-being-good-isnt-enough.md",
+        "en": "content/shorts/en/pos-l01-s01-being-good-isnt-enough.md",
+        "es": "content/shorts/es/pos-l01-s01-being-good-isnt-enough.md",
+        "fr": "content/shorts/fr/pos-l01-s01-being-good-isnt-enough.md",
+        "it": "content/shorts/it/pos-l01-s01-being-good-isnt-enough.md",
+        "pt": "content/shorts/pt/pos-l01-s01-being-good-isnt-enough.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "pos-l01-s02",
+      "format": "short",
+      "series": "positioning",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/pos-l01-s02-expertise-vs-perception.md",
+        "en": "content/shorts/en/pos-l01-s02-expertise-vs-perception.md",
+        "es": "content/shorts/es/pos-l01-s02-expertise-vs-perception.md",
+        "fr": "content/shorts/fr/pos-l01-s02-expertise-vs-perception.md",
+        "it": "content/shorts/it/pos-l01-s02-expertise-vs-perception.md",
+        "pt": "content/shorts/pt/pos-l01-s02-expertise-vs-perception.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "pos-l01-s03",
+      "format": "short",
+      "series": "positioning",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/pos-l01-s03-what-do-people-remember-you-for.md",
+        "en": "content/shorts/en/pos-l01-s03-what-do-people-remember-you-for.md",
+        "es": "content/shorts/es/pos-l01-s03-what-do-people-remember-you-for.md",
+        "fr": "content/shorts/fr/pos-l01-s03-what-do-people-remember-you-for.md",
+        "it": "content/shorts/it/pos-l01-s03-what-do-people-remember-you-for.md",
+        "pt": "content/shorts/pt/pos-l01-s03-what-do-people-remember-you-for.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "pos-l02-s01",
+      "format": "short",
+      "series": "positioning",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/pos-l02-s01-selling-to-everyone-is-the-problem.md",
+        "en": "content/shorts/en/pos-l02-s01-selling-to-everyone-is-the-problem.md",
+        "es": "content/shorts/es/pos-l02-s01-selling-to-everyone-is-the-problem.md",
+        "fr": "content/shorts/fr/pos-l02-s01-selling-to-everyone-is-the-problem.md",
+        "it": "content/shorts/it/pos-l02-s01-selling-to-everyone-is-the-problem.md",
+        "pt": "content/shorts/pt/pos-l02-s01-selling-to-everyone-is-the-problem.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "pos-l02-s02",
+      "format": "short",
+      "series": "positioning",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/pos-l02-s02-why-smaller-niches-can-make-you-bigger.md",
+        "en": "content/shorts/en/pos-l02-s02-why-smaller-niches-can-make-you-bigger.md",
+        "es": "content/shorts/es/pos-l02-s02-why-smaller-niches-can-make-you-bigger.md",
+        "fr": "content/shorts/fr/pos-l02-s02-why-smaller-niches-can-make-you-bigger.md",
+        "it": "content/shorts/it/pos-l02-s02-why-smaller-niches-can-make-you-bigger.md",
+        "pt": "content/shorts/pt/pos-l02-s02-why-smaller-niches-can-make-you-bigger.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "pos-l02-s03",
+      "format": "short",
+      "series": "positioning",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/pos-l02-s03-market-problem-solution-test.md",
+        "en": "content/shorts/en/pos-l02-s03-market-problem-solution-test.md",
+        "es": "content/shorts/es/pos-l02-s03-market-problem-solution-test.md",
+        "fr": "content/shorts/fr/pos-l02-s03-market-problem-solution-test.md",
+        "it": "content/shorts/it/pos-l02-s03-market-problem-solution-test.md",
+        "pt": "content/shorts/pt/pos-l02-s03-market-problem-solution-test.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "pos-l03-s01",
+      "format": "short",
+      "series": "positioning",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/pos-l03-s01-you-cant-just-call-yourself-an-expert.md",
+        "en": "content/shorts/en/pos-l03-s01-you-cant-just-call-yourself-an-expert.md",
+        "es": "content/shorts/es/pos-l03-s01-you-cant-just-call-yourself-an-expert.md",
+        "fr": "content/shorts/fr/pos-l03-s01-you-cant-just-call-yourself-an-expert.md",
+        "it": "content/shorts/it/pos-l03-s01-you-cant-just-call-yourself-an-expert.md",
+        "pt": "content/shorts/pt/pos-l03-s01-you-cant-just-call-yourself-an-expert.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "pos-l03-s02",
+      "format": "short",
+      "series": "positioning",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/pos-l03-s02-three-signals-to-build-from-zero.md",
+        "en": "content/shorts/en/pos-l03-s02-three-signals-to-build-from-zero.md",
+        "es": "content/shorts/es/pos-l03-s02-three-signals-to-build-from-zero.md",
+        "fr": "content/shorts/fr/pos-l03-s02-three-signals-to-build-from-zero.md",
+        "it": "content/shorts/it/pos-l03-s02-three-signals-to-build-from-zero.md",
+        "pt": "content/shorts/pt/pos-l03-s02-three-signals-to-build-from-zero.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "pos-l03-s03",
+      "format": "short",
+      "series": "positioning",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/pos-l03-s03-your-website-has-five-seconds.md",
+        "en": "content/shorts/en/pos-l03-s03-your-website-has-five-seconds.md",
+        "es": "content/shorts/es/pos-l03-s03-your-website-has-five-seconds.md",
+        "fr": "content/shorts/fr/pos-l03-s03-your-website-has-five-seconds.md",
+        "it": "content/shorts/it/pos-l03-s03-your-website-has-five-seconds.md",
+        "pt": "content/shorts/pt/pos-l03-s03-your-website-has-five-seconds.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "pos-l04-s01",
+      "format": "short",
+      "series": "positioning",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/pos-l04-s01-stop-posting-random-content.md",
+        "en": "content/shorts/en/pos-l04-s01-stop-posting-random-content.md",
+        "es": "content/shorts/es/pos-l04-s01-stop-posting-random-content.md",
+        "fr": "content/shorts/fr/pos-l04-s01-stop-posting-random-content.md",
+        "it": "content/shorts/it/pos-l04-s01-stop-posting-random-content.md",
+        "pt": "content/shorts/pt/pos-l04-s01-stop-posting-random-content.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "pos-l04-s02",
+      "format": "short",
+      "series": "positioning",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/pos-l04-s02-the-goal-is-recognition-not-views.md",
+        "en": "content/shorts/en/pos-l04-s02-the-goal-is-recognition-not-views.md",
+        "es": "content/shorts/es/pos-l04-s02-the-goal-is-recognition-not-views.md",
+        "fr": "content/shorts/fr/pos-l04-s02-the-goal-is-recognition-not-views.md",
+        "it": "content/shorts/it/pos-l04-s02-the-goal-is-recognition-not-views.md",
+        "pt": "content/shorts/pt/pos-l04-s02-the-goal-is-recognition-not-views.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "pos-l04-s03",
+      "format": "short",
+      "series": "positioning",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/pos-l04-s03-make-other-people-talk-about-your-expertise.md",
+        "en": "content/shorts/en/pos-l04-s03-make-other-people-talk-about-your-expertise.md",
+        "es": "content/shorts/es/pos-l04-s03-make-other-people-talk-about-your-expertise.md",
+        "fr": "content/shorts/fr/pos-l04-s03-make-other-people-talk-about-your-expertise.md",
+        "it": "content/shorts/it/pos-l04-s03-make-other-people-talk-about-your-expertise.md",
+        "pt": "content/shorts/pt/pos-l04-s03-make-other-people-talk-about-your-expertise.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "pos-l05-s01",
+      "format": "short",
+      "series": "positioning",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/pos-l05-s01-you-dont-need-a-publisher.md",
+        "en": "content/shorts/en/pos-l05-s01-you-dont-need-a-publisher.md",
+        "es": "content/shorts/es/pos-l05-s01-you-dont-need-a-publisher.md",
+        "fr": "content/shorts/fr/pos-l05-s01-you-dont-need-a-publisher.md",
+        "it": "content/shorts/it/pos-l05-s01-you-dont-need-a-publisher.md",
+        "pt": "content/shorts/pt/pos-l05-s01-you-dont-need-a-publisher.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "pos-l05-s02",
+      "format": "short",
+      "series": "positioning",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/pos-l05-s02-dont-write-a-book-about-everything-you-know.md",
+        "en": "content/shorts/en/pos-l05-s02-dont-write-a-book-about-everything-you-know.md",
+        "es": "content/shorts/es/pos-l05-s02-dont-write-a-book-about-everything-you-know.md",
+        "fr": "content/shorts/fr/pos-l05-s02-dont-write-a-book-about-everything-you-know.md",
+        "it": "content/shorts/it/pos-l05-s02-dont-write-a-book-about-everything-you-know.md",
+        "pt": "content/shorts/pt/pos-l05-s02-dont-write-a-book-about-everything-you-know.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "pos-l05-s03",
+      "format": "short",
+      "series": "positioning",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/pos-l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+        "en": "content/shorts/en/pos-l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+        "es": "content/shorts/es/pos-l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+        "fr": "content/shorts/fr/pos-l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+        "it": "content/shorts/it/pos-l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+        "pt": "content/shorts/pt/pos-l05-s03-one-book-can-become-fifty-pieces-of-content.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "pos-l06-s01",
+      "format": "short",
+      "series": "positioning",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/pos-l06-s01-your-audience-remembers-the-old-you.md",
+        "en": "content/shorts/en/pos-l06-s01-your-audience-remembers-the-old-you.md",
+        "es": "content/shorts/es/pos-l06-s01-your-audience-remembers-the-old-you.md",
+        "fr": "content/shorts/fr/pos-l06-s01-your-audience-remembers-the-old-you.md",
+        "it": "content/shorts/it/pos-l06-s01-your-audience-remembers-the-old-you.md",
+        "pt": "content/shorts/pt/pos-l06-s01-your-audience-remembers-the-old-you.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "pos-l06-s02",
+      "format": "short",
+      "series": "positioning",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/pos-l06-s02-changing-your-bio-isnt-repositioning.md",
+        "en": "content/shorts/en/pos-l06-s02-changing-your-bio-isnt-repositioning.md",
+        "es": "content/shorts/es/pos-l06-s02-changing-your-bio-isnt-repositioning.md",
+        "fr": "content/shorts/fr/pos-l06-s02-changing-your-bio-isnt-repositioning.md",
+        "it": "content/shorts/it/pos-l06-s02-changing-your-bio-isnt-repositioning.md",
+        "pt": "content/shorts/pt/pos-l06-s02-changing-your-bio-isnt-repositioning.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "pos-l06-s03",
+      "format": "short",
+      "series": "positioning",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/pos-l06-s03-change-what-people-know-you-for.md",
+        "en": "content/shorts/en/pos-l06-s03-change-what-people-know-you-for.md",
+        "es": "content/shorts/es/pos-l06-s03-change-what-people-know-you-for.md",
+        "fr": "content/shorts/fr/pos-l06-s03-change-what-people-know-you-for.md",
+        "it": "content/shorts/it/pos-l06-s03-change-what-people-know-you-for.md",
+        "pt": "content/shorts/pt/pos-l06-s03-change-what-people-know-you-for.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "tx-s021",
+      "format": "short",
+      "series": "transcript-derived",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/tx-s021.md",
+        "en": "content/shorts/en/tx-s021.md",
+        "es": "content/shorts/es/tx-s021.md",
+        "fr": "content/shorts/fr/tx-s021.md",
+        "it": "content/shorts/it/tx-s021.md",
+        "pt": "content/shorts/pt/tx-s021.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    },
+    {
+      "id": "tx-s027",
+      "format": "short",
+      "series": "transcript-derived",
+      "locales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "pt"
+      ],
+      "paths": {
+        "de": "content/shorts/de/tx-s027.md",
+        "en": "content/shorts/en/tx-s027.md",
+        "es": "content/shorts/es/tx-s027.md",
+        "fr": "content/shorts/fr/tx-s027.md",
+        "it": "content/shorts/it/tx-s027.md",
+        "pt": "content/shorts/pt/tx-s027.md"
+      },
+      "timingPass": true,
+      "canonicalTimingPass": true,
+      "timingFailureLocales": []
+    }
+  ],
+  "canonicalEnglishPreTtsTimingPass": true,
+  "timingValidation": {
+    "narrationFilesChecked": 270,
+    "failures": 22,
+    "failureLocales": [
+      "fr"
+    ],
+    "report": "publication-review-v2/timing-validation-v2.csv"
+  },
+  "publicationReadiness": {
+    "canonicalEnglishStoriesAbove9_5": 54,
+    "canonicalEnglishStoriesTotal": 54,
+    "seriesEpisodes": 18,
+    "shortsPerEpisode": 2,
+    "canonicalEnglishEditorialReady": true,
+    "multilingualSynchronized": false
+  },
+  "seriesArchitecture": {
+    "episodes": 18,
+    "assetsPerEpisode": 3,
+    "longsPerEpisode": 1,
+    "shortsPerEpisode": 2,
+    "plan": "metadata/series-plan-v2.json",
+    "releaseOrderAuthoritative": true
+  }
+}

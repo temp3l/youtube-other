@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "veronica-deterministic-diagram-prototype.v1",
+  "episodeId": "01a-revenue-is-not-a-good-business",
+  "language": "en",
+  "variant": "short",
+  "sceneId": "scene-007",
+  "visualBeatId": "01a-revenue-is-not-a-good-business-S02-B01",
+  "status": "PENDING_HUMAN_MODALITY_REVIEW",
+  "canonicalAssetReplaced": false,
+  "createdAt": "2026-08-12T15:44:47Z",
+  "authorizationReference": "user-message-2026-08-12-authorize-deterministic-diagram-prototype",
+  "provenance": {
+    "sourceSha256": "4e82a65208256d74b2171c4475ee624d9506cfd6f0b21b1f055074d4062c7503",
+    "semanticPlanSha256": "fdda87257c6472e6ed00182fc590059c8aaaa0829168f4f833529da0de8eb14e",
+    "reviewManifestSha256": "bdac6a0b580ede1ba0c659938f49180b2cf50a64aebb6ed49496f9e645ebb225",
+    "visualEncodingDecisionSha256": "3c501dc4836d4cb1bd841f7c605e279c83ed45efdb8de19f3b4b6e5b199da4ad",
+    "failedProviderImageSha256": "88304fe721604380b69c51c34cd239bcb7c6bfdcde1ef68985877089a15b80ad",
+    "failedProviderReviewSha256": "abd53ffa89c5e1c72fb4352c3490ee00e8e7a101f5b32af920d8184bd8d1ffc7",
+    "semanticBriefHash": "1f9db17f7a85fcd380e9268711ef6ebb54e1bfbcc66c563380698b60ab65c3b0"
+  },
+  "artifacts": {
+    "svgPath": "prototypes/s02-b01-deterministic-diagram.v1.svg",
+    "svgSha256": "ddbfe4408b59341e840e76a831703bd5f2f3f97c71ac7ec30f29c3e4bd9bf4a2",
+    "pngPath": "prototypes/s02-b01-deterministic-diagram.v1.png",
+    "pngSha256": "5e11f15cee0b397ad8bbcd2b8d897ae8ca91764f65e728deb218a0dc7cde5bbe",
+    "renderEngine": "sharp@0.34.5",
+    "width": 864,
+    "height": 1536,
+    "aspectRatio": "9:16"
+  },
+  "geometryContract": {
+    "unit": "relative-value-cross-section",
+    "inputUnits": 240,
+    "removedUnitsByGate": [30, 40, 50, 60],
+    "retainedRemainderUnits": 60,
+    "conservationEquation": "240 = 30 + 40 + 50 + 60 + 60",
+    "continuousValuePath": true,
+    "removalGateCount": 4,
+    "removedFragmentCount": 4,
+    "finalRemainderCount": 1
+  },
+  "compositionContract": {
+    "evidenceBounds": { "x": 92, "y": 348, "width": 734, "height": 484 },
+    "subtitleSafeRegion": { "x": 104, "y": 1106, "width": 656, "height": 246 },
+    "evidenceIntersectsSubtitleSafeRegion": false,
+    "palette": ["warm paper", "coral accent", "ink", "glass", "unfinished wood"],
+    "genericHumanAction": "one non-identifiable hand pushes the single input block",
+    "materiallyDistinctFromS01B02": true,
+    "s01B02ImageSha256": "dcd881681049d4147344e3fb563c09eed88f468c95c0369e4c1491076706a779"
+  },
+  "localChecks": {
+    "nativeDimensions": "PASS",
+    "exactConservation": "PASS",
+    "singleContinuousValuePath": "PASS",
+    "singleFinalRemainder": "PASS",
+    "subtitleSafeComposition": "PASS",
+    "svgTextElementsAbsent": "PASS",
+    "externalAssetsAbsent": "PASS",
+    "logosAndUiAbsent": "PASS",
+    "syntheticCreatorLikenessAbsent": "PASS",
+    "providerCalls": 0,
+    "paidQaCalls": 0
+  },
+  "scope": "Non-canonical zero-cost prototype for operator modality review only; it must not replace scene-007 or enter paid QA without new authorization."
+}

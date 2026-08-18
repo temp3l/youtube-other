@@ -1,0 +1,98 @@
+{
+  "schemaVersion": "veronica-provider-cost-reservation.v1",
+  "reservationId": "veronica-01a-remaining-canary-qa-2026-08-12",
+  "status": "CONSUMED_STOPPED_ON_HOOK_FAILURE",
+  "createdAt": "2026-08-12T18:20:00+02:00",
+  "authorizationReference": "user-message-2026-08-12-authorize-recommended-two-request-qa-tranche",
+  "episodeId": "01a-revenue-is-not-a-good-business",
+  "authorizedAssets": [
+    {
+      "visualBeatId": "01a-revenue-is-not-a-good-business-HOOK-B04",
+      "sceneId": "scene-004",
+      "operation": "strict-existing-pixel-qa",
+      "imageSha256": "f65fc574a3ef3843f2a244f4e04172f2dae4cae08a5e4ddf46964fb84ad16491"
+    },
+    {
+      "visualBeatId": "01a-revenue-is-not-a-good-business-S01-B02",
+      "sceneId": "scene-006",
+      "operation": "strict-existing-pixel-qa-after-hook-pass",
+      "imageSha256": "dcd881681049d4147344e3fb563c09eed88f468c95c0369e4c1491076706a779"
+    }
+  ],
+  "limits": {
+    "imageRequests": 0,
+    "imageQaRequests": 2,
+    "automaticRegenerations": 0,
+    "totalProviderRequests": 2,
+    "providerCeilingUsd": 0.03,
+    "canonicalCeilingEur": 0.028596
+  },
+  "budgetBeforeReservation": {
+    "canonicalCurrency": "EUR",
+    "portfolioCeilingEur": 4.883016,
+    "cumulativeSpendEur": 2.296431,
+    "remainingEur": 2.586585
+  },
+  "remainingAfterReservationEur": 2.557989,
+  "providers": {
+    "image": null,
+    "qa": {
+      "provider": "openai",
+      "model": "gpt-5.4-mini",
+      "reasoning": "low"
+    }
+  },
+  "preDispatchEvidence": {
+    "episodeCostSummaryGeneratedAt": "2026-08-12T16:12:26.275Z",
+    "episodeKnownEstimatedCostUsd": 1.330894,
+    "episodePaidProviderCalls": 85,
+    "imageGenerationCalls": 6,
+    "postGenerationVisualQaCalls": 4
+  },
+  "conversionPolicy": {
+    "observationDate": "2026-08-11",
+    "source": "European Central Bank reference rate",
+    "observedUsdPerEur": 1.154,
+    "safetyMultiplier": 1.1,
+    "conservativeEurPerUsd": 0.953206239
+  },
+  "stopConditions": [
+    "any hash or provenance mismatch",
+    "HOOK-B04 strict QA failure before S01-B02 dispatch",
+    "either strict QA rejection or provider failure",
+    "any attempted image-generation request",
+    "a third QA request"
+  ],
+  "reconciledAt": "2026-08-12T16:18:23.267Z",
+  "activity": {
+    "imageRequests": 0,
+    "successfulImages": 0,
+    "imageQaRequests": 1,
+    "successfulImageQa": 1,
+    "approvedImageQa": 0,
+    "rejectedImageQa": 1,
+    "withheldImageQa": 1,
+    "automaticRegenerations": 0,
+    "totalProviderRequests": 1,
+    "qaCacheMisses": 1,
+    "qaCacheHits": 0
+  },
+  "actualCost": {
+    "providerCurrency": "USD",
+    "imageCostUsd": 0,
+    "qaCostUsd": 0.006641,
+    "totalCostUsd": 0.006641,
+    "canonicalCostEur": 0.00633,
+    "costBasis": "Episode OpenAI cost-summary delta from durable pre-dispatch and terminal usage logs"
+  },
+  "reservationReconciliation": {
+    "reservedEur": 0.028596,
+    "consumedEur": 0.00633,
+    "releasedEur": 0.022266,
+    "stillHeldEur": 0
+  },
+  "result": "HOOK_B04_STRICT_QA_FAILURE_S01_B02_WITHHELD",
+  "reviewArtifact": "episodes/01a-revenue-is-not-a-good-business/state/image-generation/veronica-post-generation-visual-qa/scene-004.1c46cfcb35171041614b20649874be2a251d6fd6c6bbd9b94b6c9b04d2d7a9bd.json",
+  "reviewSha256": "1c1ee0751de4b8562ce98c568841d9fa0e0621dcb01d03b769628f892672b3ba",
+  "stopReason": "HOOK-B04 failed semantic, instant-read, narration-support, must-show, and drift gates. S01-B02 was not dispatched; no image generation or retry occurred."
+}

@@ -769,7 +769,7 @@ describe("cache, remediation independence, and hierarchical readiness", () => {
     });
   });
 
-  it("rejects a semantically keyed cache entry from a different admitted revision", async () => {
+  it("reuses a scene result when a different admitted revision leaves its complete semantic input unchanged", async () => {
     const cache = new InMemorySourceGroundedVisualQaCache();
     const judge = new FixtureSourceGroundedSceneJudge({
       "semantic-001": sourceGroundedPassJudgement(),
@@ -802,8 +802,8 @@ describe("cache, remediation independence, and hierarchical readiness", () => {
       ),
       cache,
     });
-    expect(judge.calls).toHaveLength(2);
-    expect(rerun.qa.scenes[0]!.cacheHit).toBe(false);
+    expect(judge.calls).toHaveLength(1);
+    expect(rerun.qa.scenes[0]!.cacheHit).toBe(true);
   });
 
   it("reuses a cache entry across self-hash re-admission only when judged semantics are unchanged", async () => {
@@ -1230,9 +1230,9 @@ describe("bounded source-grounded QA execution", () => {
       ),
       cache,
     });
-    expect(resumedJudge.calls).toHaveLength(32);
+    expect(resumedJudge.calls).toHaveLength(14);
     expect(resumed.qa.scenes.filter((scene) => scene.cacheHit)).toHaveLength(
-      0
+      18
     );
 
     let providerCalls = 0;
@@ -1290,7 +1290,9 @@ describe("bounded source-grounded QA execution", () => {
       ),
       cache: new InMemorySourceGroundedVisualQaCache(),
     });
-    expect(calls).toBe(8);
+    // The mid-run prompt mutation invalidates only its own scene; unchanged
+    // semantic inputs retain their independently keyed durable judgements.
+    expect(calls).toBe(5);
     expect(result.qa.revision).toEqual(
       buildSourceGroundedQaRevision({
         plan: mutable,
@@ -1303,7 +1305,187 @@ describe("bounded source-grounded QA execution", () => {
 });
 
 describe("beat-aware source-grounded hierarchy", () => {
-  it("normalizes four beat-scoped stills to one dominant provider request for scene QA without discarding beat coverage", async () => {
+  it("checkpoints complete upstream work when sequence adjudication fails and resumes without upstream provider calls", async () => {
+    const fixture = multiBeatPlan();
+    const cache = new InMemorySourceGroundedVisualQaCache();
+    const checkpoints: Array<{ stage: string; completeness: string; sceneCount: number; beatCount: number }> = [];
+    let sceneProviderCalls = 0;
+    let beatProviderCalls = 0;
+    const upstreamJudge: SourceGroundedSceneJudgePort = {
+      async judge(input) {
+        if ("beatId" in input.payload) {
+          beatProviderCalls += 1;
+          return { output: sourceGroundedPassBeatJudgement() };
+        }
+        sceneProviderCalls += 1;
+        return { output: sourceGroundedPassJudgement() };
+      },
+    };
+    const failedSequence = {
+      async judgeSequence() {
+        throw new Error("sequence transport interrupted");
+      },
+    };
+    const first = await runSourceGroundedVisualQaController({
+      plan: fixture,
+      narrationByScene: fixture.scenes.map((scene) => scene.narrationAnchor),
+      policy,
+      primaryJudge: upstreamJudge,
+      sequenceJudge: failedSequence,
+      cache,
+      onCheckpoint: async (checkpoint) => {
+        checkpoints.push({
+          stage: checkpoint.stage,
+          completeness: checkpoint.completeness,
+          sceneCount: checkpoint.scenes.length,
+          beatCount: checkpoint.beats.length,
+        });
+      },
+    });
+    expect(first.qa.sequence.verdict).toBe("UNAVAILABLE");
+    expect(first.qa.providerRequestsAllowed).toBe(false);
+    expect(checkpoints).toEqual([
+      { stage: "SCENES", completeness: "COMPLETE", sceneCount: 1, beatCount: 0 },
+      { stage: "BEATS", completeness: "COMPLETE", sceneCount: 1, beatCount: 2 },
+      { stage: "SEQUENCE", completeness: "FAILED", sceneCount: 1, beatCount: 2 },
+    ]);
+    const upstreamCallsAfterFailure = { sceneProviderCalls, beatProviderCalls };
+    const resumedSequence = new FixtureEpisodeSequenceJudge(sourceGroundedPassSequence());
+    await runSourceGroundedVisualQaController({
+      plan: fixture,
+      narrationByScene: fixture.scenes.map((scene) => scene.narrationAnchor),
+      policy,
+      primaryJudge: upstreamJudge,
+      sequenceJudge: resumedSequence,
+      cache,
+    });
+    expect({ sceneProviderCalls, beatProviderCalls }).toEqual(upstreamCallsAfterFailure);
+    expect(resumedSequence.calls).toHaveLength(1);
+  });
+
+  it("invalidates only the changed scene input and keeps six checkpoint-compatible scene results reusable", async () => {
+    const original = semanticallyUniquePlan(7);
+    const cache = new InMemorySourceGroundedVisualQaCache();
+    const initialJudge = new FixtureSourceGroundedSceneJudge(() => sourceGroundedPassJudgement());
+    await runSourceGroundedVisualQaController({
+      plan: original,
+      narrationByScene: original.scenes.map((scene) => scene.narrationAnchor),
+      policy,
+      primaryJudge: initialJudge,
+      sequenceJudge: new FixtureEpisodeSequenceJudge(sourceGroundedPassSequence()),
+      cache,
+    });
+    const changed = {
+      ...original,
+      assets: original.assets.map((asset, index) =>
+        index === 3 ? { ...asset, prompt: `${asset.prompt} Corrected physical calibration.` } : asset
+      ),
+    } as PositioningVisualPlanV2;
+    const resumedJudge = new FixtureSourceGroundedSceneJudge(() => sourceGroundedPassJudgement());
+    const resumed = await runSourceGroundedVisualQaController({
+      plan: changed,
+      narrationByScene: changed.scenes.map((scene) => scene.narrationAnchor),
+      policy,
+      primaryJudge: resumedJudge,
+      sequenceJudge: new FixtureEpisodeSequenceJudge(sourceGroundedPassSequence()),
+      cache,
+    });
+    expect(initialJudge.calls).toHaveLength(7);
+    expect(resumedJudge.calls).toHaveLength(1);
+    expect(resumed.qa.scenes.filter((entry) => entry.cacheHit)).toHaveLength(6);
+  });
+
+  it("keeps beat QA fail-closed behind a blocked parent and later recovers valid beat cache entries", async () => {
+    const fixture = multiBeatPlan();
+    const cache = new InMemorySourceGroundedVisualQaCache();
+    const warmJudge = beatAwareJudge(() => sourceGroundedPassBeatJudgement());
+    await runSourceGroundedVisualQaController({
+      plan: fixture,
+      narrationByScene: fixture.scenes.map((scene) => scene.narrationAnchor),
+      policy,
+      primaryJudge: warmJudge,
+      sequenceJudge: new FixtureEpisodeSequenceJudge(sourceGroundedPassSequence()),
+      cache,
+    });
+    let blockedBeatCalls = 0;
+    const blockedJudge: SourceGroundedSceneJudgePort = {
+      async judge(input) {
+        if ("beatId" in input.payload) {
+          blockedBeatCalls += 1;
+          return { output: sourceGroundedPassBeatJudgement() };
+        }
+        return { output: blocked(["SEMANTIC_DRIFT"], "TREATMENT") };
+      },
+    };
+    const blockedPlan = {
+      ...fixture,
+      assets: fixture.assets.map((asset, index) =>
+        index === 0 ? { ...asset, prompt: `${asset.prompt} Changed parent treatment.` } : asset
+      ),
+    } as PositioningVisualPlanV2;
+    const blockedRun = await runSourceGroundedVisualQaController({
+      plan: blockedPlan,
+      narrationByScene: blockedPlan.scenes.map((scene) => scene.narrationAnchor),
+      policy,
+      primaryJudge: blockedJudge,
+      sequenceJudge: new FixtureEpisodeSequenceJudge(sourceGroundedPassSequence()),
+      cache,
+    });
+    expect(blockedRun.qa.scenes[0]!.judgement.verdict).toBe("BLOCK");
+    expect(blockedRun.qa.beats.every((entry) => entry.judgement.verdict === "UNAVAILABLE")).toBe(true);
+    expect(blockedBeatCalls).toBe(0);
+    let recoveredProviderCalls = 0;
+    const recoveredJudge: SourceGroundedSceneJudgePort = {
+      async judge() {
+        recoveredProviderCalls += 1;
+        return { output: sourceGroundedPassJudgement() };
+      },
+    };
+    const recovered = await runSourceGroundedVisualQaController({
+      plan: fixture,
+      narrationByScene: fixture.scenes.map((scene) => scene.narrationAnchor),
+      policy,
+      primaryJudge: recoveredJudge,
+      sequenceJudge: new FixtureEpisodeSequenceJudge(sourceGroundedPassSequence()),
+      cache,
+    });
+    expect(recovered.qa.beats.every((entry) => entry.cacheHit)).toBe(true);
+    expect(recoveredProviderCalls).toBe(0);
+  });
+
+  it("resumes directly with sequence QA when complete scene and beat cache exists", async () => {
+    const fixture = multiBeatPlan();
+    const cache = new InMemorySourceGroundedVisualQaCache();
+    const warmJudge = beatAwareJudge(() => sourceGroundedPassBeatJudgement());
+    await runSourceGroundedVisualQaController({
+      plan: fixture,
+      narrationByScene: fixture.scenes.map((scene) => scene.narrationAnchor),
+      policy,
+      primaryJudge: warmJudge,
+      cache,
+    });
+    let upstreamProviderCalls = 0;
+    const resumedJudge: SourceGroundedSceneJudgePort = {
+      async judge() {
+        upstreamProviderCalls += 1;
+        return { output: sourceGroundedPassJudgement() };
+      },
+    };
+    const sequence = new FixtureEpisodeSequenceJudge(sourceGroundedPassSequence());
+    const resumed = await runSourceGroundedVisualQaController({
+      plan: fixture,
+      narrationByScene: fixture.scenes.map((scene) => scene.narrationAnchor),
+      policy,
+      primaryJudge: resumedJudge,
+      sequenceJudge: sequence,
+      cache,
+    });
+    expect(upstreamProviderCalls).toBe(0);
+    expect(sequence.calls).toHaveLength(1);
+    expect(resumed.qa.sequence.verdict).toBe("PASS");
+  });
+
+  it("normalizes four beat-scoped stills to one scene request with explicit ordered beat coverage", async () => {
     const source = multiBeatPlan();
     const baseBeat = source.visualBeatPlan!.beats[0]!;
     const beats = Array.from({ length: 4 }, (_, index) => ({
@@ -1348,13 +1530,17 @@ describe("beat-aware source-grounded hierarchy", () => {
       cache: new InMemorySourceGroundedVisualQaCache(),
     });
 
-    expect(captured).toEqual(["One still request 1: the buyer examines compatible evidence 1."]);
+    expect(captured).toEqual([
+      beats.map((beat, index) =>
+        `VISUAL BEAT ${index + 1} (${beat.beatId}):\nOne still request ${index + 1}: the buyer examines compatible evidence ${index + 1}.`
+      ).join("\n\n"),
+    ]);
     expect(captured[0]).not.toContain("---");
     expect(result.qa.beats).toHaveLength(4);
     expect(result.qa.beats.every((entry) => entry.judgement.verdict === "PASS")).toBe(true);
   });
 
-  it("prefers the single-image beat that overlaps the semantic proposition evidence", async () => {
+  it("anchors scene semantics to the overlapping beat while preserving ordered beat coverage", async () => {
     const fixture = multiBeatPlan();
     const second = { ...fixture.visualBeatPlan!.beats[1]!, narrationRef: { ...fixture.visualBeatPlan!.beats[1]!.narrationRef, startOffset: 30, endOffset: 50 } };
     const planWithSecondProposition = {
@@ -1373,6 +1559,9 @@ describe("beat-aware source-grounded hierarchy", () => {
       async judge(input) {
         if ("beatId" in input.payload) return { output: sourceGroundedPassBeatJudgement() };
         captured.push(input.payload.providerPrompt);
+        expect(input.payload.structuredState?.states).toEqual([
+          fixture.assets[1]!.semanticPurpose,
+        ]);
         return { output: sourceGroundedPassJudgement() };
       },
     };
@@ -1384,7 +1573,10 @@ describe("beat-aware source-grounded hierarchy", () => {
       sequenceJudge: new FixtureEpisodeSequenceJudge(sourceGroundedPassSequence()),
       cache: new InMemorySourceGroundedVisualQaCache(),
     });
-    expect(captured).toEqual(["Provider prompt for The buyer actively uses the focused solution."]);
+    expect(captured).toEqual([[
+      `VISUAL BEAT 1 (${fixture.visualBeatPlan!.beats[0]!.beatId}):\n${fixture.assets[0]!.prompt}`,
+      `VISUAL BEAT 2 (${second.beatId}):\n${fixture.assets[1]!.prompt}`,
+    ].join("\n\n")]);
   });
 
   it("composes concrete fake-judge coverage for every required 01A Short beat before sequence QA", async () => {
@@ -2049,5 +2241,50 @@ describe("cost and identity controls", () => {
       expect(result.qa.sourceFidelityReady).toBe(false);
     }
     expect(providerCalls).toBe(1);
+
+    const liveExecution = sourceGroundedQaExecutionPolicy("INTERACTIVE", {
+      providerMode: "LIVE_AUTHORIZED",
+      maxRetries: 0,
+      modelPricing: {
+        "cheap-scene": { inputUsdPerMillionTokens: 1, outputUsdPerMillionTokens: 1 },
+        "cheap-sequence": { inputUsdPerMillionTokens: 1, outputUsdPerMillionTokens: 1 },
+      },
+      budget: {
+        authorizationId: "malformed-retry",
+        maxProviderCalls: 2,
+        maxEstimatedCostUsd: 1,
+        maxFlagshipCallsPerPack: 1,
+      },
+    });
+    const stillSuppressed = await runSourceGroundedVisualQaController({
+      plan: fixturePlan,
+      narrationByScene: [fixturePlan.scenes[0]!.narrationAnchor],
+      policy: {
+        ...policy,
+        execution: liveExecution,
+      },
+      primaryJudge: new FixtureSourceGroundedSceneJudge(() => sourceGroundedPassJudgement()),
+      sequenceJudge: new FixtureEpisodeSequenceJudge(sourceGroundedPassSequence()),
+      cache,
+      scheduler: new SourceGroundedQaScheduler(liveExecution),
+    });
+    expect(stillSuppressed.qa.scenes[0]!.judgement.verdict).toBe("UNAVAILABLE");
+
+    let retryCalls = 0;
+    const retryExecution = { ...liveExecution, retryDeterministicMalformed: true };
+    const resumed = await runSourceGroundedVisualQaController({
+      plan: fixturePlan,
+      narrationByScene: [fixturePlan.scenes[0]!.narrationAnchor],
+      policy: { ...policy, execution: retryExecution },
+      primaryJudge: new FixtureSourceGroundedSceneJudge(() => {
+        retryCalls += 1;
+        return sourceGroundedPassJudgement();
+      }),
+      sequenceJudge: new FixtureEpisodeSequenceJudge(sourceGroundedPassSequence()),
+      cache,
+      scheduler: new SourceGroundedQaScheduler(retryExecution),
+    });
+    expect(resumed.qa.scenes[0]!.judgement.verdict).toBe("PASS");
+    expect(retryCalls).toBe(1);
   });
 });

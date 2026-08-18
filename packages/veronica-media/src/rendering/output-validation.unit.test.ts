@@ -11,22 +11,47 @@ afterEach(async () => {
 });
 
 const manifest = (outputPath: string): VeronicaRenderManifest => ({
-  schemaVersion: "veronica-render-manifest.v1",
+  schemaVersion: "veronica-render-manifest.v2",
+  canonicalContentIdentity: {
+    contentPackId: "veronica-unified-content-pack-v2",
+    storyId: "episode-001",
+    episodeId: "veronica-episode-01",
+    locale: "it",
+    variant: "long",
+    contentHash: "b".repeat(64),
+  },
   aspectRatio: "16:9",
+  profile: {
+    aspectRatio: "16:9",
+    width: 1920,
+    height: 1080,
+    fps: 30,
+    safeAreas: {
+      subtitle: { top: 0, right: 0, bottom: 0, left: 0 },
+      title: { top: 0, right: 0, bottom: 0, left: 0 },
+      lowerThird: { top: 0, right: 0, bottom: 0, left: 0 },
+      platformUi: { top: 0, right: 0, bottom: 0, left: 0 },
+    },
+  },
   outputPath,
-  width: 1920,
-  height: 1080,
-  frameRate: 30,
   narrationAudioPath: "/tmp/narration.wav",
   clips: [
     {
       clipId: "clip-1",
-      preparedAssetPath: "/tmp/asset.png",
+      placementId: "place-1",
       startSeconds: 0,
-      durationSeconds: 2,
-      operation: "contain",
+      endSeconds: 2,
+      operations: [{
+        kind: "contain",
+        assetPath: "/tmp/asset.png",
+        x: 0,
+        y: 0,
+        width: 1920,
+        height: 1080,
+      }],
     },
   ],
+  contentHash: "c".repeat(64),
 });
 
 describe("validateVeronicaRenderOutputSync", () => {

@@ -21,7 +21,11 @@ import {
 import { loadStrategicReinventionProfile } from "./profile.js";
 import { runStrategicPublishDryRun } from "./publishing.js";
 import { runStrategicSourceAdaptation } from "./source-adaptation-bridge.js";
-import { loadStrategicSupplementalFiles } from "./supplemental-media-bridge.js";
+import {
+  loadStrategicSupplementalFiles,
+  loadStrategicEpisodeNarration,
+  loadVeronicaCanonicalContentIdentity,
+} from "./supplemental-media-bridge.js";
 import { STRATEGIC_FULL_TASK_DEFINITIONS } from "./full-task-definitions.js";
 
 export const STRATEGIC_EPISODE_PIPELINE_VERSION =
@@ -139,13 +143,24 @@ export async function runStrategicEpisodePipeline(
     workspaceRoot,
     episodeId,
   });
-  const supplemental = await runVeronicaSupplementalMediaPipeline({
+  const canonicalContentIdentity = await loadVeronicaCanonicalContentIdentity(
     workspaceRoot,
     episodeId,
-    originalNarration: canonical,
-    revisedNarration: canonical,
-    targetLanguage: "it",
-    sourceLanguage: "it",
+  );
+  const supplementalNarration = await loadStrategicEpisodeNarration(
+    workspaceRoot,
+    episodeId,
+    undefined,
+    canonicalContentIdentity.locale,
+    canonicalContentIdentity.variant,
+  );
+  const supplemental = await runVeronicaSupplementalMediaPipeline({
+    canonicalContentIdentity,
+    workspaceRoot,
+    episodeId,
+    originalNarration: supplementalNarration,
+    targetLanguage: canonicalContentIdentity.locale,
+    sourceLanguage: canonicalContentIdentity.locale,
     supplementalFiles,
     ...(input.resume !== undefined ? { resume: input.resume } : {}),
   });
@@ -163,7 +178,8 @@ export async function runStrategicEpisodePipeline(
   const cached = await loadVeronicaPipelineResult({
     stateDir: veronicaState,
     episodeId,
-    targetLanguage: "it",
+    targetLanguage: canonicalContentIdentity.locale,
+    canonicalContentIdentity,
   });
   let landscapeRenderExecuted = false;
   let portraitRenderExecuted = false;

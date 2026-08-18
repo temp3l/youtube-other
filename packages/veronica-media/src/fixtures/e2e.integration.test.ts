@@ -10,6 +10,7 @@ import {
   listVeronicaE2eScenarioIds,
   VERONICA_E2E_SCENARIOS,
 } from "../fixtures/e2e-scenarios.js";
+import { createVeronicaPilotCanonicalContentIdentity } from "../fixtures/pilot.js";
 
 const temporaryRoots: string[] = [];
 afterEach(async () => {
@@ -27,6 +28,13 @@ describe("veronica e2e scenario matrix (VMB-420)", () => {
       const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "veronica-e2e-"));
       temporaryRoots.push(workspace);
       const result = await runVeronicaSupplementalMediaPipeline({
+        canonicalContentIdentity: createVeronicaPilotCanonicalContentIdentity(
+          `episode-${scenario.scenarioId}`,
+          {
+            locale: scenario.targetLanguage,
+            narration: scenario.narration.revised ?? scenario.narration.original,
+          },
+        ),
         workspaceRoot: workspace,
         episodeId: `episode-${scenario.scenarioId}`,
         originalNarration: scenario.narration.original,

@@ -117,13 +117,20 @@ async function buildCurrentSyntheticVisualPlan(
       sourceEpisode: {
         schemaVersion: CANONICAL_SOURCE_EPISODE_SCHEMA_VERSION,
         ingestionAdapterVersion: VERONICA_CONTENT_PACK_2_ADAPTER_VERSION,
-        sourcePackId: "veronica-current-admission-fixture",
+        sourcePackId: "veronica-unified-content-pack-v2",
         episodeId,
         authoredEpisodeKey: episodeId,
         canonicalSlug: episodeId,
         title: "Visible Evidence Makes Expertise Clear",
         contentProfileId: "veronicabenini",
         format: "short",
+        canonicalLocale: "en",
+        contentHash: sourceSha256,
+        seriesEpisodeId: "veronica-episode-01",
+        seriesEpisodeOrder: 1,
+        seriesSlot: "short-a",
+        relatedStoryIds: ["fixture-long", "fixture-short-b"],
+        readiness: "CANONICAL_READY",
         localeSources: [sourceDocument],
         sourceRevisionHash: stableHash(sourceDocument),
         declaredReusableAssets: [],
@@ -235,7 +242,12 @@ async function buildReadyQaTemplate(): Promise<string> {
     throw new Error("FIXTURE_SOURCE_SPAN_NOT_IN_NARRATION");
   }
   if (!isVeronicaDeterministicVisualQaEligible(generatedPlan as Parameters<typeof isVeronicaDeterministicVisualQaEligible>[0])) {
-    throw new Error("FIXTURE_NOT_READY_FOR_ADMISSION");
+    throw new Error(`FIXTURE_NOT_READY_FOR_ADMISSION:${JSON.stringify({
+      validation: generatedPlan.validation,
+      semanticQuality: generatedPlan.semanticQuality,
+      providerReadiness: generatedPlan.providerReadiness,
+      visualBeatPlan: generatedPlan.visualBeatPlan?.quality,
+    })}`);
   }
   await establishVeronicaSourceGroundedQaAdmission({
     workspaceRoot,
@@ -368,6 +380,78 @@ describe("positioning production adapter", () => {
     expect(qa.admissionIdentity).toEqual(admission);
     expect(result.admissionIdentity).toEqual(admission);
     expect(calls.count).toBeGreaterThan(0);
+    const sharedRoot = path.join(episodeRoot, "shared");
+    const [scenesCheckpoint, beatsCheckpoint, sequenceCheckpoint, latestCheckpoint] =
+      await Promise.all([
+        "scenes",
+        "beats",
+        "sequence",
+        null,
+      ].map(async (stage) => JSON.parse(await fs.readFile(path.join(
+        sharedRoot,
+        stage
+          ? `source-grounded-visual-qa.${stage}.checkpoint.v1.json`
+          : "source-grounded-visual-qa.checkpoint.v1.json",
+      ), "utf8"))));
+    expect(scenesCheckpoint).toMatchObject({ stage: "SCENES", completeness: "COMPLETE" });
+    expect(beatsCheckpoint).toMatchObject({ stage: "BEATS", completeness: "COMPLETE" });
+    expect(sequenceCheckpoint).toMatchObject({ stage: "SEQUENCE", completeness: "COMPLETE" });
+    expect(latestCheckpoint).toEqual(sequenceCheckpoint);
+    expect(sequenceCheckpoint.checkpointHash).toBe(stableHash({
+      schemaVersion: sequenceCheckpoint.schemaVersion,
+      stage: sequenceCheckpoint.stage,
+      completeness: sequenceCheckpoint.completeness,
+      revision: sequenceCheckpoint.revision,
+      scenes: sequenceCheckpoint.scenes,
+      beats: sequenceCheckpoint.beats,
+      sequence: sequenceCheckpoint.sequence,
+    }));
+  }, 60_000);
+
+  it("persists a truthful failed sequence checkpoint after durable scene and beat completion", async () => {
+    const workspaceRoot = await copyReadyQaEpisode();
+    const episodeRoot = path.join(workspaceRoot, qaEpisodeId);
+    const calls = { count: 0 };
+    const result = await runExistingVeronicaSourceGroundedPreImageQa({
+      workspaceRoot,
+      episodeId: qaEpisodeId,
+      language: "en",
+      variant: "short",
+      sourceGroundedVisualQa: {
+        policy: fixtureQaPolicy,
+        primaryJudge: fixtureQaJudge(calls),
+        sequenceJudge: {
+          async judgeSequence() {
+            throw new Error("fixture sequence transport interrupted");
+          },
+        },
+      },
+    });
+
+    const persistedQa = JSON.parse(await fs.readFile(result.qaPath, "utf8"));
+    expect(persistedQa.sequence.verdict).toBe("UNAVAILABLE");
+    const sharedRoot = path.join(episodeRoot, "shared");
+    const [scenesCheckpoint, beatsCheckpoint, sequenceCheckpoint, latestCheckpoint] =
+      await Promise.all([
+        "scenes",
+        "beats",
+        "sequence",
+        null,
+      ].map(async (stage) => JSON.parse(await fs.readFile(path.join(
+        sharedRoot,
+        stage
+          ? `source-grounded-visual-qa.${stage}.checkpoint.v1.json`
+          : "source-grounded-visual-qa.checkpoint.v1.json",
+      ), "utf8"))));
+    expect(scenesCheckpoint).toMatchObject({ stage: "SCENES", completeness: "COMPLETE" });
+    expect(beatsCheckpoint).toMatchObject({ stage: "BEATS", completeness: "COMPLETE" });
+    expect(sequenceCheckpoint).toMatchObject({
+      stage: "SEQUENCE",
+      completeness: "FAILED",
+      sequence: { verdict: "UNAVAILABLE" },
+    });
+    expect(latestCheckpoint).toEqual(sequenceCheckpoint);
+    expect(calls.count).toBeGreaterThan(0);
   }, 60_000);
 
   it("rematerializes reviewed treatments before TTS without requiring a narration WAV", async () => {
@@ -483,11 +567,11 @@ describe("positioning production adapter", () => {
         semanticQuality: { status: "PASS" },
         providerReadiness: { status: "PASS" },
         visualBeatPlan: {
-          policyVersion: "fixture+veronica-visual-beat-planner.v4",
+          policyVersion: "fixture+veronica-visual-beat-planner.v5",
           quality: {
             status: "PASS",
             sequenceDiversity: {
-              policyVersion: "veronica-sequence-diversity-policy.v2",
+              policyVersion: "veronica-sequence-diversity-policy.v3",
               status: "PASS",
             },
           },

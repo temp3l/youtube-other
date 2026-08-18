@@ -1,0 +1,31 @@
+{
+  "title": "Attention Is Not Conversion",
+  "thumbnail": "VIEWS ARE NOT SALES",
+  "description": "Awareness and conversion do different jobs. Map the path from attention to trust, clarity, offer, and action so you can diagnose where conversion is actually being lost.",
+  "cta": "Next, we address the part no funnel fixes by itself: why pricing, follow-up, and selling can still feel uncomfortable.",
+  "alternativeTitles": [
+    "100,000 Views and No Sales? Find the Real Leak",
+    "Views Are Not Sales — Diagnose the Conversion Path"
+  ],
+  "thumbnailOptions": [
+    "VIEWS ARE NOT SALES",
+    "100K VIEWS. 0 SALES?",
+    "WHERE DOES CONVERSION BREAK?"
+  ],
+  "youtubeOptimizationVersion": "v2-retention-localization",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  },
+  "shortA": {
+    "title": "100K Views and Zero Sales?",
+    "alternateHook": "Do not blame the views before you find the transition where people actually stop."
+  },
+  "shortB": {
+    "title": "A Stronger CTA Will Not Fix Missing Trust",
+    "alternateHook": "A louder ask cannot replace credibility, clarity, and a believable offer."
+  }
+}

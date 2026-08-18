@@ -1,0 +1,9 @@
+Se il tuo cliente ideale è “chiunque potrebbe comprare”, non hai definito un cliente. Hai evitato di scegliere. E se non scegli per chi stai parlando, non sai quale problema mettere al centro, quale esempio usare o quale obiezione anticipare. Due persone possono comprare lo stesso prodotto per motivi completamente diversi. Quindi non partire da età e città. Parti dal bisogno: cosa sta cercando di ottenere, sentire o evitare questa persona? Una buona definizione del cliente deve cambiare una decisione. Se non cambia niente, è solo decorazione da marketing.
+
+Poi fai un test: prendi la descrizione del tuo cliente ideale e chiediti se cambia una decisione reale. Ti dice quale problema mettere nel titolo? Quale obiezione affrontare? Dove pubblicare? Se non cambia nulla, probabilmente hai scritto una persona decorativa. Parti invece da tre cose: il bisogno, il contesto in cui emerge e il comportamento che ti dimostra interesse. Il cliente ideale non serve a restringere il mercato per principio. Serve a rendere il messaggio abbastanza specifico da essere riconosciuto.
+
+La specificità non esclude automaticamente tutti gli altri. Semplicemente ti permette di creare un messaggio che qualcuno possa riconoscere come rilevante. Se poi arrivano clienti diversi, osserva perché: quei dati possono migliorare la definizione.
+
+Dovrebbe modificare hook, esempio, obiezione, offerta o canale scelto. La specificità crea valore solo quando cambia l'esecuzione.
+
+Se la tua persona non cambia almeno una decisione concreta, rendila più specifica.

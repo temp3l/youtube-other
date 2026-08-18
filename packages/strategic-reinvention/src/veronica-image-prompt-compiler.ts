@@ -17,6 +17,8 @@ import {
   VERONICA_STATE_AWARE_PROVIDER_PROJECTION_VERSION,
 } from "./veronica-pre-image-semantic-gate.js";
 import type { VeronicaVisualBibleV1 } from "./veronica-visual-artifacts.js";
+import { assessVeronicaRemovalConsequenceEvidence } from "./veronica-causal-evidence.js";
+import { VeronicaExpectedDeterministicOutcomeError } from "./veronica-deterministic-outcome.js";
 
 export const VERONICA_IMAGE_PROMPT_COMPILER_VERSION =
   "veronica-deterministic-image-prompt-compiler.v5" as const;
@@ -24,6 +26,35 @@ export const VERONICA_IMAGE_PROMPT_COMPILER_INSTRUCTION_VERSION =
   "veronica-deterministic-image-prompt-template.v5" as const;
 export const VERONICA_IMAGE_PROMPT_COMPILATION_SCHEMA_VERSION =
   "veronica-image-prompt-compilation.v1" as const;
+export const VERONICA_IMAGE_PROMPT_TARGET_CHARACTERS = 3_600;
+export const VERONICA_IMAGE_PROMPT_HARD_MAX_CHARACTERS = 4_000;
+
+export class VeronicaPromptMandatoryContentBudgetBlock extends VeronicaExpectedDeterministicOutcomeError {
+  constructor(
+    readonly sceneId: string,
+    readonly assetId: string,
+    readonly mandatoryCharacters: number,
+    readonly sectionCharacters: Readonly<Record<string, number>>,
+  ) {
+    super(
+      "BLOCK",
+      "PROMPT_MANDATORY_CONTENT_OVER_BUDGET",
+      "provider-prompt-budget",
+      [{
+        code: "PROMPT_MANDATORY_CONTENT_OVER_BUDGET",
+        stage: "provider-prompt-budget",
+        message: `Mandatory provider prompt content is ${mandatoryCharacters} characters.`,
+        sceneId,
+        evidencePaths: [`provider-prompt:${assetId}`],
+        rootCause: "PROMPT_MANDATORY_CONTENT_OVER_BUDGET",
+        retryable: false,
+        paidStageEligible: false,
+      }],
+      `PROMPT_MANDATORY_CONTENT_OVER_BUDGET:${sceneId}:${assetId}:${mandatoryCharacters}`,
+    );
+    this.name = "VeronicaPromptMandatoryContentBudgetBlock";
+  }
+}
 
 const polaritySchema = z.enum([
   "POSITIVE_STATE",
@@ -61,6 +92,13 @@ const visualBeatCompilationSchema = z.strictObject({
     visualThesis: z.string().min(1),
     subject: z.string().min(1),
     action: z.string().min(1),
+    actorRelation: z.strictObject({
+      causalActionOwnerRole: actorRoleSchema.exclude(["none"]),
+      outcomeActorRole: actorRoleSchema.exclude(["none"]),
+      relationship: z.enum(["ELICITS", "ENABLES"]),
+      causalAction: z.string().min(1),
+      outcomeAction: z.string().min(1),
+    }).optional(),
     state: z.string().min(1),
     environment: z.string().min(1),
     assetDecision: z.enum(["new-image", "reuse-with-motion", "reuse-with-crop", "reuse-existing-asset"]),
@@ -293,18 +331,43 @@ export function compileDeterministicVeronicaImagePrompt(
     ),
     ...item.treatment.forbiddenEvidence.map((value) => `avoid ${providerSafeConstraint(value)}`),
     ...item.constraints.providerSpecificConstraints.map(providerSafeConstraint),
-  ].join("; ");
-  const prompt = [
-    `Create one ${item.format.aspectRatio} ${item.format.contentType} editorial still with one immediately legible visual idea.`,
-    `Visual thesis: ${sentence(visual?.visualThesis ?? item.treatment.visibleThesis)}. New visual information: ${sentence(visual?.newInformation ?? item.proposition.consequence)}. Core meaning: ${sentence(visual?.coreMeaning ?? item.proposition.cause)}. Viewer takeaway: ${sentence(visual?.viewerShouldUnderstand ?? item.proposition.consequence)}.`,
-    `Show ${sentence(visual?.subject ?? item.treatment.subject)} in ${sentence(visual?.environment ?? item.treatment.environment)}. Visible action: ${sentence(visual?.action ?? actionOwner?.visibleAction ?? item.treatment.actors.map((actor) => actor.visibleAction).join("; "))}. Required state: ${sentence(visual?.state ?? item.proposition.initialState ?? item.treatment.emotionalState)}.`,
-    `Strategy: ${visual?.role ?? item.treatment.visualMechanism}. Stage the scene as follows: ${sentence(visual?.composition.description ?? item.treatment.composition)}. Camera: ${sentence(visual?.composition.camera ?? item.treatment.camera)}. Lighting: ${sentence(visual?.composition.lighting ?? item.treatment.lighting)}.`,
-    `Editorial direction: ${sentence(item.visualBible.editorialStyle)}. Palette: ${item.visualBible.palette.join(", ")}. Bible lighting policy: ${sentence(item.visualBible.lighting)}.${actionOwner?.identityAuthority === "canonical-protagonist" ? ` Wardrobe: ${sentence(item.visualBible.wardrobe)}.` : ""}`,
-    `Emotional direction: ${sentence(item.treatment.emotionalState)}. Physical evidence: ${evidence}.`,
-    references,
-    `Keep important faces, actions, and evidence outside the subtitle region x=${item.visualBible.subtitleSafeArea.x}, y=${item.visualBible.subtitleSafeArea.y}, width=${item.visualBible.subtitleSafeArea.width}, height=${item.visualBible.subtitleSafeArea.height}.`,
-    `No readable text, letters, numbers, logos, interface copy, internal labels, watermark, storyboard, or panel grid. ${negative}. Continuity policy: ${sentence(item.visualBible.continuityPolicy)}.`,
-  ].join(" ").replace(/\.{2,}/gu, ".").replace(/\s+/gu, " ").trim();
+  ].filter((value, index, values) => values.findIndex((candidate) => normalizePromptClause(candidate) === normalizePromptClause(value)) === index).join("; ");
+  const visibleAction = sentence(visual?.action ?? actionOwner?.visibleAction ?? item.treatment.actors.map((actor) => actor.visibleAction).join("; "));
+  const sections = [
+    { id: "format", priority: "MANDATORY" as const, text: `Create one ${item.format.aspectRatio} ${item.format.contentType} editorial still with one immediately legible visual idea.` },
+    { id: "meaning", priority: "MANDATORY" as const, text: `Core meaning: ${sentence(visual?.coreMeaning ?? item.proposition.cause)}. Required consequence: ${sentence(item.proposition.consequence)}.` },
+    { id: "ownership", priority: "MANDATORY" as const, text: `Action owner: ${item.proposition.actionOwnerRole}. Visible action: ${visibleAction}. Polarity: ${item.proposition.polarity}. Causal structure: ${item.proposition.stateRelation}. Required state: ${sentence(visual?.state ?? item.proposition.initialState ?? item.treatment.emotionalState)}.` },
+    { id: "evidence", priority: "MANDATORY" as const, text: `Physical evidence: ${evidence}. Essential relationships: ${item.treatment.essentialRelationships.map(sentence).join("; ")}.` },
+    { id: "composition", priority: "MANDATORY" as const, text: `Show ${sentence(visual?.subject ?? item.treatment.subject)} in ${sentence(visual?.environment ?? item.treatment.environment)}. Composition: ${sentence(visual?.composition.description ?? item.treatment.composition)}. Camera: ${sentence(visual?.composition.camera ?? item.treatment.camera)}. Keep important faces, actions, and evidence outside subtitle region x=${item.visualBible.subtitleSafeArea.x}, y=${item.visualBible.subtitleSafeArea.y}, width=${item.visualBible.subtitleSafeArea.width}, height=${item.visualBible.subtitleSafeArea.height}.` },
+    { id: "references", priority: "MANDATORY" as const, text: references },
+    { id: "constraints", priority: "MANDATORY" as const, text: `No readable text, letters, numbers, logos, interface copy, internal labels, watermark, storyboard, or panel grid. ${negative}.` },
+    { id: "thesis", priority: "COMPACTABLE" as const, text: `Visual thesis: ${sentence(visual?.visualThesis ?? item.treatment.visibleThesis)}. New information: ${sentence(visual?.newInformation ?? item.proposition.consequence)}. Viewer takeaway: ${sentence(visual?.viewerShouldUnderstand ?? item.proposition.consequence)}.` },
+    { id: "style", priority: "COMPACTABLE" as const, text: `Editorial direction: ${sentence(item.visualBible.editorialStyle)}. Palette: ${item.visualBible.palette.join(", ")}. Lighting: ${sentence(visual?.composition.lighting ?? item.treatment.lighting)}. Emotional direction: ${sentence(item.treatment.emotionalState)}.${actionOwner?.identityAuthority === "canonical-protagonist" ? ` Wardrobe: ${sentence(item.visualBible.wardrobe)}.` : ""}` },
+    { id: "continuity", priority: "COMPACTABLE" as const, text: `Continuity: ${sentence(item.visualBible.continuityPolicy)}.` },
+  ] as const;
+  const render = (values: readonly { readonly text: string }[]) => values
+    .map((section) => section.text)
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\.{2,}/gu, ".")
+    .replace(/\s+/gu, " ")
+    .trim();
+  const mandatory = sections.filter((section) => section.priority === "MANDATORY");
+  const mandatoryPrompt = render(mandatory);
+  if (mandatoryPrompt.length > VERONICA_IMAGE_PROMPT_HARD_MAX_CHARACTERS) {
+    throw new VeronicaPromptMandatoryContentBudgetBlock(
+      item.sceneId,
+      item.assetId,
+      mandatoryPrompt.length,
+      Object.fromEntries(sections.map((section) => [section.id, section.text.length])),
+    );
+  }
+  const selected: Array<(typeof sections)[number]> = [...mandatory];
+  for (const section of sections.filter((candidate) => candidate.priority === "COMPACTABLE")) {
+    const candidate = render([...selected, section]);
+    if (candidate.length <= VERONICA_IMAGE_PROMPT_TARGET_CHARACTERS) selected.push(section);
+  }
+  const prompt = render(selected);
   return veronicaImagePromptCompilationResultSchema.parse({
     schemaVersion: VERONICA_IMAGE_PROMPT_COMPILATION_SCHEMA_VERSION,
     sceneId: item.sceneId,
@@ -323,6 +386,10 @@ export function compileDeterministicVeronicaImagePrompt(
     evidenceIntentionallyOmitted: [...item.treatment.forbiddenEvidence],
     compositionSummary: `${visual?.composition.description ?? item.treatment.composition}; ${visual?.composition.camera ?? item.treatment.camera}; protected subtitle safe area.`,
   });
+}
+
+function normalizePromptClause(value: string): string {
+  return value.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 }
 
 export class DeterministicVeronicaImagePromptCompiler
@@ -369,8 +436,13 @@ function previousSceneSummary(scene: PlannedScene | undefined): string | null {
   return `${scene.semanticProposition.actorRole} performs ${scene.semanticProposition.actorAction}; ${scene.semanticProposition.consequence}; ${scene.semanticProposition.polarity}.`;
 }
 
-function referenceAssets(plan: PositioningVisualPlanV2, asset: GeneratedVisualAsset) {
-  if (!asset.subjectIdentityId) return [];
+function referenceAssets(plan: PositioningVisualPlanV2, scene: PlannedScene, asset: GeneratedVisualAsset) {
+  const canonicalExpert = scene.treatment.actors?.find((actor) =>
+    actor.role === "expert"
+    && actor.identityAuthority === "canonical-protagonist"
+    && actor.actorId === asset.subjectIdentityId,
+  );
+  if (!asset.subjectIdentityId || !canonicalExpert) return [];
   const identityFingerprint = plan.continuity.mode === "persistent-protagonist"
     ? plan.continuity.identityFingerprint
     : stableHash(asset.subjectIdentityId);
@@ -390,8 +462,15 @@ function referenceAssets(plan: PositioningVisualPlanV2, asset: GeneratedVisualAs
   }))];
 }
 
+function semanticCompositionClauses(value: string): readonly string[] {
+  return value
+    .split(/\s*;\s*|\.(?:\s+|$)|\s+\b(?:while|whereas)\b\s+/iu)
+    .map((clause) => clause.trim())
+    .filter(Boolean);
+}
+
 function compositionHierarchy(composition: string, requiredEvidence: readonly string[]) {
-  const clauses = composition.split(/\s*;\s*|\.(?:\s+|$)/u).map((value) => value.trim()).filter(Boolean);
+  const clauses = semanticCompositionClauses(composition);
   const peripheral = clauses.filter((value) => /\b(?:peripheral|secondary|background|edge|minor|subordinate)\b/iu.test(value));
   const primary = clauses.filter((value) => /\b(?:lead|dominant|primary|central|center|foreground|focus|hierarchy)\b/iu.test(value) && !peripheral.includes(value));
   const secondary = clauses.filter((value) => !primary.includes(value) && !peripheral.includes(value));
@@ -424,6 +503,12 @@ export function buildVeronicaImagePromptCompilationInput(input: {
   const beat = input.asset.visualBeatId
     ? input.plan.visualBeatPlan?.beats.find((candidate) => candidate.beatId === input.asset.visualBeatId)
     : undefined;
+  const removalConsequence = beat
+    ? assessVeronicaRemovalConsequenceEvidence(beat)
+    : null;
+  const treatmentProps = removalConsequence?.applies
+    ? []
+    : treatment.props;
   const timingProvenanceHash = beat
     ? input.plan.visualEvents.find((event) => event.visualBeatId === beat.beatId)?.timingProvenanceHash ?? null
     : null;
@@ -441,6 +526,7 @@ export function buildVeronicaImagePromptCompilationInput(input: {
           visualThesis: beat.visualThesis,
           subject: beat.subject,
           action: beat.action,
+          ...(beat.actorRelation ? { actorRelation: beat.actorRelation } : {}),
           state: beat.state,
           environment: beat.environment,
           assetDecision: beat.assetDecision,
@@ -449,8 +535,8 @@ export function buildVeronicaImagePromptCompilationInput(input: {
       : null,
     narrationBeat: input.scene.narrationAnchor,
     proposition: {
-      actorRole: proposition.actorRole,
-      actionOwnerRole: treatment.actionOwnerRole ?? proposition.actorRole,
+      actorRole: beat?.actorRelation?.outcomeActorRole ?? proposition.actorRole,
+      actionOwnerRole: beat?.actorRelation?.causalActionOwnerRole ?? treatment.actionOwnerRole ?? proposition.actorRole,
       action: proposition.actorAction,
       cause: proposition.cause ?? proposition.narrationClaim,
       consequence: proposition.consequence,
@@ -472,8 +558,11 @@ export function buildVeronicaImagePromptCompilationInput(input: {
       stateComplexity: input.scene.stateComplexity ?? "SINGLE_STATE",
       requiredEvidence: [...new Set([
         ...proposition.evidenceAnchors,
-        ...treatment.props,
+        ...treatmentProps,
         ...(input.asset.semanticPurpose !== input.scene.visibleThesis ? [input.asset.semanticPurpose] : []),
+        ...(removalConsequence?.applies
+          ? ["the obstacle visibly displaced from its former blocking position", "the buyer visibly performing the newly enabled action at the result"]
+          : []),
       ])],
       forbiddenEvidence: [
         "occupation-specific proxy evidence unless explicitly required by narration",
@@ -484,15 +573,25 @@ export function buildVeronicaImagePromptCompilationInput(input: {
           : []),
       ],
       composition: beat?.composition.description ?? treatment.composition,
-      compositionHierarchy: compositionHierarchy(beat?.composition.description ?? treatment.composition, [...proposition.evidenceAnchors, ...treatment.props]),
+      compositionHierarchy: compositionHierarchy(beat?.composition.description ?? treatment.composition, [...proposition.evidenceAnchors, ...treatmentProps]),
       essentialRelationships: [...new Set([
         `${proposition.cause ?? proposition.narrationClaim} -> ${proposition.consequence}`,
         beat?.action ?? treatment.action,
+        ...(removalConsequence?.applies
+          ? ["the displaced obstacle opens the route, and the buyer visibly uses that opening to reach or take the result"]
+          : []),
         ...(proposition.contrast?.initialState && proposition.contrast.desiredState ? [`${proposition.contrast.initialState} contrasts with ${proposition.contrast.desiredState}`] : []),
       ])],
       negativeConstraints: [
         "no readable text, logos, readable UI, or internal labels",
         "do not assign the canonical protagonist identity to an observer, follower, or customer",
+        ...(removalConsequence?.applies
+          ? [
+              "do not show only an empty path or displaced obstacle without the buyer performing the enabled action",
+              "do not use arrows, labels, interface elements, or a before-and-after panel to explain the causal relationship",
+              "do not add a background crowd, workshop group, or unrelated observers; keep the cause-and-consequence actors dominant",
+            ]
+          : []),
         ...(input.plan.selectedRecurringMotif && allowedMotifs.length === 0 ? [`do not introduce ${input.plan.selectedRecurringMotif.concept}`] : []),
       ],
       actors,
@@ -511,7 +610,9 @@ export function buildVeronicaImagePromptCompilationInput(input: {
       })(),
     },
     continuity: {
-      recurringCharacters: input.plan.continuity.mode === "persistent-protagonist" && input.asset.subjectIdentityId === input.plan.continuity.identityId
+      recurringCharacters: input.plan.continuity.mode === "persistent-protagonist"
+        && input.asset.subjectIdentityId === input.plan.continuity.identityId
+        && actors.some((actor) => actor.role === "expert" && actor.identityAuthority === "canonical-protagonist" && actor.actorId === input.asset.subjectIdentityId)
         ? [input.plan.continuity.identityId]
         : [],
       allowedMotifs,
@@ -542,7 +643,7 @@ export function buildVeronicaImagePromptCompilationInput(input: {
         "single still image, not a storyboard or panel grid",
       ],
     },
-    referenceAssets: referenceAssets(input.plan, input.asset),
+    referenceAssets: referenceAssets(input.plan, input.scene, input.asset),
     provenance: {
       propositionHash: proposition.propositionHash,
       treatmentHash: treatment.treatmentHash,
@@ -590,11 +691,26 @@ function semanticTokensForComparison(value: string): readonly string[] {
 
 function clausesContainingConcept(prompt: string, concept: string): readonly string[] {
   const conceptTokens = semanticTokensForComparison(concept);
-  return prompt.split(/[.;]\s*/u).filter((clause) => {
+  return semanticCompositionClauses(prompt).filter((clause) => {
     const clauseTokens = new Set(semanticTokensForComparison(clause));
     const overlap = conceptTokens.filter((token) => clauseTokens.has(token)).length;
     return overlap >= Math.min(3, conceptTokens.length);
   });
+}
+
+/** A compiler may add a framing lead-in when it copies a canonical composition clause. */
+function isCanonicalCompositionClause(clause: string, canonical: string): boolean {
+  const normalize = (value: string) => value
+    .replace(/^\s*stage the scene as follows\s*:\s*/iu, "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
+  return normalize(clause) === normalize(canonical);
+}
+
+function assertsHierarchyTerm(clause: string, term: RegExp, negatedTerm: RegExp): boolean {
+  if (!term.test(clause)) return false;
+  return !negatedTerm.test(clause);
 }
 
 function blocker(input: Omit<VeronicaProviderPromptSemanticBlocker, "message"> & { readonly message?: string }): VeronicaProviderPromptSemanticBlocker {
@@ -621,14 +737,29 @@ export function adjudicateVeronicaImagePromptCompilation(input: {
   }
   for (const peripheral of canonical.treatment.compositionHierarchy.peripheral) {
     for (const clause of clausesContainingConcept(prompt, peripheral)) {
-      if (/\b(?:central|center|centred|centered|dominant|primary|main|focal|leads? the frame|hero)\b/iu.test(clause)) {
+      if (assertsHierarchyTerm(
+        clause,
+        /\b(?:central|center|centred|centered|dominant|primary|main|focal|leads? the frame|hero)\b/iu,
+        /\b(?:no|not|without|avoid|excluding?)\b[^.]{0,60}\b(?:central|center|centred|centered|dominant|primary|main|focal|hero)\b/iu,
+      )) {
         add(blocker({ code: "COMPOSITION_HIERARCHY_INVERSION", canonicalField: "treatment.compositionHierarchy.peripheral", expected: peripheral, actual: clause }));
       }
     }
   }
   for (const primary of canonical.treatment.compositionHierarchy.primary) {
     for (const clause of clausesContainingConcept(prompt, primary)) {
-      if (/\b(?:peripheral|secondary|background|edge|minor|subordinate)\b/iu.test(clause)) {
+      // A primary clause can truthfully describe another object as peripheral.
+      // Do not reinterpret the compiler's verbatim canonical clause as a
+      // hierarchy inversion merely because it contains that relative term.
+      if (isCanonicalCompositionClause(clause, primary)) continue;
+      if (assertsHierarchyTerm(
+        clause,
+        // "edge" can name a truthful boundary (for example, a promise that
+        // stops at the edge of present reality), not a demoted composition
+        // subject. Reserve inversion detection for unambiguous hierarchy terms.
+        /\b(?:peripheral|secondary|background|minor|subordinate)\b/iu,
+        /\b(?:no|not|without|avoid|excluding?)\b[^.]{0,60}\b(?:peripheral|secondary|background|minor|subordinate)\b/iu,
+      )) {
         add(blocker({ code: "COMPOSITION_HIERARCHY_INVERSION", canonicalField: "treatment.compositionHierarchy.primary", expected: primary, actual: clause }));
       }
     }
@@ -665,12 +796,27 @@ export function adjudicateVeronicaImagePromptCompilation(input: {
   };
 }
 
-export class VeronicaProviderPromptSemanticBlockerError extends Error {
+export class VeronicaProviderPromptSemanticBlockerError extends VeronicaExpectedDeterministicOutcomeError {
   readonly blockers: readonly VeronicaProviderPromptSemanticBlocker[];
   readonly sceneId: string;
   readonly assetId: string;
   constructor(qa: VeronicaProviderPromptSemanticQa) {
-    super(`IMAGE_PROMPT_COMPILATION_BLOCKED:${qa.sceneId}:${qa.blockers.map((entry) => `${entry.code}:${entry.canonicalField}`).join(",")}`);
+    super(
+      "BLOCK",
+      "IMAGE_PROMPT_COMPILATION_BLOCKED",
+      "provider-prompt-semantic-qa",
+      qa.blockers.map((entry) => ({
+        code: entry.code,
+        stage: "provider-prompt-semantic-qa",
+        message: entry.message,
+        sceneId: qa.sceneId,
+        evidencePaths: [`providerPromptSemanticQa:${qa.assetId}:${entry.canonicalField}`],
+        rootCause: entry.code,
+        retryable: false,
+        paidStageEligible: false,
+      })),
+      `IMAGE_PROMPT_COMPILATION_BLOCKED:${qa.sceneId}:${qa.blockers.map((entry) => `${entry.code}:${entry.canonicalField}`).join(",")}`,
+    );
     this.name = "VeronicaProviderPromptSemanticBlockerError";
     this.blockers = qa.blockers;
     this.sceneId = qa.sceneId;

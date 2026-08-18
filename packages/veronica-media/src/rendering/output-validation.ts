@@ -1,5 +1,8 @@
 import fs from "node:fs";
-import type { VeronicaRenderManifest } from "../contracts/media-plan.v1.js";
+import {
+  veronicaRenderManifestSchema,
+  type VeronicaRenderManifest,
+} from "../contracts/media-plan.v1.js";
 
 export interface ValidateVeronicaRenderOutputInput {
   readonly manifest: VeronicaRenderManifest;
@@ -22,18 +25,19 @@ export async function validateVeronicaRenderOutput(
 export function validateVeronicaRenderOutputSync(
   input: ValidateVeronicaRenderOutputInput,
 ): ValidateVeronicaRenderOutputResult {
+  const manifest = veronicaRenderManifestSchema.parse(input.manifest);
   const issues: string[] = [];
-  if (!input.manifest.outputPath.endsWith(".mp4")) {
+  if (!manifest.outputPath.endsWith(".mp4")) {
     issues.push("RENDER_OUTPUT_EXTENSION_INVALID");
   }
-  if (input.manifest.clips.length === 0) {
+  if (manifest.clips.length === 0) {
     issues.push("RENDER_MANIFEST_EMPTY");
   }
   let outputExists = false;
   let outputBytes = 0;
   if (input.executed) {
     try {
-      const stats = fs.statSync(input.manifest.outputPath);
+      const stats = fs.statSync(manifest.outputPath);
       outputExists = stats.isFile();
       outputBytes = stats.size;
       if (!outputExists) {

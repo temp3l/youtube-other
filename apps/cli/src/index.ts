@@ -10,6 +10,7 @@ import {
   type RuntimeConfigOverrides,
 } from "@mediaforge/config";
 import {
+  assertVeronicaCanonicalWorkspaceIdentity,
   artifactIdSchema,
   episodeManifestSchema,
   normalizedTranscriptSchema,
@@ -253,7 +254,11 @@ import { MathCliSemanticError, registerMathCommands } from "./math-commands.js";
 import { registerVeronicaMediaCommands } from "./veronica-media-commands.js";
 import { createVeronicaImagePromptCompilerComposition } from "./veronica-image-prompt-compiler-composition.js";
 import { buildImageStatusOutput } from "./images-status-output.js";
-import { commandImagesResume } from "./images-resume-command.js";
+import {
+  commandImagesResume,
+  type ImagesResumeCliOptions,
+} from "./images-resume-command.js";
+import { persistVeronicaImageReconciliationInventory } from "./veronica-image-reconciliation.js";
 import { assertVeronicaPreImageReviewPackCurrent } from "./veronica-pre-image-review-pack.js";
 import {
   assertPreImageReviewPackCurrent,
@@ -2126,6 +2131,9 @@ async function commandAudioGenerate(
   const isVeronica =
     episodeGenre === "veronicabenini" ||
     episodeGenre === "strategic-reinvention";
+  if (isVeronica) {
+    assertVeronicaCanonicalWorkspaceIdentity(manifest?.sourceMetadata);
+  }
   const narrationDependency = await loadValidatedNarrationDependency(
     episodeDir,
     language
@@ -3053,7 +3061,10 @@ async function assertImageGenerationGate(
     ["veronicabenini", "strategic-reinvention"].includes(
       String(Reflect.get(metadata, "genre"))
     );
-  if (isVeronica) return;
+  if (isVeronica) {
+    assertVeronicaCanonicalWorkspaceIdentity(metadata);
+    return;
+  }
   await assertScriptScoreGate({
     outputRoot: path.dirname(episodeDir),
     episode: manifest.episodeId,
@@ -3076,6 +3087,9 @@ function resolveEpisodeImageMediaContext(
     ["veronicabenini", "strategic-reinvention"].includes(
       String(Reflect.get(manifest.sourceMetadata, "genre"))
     );
+  if (isVeronica) {
+    assertVeronicaCanonicalWorkspaceIdentity(manifest.sourceMetadata);
+  }
   return buildEpisodeImageMediaContext({
     episodeId,
     ...(isHistory ? { contentGenre: "history" as const } : {}),
@@ -3693,6 +3707,9 @@ async function runAudioNarrationPipeline(
   const isVeronica =
     episodeGenre === "veronicabenini" ||
     episodeGenre === "strategic-reinvention";
+  if (isVeronica) {
+    assertVeronicaCanonicalWorkspaceIdentity(resolved.manifest?.sourceMetadata);
+  }
   const episodeConfig = await loadEpisodeConfig(episodeDir);
   const config = await loadRuntimeConfig(
     configOverridesFromCli(options),
@@ -5722,6 +5739,55 @@ const imagesCommand = program
 registerImagesBatchCommands(imagesCommand);
 registerImagesSyncSharedCommand(imagesCommand);
 imagesCommand
+  .command("audit-reconciliation")
+  .description("Persist a zero-provider Veronica image provenance and retry inventory")
+  .requiredOption("--episode <episode-id>")
+  .option("--language <code>", "prompt language", "en")
+  .option("--variant <full|short>", "media variant", "short")
+  .option("--json")
+  .action(async (opts: {
+    episode: string;
+    language: string;
+    variant: "full" | "short";
+    json?: boolean;
+  }) => {
+    const { episodeDir } = await readManifestForEpisode(
+      program.opts<CliOptions>(),
+      opts.episode,
+    );
+    const result = await persistVeronicaImageReconciliationInventory({
+      episodeDir,
+      language: opts.language,
+      variant: opts.variant,
+    });
+    process.stdout.write(
+      opts.json
+        ? `${JSON.stringify(result, null, 2)}\n`
+        : `Veronica reconciliation inventory: ${result.path}\n`,
+    );
+  });
+imagesCommand
+  .command("resume")
+  .description("Resume the canonical image pipeline for an existing episode")
+  .requiredOption("--episode <episode-id>")
+  .option("--scene <scene-id>", "single scene id or comma-separated scene ids")
+  .option("--concurrency <number>", "parallel scene generation", (value) => Number(value))
+  .option("--max-provider-calls <number>", "hard image-provider request ceiling", (value) => Number(value))
+  .option("--max-veronica-regeneration-attempts <number>", "maximum automatic Veronica image regenerations after QA failure", (value) => Number(value))
+  .option("--veronica-remediation-review <path>")
+  .option("--veronica-visual-encoding-decision <path>")
+  .option("--adopt-veronica-diagram-prototype <path>")
+  .option("--qa-existing", "run admission QA for matching existing images without regenerating them")
+  .option("--reconciliation-inventory <path>", "cryptographic inventory authorizing stale-manifest reconciliation")
+  .option("--variant <full|short>", "media variant", "full")
+  .option("--allow-unapproved-character-references")
+  .option("--force")
+  .option("--json")
+  .option("--verbose")
+  .action(async (opts: ImagesResumeCliOptions) => {
+    await commandImagesResume({ ...program.opts<CliOptions>(), ...opts });
+  });
+imagesCommand
   .command("review-pack")
   .description("Create a pre-image review pack for History or Dark Truth")
   .requiredOption("--episode <episode-id>")
@@ -5800,6 +5866,30 @@ imagesCommand
   .option("--concurrency <number>", "parallel scene generation", (value) =>
     Number(value)
   )
+  .option("--max-provider-calls <number>", "hard image-provider request ceiling", (value) =>
+    Number(value)
+  )
+  .option(
+    "--max-veronica-regeneration-attempts <number>",
+    "maximum automatic Veronica image regenerations after QA failure",
+    (value) => Number(value)
+  )
+  .option(
+    "--veronica-remediation-review <path>",
+    "hash-bound failed visual-QA artifact used for one remediation generation"
+  )
+  .option(
+    "--veronica-visual-encoding-decision <path>",
+    "hash-bound operator-approved concrete encoding for a Veronica remediation"
+  )
+  .option(
+    "--adopt-veronica-diagram-prototype <path>",
+    "adopt one hash-bound deterministic Veronica diagram before strict existing-pixel QA"
+  )
+  .option(
+    "--qa-existing",
+    "run admission QA for matching existing images without regenerating them"
+  )
   .option("--variant <full|short>", "media variant", "full")
   .option("--allow-unapproved-character-references")
   .option("--force")
@@ -5816,6 +5906,12 @@ imagesCommand
       resume?: boolean;
       source?: string;
       concurrency?: number;
+      maxProviderCalls?: number;
+      maxVeronicaRegenerationAttempts?: number;
+      veronicaRemediationReview?: string;
+      veronicaVisualEncodingDecision?: string;
+      adoptVeronicaDiagramPrototype?: string;
+      qaExisting?: boolean;
       variant: "full" | "short";
       allowUnapprovedCharacterReferences?: boolean;
       force?: boolean;
@@ -5846,6 +5942,31 @@ imagesCommand
           ...(opts.concurrency !== undefined
             ? { concurrency: opts.concurrency }
             : {}),
+          ...(opts.maxProviderCalls !== undefined
+            ? { maxProviderCalls: opts.maxProviderCalls }
+            : {}),
+          ...(opts.maxVeronicaRegenerationAttempts !== undefined
+            ? {
+                maxVeronicaRegenerationAttempts:
+                  opts.maxVeronicaRegenerationAttempts,
+              }
+            : {}),
+          ...(opts.veronicaRemediationReview !== undefined
+            ? { veronicaRemediationReview: opts.veronicaRemediationReview }
+            : {}),
+          ...(opts.veronicaVisualEncodingDecision !== undefined
+            ? {
+                veronicaVisualEncodingDecision:
+                  opts.veronicaVisualEncodingDecision,
+              }
+            : {}),
+          ...(opts.adoptVeronicaDiagramPrototype !== undefined
+            ? {
+                adoptVeronicaDiagramPrototype:
+                  opts.adoptVeronicaDiagramPrototype,
+              }
+            : {}),
+          ...(opts.qaExisting ? { qaExisting: true } : {}),
           variant: opts.variant,
           ...(opts.allowUnapprovedCharacterReferences
             ? { allowUnapprovedCharacterReferences: true }
@@ -5856,6 +5977,15 @@ imagesCommand
           ...(cliOptions.workspace ? { workspace: cliOptions.workspace } : {}),
         });
         return;
+      }
+      if (
+        opts.veronicaRemediationReview !== undefined ||
+        opts.veronicaVisualEncodingDecision !== undefined ||
+        opts.adoptVeronicaDiagramPrototype !== undefined
+      ) {
+        throw new Error(
+          "VERONICA_BOUNDED_RESUME_REQUIRED: pass --resume for remediation or deterministic adoption execution."
+        );
       }
       await commandImagesGenerate(cliOptions, opts.episode, opts.scene);
     }

@@ -1,0 +1,66 @@
+# Veronica Series Architecture — v2
+
+## Release model
+
+The 54-story corpus is normalized into **18 editorial episodes**, each consisting of **one ~10-minute Long + two ~90-second Shorts**. Every retained story is used exactly once.
+
+Recommended three-touch cadence for each episode:
+
+1. **Short A — discovery / tension:** publish first on YouTube Shorts, TikTok, and Instagram Reels.
+2. **Long — depth / framework:** publish the ~10-minute episode on YouTube and Vimeo after Short A has introduced the problem.
+3. **Short B — diagnostic / payoff:** publish after the Long as a standalone value piece that can also point viewers to the series/playlist.
+
+The exact day/time can be scheduled later; the editorial rule is more important than the calendar: do not publish all three assets at once. Let each asset create a separate discovery surface.
+
+## Platform roles
+
+- **YouTube:** primary home for the Longs, series playlist, and Shorts-to-Long conversion loop.
+- **TikTok:** Short-first discovery; preserve a complete standalone payoff rather than making every clip a trailer.
+- **Instagram:** Short-first discovery and brand reinforcement; adapt cover/caption rather than blindly duplicating platform metadata.
+- **Vimeo:** clean Long-form library / portfolio distribution; keep the same canonical Long edit unless a specific audience requires a different cut.
+
+## 18-episode order
+
+| Ep | Phase | Long | Short A | Short B | Why here |
+|---:|---|---|---|---|---|
+| 1 | Launch | `osc-l06` — Attention Is Not Conversion (9.9) | `osc-s06a` — Views Are Not Sales (10.0) | `osc-s06b` — Trust Comes Before Conversion (9.7) | Start with the clearest revenue-vs-attention diagnostic and the only 10.0 short. |
+| 2 | Launch | `pos-l01` — Why Being Good At Your Job Isn't Enough (9.7) | `pos-l01-s01` — Being Good Isn't Enough (9.6) | `pos-l01-s02` — Expertise Vs Perception (9.7) | Moves from marketing metrics to perceived expertise without repeating the same mechanism. |
+| 3 | Launch | `osc-l05` — Stop Improving The Marketing Fix The Product (9.8) | `osc-s05a` — Marketing May Not Be The Problem (9.8) | `osc-s05b` — Too Many Choices Kill The Offer (9.8) | Introduces product/offer diagnosis and creates a strong practical contrast after positioning. |
+| 4 | Launch | `tx-l004` — How to Differentiate When Everyone Offers the Same Thing (9.8) | `pos-l01-s03` — What Do People Remember You For (9.8) | `tx-s021` — Cheap Pricing Can Make You Harder to Trust (9.7) | Differentiation episode supported by memory and price-as-signal angles. |
+| 5 | Launch | `osc-l01` — A Good Business Starts With The Right Business Model (9.7) | `osc-s01a` — Revenue Is Not A Good Business (9.9) | `osc-s01b` — If You Stop Working Does Your Revenue Stop Too (9.8) | Broadens from positioning into business-model economics with strong self-diagnostic hooks. |
+| 6 | Launch | `pos-l04` — The Content Strategy That Makes People Remember You (9.7) | `pos-l04-s01` — Stop Posting Random Content (9.7) | `pos-l04-s02` — The Goal Is Recognition Not Views (9.9) | Ends launch tranche on content recognition rather than generic posting advice. |
+| 7 | Growth | `osc-l04` — How To Build An Offer People Actually Want (9.7) | `osc-s04a` — Why Good Products Still Don't Sell (9.8) | `osc-s04b` — Make Your Offer Easier To Buy (9.7) | Moves into offer design with two highly visual, action-oriented shorts. |
+| 8 | Growth | `pos-l02` — How To Find Your Niche Without Making Yourself Too Small (9.6) | `pos-l02-s01` — Selling To Everyone Is The Problem (9.7) | `pos-l02-s02` — Why Smaller Niches Can Make You Bigger (9.7) | Introduces niche specificity after the audience has already seen offer and differentiation examples. |
+| 9 | Growth | `tx-l011` — Build a Signature Method People Can Understand and Buy (9.8) | `pos-l03-s03` — Your Website Has Five Seconds (9.8) | `pos-l06-s03` — Change What People Know You For (9.8) | Signature-method episode supported by clarity and association tests. |
+| 10 | Growth | `osc-l02` — Your Ideal Customer Is Not Everyone (9.7) | `osc-s02a` — Stop Targeting Everyone (9.7) | `osc-s02b` — Stop Posting Where Your Customers Arent (9.7) | Turns targeting into operational customer-context and channel decisions. |
+| 11 | Growth | `pos-l06` — How To Reposition Yourself When Your Business Changes (9.7) | `pos-l06-s01` — Your Audience Remembers The Old You (9.8) | `pos-l06-s02` — Changing Your Bio Isn't Repositioning (9.7) | Repositioning adds a career/business-change narrative before returning to offer mechanics. |
+| 12 | Growth | `osc-l03` — People Don't Buy Your Product They Buy The Promise (9.7) | `osc-s03a` — What Does Your Customer Really Buy (9.7) | `osc-s03b` — The Promise Formula (9.7) | Value translation and promise design provide a concrete commercial payoff to the growth tranche. |
+| 13 | Depth | `tx-l018` — The Psychology of Memorable Business Storytelling (9.7) | `pos-l04-s03` — Make Other People Talk About Your Expertise (9.8) | `pos-l05-s03` — One Book Can Become Fifty Pieces Of Content (9.6) | Storytelling, third-party repetition, and content repurposing form one memory/distribution cluster. |
+| 14 | Depth | `osc-l07` — Why Selling Feels Difficult (9.6) | `osc-s07a` — Why Selling Feels Uncomfortable (9.7) | `osc-s07b` — Selling Isn't Manipulation (9.8) | Humanizes the series with the psychology and ethics of selling. |
+| 15 | Depth | `pos-l03` — How To Position Yourself As An Expert From Zero (9.7) | `pos-l03-s01` — You Can't Just Call Yourself An Expert (9.7) | `pos-l03-s02` — Three Signals To Build From Zero (9.7) | Expert-from-zero works better after viewers already understand positioning, proof, and repetition. |
+| 16 | Depth | `osc-l08` — Sales Without Chasing Everyone (9.7) | `osc-s08a` — Stop Chasing Customers (9.7) | `osc-s08b` — Prospecting Without Being Annoying (9.8) | Extends selling into prospecting systems without the manipulation theme becoming repetitive. |
+| 17 | Depth | `pos-l05` — Why Writing A Book Can Make You The Expert (9.7) | `pos-l05-s01` — You Don't Need A Publisher (9.7) | `pos-l05-s02` — Don't Write A Book About Everything You Know (9.7) | Book-as-authority is intentionally late because it is narrower and works best once the authority system is established. |
+| 18 | Depth | `tx-l050` — The Expert Business Flywheel: Positioning → Offer → Content → Sales → Retention (9.6) | `pos-l02-s03` — Market Problem Solution Test (9.6) | `tx-s027` — Never Discount a Weak Offer (9.8) | Final synthesis: market fit and weak-offer diagnostics feed into the complete expert-business flywheel. |
+
+## Launch tranche: episodes 1–6
+
+The first six deliberately alternate **conversion → positioning → product → differentiation → business model → content**. This avoids opening the channel with six episodes that all sound like “positioning advice” even though the underlying corpus contains several related themes.
+
+Launch success should be judged by **topic/format pattern**, not only aggregate views: hook retention, completion, comments that reveal recognition of the problem, Long click-through from Shorts where measurable, and whether certain diagnostic devices consistently outperform abstract advice.
+
+## Series-level editorial rules
+
+- Each Short must deliver a complete insight even when it also supports a Long.
+- Prefer concrete diagnostics, comparisons, numbers, visible before/after states, and buyer decisions over abstract principle-first openings.
+- Do not release adjacent episodes with the same opening grammar (“If you…”, “You need…”, “Stop…”). Vary tension devices.
+- Reuse concepts, not wording. Repetition is valuable when the **mechanism changes**; duplicated explanation is not.
+- The Long must add a framework, cases, caveats, or synthesis that the two Shorts do not already provide.
+- Keep one canonical narration/script ID across platforms so analytics can be joined back to the same story. Platform-specific titles/captions are metadata variants, not new stories.
+
+## Publication gate
+
+Canonical English scripts: **54/54 > 9.5/10 and structurally ready for production planning**. Final publication still requires selected-audio timing and audiovisual QA after TTS/editing.
+
+### Multilingual constraint
+
+This v2 remediation changed 12 English masters only. Existing translations for those 12 are now semantically stale relative to English, and the six transcript-derived additions are English-only. Do not call the multilingual series synchronized until those gaps are localized and re-reviewed.

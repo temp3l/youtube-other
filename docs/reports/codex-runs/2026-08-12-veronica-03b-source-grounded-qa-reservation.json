@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "veronica-provider-cost-reservation.v1",
+  "reservationId": "veronica-03b-source-grounded-qa-canary-2026-08-12",
+  "status": "RELEASED_NO_DISPATCH_BLOCKED_DETERMINISTIC",
+  "createdAt": "2026-08-12T21:15:00Z",
+  "authorizationReference": "user-message-2026-08-12-authorize-continue-recommended",
+  "episodeId": "03b-the-promise-formula",
+  "operation": "source-grounded-pre-image-qa",
+  "bindings": {
+    "sourceSha256": "3f889ea133dd6fa27723d28ed3f209a7499369275bfe4f52f502b289c38574c3",
+    "selectedAudioSha256": "ffa99330d37713f30a37a714b49e5d149ec6e9914ad2e24c29f1a2b045727ecd",
+    "canonicalTimingSha256": "ae08b4cb7dc56ffca98b1a9c33cb870483252bb3da03872bafea165136759815",
+    "semanticPlanSha256": "ad8dc9a552749c611376ef6c3ece90a15493ad70663897c28c43a8321f0d21b2",
+    "providerPromptsSha256": "81c1a70fcbbdea867586b7c03ad03a5a30b7019fdbb1eccb62896f6e5f06201b"
+  },
+  "limits": {
+    "qaProviderRequests": 6,
+    "automaticRemediationRounds": 1,
+    "providerCeilingUsd": 0.4,
+    "canonicalCeilingEur": 0.381283,
+    "maxFlagshipCalls": 1,
+    "maxEstimatedInputTokens": 60000,
+    "maxEstimatedOutputTokens": 20000
+  },
+  "budgetBeforeReservation": {
+    "canonicalCurrency": "EUR",
+    "portfolioCeilingEur": 4.883016,
+    "cumulativeSpendEur": 2.373764,
+    "remainingEur": 2.509252
+  },
+  "remainingAfterReservationEur": 2.127969,
+  "conversionPolicy": {
+    "observationDate": "2026-08-11",
+    "source": "European Central Bank reference rate",
+    "observedUsdPerEur": 1.154,
+    "safetyMultiplier": 1.1,
+    "conservativeEurPerUsd": 0.953206239
+  },
+  "preDispatch": {
+    "providerCalls": 1,
+    "knownEstimatedCostUsd": 0.01445,
+    "unpricedProviderCalls": 0
+  },
+  "reconciledAt": "2026-08-12T21:17:30Z",
+  "activity": {
+    "qaProviderRequests": 0,
+    "successfulQa": 0,
+    "failedQa": 0,
+    "automaticRemediationRounds": 0,
+    "totalProviderRequests": 0
+  },
+  "actualCost": {
+    "providerCurrency": "USD",
+    "totalCostUsd": 0,
+    "canonicalCostEur": 0
+  },
+  "reservationReconciliation": {
+    "reservedEur": 0.381283,
+    "consumedEur": 0,
+    "releasedEur": 0.381283,
+    "stillHeldEur": 0
+  },
+  "result": "DETERMINISTIC_PROVIDER_ADMISSION_BLOCKED_BEFORE_DISPATCH",
+  "postRunSemanticPlanSha256": "29273ff0ec183bf33b5cc938d82c6461c24dca8985750160280acc5c048480b2",
+  "stopReason": "Provider readiness failed before dispatch: unresolved promise semantics, unsupported doorway motif leakage, and one transition missing explicit contrast states."
+}

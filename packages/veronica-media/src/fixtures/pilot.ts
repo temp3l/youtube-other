@@ -1,4 +1,9 @@
 import { createHash } from "node:crypto";
+import {
+  VERONICA_CANONICAL_CONTENT_PACK_ID,
+  veronicaCanonicalContentIdentitySchema,
+  type VeronicaCanonicalContentIdentity,
+} from "@mediaforge/domain";
 
 const PNG_SIGNATURE = Uint8Array.from([
   0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
@@ -80,6 +85,26 @@ export const VERONICA_PILOT_NARRATION = {
     "Benvenuti. Oggi esploriamo come reinventarsi professionalmente con chiarezza. " +
     "La prima slide introduce il percorso. La seconda evidenzia i rischi principali.",
 } as const;
+
+export function createVeronicaPilotCanonicalContentIdentity(
+  storyId: string,
+  options: {
+    readonly locale?: "de" | "en" | "es" | "fr" | "it" | "pt";
+    readonly variant?: "long" | "short";
+    readonly narration?: string;
+  } = {},
+): VeronicaCanonicalContentIdentity {
+  return veronicaCanonicalContentIdentitySchema.parse({
+    contentPackId: VERONICA_CANONICAL_CONTENT_PACK_ID,
+    storyId,
+    episodeId: "veronica-episode-01",
+    locale: options.locale ?? "it",
+    variant: options.variant ?? "long",
+    contentHash: createHash("sha256")
+      .update(options.narration ?? VERONICA_PILOT_NARRATION.revised, "utf8")
+      .digest("hex"),
+  });
+}
 
 export function createVeronicaPilotFixtures() {
   return {

@@ -1,6 +1,10 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import {
+  canonicalContentIdentityFromVeronicaWorkspace,
+  type VeronicaCanonicalContentIdentity,
+} from "@mediaforge/domain";
+import {
   createEpisodePathResolver,
   normalizeEpisodeId,
 } from "@mediaforge/shared";
@@ -31,18 +35,35 @@ export interface StrategicSupplementalMediaInput {
   readonly resume?: boolean;
 }
 
+export async function loadVeronicaCanonicalContentIdentity(
+  workspaceRoot: string,
+  episodeId: string,
+): Promise<VeronicaCanonicalContentIdentity> {
+  const manifest = JSON.parse(
+    await fs.readFile(path.join(workspaceRoot, episodeId, "manifest.json"), "utf8"),
+  ) as { readonly sourceMetadata?: unknown };
+  return canonicalContentIdentityFromVeronicaWorkspace(manifest.sourceMetadata);
+}
+
 export async function loadStrategicEpisodeNarration(
   workspaceRoot: string,
   episodeId: string,
   narrationPath?: string,
+  locale: string = "it",
+  variant: "long" | "short" = "long",
 ): Promise<string> {
   if (narrationPath) {
     return fs.readFile(path.resolve(narrationPath), "utf8");
   }
-  const candidates = [
-    path.join(workspaceRoot, episodeId, "languages", "script-it.md"),
-    path.join(workspaceRoot, episodeId, "languages", "it", "full", "script.md"),
-  ];
+  const candidates = variant === "short"
+    ? [
+        path.join(workspaceRoot, episodeId, "languages", "short", `script-${locale}.md`),
+        path.join(workspaceRoot, episodeId, "locales", locale, "short", "script.md"),
+      ]
+    : [
+        path.join(workspaceRoot, episodeId, "languages", `script-${locale}.md`),
+        path.join(workspaceRoot, episodeId, "locales", locale, "full", "script.md"),
+      ];
   for (const candidate of candidates) {
     try {
       return await fs.readFile(candidate, "utf8");
@@ -103,10 +124,16 @@ export async function runStrategicSupplementalMediaBridge(
   input: StrategicSupplementalMediaInput,
 ): Promise<VeronicaPipelineResult> {
   const episodeId = normalizeEpisodeId(input.episodeId);
+  const canonicalContentIdentity = await loadVeronicaCanonicalContentIdentity(
+    input.workspaceRoot,
+    episodeId,
+  );
   const narration = await loadStrategicEpisodeNarration(
     input.workspaceRoot,
     episodeId,
     input.narrationPath,
+    canonicalContentIdentity.locale,
+    canonicalContentIdentity.variant,
   );
   const supplementalFiles = await loadStrategicSupplementalFiles({
     workspaceRoot: input.workspaceRoot,
@@ -119,11 +146,12 @@ export async function runStrategicSupplementalMediaBridge(
     );
   }
   return runVeronicaSupplementalMediaPipeline({
+    canonicalContentIdentity,
     workspaceRoot: input.workspaceRoot,
     episodeId,
     originalNarration: narration,
-    targetLanguage: input.targetLanguage ?? "it",
-    sourceLanguage: "it",
+    targetLanguage: input.targetLanguage ?? canonicalContentIdentity.locale,
+    sourceLanguage: canonicalContentIdentity.locale,
     supplementalFiles,
     ...(input.resume === undefined ? {} : { resume: input.resume }),
   });

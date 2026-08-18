@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "veronica-01a-strict-image-qa-cost-evidence.v1",
+  "reconciledAt": "2026-08-12T14:53:00Z",
+  "reservationId": "veronica-01a-strict-image-qa-2026-08-12",
+  "provider": "openai",
+  "model": "gpt-5.4-mini",
+  "requests": 1,
+  "successfulRequests": 1,
+  "acceptedReviews": 0,
+  "rejectedReviews": 1,
+  "responseId": "resp_0ee284df71a2df1b006a7c88a1234081a1be8c4a185d35a875",
+  "usage": {
+    "inputTokens": 3595,
+    "cachedInputTokens": 0,
+    "outputTokens": 867,
+    "reasoningTokens": 181
+  },
+  "estimatedCostUsd": 0.006598,
+  "canonicalCostEur": 0.006289,
+  "conversion": {
+    "observedUsdPerEur": 1.154,
+    "safetyMultiplier": 1.1,
+    "conservativeEurPerUsd": 0.953206239
+  },
+  "source": "episodes/01a-revenue-is-not-a-good-business/openai-cost-summary.json"
+}

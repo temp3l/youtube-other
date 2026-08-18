@@ -1,0 +1,14 @@
+{
+  "candidateScope": "canonical English story remediation",
+  "changedEnglishStoryIds": [
+    "osc-l07",
+    "pos-l01-s01",
+    "pos-l02",
+    "pos-l02-s03",
+    "pos-l05-s03",
+    "tx-l050"
+  ],
+  "requiresLocalizationResynchronization": true,
+  "reason": "Six canonical English narration hashes changed. Existing localized variants for those IDs cannot be truthfully labeled synchronized to this candidate.",
+  "recommendedNextStep": "Regenerate/synchronize locale variants from these English files, then rerun locale timing and editorial review before promoting this candidate as multilingual source-of-truth."
+}

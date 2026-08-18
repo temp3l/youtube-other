@@ -5,10 +5,11 @@ import { hashCanonical } from "../canonical-json.js";
 export function computeVeronicaPipelineInputFingerprint(
   input: Pick<
     VeronicaPipelineInput,
-    "episodeId" | "originalNarration" | "revisedNarration" | "targetLanguage" | "sourceLanguage" | "supplementalFiles"
+    "canonicalContentIdentity" | "episodeId" | "originalNarration" | "revisedNarration" | "targetLanguage" | "sourceLanguage" | "supplementalFiles"
   >,
 ): string {
   return hashCanonical({
+    canonicalContentIdentity: input.canonicalContentIdentity,
     episodeId: input.episodeId,
     originalNarration: input.originalNarration,
     revisedNarration: input.revisedNarration ?? null,

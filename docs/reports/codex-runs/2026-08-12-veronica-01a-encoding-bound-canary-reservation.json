@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "veronica-provider-cost-reservation.v1",
+  "reservationId": "veronica-01a-encoding-bound-canary-2026-08-12",
+  "status": "CONSUMED_STOPPED_ON_CANARY_FAILURE",
+  "createdAt": "2026-08-12T15:35:21Z",
+  "authorizationReference": "user-message-2026-08-12-authorize-encoding-bound-image-and-qa",
+  "episodeId": "01a-revenue-is-not-a-good-business",
+  "authorizedAsset": {
+    "visualBeatId": "01a-revenue-is-not-a-good-business-S02-B01",
+    "sceneId": "scene-007",
+    "rejectedImageSha256": "782c5a0fcf262948173244c44746a1b260e8cf0f45feacd9372f6f32d1eb3b7f",
+    "failedReviewPath": "episodes/01a-revenue-is-not-a-good-business/state/image-generation/veronica-post-generation-visual-qa/scene-007.dbd7b6adea13d813cf82a1e482fc5c547215a9be2dd8c35496a826aedc8cad01.json",
+    "failedReviewSha256": "a83cf6b9fe9831749bfb575b68f3eecc2cc9e4bf1fc0bd4060e6aacfa13aca1f",
+    "encodingDecisionPath": "episodes/01a-revenue-is-not-a-good-business/review-packs/pre-image/en-short/run-1786539721886/human-visual-encoding-decision.v1.json",
+    "encodingDecisionSha256": "3c501dc4836d4cb1bd841f7c605e279c83ed45efdb8de19f3b4b6e5b199da4ad"
+  },
+  "limits": {
+    "imageRequests": 1,
+    "imageQaRequests": 1,
+    "automaticRegenerations": 0,
+    "totalProviderRequests": 2,
+    "providerCeilingUsd": 0.05,
+    "canonicalCeilingEur": 0.04766
+  },
+  "budgetBeforeReservation": {
+    "canonicalCurrency": "EUR",
+    "portfolioCeilingEur": 4.883016,
+    "cumulativeSpendEur": 2.275854,
+    "remainingEur": 2.607162
+  },
+  "remainingAfterReservationEur": 2.559502,
+  "providers": {
+    "image": { "model": "gpt-image-2", "quality": "low", "size": "864x1536" },
+    "qa": { "model": "gpt-5.4-mini", "reasoning": "low" }
+  },
+  "reconciledAt": "2026-08-12T15:37:56Z",
+  "activity": {
+    "imageRequests": 1,
+    "successfulImages": 1,
+    "imageQaRequests": 1,
+    "successfulImageQa": 1,
+    "approvedImageQa": 0,
+    "rejectedImageQa": 1,
+    "automaticRegenerations": 0,
+    "totalProviderRequests": 2
+  },
+  "actualCost": {
+    "providerCurrency": "USD",
+    "imageCostUsd": 0.009855,
+    "qaCostUsd": 0.006553,
+    "totalCostUsd": 0.016408,
+    "canonicalCostEur": 0.01564,
+    "costBasis": "Durable terminal provider logs and episode OpenAI cost-summary deltas"
+  },
+  "reservationReconciliation": {
+    "reservedEur": 0.04766,
+    "consumedEur": 0.01564,
+    "releasedEur": 0.03202,
+    "stillHeldEur": 0
+  },
+  "result": "S02_B01_ENCODING_BOUND_IMAGE_QA_FAILURE",
+  "generatedImageSha256": "88304fe721604380b69c51c34cd239bcb7c6bfdcde1ef68985877089a15b80ad",
+  "reviewArtifact": "episodes/01a-revenue-is-not-a-good-business/state/image-generation/veronica-post-generation-visual-qa/scene-007.6d38aaec15de2de10d36eef8c98136dbff2c8c65c18fc35c4ece5acea65c552b.json",
+  "reviewSha256": "abd53ffa89c5e1c72fb4352c3490ee00e8e7a101f5b32af920d8184bd8d1ffc7",
+  "stopReason": "Scores cleared numeric thresholds but must-show coverage remained partial; the image shows multiple upright coral stages rather than an unambiguous single continuously shrinking value block. No retry is authorized.",
+  "conversionPolicy": {
+    "observedUsdPerEur": 1.154,
+    "safetyMultiplier": 1.1,
+    "conservativeEurPerUsd": 0.953206239
+  }
+}

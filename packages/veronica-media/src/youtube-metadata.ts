@@ -1,5 +1,10 @@
+import fs from "node:fs/promises";
 import path from "node:path";
-import { episodeIdSchema, type ContentVariant } from "@mediaforge/domain";
+import {
+  assertVeronicaCanonicalWorkspaceIdentity,
+  episodeIdSchema,
+  type ContentVariant,
+} from "@mediaforge/domain";
 import {
   findEpisodeScenesFile,
   generateEpisodeYouTubeMetadata,
@@ -39,6 +44,22 @@ export async function generateVeronicaYoutubeMetadata(input: {
   const episodeRoot = path.resolve(workspaceRoot, episodeId);
   if (path.relative(workspaceRoot, episodeRoot).startsWith("..")) {
     throw new Error(`Invalid Veronica episode path: ${input.episodeId}`);
+  }
+  const manifest = JSON.parse(
+    await fs.readFile(path.join(episodeRoot, "manifest.json"), "utf8"),
+  ) as { readonly sourceMetadata?: unknown };
+  const identity = assertVeronicaCanonicalWorkspaceIdentity(
+    manifest.sourceMetadata,
+  );
+  const expectedVariants = input.variant === "full" ? ["long", "full"] : ["short"];
+  if (
+    identity.storyId !== episodeId ||
+    identity.locale !== input.locale ||
+    !expectedVariants.includes(identity.variant)
+  ) {
+    throw new Error(
+      `VERONICA_CANONICAL_SOURCE_COORDINATE_MISMATCH:${episodeId}/${input.locale}/${input.variant}`,
+    );
   }
   return generateEpisodeYouTubeMetadata({
     genre: "veronica",

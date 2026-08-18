@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "veronica-diagram-chatgpt-review-state.v1",
+  "generatedAt": "2026-08-12T15:53:22Z",
+  "episodeId": "01a-revenue-is-not-a-good-business",
+  "locale": "en",
+  "variant": "short",
+  "sourceNarrationSha256": "4e82a65208256d74b2171c4475ee624d9506cfd6f0b21b1f055074d4062c7503",
+  "selectedAudioSha256": "2dfc4193f3b325d98bb972d64af168b8dddf9d7f34d267710144965be6190622",
+  "timingSha256": "67e2a4539d37d41e6cf574c73e360697cb294d037243bdd1be3daf3c6c7ccbb2",
+  "durationSeconds": 71.6,
+  "wordsPerMinute": 154.2,
+  "preImageQa": {
+    "scenes": "8/8 PASS",
+    "beats": "13/13 PASS",
+    "sequence": "PASS"
+  },
+  "candidate": {
+    "path": "images/01-prototype.png",
+    "sha256": "5e11f15cee0b397ad8bbcd2b8d897ae8ca91764f65e728deb218a0dc7cde5bbe",
+    "status": "NON_CANONICAL_PENDING_HUMAN_MODALITY_REVIEW",
+    "paidQaState": "NOT_RUN"
+  },
+  "adjacentBeat": {
+    "visualBeatId": "01a-revenue-is-not-a-good-business-S01-B02",
+    "path": "images/02-adjacent-s01-b02.png",
+    "sha256": "dcd881681049d4147344e3fb563c09eed88f468c95c0369e4c1491076706a779"
+  },
+  "latestFailedProviderCandidate": {
+    "path": "images/03-latest-failed-provider-s02.png",
+    "sha256": "88304fe721604380b69c51c34cd239bcb7c6bfdcde1ef68985877089a15b80ad",
+    "semanticAlignment": 0.84,
+    "instantRead": 0.77,
+    "narrationSupport": 0.86,
+    "mustShowCoverage": "partial",
+    "strictAdmission": "FAIL"
+  },
+  "requestedDecision": "Whether the exact deterministic prototype should be adopted as the S02-B01 modality canary and submitted to one strict existing-pixel QA request.",
+  "authorizationBoundary": "Review only. This pack authorizes no provider call, asset adoption, rendering, or publication."
+}

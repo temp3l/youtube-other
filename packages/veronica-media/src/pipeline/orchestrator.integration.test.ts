@@ -2,8 +2,14 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { runVeronicaSupplementalMediaPipeline } from "../index.js";
-import { createVeronicaPilotFixtures } from "../fixtures/pilot.js";
+import {
+  loadVeronicaPipelineResult,
+  runVeronicaSupplementalMediaPipeline,
+} from "../index.js";
+import {
+  createVeronicaPilotCanonicalContentIdentity,
+  createVeronicaPilotFixtures,
+} from "../fixtures/pilot.js";
 import { validateRenderManifestAspectIntegrity } from "../rendering/manifest-integrity.js";
 import { verifyPreparedAssetBytes } from "../preparation/prepared-asset-integrity.js";
 
@@ -22,6 +28,9 @@ describe("veronica supplemental media pipeline", () => {
       temporaryRoots.push(workspace);
       const fixtures = createVeronicaPilotFixtures();
       const result = await runVeronicaSupplementalMediaPipeline({
+        canonicalContentIdentity: createVeronicaPilotCanonicalContentIdentity(
+          "episode-pilot",
+        ),
         workspaceRoot: workspace,
         episodeId: "episode-pilot",
         originalNarration: fixtures.narration.original,
@@ -35,6 +44,9 @@ describe("veronica supplemental media pipeline", () => {
       expect(result.plan.schemaVersion).toBe("veronica-media-plan.v1");
       expect(result.landscapeManifest.aspectRatio).toBe("16:9");
       expect(result.portraitManifest.aspectRatio).toBe("9:16");
+      expect(result.landscapeManifest.canonicalContentIdentity).toEqual(
+        createVeronicaPilotCanonicalContentIdentity("episode-pilot"),
+      );
       expect(result.landscapeManifest.clips.length).toBeGreaterThan(0);
       expect(result.ffmpegCommands.length).toBeGreaterThan(0);
       expect(result.cacheKeys).toHaveLength(2);
@@ -69,6 +81,9 @@ describe("veronica supplemental media pipeline", () => {
       temporaryRoots.push(workspace);
       const fixtures = createVeronicaPilotFixtures();
       const input = {
+        canonicalContentIdentity: createVeronicaPilotCanonicalContentIdentity(
+          "episode-resume",
+        ),
         workspaceRoot: workspace,
         episodeId: "episode-resume",
         originalNarration: fixtures.narration.original,
@@ -84,6 +99,18 @@ describe("veronica supplemental media pipeline", () => {
       expect(first.resumed).toBe(false);
       expect(second.resumed).toBe(true);
       expect(second.plan.contentHash).toBe(first.plan.contentHash);
+      expect(second.landscapeManifest.canonicalContentIdentity).toEqual(
+        input.canonicalContentIdentity,
+      );
+      await expect(loadVeronicaPipelineResult({
+        stateDir: path.join(workspace, "episode-resume", "state", "veronica-media"),
+        episodeId: "episode-resume",
+        targetLanguage: "it",
+        canonicalContentIdentity: {
+          ...input.canonicalContentIdentity,
+          contentHash: "f".repeat(64),
+        },
+      })).resolves.toBeNull();
     },
     120_000,
   );

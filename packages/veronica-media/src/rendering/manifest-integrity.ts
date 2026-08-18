@@ -7,6 +7,8 @@ import type {
 export const RENDER_ASPECT_ASSET_MISMATCH = "RENDER_ASPECT_ASSET_MISMATCH";
 export const RENDER_PREPARED_ASSET_MISSING = "RENDER_PREPARED_ASSET_MISSING";
 export const RENDER_VISUAL_STATE_MISSING = "RENDER_VISUAL_STATE_MISSING";
+export const RENDER_CANONICAL_IDENTITY_MISMATCH =
+  "RENDER_CANONICAL_IDENTITY_MISMATCH";
 
 export function resolvePreparedAssetIdForAspect(
   plan: VeronicaMediaPlan,
@@ -73,6 +75,12 @@ export function validateRenderManifestAspectIntegrity(input: {
   readonly preparedAssetPaths: Readonly<Record<string, string>>;
 }): { readonly valid: boolean; readonly issues: readonly RenderManifestIntegrityIssue[] } {
   const issues: RenderManifestIntegrityIssue[] = [];
+  if (input.manifest.canonicalContentIdentity.storyId !== input.plan.episodeId) {
+    issues.push({
+      code: RENDER_CANONICAL_IDENTITY_MISMATCH,
+      message: `Render identity story ${input.manifest.canonicalContentIdentity.storyId} does not match plan episode ${input.plan.episodeId}.`,
+    });
+  }
   if (input.manifest.aspectRatio !== input.manifest.profile.aspectRatio) {
     issues.push({
       code: RENDER_ASPECT_ASSET_MISMATCH,

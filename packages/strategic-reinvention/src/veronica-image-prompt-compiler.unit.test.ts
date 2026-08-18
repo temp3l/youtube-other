@@ -10,8 +10,11 @@ import { rebuildVeronicaFinalTreatmentState } from "./veronica-pre-image-semanti
 import {
   InMemoryVeronicaImagePromptCompilationCache,
   DeterministicVeronicaImagePromptCompiler,
+  VERONICA_IMAGE_PROMPT_TARGET_CHARACTERS,
+  VeronicaPromptMandatoryContentBudgetBlock,
   adjudicateVeronicaImagePromptCompilation,
   buildVeronicaImagePromptCompilationInput,
+  compileDeterministicVeronicaImagePrompt,
   compileVeronicaImagePrompts,
   validateVeronicaImagePromptCompilation,
   veronicaImagePromptCompilationInputHash,
@@ -118,6 +121,78 @@ function compiler() {
 }
 
 describe("Veronica structured image prompt compilation", () => {
+  it("compacts optional prompt prose while preserving mandatory semantic sections", () => {
+    const plan = canonicalPlan();
+    const base = buildVeronicaImagePromptCompilationInput({ plan, visualBible: visualBible(), scene: plan.scenes[0]!, asset: plan.assets[0]! });
+    const verbose = "European editorial naturalistic continuity direction ".repeat(55);
+    const input = {
+      ...base,
+      visualBible: {
+        ...base.visualBible,
+        editorialStyle: verbose,
+        lighting: verbose,
+        wardrobe: verbose,
+        continuityPolicy: verbose,
+      },
+    } satisfies VeronicaImagePromptCompilationInput;
+    const result = compileDeterministicVeronicaImagePrompt(input, stableHash(input));
+
+    expect(result.imagePrompt.length).toBeLessThanOrEqual(VERONICA_IMAGE_PROMPT_TARGET_CHARACTERS);
+    expect(result.imagePrompt).toContain(`Action owner: ${input.proposition.actionOwnerRole}`);
+    expect(result.imagePrompt).toContain(input.treatment.requiredEvidence[0]!);
+    expect(result.imagePrompt).toContain("No readable text");
+  });
+
+  it("returns a typed pre-readiness block when mandatory semantics alone exceed the hard budget", () => {
+    const plan = canonicalPlan();
+    const base = buildVeronicaImagePromptCompilationInput({ plan, visualBible: visualBible(), scene: plan.scenes[0]!, asset: plan.assets[0]! });
+    const input = {
+      ...base,
+      treatment: {
+        ...base.treatment,
+        requiredEvidence: Array.from({ length: 80 }, (_, index) => `required physical evidence ${index} ${"source grounded detail ".repeat(4)}`),
+      },
+    } satisfies VeronicaImagePromptCompilationInput;
+
+    expect(() => compileDeterministicVeronicaImagePrompt(input, stableHash(input)))
+      .toThrow(VeronicaPromptMandatoryContentBudgetBlock);
+    try {
+      compileDeterministicVeronicaImagePrompt(input, stableHash(input));
+    } catch (error) {
+      expect(error).toMatchObject({ code: "PROMPT_MANDATORY_CONTENT_OVER_BUDGET", outcome: "BLOCK" });
+    }
+  });
+
+  it("does not let a stale canonical asset reference overwrite buyer actor ownership", () => {
+    const plan = canonicalPlan();
+    const scene = {
+      ...plan.scenes[0]!,
+      treatment: {
+        ...plan.scenes[0]!.treatment,
+        actionOwnerRole: "buyer" as const,
+        actors: [{
+          actorId: "scene-buyer",
+          role: "prospective-buyer" as const,
+          actionOwnership: "primary" as const,
+          identityAuthority: "distinct-scene-actor" as const,
+          visibleAction: "the buyer compares the source-grounded evidence",
+        }],
+        actionOwnerActorId: "scene-buyer",
+      },
+    };
+    const asset = {
+      ...plan.assets[0]!,
+      subjectIdentityId: plan.continuity.identityId,
+      canonicalReferenceAssetId: `${plan.continuity.identityId}-approved-reference`,
+      referenceAssetId: `${plan.continuity.identityId}-approved-reference`,
+    };
+    const input = buildVeronicaImagePromptCompilationInput({ plan, visualBible: visualBible(), scene, asset });
+    expect(input.treatment.actionOwnerActorId).toBe("scene-buyer");
+    expect(input.treatment.actors).toEqual([expect.objectContaining({ role: "prospective-buyer", identityAuthority: "distinct-scene-actor" })]);
+    expect(input.referenceAssets).toEqual([]);
+    expect(input.continuity.recurringCharacters).toEqual([]);
+  });
+
   it("generates complete scene prompts atomically in one batch and reuses unchanged hashes", async () => {
     const plan = canonicalPlan();
     const cache = new InMemoryVeronicaImagePromptCompilationCache();
@@ -190,6 +265,59 @@ describe("Veronica structured image prompt compilation", () => {
     expect(stableHash(input.provenance)).toMatch(/^[a-f0-9]{64}$/u);
   });
 
+  it("does not leak scene-level props into a removal-to-consequence beat", () => {
+    const plan = canonicalPlan();
+    const beatId = "generic-a-B02";
+    const asset = { ...plan.assets[0]!, visualBeatId: beatId };
+    const withBeat = {
+      ...plan,
+      assets: [asset, ...plan.assets.slice(1)],
+      visualBeatPlan: {
+        schemaVersion: "veronica-visual-beat-plan.v1",
+        contentId: plan.contentId,
+        beats: [{
+          beatId,
+          sceneId: plan.scenes[0]!.sceneId,
+          role: "progression",
+          coreMeaning: "Removing a physical obstruction enables the buyer result.",
+          newInformation: "The gate is removed so the buyer can take the result.",
+          viewerShouldUnderstand: "The removed obstacle enables the completed buyer action.",
+          visualThesis: "With the gate removed, the buyer takes the result.",
+          subject: "one operator and one buyer",
+          action: "the operator removes the gate so the buyer walks through and takes the result",
+          state: "CAUSE_THEN_CONSEQUENCE",
+          environment: "a neutral pickup lane",
+          composition: {
+            description: "open gate at left; buyer taking result at right",
+            camera: "three-quarter view",
+            lighting: "natural daylight",
+            subtitleSafeAreaRequired: true,
+          },
+          assetDecision: "new-image",
+          continuationOfPreviousBeat: true,
+          reuseSourceBeatId: null,
+          timingWeight: 1,
+          boundaryKind: "semantic-subspan-aligned",
+          beatHash: "b".repeat(64),
+        }],
+      },
+    } as PositioningVisualPlanV2;
+    const input = buildVeronicaImagePromptCompilationInput({
+      plan: withBeat,
+      visualBible: visualBible(),
+      scene: withBeat.scenes[0]!,
+      asset,
+    });
+    expect(input.treatment.requiredEvidence).not.toEqual(expect.arrayContaining(plan.scenes[0]!.treatment.props));
+    expect(input.treatment.requiredEvidence).toEqual(expect.arrayContaining([
+      "the obstacle visibly displaced from its former blocking position",
+      "the buyer visibly performing the newly enabled action at the result",
+    ]));
+    expect(input.treatment.negativeConstraints).toContain(
+      "do not add a background crowd, workshop group, or unrelated observers; keep the cause-and-consequence actors dominant",
+    );
+  });
+
   it("materializes the final prompt deterministically without a provider call", async () => {
     const plan = canonicalPlan();
     const cache = new InMemoryVeronicaImagePromptCompilationCache();
@@ -252,6 +380,72 @@ describe("Veronica structured image prompt compilation", () => {
     } satisfies VeronicaImagePromptCompilationInput;
     const hierarchyInversion = adjudicateVeronicaImagePromptCompilation({ compilationInput: contract, result: { ...result, imagePrompt: `${result.imagePrompt} The blank title badge is the central dominant symbol.` } });
     expect(hierarchyInversion.blockers).toContainEqual(expect.objectContaining({ code: "COMPOSITION_HIERARCHY_INVERSION", canonicalField: "treatment.compositionHierarchy.peripheral" }));
+
+    const mixedComposition = "the completed sale occupies the center while one unopened intake gate holds the additional order at the edge";
+    const mixedHierarchyBase = canonicalPlan();
+    const mixedScene = {
+      ...mixedHierarchyBase.scenes[0]!,
+      treatment: { ...mixedHierarchyBase.scenes[0]!.treatment, composition: mixedComposition },
+    };
+    const mixedHierarchyPlan = {
+      ...mixedHierarchyBase,
+      scenes: [mixedScene, ...mixedHierarchyBase.scenes.slice(1)],
+    };
+    const mixedHierarchyInput = buildVeronicaImagePromptCompilationInput({
+      plan: mixedHierarchyPlan,
+      visualBible: visualBible(),
+      scene: mixedHierarchyPlan.scenes[0]!,
+      asset: mixedHierarchyPlan.assets[0]!,
+    });
+    const mixedHierarchyHash = veronicaImagePromptCompilationInputHash({ compilationInput: mixedHierarchyInput, model });
+    const mixedHierarchyFixture = fixtureResult(mixedHierarchyInput, mixedHierarchyHash);
+    const mixedHierarchyResult = {
+      ...mixedHierarchyFixture,
+      imagePrompt: `${mixedHierarchyFixture.imagePrompt} Stage the scene as follows: ${mixedComposition}.`,
+    };
+    expect(adjudicateVeronicaImagePromptCompilation({
+      compilationInput: mixedHierarchyInput,
+      result: mixedHierarchyResult,
+    }).blockers).not.toContainEqual(expect.objectContaining({ code: "COMPOSITION_HIERARCHY_INVERSION" }));
+
+    const selfDescribingPrimary = {
+      ...base,
+      treatment: {
+        ...base.treatment,
+        compositionHierarchy: {
+          primary: ["the generic category object remains peripheral beside the transformed offer object"],
+          secondary: [],
+          peripheral: [],
+        },
+      },
+    } satisfies VeronicaImagePromptCompilationInput;
+    expect(adjudicateVeronicaImagePromptCompilation({
+      compilationInput: selfDescribingPrimary,
+      result: {
+        ...result,
+        imagePrompt: `${result.imagePrompt} Stage the scene as follows: the generic category object remains peripheral beside the transformed offer object.`,
+      },
+    }).blockers).not.toContainEqual(expect.objectContaining({
+      code: "COMPOSITION_HIERARCHY_INVERSION",
+      canonicalField: "treatment.compositionHierarchy.primary",
+    }));
+
+    const negatedDepthContract = {
+      ...base,
+      treatment: {
+        ...base.treatment,
+        composition: "both values remain at equal visual depth with no foreground-versus-background staging",
+        compositionHierarchy: {
+          primary: ["both values remain at equal visual depth with no foreground-versus-background staging"],
+          secondary: [],
+          peripheral: [],
+        },
+      },
+    } satisfies VeronicaImagePromptCompilationInput;
+    expect(adjudicateVeronicaImagePromptCompilation({
+      compilationInput: negatedDepthContract,
+      result: { ...result, imagePrompt: `${result.imagePrompt} Both values remain at equal visual depth with no foreground-versus-background staging.` },
+    }).blockers).not.toContainEqual(expect.objectContaining({ code: "COMPOSITION_HIERARCHY_INVERSION" }));
 
     const missingBridge = { ...contract, proposition: { ...contract.proposition, action: "Without that bridge the evolution looks random", cause: "The bridge is absent", consequence: "the change looks random" }, treatment: { ...contract.treatment, essentialRelationships: ["the bridge remains absent and the old and new states stay separated"] } } satisfies VeronicaImagePromptCompilationInput;
     expect(adjudicateVeronicaImagePromptCompilation({ compilationInput: missingBridge, result: { ...result, imagePrompt: `${result.imagePrompt} A completed identity bridge is successfully established between old and new.` } }).blockers).toContainEqual(expect.objectContaining({ code: "ESSENTIAL_RELATIONSHIP_INVERSION" }));

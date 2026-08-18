@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "veronica-human-image-canary-adoption.v1",
+  "episodeId": "01a-revenue-is-not-a-good-business",
+  "language": "en",
+  "variant": "short",
+  "decision": "approved",
+  "reviewer": "operator",
+  "authorizationReference": "user-message-2026-08-12-adopt-s02-and-three-strict-qa",
+  "approvedAt": "2026-08-12T14:50:59Z",
+  "reviewManifestSha256": "bdac6a0b580ede1ba0c659938f49180b2cf50a64aebb6ed49496f9e645ebb225",
+  "humanPreImageApprovalSha256": "1c390eba072c1678e7cf4e145e26f5750c63115c76543040382ec0f73b8ed79e",
+  "adoptedAssets": [
+    {
+      "visualBeatId": "01a-revenue-is-not-a-good-business-HOOK-B04",
+      "sceneId": "scene-004",
+      "imageSha256": "f65fc574a3ef3843f2a244f4e04172f2dae4cae08a5e4ddf46964fb84ad16491"
+    },
+    {
+      "visualBeatId": "01a-revenue-is-not-a-good-business-S01-B02",
+      "sceneId": "scene-006",
+      "imageSha256": "dcd881681049d4147344e3fb563c09eed88f468c95c0369e4c1491076706a779"
+    },
+    {
+      "visualBeatId": "01a-revenue-is-not-a-good-business-S02-B01",
+      "sceneId": "scene-007",
+      "imageSha256": "5bd465e78394fc103b3b1aa560bd64c6f4af4c8eb6fa89e7e1dc73d9832f632b",
+      "supersedesImageSha256": "a26ba014447b4ef8c0ed0c2fd8ce411363e190b737fedeeef51bb7dde3c72cee"
+    }
+  ],
+  "scope": "Adopt these exact pixels for the three-image canary and authorize strict post-generation QA only; no image generation or regeneration."
+}

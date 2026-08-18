@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "veronica-provider-cost-reservation.v1",
+  "reservationId": "veronica-01a-image-qa-retry-2026-08-12",
+  "status": "STOPPED_SCOPE_VIOLATION_RECONCILED",
+  "createdAt": "2026-08-12T14:30:00Z",
+  "authorizationReference": "user-message-2026-08-12-01a-three-qa-only-requests",
+  "episodeId": "01a-revenue-is-not-a-good-business",
+  "authorizedAssets": [
+    {
+      "visualBeatId": "01a-revenue-is-not-a-good-business-HOOK-B04",
+      "sceneId": "scene-004",
+      "imageSha256": "f65fc574a3ef3843f2a244f4e04172f2dae4cae08a5e4ddf46964fb84ad16491"
+    },
+    {
+      "visualBeatId": "01a-revenue-is-not-a-good-business-S01-B02",
+      "sceneId": "scene-006",
+      "imageSha256": "dcd881681049d4147344e3fb563c09eed88f468c95c0369e4c1491076706a779"
+    },
+    {
+      "visualBeatId": "01a-revenue-is-not-a-good-business-S02-B01",
+      "sceneId": "scene-007",
+      "imageSha256": "a26ba014447b4ef8c0ed0c2fd8ce411363e190b737fedeeef51bb7dde3c72cee"
+    }
+  ],
+  "limits": {
+    "imageRequests": 0,
+    "imageQaRequests": 3,
+    "automaticRegenerations": 0,
+    "totalProviderRequests": 3,
+    "providerCeilingUsd": 0.1,
+    "canonicalCeilingEur": 0.095321
+  },
+  "budgetBeforeReservation": {
+    "canonicalCurrency": "EUR",
+    "portfolioCeilingEur": 4.883016,
+    "cumulativeSpendEur": 2.246274,
+    "remainingEur": 2.636742
+  },
+  "remainingAfterReservationEur": 2.541421,
+  "reconciledAt": "2026-08-12T14:41:00Z",
+  "activity": {
+    "imageRequests": 1,
+    "successfulImages": 1,
+    "imageQaRequests": 1,
+    "successfulImageQa": 0,
+    "malformedImageQa": 1,
+    "organizationQaModelRequests": 0,
+    "automaticRegenerations": 0,
+    "totalProviderRequests": 2
+  },
+  "actualCost": {
+    "providerCurrency": "USD",
+    "imageCostUsd": 0.007525,
+    "qaCostUsd": 0,
+    "totalCostUsd": 0.007525,
+    "canonicalCostEur": 0.007173
+  },
+  "reservationReconciliation": {
+    "reservedEur": 0.095321,
+    "consumedEur": 0.007173,
+    "releasedEur": 0.088148,
+    "stillHeldEur": 0
+  },
+  "result": "STOPPED_AFTER_UNAUTHORIZED_IMAGE_PROVIDER_EFFECT",
+  "integrityImpact": {
+    "sceneId": "scene-007",
+    "authorizedImageSha256": "a26ba014447b4ef8c0ed0c2fd8ce411363e190b737fedeeef51bb7dde3c72cee",
+    "replacementImageSha256": "5bd465e78394fc103b3b1aa560bd64c6f4af4c8eb6fa89e7e1dc73d9832f632b",
+    "authorizedPixelRecoverable": false,
+    "replacementCanonical": false
+  },
+  "stopReason": "The former --qa-existing route admitted the scene into the generation pipeline; planning-hash drift triggered one image call. Provider execution stopped without further calls.",
+  "conversionPolicy": {
+    "observedUsdPerEur": 1.154,
+    "safetyMultiplier": 1.1,
+    "conservativeEurPerUsd": 0.953206239
+  }
+}

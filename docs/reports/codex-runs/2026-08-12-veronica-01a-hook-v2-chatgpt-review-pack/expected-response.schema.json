@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "decision",
+    "candidatePngSha256",
+    "completedOrderLegible",
+    "withheldOrderLegible",
+    "weakUnitEconomicsLegible",
+    "instantReadPass",
+    "materiallyDistinctFromS02B01",
+    "subtitleSafe",
+    "violations",
+    "blockingReasons",
+    "nonBlockingNotes"
+  ],
+  "properties": {
+    "decision": { "enum": ["APPROVE", "REJECT"] },
+    "candidatePngSha256": { "const": "4b0d6b2cded1fdc428a898aec798730a9a2af11556e987e9ba23ac251e12adc9" },
+    "completedOrderLegible": { "type": "boolean" },
+    "withheldOrderLegible": { "type": "boolean" },
+    "weakUnitEconomicsLegible": { "type": "boolean" },
+    "instantReadPass": { "type": "boolean" },
+    "materiallyDistinctFromS02B01": { "type": "boolean" },
+    "subtitleSafe": { "type": "boolean" },
+    "violations": {
+      "type": "array",
+      "items": { "enum": ["READABLE_TEXT", "LOGO_OR_UI", "CURRENCY_SYMBOL", "CREATOR_LIKENESS", "OCCUPATIONAL_DRIFT", "PORTRAIT_DOMINANCE", "UNSUPPORTED_CLAIM", "CONSERVATION_AMBIGUITY"] }
+    },
+    "blockingReasons": { "type": "array", "items": { "type": "string" } },
+    "nonBlockingNotes": { "type": "array", "items": { "type": "string" } }
+  }
+}

@@ -19,12 +19,12 @@ function fixture(input: { readonly progressive: boolean }): {
     durationMs: 3_000,
     progressionStage: index === 0 ? "HOOK" : "EXPLANATION",
     narrationAnchor: `Supported proposition ${index + 1}.`,
-    treatment: { actionOwnerRole: "expert" },
+    treatment: { actionOwnerRole: "business-operator" },
     semanticProposition: {
       visualMechanism: input.progressive ? mechanisms[index % mechanisms.length] : "input-output-flow",
       polarity: "NEUTRAL",
       stateRelation: "STABLE",
-      actorRole: "expert",
+      actorRole: "business-operator",
     },
   }));
   const beats = scenes.map((scene, index) => {
@@ -118,6 +118,20 @@ describe("Veronica sequence diversity", () => {
     expect(analysis.findings).not.toContainEqual(expect.objectContaining({ code: "ACTION_MONOTONY", severity: "review-required" }));
   });
 
+  it("does not treat two unclassified actions as evidence of an adjacent duplicate", () => {
+    const coherent = fixture({ progressive: true });
+    const beats = coherent.beats.map((beat, index) => {
+      const value = { ...beat, action: `symbolic state ${index + 1} remains visible` };
+      const { beatHash: _beatHash, ...hashInput } = value;
+      return { ...value, beatHash: stableHash(hashInput) };
+    });
+    const analysis = analyzeVeronicaSequenceDiversity({ plan: coherent.plan, beats });
+
+    expect(new Set(analysis.signatures.map((entry) => entry.depictedActionFamily))).toEqual(new Set(["other"]));
+    expect(analysis.findings).not.toContainEqual(expect.objectContaining({ code: "ADJACENT_VISUAL_DUPLICATION" }));
+    expect(analysis.findings).not.toContainEqual(expect.objectContaining({ code: "LOW_INFORMATION_GAIN" }));
+  });
+
   it("ranks multiple grounded action candidates by sequence outcome instead of global family uniqueness", () => {
     const grounded = fixture({ progressive: true });
     const meanings = [
@@ -177,6 +191,106 @@ describe("Veronica sequence diversity", () => {
     })).toBe("decomposition");
   });
 
+  it("preserves explicitly locked reviewed beats during sequence refinement", () => {
+    const repetitive = fixture({ progressive: false });
+    const locked = repetitive.beats[1]!;
+    const refined = diversifyVeronicaVisualBeatSequence({
+      ...repetitive,
+      lockedBeatIds: new Set([locked.beatId]),
+    });
+    expect(refined.beats[1]).toEqual(locked);
+    expect(refined.analysis.remediation.changedBeatIds).not.toContain(locked.beatId);
+  });
+
+  it("distinguishes custom reviewed presentation grammar without wrapper keywords", () => {
+    const coherent = fixture({ progressive: true });
+    const presentations = [
+      ["the operator pauses an order at an unopened intake gate", "single-sale intake threshold", "the retained result sits beside an unopened gate"],
+      ["the customer hands payment to the operator", "customer payment handoff", "the payment begins a sale-and-fulfillment path"],
+      ["the operator compares two values directly beside each other", "open comparison bench", "both values remain at equal visual depth"],
+      ["the operator checks baseline and doubled paths at a decision fork", "two-branch counterfactual station", "a decision fork divides baseline and doubled paths"],
+      ["the operator faces an accumulating backlog", "workload surface", "one bottleneck holds the growing backlog"],
+    ] as const;
+    const beats = coherent.beats.map((beat, index) => {
+      const [action, environment, description] = presentations[index]!;
+      const value = { ...beat, action, environment, composition: { ...beat.composition, description } };
+      const { beatHash: _beatHash, ...hashInput } = value;
+      return { ...value, beatHash: stableHash(hashInput) };
+    });
+    const analysis = analyzeVeronicaSequenceDiversity({ plan: coherent.plan, beats });
+    expect(new Set(analysis.signatures.map((entry) => entry.presentationMechanism)).size).toBe(5);
+    expect(analysis.findings).not.toContainEqual(expect.objectContaining({
+      code: "PRESENTATION_MECHANISM_REPETITION",
+      severity: "review-required",
+    }));
+  });
+
+  it("recognizes adjective-first incoming and retained-value contrasts", () => {
+    expect(deriveVeronicaDepictedActionFamily({
+      action: "the retained result emerges beside the larger source-supported incoming amount",
+    })).toBe("retained-value-reveal");
+    const grounded = fixture({ progressive: false });
+    const beats = grounded.beats.map((beat, index) => {
+      const meaning = index === 0
+        ? "Impressive revenue can coexist with a small retained margin."
+        : beat.coreMeaning;
+      const value = {
+        ...beat,
+        coreMeaning: meaning,
+        newInformation: meaning,
+        viewerShouldUnderstand: meaning,
+        visualThesis: meaning,
+      };
+      const { beatHash: _beatHash, ...hashInput } = value;
+      return { ...value, beatHash: stableHash(hashInput) };
+    });
+    const refined = diversifyVeronicaVisualBeatSequence({ plan: grounded.plan, beats });
+    expect(refined.analysis.signatures).toContainEqual(expect.objectContaining({
+      beatId: "beat-1",
+      depictedActionFamily: "retained-value-reveal",
+    }));
+  });
+
+  it("distinguishes source-grounded audience actions from incidental pass wording", () => {
+    expect(deriveVeronicaDepictedActionFamily({
+      action: "people pass the broad display; the intended person stops at one specific situation cue",
+    })).toBe("selection");
+    expect(deriveVeronicaDepictedActionFamily({
+      action: "the professional arranges different customer priorities into distinct groups",
+    })).toBe("sorting");
+    expect(deriveVeronicaDepictedActionFamily({
+      action: "the customer pauses between conflicting signals before deciding whether either applies",
+    })).toBe("comparison");
+  });
+
+  it("uses grounded audience candidates to repair opening action novelty", () => {
+    const grounded = fixture({ progressive: false });
+    const meanings = [
+      "Different customers have different needs, fears, and priorities.",
+      "The customer must decide whether the message applies to them.",
+      "Nobody knows which part of your expertise to remember first.",
+      "People recognize one cue as relevant to their situation.",
+      "Specificity is not a restriction; wider routes remain open.",
+    ];
+    const beats = grounded.beats.map((beat, index) => {
+      const value = {
+        ...beat,
+        coreMeaning: meanings[index]!,
+        newInformation: meanings[index]!,
+        viewerShouldUnderstand: meanings[index]!,
+        visualThesis: meanings[index]!,
+      };
+      const { beatHash: _beatHash, ...hashInput } = value;
+      return { ...value, beatHash: stableHash(hashInput) };
+    });
+    const refined = diversifyVeronicaVisualBeatSequence({ plan: grounded.plan, beats });
+    expect(new Set(refined.analysis.signatures.slice(0, 3).map((entry) => entry.depictedActionFamily)).size).toBe(3);
+    expect(refined.analysis.findings).not.toContainEqual(expect.objectContaining({
+      code: "OPENING_ACTION_NOVELTY_LOW",
+      severity: "review-required",
+    }));
+  });
+
   it("detects and deterministically diversifies material repetition without changing semantic identity", () => {
     const repetitive = fixture({ progressive: false });
     const before = analyzeVeronicaSequenceDiversity(repetitive);
@@ -204,5 +318,44 @@ describe("Veronica sequence diversity", () => {
     expect(analysis.status).not.toMatch(/BLOCK|REVIEW_REQUIRED/u);
     expect(analysis.findings).not.toContainEqual(expect.objectContaining({ code: "ENVIRONMENT_MONOTONY", severity: "review-required" }));
     expect(analysis.findings).not.toContainEqual(expect.objectContaining({ code: "PRESENTATION_MECHANISM_REPETITION", severity: "review-required" }));
+  });
+
+  it("does not demand multiple semantic mechanisms from short beats of one source proposition", () => {
+    const base = fixture({ progressive: true });
+    const scene = base.plan.scenes[0]!;
+    const source = base.beats[0]!.narrationRef;
+    const beats = [
+      {
+        ...base.beats[0]!,
+        beatId: "hook-establish",
+        narrationRef: source,
+        action: "isolated diagnostic inspection frames the operator isolating one real offer from an empty surrounding space",
+      },
+      {
+        ...base.beats[1]!,
+        beatId: "hook-progression",
+        sceneId: scene.sceneId,
+        narrationRef: source,
+        action: "a modular system view shows the operator moving the same real offer along a direct path to one customer outcome",
+      },
+    ].map((beat) => {
+      const { beatHash: _beatHash, ...hashInput } = beat;
+      return { ...beat, beatHash: stableHash(hashInput) };
+    });
+    const plan = {
+      ...base.plan,
+      scenes: [{ ...scene, durationMs: 4_000 }],
+    };
+
+    const analysis = analyzeVeronicaSequenceDiversity({ plan, beats });
+
+    expect(analysis.findings).not.toContainEqual(expect.objectContaining({
+      code: "OPENING_NOVELTY_LOW",
+      severity: "review-required",
+    }));
+    expect(analysis.findings).not.toContainEqual(expect.objectContaining({
+      code: "OPENING_ACTION_NOVELTY_LOW",
+      severity: "review-required",
+    }));
   });
 });

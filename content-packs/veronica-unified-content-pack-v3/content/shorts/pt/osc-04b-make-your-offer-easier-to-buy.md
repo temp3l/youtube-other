@@ -1,0 +1,7 @@
+Conte quantas etapas uma pessoa precisa cumprir antes de conseguir comprar de você. Quantas perguntas? Quantas páginas? Quantas decisões pouco claras? Reduzir atrito não é manipular. É tornar mais simples uma decisão que o cliente já está considerando. Uma oferta forte tem um ponto de entrada sensato, informação clara, prova crível e um caminho compreensível. Depois revise três coisas: todo mundo precisa começar pela opção maior? Existe prova real para reduzir incerteza? E a urgência é verdadeira ou tudo é sempre “só hoje”? A melhor oferta não é a que tem mais bônus. É aquela em que cada elemento ajuda a entender, confiar, escolher e agir com menos atrito. Faça essa revisão do ponto de vista de alguém que chegou agora e ainda não conhece nenhuma das suas regras internas.
+
+Faça o teste de trinta segundos. Um visitante novo deveria conseguir entender se a oferta é para ele, o que recebe, qual é o próximo passo e onde pode resolver dúvidas. Se não consegue, a oferta precisa de clareza antes de precisar de urgência.
+
+Cada opção precisa justificar seu lugar resolvendo uma necessidade ou incerteza diferente. Se duas opções exigem muita explicação para serem diferenciadas, talvez não devam estar separadas. Uma arquitetura mais clara facilita comparar sem criar fadiga de decisão. Facilidade de compra faz parte do valor, não é decoração.
+
+Se a oferta precisa de pressão para ser entendida, reduza primeiro a confusão.

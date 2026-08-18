@@ -1,0 +1,86 @@
+{
+  "schemaVersion": "veronica-en-cost-reconciliation-evidence.v2",
+  "authorizedByOperator": true,
+  "reconciledAt": "2026-08-12T13:39:24Z",
+  "officialDocumentation": {
+    "usage": "https://developers.openai.com/api/reference/resources/admin/subresources/organization/subresources/usage",
+    "costs": "https://developers.openai.com/api/reference/resources/admin/subresources/organization/subresources/usage/methods/costs",
+    "completions": "https://developers.openai.com/api/reference/resources/admin/subresources/organization/subresources/usage/methods/completions"
+  },
+  "scopeCheck": {
+    "provider": "openai",
+    "method": "GET",
+    "costsEndpoint": "/v1/organization/costs",
+    "usageEndpoint": "/v1/organization/usage/completions",
+    "startTime": 1786320000,
+    "endTime": 1786579200,
+    "httpStatus": 200,
+    "missingScope": null,
+    "adminCredentialAvailable": true,
+    "providerModelCalls": 0,
+    "estimatedCostUsd": 0
+  },
+  "organizationCostQuery": {
+    "groupBy": [
+      "project_id",
+      "line_item",
+      "api_key_id"
+    ],
+    "projectIdHash": "d715a2b24fca139e",
+    "observedApiKeyIdHashes": [
+      "a7c2c8aa71dbf5b0",
+      "b664d0dc24c06f7a"
+    ],
+    "portfolioAttribution": "NOT_USED",
+    "reason": "Daily organization buckets contain unrelated TTS, image, and frontier-model activity, so organization totals are not attributed to Veronica."
+  },
+  "failedCallMinuteUsageChecks": [
+    {
+      "minute": "2026-08-11T04:00:00Z",
+      "model": "gpt-5.4-mini",
+      "failedCalls": 1,
+      "organizationModelRequests": 0
+    },
+    {
+      "minute": "2026-08-11T04:20:00Z",
+      "model": null,
+      "failedCalls": 1,
+      "organizationModelRequests": 0
+    },
+    {
+      "minute": "2026-08-11T04:52:00Z",
+      "model": "gpt-5.6-terra",
+      "failedCalls": 1,
+      "organizationModelRequests": 0
+    },
+    {
+      "minute": "2026-08-11T13:51:00Z",
+      "model": "gpt-5.4-mini",
+      "failedCalls": 3,
+      "organizationModelRequests": 0
+    },
+    {
+      "minute": "2026-08-12T01:05:00Z",
+      "model": "gpt-5.4-mini",
+      "failedCalls": 2,
+      "organizationModelRequests": 0
+    },
+    {
+      "minute": "2026-08-12T01:05:00Z",
+      "model": "gpt-5.6-terra",
+      "failedCalls": 1,
+      "organizationModelRequests": 0
+    }
+  ],
+  "unpricedCalls": {
+    "loggedTotal": 9,
+    "connectionErrorsWithoutProviderResponse": 8,
+    "providerRejectedInvalidRequest": 1,
+    "reconciledZeroCostCalls": 9,
+    "outstandingUnpricedCalls": 0,
+    "reconciledCostUsd": 0,
+    "costClassification": "ZERO_MODEL_USAGE_CONFIRMED_BY_ORGANIZATION_USAGE_API"
+  },
+  "result": "COMPLETE_ZERO_USAGE_RECONCILIATION",
+  "safetyDecision": "The nine failed terminal attempts are retained in history and priced at USD 0 only because every affected minute has zero organization model requests. No paid or generative request was dispatched."
+}

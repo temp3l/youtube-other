@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "veronica-pre-image-human-approval.v1",
+  "episodeId": "01a-revenue-is-not-a-good-business",
+  "language": "en",
+  "variant": "short",
+  "decision": "approved",
+  "reviewer": "operator",
+  "authorizationReference": "user-message-2026-08-12-01a-three-image-canary",
+  "approvedAt": "2026-08-12T13:57:17.280Z",
+  "reviewManifestSha256": "bdac6a0b580ede1ba0c659938f49180b2cf50a64aebb6ed49496f9e645ebb225",
+  "packagingFingerprint": "c40098b3101679e9d33a29da9987e0c10a27fe59d374d887b84d2634e01309c1",
+  "qaAdmissionIdentity": "0eb338f0d6a1069350afcabc541ccdcb5332f19ef13803a4d35978a09eae1043",
+  "semanticPlanFileSha256": "fdda87257c6472e6ed00182fc590059c8aaaa0829168f4f833529da0de8eb14e",
+  "providerPromptProjectionHash": "b1289887e4428dc37c1263692591ee37748f7125e0462661e5146dcf852014e8",
+  "qaRevisionId": "df6ff244964885b1deda8f288939e7fc86d1034eb62f43fa58066760ed4b1c30"
+}

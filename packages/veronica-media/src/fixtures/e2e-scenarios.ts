@@ -5,6 +5,7 @@ import {
   createFixtureSvg,
   VERONICA_PILOT_NARRATION,
 } from "./pilot.js";
+import type { VeronicaLocale } from "@mediaforge/domain";
 
 export const VERONICA_E2E_SCENARIO_VERSION = "veronica-media.e2e-scenarios.v1" as const;
 
@@ -21,7 +22,7 @@ export interface VeronicaE2eScenario {
     readonly bytes: Uint8Array;
     readonly declaredMimeType: string;
   }[];
-  readonly targetLanguage: string;
+  readonly targetLanguage: VeronicaLocale;
   readonly overrides?: Readonly<
     Record<
       string,

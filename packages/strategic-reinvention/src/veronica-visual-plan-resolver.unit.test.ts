@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -114,6 +115,104 @@ afterEach(async () => {
 });
 
 describe("canonical Veronica visual-plan resolver", () => {
+  it("preserves and deterministically rederives a literal null legacy plan", async () => {
+    const { prepared } = await preparedWorkspace();
+    const planPath = path.join(prepared.episodeDir, "source", "visual-plan.json");
+    const raw = "null\n";
+    await fs.writeFile(planPath, raw);
+
+    const resolved = await resolveVeronicaVisualPlan({
+      episodeDir: prepared.episodeDir,
+      episodeId: prepared.episodeId,
+      planner: fakePlanner(prepared.episodeId),
+    });
+    const rawHash = createHash("sha256").update(raw).digest("hex");
+    const archivePath = path.join(prepared.episodeDir, "source", "visual-plan.invalid", `${rawHash}.json`);
+
+    expect(resolved.evidence).toMatchObject({
+      artifactClassification: "INVALID_NULL_LEGACY",
+      archivedArtifactSha256: rawHash,
+      archivedArtifactPath: archivePath,
+      visualPlanSource: "derived_from_planner_input",
+    });
+    await expect(fs.readFile(archivePath, "utf8")).resolves.toBe(raw);
+    expect(positioningProductionPlanSchema.safeParse(JSON.parse(await fs.readFile(planPath, "utf8"))).success).toBe(true);
+
+    const archiveNamesBefore = await fs.readdir(path.dirname(archivePath));
+    const rerun = await resolveVeronicaVisualPlan({
+      episodeDir: prepared.episodeDir,
+      episodeId: prepared.episodeId,
+      planner: fakePlanner(prepared.episodeId),
+    });
+    expect(rerun.evidence.reuseReason).toBe("matching-planner-input-hash");
+    expect(await fs.readdir(path.dirname(archivePath))).toEqual(archiveNamesBefore);
+  });
+
+  it("protects a malformed non-null untrusted legacy plan from automatic replacement", async () => {
+    const { prepared } = await preparedWorkspace();
+    const planPath = path.join(prepared.episodeDir, "source", "visual-plan.json");
+    const raw = `${JSON.stringify({ contentId: prepared.episodeId, humanNotes: "preserve this" })}\n`;
+    await fs.writeFile(planPath, raw);
+
+    await expect(resolveVeronicaVisualPlan({
+      episodeDir: prepared.episodeDir,
+      episodeId: prepared.episodeId,
+      planner: fakePlanner(prepared.episodeId),
+    })).rejects.toMatchObject<Partial<VeronicaVisualPlanResolutionError>>({
+      code: "MALFORMED_UNTRUSTED_LEGACY_PLAN",
+      outcome: "BLOCK",
+    });
+    await expect(fs.readFile(planPath, "utf8")).resolves.toBe(raw);
+  });
+
+  it("preserves and rederives a malformed artifact carrying derived ownership", async () => {
+    const { prepared } = await preparedWorkspace();
+    const planPath = path.join(prepared.episodeDir, "source", "visual-plan.json");
+    const raw = `${JSON.stringify({
+      contentId: prepared.episodeId,
+      derivation: { artifactOwnership: "derived-compatibility-artifact" },
+    })}\n`;
+    await fs.writeFile(planPath, raw);
+
+    const resolved = await resolveVeronicaVisualPlan({
+      episodeDir: prepared.episodeDir,
+      episodeId: prepared.episodeId,
+      planner: fakePlanner(prepared.episodeId),
+    });
+    expect(resolved.evidence.artifactClassification).toBe("INVALID_DERIVED_COMPATIBILITY");
+    await expect(fs.readFile(resolved.evidence.archivedArtifactPath!, "utf8")).resolves.toBe(raw);
+  });
+
+  it("leaves the prior authoritative bytes intact when atomic replacement fails", async () => {
+    const { packDir, workspaceRoot, prepared } = await preparedWorkspace("Revenue is not margin.");
+    await resolveVeronicaVisualPlan({
+      episodeDir: prepared.episodeDir,
+      episodeId: prepared.episodeId,
+      planner: fakePlanner(prepared.episodeId),
+    });
+    const planPath = path.join(prepared.episodeDir, "source", "visual-plan.json");
+    const priorBytes = await fs.readFile(planPath, "utf8");
+    await fs.writeFile(
+      path.join(packDir, "shorts", "en", "01a-revenue-is-not-a-good-business.md"),
+      "Revenue is not margin. Every incremental sale must leave something behind.",
+    );
+    const changedEpisode = (await discoverVeronicaContentPack2Shorts({ packDir }))[0]!;
+    await prepareCanonicalSourceEpisodeWorkspace({
+      workspaceRoot,
+      sourceEpisode: changedEpisode,
+      locale: "en",
+      allowSourceReplacement: true,
+    });
+
+    await expect(resolveVeronicaVisualPlan({
+      episodeDir: prepared.episodeDir,
+      episodeId: prepared.episodeId,
+      planner: fakePlanner(prepared.episodeId),
+      writePlanAtomic: async () => { throw new Error("simulated atomic write failure"); },
+    })).rejects.toThrow("simulated atomic write failure");
+    await expect(fs.readFile(planPath, "utf8")).resolves.toBe(priorBytes);
+  });
+
   it("derives and persists a missing Pack 2 plan in the production adapter's canonical schema", async () => {
     const { prepared } = await preparedWorkspace();
     const deterministicPlanner = new DeterministicVeronicaCanonicalVisualPlanner();
@@ -195,7 +294,12 @@ describe("canonical Veronica visual-plan resolver", () => {
     );
     const changedEpisode = (await discoverVeronicaContentPack2Shorts({ packDir }))[0];
     if (!changedEpisode) throw new Error("Changed fixture source was not discovered.");
-    await prepareCanonicalSourceEpisodeWorkspace({ workspaceRoot, sourceEpisode: changedEpisode, locale: "en" });
+    await prepareCanonicalSourceEpisodeWorkspace({
+      workspaceRoot,
+      sourceEpisode: changedEpisode,
+      locale: "en",
+      allowSourceReplacement: true,
+    });
     const planner = fakePlanner(prepared.episodeId);
     const regenerated = await resolveVeronicaVisualPlan({
       episodeDir: prepared.episodeDir,
@@ -205,6 +309,24 @@ describe("canonical Veronica visual-plan resolver", () => {
 
     expect(planner.execute).toHaveBeenCalledTimes(1);
     expect(regenerated.evidence.reuseReason).toBe("planner-input-changed");
+  });
+
+  it("derives duration-aware Short scenes from sentence-level source beats instead of generic fillers", async () => {
+    const narration = [
+      "A promise is not a slogan. It translates value. Ask what result the buyer needs. Ask what obstacle can be removed.",
+      "The promise creates a standard. The experience must support it. Otherwise conversion rises once and trust falls later.",
+      "A strong promise stays within reality. It makes reality clearer.",
+    ].join("\n\n");
+    const { prepared } = await preparedWorkspace(narration);
+    const resolved = await resolveVeronicaVisualPlan({
+      episodeDir: prepared.episodeDir,
+      episodeId: prepared.episodeId,
+    });
+
+    const authoredScenes = resolved.plan.scenes.filter((scene) => scene.progressionStage !== "HOOK");
+    expect(authoredScenes.length).toBeGreaterThanOrEqual(5);
+    expect(authoredScenes.every((scene) => !/-D\d+$/u.test(scene.sceneId))).toBe(true);
+    expect(authoredScenes.every((scene) => scene.narrationAnchor !== "buyer-evaluation" && scene.narrationAnchor !== "evidence-contrast")).toBe(true);
   });
 
   it("fails closed for malformed or internally stale planner input", async () => {

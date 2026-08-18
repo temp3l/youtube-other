@@ -13,7 +13,7 @@ describe("Veronica Short natural pacing", () => {
     "accepts a naturally paced %ss Short without a duration-driven retry",
     async (durationSeconds) => {
       let calls = 0;
-      const wordCount = Math.round((durationSeconds / 60) * 155);
+      const wordCount = Math.round((durationSeconds / 60) * 160);
       const result = await calibrateVeronicaShortPacing({
         initialSpeed: 1,
         wordCount,
@@ -38,7 +38,7 @@ describe("Veronica Short natural pacing", () => {
   it("keeps a natural 121–179s result and requests editorial review", async () => {
     const result = await calibrateVeronicaShortPacing({
       initialSpeed: 1,
-      wordCount: 387,
+      wordCount: 400,
       policy,
       synthesize: async () => ({
         audioHash: "b".repeat(64),
@@ -78,14 +78,14 @@ describe("Veronica Short natural pacing", () => {
       policy,
       synthesize: async ({ attemptIndex }) => ({
         audioHash: String(attemptIndex).repeat(64),
-        durationSeconds: attemptIndex === 1 ? 60 : 82,
+        durationSeconds: attemptIndex === 1 ? 60 : 79,
         cacheHit: false,
         hardConstraintsPassed: true,
       }),
     });
     expect(result.attempts).toHaveLength(2);
     expect(result.attempts[1]!.requestedSpeed).toBeLessThan(1.16);
-    expect(result.selectedAttempt.measuredDurationSeconds).toBe(82);
+    expect(result.selectedAttempt.measuredDurationSeconds).toBe(79);
   });
 
   it("uses the one bounded correction when the initial WPM is outside the soft range", async () => {
@@ -95,7 +95,7 @@ describe("Veronica Short natural pacing", () => {
       policy,
       synthesize: async ({ attemptIndex }) => ({
         audioHash: String(attemptIndex).repeat(64),
-        durationSeconds: attemptIndex === 1 ? 77.85 : 72,
+        durationSeconds: attemptIndex === 1 ? 77.85 : 70.6,
         cacheHit: false,
         hardConstraintsPassed: true,
       }),
@@ -109,7 +109,7 @@ describe("Veronica Short natural pacing", () => {
 
   it("uses the centralized locale-aware conceptual-explainer profile", () => {
     expect(policy.profileId).toBe("conceptual-explainer");
-    expect(policy.preferredWpmRange).toEqual([145, 165]);
+    expect(policy.preferredWpmRange).toEqual([158, 162]);
     expect(resolveVeronicaShortPacingPolicy("de")?.preferredWpmRange).toEqual([
       140, 160,
     ]);
@@ -145,6 +145,6 @@ describe("Veronica Short natural pacing", () => {
     });
 
     expect(Math.abs(correction.speed - 1.6)).toBeLessThanOrEqual(0.1921);
-    expect(germanPolicy.maxCalibrationAttempts).toBe(2);
+    expect(germanPolicy.maxCalibrationAttempts).toBe(3);
   });
 });

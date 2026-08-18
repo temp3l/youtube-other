@@ -1,0 +1,31 @@
+{
+  "title": "Attenzione non significa conversione",
+  "thumbnail": "LE VIEW NON SONO VENDITE",
+  "description": "Awareness e conversione fanno lavori diversi. Questo episodio mappa il percorso da attenzione a fiducia, chiarezza, offerta e azione per capire dove si perde davvero la conversione.",
+  "cta": "Nel prossimo episodio affrontiamo la parte che nessun funnel risolve da solo: perché chiedere il prezzo, fare follow-up e vendere può metterti a disagio.",
+  "alternativeTitles": [
+    "100.000 view e zero vendite? Trova il vero punto di perdita",
+    "Le view non sono vendite: diagnostica la conversione"
+  ],
+  "thumbnailOptions": [
+    "LE VIEW NON SONO VENDITE",
+    "100K VIEW. 0 VENDITE?",
+    "DOVE SI ROMPE?"
+  ],
+  "youtubeOptimizationVersion": "v2-retention-localization",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  },
+  "shortA": {
+    "title": "100K view e zero vendite?",
+    "alternateHook": "Non dare la colpa alle view prima di trovare il passaggio in cui le persone si fermano davvero."
+  },
+  "shortB": {
+    "title": "Una CTA più forte non crea fiducia",
+    "alternateHook": "Una richiesta più rumorosa non sostituisce credibilità, chiarezza e un’offerta credibile."
+  }
+}

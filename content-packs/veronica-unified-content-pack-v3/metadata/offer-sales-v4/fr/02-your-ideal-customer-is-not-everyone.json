@@ -1,0 +1,42 @@
+{
+  "title": "Le test de persona qui change vraiment vos décisions",
+  "alternativeTitles": [
+    "Le test de persona qui change vraiment vos décisions",
+    "Votre client idéal n’est pas « tout le monde »",
+    "Le test Besoin–Contexte–Signal pour définir votre vrai client"
+  ],
+  "thumbnail": "CHANGE-T-ELLE UNE DÉCISION ?",
+  "thumbnailOptions": [
+    "CHANGE-T-ELLE UNE DÉCISION ?",
+    "VOTRE PERSONA SERT-ELLE À QUELQUE CHOSE ?",
+    "Votre client idéal n’est pas « tout le monde »"
+  ],
+  "description": "Une persona utile ne remplit pas une présentation : elle change le titre, le message, le canal, l’objection ou l’offre. Dans cet épisode, vous construisez une définition client autour de trois éléments — besoin, contexte et signal comportemental — puis vous la testez contre de vraies décisions marketing.",
+  "cta": "Prenez une décision marketing réelle cette semaine et vérifiez si votre persona vous aide effectivement à la prendre.",
+  "chapters": [
+    "Le coût de « tout le monde »",
+    "Besoin, contexte, signal",
+    "Le canal vient après le client",
+    "Une persona qui change une décision",
+    "Profil et comportement",
+    "Les cinq questions du client idéal",
+    "Valider avec de vrais clients",
+    "Transformer l’analyse en action"
+  ],
+  "shortA": {
+    "title": "Arrêtez de cibler tout le monde",
+    "alternateHook": "Si votre client idéal est « tout le monde », personne ne peut vraiment se reconnaître dans le message."
+  },
+  "shortB": {
+    "title": "Vous n’avez pas besoin de toutes les plateformes",
+    "alternateHook": "Le bon canal est celui où le bon client consacre déjà son attention."
+  },
+  "youtubeOptimizationVersion": "v4-editorial-continuity-remediation",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  }
+}

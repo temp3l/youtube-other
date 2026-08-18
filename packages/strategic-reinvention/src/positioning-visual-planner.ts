@@ -58,6 +58,7 @@ import {
 } from "./veronica-visual-language.js";
 import { resolveVeronicaProductionPolicy } from "./veronica-production-policy.js";
 import {
+  assertCanonicalVeronicaProductionSource,
   canonicalSourcePlannerInputSchema,
   type CanonicalSourcePlannerInput,
 } from "./veronica-content-pack-2-ingestion.js";
@@ -523,14 +524,17 @@ function timeline(input: {
   readonly durationMs: number;
   readonly sceneCount: number;
 }): { readonly coldOpenMs: number; readonly hookMs: number; readonly sceneMs: readonly number[] } {
-  const coldOpenMs = input.format === "long" ? Math.min(12_000, Math.max(5_000, input.durationMs * 0.025)) : 0;
-  const hookMs = input.format === "short" ? Math.min(7_000, Math.max(6_000, input.durationMs * 0.12)) : 0;
+  // These values are persisted through the production-plan schema, whose
+  // timeline fields are integer milliseconds. Round before calculating the
+  // remainder so the final scene cannot inherit a fractional millisecond.
+  const coldOpenMs = input.format === "long" ? Math.round(Math.min(12_000, Math.max(5_000, input.durationMs * 0.025))) : 0;
+  const hookMs = input.format === "short" ? Math.round(Math.min(7_000, Math.max(6_000, input.durationMs * 0.12))) : 0;
   const remaining = Math.max(input.sceneCount * 2_000, input.durationMs - coldOpenMs - hookMs);
   const base = Math.floor(remaining / input.sceneCount);
   const sceneMs = Array.from({ length: input.sceneCount }, (_, index) =>
     index === input.sceneCount - 1 ? remaining - base * (input.sceneCount - 1) : base,
   );
-  return { coldOpenMs: Math.round(coldOpenMs), hookMs: Math.round(hookMs), sceneMs };
+  return { coldOpenMs, hookMs, sceneMs };
 }
 
 function safeRegions(aspectRatio: AspectRatio): readonly SafeRegion[] {
@@ -1695,9 +1699,15 @@ function canonicalSourceBeats(input: {
     .split(/\n\s*\n/gu)
     .map((paragraph) => paragraph.trim())
     .filter(Boolean);
-  const units = paragraphs.length > 0
-    ? paragraphs
-    : input.narration.split(/(?<=[.!?])\s+/gu).map((sentence) => sentence.trim()).filter(Boolean);
+  // Authored Pack 2 paragraphs commonly contain several distinct causal
+  // claims. Treating a whole paragraph as one beat causes duration padding to
+  // manufacture generic buyer-evaluation scenes, which then have no direct
+  // source identity. Sentence units retain authored order while ensuring every
+  // duration-aware scene is derived from narration rather than filler.
+  const units = (paragraphs.length > 0 ? paragraphs : [input.narration])
+    .flatMap((paragraph) => paragraph.match(/[^.!?…]+(?:[.!?…]+[”"'’)]*|$)/gu) ?? [paragraph])
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
   const desiredCount = Math.max(5, Math.min(8, Math.round(input.durationMs / 9_000) - 1));
   const groups = Array.from({ length: Math.min(desiredCount, units.length) }, () => [] as string[]);
   units.forEach((unit, index) => {
@@ -1727,6 +1737,7 @@ export async function buildVeronicaCanonicalVisualPlan(input: {
   readonly outputDir: string;
 }): Promise<PositioningVisualPlanV2> {
   const plannerInput = canonicalSourcePlannerInputSchema.parse(input.plannerInput);
+  assertCanonicalVeronicaProductionSource(plannerInput.sourceEpisode);
   if (plannerInput.locale !== "en") {
     throw new Error("Canonical Veronica visual planning currently requires English narration.");
   }

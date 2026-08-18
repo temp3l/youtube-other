@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "veronica-provider-cost-reservation.v1",
+  "reservationId": "veronica-01a-image-canary-2026-08-12",
+  "status": "CONSUMED_PENDING_QA_RETRY_AUTHORIZATION",
+  "createdAt": "2026-08-12T13:58:00.000Z",
+  "episodeId": "01a-revenue-is-not-a-good-business",
+  "reviewManifestSha256": "bdac6a0b580ede1ba0c659938f49180b2cf50a64aebb6ed49496f9e645ebb225",
+  "humanApprovalSha256": "1c390eba072c1678e7cf4e145e26f5750c63115c76543040382ec0f73b8ed79e",
+  "authorizedAssets": [
+    "01a-revenue-is-not-a-good-business-HOOK-B04",
+    "01a-revenue-is-not-a-good-business-S01-B02",
+    "01a-revenue-is-not-a-good-business-S02-B01"
+  ],
+  "limits": {
+    "imageRequests": 3,
+    "imageQaRequests": 3,
+    "automaticRegenerations": 0,
+    "totalProviderRequests": 6,
+    "providerCeilingUsd": 0.3,
+    "canonicalCeilingEur": 0.285962
+  },
+  "budgetBeforeReservation": {
+    "canonicalCurrency": "EUR",
+    "portfolioCeilingEur": 4.883016,
+    "historicalSpendEur": 2.22497,
+    "remainingEur": 2.658046
+  },
+  "remainingAfterReservationEur": 2.372084,
+  "reconciledAt": "2026-08-12T14:15:56Z",
+  "activity": {
+    "imageRequests": 3,
+    "successfulImages": 3,
+    "imageQaRequests": 3,
+    "successfulImageQa": 0,
+    "providerRejectedImageQa": 3,
+    "automaticRegenerations": 0,
+    "totalProviderRequests": 6
+  },
+  "actualCost": {
+    "providerCurrency": "USD",
+    "imageCostUsd": 0.02235,
+    "rejectedQaCostUsd": 0,
+    "totalCostUsd": 0.02235,
+    "canonicalCostEur": 0.021304,
+    "costBasis": "Durable image usage logs plus zero organization completion usage in both affected one-minute buckets"
+  },
+  "reservationReconciliation": {
+    "reservedEur": 0.285962,
+    "consumedEur": 0.021304,
+    "releasedEur": 0.264658,
+    "stillHeldEur": 0
+  },
+  "result": "THREE_IMAGES_GENERATED_QA_NOT_EVALUATED",
+  "blocker": "QA provider rejected the unsupported temperature parameter; the client is fixed, but the authorized six-request limit is exhausted.",
+  "conversionPolicy": {
+    "observedUsdPerEur": 1.154,
+    "safetyMultiplier": 1.1,
+    "conservativeEurPerUsd": 0.953206239
+  }
+}

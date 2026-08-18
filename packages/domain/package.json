@@ -16,7 +16,7 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -b tsconfig.json --force && node ../../scripts/runtime-build-fingerprint.mjs write --package domain",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

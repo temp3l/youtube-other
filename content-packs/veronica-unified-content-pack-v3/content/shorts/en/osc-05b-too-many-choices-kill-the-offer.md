@@ -1,0 +1,7 @@
+A menu with fifty dishes looks like more choice. It also means more ingredients, more inventory, more waste, and more confusion. Offers work the same way. If a customer has to choose between too many nearly identical variants, you are giving them work—and the business pays for that complexity too. Sometimes three clear options convert better than thirty. Simplification does not mean removing value. It means removing differences customers do not actually use to decide. Keep the options that serve genuinely different needs and question the ones that accumulated over time. Try this: hide half of your options for a moment. Would the customer lose an important choice, or only lose a complication? The answer tells you whether your range is helping the decision or making it harder.
+
+Complexity also hides costs the customer never sees: extra stock, training, support paths, mistakes, and slower decisions. Removing one low-value variant can make the offer easier to choose and the business easier to operate at the same time.
+
+A useful rule is to keep a choice only when customers use that difference to make a decision. Otherwise the distinction may exist mainly inside your business, not in the buyer's mind. Simpler ranges are easier to explain, stock, and improve.
+
+Hide half your options for one minute. If the customer loses no important choice, you found unnecessary complexity.

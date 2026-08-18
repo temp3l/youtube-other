@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "veronica-chatgpt-diagram-review-pack.v4",
+  "episodeId": "01a-revenue-is-not-a-good-business",
+  "sceneId": "scene-004",
+  "visualBeatId": "01a-revenue-is-not-a-good-business-HOOK-B04",
+  "createdAt": "2026-08-12T20:10:27Z",
+  "status": "PENDING_EXACT_HASH_REVIEW",
+  "providerCalls": 0,
+  "canonicalAssetReplacedByThisTranche": false,
+  "candidate": {
+    "pngPath": "episodes/01a-revenue-is-not-a-good-business/review-packs/pre-image/en-short/run-1786539721886/prototypes/hook-b04-deterministic-diagram.v4.png",
+    "pngSha256": "22731f2fc9b6c84c02c2195d7527e476696106cbb0b0233ad51bdb5c0b6cb5b3",
+    "svgPath": "episodes/01a-revenue-is-not-a-good-business/review-packs/pre-image/en-short/run-1786539721886/prototypes/hook-b04-deterministic-diagram.v4.svg",
+    "svgSha256": "dd79379b6be74300c1177ebf866855a7a3d5f822541b3306910847cf265bc1fc",
+    "prototypeManifestPath": "episodes/01a-revenue-is-not-a-good-business/review-packs/pre-image/en-short/run-1786539721886/prototypes/hook-b04-deterministic-diagram-prototype.v4.json",
+    "prototypeManifestSha256": "48ab5f708056c7cc0703282f4cd30467715c6b53307711accc31eed8998665e8"
+  },
+  "comparisons": [
+    {
+      "path": "episodes/01a-revenue-is-not-a-good-business/shared/images/generated/01a-revenue-is-not-a-good-business-hook-beat-04-9x16.png",
+      "role": "current canonical v3 strict-QA failure",
+      "sha256": "ed527430bbceac95141d078234d5a145d1976a5607c64311193d75bf570cc72a"
+    },
+    {
+      "path": "episodes/01a-revenue-is-not-a-good-business/shared/images/generated/01a-revenue-is-not-a-good-business-s02-beat-01-9x16.png",
+      "role": "approved adjacent image and visual-distinction reference",
+      "sha256": "5e11f15cee0b397ad8bbcd2b8d897ae8ca91764f65e728deb218a0dc7cde5bbe"
+    }
+  ],
+  "qaEvidence": [
+    {
+      "path": "episodes/01a-revenue-is-not-a-good-business/state/image-generation/veronica-post-generation-visual-qa/scene-004.a1ad88279626398c510ceca7ef0ea65574866b2adc6d8131d6b0ecb456ce284e.json",
+      "role": "current canonical v3 strict-QA failure",
+      "sha256": "d3360d0f46709da6ea224147d1bad050b9cc69536c3eb14fa9bb02c92bef0144"
+    },
+    {
+      "path": "episodes/01a-revenue-is-not-a-good-business/state/image-generation/veronica-post-generation-visual-qa/scene-007.93f3ad3273ea2b2f71d1cb2323dabef8cc90dc218e5b26c387fefc3b56a559b9.json",
+      "role": "approved S02-B01 strict QA",
+      "sha256": "0f5388034ec6a966f0e6dc2503a8065a60b41d30b9222392829c237827bc81e3"
+    }
+  ],
+  "sourceBindings": {
+    "sourceSha256": "4e82a65208256d74b2171c4475ee624d9506cfd6f0b21b1f055074d4062c7503",
+    "semanticPlanSha256": "fdda87257c6472e6ed00182fc590059c8aaaa0829168f4f833529da0de8eb14e",
+    "reviewManifestSha256": "bdac6a0b580ede1ba0c659938f49180b2cf50a64aebb6ed49496f9e645ebb225",
+    "currentSceneManifestSha256": "c3ec356a6302c1f60f6a1474e9ab5fd67080817e45fa9e6826e0fb77a420fec6",
+    "currentAdoptionSha256": "17cfdbf21cb3c79543f27b0640a4803345e6909ac1cb65116795cdba6915ce6c"
+  },
+  "authorizationBoundary": "Review only; no canonical adoption or provider request is authorized."
+}

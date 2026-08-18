@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "veronica-en-next-tranche-plan.v1",
+  "generatedAt": "2026-08-12T21:19:27.561Z",
+  "tranche": "EN_SHORT_SEMANTIC_ADMISSION_REPAIR",
+  "episodes": [
+    "03b-the-promise-formula",
+    "08b-prospecting-without-being-annoying",
+    "02b-stop-posting-where-your-customers-arent"
+  ],
+  "operations": [
+    "Preserve the three current source/narration/audio/timing chains and v2.4 derived plans",
+    "Remove unsupported doorway/public-threshold motif leakage from source-derived hook/payoff treatments",
+    "Extend source-grounded promise/experience semantic mechanisms and explicit transition-state extraction without source edits",
+    "Replay 03b first; continue to 08b and 02b only after deterministic semantic and provider readiness pass"
+  ],
+  "providers": [
+    {
+      "provider": "none",
+      "model": "deterministic-template",
+      "reasoning": "not-applicable",
+      "purpose": "systemic semantic-admission repair",
+      "maxRequests": 0
+    }
+  ],
+  "maxRequests": 0,
+  "estimatedCostUsd": 0,
+  "estimatedCostEur": 0,
+  "conservativeCeilingUsd": 0,
+  "conservativeCeilingEur": 0,
+  "successCriteria": [
+    "03b validation, semanticQuality, and providerReadiness all pass without source edits",
+    "No unsupported cross-episode motif or unresolved promise semantics remain",
+    "Current source/audio hashes and measured 57.8-second timing identity remain intact",
+    "08b and 02b reproduce the same systemic fix without episode-specific overrides"
+  ],
+  "stopConditions": [
+    "The same focused failure survives two targeted fixes",
+    "More than three fixtures require edits or an assertion/gate would need weakening",
+    "Any provider request is proposed before deterministic readiness",
+    "Any source text, selected audio, or current timing identity would be invalidated"
+  ],
+  "authorizationRequired": null
+}

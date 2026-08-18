@@ -113,6 +113,15 @@ than understating it. Rebuild summaries without provider calls with:
 node scripts/rebuild-openai-episode-cost-summaries.mjs episodes
 ```
 
+Accepted Veronica image pixels are bound to asset-local semantic and provider
+prompt hashes, the exact image SHA-256, generation evidence, and the exact
+post-image-QA identity. A semantic-QA retry must update the canonical manifest
+to the accepted retry bytes before the asset is reusable. Use `images
+audit-reconciliation` to inventory legacy manifest drift; `images resume
+--qa-existing --reconciliation-inventory <path>` may repair only
+cryptographically linked A/B/E records after exact-current QA passes. Material
+prompt changes and unlinked pixels remain regeneration-only.
+
 `compact` is the normal semantic/image-prompt review mode; `listening` includes
 `narration-review.opus` for intelligibility checks; `forensic` embeds
 `narration.wav` for waveform and timing investigation.

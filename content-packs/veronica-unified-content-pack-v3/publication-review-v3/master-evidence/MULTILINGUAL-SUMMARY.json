@@ -1,0 +1,82 @@
+{
+  "status": "READY_AI_EDITORIAL_REVIEWED",
+  "records": 270,
+  "missing": 0,
+  "timingFailures": 0,
+  "qualityFailures": 0,
+  "hygieneDefects": 0,
+  "changeStatusCounts": {
+    "PRESERVED": 177,
+    "MODIFIED": 39,
+    "ADDED": 54
+  },
+  "localeStats": {
+    "de": {
+      "records": 54,
+      "longs": 18,
+      "shorts": 36,
+      "timingPass": 54,
+      "qualityPass": 54,
+      "minScore": 9.74,
+      "avgScore": 9.78,
+      "minWordsLong": 1395,
+      "maxWordsLong": 1520,
+      "minWordsShort": 218,
+      "maxWordsShort": 233
+    },
+    "es": {
+      "records": 54,
+      "longs": 18,
+      "shorts": 36,
+      "timingPass": 54,
+      "qualityPass": 54,
+      "minScore": 9.74,
+      "avgScore": 9.8,
+      "minWordsLong": 1428,
+      "maxWordsLong": 1575,
+      "minWordsShort": 225,
+      "maxWordsShort": 240
+    },
+    "fr": {
+      "records": 54,
+      "longs": 18,
+      "shorts": 36,
+      "timingPass": 54,
+      "qualityPass": 54,
+      "minScore": 9.74,
+      "avgScore": 9.79,
+      "minWordsLong": 1475,
+      "maxWordsLong": 1575,
+      "minWordsShort": 228,
+      "maxWordsShort": 240
+    },
+    "it": {
+      "records": 54,
+      "longs": 18,
+      "shorts": 36,
+      "timingPass": 54,
+      "qualityPass": 54,
+      "minScore": 9.74,
+      "avgScore": 9.79,
+      "minWordsLong": 1428,
+      "maxWordsLong": 1523,
+      "minWordsShort": 225,
+      "maxWordsShort": 240
+    },
+    "pt": {
+      "records": 54,
+      "longs": 18,
+      "shorts": 36,
+      "timingPass": 54,
+      "qualityPass": 54,
+      "minScore": 9.74,
+      "avgScore": 9.79,
+      "minWordsLong": 1452,
+      "maxWordsLong": 1561,
+      "minWordsShort": 225,
+      "maxWordsShort": 240
+    }
+  },
+  "knownFrenchTimingFailuresBefore": 22,
+  "knownFrenchTimingFailuresAfter": 0
+}

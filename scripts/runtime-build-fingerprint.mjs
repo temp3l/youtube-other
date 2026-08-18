@@ -6,6 +6,10 @@ import { fileURLToPath } from "node:url";
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 
 const packages = {
+  domain: {
+    directory: "packages/domain",
+    manifest: "packages/domain/dist/runtime-fingerprint.json",
+  },
   cli: {
     directory: "apps/cli",
     manifest: "apps/cli/dist/runtime-fingerprint.json",
@@ -23,13 +27,20 @@ function repositoryRoot(rootDir) {
 async function listRuntimeSources(directory, rootDir) {
   const entries = await fs.readdir(directory, { withFileTypes: true });
   const files = [];
-  for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
+  for (const entry of entries.sort((left, right) =>
+    left.name.localeCompare(right.name)
+  )) {
     const absolutePath = path.join(directory, entry.name);
     if (entry.isDirectory()) {
-      files.push(...await listRuntimeSources(absolutePath, rootDir));
+      files.push(...(await listRuntimeSources(absolutePath, rootDir)));
       continue;
     }
-    if (!entry.isFile() || !entry.name.endsWith(".ts") || /\.test\.ts$/u.test(entry.name)) continue;
+    if (
+      !entry.isFile() ||
+      !entry.name.endsWith(".ts") ||
+      /\.test\.ts$/u.test(entry.name)
+    )
+      continue;
     files.push(path.relative(rootDir, absolutePath).split(path.sep).join("/"));
   }
   return files;
@@ -40,7 +51,7 @@ async function sourceFingerprint(packageName, rootDir) {
   if (!definition) throw new Error(`Unknown runtime package: ${packageName}`);
   const packageDirectory = path.join(rootDir, definition.directory);
   const files = [
-    ...await listRuntimeSources(path.join(packageDirectory, "src"), rootDir),
+    ...(await listRuntimeSources(path.join(packageDirectory, "src"), rootDir)),
     `${definition.directory}/package.json`,
     `${definition.directory}/tsconfig.json`,
     "tsconfig.base.json",
@@ -68,7 +79,11 @@ export async function writeRuntimeBuildFingerprint(packageName, options = {}) {
   };
   const manifestPath = path.join(rootDir, definition.manifest);
   await fs.mkdir(path.dirname(manifestPath), { recursive: true });
-  await fs.writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+  await fs.writeFile(
+    manifestPath,
+    `${JSON.stringify(manifest, null, 2)}\n`,
+    "utf8"
+  );
   return { ...manifest, manifestPath: definition.manifest };
 }
 
@@ -81,11 +96,19 @@ export async function verifyRuntimeBuildFingerprint(packageName, options = {}) {
   try {
     manifest = JSON.parse(await fs.readFile(manifestPath, "utf8"));
   } catch {
-    throw new Error(`Runtime build fingerprint missing for ${packageName}; run pnpm --filter @mediaforge/${packageName} build before source-grounded QA.`);
+    throw new Error(
+      `Runtime build fingerprint missing for ${packageName}; run pnpm --filter @mediaforge/${packageName} build before Veronica source-pack commands.`
+    );
   }
   const current = await sourceFingerprint(packageName, rootDir);
-  if (manifest.schemaVersion !== 1 || manifest.packageName !== packageName || manifest.sourceFingerprint !== current.fingerprint) {
-    throw new Error(`Runtime build fingerprint is stale for ${packageName}; run pnpm --filter @mediaforge/${packageName} build before source-grounded QA.`);
+  if (
+    manifest.schemaVersion !== 1 ||
+    manifest.packageName !== packageName ||
+    manifest.sourceFingerprint !== current.fingerprint
+  ) {
+    throw new Error(
+      `Runtime build fingerprint is stale for ${packageName}; run pnpm --filter @mediaforge/${packageName} build before Veronica source-pack commands.`
+    );
   }
   return {
     packageName,
@@ -96,18 +119,30 @@ export async function verifyRuntimeBuildFingerprint(packageName, options = {}) {
 
 async function main() {
   const [operation, option, packageName] = process.argv.slice(2);
-  if ((operation !== "write" && operation !== "verify") || option !== "--package" || !packageName) {
-    throw new Error("Usage: node scripts/runtime-build-fingerprint.mjs <write|verify> --package <cli|strategic-reinvention>");
+  if (
+    (operation !== "write" && operation !== "verify") ||
+    option !== "--package" ||
+    !packageName
+  ) {
+    throw new Error(
+      "Usage: node scripts/runtime-build-fingerprint.mjs <write|verify> --package <cli|domain|strategic-reinvention>"
+    );
   }
-  const result = operation === "write"
-    ? await writeRuntimeBuildFingerprint(packageName)
-    : await verifyRuntimeBuildFingerprint(packageName);
+  const result =
+    operation === "write"
+      ? await writeRuntimeBuildFingerprint(packageName)
+      : await verifyRuntimeBuildFingerprint(packageName);
   process.stdout.write(`${JSON.stringify(result)}\n`);
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (
+  process.argv[1] &&
+  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
   main().catch((error) => {
-    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+    process.stderr.write(
+      `${error instanceof Error ? error.message : String(error)}\n`
+    );
     process.exitCode = 1;
   });
 }

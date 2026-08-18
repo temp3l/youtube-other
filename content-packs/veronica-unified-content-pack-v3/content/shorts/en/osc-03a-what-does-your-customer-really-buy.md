@@ -1,0 +1,7 @@
+If you keep explaining what you sell instead of why someone should want it, you can have a great product and still struggle to sell. Take a pair of earrings. The product is the earrings, but the customer may be buying the feeling of looking better, completing an outfit, or giving themselves a reward. Customers do not live inside your catalogue. They live inside their own lives. So write down the name of what you sell and mentally remove it. What is the person really buying? Do the same with a hotel room, a consultation, or any other offer. Do not invent benefits. Translate what the product genuinely makes possible. And look at the value around the product too: advice, support, method, and care can be the reason someone chooses you over an almost identical alternative.
+
+Here is the fastest check: describe the outcome without naming the product. If a stranger can understand why that outcome matters, you are closer to customer language. Then reconnect the product and show why it can credibly create that result.
+
+This distinction also improves comparison against competitors because products can look similar while outcomes feel very different. Ask what changes in the customer's day after the purchase works as intended.
+
+Remove the product name from your sentence. If the value disappears, you have not found the promise yet.

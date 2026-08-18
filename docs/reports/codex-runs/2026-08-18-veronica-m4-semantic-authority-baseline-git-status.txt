@@ -1,0 +1,167 @@
+ M apps/cli/src/images-resume-command.ts
+ M apps/cli/src/images-resume-command.unit.test.ts
+ M apps/cli/src/index.ts
+ M apps/cli/src/veronica-media-commands.ts
+ M apps/cli/src/veronica-media-commands.unit.test.ts
+ M apps/cli/src/veronica-pre-image-review-pack.ts
+ M apps/cli/src/veronica-pre-image-review-pack.unit.test.ts
+ M apps/cli/src/veronica-short-pacing.ts
+ M apps/cli/src/veronica-source-grounded-visual-qa-composition.ts
+ M apps/cli/src/veronica-source-grounded-visual-qa-composition.unit.test.ts
+ M docs/architecture/strategic-reinvention/operator-guide.md
+ M docs/architecture/veronica-supplemental-media/overview.md
+ M packages/image-generation/src/episode-image-pipeline.ts
+ M packages/image-generation/src/veronica-post-generation-visual-qa.ts
+ M packages/image-generation/src/veronica-post-generation-visual-qa.unit.test.ts
+ M packages/speech/src/veronica-short-pacing.ts
+ M packages/speech/src/veronica-short-pacing.unit.test.ts
+ M packages/speech/src/veronica-speech-rate-policy.ts
+ M packages/speech/src/veronica-speech-rate-policy.unit.test.ts
+ M packages/strategic-reinvention/src/index.ts
+ M packages/strategic-reinvention/src/positioning-production-adapter.ts
+ M packages/strategic-reinvention/src/positioning-production-adapter.unit.test.ts
+ M packages/strategic-reinvention/src/positioning-visual-contracts.ts
+ M packages/strategic-reinvention/src/positioning-visual-planner.ts
+ M packages/strategic-reinvention/src/positioning-visual-planner.unit.test.ts
+ M packages/strategic-reinvention/src/source-grounded-qa-scheduler.ts
+ M packages/strategic-reinvention/src/source-grounded-visual-qa.ts
+ M packages/strategic-reinvention/src/source-grounded-visual-qa.unit.test.ts
+ M packages/strategic-reinvention/src/veronica-image-prompt-compiler.ts
+ M packages/strategic-reinvention/src/veronica-image-prompt-compiler.unit.test.ts
+ M packages/strategic-reinvention/src/veronica-pre-image-semantic-gate.ts
+ M packages/strategic-reinvention/src/veronica-pre-image-semantic-gate.unit.test.ts
+ M packages/strategic-reinvention/src/veronica-semantic-quality.ts
+ M packages/strategic-reinvention/src/veronica-sequence-diversity.ts
+ M packages/strategic-reinvention/src/veronica-sequence-diversity.unit.test.ts
+ M packages/strategic-reinvention/src/veronica-visual-beats.ts
+ M packages/strategic-reinvention/src/veronica-visual-beats.unit.test.ts
+ M packages/strategic-reinvention/src/veronica-visual-plan-resolver.ts
+ M packages/strategic-reinvention/src/veronica-visual-plan-resolver.unit.test.ts
+?? apps/cli/src/veronica-image-reconciliation.ts
+?? apps/cli/src/veronica-narration-canary.ts
+?? apps/cli/src/veronica-narration-canary.unit.test.ts
+?? content-packs.zip
+?? content-packs/veronica-content-pack-1/packed.zip
+?? docs/plans/veronica-en-preimage-next-paid-tranche.md
+?? docs/plans/veronica-en-preimage-portfolio-remediation-plan.md
+?? docs/plans/veronica-systemic-remediation-m2-plan.md
+?? docs/reports/2026-08-12/
+?? docs/reports/2026-08-16/
+?? docs/reports/2026-08-18/
+?? docs/reports/codex-runs/2026-08-12-prepare-veronica-07b-overrides.json
+?? docs/reports/codex-runs/2026-08-12-prepare-veronica-07b.md
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-deterministic-diagram-prototype.md
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-diagram-adoption-and-qa.md
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-diagram-chatgpt-review-pack.md
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-diagram-chatgpt-review-pack.zip
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-diagram-chatgpt-review-pack/
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-diagram-qa-reservation.json
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-encoding-bound-canary-reservation.json
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-encoding-bound-canary.md
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-final-human-directed-s05-s06-remediation.md
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-hook-b04-editorial-decision-pack.md
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-hook-b04-editorial-decision-pack.zip
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-hook-diagram-adoption-qa.md
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-hook-diagram-qa-reservation.json
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-hook-v2-adoption-qa.md
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-hook-v2-chatgpt-review-pack.zip
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-hook-v2-chatgpt-review-pack/
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-hook-v2-prototype-review-pack.md
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-hook-v2-qa-failure-review-pack.md
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-hook-v2-qa-failure-review-pack.zip
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-hook-v2-qa-reservation.json
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-hook-v3-adoption-qa.md
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-hook-v3-chatgpt-review-pack.zip
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-hook-v3-chatgpt-review-pack/
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-hook-v3-prototype-review-pack.md
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-hook-v3-qa-failure-review-pack.md
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-hook-v3-qa-failure-review-pack.zip
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-hook-v3-qa-reservation.json
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-hook-v4-adoption-qa.md
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-hook-v4-chatgpt-review-pack.zip
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-hook-v4-chatgpt-review-pack/
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-hook-v4-prototype-review-pack.md
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-hook-v4-qa-reservation.json
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-image-canary-cost-evidence.json
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-image-canary-reservation.json
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-image-canary.md
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-image-qa-retry-cost-evidence.json
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-image-qa-retry-reservation.json
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-remaining-canary-qa-reservation.json
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-remaining-canary-qa.md
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-s02-remediation-reservation.json
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-s02-remediation.md
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-sequence-review-beat-overrides.json
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-sequence-review-deterministic-remediation.md
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-strict-image-qa-cost-evidence.json
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-strict-image-qa-reservation.json
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-strict-image-qa-result.md
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-strict-qa-boundary.md
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-targeted-sequence-editorial-remediation.md
+?? docs/reports/codex-runs/2026-08-12-veronica-01a-visual-encoding-approval.md
+?? docs/reports/codex-runs/2026-08-12-veronica-02b-synthetic-narration-authorization.json
+?? docs/reports/codex-runs/2026-08-12-veronica-03b-source-grounded-qa-reservation.json
+?? docs/reports/codex-runs/2026-08-12-veronica-03b-synthetic-narration-authorization.json
+?? docs/reports/codex-runs/2026-08-12-veronica-08b-synthetic-narration-authorization.json
+?? docs/reports/codex-runs/2026-08-12-veronica-en-autonomous-production-readiness-run.json
+?? docs/reports/codex-runs/2026-08-12-veronica-en-autonomous-production-readiness-run.md
+?? docs/reports/codex-runs/2026-08-12-veronica-en-budget-reconciliation-complete.md
+?? docs/reports/codex-runs/2026-08-12-veronica-en-chatgpt-review-pack.md
+?? docs/reports/codex-runs/2026-08-12-veronica-en-chatgpt-review-pack.zip
+?? docs/reports/codex-runs/2026-08-12-veronica-en-chatgpt-review-pack/
+?? docs/reports/codex-runs/2026-08-12-veronica-en-cost-reconciliation-attempt.md
+?? docs/reports/codex-runs/2026-08-12-veronica-en-cost-reconciliation-evidence.json
+?? docs/reports/codex-runs/2026-08-12-veronica-en-next-tranche-plan.json
+?? docs/reports/codex-runs/2026-08-12-veronica-en-next-tranche-plan.md
+?? docs/reports/codex-runs/2026-08-12-veronica-en-portfolio-combined-run.json
+?? docs/reports/codex-runs/2026-08-12-veronica-en-portfolio-combined-run.md
+?? docs/reports/codex-runs/2026-08-12-veronica-en-portfolio-cost-ledger.json
+?? docs/reports/codex-runs/2026-08-12-veronica-en-portfolio-systemic-remediation.md
+?? docs/reports/codex-runs/2026-08-12-veronica-en-preimage-portfolio-census.json
+?? docs/reports/codex-runs/2026-08-12-veronica-en-preimage-portfolio-census.md
+?? docs/reports/codex-runs/2026-08-12-veronica-en-production-input-provisioning-manifest-v2.json
+?? docs/reports/codex-runs/2026-08-12-veronica-en-production-input-provisioning-manifest.json
+?? docs/reports/codex-runs/2026-08-12-veronica-en-production-readiness-census.json
+?? docs/reports/codex-runs/2026-08-12-veronica-en-production-readiness-census.md
+?? docs/reports/codex-runs/2026-08-12-veronica-en-semantic-planning-canary.md
+?? docs/reports/codex-runs/2026-08-12-veronica-en-three-short-narration-canary.md
+?? docs/reports/codex-runs/2026-08-12-veronica-en-three-short-narration-reservation.json
+?? docs/reports/codex-runs/2026-08-12-veronica-portfolio-remediation-code-review.md
+?? docs/reports/codex-runs/2026-08-13-veronica-en-semantic-admission-repair.md
+?? docs/reports/codex-runs/2026-08-14-copy-latest-episodes.md
+?? docs/reports/codex-runs/2026-08-14-latest-episode-videos.md
+?? docs/reports/codex-runs/2026-08-16-veronica-remediation-validation.md
+?? docs/reports/codex-runs/2026-08-17-03b-chatgpt-review-pack.md
+?? docs/reports/codex-runs/2026-08-17-03b-production.md
+?? docs/reports/codex-runs/2026-08-17-03b-reconciliation.md
+?? docs/reports/codex-runs/2026-08-17-veronica-evidence-hardening-v2.md
+?? docs/reports/codex-runs/2026-08-17-veronica-systemic-remediation-m1-planning.md
+?? docs/reports/codex-runs/2026-08-17-veronica-zero-cost-preproduction-census.md
+?? docs/reports/codex-runs/2026-08-18-veronica-m1-final-acceptance.md
+?? docs/reports/codex-runs/2026-08-18-veronica-m1-generic-actor-projection-recovery.md
+?? docs/reports/codex-runs/2026-08-18-veronica-m3-planning-amendment.md
+?? docs/reports/codex-runs/2026-08-18-veronica-systemic-remediation-m1-continuation.md
+?? docs/reports/codex-runs/2026-08-18-veronica-systemic-remediation-m1-recovery.md
+?? docs/reports/codex-runs/2026-08-18-veronica-systemic-remediation-m1.md
+?? docs/reports/codex-runs/2026-08-18-veronica-systemic-remediation-m2-implementation.md
+?? docs/reports/codex-runs/2026-08-18-veronica-systemic-remediation-m2-planning.md
+?? docs/reports/codex-runs/2026-08-18-veronica-systemic-remediation-m3-implementation.md
+?? docs/reports/codex-runs/2026-08-18-veronica-systemic-remediation-m3-planning.md
+?? multi-epsisode-review-pack.zip
+?? packages/strategic-reinvention/src/veronica-beat-candidates.unit.test.ts
+?? packages/strategic-reinvention/src/veronica-causal-evidence.ts
+?? packages/strategic-reinvention/src/veronica-deterministic-outcome.ts
+?? packages/strategic-reinvention/src/veronica-deterministic-outcome.unit.test.ts
+?? packages/strategic-reinvention/src/veronica-semantic-plan-authority.ts
+?? packages/strategic-reinvention/src/veronica-semantic-plan-authority.unit.test.ts
+?? scripts/generate-veronica-systemic-remediation-m1-final-review.mjs
+?? scripts/generate-veronica-systemic-remediation-m1-planning-pack.ts
+?? scripts/generate-veronica-systemic-remediation-m1-recovery-review.mjs
+?? scripts/generate-veronica-systemic-remediation-m1-review.mjs
+?? scripts/generate-veronica-systemic-remediation-m2-final-review.mjs
+?? scripts/generate-veronica-systemic-remediation-m3-amendment-review.mjs
+?? scripts/generate-veronica-systemic-remediation-m3-blocked-review.mjs
+?? scripts/reconcile-veronica-en-production-readiness.mjs
+?? scripts/veronica-evidence-hardening-v2.ts
+?? scripts/veronica-zero-cost-preproduction-census.ts
+?? veronica-preimage-qa-remediation-bundle.tar.gz

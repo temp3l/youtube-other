@@ -1,0 +1,42 @@
+{
+  "title": "Tu facturación puede crecer mientras tu negocio se debilita",
+  "alternativeTitles": [
+    "Vender más no arregla un mal modelo de negocio",
+    "¿Tu negocio es rentable o simplemente está muy ocupado?",
+    "El test de modelo de negocio que muchos emprendedores se saltan"
+  ],
+  "thumbnail": "¿MÁS VENTAS, PEOR NEGOCIO?",
+  "thumbnailOptions": [
+    "¿MÁS VENTAS, PEOR NEGOCIO?",
+    "FACTURACIÓN ≠ MARGEN",
+    "¿Y SI VENDIERAS EL DOBLE?"
+  ],
+  "description": "Facturar más no significa automáticamente tener un negocio más sano. En este episodio analizamos la estructura que hay detrás de un modelo sostenible: margen, costes variables y fijos, tiempo de entrega, escalabilidad, economía de los canales y la diferencia entre proteger el formato del producto y proteger la necesidad del cliente. Al final tienes una auditoría sencilla en cinco puntos y una pregunta de estrés: si mañana duplicaras las ventas, ¿el negocio sería realmente más fuerte?\n\nEn el próximo episodio: por qué tu cliente ideal no es “todo el mundo”.",
+  "cta": "Haz la auditoría de cinco puntos y elige una sola hipótesis estructural para probar durante las próximas semanas.",
+  "chapters": [
+    "Facturación no es modelo de negocio",
+    "El coste oculto de cambiar de canal",
+    "Formato del producto frente a necesidad del cliente",
+    "El test del tiempo",
+    "Qué significa realmente escalar",
+    "El test de adaptación",
+    "Tu auditoría de cinco puntos",
+    "Qué probar a continuación"
+  ],
+  "shortA": {
+    "title": "Más facturación puede empeorar un negocio débil",
+    "alternateHook": "Si mañana duplicaras las ventas, ¿tu negocio estaría de verdad mejor?"
+  },
+  "shortB": {
+    "title": "¿Tus ingresos se paran cuando tú paras?",
+    "alternateHook": "Tu mayor límite de crecimiento podría estar escondido en tu agenda."
+  },
+  "youtubeOptimizationVersion": "v2-retention-localization",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  }
+}

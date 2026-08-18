@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "veronica-provider-cost-reservation.v1",
+  "reservationId": "veronica-01a-diagram-qa-2026-08-12",
+  "status": "CONSUMED_CANARY_PASS",
+  "createdAt": "2026-08-12T18:12:00+02:00",
+  "authorizationReference": "user-message-2026-08-12-authorize-recommended-next-tranche",
+  "episodeId": "01a-revenue-is-not-a-good-business",
+  "authorizedAssets": [
+    {
+      "visualBeatId": "01a-revenue-is-not-a-good-business-S02-B01",
+      "sceneId": "scene-007",
+      "operation": "deterministic-diagram-adoption-and-strict-existing-pixel-qa",
+      "prototypeManifestPath": "episodes/01a-revenue-is-not-a-good-business/review-packs/pre-image/en-short/run-1786539721886/prototypes/s02-b01-deterministic-diagram-prototype.v1.json",
+      "prototypeManifestSha256": "d77fcf8d0ecc1943057e60789d05bf95f7c68b266a7d034a187ed484e3d4300d",
+      "imageSha256": "5e11f15cee0b397ad8bbcd2b8d897ae8ca91764f65e728deb218a0dc7cde5bbe"
+    }
+  ],
+  "limits": {
+    "imageRequests": 0,
+    "imageQaRequests": 1,
+    "automaticRegenerations": 0,
+    "totalProviderRequests": 1,
+    "providerCeilingUsd": 0.02,
+    "canonicalCeilingEur": 0.019064
+  },
+  "budgetBeforeReservation": {
+    "canonicalCurrency": "EUR",
+    "portfolioCeilingEur": 4.883016,
+    "cumulativeSpendEur": 2.291494,
+    "remainingEur": 2.591522
+  },
+  "remainingAfterReservationEur": 2.572458,
+  "providers": {
+    "image": null,
+    "qa": {
+      "provider": "openai",
+      "model": "gpt-5.4-mini",
+      "reasoning": "low"
+    }
+  },
+  "preDispatchEvidence": {
+    "episodeCostSummaryGeneratedAt": "2026-08-12T15:36:59.706Z",
+    "episodeKnownEstimatedCostUsd": 1.325715,
+    "episodePaidProviderCalls": 84,
+    "imageGenerationCalls": 6,
+    "postGenerationVisualQaCalls": 3
+  },
+  "conversionPolicy": {
+    "observationDate": "2026-08-11",
+    "source": "European Central Bank reference rate",
+    "observedUsdPerEur": 1.154,
+    "safetyMultiplier": 1.1,
+    "conservativeEurPerUsd": 0.953206239
+  },
+  "stopConditions": [
+    "any hash or provenance mismatch",
+    "strict QA rejection or provider failure",
+    "any attempted image-generation request",
+    "a second QA request"
+  ],
+  "reconciledAt": "2026-08-12T16:12:26.275Z",
+  "activity": {
+    "imageRequests": 0,
+    "successfulImages": 0,
+    "imageQaRequests": 1,
+    "successfulImageQa": 1,
+    "approvedImageQa": 1,
+    "rejectedImageQa": 0,
+    "automaticRegenerations": 0,
+    "totalProviderRequests": 1,
+    "qaCacheMisses": 1,
+    "qaCacheHits": 0
+  },
+  "actualCost": {
+    "providerCurrency": "USD",
+    "imageCostUsd": 0,
+    "qaCostUsd": 0.005179,
+    "totalCostUsd": 0.005179,
+    "canonicalCostEur": 0.004937,
+    "costBasis": "Episode OpenAI cost-summary delta from durable pre-dispatch and terminal usage logs"
+  },
+  "reservationReconciliation": {
+    "reservedEur": 0.019064,
+    "consumedEur": 0.004937,
+    "releasedEur": 0.014127,
+    "stillHeldEur": 0
+  },
+  "result": "S02_B01_DETERMINISTIC_DIAGRAM_STRICT_QA_PASS",
+  "adoptionArtifact": "episodes/01a-revenue-is-not-a-good-business/state/image-generation/deterministic-adoptions/scene-007.json",
+  "adoptedImageSha256": "5e11f15cee0b397ad8bbcd2b8d897ae8ca91764f65e728deb218a0dc7cde5bbe",
+  "reviewArtifact": "episodes/01a-revenue-is-not-a-good-business/state/image-generation/veronica-post-generation-visual-qa/scene-007.93f3ad3273ea2b2f71d1cb2323dabef8cc90dc218e5b26c387fefc3b56a559b9.json",
+  "reviewSha256": "0f5388034ec6a966f0e6dc2503a8065a60b41d30b9222392829c237827bc81e3",
+  "stopReason": "Authorized tranche completed: exact adopted pixels passed strict QA. No image generation, retry, or second QA request occurred."
+}

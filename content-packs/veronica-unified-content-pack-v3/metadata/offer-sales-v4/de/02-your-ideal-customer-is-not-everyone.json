@@ -1,0 +1,31 @@
+{
+  "title": "Der Buyer-Persona-Test, der Marketing wirklich verändert",
+  "thumbnail": "ÄNDERT SIE EINE ENTSCHEIDUNG?",
+  "description": "Wenn deine Zielgruppe „alle“ ist, wird deine Botschaft fast zwangsläufig beliebig. Dieses Video zeigt, wie du Bedürfnisse, Kontext, Kanäle und reales Verhalten zu einer operativen Kundendefinition verbindest.",
+  "cta": "Als Nächstes: Was kauft der Kunde wirklich – jenseits des Produkts?",
+  "alternativeTitles": [
+    "Dein Kunde ist nicht jeder: So wirst du wirklich spezifisch",
+    "Der Buyer-Persona-Test, der Marketing wirklich verändert"
+  ],
+  "thumbnailOptions": [
+    "ÄNDERT SIE EINE ENTSCHEIDUNG?",
+    "NICHT FÜR ALLE",
+    "FÜR WEN IST DAS?"
+  ],
+  "youtubeOptimizationVersion": "v4-editorial-continuity-remediation",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  },
+  "shortA": {
+    "title": "Hör auf, alle anzusprechen",
+    "alternateHook": "Wenn dein idealer Kunde „jeder“ ist, kann sich niemand wirklich spezifisch angesprochen fühlen."
+  },
+  "shortB": {
+    "title": "Du brauchst nicht jede Plattform",
+    "alternateHook": "Der richtige Kanal ist dort, wo der richtige Kunde wirklich Aufmerksamkeit schenkt."
+  }
+}

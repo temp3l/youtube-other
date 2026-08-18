@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "veronicabenini.synthetic-narration-authorization.v1",
+  "authorizationId": "veronica-en-three-short-canary-03b-2026-08-12",
+  "contentProfileId": "veronicabenini",
+  "creatorProfileId": "veronica-benini",
+  "unitId": "03b-the-promise-formula",
+  "locale": "en",
+  "variant": "short",
+  "provider": "openai-compatible",
+  "voiceId": "shimmer",
+  "syntheticNarrationAllowed": true,
+  "commercialUseAllowed": true,
+  "grantedAt": "2026-08-12T20:50:26Z",
+  "expiresAt": "2026-08-13T23:59:59Z",
+  "approvedBy": [
+    {
+      "actor": "portfolio-operator-authorizing-user",
+      "role": "creator"
+    },
+    {
+      "actor": "codex-production-policy-reviewer",
+      "role": "independent-reviewer"
+    }
+  ]
+}

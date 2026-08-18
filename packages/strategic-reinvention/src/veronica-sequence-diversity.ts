@@ -7,11 +7,20 @@ import type {
   VeronicaDepictedActionFamily,
   VeronicaPresentationMechanism,
   VeronicaVisualTreatmentSignature,
+  VeronicaDerivedBeatCandidate,
+  VeronicaCandidateSelectionDiagnostics,
+  VeronicaNoSafeCandidateDiagnostic,
 } from "./positioning-visual-contracts.js";
 import { stableHash } from "./positioning-visual-semantics.js";
+import { assessVeronicaRemovalConsequenceEvidence } from "./veronica-causal-evidence.js";
 
 export const VERONICA_SEQUENCE_DIVERSITY_POLICY_VERSION =
-  "veronica-sequence-diversity-policy.v2" as const;
+  "veronica-sequence-diversity-policy.v3" as const;
+export const VERONICA_BEAT_CANDIDATE_SCORER_VERSION =
+  "veronica-beat-candidate-scorer.v1" as const;
+export const VERONICA_MAX_CANDIDATES_PER_BEAT = 6 as const;
+export const VERONICA_CANDIDATE_BEAM_WIDTH = 4 as const;
+export const VERONICA_CANDIDATE_ROLLING_WINDOW = 5 as const;
 
 export interface VeronicaSequenceDiversityPolicy {
   readonly enabled: boolean;
@@ -83,19 +92,19 @@ export function deriveVeronicaDepictedActionFamily(
   if (/\b(?:queue|backlog)\b[^.]{0,100}\b(?:grow|lengthen|build|increase)\w*/iu.test(action)) return "queue-growth";
   if (/\b(?:bottleneck|constraint|choke point)\b/iu.test(action)) return "bottleneck";
   if (/\b(?:workload|work|burden|effort)\b[^.]{0,100}\b(?:double|grow|increase|expand)\w*|\b(?:double|grow|increase|expand)\w*[^.]{0,100}\b(?:workload|burden|effort)\b/iu.test(action)) return "workload-growth";
-  if (/\b(?:compar\w*|versus|beside|side.by.side|separate measures?|two measures?)\b/iu.test(action)) return "comparison";
+  if (/\bretained result\b[^.]{0,80}\bemerge\w*/iu.test(action)) return "retained-value-reveal";
+  if (/\b(?:compar\w*|versus|beside|side.by.side|separate measures?|two measures?|conflicting signals?|different needs?|different priorities?)\b/iu.test(action)) return "comparison";
   if (/\b(?:subtract|split|break|drain|remove|peel|cost station|outgoing portion|remainder)\w*|\bseparat\w*\b[^.]{0,100}\b(?:into|outgoing|portions?|remainder)\b/iu.test(action)) return "decomposition";
-  if (/\b(?:select|pull|extract|isolate)\w*\b[^.]{0,100}\b(?:from|out of|stream|many|larger)\b/iu.test(action)) return "selection";
-  if (/\b(?:sort|classif|group)\w*/iu.test(action)) return "sorting";
+  if (/\b(?:select|pull|extract|isolate)\w*\b[^.]{0,100}\b(?:from|out of|stream|many|larger|several)\b|\b(?:stop|pause)\w*\s+at\s+(?:one|the|a)\s+(?:specific|matching)\b/iu.test(action)) return "selection";
+  if (/\b(?:sort|classif|group|arrang|gather|cluster|organi[sz])\w*/iu.test(action)) return "sorting";
   if (/\b(?:allocat|assign|distribut)\w*/iu.test(action)) return "allocation";
   if (/\b(?:convert|transform|turns? into)\w*/iu.test(action)) return "conversion";
-  if (/\b(?:transfer|hand|pass|give)\w*\b[^.]{0,100}\b(?:to|between|across)\b|\bplac\w*\b[^.]{0,100}\binto\b/iu.test(action)) return "transfer";
+  if (/\b(?:transfer|hand|give)\w*\b[^.;]{0,100}\b(?:to|between|across)\b|\bpass\w*\s+(?:an?|the|one|this|that)\s+[^.;]{1,60}\s+to\b|\bplac\w*\b[^.;]{0,100}\binto\b/iu.test(action)) return "transfer";
   if (/\b(?:apply|use|implement|deploy)\w*\b[^.]{0,100}\b(?:framework|method|tool|process|system|knowledge)\b/iu.test(action)) return "application";
-  if (/\b(?:inspect|check|diagnos|examin|analy[sz]|calculate)\w*/iu.test(action)) return "inspection";
+  if (/\b(?:inspect|check|diagnos|examin|analy[sz]|calculate|scan)\w*/iu.test(action)) return "inspection";
   if (/\b(?:scale|double|expand|increase|grow|larger|volume)\w*/iu.test(action)) return "scaling";
   if (/\b(?:accumulat|collect|stack|build up)\w*/iu.test(action)) return "accumulation";
-  if (/\b(?:retained|residual|remainder)\b[^.]{0,80}\b(?:reveal|remain|emerge|foreground)\w*/iu.test(action)) return "retained-value-reveal";
-  if (/\b(?:reveal|show|surface|make visible)\w*\b[^.]{0,100}\b(?:proof|evidence|result|demonstration)\b|\b(?:proof|evidence)\b[^.]{0,100}\b(?:appear|become visible|emerge)\w*/iu.test(action)) return "evidence-reveal";
+  if (/\b(?:reveal|show|surface|make visible)\w*\b[^.]{0,100}\b(?:proof|evidence|result|demonstration)\b|\b(?:proof|evidence)\b[^.]{0,100}\b(?:appear|become visible|emerge)\w*|\b(?:recognize|recall|remember|point)\w*\b[^.;]{0,100}\b(?:association|cue|detail|fit|situation|expertise)\b/iu.test(action)) return "evidence-reveal";
   if (/\b(?:contrast|opposing condition|while the complete depicted condition)\b/iu.test(action)) return "contrast-reveal";
   if (/\b(?:transition|changes? from|before .* after)\b/iu.test(action)) return "state-transition";
   if (/\b(?:flow|move|enter|travel|progress|route)\w*/iu.test(action)) return "flow";
@@ -109,6 +118,13 @@ function presentationMechanism(beat: Pick<VisualBeatTreatmentV1, "action" | "env
   if (/modular system view/iu.test(presentation)) return "modular-system";
   if (/diagonal process progression|linear process lane/iu.test(presentation)) return "process-path";
   if (/depth composition|recede in depth/iu.test(presentation)) return "depth-staging";
+  if (/\b(?:decision fork|two-branch|baseline .* doubled|doubled .* baseline)\b/iu.test(presentation)) return "decision-fork";
+  if (/\b(?:rule-setting|growth rule|decision criterion)\b/iu.test(presentation)) return "rule-setting";
+  if (/\b(?:backlog|bottleneck|choke point)\b/iu.test(presentation)) return "workload-bottleneck";
+  if (/\b(?:handoff|customer payment|payment beside|sale-and-fulfillment)\b/iu.test(presentation)) return "handoff-chain";
+  if (/\b(?:equal visual depth|directly beside|side.by.side|comparison bench)\b/iu.test(presentation)) return "comparison-layout";
+  if (/\b(?:intake gate|intake threshold|unopened gate)\b/iu.test(presentation)) return "intake-threshold";
+  if (/\b(?:calculation path|direct outflows|resolves? in .* remainder)\b/iu.test(presentation)) return "calculation-path";
   if (physicalActionClause(beat.action) === beat.action.trim()) return "unmodified";
   return "other-presentation";
 }
@@ -268,8 +284,15 @@ export function analyzeVeronicaSequenceDiversity(input: {
   for (let index = 1; index < signatures.length; index += 1) {
     const previous = signatures[index - 1]!;
     const current = signatures[index]!;
-    const repeated = comparisonDimensions.filter((dimension) => previous[dimension] === current[dimension]);
-    const sameDepictedAction = previous.depictedActionFamily === current.depictedActionFamily;
+    const repeated = comparisonDimensions.filter((dimension) =>
+      previous[dimension] === current[dimension]
+      && !(dimension === "depictedActionFamily" && current.depictedActionFamily === "other"));
+    // "other" is an explicit lack of classification, not evidence that two
+    // viewer-visible actions are equivalent. It may contribute to aggregate
+    // monotony diagnostics, but cannot by itself trigger the adjacent-action
+    // shortcut or its low-information corollary.
+    const sameDepictedAction = previous.depictedActionFamily !== "other"
+      && previous.depictedActionFamily === current.depictedActionFamily;
     const sameInformationRelation = previous.informationRole === current.informationRole && previous.semanticState === current.semanticState;
     const openingSensitive = (starts.get(current.beatId) ?? Number.POSITIVE_INFINITY) < 15_000;
     const materiallyEquivalent = repeated.length >= policy.adjacentMatchingDimensionThreshold
@@ -322,7 +345,14 @@ export function analyzeVeronicaSequenceDiversity(input: {
   };
   for (const seconds of [5, 10, 15] as const) {
     const current = opening[String(seconds) as "5" | "10" | "15"];
-    const threshold = Math.min(current.beatCount, policy.openingMinimumMechanisms[String(seconds) as "5" | "10" | "15"]);
+    // Multiple short beats may deliberately segment one source proposition.
+    // They need distinct viewer-visible actions, but cannot truthfully claim
+    // distinct semantic mechanisms when the parent proposition is the same.
+    const threshold = Math.min(
+      current.beatCount,
+      current.uniqueSourcePropositions,
+      policy.openingMinimumMechanisms[String(seconds) as "5" | "10" | "15"],
+    );
     if (current.uniqueTreatmentMechanisms < threshold) findings.push(finding({
       code: "OPENING_NOVELTY_LOW",
       severity: "review-required",
@@ -430,6 +460,15 @@ function sourceCompatibleDepictedActionCandidates(
     candidates.push({ family, action });
   };
   const protectedEconomicFlow = /\bbefore\s+(?:chasing|pursuing|increasing)\b.{0,80}\b(?:revenue|sales?|volume|growth)\b.{0,180}\b(?:understand|examine|calculate)\b.{0,120}\b(?:economically|unit economics?)\b.{0,120}\b(?:each|every)\b.{0,80}\b(?:sale|sell)\b/iu.test(meaning);
+  // A source may establish the misleading incoming total before it names the
+  // outgoings that explain it. That is still a complete, source-grounded
+  // contrast: retain the incoming amount and make the small retained result
+  // visible. Do not invent a cost breakdown until the narration supplies one.
+  const largeIncoming = /\b(?:large|high|impressive|strong|big)\b.{0,40}\b(?:revenue|payment|income|sales?)\b|\b(?:revenue|payment|income|sales?)\b.{0,40}\b(?:large|high|impressive|strong|big)\b/iu.test(meaning);
+  const smallRetained = /\b(?:small|thin|low|little|weak)\b.{0,40}\b(?:retained|margin|remainder|profit)\b|\b(?:retained|margin|remainder|profit)\b.{0,40}\b(?:small|thin|low|little|weak)\b/iu.test(meaning);
+  if (largeIncoming && smallRetained) {
+    add("retained-value-reveal", "the business operator reveals the retained result beside the larger source-supported incoming amount, making the small remainder visible");
+  }
   if (/\b(?:revenue|payment|income|sales?)\b.{0,180}\b(?:weak business|thin margin|small margin|little margin|almost no margin)\b/iu.test(meaning)) {
     add("retained-value-reveal", "the operator reveals the small retained result beside the larger incoming amount after source-supported outgoings leave the visible remainder");
   }
@@ -454,10 +493,25 @@ function sourceCompatibleDepictedActionCandidates(
     add("decomposition", "the operator routes one depicted input into its outgoing components and the resulting retained remainder");
   }
   if (/\b(?:what remains|leaves? behind|retained|remainder|residual)\b/iu.test(meaning)) {
-    add("retained-value-reveal", "the retained result emerges from the completed depicted transaction as the visible remainder");
+    add("retained-value-reveal", "the business operator reveals the retained result from the completed depicted transaction as the visible remainder");
   }
   if (/\b(?:take|select|isolate|pull)\b[^.]{0,100}\b(?:one|single|from|out of)\b/iu.test(meaning)) {
     add("selection", "the operator selects one depicted unit from the larger stream and holds it apart for analysis");
+  }
+  if (/\b(?:which|what)\s+(?:part|piece|aspect)\b[^.]{0,100}\bremember\s+first\b|\bone\s+(?:expertise|message|offer)\s+cue\b/iu.test(meaning)) {
+    add("selection", "the observer selects one source-supported expertise cue from several visible possibilities and holds it apart as the first remembered association");
+  }
+  if (/\bdifferent\s+(?:customers?|people|buyers?)\b[^.]{0,140}\b(?:needs?|fears?|priorities|reasons?)\b/iu.test(meaning)) {
+    add("sorting", "the operator arranges the distinct source-supported customer needs and priorities into visibly separate groups");
+  }
+  if (/\b(?:decide|determine|judge)\b[^.]{0,100}\b(?:applies?|relevant|fit)\b|\bconflicting\s+(?:message\s+)?signals?\b/iu.test(meaning)) {
+    add("comparison", "the customer compares the depicted message cues with their own need and finds no clear source-supported fit");
+  }
+  if (/\b(?:recognize|remember|recall)\w*\b[^.]{0,120}\b(?:this is for me|association|expertise|reason|relevant|fit)\b|\bsimple reason to remember\b/iu.test(meaning)) {
+    add("evidence-reveal", "the intended person recognizes one specific source-supported cue and reveals the matching association through their visible response");
+  }
+  if (/\b(?:not (?:a )?restriction|nobody outside|outside the niche|doorway,? not a wall|routes? remain open)\b/iu.test(meaning)) {
+    add("flow", "the intended person follows the specific route while the wider source-supported routes remain visibly open");
   }
   if (!protectedEconomicFlow && /\b(?:inspect|analy[sz]e|calculate|check|look at|understand)\b/iu.test(meaning)) {
     add("inspection", "the operator examines one already-selected depicted unit as a single intact item");
@@ -483,7 +537,6 @@ function withVariant(beat: VisualBeatTreatmentV1, variant: typeof PRESENTATION_V
   const base = {
     ...beat,
     action: `${variant.actionLead} ${beat.action}`,
-    environment: variant.environment,
     composition: {
       ...beat.composition,
       description: variant.composition,
@@ -494,40 +547,356 @@ function withVariant(beat: VisualBeatTreatmentV1, variant: typeof PRESENTATION_V
   return { ...base, beatHash: stableHash(hashInput) };
 }
 
-function candidateNovelty(
-  plan: Pick<PositioningVisualPlanV2, "scenes">,
+function withAction(beat: VisualBeatTreatmentV1, action: string): VisualBeatTreatmentV1 {
+  const base = { ...beat, action };
+  const { beatHash: _beatHash, ...hashInput } = base;
+  return { ...base, beatHash: stableHash(hashInput) };
+}
+
+function structuredSemanticActionCandidates(
+  scene: PositioningVisualPlanV2["scenes"][number] | undefined,
+  beat: VisualBeatTreatmentV1,
+): readonly VisualBeatTreatmentV1[] {
+  const proposition = scene?.semanticProposition;
+  if (!proposition) return [];
+  const owner = proposition.actorRole === "buyer"
+    ? "the buyer"
+    : proposition.actorRole === "business-operator"
+      ? "the business operator"
+      : proposition.actorRole === "shared"
+        ? "the expert and buyer"
+        : "the expert";
+  const actions: string[] = [];
+  if (proposition.stateRelation === "CONTRAST" || proposition.stateRelation === "CONDITIONAL_ALTERNATIVES") {
+    actions.push(`${owner} compares the two source-supported states side by side as distinct visible conditions`);
+  }
+  if (proposition.stateRelation === "CAUSAL_BEFORE_AFTER") {
+    actions.push(`${owner} changes the source-supported condition from its initial state to its consequence in one decisive transition`);
+  }
+  if (proposition.stateRelation === "SEQUENTIAL_PROGRESSION") {
+    actions.push(`${owner} moves the source-supported evidence through the existing causal path to its consequence`);
+  }
+  if (["CHOOSES", "CATEGORIZES", "REJECTS", "HESITATES"].includes(proposition.buyerConsequenceFamily)) {
+    actions.push(`the buyer selects one source-supported option from the visible alternatives and holds it apart for the decision`);
+  }
+  if (["RECOGNIZES", "REMEMBERS", "NOTICES", "UNDERSTANDS", "CONNECTS", "TRUSTS", "REFERS"].includes(proposition.buyerConsequenceFamily)) {
+    actions.push(`the buyer reveals recognition of one source-supported evidence cue as the visible result`);
+  }
+  const mechanism = proposition.visualMechanism;
+  if (/comparison|contrast|categor/iu.test(mechanism)) actions.push(`${owner} compares the source-supported quantities as separate intact measures side by side`);
+  if (/retained|remainder|margin/iu.test(mechanism)) actions.push(`${owner} reveals the retained result beside the larger source-supported incoming amount as the visible remainder`);
+  if (/flow|chain|path|sequence|input-output/iu.test(mechanism)) actions.push(`${owner} moves one source-supported unit through the visible process from input to result`);
+  if (/proof|evidence|recognition|signal/iu.test(mechanism)) actions.push(`${owner} reveals the source-supported evidence cue as the visible result`);
+  const byFamily = new Map<VeronicaDepictedActionFamily, VisualBeatTreatmentV1>();
+  for (const action of actions) {
+    const candidate = withAction(beat, action);
+    const family = deriveVeronicaDepictedActionFamily(candidate);
+    if (family !== "other" && family !== deriveVeronicaDepictedActionFamily(beat) && !byFamily.has(family)) byFamily.set(family, candidate);
+  }
+  return [...byFamily.values()];
+}
+
+function candidateInformationDelta(
   candidate: VisualBeatTreatmentV1,
-  previous: readonly VisualBeatTreatmentV1[],
-): number {
-  const signature = buildVeronicaVisualTreatmentSignature({ plan, beat: candidate });
-  return previous.slice(-5).reduce((score, beat) => {
-    const prior = buildVeronicaVisualTreatmentSignature({ plan, beat });
-    return score + comparisonDimensions.filter((dimension) => signature[dimension] !== prior[dimension]).length;
-  }, 0);
+  previous: VisualBeatTreatmentV1 | undefined,
+): VeronicaDerivedBeatCandidate["visibleInformationDelta"] {
+  const categories: VeronicaDerivedBeatCandidate["visibleInformationDelta"]["categories"][number][] = [];
+  if (!previous || candidate.narrationRef.spanHash !== previous.narrationRef.spanHash) categories.push("source-span");
+  if (!previous || candidate.parentSemanticRevisionHash !== previous.parentSemanticRevisionHash) categories.push("proposition");
+  if (!previous || normalized(candidate.state) !== normalized(previous.state)) categories.push("state");
+  if (!previous || stableHash(candidate.actorRelation ?? null) !== stableHash(previous.actorRelation ?? null)) categories.push("causal-relation");
+  if (!previous
+    || deriveVeronicaDepictedActionFamily(candidate) !== deriveVeronicaDepictedActionFamily(previous)
+    || normalized(candidate.newInformation) !== normalized(previous.newInformation)) categories.push("visible-evidence");
+  return { score: categories.length, categories };
 }
 
-function diversityPenalty(result: VeronicaSequenceDiversityResult): readonly number[] {
-  const count = (severity: VeronicaSequenceDiversityFinding["severity"]): number =>
-    result.findings.filter((finding) => finding.severity === severity).length;
-  return [
-    count("blocker"),
-    count("review-required"),
-    count("warning"),
-    result.metrics.adjacentDuplicateCount,
-    result.metrics.lowInformationGainCount,
-    Math.round((result.metrics.depictedActionDominantShare
-      + result.metrics.presentationMechanismDominantShare
-      + result.metrics.compositionDominantShare
-      + result.metrics.mechanismDominantShare) * 10_000),
+function candidateHardGate(input: {
+  readonly plan: Pick<PositioningVisualPlanV2, "format" | "scenes">;
+  readonly baseBeat: VisualBeatTreatmentV1;
+  readonly candidate: VisualBeatTreatmentV1;
+}): VeronicaDerivedBeatCandidate["hardGate"] {
+  const scene = input.plan.scenes.find((entry) => entry.sceneId === input.candidate.sceneId);
+  const findingCodes: VeronicaDerivedBeatCandidate["hardGate"]["findingCodes"][number][] = [];
+  const ref = input.candidate.narrationRef;
+  const finalizedSemanticParent = scene?.semanticProposition?.semanticRevisionHash;
+  if (!scene || ref.semanticSceneId !== input.candidate.sceneId
+    || (finalizedSemanticParent && (ref.startOffset < 0 || ref.endOffset > scene.narrationAnchor.length
+      || ref.endOffset <= ref.startOffset || !scene.narrationAnchor.slice(ref.startOffset, ref.endOffset).trim()))) findingCodes.push("SOURCE_GROUNDING_FAILED");
+  if (!scene || (scene.treatment.treatmentHash && input.candidate.parentTreatmentHash !== scene.treatment.treatmentHash)
+    || (finalizedSemanticParent && input.candidate.parentSemanticRevisionHash !== finalizedSemanticParent)) findingCodes.push("SEMANTIC_PARENT_MISMATCH");
+  if (normalized(input.candidate.state) !== normalized(input.baseBeat.state)) findingCodes.push("STATE_FIDELITY_FAILED");
+  if (normalized(input.candidate.environment) !== normalized(input.baseBeat.environment)) findingCodes.push("ENVIRONMENT_AUTHORIZATION_FAILED");
+  const owner = scene?.semanticProposition?.actorRole ?? scene?.treatment.actionOwnerRole ?? "none";
+  const changedAction = normalized(input.candidate.action) !== normalized(input.baseBeat.action);
+  const action = input.candidate.action;
+  if (changedAction && owner === "buyer" && !/\b(?:buyer|customer|client|person|visitor|observer|audience|intended person)\b/iu.test(action)) findingCodes.push("ACTOR_AUTHORIZATION_FAILED");
+  if (changedAction && owner === "business-operator" && !/\b(?:business operator|operator|owner|seller)\b/iu.test(action)) findingCodes.push("ACTOR_AUTHORIZATION_FAILED");
+  if (changedAction && owner === "expert" && !/\b(?:expert|professional|consultant)\b/iu.test(action)) findingCodes.push("ACTOR_AUTHORIZATION_FAILED");
+  if (changedAction && owner === "shared" && !/\b(?:expert|professional)\b/iu.test(action)) findingCodes.push("ACTOR_AUTHORIZATION_FAILED");
+  const causal = assessVeronicaRemovalConsequenceEvidence(
+    input.candidate,
+    scene?.semanticProposition?.stateRelation,
+  );
+  if (!causal.passes) findingCodes.push("CAUSAL_EVIDENCE_INCOMPLETE");
+  if (input.plan.format === "short"
+    && scene?.semanticProposition?.visualMechanism === "UNRESOLVED"
+    && deriveVeronicaDepictedActionFamily(input.candidate) === "other") findingCodes.push("UNRESOLVED_REQUIRED_MECHANISM");
+  return { eligible: findingCodes.length === 0, findingCodes: [...new Set(findingCodes)] };
+}
+
+function evidenceCategory(family: VeronicaDepictedActionFamily, causal: ReturnType<typeof assessVeronicaRemovalConsequenceEvidence>): string {
+  if (causal.applies) return "causal-removal-enablement";
+  if (["comparison", "contrast-reveal", "retained-value-reveal"].includes(family)) return "state-comparison";
+  if (["decomposition", "flow", "transfer", "scaling", "workload-growth"].includes(family)) return "mechanism-process";
+  if (["evidence-reveal", "inspection", "selection"].includes(family)) return "visible-evidence";
+  return "source-proposition";
+}
+
+function materializeCandidate(input: {
+  readonly plan: Pick<PositioningVisualPlanV2, "format" | "scenes">;
+  readonly baseBeat: VisualBeatTreatmentV1;
+  readonly beat: VisualBeatTreatmentV1;
+  readonly previousBeat?: VisualBeatTreatmentV1;
+  readonly operatorId: string;
+}): VeronicaDerivedBeatCandidate {
+  const scene = input.plan.scenes.find((entry) => entry.sceneId === input.beat.sceneId);
+  const signature = buildVeronicaVisualTreatmentSignature({ plan: input.plan, beat: input.beat });
+  const causal = assessVeronicaRemovalConsequenceEvidence(
+    input.beat,
+    scene?.semanticProposition?.stateRelation,
+  );
+  const actionFamily = signature.depictedActionFamily;
+  const semanticParentIdentity = input.beat.parentSemanticRevisionHash;
+  const candidateId = stableHash({
+    semanticParentIdentity,
+    beatId: input.beat.beatId,
+    sourceSpan: input.beat.narrationRef.spanHash,
+    operatorId: input.operatorId,
+    treatmentHash: input.beat.parentTreatmentHash,
+    beatHash: input.beat.beatHash,
+    scorerVersion: VERONICA_BEAT_CANDIDATE_SCORER_VERSION,
+  });
+  return {
+    candidateId,
+    operatorId: input.operatorId,
+    beat: input.beat,
+    sourceReference: input.beat.narrationRef,
+    actionFamily,
+    mechanism: signature.visualMechanism,
+    environmentFamily: signature.environmentFamily,
+    compositionFamily: signature.compositionFamily,
+    evidenceCategory: evidenceCategory(actionFamily, causal),
+    actorRoles: scene?.treatment.actors?.map((actor) => actor.role) ?? [scene?.semanticProposition?.actorRole ?? "none"],
+    stateRelation: scene?.semanticProposition?.stateRelation ?? "STABLE",
+    visibleInformationDelta: candidateInformationDelta(input.beat, input.previousBeat),
+    causalCompleteness: causal.passes,
+    openingSuitability: (actionFamily === "other" ? 0 : 1)
+      + (causal.passes ? 1 : 0)
+      + (input.beat.newInformation.trim() ? 1 : 0)
+      + (/^(?:source|semantic)-action:/u.test(input.operatorId) ? 1 : 0),
+    hardGate: candidateHardGate({ plan: input.plan, baseBeat: input.baseBeat, candidate: input.beat }),
+    treatmentReference: input.beat.parentTreatmentHash,
+    semanticParentIdentity,
+  };
+}
+
+export function generateVeronicaDerivedBeatCandidates(input: {
+  readonly plan: Pick<PositioningVisualPlanV2, "format" | "scenes">;
+  readonly beat: VisualBeatTreatmentV1;
+  readonly previousBeat?: VisualBeatTreatmentV1;
+  readonly locked?: boolean;
+}): readonly VeronicaDerivedBeatCandidate[] {
+  const scene = input.plan.scenes.find((entry) => entry.sceneId === input.beat.sceneId);
+  const sourceNarration = scene?.narrationAnchor ?? "";
+  const actionCandidates = input.locked ? [] : sourceCompatibleDepictedActionCandidates(input.beat, sourceNarration);
+  const structuredCandidates = input.locked ? [] : structuredSemanticActionCandidates(scene, input.beat);
+  const presentationCandidates = input.locked ? [] : PRESENTATION_VARIANTS.map((variant) => ({
+    beat: withVariant(input.beat, variant),
+    operatorId: `presentation:${variant.id}`,
+  }));
+  const raw = [
+    { beat: input.beat, operatorId: "canonical-treatment" },
+    ...structuredCandidates.map((beat) => ({ beat, operatorId: `semantic-action:${deriveVeronicaDepictedActionFamily(beat)}` })),
+    ...actionCandidates.map((beat) => ({ beat, operatorId: `source-action:${deriveVeronicaDepictedActionFamily(beat)}` })),
+    ...presentationCandidates,
   ];
+  const unique = [...new Map(raw.map((entry) => [entry.beat.beatHash, entry])).values()]
+    .map((entry) => materializeCandidate({ ...input, baseBeat: input.beat, beat: entry.beat, operatorId: entry.operatorId }));
+  return unique.slice(0, VERONICA_MAX_CANDIDATES_PER_BEAT);
 }
 
-function comparePenalty(left: readonly number[], right: readonly number[]): number {
+function contribution(input: {
+  readonly plan: Pick<PositioningVisualPlanV2, "scenes">;
+  readonly candidate: VeronicaDerivedBeatCandidate;
+  readonly previous: readonly VeronicaDerivedBeatCandidate[];
+}): readonly number[] {
+  const window = input.previous.slice(-VERONICA_CANDIDATE_ROLLING_WINDOW);
+  const action = window.every((prior) => prior.actionFamily !== input.candidate.actionFamily) ? 1 : 0;
+  const mechanism = window.every((prior) => prior.mechanism !== input.candidate.mechanism) ? 1 : 0;
+  const composition = window.every((prior) => prior.compositionFamily !== input.candidate.compositionFamily) ? 1 : 0;
+  const sceneStart = input.plan.scenes.find((scene) => scene.sceneId === input.candidate.beat.sceneId)?.startMs ?? Number.POSITIVE_INFINITY;
+  const opening = sceneStart < 15_000 ? input.candidate.openingSuitability + action + mechanism : 0;
+  return [input.candidate.visibleInformationDelta.score, action, mechanism, opening, composition, input.candidate.causalCompleteness ? 1 : 0];
+}
+
+interface CandidateBeam {
+  readonly candidates: readonly VeronicaDerivedBeatCandidate[];
+  readonly scoreTuple: readonly number[];
+  readonly tieBreakKey: string;
+}
+
+function scoreBeam(plan: Pick<PositioningVisualPlanV2, "format" | "scenes">, candidates: readonly VeronicaDerivedBeatCandidate[]): readonly number[] {
+  const beats = candidates.map((candidate) => candidate.beat);
+  const analysis = analyzeVeronicaSequenceDiversity({ plan, beats });
+  const severity = (value: VeronicaSequenceDiversityFinding["severity"]) => analysis.findings.filter((finding) => finding.severity === value).length;
+  const totals = candidates.reduce((result, candidate, index) => {
+    const values = contribution({ plan, candidate, previous: candidates.slice(0, index) });
+    return result.map((value, valueIndex) => value + (values[valueIndex] ?? 0));
+  }, [0, 0, 0, 0, 0, 0]);
+  return [-severity("blocker"), -severity("review-required"), -severity("warning"), ...totals];
+}
+
+function compareScoreDescending(left: readonly number[], right: readonly number[]): number {
   for (let index = 0; index < Math.max(left.length, right.length); index += 1) {
-    const difference = (left[index] ?? 0) - (right[index] ?? 0);
+    const difference = (right[index] ?? 0) - (left[index] ?? 0);
     if (difference !== 0) return difference;
   }
   return 0;
+}
+
+export function selectVeronicaBeatCandidateSequence(input: {
+  readonly plan: Pick<PositioningVisualPlanV2, "format" | "scenes">;
+  readonly beats: readonly VisualBeatTreatmentV1[];
+  readonly lockedBeatIds?: ReadonlySet<string>;
+}): { readonly beats: readonly VisualBeatTreatmentV1[]; readonly analysis: VeronicaSequenceDiversityResult; readonly diagnostics: VeronicaCandidateSelectionDiagnostics } {
+  const candidateSets = input.beats.map((beat, index) => generateVeronicaDerivedBeatCandidates({
+    plan: input.plan,
+    beat,
+    ...(input.beats[index - 1] ? { previousBeat: input.beats[index - 1] } : {}),
+    locked: input.lockedBeatIds?.has(beat.beatId) ?? false,
+  }));
+  const noSafeCandidateBeatIds: string[] = [];
+  const noSafeReasons: VeronicaNoSafeCandidateDiagnostic[] = [];
+  let beam: CandidateBeam[] = [{ candidates: [], scoreTuple: [], tieBreakKey: "" }];
+  for (const candidates of candidateSets) {
+    let eligible = candidates.filter((candidate) => candidate.hardGate.eligible);
+    if (eligible.length === 0) {
+      const first = candidates[0];
+      const beatId = first?.beat.beatId ?? "unknown-beat";
+      noSafeCandidateBeatIds.push(beatId);
+      const scene = input.plan.scenes.find((entry) => entry.sceneId === first?.beat.sceneId);
+      const rejectionCodes = [...new Set(candidates.flatMap((candidate) => candidate.hardGate.findingCodes))];
+      const semanticRelation = scene?.semanticProposition?.stateRelation ?? "STABLE";
+      const actorRole = scene?.semanticProposition?.actorRole ?? scene?.treatment.actionOwnerRole ?? "none";
+      const reasons = [
+        ...(rejectionCodes.includes("UNRESOLVED_REQUIRED_MECHANISM")
+          ? [{ kind: "UNRESOLVED_REQUIRED_MECHANISM" as const, semanticRelation }]
+          : []),
+        ...(rejectionCodes.includes("ACTOR_AUTHORIZATION_FAILED")
+          ? [{ kind: "ACTOR_AUTHORIZATION_FAILURE" as const, actorRole }]
+          : []),
+        ...(scene?.semanticProposition?.visualMechanism === "UNRESOLVED"
+          ? [{ kind: "NO_AUTHORIZED_MECHANISM" as const, mechanism: "UNRESOLVED" }]
+          : []),
+        ...(rejectionCodes.includes("CAUSAL_EVIDENCE_INCOMPLETE")
+          ? [{ kind: "CAUSAL_EVIDENCE_INCOMPLETE" as const, semanticRelation }]
+          : []),
+        ...(rejectionCodes.includes("STATE_FIDELITY_FAILED")
+          ? [{ kind: "STATE_RELATION_UNENCODABLE" as const, semanticRelation }]
+          : []),
+        ...((scene?.semanticProposition?.evidenceSpans.length ?? 0) === 0
+          ? [{ kind: "SOURCE_EVIDENCE_INSUFFICIENT" as const, evidenceSpanCount: 0 }]
+          : []),
+        {
+          kind: "ALL_CANDIDATES_SEMANTICALLY_INVALID" as const,
+          rejectionCodes,
+        },
+      ];
+      noSafeReasons.push({
+        beatId,
+        sceneId: first?.beat.sceneId ?? scene?.sceneId ?? "unknown-scene",
+        applicableCandidateFamilies: [...new Set(candidates.map((candidate) => candidate.operatorId))],
+        generatedCandidateIds: candidates.map((candidate) => candidate.candidateId),
+        hardGateRejectionCodes: rejectionCodes,
+        primaryReason: reasons[0]!,
+        secondaryReasons: reasons.slice(1),
+        semanticRelation,
+        actorAuthorization: rejectionCodes.includes("ACTOR_AUTHORIZATION_FAILED")
+          ? "FAILED"
+          : actorRole === "none" ? "UNRESOLVED" : "AUTHORIZED",
+        environmentAuthorization: rejectionCodes.includes("ENVIRONMENT_AUTHORIZATION_FAILED")
+          ? "FAILED" : "AUTHORIZED",
+        mechanismStatus: scene?.semanticProposition?.visualMechanism === "UNRESOLVED"
+          ? "UNRESOLVED" : "RESOLVED",
+        causalStatus: rejectionCodes.includes("CAUSAL_EVIDENCE_INCOMPLETE")
+          ? "INCOMPLETE"
+          : semanticRelation === "CAUSAL_BEFORE_AFTER" || semanticRelation === "SEQUENTIAL_PROGRESSION"
+            ? "COMPLETE" : "NOT_APPLICABLE",
+      });
+      eligible = candidates.slice(0, 1);
+    }
+    beam = beam.flatMap((entry) => eligible.map((candidate): CandidateBeam => {
+      const selected = [...entry.candidates, candidate];
+      return {
+        candidates: selected,
+        scoreTuple: scoreBeam(input.plan, selected),
+        tieBreakKey: selected.map((value) => value.candidateId).join(":"),
+      };
+    })).sort((left, right) => compareScoreDescending(left.scoreTuple, right.scoreTuple)
+      || left.tieBreakKey.localeCompare(right.tieBreakKey)).slice(0, VERONICA_CANDIDATE_BEAM_WIDTH);
+  }
+  const selected = beam[0]?.candidates ?? [];
+  const selectedIds = new Set(selected.map((candidate) => candidate.candidateId));
+  const changedBeatIds = selected.filter((candidate, index) => candidate.beat.beatHash !== input.beats[index]?.beatHash).map((candidate) => candidate.beat.beatId);
+  const selectedBeats = selected.map((candidate) => candidate.beat);
+  const analysis = analyzeVeronicaSequenceDiversity({
+    plan: input.plan,
+    beats: selectedBeats,
+    remediation: { passes: changedBeatIds.length > 0 ? 1 : 0, changedBeatIds, exhausted: false },
+  });
+  const diagnosticRows = candidateSets.flatMap((candidates, beatIndex) => candidates.map((candidate) => {
+    const prior = selected.slice(0, beatIndex);
+    const [information, action, mechanism, opening, composition, causal] = contribution({ plan: input.plan, candidate, previous: prior });
+    const localTuple = [information ?? 0, action ?? 0, mechanism ?? 0, opening ?? 0, composition ?? 0, causal ?? 0];
+    const isSelected = selectedIds.has(candidate.candidateId);
+    const selectedForBeat = selected[beatIndex];
+    const sameScore = selectedForBeat && compareScoreDescending(localTuple, contribution({ plan: input.plan, candidate: selectedForBeat, previous: prior })) === 0;
+    return {
+      beatId: candidate.beat.beatId,
+      candidateId: candidate.candidateId,
+      hardGateEligible: candidate.hardGate.eligible,
+      hardGateFindingCodes: candidate.hardGate.findingCodes,
+      visibleInformationDelta: information ?? 0,
+      actionDiversityContribution: action ?? 0,
+      mechanismDiversityContribution: mechanism ?? 0,
+      openingNoveltyContribution: opening ?? 0,
+      compositionContribution: composition ?? 0,
+      causalCompleteness: candidate.causalCompleteness,
+      scoreTuple: localTuple,
+      selected: isSelected,
+      reason: isSelected
+        ? noSafeCandidateBeatIds.includes(candidate.beat.beatId) ? "NO_SAFE_CANDIDATE_FALLBACK" as const : "SELECTED" as const
+        : !candidate.hardGate.eligible ? "HARD_GATE_REJECTED" as const
+          : sameScore ? "STABLE_TIE_BREAK" as const : "LOWER_SEQUENCE_SCORE" as const,
+      tieBreakKey: candidate.candidateId,
+    };
+  }));
+  const diagnosticBase = {
+    schemaVersion: "veronica-beat-candidate-selection.v1" as const,
+    policyVersion: VERONICA_BEAT_CANDIDATE_SCORER_VERSION,
+    maximumCandidatesPerBeat: VERONICA_MAX_CANDIDATES_PER_BEAT,
+    beamWidth: VERONICA_CANDIDATE_BEAM_WIDTH,
+    rollingWindowBeats: VERONICA_CANDIDATE_ROLLING_WINDOW,
+    candidateCount: candidateSets.reduce((sum, candidates) => sum + candidates.length, 0),
+    hardValidCandidateCount: candidateSets.flat().filter((candidate) => candidate.hardGate.eligible).length,
+    noSafeCandidateBeatIds,
+    noSafeReasons,
+    selectedCandidateIds: selected.map((candidate) => candidate.candidateId),
+    candidates: diagnosticRows,
+  };
+  const diagnostics = { ...diagnosticBase, selectionHash: stableHash(diagnosticBase) };
+  return { beats: selectedBeats, analysis, diagnostics };
 }
 
 /**
@@ -539,76 +908,11 @@ function comparePenalty(left: readonly number[], right: readonly number[]): numb
 export function diversifyVeronicaVisualBeatSequence(input: {
   readonly plan: Pick<PositioningVisualPlanV2, "format" | "scenes">;
   readonly beats: readonly VisualBeatTreatmentV1[];
+  /** Reviewed beat overrides are authoritative and may be evaluated, but never rewritten. */
+  readonly lockedBeatIds?: ReadonlySet<string>;
 }): { readonly beats: readonly VisualBeatTreatmentV1[]; readonly analysis: VeronicaSequenceDiversityResult } {
   const policy = resolveVeronicaSequenceDiversityPolicy(input.plan.format);
-  let beats = [...input.beats];
-  let analysis = analyzeVeronicaSequenceDiversity({ plan: input.plan, beats });
-  if (!policy.enabled || analysis.status === "PASS") return { beats, analysis };
-  const changed = new Set<string>();
-  const visited = new Set([stableHash(beats.map((beat) => beat.beatHash))]);
-  let passes = 0;
-  while (passes < policy.maximumRefinementPasses && analysis.status !== "PASS") {
-    passes += 1;
-    const targetIds = new Set(analysis.findings
-      .filter((finding) => finding.remediationEligible)
-      .flatMap((finding) => finding.beatIds));
-    let passChanged = false;
-    for (let index = 0; index < beats.length; index += 1) {
-      const beat = beats[index]!;
-      if (!targetIds.has(beat.beatId)) continue;
-      const sourceNarration = input.plan.scenes.find((scene) => scene.sceneId === beat.sceneId)?.narrationAnchor ?? "";
-      // A workload consequence is grounded in one accumulating burden. A
-      // decision checkpoint and healthy scaling comparison likewise carry
-      // source-critical relationships. Preserve those grammars rather than
-      // trading them for generic action or presentation novelty.
-      const protectedEconomicGrammar = /\b(?:workload|backlog|bottleneck|burden|operational strain|decision checkpoint|controlled capacity|retained contribution)\b/iu.test(`${sourceNarration} ${beat.action} ${beat.state}`)
-        || (/\b(?:economics?|unit economics?)\s+(?:still\s+)?work\b/iu.test(sourceNarration)
-          && /\b(?:volume|sales?|orders?)\s+(?:grow(?:s|ing)?|increase(?:s|d|ing)?|scale(?:s|d|ing)?)\b/iu.test(sourceNarration));
-      const actionBases = protectedEconomicGrammar
-        ? [beat]
-        : [beat, ...sourceCompatibleDepictedActionCandidates(beat, sourceNarration)];
-      const presentationVariants = protectedEconomicGrammar
-        ? []
-        : PRESENTATION_VARIANTS;
-      const candidates = actionBases.flatMap((base) => [
-        base,
-        ...presentationVariants.map((variant) => withVariant(base, variant)),
-      ]);
-      const uniqueCandidates = [...new Map(candidates.map((candidate) => [candidate.beatHash, candidate])).values()];
-      const currentPenalty = diversityPenalty(analysis);
-      const ranked = uniqueCandidates.map((candidate) => {
-        const proposed = beats.map((current, currentIndex) => currentIndex === index ? candidate : current);
-        const candidateAnalysis = analyzeVeronicaSequenceDiversity({ plan: input.plan, beats: proposed });
-        return {
-          candidate,
-          analysis: candidateAnalysis,
-          penalty: diversityPenalty(candidateAnalysis),
-          novelty: candidateNovelty(input.plan, candidate, beats.slice(0, index)),
-        };
-      }).sort((left, right) => comparePenalty(left.penalty, right.penalty)
-        || right.novelty - left.novelty
-        || left.candidate.beatHash.localeCompare(right.candidate.beatHash));
-      const selected = ranked[0];
-      if (!selected || comparePenalty(selected.penalty, currentPenalty) >= 0) continue;
-      beats[index] = selected.candidate;
-      analysis = selected.analysis;
-      changed.add(beat.beatId);
-      passChanged = true;
-    }
-    const revision = stableHash(beats.map((beat) => beat.beatHash));
-    if (!passChanged || visited.has(revision)) break;
-    visited.add(revision);
-    analysis = analyzeVeronicaSequenceDiversity({
-      plan: input.plan,
-      beats,
-      remediation: { passes, changedBeatIds: [...changed], exhausted: false },
-    });
-  }
-  const exhausted = analysis.status !== "PASS";
-  analysis = analyzeVeronicaSequenceDiversity({
-    plan: input.plan,
-    beats,
-    remediation: { passes, changedBeatIds: [...changed], exhausted },
-  });
-  return { beats, analysis };
+  if (!policy.enabled) return { beats: input.beats, analysis: analyzeVeronicaSequenceDiversity(input) };
+  const selected = selectVeronicaBeatCandidateSequence(input);
+  return { beats: selected.beats, analysis: selected.analysis };
 }

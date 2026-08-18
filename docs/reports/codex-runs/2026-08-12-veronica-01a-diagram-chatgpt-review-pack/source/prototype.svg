@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="864" height="1536" viewBox="0 0 864 1536" role="img" aria-label="Text-free editorial diagram of one sale losing value through four variable-cost gates and leaving a smaller retained remainder">
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f6efe4"/>
+      <stop offset="1" stop-color="#eadcc9"/>
+    </linearGradient>
+    <linearGradient id="wood" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d7ba91"/>
+      <stop offset="1" stop-color="#b88f63"/>
+    </linearGradient>
+    <linearGradient id="coral" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ed866a"/>
+      <stop offset="1" stop-color="#c95743"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.72"/>
+      <stop offset="1" stop-color="#b9d2d0" stop-opacity="0.22"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="16" stdDeviation="16" flood-color="#352d29" flood-opacity="0.2"/>
+    </filter>
+    <filter id="soft-shadow" x="-30%" y="-30%" width="160%" height="180%">
+      <feDropShadow dx="0" dy="8" stdDeviation="7" flood-color="#352d29" flood-opacity="0.22"/>
+    </filter>
+    <clipPath id="table-clip">
+      <rect x="48" y="180" width="768" height="862" rx="42"/>
+    </clipPath>
+  </defs>
+
+  <rect width="864" height="1536" fill="url(#paper)"/>
+  <circle cx="770" cy="118" r="250" fill="#ffffff" opacity="0.35"/>
+  <g filter="url(#shadow)">
+    <rect x="48" y="180" width="768" height="862" rx="42" fill="url(#wood)"/>
+  </g>
+  <g clip-path="url(#table-clip)" opacity="0.18" stroke="#60462f" stroke-width="3">
+    <path d="M82 260 C280 210 560 310 816 230" fill="none"/>
+    <path d="M48 870 C300 800 590 940 830 820" fill="none"/>
+    <path d="M180 180 C110 450 220 760 120 1042" fill="none"/>
+    <path d="M690 180 C630 440 760 720 650 1042" fill="none"/>
+  </g>
+
+  <!-- Generic operator action: sleeve and hand only, never a likeness. -->
+  <path d="M0 286 C58 300 112 340 167 389 L139 482 C84 454 39 430 0 422 Z" fill="#283033"/>
+  <path d="M139 389 C168 397 200 424 224 455 C237 473 231 501 212 511 C191 522 174 505 159 489 L129 456 C114 439 118 404 139 389 Z" fill="#c98e6f"/>
+  <path d="M185 442 C206 430 240 426 272 430 L272 476 C238 477 207 485 181 496 Z" fill="#d7a084"/>
+
+  <!-- One continuous value ribbon: 240 → 210 → 170 → 120 → 60 units. -->
+  <path d="M92 420 H260 V435 H390 V455 H510 V480 H620 V510 H772 V570 H620 V600 H510 V625 H390 V645 H260 V660 H92 Z"
+        fill="url(#coral)" stroke="#8f3f34" stroke-width="5" stroke-linejoin="round" filter="url(#soft-shadow)"/>
+  <path d="M108 438 H246" stroke="#ffc0ae" stroke-width="8" stroke-linecap="round" opacity="0.65"/>
+  <path d="M278 453 H375 M408 475 H495 M528 500 H605 M638 530 H752" stroke="#ffc0ae" stroke-width="5" stroke-linecap="round" opacity="0.55"/>
+
+  <!-- Four separated transparent removal gates. -->
+  <g fill="url(#glass)" stroke="#33484a" stroke-width="5" filter="url(#soft-shadow)">
+    <path d="M248 348 H272 V708 H248 Z"/>
+    <path d="M378 348 H402 V708 H378 Z"/>
+    <path d="M498 348 H522 V708 H498 Z"/>
+    <path d="M608 348 H632 V708 H608 Z"/>
+  </g>
+  <g stroke="#ffffff" stroke-width="4" opacity="0.62">
+    <path d="M255 362 V688"/><path d="M385 362 V688"/><path d="M505 362 V688"/><path d="M615 362 V688"/>
+  </g>
+
+  <!-- Side catch-trays and exactly one conserved fragment per gate: 30 + 40 + 50 + 60 units. -->
+  <g fill="url(#glass)" stroke="#4e6565" stroke-width="4" filter="url(#soft-shadow)">
+    <path d="M198 744 H288 L304 832 H182 Z"/>
+    <path d="M328 744 H418 L434 832 H312 Z"/>
+    <path d="M448 744 H538 L554 832 H432 Z"/>
+    <path d="M558 744 H648 L664 832 H542 Z"/>
+  </g>
+  <g fill="url(#coral)" stroke="#8f3f34" stroke-width="4">
+    <rect x="216" y="786" width="54" height="18" rx="5"/>
+    <rect x="346" y="780" width="54" height="24" rx="5"/>
+    <rect x="466" y="774" width="54" height="30" rx="5"/>
+    <rect x="576" y="768" width="54" height="36" rx="5"/>
+  </g>
+  <g stroke="#8f3f34" stroke-width="4" stroke-linecap="round" opacity="0.75">
+    <path d="M260 676 V730"/><path d="M390 661 V730"/><path d="M510 641 V730"/><path d="M620 616 V730"/>
+  </g>
+
+  <!-- Isolated output tray containing only the one final 60-unit remnant. -->
+  <g filter="url(#soft-shadow)">
+    <path d="M690 454 H810 L826 638 H674 Z" fill="url(#glass)" stroke="#33484a" stroke-width="5"/>
+    <rect x="720" y="510" width="52" height="60" rx="7" fill="url(#coral)" stroke="#8f3f34" stroke-width="5"/>
+  </g>
+
+  <!-- Empty breathing field and subtitle-safe region below; no semantic evidence enters it. -->
+  <rect x="104" y="1106" width="656" height="246" rx="30" fill="#ffffff" opacity="0.08"/>
+</svg>

@@ -1,0 +1,122 @@
+{
+  "schemaVersion": "veronica-narration-cost-reservation.v1",
+  "reservationId": "veronica-en-three-short-narration-canary-2026-08-12",
+  "status": "CONSUMED_PASS",
+  "createdAt": "2026-08-12T20:50:26Z",
+  "authorizationReference": "user-message-2026-08-12-authorize-recommended-three-short-synthetic-narration-canary",
+  "locale": "en",
+  "variant": "short",
+  "provider": "openai",
+  "model": "gpt-4o-mini-tts",
+  "voice": "shimmer",
+  "episodes": [
+    {
+      "episodeId": "03b-the-promise-formula",
+      "sourceSha256": "3f889ea133dd6fa27723d28ed3f209a7499369275bfe4f52f502b289c38574c3",
+      "authorizationPath": "2026-08-12-veronica-03b-synthetic-narration-authorization.json",
+      "authorizationSha256": "bf7d6b083189165a762e2038bd2a3afbe436705249a67f3ff75a42938f512df9",
+      "conservativeCostUsd": 0.060291,
+      "conservativeCostEur": 0.05747,
+      "preDispatchSpeechCalls": 0,
+      "preDispatchSpeechCostUsd": 0
+    },
+    {
+      "episodeId": "08b-prospecting-without-being-annoying",
+      "sourceSha256": "f00d4cda7aef8d7438df1e4533c17b285b8f023c82bc138e9fb2b943d5d5550a",
+      "authorizationPath": "2026-08-12-veronica-08b-synthetic-narration-authorization.json",
+      "authorizationSha256": "df1a391906531bc2cd880956cab8ac450cff7f0c647f83e9962102e19a1eaaf4",
+      "conservativeCostUsd": 0.062275,
+      "conservativeCostEur": 0.059361,
+      "preDispatchSpeechCalls": 0,
+      "preDispatchSpeechCostUsd": 0
+    },
+    {
+      "episodeId": "02b-stop-posting-where-your-customers-arent",
+      "sourceSha256": "3aa705449bc7d8e6f6db24395e15a110d847ca672802e9ca903b810cd28e94da",
+      "authorizationPath": "2026-08-12-veronica-02b-synthetic-narration-authorization.json",
+      "authorizationSha256": "28e2c0e87faea4c403b2d170b2b8120503a2a7838cbded2c3a1ec14bd653029f",
+      "conservativeCostUsd": 0.062971,
+      "conservativeCostEur": 0.060024,
+      "preDispatchSpeechCalls": 0,
+      "preDispatchSpeechCostUsd": 0
+    }
+  ],
+  "limits": {
+    "maxProviderCalls": 3,
+    "providerCeilingUsd": 0.185537,
+    "canonicalCeilingEur": 0.176855
+  },
+  "budgetBeforeReservation": {
+    "canonicalCurrency": "EUR",
+    "portfolioCeilingEur": 4.883016,
+    "cumulativeSpendEur": 2.328058,
+    "remainingEur": 2.554958
+  },
+  "conversionPolicy": {
+    "observationDate": "2026-08-11",
+    "source": "European Central Bank reference rate",
+    "observedUsdPerEur": 1.154,
+    "safetyMultiplier": 1.1,
+    "conservativeEurPerUsd": 0.953206239
+  },
+  "activity": {
+    "providerCalls": 3,
+    "cacheHits": 0,
+    "completedEpisodes": [
+      "03b-the-promise-formula",
+      "08b-prospecting-without-being-annoying",
+      "02b-stop-posting-where-your-customers-arent"
+    ],
+    "failedEpisode": null
+  },
+  "actualCost": {
+    "knownEstimatedCostUsd": 0.04795,
+    "unpricedProviderCalls": 0,
+    "conservativeChargedUsd": 0.04795,
+    "conservativeChargedEur": 0.045706
+  },
+  "reservationReconciliation": {
+    "reservedEur": 0.176855,
+    "consumedEur": 0.045706,
+    "releasedEur": 0.131149,
+    "stillHeldEur": 0
+  },
+  "result": {
+    "schemaVersion": "veronica-narration-canary.v1",
+    "status": "PASS",
+    "providerCalls": 3,
+    "cacheHits": 0,
+    "episodes": [
+      {
+        "episodeId": "03b-the-promise-formula",
+        "sourceSha256": "3f889ea133dd6fa27723d28ed3f209a7499369275bfe4f52f502b289c38574c3",
+        "selectedAudioSha256": "ffa99330d37713f30a37a714b49e5d149ec6e9914ad2e24c29f1a2b045727ecd",
+        "timingSha256": "ac7d9267bb1c1ec12e5744dc3d7e20e10ae4a6fcc5cc8b22866424750a8f0006",
+        "durationSeconds": 57.8,
+        "observedWpm": 175.4325259515571,
+        "speechRateStatus": "soft-high",
+        "providerCall": true
+      },
+      {
+        "episodeId": "08b-prospecting-without-being-annoying",
+        "sourceSha256": "f00d4cda7aef8d7438df1e4533c17b285b8f023c82bc138e9fb2b943d5d5550a",
+        "selectedAudioSha256": "3741b13efd5212f797a51ec37cc93c16ea94d3aa3a44e82b4ab07f2b489baea2",
+        "timingSha256": "d96e858b4b390eee9ccd3f9fe405e63c61d57b461cd78f84e5ede23740ed4205",
+        "durationSeconds": 65.8,
+        "observedWpm": 157.75075987841944,
+        "speechRateStatus": "within-target",
+        "providerCall": true
+      },
+      {
+        "episodeId": "02b-stop-posting-where-your-customers-arent",
+        "sourceSha256": "3aa705449bc7d8e6f6db24395e15a110d847ca672802e9ca903b810cd28e94da",
+        "selectedAudioSha256": "19016c1411c33fd3713c09adeb1bb3265f4b03a55ac619f4a672c29c08bc078f",
+        "timingSha256": "6540191bfeacac9452e4b2120a2daa9b537cb079a4c42668a69167043dbcd256",
+        "durationSeconds": 68.2,
+        "observedWpm": 153.95894428152494,
+        "speechRateStatus": "within-target",
+        "providerCall": true
+      }
+    ]
+  }
+}

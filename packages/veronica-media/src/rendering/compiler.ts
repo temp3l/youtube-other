@@ -1,5 +1,8 @@
 import fs from "node:fs";
-import type { VeronicaRenderManifest } from "../contracts/media-plan.v1.js";
+import {
+  veronicaRenderManifestSchema,
+  type VeronicaRenderManifest,
+} from "../contracts/media-plan.v1.js";
 
 function escapePath(filePath: string): string {
   return filePath.replace(/'/gu, "'\\''");
@@ -16,6 +19,7 @@ export function buildRenderConcatList(manifest: VeronicaRenderManifest): string 
 export function compileRenderManifestToFfmpegArgs(
   manifest: VeronicaRenderManifest,
 ): readonly (readonly string[])[] {
+  manifest = veronicaRenderManifestSchema.parse(manifest);
   const commands: string[][] = [];
   for (const clip of manifest.clips) {
     const filters: string[] = [];

@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "veronica-chatgpt-diagram-review-pack.v2",
+  "episodeId": "01a-revenue-is-not-a-good-business",
+  "sceneId": "scene-004",
+  "visualBeatId": "01a-revenue-is-not-a-good-business-HOOK-B04",
+  "createdAt": "2026-08-12T17:12:00Z",
+  "status": "PENDING_EXACT_HASH_REVIEW",
+  "providerCalls": 0,
+  "canonicalAssetReplacedByThisTranche": false,
+  "candidate": {
+    "pngName": "hook-b04-deterministic-diagram.v2.png",
+    "pngSha256": "4b0d6b2cded1fdc428a898aec798730a9a2af11556e987e9ba23ac251e12adc9",
+    "svgName": "hook-b04-deterministic-diagram.v2.svg",
+    "svgSha256": "0dc3762dd6441d2a8cd3fac80f86380807b102f89b5712cbff8bf2f4bb5b38be",
+    "prototypeManifestName": "hook-b04-deterministic-diagram-prototype.v2.json",
+    "prototypeManifestSha256": "8951d3b09cf5bad6fe516fb1a0fc9aa5056b735600bd8be8a3076478df31b053"
+  },
+  "comparisons": [
+    {
+      "name": "hook-b04-deterministic-diagram.v1.png",
+      "role": "current canonical strict-QA failure",
+      "sha256": "cc10c8772d12f53565fbf2dcb86cc0a264a066baf425e070ba18742660a7bf4a"
+    },
+    {
+      "name": "s02-b01-deterministic-diagram.v1.png",
+      "role": "approved adjacent image and visual-distinction reference",
+      "sha256": "5e11f15cee0b397ad8bbcd2b8d897ae8ca91764f65e728deb218a0dc7cde5bbe"
+    },
+    {
+      "name": "scene-004-provider-failure.png",
+      "role": "archived provider image with generic-stock failure",
+      "sha256": "f65fc574a3ef3843f2a244f4e04172f2dae4cae08a5e4ddf46964fb84ad16491"
+    }
+  ],
+  "qaEvidence": [
+    {
+      "name": "scene-004-v1-strict-qa.json",
+      "sha256": "4ee60cf8c68532e6c323e49cca2779cefe0a26703fb4055003ca911464835b16"
+    },
+    {
+      "name": "scene-004-provider-strict-qa.json",
+      "sha256": "1c1ee0751de4b8562ce98c568841d9fa0e0621dcb01d03b769628f892672b3ba"
+    }
+  ],
+  "sourceBindings": {
+    "sourceSha256": "4e82a65208256d74b2171c4475ee624d9506cfd6f0b21b1f055074d4062c7503",
+    "semanticPlanSha256": "fdda87257c6472e6ed00182fc590059c8aaaa0829168f4f833529da0de8eb14e",
+    "reviewManifestSha256": "bdac6a0b580ede1ba0c659938f49180b2cf50a64aebb6ed49496f9e645ebb225"
+  },
+  "authorizationBoundary": "Review only; no canonical adoption or provider request is authorized."
+}

@@ -93,6 +93,9 @@ describe("Veronica positioning visual planner V2", () => {
     expect(first.canonicalAssetCount).toBeGreaterThan(100);
     expect(first.visualEventCount).toBeGreaterThan(first.canonicalAssetCount * 2);
     expect(first.reusableAssetOpportunityCount).toBeGreaterThan(0);
+    expect(plans.flatMap((plan) => plan.scenes).every((scene) =>
+      Number.isSafeInteger(scene.startMs) && Number.isSafeInteger(scene.durationMs),
+    )).toBe(true);
     expect(repeated.reviewPackHash).toBe(first.reviewPackHash);
     expect(Number.isSafeInteger(first.generatedAtMs)).toBe(true);
     expect(Number.isSafeInteger(repeated.generatedAtMs)).toBe(true);

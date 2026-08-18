@@ -1,0 +1,297 @@
+Centomila visualizzazioni e zero vendite non sono una contraddizione. Sono il segnale che stai guardando due lavori diversi come se fossero la stessa cosa. Le view possono aver fatto perfettamente il loro compito e la conversione essersi rotta altrove. Invece di discutere se “i social funzionano”, ricostruiamo il percorso e troviamo il punto preciso in cui l'attenzione smette di avanzare.
+
+Sono due metriche che stanno misurando due cose diverse.
+
+E se le confondi, puoi prendere decisioni di marketing completamente sbagliate.
+
+La prima distinzione è tra awareness e conversion.
+
+Awareness significa che le persone ti conoscono, ti riconoscono o si ricordano che esisti.
+
+Conversion significa che compiono un'azione precisa.
+
+Comprano.
+
+Prenotano.
+
+Si iscrivono.
+
+Chiedono un preventivo.
+
+Sono due lavori diversi.
+
+E una campagna può essere utile anche se non produce immediatamente vendite, se il suo compito era costruire notorietà.
+
+Pensa a Coca-Cola.
+
+Non ogni persona che vede una pubblicità corre immediatamente a comprare una bottiglia.
+
+Ma il brand continua a occupare uno spazio mentale.
+
+Quando arriva il momento della scelta, quella familiarità ha un valore.
+
+Il problema nasce quando chiedi a un'attività di awareness di comportarsi come una campagna di vendita diretta.
+
+Oppure quando misuri una campagna di conversion guardando soltanto quante persone l'hanno vista.
+
+Lo stesso vale quando lavori con un influencer.
+
+Se l'obiettivo era farti conoscere da un pubblico nuovo, non puoi giudicare tutto soltanto sulle vendite delle ventiquattro ore successive.
+
+Ma se l'obiettivo dichiarato era vendere un prodotto preciso e hai ottenuto soltanto visualizzazioni, allora qualcosa non ha funzionato.
+
+Prima devi sapere quale lavoro deve fare ogni attività.
+
+E c'è anche un problema di sequenza.
+
+Un business nuovo o un prodotto nuovo spesso ha bisogno di awareness prima di chiedere una conversione forte.
+
+Se nessuno ti conosce, nessuno capisce cosa fai e nessuno si fida, una call to action aggressiva non crea magicamente intenzione d'acquisto.
+
+Le persone hanno bisogno di contesto.
+
+Devono incontrarti.
+
+Capire.
+
+Valutare.
+
+Fidarsi.
+
+E poi, quando il momento è giusto, agire.
+
+Per questo la conversione non è soltanto il bottone “compra ora”.
+
+È il punto finale di un percorso che hai preparato prima.
+
+La relazione con la community.
+
+Le risposte.
+
+I contenuti.
+
+La chiarezza dell'offerta.
+
+La fiducia.
+
+Tutto questo succede prima della transazione.
+
+E qui arriviamo a una parola fondamentale: credibilità.
+
+Sui social la credibilità non nasce soltanto dal sembrare perfetti.
+
+Può nascere dal realismo.
+
+Dalla coerenza.
+
+Dal dialogo.
+
+Dal fatto che una persona percepisca che dietro al contenuto esiste qualcuno che capisce il problema di cui sta parlando.
+
+Se mi chiedi soldi prima che io abbia capito chi sei, cosa fai e perché dovrei fidarmi, stai chiedendo alla conversione di fare il lavoro che dovrebbe essere stato fatto prima.
+
+E poi c'è la chiarezza.
+
+Puoi avere attenzione.
+
+Puoi avere fiducia.
+
+E comunque perdere la vendita se il cliente non capisce cosa sta comprando.
+
+Cosa è incluso?
+
+Per chi è?
+
+Quanto costa?
+
+Cosa succede dopo?
+
+Come funziona?
+
+Quale risultato posso aspettarmi?
+
+Ogni zona di nebbia crea attrito.
+
+E ogni attrito è un punto in cui la persona può abbandonare.
+
+Quindi, se hai molte visualizzazioni e poche vendite, non saltare subito alla conclusione che “i social non funzionano”.
+
+Prima chiediti quale parte del percorso è rotta.
+
+È un problema di awareness?
+
+Le persone giuste non ti conoscono abbastanza?
+
+È un problema di fiducia?
+
+Ti vedono ma non ti considerano credibile?
+
+È un problema di offerta?
+
+Capiscono il valore ma non vedono una proposta adatta?
+
+È un problema di chiarezza?
+
+Arrivano alla pagina e non capiscono cosa fare?
+
+È un problema di timing?
+
+Il pubblico ti conosce ma non è ancora pronto?
+
+Questa diagnosi è molto più utile del semplice numero di views.
+
+Perché l'attenzione è una risorsa, non un risultato finale.
+
+La puoi trasformare in relazione.
+
+La relazione può costruire fiducia.
+
+La fiducia può rendere comprensibile una proposta.
+
+E una proposta chiara, nel momento giusto, può convertire.
+
+Ma nessun passaggio è garantito automaticamente dal precedente.
+
+Un milione di follower non equivale a un milione di clienti.
+
+Un video virale non equivale a un business sano.
+
+E una community piccola ma molto rilevante può valere economicamente più di un pubblico enorme e distratto.
+
+Quindi la prossima volta che guardi le analytics, separa le domande.
+
+Quante persone sto raggiungendo?
+
+Quante mi ricordano?
+
+Facciamo una diagnosi con numeri semplici. Centomila persone vedono un video. Cinquemila visitano il profilo. Mille aprono la pagina dell'offerta. Duecento iniziano il checkout. Dieci comprano. Dire “le view non convertono” non ti aiuta, perché in realtà il percorso ha quattro transizioni diverse. Se il crollo è tra video e profilo, il problema può essere rilevanza o curiosità. Se è tra pagina e checkout, può essere chiarezza, prezzo, fiducia o fit. Se è nell'ultimo passaggio, guarda attrito, pagamento e rischio percepito.
+
+Il vantaggio di questa mappa è che impedisce di cambiare tutto insieme. Scegli il punto con la perdita più anomala e formula una sola ipotesi. Poi modifica una cosa che può influenzare proprio quella transizione. La conversione migliora più facilmente quando smetti di trattarla come magia e inizi a trattarla come una sequenza osservabile.
+
+Quante interagiscono?
+
+Quante arrivano alla proposta?
+
+Quante capiscono cosa sto offrendo?
+
+Quante si fidano abbastanza da agire?
+
+E dove sto perdendo le altre?
+
+Questo è il lavoro della conversione.
+
+Non convincere magicamente chiunque abbia visto un post.
+
+Costruire un percorso abbastanza chiaro e credibile da permettere alla persona giusta di fare il passo successivo.
+
+Perché attenzione e conversione non sono sinonimi.
+
+L'attenzione è un input.
+
+La conversione succede quando quell'attenzione incontra fiducia, chiarezza e un momento di acquisto rilevante.
+
+Puoi rendere questa distinzione ancora più utile guardando ogni attività di marketing e chiedendoti quale lavoro deve fare.
+
+Deve far sapere che esisti?
+
+Deve far ricordare il brand?
+
+Deve far capire un problema?
+
+Deve costruire fiducia?
+
+Deve portare a una richiesta?
+
+Deve generare una vendita?
+
+Se non definisci il lavoro, rischi di giudicare tutto con lo stesso numero.
+
+Prendi una collaborazione con un creator o un influencer.
+
+Se l'obiettivo è awareness, può avere senso che molte persone scoprano il brand senza comprare nello stesso momento.
+
+Se l'obiettivo è conversione diretta, devi guardare un comportamento diverso.
+
+Il problema nasce quando compri awareness e poi la dichiari fallita perché non ha prodotto immediatamente vendite, oppure quando chiami “brand awareness” una campagna che in realtà doveva pagarsi con conversioni.
+
+Gli obiettivi devono essere chiari prima dei risultati.
+
+Prima di dichiarare fallita un’attività, scegli una finestra di osservazione coerente con il ciclo d’acquisto. Una campagna di due giorni non può giudicare correttamente una decisione che normalmente richiede sei settimane.
+
+Poi arriva il percorso.
+
+La conversione non comincia sul bottone.
+
+Comincia molto prima.
+
+La persona vede qualcosa.
+
+Capisce che il tema la riguarda.
+
+Inizia a riconoscerti.
+
+Trova spiegazioni che le sembrano credibili.
+
+Fa una domanda.
+
+Legge una pagina.
+
+Confronta.
+
+E solo a un certo punto valuta l'acquisto.
+
+Questo è il motivo per cui relazione e community possono avere un ruolo nella conversione.
+
+Non perché ogni follower debba diventare cliente.
+
+Ma perché la fiducia si costruisce attraverso più contatti.
+
+E la credibilità non significa sembrare perfetti.
+
+Nelle fonti emerge l'importanza di realismo, emozione e dialogo.
+
+Una comunicazione che sembra umana e coerente può aiutare la persona a capire con chi sta entrando in relazione.
+
+Poi viene la chiarezza.
+
+Se il cliente arriva alla parte commerciale e non capisce cosa riceve, per chi è, come funziona o cosa deve fare dopo, stai perdendo conversione in un punto che non richiede più attenzione.
+
+Richiede meno confusione.
+
+Per questo puoi fare una mappa molto semplice.
+
+Quante persone mi scoprono?
+
+Quante arrivano a capire il problema?
+
+Quante mostrano interesse?
+
+Quante chiedono informazioni o visitano l'offerta?
+
+Quante fanno il passo successivo?
+
+Non hai bisogno di trasformare subito tutto in un dashboard complicato.
+
+Ti serve vedere che il percorso ha più fasi.
+
+Se l'attenzione è bassa, lavori sulla scoperta.
+
+Se l'attenzione è alta ma nessuno approfondisce, controlli il messaggio.
+
+Se le persone approfondiscono ma non si fidano, controlli credibilità e relazione.
+
+Se arrivano all'offerta ma non agiscono, controlli chiarezza, attrito e rilevanza.
+
+Così smetti di trattare la conversione come una magia finale.
+
+Diventa una diagnosi.
+
+E soprattutto smetti di chiedere a un solo contenuto di fare contemporaneamente awareness, educazione, fiducia e vendita immediata.
+
+Poi assegna a ogni contenuto una funzione principale. Alcuni contenuti devono far scoprire. Altri devono far capire. Altri ancora devono costruire fiducia o accompagnare verso l'offerta. Questo non significa che un contenuto possa fare una sola cosa, ma ti impedisce di giudicarlo con una metrica sbagliata. Se sai quale passaggio vuoi migliorare, puoi creare il contenuto per quel passaggio e osservare se la persona avanza davvero.
+
+Puoi fare questo audit anche senza numeri perfetti. Prendi gli ultimi dieci contenuti o campagne e assegna a ciascuno un obiettivo principale. Poi chiediti se il passo successivo era evidente. Se un contenuto doveva creare interesse, dove poteva andare la persona dopo? Se doveva convertire, aveva già ricevuto abbastanza contesto e fiducia? Molte perdite di conversione sono semplicemente passaggi mancanti tra un momento e l'altro.
+
+E nel prossimo episodio affrontiamo uno dei motivi per cui quel momento può diventare difficile perfino quando tutto il resto funziona.
+
+La nostra relazione con i soldi e con l'atto stesso di vendere.

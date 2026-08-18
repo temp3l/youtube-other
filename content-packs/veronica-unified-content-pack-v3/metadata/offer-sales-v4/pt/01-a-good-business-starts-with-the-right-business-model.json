@@ -1,0 +1,42 @@
+{
+  "title": "Seu faturamento pode crescer enquanto seu negócio enfraquece",
+  "alternativeTitles": [
+    "Vender mais não conserta um modelo de negócio ruim",
+    "Seu negócio é realmente saudável ou só está muito ocupado?",
+    "O teste de modelo de negócio que muita gente ignora"
+  ],
+  "thumbnail": "MAIS VENDAS. NEGÓCIO PIOR?",
+  "thumbnailOptions": [
+    "MAIS VENDAS. NEGÓCIO PIOR?",
+    "FATURAMENTO ≠ MARGEM",
+    "E SE VENDESSE O DOBRO?"
+  ],
+  "description": "Faturar mais não significa automaticamente ter um negócio mais saudável. Neste episódio, analisamos a estrutura por trás de um modelo sustentável: margem, custos variáveis e fixos, tempo de entrega, escalabilidade, economia dos canais e a diferença entre proteger o formato do produto e proteger a necessidade do cliente. No final, você ainda faz uma auditoria simples em cinco pontos e um teste de estresse: se as vendas dobrassem amanhã, o negócio realmente ficaria mais forte?\n\nNo próximo episódio: por que seu cliente ideal não é “todo mundo”.",
+  "cta": "Faça a auditoria de cinco pontos e escolha uma única hipótese estrutural para testar nas próximas semanas.",
+  "chapters": [
+    "Faturamento não é modelo de negócio",
+    "O custo escondido de mudar de canal",
+    "Formato do produto e necessidade do cliente",
+    "O teste do tempo",
+    "O que escalabilidade realmente significa",
+    "O teste de adaptação",
+    "Sua auditoria em cinco pontos",
+    "O que testar agora"
+  ],
+  "shortA": {
+    "title": "Mais faturamento pode piorar um negócio fraco",
+    "alternateHook": "Se suas vendas dobrassem amanhã, seu negócio realmente ficaria melhor?"
+  },
+  "shortB": {
+    "title": "Sua receita para quando você para de trabalhar?",
+    "alternateHook": "Seu maior limite de crescimento pode estar escondido na sua agenda."
+  },
+  "youtubeOptimizationVersion": "v2-retention-localization",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  }
+}

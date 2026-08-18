@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "veronica-provider-cost-reservation.v1",
+  "reservationId": "veronica-01a-s02-remediation-2026-08-12",
+  "status": "CONSUMED_STOPPED_ON_REMEDIATION_FAILURE",
+  "createdAt": "2026-08-12T15:10:12Z",
+  "authorizationReference": "user-message-2026-08-12-authorize-recommended-s02-remediation",
+  "episodeId": "01a-revenue-is-not-a-good-business",
+  "authorizedAsset": {
+    "visualBeatId": "01a-revenue-is-not-a-good-business-S02-B01",
+    "sceneId": "scene-007",
+    "rejectedImageSha256": "5bd465e78394fc103b3b1aa560bd64c6f4af4c8eb6fa89e7e1dc73d9832f632b",
+    "failedReviewPath": "episodes/01a-revenue-is-not-a-good-business/state/image-generation/veronica-post-generation-visual-qa/scene-007.80e5c64e672dc1e618c06aa46f3b90ddab6c995e7107b59207c0a57621aa7c37.json",
+    "failedReviewSha256": "1869fc3e6331089c3d39fff045b185630c0733adc502652855b916308bbf430e"
+  },
+  "limits": {
+    "imageRequests": 1,
+    "imageQaRequests": 1,
+    "automaticRegenerations": 0,
+    "totalProviderRequests": 2,
+    "providerCeilingUsd": 0.05,
+    "canonicalCeilingEur": 0.04766
+  },
+  "budgetBeforeReservation": {
+    "canonicalCurrency": "EUR",
+    "portfolioCeilingEur": 4.883016,
+    "cumulativeSpendEur": 2.259736,
+    "remainingEur": 2.62328
+  },
+  "remainingAfterReservationEur": 2.57562,
+  "providers": {
+    "image": { "model": "gpt-image-2", "quality": "low", "size": "864x1536" },
+    "qa": { "model": "gpt-5.4-mini", "reasoning": "low" }
+  },
+  "reconciledAt": "2026-08-12T15:14:31Z",
+  "activity": {
+    "imageRequests": 1,
+    "successfulImages": 1,
+    "imageQaRequests": 1,
+    "successfulImageQa": 1,
+    "approvedImageQa": 0,
+    "rejectedImageQa": 1,
+    "automaticRegenerations": 0,
+    "preDispatchIdentityFailures": 2,
+    "totalProviderRequests": 2
+  },
+  "actualCost": {
+    "providerCurrency": "USD",
+    "imageCostUsd": 0.009665,
+    "qaCostUsd": 0.007319,
+    "totalCostUsd": 0.016984,
+    "canonicalCostEur": 0.016189,
+    "costBasis": "Durable terminal provider logs and episode OpenAI cost summary deltas"
+  },
+  "reservationReconciliation": {
+    "reservedEur": 0.04766,
+    "consumedEur": 0.016189,
+    "releasedEur": 0.031471,
+    "stillHeldEur": 0
+  },
+  "result": "S02_B01_REMEDIATION_MATERIAL_IMAGE_QA_FAILURE",
+  "generatedImageSha256": "782c5a0fcf262948173244c44746a1b260e8cf0f45feacd9372f6f32d1eb3b7f",
+  "reviewArtifact": "episodes/01a-revenue-is-not-a-good-business/state/image-generation/veronica-post-generation-visual-qa/scene-007.dbd7b6adea13d813cf82a1e482fc5c547215a9be2dd8c35496a826aedc8cad01.json",
+  "stopReason": "Strict QA scored semantic 0.66, instant-read 0.56, and narration support 0.54 with partial must-show coverage; no further retry is authorized.",
+  "conversionPolicy": {
+    "observedUsdPerEur": 1.154,
+    "safetyMultiplier": 1.1,
+    "conservativeEurPerUsd": 0.953206239
+  }
+}

@@ -1,0 +1,7 @@
+Você pode ter um bom produto e uma promessa clara e ainda assim tornar a compra difícil demais. A oferta é o que reduz essa dificuldade. O cliente precisa entender por onde começar, o que escolher, por que confiar e como comprar. Se precisa procurar informação, passar por dez etapas e resolver sozinho cada dúvida, você está criando atrito. Um bom produto não compensa automaticamente uma oferta confusa. Faça o teste como um cliente novo: dá para entender o que está incluído? Qual opção escolher? As informações importantes estão claras sem precisar chamar no direct? Cada etapa desnecessária adiciona trabalho, e esse trabalho pode virar um motivo para adiar. Antes de adicionar outro bônus, elimine uma fricção real.
+
+A fricção costuma se esconder em detalhes pequenos: um nome de pacote confuso, um preço difícil de encontrar, um formulário pedindo dados desnecessários ou um checkout que cria dúvida. Corrigir um desses pontos pode superar outro argumento promocional porque remove trabalho de alguém que já estava interessado.
+
+A fricção custa mais quando o interesse já existe, porque o cliente já dedicou atenção. Nesse ponto, dúvidas sobre preço, escopo, entrega ou próximos passos podem interromper o impulso. Responda na página às perguntas básicas antes de obrigar uma conversa. Clareza preserva a intenção que o marketing já conquistou.
+
+Abra hoje sua jornada de compra como um novo cliente e remova uma etapa que não cria valor.

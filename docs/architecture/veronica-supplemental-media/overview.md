@@ -19,7 +19,7 @@ Language-specific preparation
         ↓
 Independent 16:9 + 9:16 compositions
         ↓
-Typed deterministic FFmpeg render manifest (`rendering/compiler.ts`)
+Typed deterministic FFmpeg render manifest (`veronica-render-manifest.v2`)
         ↓
 Render + validation + approval pack
 ```
@@ -33,6 +33,15 @@ Render + validation + approval pack
 ## Genre isolation
 
 Only explicit Veronica/strategic-reinvention workflows invoke this package. Other genres preserve existing behavior.
+
+## Render identity
+
+Every persisted Veronica FFmpeg render manifest embeds a strict canonical content
+identity: pack ID, story ID, series episode ID, locale, Long/Short variant, and the
+SHA-256 of the selected narration bytes. Creation rejects identities that do not
+match the pipeline story, locale, or rendered narration. Resume and render-command
+loading require the embedded identity to equal the active canonical workspace
+identity; v1 manifests without it fail closed and must be regenerated.
 
 ## Pre-image semantic readiness
 
@@ -64,6 +73,11 @@ role, explicit new information, visible action/state, composition, reference req
 and whether its boundary is narration-aligned, semantic-subspan-aligned, or
 editorially allocated.
 
+Removal-to-consequence beats fail deterministic readiness unless the same text-free
+frame explicitly shows the displaced obstacle, the buyer's enabled action, and their
+causal connection. Beat-specific cause/consequence evidence replaces unrelated
+scene-level props so adjacent-beat staging cannot leak into the provider prompt.
+
 Provider prompts, prompt provenance, canonical cache identity, and timed visual
 events are beat-scoped. Timing provenance is recorded but excluded from image
 identity, so locale retiming preserves canonical assets. Beat decisions distinguish
@@ -91,6 +105,12 @@ The former OpenAI prompt rewrite and the older deterministic assembler are
 compatibility-only. Review evidence records compiler input/result, full prompt,
 hashes, remediation, QA, and same-snapshot status. Passing automation never records
 human approval or permits an image-provider request.
+
+After human review, `mediaforge veronica-media images approve-review-pack
+--workspace <episodes-dir> --episode-id <id> --language en --variant short
+--reviewer <id> --authorization-reference <reference>` writes a separate approval
+artifact bound to the complete current review-manifest hash. The automated manifest
+remains immutable and false; any new pack or changed source invalidates approval.
 
 Every prepared locale/variant persists the exact provider prompt set in the episode
 at `locales/<language>/<variant>/image-prompts/provider-image-prompts.v1.json` and
