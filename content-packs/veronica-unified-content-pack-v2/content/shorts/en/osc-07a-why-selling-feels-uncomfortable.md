@@ -1,0 +1,7 @@
+You want more sales, but the moment you have to say the price you feel uncomfortable. That is common, and it affects the business directly. Discomfort around money can make you discount too quickly, avoid follow-up, or keep adding free value without ever asking for the purchase. Watch the behavior. Do you delay saying the price? Add bonuses because you are afraid the offer is not enough? Avoid the agreed follow-up? These may look like sales-technique problems, but they can be signals of your relationship with money and judgment. Measuring revenue, cost, and margin does not make you cold. It turns money into business data instead of a verdict on your worth. Pick one behavior to change: state the price without apologizing, make the follow-up you agreed to, or stop adding bonuses out of fear.
+
+Practice the moment before it happens. Write the price in a neutral sentence and say it out loud without filling the silence. Then prepare the questions you need to determine fit. Confidence is easier when the conversation has structure instead of depending on improvisation.
+
+Separate the number from the emotion before the conversation starts by deciding your price, boundaries, and discount rules in advance. That prevents discomfort from rewriting the offer in real time. You can listen to the answer instead of negotiating against yourself.
+
+Say the price once, clearly, without apologizing and without immediately adding a discount.

@@ -1,0 +1,31 @@
+{
+  "title": "Atenção não é conversão",
+  "thumbnail": "VIEW NÃO É VENDA",
+  "description": "Awareness e conversão fazem trabalhos diferentes. Mapeie o caminho de atenção até confiança, clareza, oferta e ação para descobrir onde a conversão realmente está sendo perdida.",
+  "cta": "No próximo episódio, entramos na parte que nenhum funil resolve sozinho: por que falar preço, fazer follow-up e vender ainda pode ser desconfortável.",
+  "alternativeTitles": [
+    "100 mil views e zero vendas? Encontre o vazamento real",
+    "View não é venda: diagnostique o caminho da conversão"
+  ],
+  "thumbnailOptions": [
+    "VIEW NÃO É VENDA",
+    "100K VIEWS. 0 VENDAS?",
+    "ONDE QUEBRA?"
+  ],
+  "youtubeOptimizationVersion": "v2-retention-localization",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  },
+  "shortA": {
+    "title": "100K views e zero vendas?",
+    "alternateHook": "Não culpe as views antes de encontrar a transição em que as pessoas realmente param."
+  },
+  "shortB": {
+    "title": "Uma CTA mais forte não cria confiança",
+    "alternateHook": "Um pedido mais alto não substitui credibilidade, clareza e uma oferta crível."
+  }
+}

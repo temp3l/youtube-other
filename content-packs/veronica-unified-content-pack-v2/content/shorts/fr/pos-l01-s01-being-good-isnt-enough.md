@@ -1,0 +1,7 @@
+Vous pouvez être meilleure que vos concurrents et perdre quand même le client. Pourquoi ? Parce que les clients ne voient pas directement l'expertise. Ils voient votre offre, vos contenus, votre site, ce que les autres disent de vous et ce qu'ils retiennent. Être experte et être perçue comme telle sont deux problèmes différents. Votre travail construit la compétence. Votre positionnement la rend visible.
+
+Imaginez deux consultantes. La première a peut-être plus d'expérience, mais son site dit qu'elle travaille sur stratégie, branding, vente, contenus et croissance. La seconde est connue pour résoudre un problème commercial précis et en montre trois exemples clairs. L'acheteur ne peut pas inspecter toute la compétence de l'une ou l'autre. La preuve la plus lisible devient donc la décision qui paraît la moins risquée.
+
+C'est là que les personnes talentueuses se frustrent. Elles pensent que la qualité devrait parler d'elle-même. Mais la qualité parle généralement après que quelqu'un vous a engagée. Le positionnement doit fonctionner avant cette décision. Il doit donner assez de clarté pour penser : « Cette personne est pertinente pour mon problème, et je vois pourquoi. »
+
+Ne demandez donc pas seulement : « Suis-je assez bonne ? » Demandez : « Mon expertise est-elle facile à reconnaître de l'extérieur ? » Si personne ne comprend ce dans quoi vous êtes particulièrement forte, personne n'a de raison de vous choisir pour cela. L'objectif n'est pas de paraître impressionnante. Il est de rendre une expertise réelle facile à reconnaître.

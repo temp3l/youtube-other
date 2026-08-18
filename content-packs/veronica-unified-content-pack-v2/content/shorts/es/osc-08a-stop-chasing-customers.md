@@ -1,0 +1,7 @@
+Prospecting no significa molestar a más personas. Significa crear oportunidades para que las personas adecuadas te descubran, entiendan qué haces y puedan acercarse. Abrir un perfil y esperar no es una estrategia, pero tampoco lo es escribir a todo el mundo. Construye un recorrido: descubrimiento, comprensión, interés, contacto y qué ocurre si hoy no compran. Es mucho más útil que fijar un número aleatorio de DMs diarios. Si falta uno de esos pasos, no lo compenses enviando más mensajes. Constrúyelo. Un contenido útil, una página clara, una respuesta rápida o una secuencia sencilla de follow-up pueden hacer más trabajo que cien contactos aleatorios. El buen prospecting no parece una caza. Parece un camino bien construido donde la persona adecuada entiende cuál puede ser el siguiente paso.
+
+La prospección se vuelve más tranquila cuando cada etapa tiene un trabajo. El contenido puede crear descubrimiento, una página comprensión, una respuesta contacto y el seguimiento claridad. No necesitas que una sola táctica haga todo el recorrido. Si falta una etapa, constrúyela en lugar de compensarla con más mensajes.
+
+Asigna una señal medible a cada etapa para ver dónde desaparece el impulso. Descubrimiento puede ser una visita cualificada, interés una respuesta y contacto una conversación reservada. Esas señales convierten la prospección en un sistema que puedes mejorar.
+
+Diseña el siguiente paso después del descubrimiento. Si no existe, más prospecting solo amplifica el hueco.

@@ -1,0 +1,7 @@
+La diferencia entre follow-up y perseguir es sencilla: el follow-up añade valor. Responde una pregunta, envía información útil, recuerda una fecha real o vuelve en un momento acordado. Perseguir sigue pidiendo atención sin añadir nada. Da a cada seguimiento un motivo. Si el único mensaje es «¿ya has decidido?», quizá estás añadiendo presión en lugar de claridad. Y no abras cinco canales si después no puedes responder en ninguno. Dos canales bien atendidos son mejores que cinco puertas abandonadas. Un sistema profesional también sabe cuándo parar. Si la persona no responde después de seguimientos razonables y pertinentes, deja espacio. Estar presente no significa ser incesante. La constancia con respeto es disciplina comercial, no presión.
+
+Un buen seguimiento puede resolver una duda pendiente, enviar un ejemplo relevante, entregar un documento prometido o recordar un plazo real. Si no tienes nada nuevo que aportar, otro mensaje puede añadir solo presión. La relevancia es lo que separa la persistencia profesional de perseguir a alguien.
+
+Define el motivo del siguiente contacto antes de enviar el mensaje actual. Puede ser una fecha acordada, información pendiente, un plazo de decisión o un ejemplo nuevo relevante. Una regla visible de seguimiento también facilita parar porque el límite se decide de antemano. La persistencia profesional tiene un propósito y también un final.
+
+Cada seguimiento debe aportar claridad, información o una razón real para responder.

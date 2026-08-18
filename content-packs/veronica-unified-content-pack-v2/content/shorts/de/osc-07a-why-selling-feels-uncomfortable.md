@@ -1,0 +1,7 @@
+Du willst mehr verkaufen, fühlst dich aber unwohl, sobald du den Preis nennen musst? Das ist nicht selten – und es verändert dein Verhalten. Unsicherheit rund um Geld kann dazu führen, dass du zu schnell rabattierst, Follow-ups vermeidest oder immer mehr kostenlos hinzufügst, ohne jemals klar um den Kauf zu bitten. Beobachte die Signale: Wartest du lange mit dem Preis? Gibst du sofort Rabatt? Fügst du Boni aus Angst hinzu? Das kann wie Verkaufstechnik aussehen, ist aber manchmal deine Beziehung zu Geld und Bewertung. Einnahmen, Kosten und Marge zu messen macht dich nicht kalt. Es macht Geld zu einer Geschäftsinformation statt zu einem Urteil über deinen Wert. Ändere eine kleine Sache: Nenne den Preis ohne Entschuldigung, mach den vereinbarten Follow-up oder hör auf, aus Unsicherheit weitere Extras hinzuzufügen.
+
+Übe den Moment, bevor er passiert. Formuliere den Preis in einem neutralen Satz und sage ihn laut, ohne die anschließende Stille sofort mit Rabatt oder Rechtfertigung zu füllen. Bereite außerdem die Fragen vor, mit denen du Passung prüfst. Sicherheit entsteht leichter aus Struktur als aus Improvisation.
+
+Trenne Zahl und Emotion vor dem Gespräch, indem du Preis, Grenzen und Rabattregeln vorher festlegst. So kann Unbehagen dein Angebot nicht während des Gesprächs umschreiben. Du kannst die Antwort hören, statt gegen dich selbst zu verhandeln.
+
+Sag den Preis einmal klar, ohne dich zu entschuldigen und ohne sofort einen Rabatt hinzuzufügen.

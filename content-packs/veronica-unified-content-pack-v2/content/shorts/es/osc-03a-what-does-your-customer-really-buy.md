@@ -1,0 +1,7 @@
+Si sigues explicando qué vendes en lugar de explicar por qué alguien debería quererlo, puedes tener un gran producto y aun así vender poco. Piensa en unos pendientes. El producto son los pendientes, pero la persona puede estar comprando sentirse más atractiva, completar un look o darse un capricho. El cliente no vive dentro de tu catálogo. Vive dentro de su propia vida. Escribe entonces el nombre de lo que vendes y bórralo mentalmente. ¿Qué compra realmente la persona? No inventes beneficios. Traduce lo que el producto hace posible de verdad. Y mira también lo que existe alrededor: asesoramiento, soporte, método y cuidado pueden ser precisamente el motivo por el que alguien te elige frente a una alternativa casi idéntica.
+
+Haz la prueba más rápida: describe el resultado sin nombrar el producto. Si una persona ajena entiende por qué ese resultado importa, estás más cerca del lenguaje del cliente. Después vuelve a conectar el producto y demuestra por qué puede producir ese resultado de forma creíble, sin inventar beneficios.
+
+Esta distinción también mejora la comparación porque productos parecidos pueden producir resultados percibidos muy distintos. Pregunta qué cambia en el día del cliente cuando la compra funciona como esperaba. Ese cambio suele estar más cerca del lenguaje que reconoce el comprador.
+
+Quita el nombre del producto de la frase: si desaparece el valor, aún no has encontrado la promesa.

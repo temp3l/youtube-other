@@ -1,0 +1,7 @@
+Um cardápio com cinquenta pratos parece oferecer mais escolha. Também cria mais ingredientes, mais estoque, mais desperdício e mais confusão. Com ofertas acontece a mesma coisa. Se o cliente precisa escolher entre muitas variantes quase iguais, você está dando trabalho para ele e o negócio também paga essa complexidade. Às vezes três opções claras convertem melhor do que trinta. Simplificar não significa tirar valor. Significa remover diferenças que o cliente não usa para decidir. Preserve opções que atendem necessidades realmente diferentes e questione as que só foram sendo adicionadas ao longo do tempo. Faça um teste: esconda mentalmente metade das opções. O cliente perderia uma escolha importante ou apenas uma complicação? A resposta mostra se sua variedade está ajudando ou atrapalhando.
+
+A complexidade também esconde custos que o cliente nunca vê: mais estoque, mais treinamento, mais caminhos de suporte, mais erros e decisões mais lentas. Remover uma variante com pouco valor próprio pode deixar a oferta mais fácil de escolher e o negócio mais fácil de operar ao mesmo tempo.
+
+Uma boa regra é manter uma escolha apenas quando o cliente usa essa diferença para decidir. Caso contrário, a distinção talvez exista mais dentro da empresa do que na mente do comprador. Portfólios simples são mais fáceis de explicar, manter, atender e melhorar.
+
+Esconda metade das opções por um minuto. Se o cliente não perde uma escolha importante, você encontrou complexidade desnecessária.

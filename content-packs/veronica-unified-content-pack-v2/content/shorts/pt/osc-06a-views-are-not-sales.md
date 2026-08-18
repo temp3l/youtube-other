@@ -1,0 +1,7 @@
+Cem mil visualizações e zero vendas não são uma contradição. Awareness e conversão fazem trabalhos diferentes. Uma torna você conhecido e lembrado. A outra pede uma ação específica. Atenção é apenas um input. Para converter, você também precisa de confiança, clareza, oferta relevante e o momento certo. Mapeie o caminho: quantas pessoas descobrem você? Quantas entendem o problema? Quantas continuam? Quantas chegam à oferta? Quantas agem? Se muita gente vê mas ninguém aprofunda, revise a mensagem. Se aprofundam mas não compram, revise confiança, clareza, relevância ou oferta. Antes de comemorar ou reprovar um conteúdo, pergunte qual etapa ele deveria mover. Objetivo e métrica precisam falar a mesma língua. Assim você identifica o gargalo real antes de pedir ao conteúdo um resultado que pertence a outra etapa.
+
+Use números para localizar o vazamento. Visualizações para perfil, perfil para página, página para checkout, checkout para compra: cada transição responde a uma pergunta diferente. Uma única taxa de conversão pode esconder onde o problema realmente começa. Diagnostique a etapa antes de reconstruir o funil inteiro.
+
+O diagnóstico fica mais claro quando você mede uma transição por vez, em vez de uma taxa geral. Poucos cliques no perfil indicam um problema diferente de muitos abandonos no checkout. Cada etapa oferece uma hipótese mais específica para testar. Medir bem também mostra o que não deve ser alterado.
+
+Escolha uma única transição do funil e meça isso antes de mudar o restante.

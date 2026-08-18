@@ -1,0 +1,42 @@
+{
+  "title": "Avant plus de marketing, vérifiez le produit",
+  "alternativeTitles": [
+    "Vous n’avez peut-être pas un problème de marketing",
+    "Plus de trafic peut amplifier un mauvais produit",
+    "Demande, adéquation, complexité, distribution : diagnostiquez dans cet ordre"
+  ],
+  "thumbnail": "ET SI C’ÉTAIT LE PRODUIT ?",
+  "thumbnailOptions": [
+    "ET SI LE PROBLÈME ÉTAIT LE PRODUIT ?",
+    "Vous n’avez peut-être pas un problème de marketing",
+    "Plus de trafic peut amplifier un mauvais produit"
+  ],
+  "description": "Plus de trafic ne peut pas réparer un produit mal aligné avec la demande. Cet épisode propose un ordre de diagnostic clair — demande, adéquation, complexité, distribution — et montre comment utiliser concurrence, simplification, précommandes, pilotes et critères d’arrêt pour acheter de l’information avant d’acheter de l’attention.",
+  "cta": "Définissez une hypothèse produit et le signal concret qui vous obligerait à la modifier ou à l’abandonner.",
+  "chapters": [
+    "Le marketing peut amplifier la faiblesse",
+    "Demande réelle ou enthousiasme interne ?",
+    "Ce que révèlent les concurrents",
+    "Quand le besoin change de forme",
+    "Le coût de trop de choix",
+    "Le coût total du système",
+    "Valider avant d’investir",
+    "Le critère d’arrêt"
+  ],
+  "shortA": {
+    "title": "Vous n’avez peut-être pas un problème de marketing",
+    "alternateHook": "Plus de trafic ne peut pas sauver un produit qui ne résiste pas à l’intérêt réel du client."
+  },
+  "shortB": {
+    "title": "Trop de choix peut tuer une offre",
+    "alternateHook": "Plus d’options peut signifier plus de confusion, de stock, d’erreurs et de décisions lentes."
+  },
+  "youtubeOptimizationVersion": "v4-editorial-continuity-remediation",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  }
+}

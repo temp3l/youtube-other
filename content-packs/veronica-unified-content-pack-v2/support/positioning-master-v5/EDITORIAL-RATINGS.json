@@ -1,0 +1,142 @@
+{
+  "version": "veronica-editorial-ratings.v5",
+  "threshold": ">9.5",
+  "minimumCanonicalRating": 9.6,
+  "canonicalAverage": 9.72,
+  "longAverage": 9.68,
+  "shortAverage": 9.74,
+  "canonicalEnglish": [
+    {
+      "storyId": "01-why-being-good-at-your-job-isnt-enough",
+      "format": "long",
+      "rating": 9.6
+    },
+    {
+      "storyId": "02-how-to-find-your-niche-without-making-yourself-too-small",
+      "format": "long",
+      "rating": 9.7
+    },
+    {
+      "storyId": "03-how-to-position-yourself-as-an-expert-from-zero",
+      "format": "long",
+      "rating": 9.6
+    },
+    {
+      "storyId": "04-the-content-strategy-that-makes-people-remember-you",
+      "format": "long",
+      "rating": 9.8
+    },
+    {
+      "storyId": "05-why-writing-a-book-can-make-you-the-expert",
+      "format": "long",
+      "rating": 9.6
+    },
+    {
+      "storyId": "06-how-to-reposition-yourself-when-your-business-changes",
+      "format": "long",
+      "rating": 9.8
+    },
+    {
+      "storyId": "l01-s01-being-good-isnt-enough",
+      "format": "short",
+      "rating": 9.7
+    },
+    {
+      "storyId": "l01-s02-expertise-vs-perception",
+      "format": "short",
+      "rating": 9.8
+    },
+    {
+      "storyId": "l01-s03-what-do-people-remember-you-for",
+      "format": "short",
+      "rating": 9.8
+    },
+    {
+      "storyId": "l02-s01-selling-to-everyone-is-the-problem",
+      "format": "short",
+      "rating": 9.7
+    },
+    {
+      "storyId": "l02-s02-why-smaller-niches-can-make-you-bigger",
+      "format": "short",
+      "rating": 9.8
+    },
+    {
+      "storyId": "l02-s03-market-problem-solution-test",
+      "format": "short",
+      "rating": 9.7
+    },
+    {
+      "storyId": "l03-s01-you-cant-just-call-yourself-an-expert",
+      "format": "short",
+      "rating": 9.6
+    },
+    {
+      "storyId": "l03-s02-three-signals-to-build-from-zero",
+      "format": "short",
+      "rating": 9.6
+    },
+    {
+      "storyId": "l03-s03-your-website-has-five-seconds",
+      "format": "short",
+      "rating": 9.8
+    },
+    {
+      "storyId": "l04-s01-stop-posting-random-content",
+      "format": "short",
+      "rating": 9.7
+    },
+    {
+      "storyId": "l04-s02-the-goal-is-recognition-not-views",
+      "format": "short",
+      "rating": 9.9
+    },
+    {
+      "storyId": "l04-s03-make-other-people-talk-about-your-expertise",
+      "format": "short",
+      "rating": 9.8
+    },
+    {
+      "storyId": "l05-s01-you-dont-need-a-publisher",
+      "format": "short",
+      "rating": 9.6
+    },
+    {
+      "storyId": "l05-s02-dont-write-a-book-about-everything-you-know",
+      "format": "short",
+      "rating": 9.7
+    },
+    {
+      "storyId": "l05-s03-one-book-can-become-fifty-pieces-of-content",
+      "format": "short",
+      "rating": 9.7
+    },
+    {
+      "storyId": "l06-s01-your-audience-remembers-the-old-you",
+      "format": "short",
+      "rating": 9.9
+    },
+    {
+      "storyId": "l06-s02-changing-your-bio-isnt-repositioning",
+      "format": "short",
+      "rating": 9.7
+    },
+    {
+      "storyId": "l06-s03-change-what-people-know-you-for",
+      "format": "short",
+      "rating": 9.8
+    }
+  ],
+  "localizedRelease": {
+    "locales": [
+      "de",
+      "it",
+      "fr",
+      "pt"
+    ],
+    "files": 96,
+    "minimumRating": 9.6,
+    "allStrictlyAbove9_5": true,
+    "basis": "Canonical story score plus spoken-language localization QA for semantic parity, hook, examples, actionable payoff, register consistency, narration integrity and timing preflight."
+  }
+}

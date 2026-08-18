@@ -1,0 +1,31 @@
+{
+  "title": "Deja de mejorar el marketing. Arregla el producto.",
+  "thumbnail": "QUIZÁ ES EL PRODUCTO",
+  "description": "Más tráfico no rescata un producto débil. Validación, simplificación, competencia, costes operativos y riesgo de inventario ayudan a diagnosticar qué corregir antes de comprar más atención.",
+  "cta": "En el próximo episodio separamos atención de conversión y buscamos el punto exacto donde se pierden las ventas.",
+  "alternativeTitles": [
+    "Antes de gastar más en marketing, prueba el producto",
+    "Más tráfico puede empeorar un problema de producto"
+  ],
+  "thumbnailOptions": [
+    "QUIZÁ ES EL PRODUCTO",
+    "NO COMPRES MÁS TRÁFICO",
+    "PRUEBA ANTES DE ESCALAR"
+  ],
+  "youtubeOptimizationVersion": "v2-retention-localization",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  },
+  "shortA": {
+    "title": "Quizá no tienes un problema de marketing",
+    "alternateHook": "Más tráfico no rescata un producto que no aguanta el interés real del cliente."
+  },
+  "shortB": {
+    "title": "Demasiadas opciones pueden reducir ventas",
+    "alternateHook": "Más opciones pueden crear más confusión, inventario, errores y decisiones lentas."
+  }
+}

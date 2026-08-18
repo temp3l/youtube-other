@@ -1,0 +1,31 @@
+{
+  "title": "Aufmerksamkeit ist nicht Conversion",
+  "thumbnail": "VIEWS SIND KEINE VERKÄUFE",
+  "description": "Awareness und Conversion erfüllen verschiedene Aufgaben. Dieses Video zeigt den Weg von Aufmerksamkeit über Vertrauen und Klarheit bis zum Angebot – und wie du echte Conversion-Lecks diagnostizierst.",
+  "cta": "In der nächsten Folge geht es um den Teil, den kein Funnel allein löst: warum Preis nennen, Follow-up und Verkaufen unangenehm sein können.",
+  "alternativeTitles": [
+    "100.000 Views und null Verkäufe? Finde das echte Leck",
+    "Views sind keine Verkäufe: Diagnostiziere den Conversion-Weg"
+  ],
+  "thumbnailOptions": [
+    "VIEWS SIND KEINE VERKÄUFE",
+    "100K VIEWS. 0 VERKÄUFE?",
+    "WO BRICHT CONVERSION?"
+  ],
+  "youtubeOptimizationVersion": "v2-retention-localization",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  },
+  "shortA": {
+    "title": "100K Views und null Verkäufe?",
+    "alternateHook": "Gib nicht den Views die Schuld, bevor du den Übergang findest, an dem Menschen wirklich stoppen."
+  },
+  "shortB": {
+    "title": "Eine stärkere CTA ersetzt kein Vertrauen",
+    "alternateHook": "Eine lautere Aufforderung ersetzt weder Glaubwürdigkeit noch Klarheit noch ein glaubwürdiges Angebot."
+  }
+}

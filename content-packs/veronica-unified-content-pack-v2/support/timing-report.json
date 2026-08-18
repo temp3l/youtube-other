@@ -1,0 +1,5059 @@
+[
+  {
+    "id": "pos-l01",
+    "format": "long",
+    "series": "positioning",
+    "locale": "en",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/long/en/01-why-being-good-at-your-job-isnt-enough.md",
+    "path": "content/long/en/pos-01-why-being-good-at-your-job-isnt-enough.md",
+    "wordCount": 1466,
+    "wpm": 150,
+    "estimatedSeconds": 586.4,
+    "timingPass": true
+  },
+  {
+    "id": "pos-l02",
+    "format": "long",
+    "series": "positioning",
+    "locale": "en",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/long/en/02-how-to-find-your-niche-without-making-yourself-too-small.md",
+    "path": "content/long/en/pos-02-how-to-find-your-niche-without-making-yourself-too-small.md",
+    "wordCount": 1504,
+    "wpm": 150,
+    "estimatedSeconds": 601.6,
+    "timingPass": true
+  },
+  {
+    "id": "pos-l03",
+    "format": "long",
+    "series": "positioning",
+    "locale": "en",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/long/en/03-how-to-position-yourself-as-an-expert-from-zero.md",
+    "path": "content/long/en/pos-03-how-to-position-yourself-as-an-expert-from-zero.md",
+    "wordCount": 1479,
+    "wpm": 150,
+    "estimatedSeconds": 591.6,
+    "timingPass": true
+  },
+  {
+    "id": "pos-l04",
+    "format": "long",
+    "series": "positioning",
+    "locale": "en",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/long/en/04-the-content-strategy-that-makes-people-remember-you.md",
+    "path": "content/long/en/pos-04-the-content-strategy-that-makes-people-remember-you.md",
+    "wordCount": 1495,
+    "wpm": 150,
+    "estimatedSeconds": 598.0,
+    "timingPass": true
+  },
+  {
+    "id": "pos-l05",
+    "format": "long",
+    "series": "positioning",
+    "locale": "en",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/long/en/05-why-writing-a-book-can-make-you-the-expert.md",
+    "path": "content/long/en/pos-05-why-writing-a-book-can-make-you-the-expert.md",
+    "wordCount": 1543,
+    "wpm": 150,
+    "estimatedSeconds": 617.2,
+    "timingPass": true
+  },
+  {
+    "id": "pos-l06",
+    "format": "long",
+    "series": "positioning",
+    "locale": "en",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/long/en/06-how-to-reposition-yourself-when-your-business-changes.md",
+    "path": "content/long/en/pos-06-how-to-reposition-yourself-when-your-business-changes.md",
+    "wordCount": 1512,
+    "wpm": 150,
+    "estimatedSeconds": 604.8,
+    "timingPass": true
+  },
+  {
+    "id": "pos-l01-s01",
+    "format": "short",
+    "series": "positioning",
+    "locale": "en",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/en/l01-s01-being-good-isnt-enough.md",
+    "path": "content/shorts/en/pos-l01-s01-being-good-isnt-enough.md",
+    "wordCount": 232,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 89.8,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l01-s02",
+    "format": "short",
+    "series": "positioning",
+    "locale": "en",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/en/l01-s02-expertise-vs-perception.md",
+    "path": "content/shorts/en/pos-l01-s02-expertise-vs-perception.md",
+    "wordCount": 230,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 89.0,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l01-s03",
+    "format": "short",
+    "series": "positioning",
+    "locale": "en",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/en/l01-s03-what-do-people-remember-you-for.md",
+    "path": "content/shorts/en/pos-l01-s03-what-do-people-remember-you-for.md",
+    "wordCount": 229,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 88.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l02-s01",
+    "format": "short",
+    "series": "positioning",
+    "locale": "en",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/en/l02-s01-selling-to-everyone-is-the-problem.md",
+    "path": "content/shorts/en/pos-l02-s01-selling-to-everyone-is-the-problem.md",
+    "wordCount": 229,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 88.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l02-s02",
+    "format": "short",
+    "series": "positioning",
+    "locale": "en",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/en/l02-s02-why-smaller-niches-can-make-you-bigger.md",
+    "path": "content/shorts/en/pos-l02-s02-why-smaller-niches-can-make-you-bigger.md",
+    "wordCount": 226,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 87.5,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l02-s03",
+    "format": "short",
+    "series": "positioning",
+    "locale": "en",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/en/l02-s03-market-problem-solution-test.md",
+    "path": "content/shorts/en/pos-l02-s03-market-problem-solution-test.md",
+    "wordCount": 229,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 88.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l03-s01",
+    "format": "short",
+    "series": "positioning",
+    "locale": "en",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/en/l03-s01-you-cant-just-call-yourself-an-expert.md",
+    "path": "content/shorts/en/pos-l03-s01-you-cant-just-call-yourself-an-expert.md",
+    "wordCount": 225,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 87.1,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l03-s02",
+    "format": "short",
+    "series": "positioning",
+    "locale": "en",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/en/l03-s02-three-signals-to-build-from-zero.md",
+    "path": "content/shorts/en/pos-l03-s02-three-signals-to-build-from-zero.md",
+    "wordCount": 231,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 89.4,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l03-s03",
+    "format": "short",
+    "series": "positioning",
+    "locale": "en",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/en/l03-s03-your-website-has-five-seconds.md",
+    "path": "content/shorts/en/pos-l03-s03-your-website-has-five-seconds.md",
+    "wordCount": 239,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 92.5,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l04-s01",
+    "format": "short",
+    "series": "positioning",
+    "locale": "en",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/en/l04-s01-stop-posting-random-content.md",
+    "path": "content/shorts/en/pos-l04-s01-stop-posting-random-content.md",
+    "wordCount": 229,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 88.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l04-s02",
+    "format": "short",
+    "series": "positioning",
+    "locale": "en",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/en/l04-s02-the-goal-is-recognition-not-views.md",
+    "path": "content/shorts/en/pos-l04-s02-the-goal-is-recognition-not-views.md",
+    "wordCount": 230,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 89.0,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l04-s03",
+    "format": "short",
+    "series": "positioning",
+    "locale": "en",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/en/l04-s03-make-other-people-talk-about-your-expertise.md",
+    "path": "content/shorts/en/pos-l04-s03-make-other-people-talk-about-your-expertise.md",
+    "wordCount": 235,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 91.0,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l05-s01",
+    "format": "short",
+    "series": "positioning",
+    "locale": "en",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/en/l05-s01-you-dont-need-a-publisher.md",
+    "path": "content/shorts/en/pos-l05-s01-you-dont-need-a-publisher.md",
+    "wordCount": 239,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 92.5,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l05-s02",
+    "format": "short",
+    "series": "positioning",
+    "locale": "en",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/en/l05-s02-dont-write-a-book-about-everything-you-know.md",
+    "path": "content/shorts/en/pos-l05-s02-dont-write-a-book-about-everything-you-know.md",
+    "wordCount": 236,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 91.4,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l05-s03",
+    "format": "short",
+    "series": "positioning",
+    "locale": "en",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/en/l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+    "path": "content/shorts/en/pos-l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+    "wordCount": 240,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 92.9,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l06-s01",
+    "format": "short",
+    "series": "positioning",
+    "locale": "en",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/en/l06-s01-your-audience-remembers-the-old-you.md",
+    "path": "content/shorts/en/pos-l06-s01-your-audience-remembers-the-old-you.md",
+    "wordCount": 234,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 90.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l06-s02",
+    "format": "short",
+    "series": "positioning",
+    "locale": "en",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/en/l06-s02-changing-your-bio-isnt-repositioning.md",
+    "path": "content/shorts/en/pos-l06-s02-changing-your-bio-isnt-repositioning.md",
+    "wordCount": 230,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 89.0,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l06-s03",
+    "format": "short",
+    "series": "positioning",
+    "locale": "en",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/en/l06-s03-change-what-people-know-you-for.md",
+    "path": "content/shorts/en/pos-l06-s03-change-what-people-know-you-for.md",
+    "wordCount": 233,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 90.2,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l01",
+    "format": "long",
+    "series": "positioning",
+    "locale": "de",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/long/de/01-why-being-good-at-your-job-isnt-enough.md",
+    "path": "content/long/de/pos-01-why-being-good-at-your-job-isnt-enough.md",
+    "wordCount": 1391,
+    "wpm": 145,
+    "estimatedSeconds": 575.6,
+    "timingPass": true
+  },
+  {
+    "id": "pos-l02",
+    "format": "long",
+    "series": "positioning",
+    "locale": "de",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/long/de/02-how-to-find-your-niche-without-making-yourself-too-small.md",
+    "path": "content/long/de/pos-02-how-to-find-your-niche-without-making-yourself-too-small.md",
+    "wordCount": 1478,
+    "wpm": 145,
+    "estimatedSeconds": 611.6,
+    "timingPass": true
+  },
+  {
+    "id": "pos-l03",
+    "format": "long",
+    "series": "positioning",
+    "locale": "de",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/long/de/03-how-to-position-yourself-as-an-expert-from-zero.md",
+    "path": "content/long/de/pos-03-how-to-position-yourself-as-an-expert-from-zero.md",
+    "wordCount": 1473,
+    "wpm": 145,
+    "estimatedSeconds": 609.5,
+    "timingPass": true
+  },
+  {
+    "id": "pos-l04",
+    "format": "long",
+    "series": "positioning",
+    "locale": "de",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/long/de/04-the-content-strategy-that-makes-people-remember-you.md",
+    "path": "content/long/de/pos-04-the-content-strategy-that-makes-people-remember-you.md",
+    "wordCount": 1482,
+    "wpm": 145,
+    "estimatedSeconds": 613.2,
+    "timingPass": true
+  },
+  {
+    "id": "pos-l05",
+    "format": "long",
+    "series": "positioning",
+    "locale": "de",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/long/de/05-why-writing-a-book-can-make-you-the-expert.md",
+    "path": "content/long/de/pos-05-why-writing-a-book-can-make-you-the-expert.md",
+    "wordCount": 1520,
+    "wpm": 145,
+    "estimatedSeconds": 629.0,
+    "timingPass": true
+  },
+  {
+    "id": "pos-l06",
+    "format": "long",
+    "series": "positioning",
+    "locale": "de",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/long/de/06-how-to-reposition-yourself-when-your-business-changes.md",
+    "path": "content/long/de/pos-06-how-to-reposition-yourself-when-your-business-changes.md",
+    "wordCount": 1512,
+    "wpm": 145,
+    "estimatedSeconds": 625.7,
+    "timingPass": true
+  },
+  {
+    "id": "pos-l01-s01",
+    "format": "short",
+    "series": "positioning",
+    "locale": "de",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/de/l01-s01-being-good-isnt-enough.md",
+    "path": "content/shorts/de/pos-l01-s01-being-good-isnt-enough.md",
+    "wordCount": 231,
+    "wpm": 150,
+    "timingNormalized": false,
+    "estimatedSeconds": 92.4,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l01-s02",
+    "format": "short",
+    "series": "positioning",
+    "locale": "de",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/de/l01-s02-expertise-vs-perception.md",
+    "path": "content/shorts/de/pos-l01-s02-expertise-vs-perception.md",
+    "wordCount": 224,
+    "wpm": 150,
+    "timingNormalized": false,
+    "estimatedSeconds": 89.6,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l01-s03",
+    "format": "short",
+    "series": "positioning",
+    "locale": "de",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/de/l01-s03-what-do-people-remember-you-for.md",
+    "path": "content/shorts/de/pos-l01-s03-what-do-people-remember-you-for.md",
+    "wordCount": 220,
+    "wpm": 150,
+    "timingNormalized": false,
+    "estimatedSeconds": 88.0,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l02-s01",
+    "format": "short",
+    "series": "positioning",
+    "locale": "de",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/de/l02-s01-selling-to-everyone-is-the-problem.md",
+    "path": "content/shorts/de/pos-l02-s01-selling-to-everyone-is-the-problem.md",
+    "wordCount": 230,
+    "wpm": 150,
+    "timingNormalized": false,
+    "estimatedSeconds": 92.0,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l02-s02",
+    "format": "short",
+    "series": "positioning",
+    "locale": "de",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/de/l02-s02-why-smaller-niches-can-make-you-bigger.md",
+    "path": "content/shorts/de/pos-l02-s02-why-smaller-niches-can-make-you-bigger.md",
+    "wordCount": 222,
+    "wpm": 150,
+    "timingNormalized": false,
+    "estimatedSeconds": 88.8,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l02-s03",
+    "format": "short",
+    "series": "positioning",
+    "locale": "de",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/de/l02-s03-market-problem-solution-test.md",
+    "path": "content/shorts/de/pos-l02-s03-market-problem-solution-test.md",
+    "wordCount": 230,
+    "wpm": 150,
+    "timingNormalized": false,
+    "estimatedSeconds": 92.0,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l03-s01",
+    "format": "short",
+    "series": "positioning",
+    "locale": "de",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/de/l03-s01-you-cant-just-call-yourself-an-expert.md",
+    "path": "content/shorts/de/pos-l03-s01-you-cant-just-call-yourself-an-expert.md",
+    "wordCount": 232,
+    "wpm": 150,
+    "timingNormalized": false,
+    "estimatedSeconds": 92.8,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l03-s02",
+    "format": "short",
+    "series": "positioning",
+    "locale": "de",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/de/l03-s02-three-signals-to-build-from-zero.md",
+    "path": "content/shorts/de/pos-l03-s02-three-signals-to-build-from-zero.md",
+    "wordCount": 233,
+    "wpm": 150,
+    "timingNormalized": false,
+    "estimatedSeconds": 93.2,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l03-s03",
+    "format": "short",
+    "series": "positioning",
+    "locale": "de",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/de/l03-s03-your-website-has-five-seconds.md",
+    "path": "content/shorts/de/pos-l03-s03-your-website-has-five-seconds.md",
+    "wordCount": 233,
+    "wpm": 150,
+    "timingNormalized": false,
+    "estimatedSeconds": 93.2,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l04-s01",
+    "format": "short",
+    "series": "positioning",
+    "locale": "de",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/de/l04-s01-stop-posting-random-content.md",
+    "path": "content/shorts/de/pos-l04-s01-stop-posting-random-content.md",
+    "wordCount": 229,
+    "wpm": 150,
+    "timingNormalized": false,
+    "estimatedSeconds": 91.6,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l04-s02",
+    "format": "short",
+    "series": "positioning",
+    "locale": "de",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/de/l04-s02-the-goal-is-recognition-not-views.md",
+    "path": "content/shorts/de/pos-l04-s02-the-goal-is-recognition-not-views.md",
+    "wordCount": 229,
+    "wpm": 150,
+    "timingNormalized": false,
+    "estimatedSeconds": 91.6,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l04-s03",
+    "format": "short",
+    "series": "positioning",
+    "locale": "de",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/de/l04-s03-make-other-people-talk-about-your-expertise.md",
+    "path": "content/shorts/de/pos-l04-s03-make-other-people-talk-about-your-expertise.md",
+    "wordCount": 232,
+    "wpm": 150,
+    "timingNormalized": false,
+    "estimatedSeconds": 92.8,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l05-s01",
+    "format": "short",
+    "series": "positioning",
+    "locale": "de",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/de/l05-s01-you-dont-need-a-publisher.md",
+    "path": "content/shorts/de/pos-l05-s01-you-dont-need-a-publisher.md",
+    "wordCount": 232,
+    "wpm": 150,
+    "timingNormalized": false,
+    "estimatedSeconds": 92.8,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l05-s02",
+    "format": "short",
+    "series": "positioning",
+    "locale": "de",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/de/l05-s02-dont-write-a-book-about-everything-you-know.md",
+    "path": "content/shorts/de/pos-l05-s02-dont-write-a-book-about-everything-you-know.md",
+    "wordCount": 230,
+    "wpm": 150,
+    "timingNormalized": false,
+    "estimatedSeconds": 92.0,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l05-s03",
+    "format": "short",
+    "series": "positioning",
+    "locale": "de",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/de/l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+    "path": "content/shorts/de/pos-l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+    "wordCount": 219,
+    "wpm": 150,
+    "timingNormalized": false,
+    "estimatedSeconds": 87.6,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l06-s01",
+    "format": "short",
+    "series": "positioning",
+    "locale": "de",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/de/l06-s01-your-audience-remembers-the-old-you.md",
+    "path": "content/shorts/de/pos-l06-s01-your-audience-remembers-the-old-you.md",
+    "wordCount": 227,
+    "wpm": 150,
+    "timingNormalized": false,
+    "estimatedSeconds": 90.8,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l06-s02",
+    "format": "short",
+    "series": "positioning",
+    "locale": "de",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/de/l06-s02-changing-your-bio-isnt-repositioning.md",
+    "path": "content/shorts/de/pos-l06-s02-changing-your-bio-isnt-repositioning.md",
+    "wordCount": 218,
+    "wpm": 150,
+    "timingNormalized": false,
+    "estimatedSeconds": 87.2,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l06-s03",
+    "format": "short",
+    "series": "positioning",
+    "locale": "de",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/de/l06-s03-change-what-people-know-you-for.md",
+    "path": "content/shorts/de/pos-l06-s03-change-what-people-know-you-for.md",
+    "wordCount": 233,
+    "wpm": 150,
+    "timingNormalized": false,
+    "estimatedSeconds": 93.2,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l01",
+    "format": "long",
+    "series": "positioning",
+    "locale": "it",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/long/it/01-why-being-good-at-your-job-isnt-enough.md",
+    "path": "content/long/it/pos-01-why-being-good-at-your-job-isnt-enough.md",
+    "wordCount": 1426,
+    "wpm": 150,
+    "estimatedSeconds": 570.4,
+    "timingPass": true
+  },
+  {
+    "id": "pos-l02",
+    "format": "long",
+    "series": "positioning",
+    "locale": "it",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/long/it/02-how-to-find-your-niche-without-making-yourself-too-small.md",
+    "path": "content/long/it/pos-02-how-to-find-your-niche-without-making-yourself-too-small.md",
+    "wordCount": 1426,
+    "wpm": 150,
+    "estimatedSeconds": 570.4,
+    "timingPass": true
+  },
+  {
+    "id": "pos-l03",
+    "format": "long",
+    "series": "positioning",
+    "locale": "it",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/long/it/03-how-to-position-yourself-as-an-expert-from-zero.md",
+    "path": "content/long/it/pos-03-how-to-position-yourself-as-an-expert-from-zero.md",
+    "wordCount": 1428,
+    "wpm": 150,
+    "estimatedSeconds": 571.2,
+    "timingPass": true
+  },
+  {
+    "id": "pos-l04",
+    "format": "long",
+    "series": "positioning",
+    "locale": "it",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/long/it/04-the-content-strategy-that-makes-people-remember-you.md",
+    "path": "content/long/it/pos-04-the-content-strategy-that-makes-people-remember-you.md",
+    "wordCount": 1434,
+    "wpm": 150,
+    "estimatedSeconds": 573.6,
+    "timingPass": true
+  },
+  {
+    "id": "pos-l05",
+    "format": "long",
+    "series": "positioning",
+    "locale": "it",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/long/it/05-why-writing-a-book-can-make-you-the-expert.md",
+    "path": "content/long/it/pos-05-why-writing-a-book-can-make-you-the-expert.md",
+    "wordCount": 1511,
+    "wpm": 150,
+    "estimatedSeconds": 604.4,
+    "timingPass": true
+  },
+  {
+    "id": "pos-l06",
+    "format": "long",
+    "series": "positioning",
+    "locale": "it",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/long/it/06-how-to-reposition-yourself-when-your-business-changes.md",
+    "path": "content/long/it/pos-06-how-to-reposition-yourself-when-your-business-changes.md",
+    "wordCount": 1497,
+    "wpm": 150,
+    "estimatedSeconds": 598.8,
+    "timingPass": true
+  },
+  {
+    "id": "pos-l01-s01",
+    "format": "short",
+    "series": "positioning",
+    "locale": "it",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/it/l01-s01-being-good-isnt-enough.md",
+    "path": "content/shorts/it/pos-l01-s01-being-good-isnt-enough.md",
+    "wordCount": 233,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 90.2,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l01-s02",
+    "format": "short",
+    "series": "positioning",
+    "locale": "it",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/it/l01-s02-expertise-vs-perception.md",
+    "path": "content/shorts/it/pos-l01-s02-expertise-vs-perception.md",
+    "wordCount": 239,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 92.5,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l01-s03",
+    "format": "short",
+    "series": "positioning",
+    "locale": "it",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/it/l01-s03-what-do-people-remember-you-for.md",
+    "path": "content/shorts/it/pos-l01-s03-what-do-people-remember-you-for.md",
+    "wordCount": 227,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 87.9,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l02-s01",
+    "format": "short",
+    "series": "positioning",
+    "locale": "it",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/it/l02-s01-selling-to-everyone-is-the-problem.md",
+    "path": "content/shorts/it/pos-l02-s01-selling-to-everyone-is-the-problem.md",
+    "wordCount": 239,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 92.5,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l02-s02",
+    "format": "short",
+    "series": "positioning",
+    "locale": "it",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/it/l02-s02-why-smaller-niches-can-make-you-bigger.md",
+    "path": "content/shorts/it/pos-l02-s02-why-smaller-niches-can-make-you-bigger.md",
+    "wordCount": 240,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 92.9,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l02-s03",
+    "format": "short",
+    "series": "positioning",
+    "locale": "it",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/it/l02-s03-market-problem-solution-test.md",
+    "path": "content/shorts/it/pos-l02-s03-market-problem-solution-test.md",
+    "wordCount": 227,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 87.9,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l03-s01",
+    "format": "short",
+    "series": "positioning",
+    "locale": "it",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/it/l03-s01-you-cant-just-call-yourself-an-expert.md",
+    "path": "content/shorts/it/pos-l03-s01-you-cant-just-call-yourself-an-expert.md",
+    "wordCount": 226,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 87.5,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l03-s02",
+    "format": "short",
+    "series": "positioning",
+    "locale": "it",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/it/l03-s02-three-signals-to-build-from-zero.md",
+    "path": "content/shorts/it/pos-l03-s02-three-signals-to-build-from-zero.md",
+    "wordCount": 228,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 88.3,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l03-s03",
+    "format": "short",
+    "series": "positioning",
+    "locale": "it",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/it/l03-s03-your-website-has-five-seconds.md",
+    "path": "content/shorts/it/pos-l03-s03-your-website-has-five-seconds.md",
+    "wordCount": 232,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 89.8,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l04-s01",
+    "format": "short",
+    "series": "positioning",
+    "locale": "it",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/it/l04-s01-stop-posting-random-content.md",
+    "path": "content/shorts/it/pos-l04-s01-stop-posting-random-content.md",
+    "wordCount": 231,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 89.4,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l04-s02",
+    "format": "short",
+    "series": "positioning",
+    "locale": "it",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/it/l04-s02-the-goal-is-recognition-not-views.md",
+    "path": "content/shorts/it/pos-l04-s02-the-goal-is-recognition-not-views.md",
+    "wordCount": 231,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 89.4,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l04-s03",
+    "format": "short",
+    "series": "positioning",
+    "locale": "it",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/it/l04-s03-make-other-people-talk-about-your-expertise.md",
+    "path": "content/shorts/it/pos-l04-s03-make-other-people-talk-about-your-expertise.md",
+    "wordCount": 229,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 88.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l05-s01",
+    "format": "short",
+    "series": "positioning",
+    "locale": "it",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/it/l05-s01-you-dont-need-a-publisher.md",
+    "path": "content/shorts/it/pos-l05-s01-you-dont-need-a-publisher.md",
+    "wordCount": 240,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 92.9,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l05-s02",
+    "format": "short",
+    "series": "positioning",
+    "locale": "it",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/it/l05-s02-dont-write-a-book-about-everything-you-know.md",
+    "path": "content/shorts/it/pos-l05-s02-dont-write-a-book-about-everything-you-know.md",
+    "wordCount": 229,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 88.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l05-s03",
+    "format": "short",
+    "series": "positioning",
+    "locale": "it",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/it/l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+    "path": "content/shorts/it/pos-l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+    "wordCount": 226,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 87.5,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l06-s01",
+    "format": "short",
+    "series": "positioning",
+    "locale": "it",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/it/l06-s01-your-audience-remembers-the-old-you.md",
+    "path": "content/shorts/it/pos-l06-s01-your-audience-remembers-the-old-you.md",
+    "wordCount": 229,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 88.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l06-s02",
+    "format": "short",
+    "series": "positioning",
+    "locale": "it",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/it/l06-s02-changing-your-bio-isnt-repositioning.md",
+    "path": "content/shorts/it/pos-l06-s02-changing-your-bio-isnt-repositioning.md",
+    "wordCount": 240,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 92.9,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l06-s03",
+    "format": "short",
+    "series": "positioning",
+    "locale": "it",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/it/l06-s03-change-what-people-know-you-for.md",
+    "path": "content/shorts/it/pos-l06-s03-change-what-people-know-you-for.md",
+    "wordCount": 233,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 90.2,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l01",
+    "format": "long",
+    "series": "positioning",
+    "locale": "fr",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/long/fr/01-why-being-good-at-your-job-isnt-enough.md",
+    "path": "content/long/fr/pos-01-why-being-good-at-your-job-isnt-enough.md",
+    "wordCount": 1509,
+    "wpm": 150,
+    "estimatedSeconds": 603.6,
+    "timingPass": true
+  },
+  {
+    "id": "pos-l02",
+    "format": "long",
+    "series": "positioning",
+    "locale": "fr",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/long/fr/02-how-to-find-your-niche-without-making-yourself-too-small.md",
+    "path": "content/long/fr/pos-02-how-to-find-your-niche-without-making-yourself-too-small.md",
+    "wordCount": 1528,
+    "wpm": 150,
+    "estimatedSeconds": 611.2,
+    "timingPass": true
+  },
+  {
+    "id": "pos-l03",
+    "format": "long",
+    "series": "positioning",
+    "locale": "fr",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/long/fr/03-how-to-position-yourself-as-an-expert-from-zero.md",
+    "path": "content/long/fr/pos-03-how-to-position-yourself-as-an-expert-from-zero.md",
+    "wordCount": 1485,
+    "wpm": 150,
+    "estimatedSeconds": 594.0,
+    "timingPass": true
+  },
+  {
+    "id": "pos-l04",
+    "format": "long",
+    "series": "positioning",
+    "locale": "fr",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/long/fr/04-the-content-strategy-that-makes-people-remember-you.md",
+    "path": "content/long/fr/pos-04-the-content-strategy-that-makes-people-remember-you.md",
+    "wordCount": 1520,
+    "wpm": 150,
+    "estimatedSeconds": 608.0,
+    "timingPass": true
+  },
+  {
+    "id": "pos-l05",
+    "format": "long",
+    "series": "positioning",
+    "locale": "fr",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/long/fr/05-why-writing-a-book-can-make-you-the-expert.md",
+    "path": "content/long/fr/pos-05-why-writing-a-book-can-make-you-the-expert.md",
+    "wordCount": 1549,
+    "wpm": 150,
+    "estimatedSeconds": 619.6,
+    "timingPass": true
+  },
+  {
+    "id": "pos-l06",
+    "format": "long",
+    "series": "positioning",
+    "locale": "fr",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/long/fr/06-how-to-reposition-yourself-when-your-business-changes.md",
+    "path": "content/long/fr/pos-06-how-to-reposition-yourself-when-your-business-changes.md",
+    "wordCount": 1575,
+    "wpm": 150,
+    "estimatedSeconds": 630.0,
+    "timingPass": true
+  },
+  {
+    "id": "pos-l01-s01",
+    "format": "short",
+    "series": "positioning",
+    "locale": "fr",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/fr/l01-s01-being-good-isnt-enough.md",
+    "path": "content/shorts/fr/pos-l01-s01-being-good-isnt-enough.md",
+    "wordCount": 233,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 90.2,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l01-s02",
+    "format": "short",
+    "series": "positioning",
+    "locale": "fr",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/fr/l01-s02-expertise-vs-perception.md",
+    "path": "content/shorts/fr/pos-l01-s02-expertise-vs-perception.md",
+    "wordCount": 233,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 90.2,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l01-s03",
+    "format": "short",
+    "series": "positioning",
+    "locale": "fr",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/fr/l01-s03-what-do-people-remember-you-for.md",
+    "path": "content/shorts/fr/pos-l01-s03-what-do-people-remember-you-for.md",
+    "wordCount": 226,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 87.5,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l02-s01",
+    "format": "short",
+    "series": "positioning",
+    "locale": "fr",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/fr/l02-s01-selling-to-everyone-is-the-problem.md",
+    "path": "content/shorts/fr/pos-l02-s01-selling-to-everyone-is-the-problem.md",
+    "wordCount": 240,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 92.9,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l02-s02",
+    "format": "short",
+    "series": "positioning",
+    "locale": "fr",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/fr/l02-s02-why-smaller-niches-can-make-you-bigger.md",
+    "path": "content/shorts/fr/pos-l02-s02-why-smaller-niches-can-make-you-bigger.md",
+    "wordCount": 229,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 88.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l02-s03",
+    "format": "short",
+    "series": "positioning",
+    "locale": "fr",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/fr/l02-s03-market-problem-solution-test.md",
+    "path": "content/shorts/fr/pos-l02-s03-market-problem-solution-test.md",
+    "wordCount": 231,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 89.4,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l03-s01",
+    "format": "short",
+    "series": "positioning",
+    "locale": "fr",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/fr/l03-s01-you-cant-just-call-yourself-an-expert.md",
+    "path": "content/shorts/fr/pos-l03-s01-you-cant-just-call-yourself-an-expert.md",
+    "wordCount": 234,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 90.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l03-s02",
+    "format": "short",
+    "series": "positioning",
+    "locale": "fr",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/fr/l03-s02-three-signals-to-build-from-zero.md",
+    "path": "content/shorts/fr/pos-l03-s02-three-signals-to-build-from-zero.md",
+    "wordCount": 234,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 90.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l03-s03",
+    "format": "short",
+    "series": "positioning",
+    "locale": "fr",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/fr/l03-s03-your-website-has-five-seconds.md",
+    "path": "content/shorts/fr/pos-l03-s03-your-website-has-five-seconds.md",
+    "wordCount": 238,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 92.1,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l04-s01",
+    "format": "short",
+    "series": "positioning",
+    "locale": "fr",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/fr/l04-s01-stop-posting-random-content.md",
+    "path": "content/shorts/fr/pos-l04-s01-stop-posting-random-content.md",
+    "wordCount": 230,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 89.0,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l04-s02",
+    "format": "short",
+    "series": "positioning",
+    "locale": "fr",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/fr/l04-s02-the-goal-is-recognition-not-views.md",
+    "path": "content/shorts/fr/pos-l04-s02-the-goal-is-recognition-not-views.md",
+    "wordCount": 234,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 90.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l04-s03",
+    "format": "short",
+    "series": "positioning",
+    "locale": "fr",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/fr/l04-s03-make-other-people-talk-about-your-expertise.md",
+    "path": "content/shorts/fr/pos-l04-s03-make-other-people-talk-about-your-expertise.md",
+    "wordCount": 238,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 92.1,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l05-s01",
+    "format": "short",
+    "series": "positioning",
+    "locale": "fr",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/fr/l05-s01-you-dont-need-a-publisher.md",
+    "path": "content/shorts/fr/pos-l05-s01-you-dont-need-a-publisher.md",
+    "wordCount": 237,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 91.7,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l05-s02",
+    "format": "short",
+    "series": "positioning",
+    "locale": "fr",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/fr/l05-s02-dont-write-a-book-about-everything-you-know.md",
+    "path": "content/shorts/fr/pos-l05-s02-dont-write-a-book-about-everything-you-know.md",
+    "wordCount": 240,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 92.9,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l05-s03",
+    "format": "short",
+    "series": "positioning",
+    "locale": "fr",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/fr/l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+    "path": "content/shorts/fr/pos-l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+    "wordCount": 231,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 89.4,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l06-s01",
+    "format": "short",
+    "series": "positioning",
+    "locale": "fr",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/fr/l06-s01-your-audience-remembers-the-old-you.md",
+    "path": "content/shorts/fr/pos-l06-s01-your-audience-remembers-the-old-you.md",
+    "wordCount": 234,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 90.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l06-s02",
+    "format": "short",
+    "series": "positioning",
+    "locale": "fr",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/fr/l06-s02-changing-your-bio-isnt-repositioning.md",
+    "path": "content/shorts/fr/pos-l06-s02-changing-your-bio-isnt-repositioning.md",
+    "wordCount": 239,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 92.5,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l06-s03",
+    "format": "short",
+    "series": "positioning",
+    "locale": "fr",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/fr/l06-s03-change-what-people-know-you-for.md",
+    "path": "content/shorts/fr/pos-l06-s03-change-what-people-know-you-for.md",
+    "wordCount": 240,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 92.9,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l01",
+    "format": "long",
+    "series": "positioning",
+    "locale": "pt",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/long/pt/01-why-being-good-at-your-job-isnt-enough.md",
+    "path": "content/long/pt/pos-01-why-being-good-at-your-job-isnt-enough.md",
+    "wordCount": 1509,
+    "wpm": 150,
+    "estimatedSeconds": 603.6,
+    "timingPass": true
+  },
+  {
+    "id": "pos-l02",
+    "format": "long",
+    "series": "positioning",
+    "locale": "pt",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/long/pt/02-how-to-find-your-niche-without-making-yourself-too-small.md",
+    "path": "content/long/pt/pos-02-how-to-find-your-niche-without-making-yourself-too-small.md",
+    "wordCount": 1431,
+    "wpm": 150,
+    "estimatedSeconds": 572.4,
+    "timingPass": true
+  },
+  {
+    "id": "pos-l03",
+    "format": "long",
+    "series": "positioning",
+    "locale": "pt",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/long/pt/03-how-to-position-yourself-as-an-expert-from-zero.md",
+    "path": "content/long/pt/pos-03-how-to-position-yourself-as-an-expert-from-zero.md",
+    "wordCount": 1461,
+    "wpm": 150,
+    "estimatedSeconds": 584.4,
+    "timingPass": true
+  },
+  {
+    "id": "pos-l04",
+    "format": "long",
+    "series": "positioning",
+    "locale": "pt",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/long/pt/04-the-content-strategy-that-makes-people-remember-you.md",
+    "path": "content/long/pt/pos-04-the-content-strategy-that-makes-people-remember-you.md",
+    "wordCount": 1456,
+    "wpm": 150,
+    "estimatedSeconds": 582.4,
+    "timingPass": true
+  },
+  {
+    "id": "pos-l05",
+    "format": "long",
+    "series": "positioning",
+    "locale": "pt",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/long/pt/05-why-writing-a-book-can-make-you-the-expert.md",
+    "path": "content/long/pt/pos-05-why-writing-a-book-can-make-you-the-expert.md",
+    "wordCount": 1521,
+    "wpm": 150,
+    "estimatedSeconds": 608.4,
+    "timingPass": true
+  },
+  {
+    "id": "pos-l06",
+    "format": "long",
+    "series": "positioning",
+    "locale": "pt",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/long/pt/06-how-to-reposition-yourself-when-your-business-changes.md",
+    "path": "content/long/pt/pos-06-how-to-reposition-yourself-when-your-business-changes.md",
+    "wordCount": 1499,
+    "wpm": 150,
+    "estimatedSeconds": 599.6,
+    "timingPass": true
+  },
+  {
+    "id": "pos-l01-s01",
+    "format": "short",
+    "series": "positioning",
+    "locale": "pt",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/pt/l01-s01-being-good-isnt-enough.md",
+    "path": "content/shorts/pt/pos-l01-s01-being-good-isnt-enough.md",
+    "wordCount": 234,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 90.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l01-s02",
+    "format": "short",
+    "series": "positioning",
+    "locale": "pt",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/pt/l01-s02-expertise-vs-perception.md",
+    "path": "content/shorts/pt/pos-l01-s02-expertise-vs-perception.md",
+    "wordCount": 230,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 89.0,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l01-s03",
+    "format": "short",
+    "series": "positioning",
+    "locale": "pt",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/pt/l01-s03-what-do-people-remember-you-for.md",
+    "path": "content/shorts/pt/pos-l01-s03-what-do-people-remember-you-for.md",
+    "wordCount": 231,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 89.4,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l02-s01",
+    "format": "short",
+    "series": "positioning",
+    "locale": "pt",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/pt/l02-s01-selling-to-everyone-is-the-problem.md",
+    "path": "content/shorts/pt/pos-l02-s01-selling-to-everyone-is-the-problem.md",
+    "wordCount": 230,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 89.0,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l02-s02",
+    "format": "short",
+    "series": "positioning",
+    "locale": "pt",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/pt/l02-s02-why-smaller-niches-can-make-you-bigger.md",
+    "path": "content/shorts/pt/pos-l02-s02-why-smaller-niches-can-make-you-bigger.md",
+    "wordCount": 238,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 92.1,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l02-s03",
+    "format": "short",
+    "series": "positioning",
+    "locale": "pt",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/pt/l02-s03-market-problem-solution-test.md",
+    "path": "content/shorts/pt/pos-l02-s03-market-problem-solution-test.md",
+    "wordCount": 228,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 88.3,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l03-s01",
+    "format": "short",
+    "series": "positioning",
+    "locale": "pt",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/pt/l03-s01-you-cant-just-call-yourself-an-expert.md",
+    "path": "content/shorts/pt/pos-l03-s01-you-cant-just-call-yourself-an-expert.md",
+    "wordCount": 232,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 89.8,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l03-s02",
+    "format": "short",
+    "series": "positioning",
+    "locale": "pt",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/pt/l03-s02-three-signals-to-build-from-zero.md",
+    "path": "content/shorts/pt/pos-l03-s02-three-signals-to-build-from-zero.md",
+    "wordCount": 227,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 87.9,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l03-s03",
+    "format": "short",
+    "series": "positioning",
+    "locale": "pt",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/pt/l03-s03-your-website-has-five-seconds.md",
+    "path": "content/shorts/pt/pos-l03-s03-your-website-has-five-seconds.md",
+    "wordCount": 234,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 90.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l04-s01",
+    "format": "short",
+    "series": "positioning",
+    "locale": "pt",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/pt/l04-s01-stop-posting-random-content.md",
+    "path": "content/shorts/pt/pos-l04-s01-stop-posting-random-content.md",
+    "wordCount": 235,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 91.0,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l04-s02",
+    "format": "short",
+    "series": "positioning",
+    "locale": "pt",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/pt/l04-s02-the-goal-is-recognition-not-views.md",
+    "path": "content/shorts/pt/pos-l04-s02-the-goal-is-recognition-not-views.md",
+    "wordCount": 231,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 89.4,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l04-s03",
+    "format": "short",
+    "series": "positioning",
+    "locale": "pt",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/pt/l04-s03-make-other-people-talk-about-your-expertise.md",
+    "path": "content/shorts/pt/pos-l04-s03-make-other-people-talk-about-your-expertise.md",
+    "wordCount": 240,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 92.9,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l05-s01",
+    "format": "short",
+    "series": "positioning",
+    "locale": "pt",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/pt/l05-s01-you-dont-need-a-publisher.md",
+    "path": "content/shorts/pt/pos-l05-s01-you-dont-need-a-publisher.md",
+    "wordCount": 238,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 92.1,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l05-s02",
+    "format": "short",
+    "series": "positioning",
+    "locale": "pt",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/pt/l05-s02-dont-write-a-book-about-everything-you-know.md",
+    "path": "content/shorts/pt/pos-l05-s02-dont-write-a-book-about-everything-you-know.md",
+    "wordCount": 233,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 90.2,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l05-s03",
+    "format": "short",
+    "series": "positioning",
+    "locale": "pt",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/pt/l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+    "path": "content/shorts/pt/pos-l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+    "wordCount": 240,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 92.9,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l06-s01",
+    "format": "short",
+    "series": "positioning",
+    "locale": "pt",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/pt/l06-s01-your-audience-remembers-the-old-you.md",
+    "path": "content/shorts/pt/pos-l06-s01-your-audience-remembers-the-old-you.md",
+    "wordCount": 228,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 88.3,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l06-s02",
+    "format": "short",
+    "series": "positioning",
+    "locale": "pt",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/pt/l06-s02-changing-your-bio-isnt-repositioning.md",
+    "path": "content/shorts/pt/pos-l06-s02-changing-your-bio-isnt-repositioning.md",
+    "wordCount": 225,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 87.1,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "pos-l06-s03",
+    "format": "short",
+    "series": "positioning",
+    "locale": "pt",
+    "source": "veronica-stories-editorial-master-v5",
+    "sourcePath": "vero/veronica-stories-editorial-master-v5/shorts/pt/l06-s03-change-what-people-know-you-for.md",
+    "path": "content/shorts/pt/pos-l06-s03-change-what-people-know-you-for.md",
+    "wordCount": 239,
+    "wpm": 155,
+    "timingNormalized": false,
+    "estimatedSeconds": 92.5,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-l01",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "en",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/en/01-a-good-business-starts-with-the-right-business-model.md",
+    "path": "content/long/en/osc-01-a-good-business-starts-with-the-right-business-model.md",
+    "wordCount": 1514,
+    "wpm": 150,
+    "estimatedSeconds": 605.6,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l02",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "en",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/en/02-your-ideal-customer-is-not-everyone.md",
+    "path": "content/long/en/osc-02-your-ideal-customer-is-not-everyone.md",
+    "wordCount": 1526,
+    "wpm": 150,
+    "estimatedSeconds": 610.4,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l03",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "en",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/en/03-people-dont-buy-your-product-they-buy-the-promise.md",
+    "path": "content/long/en/osc-03-people-dont-buy-your-product-they-buy-the-promise.md",
+    "wordCount": 1508,
+    "wpm": 150,
+    "estimatedSeconds": 603.2,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l04",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "en",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/en/04-how-to-build-an-offer-people-actually-want.md",
+    "path": "content/long/en/osc-04-how-to-build-an-offer-people-actually-want.md",
+    "wordCount": 1545,
+    "wpm": 150,
+    "estimatedSeconds": 618.0,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l05",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "en",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/en/05-stop-improving-the-marketing-fix-the-product.md",
+    "path": "content/long/en/osc-05-stop-improving-the-marketing-fix-the-product.md",
+    "wordCount": 1465,
+    "wpm": 150,
+    "estimatedSeconds": 586.0,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l06",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "en",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/en/06-attention-is-not-conversion.md",
+    "path": "content/long/en/osc-06-attention-is-not-conversion.md",
+    "wordCount": 1548,
+    "wpm": 150,
+    "estimatedSeconds": 619.2,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l07",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "en",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/en/07-why-selling-feels-difficult.md",
+    "path": "content/long/en/osc-07-why-selling-feels-difficult.md",
+    "wordCount": 1480,
+    "wpm": 150,
+    "estimatedSeconds": 592.0,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l08",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "en",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/en/08-sales-without-chasing-everyone.md",
+    "path": "content/long/en/osc-08-sales-without-chasing-everyone.md",
+    "wordCount": 1510,
+    "wpm": 150,
+    "estimatedSeconds": 604.0,
+    "timingPass": true
+  },
+  {
+    "id": "osc-s01a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "en",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/en/01a-revenue-is-not-a-good-business.md",
+    "path": "content/shorts/en/osc-01a-revenue-is-not-a-good-business.md",
+    "wordCount": 229,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 184,
+    "addedSentenceIndexes": [
+      0,
+      2,
+      3
+    ],
+    "estimatedSeconds": 88.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s01b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "en",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/en/01b-if-you-stop-working-does-your-revenue-stop-too.md",
+    "path": "content/shorts/en/osc-01b-if-you-stop-working-does-your-revenue-stop-too.md",
+    "wordCount": 233,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 192,
+    "addedSentenceIndexes": [
+      0,
+      2,
+      3
+    ],
+    "estimatedSeconds": 90.2,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s02a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "en",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/en/02a-stop-targeting-everyone.md",
+    "path": "content/shorts/en/osc-02a-stop-targeting-everyone.md",
+    "wordCount": 232,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 216,
+    "addedSentenceIndexes": [
+      0
+    ],
+    "estimatedSeconds": 89.8,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s02b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "en",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/en/02b-stop-posting-where-your-customers-arent.md",
+    "path": "content/shorts/en/osc-02b-stop-posting-where-your-customers-arent.md",
+    "wordCount": 228,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 175,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 88.3,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s03a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "en",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/en/03a-what-does-your-customer-really-buy.md",
+    "path": "content/shorts/en/osc-03a-what-does-your-customer-really-buy.md",
+    "wordCount": 234,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 194,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2
+    ],
+    "estimatedSeconds": 90.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s03b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "en",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/en/03b-the-promise-formula.md",
+    "path": "content/shorts/en/osc-03b-the-promise-formula.md",
+    "wordCount": 229,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 169,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 88.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s04a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "en",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/en/04a-why-good-products-still-dont-sell.md",
+    "path": "content/shorts/en/osc-04a-why-good-products-still-dont-sell.md",
+    "wordCount": 232,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 206,
+    "addedSentenceIndexes": [
+      0,
+      3
+    ],
+    "estimatedSeconds": 89.8,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s04b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "en",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/en/04b-make-your-offer-easier-to-buy.md",
+    "path": "content/shorts/en/osc-04b-make-your-offer-easier-to-buy.md",
+    "wordCount": 235,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 178,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 91.0,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s05a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "en",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/en/05a-marketing-may-not-be-the-problem.md",
+    "path": "content/shorts/en/osc-05a-marketing-may-not-be-the-problem.md",
+    "wordCount": 234,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 203,
+    "addedSentenceIndexes": [
+      0,
+      1
+    ],
+    "estimatedSeconds": 90.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s05b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "en",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/en/05b-too-many-choices-kill-the-offer.md",
+    "path": "content/shorts/en/osc-05b-too-many-choices-kill-the-offer.md",
+    "wordCount": 235,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 185,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 91.0,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s06a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "en",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/en/06a-views-are-not-sales.md",
+    "path": "content/shorts/en/osc-06a-views-are-not-sales.md",
+    "wordCount": 235,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 184,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 91.0,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s06b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "en",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/en/06b-trust-comes-before-conversion.md",
+    "path": "content/shorts/en/osc-06b-trust-comes-before-conversion.md",
+    "wordCount": 230,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 192,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      3
+    ],
+    "estimatedSeconds": 89.0,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s07a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "en",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/en/07a-why-selling-feels-uncomfortable.md",
+    "path": "content/shorts/en/osc-07a-why-selling-feels-uncomfortable.md",
+    "wordCount": 233,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 192,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      3
+    ],
+    "estimatedSeconds": 90.2,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s07b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "en",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/en/07b-selling-isnt-manipulation.md",
+    "path": "content/shorts/en/osc-07b-selling-isnt-manipulation.md",
+    "wordCount": 231,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 180,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 89.4,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s08a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "en",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/en/08a-stop-chasing-customers.md",
+    "path": "content/shorts/en/osc-08a-stop-chasing-customers.md",
+    "wordCount": 233,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 194,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      3
+    ],
+    "estimatedSeconds": 90.2,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s08b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "en",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/en/08b-prospecting-without-being-annoying.md",
+    "path": "content/shorts/en/osc-08b-prospecting-without-being-annoying.md",
+    "wordCount": 228,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 173,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 88.3,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-l01",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "de",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/de/01-a-good-business-starts-with-the-right-business-model.md",
+    "path": "content/long/de/osc-01-a-good-business-starts-with-the-right-business-model.md",
+    "wordCount": 1461,
+    "wpm": 145,
+    "estimatedSeconds": 604.6,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l02",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "de",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/de/02-your-ideal-customer-is-not-everyone.md",
+    "path": "content/long/de/osc-02-your-ideal-customer-is-not-everyone.md",
+    "wordCount": 1440,
+    "wpm": 145,
+    "estimatedSeconds": 595.9,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l03",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "de",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/de/03-people-dont-buy-your-product-they-buy-the-promise.md",
+    "path": "content/long/de/osc-03-people-dont-buy-your-product-they-buy-the-promise.md",
+    "wordCount": 1461,
+    "wpm": 145,
+    "estimatedSeconds": 604.6,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l04",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "de",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/de/04-how-to-build-an-offer-people-actually-want.md",
+    "path": "content/long/de/osc-04-how-to-build-an-offer-people-actually-want.md",
+    "wordCount": 1488,
+    "wpm": 145,
+    "estimatedSeconds": 615.7,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l05",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "de",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/de/05-stop-improving-the-marketing-fix-the-product.md",
+    "path": "content/long/de/osc-05-stop-improving-the-marketing-fix-the-product.md",
+    "wordCount": 1402,
+    "wpm": 145,
+    "estimatedSeconds": 580.1,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l06",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "de",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/de/06-attention-is-not-conversion.md",
+    "path": "content/long/de/osc-06-attention-is-not-conversion.md",
+    "wordCount": 1421,
+    "wpm": 145,
+    "estimatedSeconds": 588.0,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l07",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "de",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/de/07-why-selling-feels-difficult.md",
+    "path": "content/long/de/osc-07-why-selling-feels-difficult.md",
+    "wordCount": 1495,
+    "wpm": 145,
+    "estimatedSeconds": 618.6,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l08",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "de",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/de/08-sales-without-chasing-everyone.md",
+    "path": "content/long/de/osc-08-sales-without-chasing-everyone.md",
+    "wordCount": 1484,
+    "wpm": 145,
+    "estimatedSeconds": 614.1,
+    "timingPass": true
+  },
+  {
+    "id": "osc-s01a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "de",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/de/01a-revenue-is-not-a-good-business.md",
+    "path": "content/shorts/de/osc-01a-revenue-is-not-a-good-business.md",
+    "wordCount": 220,
+    "wpm": 150,
+    "timingNormalized": true,
+    "originalWordCount": 176,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2
+    ],
+    "estimatedSeconds": 88.0,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s01b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "de",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/de/01b-if-you-stop-working-does-your-revenue-stop-too.md",
+    "path": "content/shorts/de/osc-01b-if-you-stop-working-does-your-revenue-stop-too.md",
+    "wordCount": 226,
+    "wpm": 150,
+    "timingNormalized": true,
+    "originalWordCount": 189,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      3
+    ],
+    "estimatedSeconds": 90.4,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s02a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "de",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/de/02a-stop-targeting-everyone.md",
+    "path": "content/shorts/de/osc-02a-stop-targeting-everyone.md",
+    "wordCount": 227,
+    "wpm": 150,
+    "timingNormalized": true,
+    "originalWordCount": 196,
+    "addedSentenceIndexes": [
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 90.8,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s02b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "de",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/de/02b-stop-posting-where-your-customers-arent.md",
+    "path": "content/shorts/de/osc-02b-stop-posting-where-your-customers-arent.md",
+    "wordCount": 220,
+    "wpm": 150,
+    "timingNormalized": true,
+    "originalWordCount": 167,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 88.0,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s03a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "de",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/de/03a-what-does-your-customer-really-buy.md",
+    "path": "content/shorts/de/osc-03a-what-does-your-customer-really-buy.md",
+    "wordCount": 227,
+    "wpm": 150,
+    "timingNormalized": true,
+    "originalWordCount": 177,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 90.8,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s03b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "de",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/de/03b-the-promise-formula.md",
+    "path": "content/shorts/de/osc-03b-the-promise-formula.md",
+    "wordCount": 223,
+    "wpm": 150,
+    "timingNormalized": true,
+    "originalWordCount": 181,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 89.2,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s04a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "de",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/de/04a-why-good-products-still-dont-sell.md",
+    "path": "content/shorts/de/osc-04a-why-good-products-still-dont-sell.md",
+    "wordCount": 224,
+    "wpm": 150,
+    "timingNormalized": true,
+    "originalWordCount": 174,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 89.6,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s04b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "de",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/de/04b-make-your-offer-easier-to-buy.md",
+    "path": "content/shorts/de/osc-04b-make-your-offer-easier-to-buy.md",
+    "wordCount": 219,
+    "wpm": 150,
+    "timingNormalized": true,
+    "originalWordCount": 170,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 87.6,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s05a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "de",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/de/05a-marketing-may-not-be-the-problem.md",
+    "path": "content/shorts/de/osc-05a-marketing-may-not-be-the-problem.md",
+    "wordCount": 222,
+    "wpm": 150,
+    "timingNormalized": true,
+    "originalWordCount": 177,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 88.8,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s05b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "de",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/de/05b-too-many-choices-kill-the-offer.md",
+    "path": "content/shorts/de/osc-05b-too-many-choices-kill-the-offer.md",
+    "wordCount": 220,
+    "wpm": 150,
+    "timingNormalized": true,
+    "originalWordCount": 172,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 88.0,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s06a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "de",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/de/06a-views-are-not-sales.md",
+    "path": "content/shorts/de/osc-06a-views-are-not-sales.md",
+    "wordCount": 218,
+    "wpm": 150,
+    "timingNormalized": true,
+    "originalWordCount": 169,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 87.2,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s06b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "de",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/de/06b-trust-comes-before-conversion.md",
+    "path": "content/shorts/de/osc-06b-trust-comes-before-conversion.md",
+    "wordCount": 225,
+    "wpm": 150,
+    "timingNormalized": true,
+    "originalWordCount": 178,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 90.0,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s07a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "de",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/de/07a-why-selling-feels-uncomfortable.md",
+    "path": "content/shorts/de/osc-07a-why-selling-feels-uncomfortable.md",
+    "wordCount": 224,
+    "wpm": 150,
+    "timingNormalized": true,
+    "originalWordCount": 188,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      3
+    ],
+    "estimatedSeconds": 89.6,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s07b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "de",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/de/07b-selling-isnt-manipulation.md",
+    "path": "content/shorts/de/osc-07b-selling-isnt-manipulation.md",
+    "wordCount": 221,
+    "wpm": 150,
+    "timingNormalized": true,
+    "originalWordCount": 163,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 88.4,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s08a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "de",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/de/08a-stop-chasing-customers.md",
+    "path": "content/shorts/de/osc-08a-stop-chasing-customers.md",
+    "wordCount": 225,
+    "wpm": 150,
+    "timingNormalized": true,
+    "originalWordCount": 188,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      3
+    ],
+    "estimatedSeconds": 90.0,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s08b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "de",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/de/08b-prospecting-without-being-annoying.md",
+    "path": "content/shorts/de/osc-08b-prospecting-without-being-annoying.md",
+    "wordCount": 224,
+    "wpm": 150,
+    "timingNormalized": true,
+    "originalWordCount": 176,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 89.6,
+    "timingBandWords": [
+      218,
+      233
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-l01",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "es",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/es/01-a-good-business-starts-with-the-right-business-model.md",
+    "path": "content/long/es/osc-01-a-good-business-starts-with-the-right-business-model.md",
+    "wordCount": 1517,
+    "wpm": 150,
+    "estimatedSeconds": 606.8,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l02",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "es",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/es/02-your-ideal-customer-is-not-everyone.md",
+    "path": "content/long/es/osc-02-your-ideal-customer-is-not-everyone.md",
+    "wordCount": 1474,
+    "wpm": 150,
+    "estimatedSeconds": 589.6,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l03",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "es",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/es/03-people-dont-buy-your-product-they-buy-the-promise.md",
+    "path": "content/long/es/osc-03-people-dont-buy-your-product-they-buy-the-promise.md",
+    "wordCount": 1507,
+    "wpm": 150,
+    "estimatedSeconds": 602.8,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l04",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "es",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/es/04-how-to-build-an-offer-people-actually-want.md",
+    "path": "content/long/es/osc-04-how-to-build-an-offer-people-actually-want.md",
+    "wordCount": 1514,
+    "wpm": 150,
+    "estimatedSeconds": 605.6,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l05",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "es",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/es/05-stop-improving-the-marketing-fix-the-product.md",
+    "path": "content/long/es/osc-05-stop-improving-the-marketing-fix-the-product.md",
+    "wordCount": 1468,
+    "wpm": 150,
+    "estimatedSeconds": 587.2,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l06",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "es",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/es/06-attention-is-not-conversion.md",
+    "path": "content/long/es/osc-06-attention-is-not-conversion.md",
+    "wordCount": 1480,
+    "wpm": 150,
+    "estimatedSeconds": 592.0,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l07",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "es",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/es/07-why-selling-feels-difficult.md",
+    "path": "content/long/es/osc-07-why-selling-feels-difficult.md",
+    "wordCount": 1482,
+    "wpm": 150,
+    "estimatedSeconds": 592.8,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l08",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "es",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/es/08-sales-without-chasing-everyone.md",
+    "path": "content/long/es/osc-08-sales-without-chasing-everyone.md",
+    "wordCount": 1463,
+    "wpm": 150,
+    "estimatedSeconds": 585.2,
+    "timingPass": true
+  },
+  {
+    "id": "osc-s01a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "es",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/es/01a-revenue-is-not-a-good-business.md",
+    "path": "content/shorts/es/osc-01a-revenue-is-not-a-good-business.md",
+    "wordCount": 229,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 182,
+    "addedSentenceIndexes": [
+      0,
+      2,
+      3
+    ],
+    "estimatedSeconds": 88.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s01b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "es",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/es/01b-if-you-stop-working-does-your-revenue-stop-too.md",
+    "path": "content/shorts/es/osc-01b-if-you-stop-working-does-your-revenue-stop-too.md",
+    "wordCount": 235,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 179,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 91.0,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s02a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "es",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/es/02a-stop-targeting-everyone.md",
+    "path": "content/shorts/es/osc-02a-stop-targeting-everyone.md",
+    "wordCount": 232,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 202,
+    "addedSentenceIndexes": [
+      0,
+      1
+    ],
+    "estimatedSeconds": 89.8,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s02b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "es",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/es/02b-stop-posting-where-your-customers-arent.md",
+    "path": "content/shorts/es/osc-02b-stop-posting-where-your-customers-arent.md",
+    "wordCount": 225,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 172,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 87.1,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s03a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "es",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/es/03a-what-does-your-customer-really-buy.md",
+    "path": "content/shorts/es/osc-03a-what-does-your-customer-really-buy.md",
+    "wordCount": 228,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 187,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2
+    ],
+    "estimatedSeconds": 88.3,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s03b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "es",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/es/03b-the-promise-formula.md",
+    "path": "content/shorts/es/osc-03b-the-promise-formula.md",
+    "wordCount": 237,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 189,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 91.7,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s04a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "es",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/es/04a-why-good-products-still-dont-sell.md",
+    "path": "content/shorts/es/osc-04a-why-good-products-still-dont-sell.md",
+    "wordCount": 229,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 184,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2
+    ],
+    "estimatedSeconds": 88.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s04b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "es",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/es/04b-make-your-offer-easier-to-buy.md",
+    "path": "content/shorts/es/osc-04b-make-your-offer-easier-to-buy.md",
+    "wordCount": 230,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 181,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 89.0,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s05a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "es",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/es/05a-marketing-may-not-be-the-problem.md",
+    "path": "content/shorts/es/osc-05a-marketing-may-not-be-the-problem.md",
+    "wordCount": 232,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 194,
+    "addedSentenceIndexes": [
+      0,
+      2,
+      3
+    ],
+    "estimatedSeconds": 89.8,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s05b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "es",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/es/05b-too-many-choices-kill-the-offer.md",
+    "path": "content/shorts/es/osc-05b-too-many-choices-kill-the-offer.md",
+    "wordCount": 231,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 186,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2
+    ],
+    "estimatedSeconds": 89.4,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s06a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "es",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/es/06a-views-are-not-sales.md",
+    "path": "content/shorts/es/osc-06a-views-are-not-sales.md",
+    "wordCount": 226,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 171,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 87.5,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s06b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "es",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/es/06b-trust-comes-before-conversion.md",
+    "path": "content/shorts/es/osc-06b-trust-comes-before-conversion.md",
+    "wordCount": 234,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 185,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 90.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s07a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "es",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/es/07a-why-selling-feels-uncomfortable.md",
+    "path": "content/shorts/es/osc-07a-why-selling-feels-uncomfortable.md",
+    "wordCount": 234,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 196,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2
+    ],
+    "estimatedSeconds": 90.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s07b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "es",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/es/07b-selling-isnt-manipulation.md",
+    "path": "content/shorts/es/osc-07b-selling-isnt-manipulation.md",
+    "wordCount": 226,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 178,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 87.5,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s08a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "es",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/es/08a-stop-chasing-customers.md",
+    "path": "content/shorts/es/osc-08a-stop-chasing-customers.md",
+    "wordCount": 229,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 191,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2
+    ],
+    "estimatedSeconds": 88.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s08b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "es",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/es/08b-prospecting-without-being-annoying.md",
+    "path": "content/shorts/es/osc-08b-prospecting-without-being-annoying.md",
+    "wordCount": 226,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 173,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 87.5,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-l01",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "it",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/it/01-a-good-business-starts-with-the-right-business-model.md",
+    "path": "content/long/it/osc-01-a-good-business-starts-with-the-right-business-model.md",
+    "wordCount": 1493,
+    "wpm": 150,
+    "estimatedSeconds": 597.2,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l02",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "it",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/it/02-your-ideal-customer-is-not-everyone.md",
+    "path": "content/long/it/osc-02-your-ideal-customer-is-not-everyone.md",
+    "wordCount": 1497,
+    "wpm": 150,
+    "estimatedSeconds": 598.8,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l03",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "it",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/it/03-people-dont-buy-your-product-they-buy-the-promise.md",
+    "path": "content/long/it/osc-03-people-dont-buy-your-product-they-buy-the-promise.md",
+    "wordCount": 1494,
+    "wpm": 150,
+    "estimatedSeconds": 597.6,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l04",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "it",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/it/04-how-to-build-an-offer-people-actually-want.md",
+    "path": "content/long/it/osc-04-how-to-build-an-offer-people-actually-want.md",
+    "wordCount": 1506,
+    "wpm": 150,
+    "estimatedSeconds": 602.4,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l05",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "it",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/it/05-stop-improving-the-marketing-fix-the-product.md",
+    "path": "content/long/it/osc-05-stop-improving-the-marketing-fix-the-product.md",
+    "wordCount": 1460,
+    "wpm": 150,
+    "estimatedSeconds": 584.0,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l06",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "it",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/it/06-attention-is-not-conversion.md",
+    "path": "content/long/it/osc-06-attention-is-not-conversion.md",
+    "wordCount": 1523,
+    "wpm": 150,
+    "estimatedSeconds": 609.2,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l07",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "it",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/it/07-why-selling-feels-difficult.md",
+    "path": "content/long/it/osc-07-why-selling-feels-difficult.md",
+    "wordCount": 1474,
+    "wpm": 150,
+    "estimatedSeconds": 589.6,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l08",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "it",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/it/08-sales-without-chasing-everyone.md",
+    "path": "content/long/it/osc-08-sales-without-chasing-everyone.md",
+    "wordCount": 1456,
+    "wpm": 150,
+    "estimatedSeconds": 582.4,
+    "timingPass": true
+  },
+  {
+    "id": "osc-s01a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "it",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/it/01a-revenue-is-not-a-good-business.md",
+    "path": "content/shorts/it/osc-01a-revenue-is-not-a-good-business.md",
+    "wordCount": 229,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 184,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2
+    ],
+    "estimatedSeconds": 88.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s01b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "it",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/it/01b-if-you-stop-working-does-your-revenue-stop-too.md",
+    "path": "content/shorts/it/osc-01b-if-you-stop-working-does-your-revenue-stop-too.md",
+    "wordCount": 231,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 177,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 89.4,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s02a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "it",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/it/02a-stop-targeting-everyone.md",
+    "path": "content/shorts/it/osc-02a-stop-targeting-everyone.md",
+    "wordCount": 233,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 216,
+    "addedSentenceIndexes": [
+      1,
+      3
+    ],
+    "estimatedSeconds": 90.2,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s02b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "it",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/it/02b-stop-posting-where-your-customers-arent.md",
+    "path": "content/shorts/it/osc-02b-stop-posting-where-your-customers-arent.md",
+    "wordCount": 227,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 179,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 87.9,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s03a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "it",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/it/03a-what-does-your-customer-really-buy.md",
+    "path": "content/shorts/it/osc-03a-what-does-your-customer-really-buy.md",
+    "wordCount": 230,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 215,
+    "addedSentenceIndexes": [
+      0
+    ],
+    "estimatedSeconds": 89.0,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s03b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "it",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/it/03b-the-promise-formula.md",
+    "path": "content/shorts/it/osc-03b-the-promise-formula.md",
+    "wordCount": 234,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 213,
+    "addedSentenceIndexes": [
+      2,
+      3
+    ],
+    "estimatedSeconds": 90.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s04a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "it",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/it/04a-why-good-products-still-dont-sell.md",
+    "path": "content/shorts/it/osc-04a-why-good-products-still-dont-sell.md",
+    "wordCount": 234,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 205,
+    "addedSentenceIndexes": [
+      0,
+      1
+    ],
+    "estimatedSeconds": 90.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s04b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "it",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/it/04b-make-your-offer-easier-to-buy.md",
+    "path": "content/shorts/it/osc-04b-make-your-offer-easier-to-buy.md",
+    "wordCount": 236,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 216,
+    "addedSentenceIndexes": [
+      2,
+      3
+    ],
+    "estimatedSeconds": 91.4,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s05a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "it",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/it/05a-marketing-may-not-be-the-problem.md",
+    "path": "content/shorts/it/osc-05a-marketing-may-not-be-the-problem.md",
+    "wordCount": 234,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 219,
+    "addedSentenceIndexes": [
+      0
+    ],
+    "estimatedSeconds": 90.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s05b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "it",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/it/05b-too-many-choices-kill-the-offer.md",
+    "path": "content/shorts/it/osc-05b-too-many-choices-kill-the-offer.md",
+    "wordCount": 234,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 214,
+    "addedSentenceIndexes": [
+      2,
+      3
+    ],
+    "estimatedSeconds": 90.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s06a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "it",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/it/06a-views-are-not-sales.md",
+    "path": "content/shorts/it/osc-06a-views-are-not-sales.md",
+    "wordCount": 233,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 211,
+    "addedSentenceIndexes": [
+      1,
+      2
+    ],
+    "estimatedSeconds": 90.2,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s06b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "it",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/it/06b-trust-comes-before-conversion.md",
+    "path": "content/shorts/it/osc-06b-trust-comes-before-conversion.md",
+    "wordCount": 233,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 219,
+    "addedSentenceIndexes": [
+      0
+    ],
+    "estimatedSeconds": 90.2,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s07a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "it",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/it/07a-why-selling-feels-uncomfortable.md",
+    "path": "content/shorts/it/osc-07a-why-selling-feels-uncomfortable.md",
+    "wordCount": 233,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 217,
+    "addedSentenceIndexes": [
+      0
+    ],
+    "estimatedSeconds": 90.2,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s07b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "it",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/it/07b-selling-isnt-manipulation.md",
+    "path": "content/shorts/it/osc-07b-selling-isnt-manipulation.md",
+    "wordCount": 234,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 218,
+    "addedSentenceIndexes": [
+      0
+    ],
+    "estimatedSeconds": 90.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s08a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "it",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/it/08a-stop-chasing-customers.md",
+    "path": "content/shorts/it/osc-08a-stop-chasing-customers.md",
+    "wordCount": 232,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 216,
+    "addedSentenceIndexes": [
+      1
+    ],
+    "estimatedSeconds": 89.8,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s08b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "it",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/it/08b-prospecting-without-being-annoying.md",
+    "path": "content/shorts/it/osc-08b-prospecting-without-being-annoying.md",
+    "wordCount": 234,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 203,
+    "addedSentenceIndexes": [
+      1,
+      2
+    ],
+    "estimatedSeconds": 90.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-l01",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "fr",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/fr/01-a-good-business-starts-with-the-right-business-model.md",
+    "path": "content/long/fr/osc-01-a-good-business-starts-with-the-right-business-model.md",
+    "wordCount": 1460,
+    "wpm": 150,
+    "estimatedSeconds": 584.0,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l02",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "fr",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/fr/02-your-ideal-customer-is-not-everyone.md",
+    "path": "content/long/fr/osc-02-your-ideal-customer-is-not-everyone.md",
+    "wordCount": 1492,
+    "wpm": 150,
+    "estimatedSeconds": 596.8,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l03",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "fr",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/fr/03-people-dont-buy-your-product-they-buy-the-promise.md",
+    "path": "content/long/fr/osc-03-people-dont-buy-your-product-they-buy-the-promise.md",
+    "wordCount": 1543,
+    "wpm": 150,
+    "estimatedSeconds": 617.2,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l04",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "fr",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/fr/04-how-to-build-an-offer-people-actually-want.md",
+    "path": "content/long/fr/osc-04-how-to-build-an-offer-people-actually-want.md",
+    "wordCount": 1462,
+    "wpm": 150,
+    "estimatedSeconds": 584.8,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l05",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "fr",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/fr/05-stop-improving-the-marketing-fix-the-product.md",
+    "path": "content/long/fr/osc-05-stop-improving-the-marketing-fix-the-product.md",
+    "wordCount": 1490,
+    "wpm": 150,
+    "estimatedSeconds": 596.0,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l06",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "fr",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/fr/06-attention-is-not-conversion.md",
+    "path": "content/long/fr/osc-06-attention-is-not-conversion.md",
+    "wordCount": 1456,
+    "wpm": 150,
+    "estimatedSeconds": 582.4,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l07",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "fr",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/fr/07-why-selling-feels-difficult.md",
+    "path": "content/long/fr/osc-07-why-selling-feels-difficult.md",
+    "wordCount": 1529,
+    "wpm": 150,
+    "estimatedSeconds": 611.6,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l08",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "fr",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/fr/08-sales-without-chasing-everyone.md",
+    "path": "content/long/fr/osc-08-sales-without-chasing-everyone.md",
+    "wordCount": 1544,
+    "wpm": 150,
+    "estimatedSeconds": 617.6,
+    "timingPass": true
+  },
+  {
+    "id": "osc-s01a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "fr",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/fr/01a-revenue-is-not-a-good-business.md",
+    "path": "content/shorts/fr/osc-01a-revenue-is-not-a-good-business.md",
+    "wordCount": 239,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 179,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 92.5,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s01b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "fr",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/fr/01b-if-you-stop-working-does-your-revenue-stop-too.md",
+    "path": "content/shorts/fr/osc-01b-if-you-stop-working-does-your-revenue-stop-too.md",
+    "wordCount": 228,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 185,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2
+    ],
+    "estimatedSeconds": 88.3,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s02a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "fr",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/fr/02a-stop-targeting-everyone.md",
+    "path": "content/shorts/fr/osc-02a-stop-targeting-everyone.md",
+    "wordCount": 229,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 181,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 88.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s02b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "fr",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/fr/02b-stop-posting-where-your-customers-arent.md",
+    "path": "content/shorts/fr/osc-02b-stop-posting-where-your-customers-arent.md",
+    "wordCount": 233,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 178,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 90.2,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s03a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "fr",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/fr/03a-what-does-your-customer-really-buy.md",
+    "path": "content/shorts/fr/osc-03a-what-does-your-customer-really-buy.md",
+    "wordCount": 235,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 183,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 91.0,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s03b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "fr",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/fr/03b-the-promise-formula.md",
+    "path": "content/shorts/fr/osc-03b-the-promise-formula.md",
+    "wordCount": 230,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 171,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 89.0,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s04a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "fr",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/fr/04a-why-good-products-still-dont-sell.md",
+    "path": "content/shorts/fr/osc-04a-why-good-products-still-dont-sell.md",
+    "wordCount": 232,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 176,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 89.8,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s04b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "fr",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/fr/04b-make-your-offer-easier-to-buy.md",
+    "path": "content/shorts/fr/osc-04b-make-your-offer-easier-to-buy.md",
+    "wordCount": 238,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 184,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 92.1,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s05a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "fr",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/fr/05a-marketing-may-not-be-the-problem.md",
+    "path": "content/shorts/fr/osc-05a-marketing-may-not-be-the-problem.md",
+    "wordCount": 233,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 180,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 90.2,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s05b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "fr",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/fr/05b-too-many-choices-kill-the-offer.md",
+    "path": "content/shorts/fr/osc-05b-too-many-choices-kill-the-offer.md",
+    "wordCount": 229,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 170,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 88.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s06a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "fr",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/fr/06a-views-are-not-sales.md",
+    "path": "content/shorts/fr/osc-06a-views-are-not-sales.md",
+    "wordCount": 231,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 187,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      3
+    ],
+    "estimatedSeconds": 89.4,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s06b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "fr",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/fr/06b-trust-comes-before-conversion.md",
+    "path": "content/shorts/fr/osc-06b-trust-comes-before-conversion.md",
+    "wordCount": 229,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 180,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 88.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s07a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "fr",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/fr/07a-why-selling-feels-uncomfortable.md",
+    "path": "content/shorts/fr/osc-07a-why-selling-feels-uncomfortable.md",
+    "wordCount": 232,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 184,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 89.8,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s07b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "fr",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/fr/07b-selling-isnt-manipulation.md",
+    "path": "content/shorts/fr/osc-07b-selling-isnt-manipulation.md",
+    "wordCount": 231,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 184,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 89.4,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s08a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "fr",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/fr/08a-stop-chasing-customers.md",
+    "path": "content/shorts/fr/osc-08a-stop-chasing-customers.md",
+    "wordCount": 227,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 170,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 87.9,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s08b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "fr",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/fr/08b-prospecting-without-being-annoying.md",
+    "path": "content/shorts/fr/osc-08b-prospecting-without-being-annoying.md",
+    "wordCount": 235,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 183,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 91.0,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-l01",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "pt",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/pt/01-a-good-business-starts-with-the-right-business-model.md",
+    "path": "content/long/pt/osc-01-a-good-business-starts-with-the-right-business-model.md",
+    "wordCount": 1516,
+    "wpm": 150,
+    "estimatedSeconds": 606.4,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l02",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "pt",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/pt/02-your-ideal-customer-is-not-everyone.md",
+    "path": "content/long/pt/osc-02-your-ideal-customer-is-not-everyone.md",
+    "wordCount": 1477,
+    "wpm": 150,
+    "estimatedSeconds": 590.8,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l03",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "pt",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/pt/03-people-dont-buy-your-product-they-buy-the-promise.md",
+    "path": "content/long/pt/osc-03-people-dont-buy-your-product-they-buy-the-promise.md",
+    "wordCount": 1455,
+    "wpm": 150,
+    "estimatedSeconds": 582.0,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l04",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "pt",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/pt/04-how-to-build-an-offer-people-actually-want.md",
+    "path": "content/long/pt/osc-04-how-to-build-an-offer-people-actually-want.md",
+    "wordCount": 1534,
+    "wpm": 150,
+    "estimatedSeconds": 613.6,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l05",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "pt",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/pt/05-stop-improving-the-marketing-fix-the-product.md",
+    "path": "content/long/pt/osc-05-stop-improving-the-marketing-fix-the-product.md",
+    "wordCount": 1452,
+    "wpm": 150,
+    "estimatedSeconds": 580.8,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l06",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "pt",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/pt/06-attention-is-not-conversion.md",
+    "path": "content/long/pt/osc-06-attention-is-not-conversion.md",
+    "wordCount": 1465,
+    "wpm": 150,
+    "estimatedSeconds": 586.0,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l07",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "pt",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/pt/07-why-selling-feels-difficult.md",
+    "path": "content/long/pt/osc-07-why-selling-feels-difficult.md",
+    "wordCount": 1493,
+    "wpm": 150,
+    "estimatedSeconds": 597.2,
+    "timingPass": true
+  },
+  {
+    "id": "osc-l08",
+    "format": "long",
+    "series": "offer-sales-conversion",
+    "locale": "pt",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/long/pt/08-sales-without-chasing-everyone.md",
+    "path": "content/long/pt/osc-08-sales-without-chasing-everyone.md",
+    "wordCount": 1504,
+    "wpm": 150,
+    "estimatedSeconds": 601.6,
+    "timingPass": true
+  },
+  {
+    "id": "osc-s01a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "pt",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/pt/01a-revenue-is-not-a-good-business.md",
+    "path": "content/shorts/pt/osc-01a-revenue-is-not-a-good-business.md",
+    "wordCount": 232,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 193,
+    "addedSentenceIndexes": [
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 89.8,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s01b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "pt",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/pt/01b-if-you-stop-working-does-your-revenue-stop-too.md",
+    "path": "content/shorts/pt/osc-01b-if-you-stop-working-does-your-revenue-stop-too.md",
+    "wordCount": 232,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 177,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 89.8,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s02a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "pt",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/pt/02a-stop-targeting-everyone.md",
+    "path": "content/shorts/pt/osc-02a-stop-targeting-everyone.md",
+    "wordCount": 233,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 208,
+    "addedSentenceIndexes": [
+      0,
+      3
+    ],
+    "estimatedSeconds": 90.2,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s02b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "pt",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/pt/02b-stop-posting-where-your-customers-arent.md",
+    "path": "content/shorts/pt/osc-02b-stop-posting-where-your-customers-arent.md",
+    "wordCount": 226,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 174,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 87.5,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s03a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "pt",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/pt/03a-what-does-your-customer-really-buy.md",
+    "path": "content/shorts/pt/osc-03a-what-does-your-customer-really-buy.md",
+    "wordCount": 234,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 194,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      3
+    ],
+    "estimatedSeconds": 90.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s03b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "pt",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/pt/03b-the-promise-formula.md",
+    "path": "content/shorts/pt/osc-03b-the-promise-formula.md",
+    "wordCount": 229,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 190,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      3
+    ],
+    "estimatedSeconds": 88.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s04a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "pt",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/pt/04a-why-good-products-still-dont-sell.md",
+    "path": "content/shorts/pt/osc-04a-why-good-products-still-dont-sell.md",
+    "wordCount": 232,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 183,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 89.8,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s04b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "pt",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/pt/04b-make-your-offer-easier-to-buy.md",
+    "path": "content/shorts/pt/osc-04b-make-your-offer-easier-to-buy.md",
+    "wordCount": 234,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 187,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 90.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s05a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "pt",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/pt/05a-marketing-may-not-be-the-problem.md",
+    "path": "content/shorts/pt/osc-05a-marketing-may-not-be-the-problem.md",
+    "wordCount": 233,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 195,
+    "addedSentenceIndexes": [
+      0,
+      2,
+      3
+    ],
+    "estimatedSeconds": 90.2,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s05b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "pt",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/pt/05b-too-many-choices-kill-the-offer.md",
+    "path": "content/shorts/pt/osc-05b-too-many-choices-kill-the-offer.md",
+    "wordCount": 232,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 189,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2
+    ],
+    "estimatedSeconds": 89.8,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s06a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "pt",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/pt/06a-views-are-not-sales.md",
+    "path": "content/shorts/pt/osc-06a-views-are-not-sales.md",
+    "wordCount": 236,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 186,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 91.4,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s06b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "pt",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/pt/06b-trust-comes-before-conversion.md",
+    "path": "content/shorts/pt/osc-06b-trust-comes-before-conversion.md",
+    "wordCount": 231,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 175,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 89.4,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s07a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "pt",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/pt/07a-why-selling-feels-uncomfortable.md",
+    "path": "content/shorts/pt/osc-07a-why-selling-feels-uncomfortable.md",
+    "wordCount": 233,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 195,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2
+    ],
+    "estimatedSeconds": 90.2,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s07b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "pt",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/pt/07b-selling-isnt-manipulation.md",
+    "path": "content/shorts/pt/osc-07b-selling-isnt-manipulation.md",
+    "wordCount": 227,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 173,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 87.9,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s08a",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "pt",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/pt/08a-stop-chasing-customers.md",
+    "path": "content/shorts/pt/osc-08a-stop-chasing-customers.md",
+    "wordCount": 234,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 202,
+    "addedSentenceIndexes": [
+      0,
+      2,
+      3
+    ],
+    "estimatedSeconds": 90.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "osc-s08b",
+    "format": "short",
+    "series": "offer-sales-conversion",
+    "locale": "pt",
+    "source": "veronica-content-pack-2-v4",
+    "sourcePath": "veronica-content-pack-2/shorts/pt/08b-prospecting-without-being-annoying.md",
+    "path": "content/shorts/pt/osc-08b-prospecting-without-being-annoying.md",
+    "wordCount": 225,
+    "wpm": 155,
+    "timingNormalized": true,
+    "originalWordCount": 169,
+    "addedSentenceIndexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "estimatedSeconds": 87.1,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "tx-l004",
+    "format": "long",
+    "series": "transcript-derived",
+    "locale": "en",
+    "source": "full-transcripted-pack-wave-01",
+    "sourcePath": "full-transcripted-pack/production-wave-01/scripts/longs/L004.txt",
+    "path": "content/long/en/tx-l004.md",
+    "wordCount": 1477,
+    "wpm": 150,
+    "qaSourcePass": true,
+    "estimatedSeconds": 590.8,
+    "timingPass": true
+  },
+  {
+    "id": "tx-l011",
+    "format": "long",
+    "series": "transcript-derived",
+    "locale": "en",
+    "source": "full-transcripted-pack-wave-01",
+    "sourcePath": "full-transcripted-pack/production-wave-01/scripts/longs/L011.txt",
+    "path": "content/long/en/tx-l011.md",
+    "wordCount": 1522,
+    "wpm": 150,
+    "qaSourcePass": true,
+    "estimatedSeconds": 608.8,
+    "timingPass": true
+  },
+  {
+    "id": "tx-l018",
+    "format": "long",
+    "series": "transcript-derived",
+    "locale": "en",
+    "source": "full-transcripted-pack-wave-01",
+    "sourcePath": "full-transcripted-pack/production-wave-01/scripts/longs/L018.txt",
+    "path": "content/long/en/tx-l018.md",
+    "wordCount": 1526,
+    "wpm": 150,
+    "qaSourcePass": true,
+    "estimatedSeconds": 610.4,
+    "timingPass": true
+  },
+  {
+    "id": "tx-l050",
+    "format": "long",
+    "series": "transcript-derived",
+    "locale": "en",
+    "source": "full-transcripted-pack-wave-01",
+    "sourcePath": "full-transcripted-pack/production-wave-01/scripts/longs/L050.txt",
+    "path": "content/long/en/tx-l050.md",
+    "wordCount": 1518,
+    "wpm": 150,
+    "qaSourcePass": true,
+    "estimatedSeconds": 607.2,
+    "timingPass": true
+  },
+  {
+    "id": "tx-s021",
+    "format": "short",
+    "series": "transcript-derived",
+    "locale": "en",
+    "source": "full-transcripted-pack-wave-01",
+    "sourcePath": "full-transcripted-pack/production-wave-01/scripts/shorts/S021.txt",
+    "path": "content/shorts/en/tx-s021.md",
+    "wordCount": 234,
+    "wpm": 155,
+    "timingNormalized": false,
+    "qaSourcePass": true,
+    "estimatedSeconds": 90.6,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  },
+  {
+    "id": "tx-s027",
+    "format": "short",
+    "series": "transcript-derived",
+    "locale": "en",
+    "source": "full-transcripted-pack-wave-01",
+    "sourcePath": "full-transcripted-pack/production-wave-01/scripts/shorts/S027.txt",
+    "path": "content/shorts/en/tx-s027.md",
+    "wordCount": 231,
+    "wpm": 155,
+    "timingNormalized": false,
+    "qaSourcePass": true,
+    "estimatedSeconds": 89.4,
+    "timingBandWords": [
+      225,
+      240
+    ],
+    "timingPass": true
+  }
+]

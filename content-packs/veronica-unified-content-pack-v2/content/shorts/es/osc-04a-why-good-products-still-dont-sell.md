@@ -1,0 +1,7 @@
+Puedes tener un buen producto y una promesa clara y aun así hacer que comprar sea demasiado difícil. La oferta es lo que elimina esa dificultad. El cliente tiene que entender por dónde empezar, qué elegir, por qué confiar y cómo comprar. Si tiene que buscar información, recorrer diez pasos y resolver solo cada duda, estás creando fricción. Un buen producto no compensa automáticamente una oferta confusa. Revisa el recorrido como si fueras un cliente nuevo: ¿entiendes qué incluye?, ¿sabes qué opción elegir?, ¿encuentras la información importante sin tener que preguntar por DM? Cada paso innecesario añade trabajo, y ese trabajo puede convertirse en una razón para posponer. Antes de añadir otro bonus, elimina una fricción real.
+
+La fricción suele esconderse en detalles pequeños: un nombre de paquete confuso, un precio difícil de encontrar, un formulario que pide datos innecesarios o un checkout que genera dudas. Corregir uno de esos puntos puede superar a otro argumento promocional porque elimina trabajo para una persona que ya estaba interesada.
+
+La fricción es especialmente cara cuando ya existe interés, porque el cliente ya ha prestado atención. En ese punto, dudas sobre precio, alcance, entrega o próximos pasos pueden frenar el impulso. Responde en la página las preguntas básicas antes de obligar a iniciar una conversación.
+
+Abre hoy tu recorrido de compra como cliente nuevo y elimina un paso que no crea valor.

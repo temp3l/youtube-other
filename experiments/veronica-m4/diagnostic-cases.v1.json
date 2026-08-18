@@ -1,0 +1,501 @@
+{
+  "schemaVersion": "veronica-semantic-diagnostic-corpus.v1",
+  "cases": [
+    {
+      "schemaVersion": "veronica-semantic-diagnostic-case.v1",
+      "caseId": "retained-value-adjective-first-regression",
+      "category": "retained-value",
+      "source": "Impressive revenue can coexist with a small retained margin.",
+      "contextBefore": "Revenue is the incoming amount.",
+      "contextAfter": "",
+      "allowedOwnerTypes": ["none", "abstract", "object"],
+      "existingDeterministicResult": {
+        "status": "BLOCK",
+        "semanticIntent": "comparison",
+        "actionOwnerType": "none",
+        "candidateFamilies": ["input-output-flow", "comparison"],
+        "classification": "M3 retained-value-reveal family disappears during candidate characterization"
+      },
+      "gold": {
+        "basis": "existing-unit-test",
+        "expectedIntents": ["retained_value", "comparison"],
+        "expectedOwnerTypes": ["none", "abstract", "object"],
+        "expectedOutcome": "PASS",
+        "knownGood": false,
+        "blockedCase": true,
+        "acceptedHumanPlan": null
+      }
+    },
+    {
+      "schemaVersion": "veronica-semantic-diagnostic-case.v1",
+      "caseId": "retained-value-weak-business",
+      "category": "retained-value",
+      "source": "Impressive revenue can still accompany a weak business.",
+      "contextBefore": "The incoming number alone does not show what remains.",
+      "contextAfter": "A small retained result can sit behind a large top-line number.",
+      "allowedOwnerTypes": ["none", "abstract", "object"],
+      "existingDeterministicResult": {
+        "status": "PASS",
+        "semanticIntent": "retained_value",
+        "actionOwnerType": "none",
+        "candidateFamilies": ["retained-value-reveal", "comparison"],
+        "classification": "existing sequence-diversity retained-value fixture"
+      },
+      "gold": {
+        "basis": "existing-unit-test",
+        "expectedIntents": ["retained_value", "comparison"],
+        "expectedOwnerTypes": ["none", "abstract", "object"],
+        "expectedOutcome": "PASS",
+        "knownGood": true,
+        "blockedCase": false,
+        "acceptedHumanPlan": null
+      }
+    },
+    {
+      "schemaVersion": "veronica-semantic-diagnostic-case.v1",
+      "caseId": "retained-value-workload-doubles",
+      "category": "causal-mechanism",
+      "source": "The retained value barely changes when workload doubles.",
+      "contextBefore": "More orders create more work.",
+      "contextAfter": "That is the problem.",
+      "allowedOwnerTypes": ["none", "abstract", "object"],
+      "existingDeterministicResult": {
+        "status": "PASS",
+        "semanticIntent": "causal_mechanism",
+        "actionOwnerType": "none",
+        "candidateFamilies": ["workload-growth", "retained-value-reveal"],
+        "classification": "existing semantic-gate pronoun and causal fixture"
+      },
+      "gold": {
+        "basis": "existing-unit-test",
+        "expectedIntents": ["retained_value", "causal_mechanism", "comparison"],
+        "expectedOwnerTypes": ["none", "abstract", "object"],
+        "expectedOutcome": "PASS",
+        "knownGood": true,
+        "blockedCase": false,
+        "acceptedHumanPlan": null
+      }
+    },
+    {
+      "schemaVersion": "veronica-semantic-diagnostic-case.v1",
+      "caseId": "input-output-variable-costs",
+      "category": "input-output-flow",
+      "source": "Variable costs remove most of one sale before the retained remainder exits.",
+      "contextBefore": "Revenue and margin are not the same thing.",
+      "contextAfter": "",
+      "allowedOwnerTypes": ["none", "abstract", "object"],
+      "existingDeterministicResult": {
+        "status": "PASS",
+        "semanticIntent": "input_output_flow",
+        "actionOwnerType": "object",
+        "candidateFamilies": ["decomposition", "input-output-flow"],
+        "classification": "existing visual-beat retained-flow fixture"
+      },
+      "gold": {
+        "basis": "existing-unit-test",
+        "expectedIntents": ["input_output_flow", "causal_mechanism", "retained_value"],
+        "expectedOwnerTypes": ["none", "abstract", "object"],
+        "expectedOutcome": "PASS",
+        "knownGood": true,
+        "blockedCase": false,
+        "acceptedHumanPlan": null
+      }
+    },
+    {
+      "schemaVersion": "veronica-semantic-diagnostic-case.v1",
+      "caseId": "input-output-payment-funds-work",
+      "category": "input-output-flow",
+      "source": "The payment goes straight back out to produce, ship, and support the order.",
+      "contextBefore": "A sale creates an incoming payment.",
+      "contextAfter": "",
+      "allowedOwnerTypes": ["none", "object", "abstract"],
+      "existingDeterministicResult": {
+        "status": "PASS",
+        "semanticIntent": "input_output_flow",
+        "actionOwnerType": "object",
+        "candidateFamilies": ["transfer", "decomposition", "flow"],
+        "classification": "existing source-compatible flow heuristic"
+      },
+      "gold": {
+        "basis": "literal-source-contract",
+        "expectedIntents": ["input_output_flow", "causal_mechanism"],
+        "expectedOwnerTypes": ["none", "object", "abstract"],
+        "expectedOutcome": "PASS",
+        "knownGood": true,
+        "blockedCase": false,
+        "acceptedHumanPlan": null
+      }
+    },
+    {
+      "schemaVersion": "veronica-semantic-diagnostic-case.v1",
+      "caseId": "ownership-customer-handoff",
+      "category": "ownership-transfer",
+      "source": "The customer hands the signed brief to the consultant.",
+      "contextBefore": "The customer owns the brief until the handoff.",
+      "contextAfter": "The consultant receives responsibility for the next step.",
+      "allowedOwnerTypes": ["person"],
+      "existingDeterministicResult": {
+        "status": "PASS",
+        "semanticIntent": "ownership_transfer",
+        "actionOwnerType": "person",
+        "candidateFamilies": ["transfer"],
+        "classification": "literal actor and transfer are source-authorized"
+      },
+      "gold": {
+        "basis": "literal-source-contract",
+        "expectedIntents": ["ownership_transfer"],
+        "expectedOwnerTypes": ["person"],
+        "expectedOutcome": "PASS",
+        "knownGood": true,
+        "blockedCase": false,
+        "acceptedHumanPlan": null
+      }
+    },
+    {
+      "schemaVersion": "veronica-semantic-diagnostic-case.v1",
+      "caseId": "actor-sensitive-buyer-recognition",
+      "category": "actor-sensitive",
+      "source": "They can recognize themselves, the problem, and the promised direction immediately.",
+      "contextBefore": "Prospective customers see one specific situation described clearly.",
+      "contextAfter": "",
+      "allowedOwnerTypes": ["person"],
+      "existingDeterministicResult": {
+        "status": "NO_SAFE_VISUAL_CANDIDATE",
+        "semanticIntent": null,
+        "actionOwnerType": "person",
+        "candidateFamilies": [],
+        "classification": "M3 semantic-model capability gap with actor authorization failure"
+      },
+      "gold": {
+        "basis": "m3-no-safe-census",
+        "expectedIntents": ["manifestation", "state_change"],
+        "expectedOwnerTypes": ["person"],
+        "expectedOutcome": "PASS",
+        "knownGood": false,
+        "blockedCase": true,
+        "acceptedHumanPlan": null
+      }
+    },
+    {
+      "schemaVersion": "veronica-semantic-diagnostic-case.v1",
+      "caseId": "actor-sensitive-expert-selects",
+      "category": "actor-sensitive",
+      "source": "The professional chooses one expertise cue and repeats it consistently.",
+      "contextBefore": "Several possible messages compete for attention.",
+      "contextAfter": "People remember the repeated cue first.",
+      "allowedOwnerTypes": ["person"],
+      "existingDeterministicResult": {
+        "status": "PASS",
+        "semanticIntent": "causal_mechanism",
+        "actionOwnerType": "person",
+        "candidateFamilies": ["selection", "evidence-reveal"],
+        "classification": "existing source-compatible audience cue heuristic"
+      },
+      "gold": {
+        "basis": "literal-source-contract",
+        "expectedIntents": ["causal_mechanism", "manifestation"],
+        "expectedOwnerTypes": ["person"],
+        "expectedOutcome": "PASS",
+        "knownGood": true,
+        "blockedCase": false,
+        "acceptedHumanPlan": null
+      }
+    },
+    {
+      "schemaVersion": "veronica-semantic-diagnostic-case.v1",
+      "caseId": "environment-native-doorway",
+      "category": "environment-sensitive",
+      "source": "A specific niche is a doorway, not a wall.",
+      "contextBefore": "The metaphor describes access rather than confinement.",
+      "contextAfter": "",
+      "allowedOwnerTypes": ["none", "environment", "abstract", "object"],
+      "existingDeterministicResult": {
+        "status": "PASS",
+        "semanticIntent": "comparison",
+        "actionOwnerType": "environment",
+        "candidateFamilies": ["comparison", "state-change"],
+        "classification": "existing semantic-gate narration-native doorway control"
+      },
+      "gold": {
+        "basis": "existing-unit-test",
+        "expectedIntents": ["comparison", "environmental_action", "manifestation"],
+        "expectedOwnerTypes": ["none", "environment", "abstract", "object"],
+        "expectedOutcome": "PASS",
+        "knownGood": true,
+        "blockedCase": false,
+        "acceptedHumanPlan": null
+      }
+    },
+    {
+      "schemaVersion": "veronica-semantic-diagnostic-case.v1",
+      "caseId": "environment-unsupported-doorway",
+      "category": "environment-sensitive",
+      "source": "Revenue grows while retained margin remains small.",
+      "contextBefore": "",
+      "contextAfter": "",
+      "allowedOwnerTypes": ["none", "abstract", "object"],
+      "existingDeterministicResult": {
+        "status": "PASS",
+        "semanticIntent": "retained_value",
+        "actionOwnerType": "none",
+        "candidateFamilies": ["retained-value-reveal"],
+        "classification": "existing hard gate rejects unsupported doorway projection"
+      },
+      "gold": {
+        "basis": "existing-unit-test",
+        "expectedIntents": ["retained_value", "comparison"],
+        "expectedOwnerTypes": ["none", "abstract", "object"],
+        "expectedOutcome": "PASS",
+        "knownGood": true,
+        "blockedCase": false,
+        "acceptedHumanPlan": null
+      }
+    },
+    {
+      "schemaVersion": "veronica-semantic-diagnostic-case.v1",
+      "caseId": "no-safe-one-page-comparison",
+      "category": "no-safe-candidate",
+      "source": "A simple one-page site with a coherent message can position you better than a beautiful site that leaves people guessing.",
+      "contextBefore": "",
+      "contextAfter": "",
+      "allowedOwnerTypes": ["none", "abstract", "object"],
+      "existingDeterministicResult": {
+        "status": "NO_SAFE_VISUAL_CANDIDATE",
+        "semanticIntent": null,
+        "actionOwnerType": "person",
+        "candidateFamilies": [],
+        "classification": "M3 semantic-model capability gap"
+      },
+      "gold": {
+        "basis": "m3-no-safe-census",
+        "expectedIntents": ["comparison", "causal_mechanism"],
+        "expectedOwnerTypes": ["none", "abstract", "object"],
+        "expectedOutcome": "PASS",
+        "knownGood": false,
+        "blockedCase": true,
+        "acceptedHumanPlan": null
+      }
+    },
+    {
+      "schemaVersion": "veronica-semantic-diagnostic-case.v1",
+      "caseId": "no-safe-posts-different-similar",
+      "category": "no-safe-candidate",
+      "source": "Those posts are different enough to stay interesting, but similar enough to strengthen the same memory.",
+      "contextBefore": "Each post approaches the same expertise from another angle.",
+      "contextAfter": "",
+      "allowedOwnerTypes": ["none", "abstract", "object"],
+      "existingDeterministicResult": {
+        "status": "NO_SAFE_VISUAL_CANDIDATE",
+        "semanticIntent": null,
+        "actionOwnerType": "person",
+        "candidateFamilies": [],
+        "classification": "M3 semantic-model capability gap with actor authorization failure"
+      },
+      "gold": {
+        "basis": "m3-no-safe-census",
+        "expectedIntents": ["comparison", "causal_mechanism"],
+        "expectedOwnerTypes": ["none", "abstract", "object"],
+        "expectedOutcome": "PASS",
+        "knownGood": false,
+        "blockedCase": true,
+        "acceptedHumanPlan": null
+      }
+    },
+    {
+      "schemaVersion": "veronica-semantic-diagnostic-case.v1",
+      "caseId": "no-safe-market-does-not-know",
+      "category": "no-safe-candidate",
+      "source": "Getting better at your craft will not fix this problem: the market may still have no idea how good you are.",
+      "contextBefore": "Skill and market perception are separate.",
+      "contextAfter": "",
+      "allowedOwnerTypes": ["none", "abstract"],
+      "existingDeterministicResult": {
+        "status": "NO_SAFE_VISUAL_CANDIDATE",
+        "semanticIntent": null,
+        "actionOwnerType": "none",
+        "candidateFamilies": [],
+        "classification": "M3 content or editorial limitation"
+      },
+      "gold": {
+        "basis": "m3-no-safe-census",
+        "expectedIntents": ["manifestation", "comparison", "causal_mechanism"],
+        "expectedOwnerTypes": ["none", "abstract"],
+        "expectedOutcome": "PASS",
+        "knownGood": false,
+        "blockedCase": true,
+        "acceptedHumanPlan": null
+      }
+    },
+    {
+      "schemaVersion": "veronica-semantic-diagnostic-case.v1",
+      "caseId": "accepted-human-retained-control",
+      "category": "accepted-human-control",
+      "source": "Revenue grows while retained margin remains small.",
+      "contextBefore": "",
+      "contextAfter": "",
+      "allowedOwnerTypes": ["none", "abstract", "object"],
+      "existingDeterministicResult": {
+        "status": "PASS",
+        "semanticIntent": "retained_value",
+        "actionOwnerType": "none",
+        "candidateFamilies": ["retained-value-reveal"],
+        "classification": "accepted human authority control"
+      },
+      "gold": {
+        "basis": "accepted-human-authority",
+        "expectedIntents": ["retained_value"],
+        "expectedOwnerTypes": ["none"],
+        "expectedOutcome": "PASS",
+        "knownGood": true,
+        "blockedCase": false,
+        "acceptedHumanPlan": {
+          "schemaVersion": "veronica-semantic-beat-plan.v1",
+          "semanticIntent": "retained_value",
+          "subject": "retained margin",
+          "actionOwner": { "type": "none", "sourceReference": null },
+          "semanticClaims": [
+            {
+              "claim": "Retained margin remains small while revenue grows.",
+              "sourceEvidence": "Revenue grows while retained margin remains small."
+            }
+          ],
+          "visualStrategies": [
+            {
+              "family": "retained-value-reveal",
+              "description": "Compare growing revenue with the small retained margin.",
+              "preservesMeaning": true,
+              "requiresUnsupportedAction": false
+            }
+          ],
+          "forbiddenInterpretations": ["A buyer causes the retained margin."],
+          "ambiguity": "none",
+          "abstain": false,
+          "abstentionReason": null
+        }
+      }
+    },
+    {
+      "schemaVersion": "veronica-semantic-diagnostic-case.v1",
+      "caseId": "accepted-human-buyer-doorway-control",
+      "category": "accepted-human-control",
+      "source": "A buyer crosses the clear doorway.",
+      "contextBefore": "The doorway is explicitly part of the source metaphor.",
+      "contextAfter": "",
+      "allowedOwnerTypes": ["person"],
+      "existingDeterministicResult": {
+        "status": "PASS",
+        "semanticIntent": "state_change",
+        "actionOwnerType": "person",
+        "candidateFamilies": ["state-change", "environmental-action"],
+        "classification": "accepted human authority control"
+      },
+      "gold": {
+        "basis": "accepted-human-authority",
+        "expectedIntents": ["state_change"],
+        "expectedOwnerTypes": ["person"],
+        "expectedOutcome": "PASS",
+        "knownGood": true,
+        "blockedCase": false,
+        "acceptedHumanPlan": {
+          "schemaVersion": "veronica-semantic-beat-plan.v1",
+          "semanticIntent": "state_change",
+          "subject": "buyer crossing the doorway",
+          "actionOwner": { "type": "person", "sourceReference": "A buyer" },
+          "semanticClaims": [
+            {
+              "claim": "The buyer crosses the clear doorway.",
+              "sourceEvidence": "A buyer crosses the clear doorway."
+            }
+          ],
+          "visualStrategies": [
+            {
+              "family": "state-change",
+              "description": "Depict the buyer at the decisive crossing moment.",
+              "preservesMeaning": true,
+              "requiresUnsupportedAction": false
+            }
+          ],
+          "forbiddenInterpretations": ["The expert crosses instead of the buyer."],
+          "ambiguity": "none",
+          "abstain": false,
+          "abstentionReason": null
+        }
+      }
+    },
+    {
+      "schemaVersion": "veronica-semantic-diagnostic-case.v1",
+      "caseId": "abstain-positioning-gap",
+      "category": "abstention-control",
+      "source": "That is the positioning gap in practice.",
+      "contextBefore": "",
+      "contextAfter": "",
+      "allowedOwnerTypes": ["none", "abstract"],
+      "existingDeterministicResult": {
+        "status": "NO_SAFE_VISUAL_CANDIDATE",
+        "semanticIntent": null,
+        "actionOwnerType": "none",
+        "candidateFamilies": [],
+        "classification": "M3 unresolved required mechanism; safe neutral treatment expected"
+      },
+      "gold": {
+        "basis": "m3-no-safe-census",
+        "expectedIntents": ["other", "manifestation"],
+        "expectedOwnerTypes": ["none", "abstract"],
+        "expectedOutcome": "ABSTAIN",
+        "knownGood": false,
+        "blockedCase": true,
+        "acceptedHumanPlan": null
+      }
+    },
+    {
+      "schemaVersion": "veronica-semantic-diagnostic-case.v1",
+      "caseId": "abstain-material-ambiguity",
+      "category": "abstention-control",
+      "source": "It changes everything.",
+      "contextBefore": "",
+      "contextAfter": "",
+      "allowedOwnerTypes": ["none", "abstract"],
+      "existingDeterministicResult": {
+        "status": "REVIEW",
+        "semanticIntent": null,
+        "actionOwnerType": "none",
+        "candidateFamilies": [],
+        "classification": "literal source lacks a referent or mechanism"
+      },
+      "gold": {
+        "basis": "literal-source-contract",
+        "expectedIntents": ["other", "state_change"],
+        "expectedOwnerTypes": ["none", "abstract"],
+        "expectedOutcome": "ABSTAIN",
+        "knownGood": false,
+        "blockedCase": false,
+        "acceptedHumanPlan": null
+      }
+    },
+    {
+      "schemaVersion": "veronica-semantic-diagnostic-case.v1",
+      "caseId": "retained-value-cache-replay",
+      "category": "cache-replay",
+      "source": "Impressive revenue can coexist with a small retained margin.",
+      "contextBefore": "Revenue is the incoming amount.",
+      "contextAfter": "",
+      "allowedOwnerTypes": ["none", "abstract", "object"],
+      "existingDeterministicResult": {
+        "status": "BLOCK",
+        "semanticIntent": "comparison",
+        "actionOwnerType": "none",
+        "candidateFamilies": ["input-output-flow", "comparison"],
+        "classification": "semantic duplicate of retained-value regression for cache replay proof"
+      },
+      "gold": {
+        "basis": "existing-unit-test",
+        "expectedIntents": ["retained_value", "comparison"],
+        "expectedOwnerTypes": ["none", "abstract", "object"],
+        "expectedOutcome": "PASS",
+        "knownGood": false,
+        "blockedCase": false,
+        "acceptedHumanPlan": null
+      }
+    }
+  ]
+}

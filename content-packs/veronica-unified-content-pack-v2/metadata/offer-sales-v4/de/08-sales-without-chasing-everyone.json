@@ -1,0 +1,31 @@
+{
+  "title": "Verkaufen, ohne jedem hinterherzulaufen",
+  "thumbnail": "HÖR AUF HINTERHERZULAUFEN",
+  "description": "Prospecting heißt nicht, mehr Menschen zu nerven. Bau ein System aus Discovery, Interesse, Kontakt, Follow-up und Retention, das den richtigen Menschen einen klaren Weg zu dir gibt.",
+  "cta": "Schließe den Kreis: Geschäftsmodell, Kunde, Versprechen, Angebot, Produkt, Conversion, Verkauf und Prospecting müssen als ein System funktionieren.",
+  "alternativeTitles": [
+    "Hör auf, Kunden hinterherzulaufen. Bau einen Verkaufsweg.",
+    "Follow-up ohne Hinterherlaufen: das Verkaufssystem"
+  ],
+  "thumbnailOptions": [
+    "HÖR AUF HINTERHERZULAUFEN",
+    "BAU DEN WEG",
+    "FOLLOW-UP ≠ JAGEN"
+  ],
+  "youtubeOptimizationVersion": "v2-retention-localization",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  },
+  "shortA": {
+    "title": "Hör auf, Kunden hinterherzulaufen",
+    "alternateHook": "Gutes Prospecting baut einen Weg statt von zufälliger Ansprache abhängig zu sein."
+  },
+  "shortB": {
+    "title": "Follow-up oder Hinterherlaufen?",
+    "alternateHook": "Follow-up fügt Klarheit oder Information hinzu. Hinterherlaufen fordert nur erneut Aufmerksamkeit."
+  }
+}

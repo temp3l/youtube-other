@@ -1,0 +1,7 @@
+Uma promessa não é um slogan criativo. É uma tradução do valor. Faça quatro perguntas: o que você vende? Qual resultado, desejo ou emoção realmente importa? Existe um prazo relevante? Há valor adicional ou um obstáculo que você consegue remover? Você não precisa colocar tudo em uma frase. A estrutura serve para tirar você da descrição técnica. “Curso de marketing” é uma categoria. “Aprenda a deixar sua oferta mais clara” começa a descrever um resultado. Depois vem a verificação principal: a experiência real consegue cumprir essa expectativa? Se não, você não precisa de uma promessa mais barulhenta. Precisa de uma promessa mais honesta ou de um produto melhor. O objetivo não é parecer maior, mas tornar o valor esperado concreto, compreensível e realmente crível.
+
+A promessa também cria um padrão que você precisa cumprir. Se a mensagem fica mais atraente, mas a experiência não consegue sustentá-la, a conversão pode subir uma vez e a confiança cair depois. Um bom posicionamento aumenta a clareza sem pedir credibilidade emprestada a um resultado que você ainda não entrega.
+
+Uma boa promessa também indica que tipo de mudança esperar sem fingir uma certeza impossível. Ser específico pode significar mais claro, rápido, simples, seguro ou fácil de avaliar. Assim a promessa fica mais confiável e mais fácil de testar.
+
+Uma promessa forte não é maior que a realidade; ela deixa a realidade mais clara.

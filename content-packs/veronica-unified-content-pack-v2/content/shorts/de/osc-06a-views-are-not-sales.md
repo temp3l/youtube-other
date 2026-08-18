@@ -1,0 +1,7 @@
+Hunderttausend Views und null Verkäufe sind kein Widerspruch. Awareness und Conversion haben unterschiedliche Aufgaben. Das eine macht dich bekannt und erinnerbar, das andere verlangt eine konkrete Handlung. Aufmerksamkeit ist nur ein Input. Für Conversion brauchst du zusätzlich Vertrauen, Klarheit, ein relevantes Angebot und den richtigen Moment. Zeichne deshalb den Weg: Wie viele entdecken dich? Wie viele verstehen das Problem? Wie viele gehen weiter? Wie viele erreichen das Angebot? Wie viele handeln? Wenn viele schauen, aber niemand weitergeht, prüfe die Botschaft. Wenn sie weitergehen, aber nicht kaufen, prüfe Vertrauen, Klarheit, Relevanz oder Angebot. Bevor du einen Inhalt feierst oder abschreibst, frag, welche Phase er eigentlich bewegen sollte. Ziel und Kennzahl müssen zusammenpassen.
+
+Nutze Zahlen, um das Leck zu lokalisieren. Views zu Profil, Profil zu Seite, Seite zu Checkout, Checkout zu Kauf: Jeder Übergang beantwortet eine andere Frage. Eine einzige Conversion-Rate kann verstecken, wo das eigentliche Problem beginnt. Diagnostiziere deshalb zuerst den Schritt, bevor du den gesamten Funnel umbaust.
+
+Die Diagnose wird klarer, wenn du jeweils einen Übergang misst statt nur eine große Conversion-Rate. Wenige Profilklicks deuten auf ein anderes Problem als viele abgebrochene Checkouts. Jede Stufe liefert eine engere Hypothese zum Testen. Gute Messung zeigt dir auch, was du nicht ändern solltest. Miss deshalb jeden Übergang separat.
+
+Wähle genau einen Funnel-Übergang und miss ihn, bevor du den Rest veränderst.

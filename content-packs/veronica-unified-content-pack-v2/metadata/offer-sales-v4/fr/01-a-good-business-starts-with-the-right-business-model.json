@@ -1,0 +1,42 @@
+{
+  "title": "Plus de ventes peuvent affaiblir votre business",
+  "alternativeTitles": [
+    "Plus de ventes ne répareront pas un mauvais business model",
+    "Votre business est-il rentable — ou simplement très occupé ?",
+    "Le stress test du business model que beaucoup oublient"
+  ],
+  "thumbnail": "PLUS DE VENTES. PLUS FRAGILE ?",
+  "thumbnailOptions": [
+    "PLUS DE VENTES. BUSINESS PLUS FAIBLE ?",
+    "Plus de ventes ne répareront pas un mauvais business model",
+    "Votre business est-il rentable — ou simplement très occupé ?"
+  ],
+  "description": "Plus de chiffre d’affaires ne signifie pas automatiquement un business plus sain. Cet épisode démonte la structure d’un modèle durable : marge, coûts variables et fixes, temps de livraison, capacité, scalabilité et évolution des comportements clients. Vous repartirez avec un audit concret et une question de stress test : si vos ventes doublaient demain, votre entreprise deviendrait-elle réellement plus forte ?",
+  "cta": "Faites l’audit en cinq lignes, puis choisissez une seule hypothèse structurelle à tester pendant les prochaines semaines.",
+  "chapters": [
+    "Le chiffre d’affaires n’est pas le modèle",
+    "Les coûts cachés du changement de canal",
+    "Format du produit ou besoin client ?",
+    "Le test du temps",
+    "Ce que signifie vraiment scaler",
+    "Le test d’adaptation",
+    "Votre audit en cinq lignes",
+    "Quelle hypothèse tester ensuite"
+  ],
+  "shortA": {
+    "title": "Plus de chiffre d’affaires peut fragiliser votre business",
+    "alternateHook": "Si vos ventes doublaient demain, votre entreprise deviendrait-elle vraiment plus saine ?"
+  },
+  "shortB": {
+    "title": "Vos revenus s’arrêtent-ils quand vous arrêtez de travailler ?",
+    "alternateHook": "Votre plus grande limite de croissance se cache peut-être dans votre agenda."
+  },
+  "youtubeOptimizationVersion": "v4-editorial-continuity-remediation",
+  "packagingQA": {
+    "titlePromiseAligned": true,
+    "nativeLanguageCTA": true,
+    "thumbnailTextLocalized": true,
+    "shortToLongBridge": true,
+    "shortTitlesLocalized": true
+  }
+}

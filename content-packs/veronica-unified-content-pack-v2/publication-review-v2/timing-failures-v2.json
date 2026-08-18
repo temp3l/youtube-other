@@ -1,0 +1,200 @@
+[
+  {
+    "id": "osc-l03",
+    "format": "long",
+    "locale": "fr",
+    "path": "content/long/fr/osc-03-people-dont-buy-your-product-they-buy-the-promise.md",
+    "words": 1597,
+    "estimated_seconds": 638.8,
+    "pass": false
+  },
+  {
+    "id": "osc-l07",
+    "format": "long",
+    "locale": "fr",
+    "path": "content/long/fr/osc-07-why-selling-feels-difficult.md",
+    "words": 1592,
+    "estimated_seconds": 636.8,
+    "pass": false
+  },
+  {
+    "id": "osc-l08",
+    "format": "long",
+    "locale": "fr",
+    "path": "content/long/fr/osc-08-sales-without-chasing-everyone.md",
+    "words": 1610,
+    "estimated_seconds": 644.0,
+    "pass": false
+  },
+  {
+    "id": "pos-l02",
+    "format": "long",
+    "locale": "fr",
+    "path": "content/long/fr/pos-02-how-to-find-your-niche-without-making-yourself-too-small.md",
+    "words": 1577,
+    "estimated_seconds": 630.8,
+    "pass": false
+  },
+  {
+    "id": "pos-l05",
+    "format": "long",
+    "locale": "fr",
+    "path": "content/long/fr/pos-05-why-writing-a-book-can-make-you-the-expert.md",
+    "words": 1596,
+    "estimated_seconds": 638.4,
+    "pass": false
+  },
+  {
+    "id": "pos-l06",
+    "format": "long",
+    "locale": "fr",
+    "path": "content/long/fr/pos-06-how-to-reposition-yourself-when-your-business-changes.md",
+    "words": 1615,
+    "estimated_seconds": 646.0,
+    "pass": false
+  },
+  {
+    "id": "osc-s01a",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/osc-01a-revenue-is-not-a-good-business.md",
+    "words": 241,
+    "estimated_seconds": 93.3,
+    "pass": false
+  },
+  {
+    "id": "osc-s02b",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/osc-02b-stop-posting-where-your-customers-arent.md",
+    "words": 245,
+    "estimated_seconds": 94.8,
+    "pass": false
+  },
+  {
+    "id": "osc-s03b",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/osc-03b-the-promise-formula.md",
+    "words": 241,
+    "estimated_seconds": 93.3,
+    "pass": false
+  },
+  {
+    "id": "osc-s04b",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/osc-04b-make-your-offer-easier-to-buy.md",
+    "words": 247,
+    "estimated_seconds": 95.6,
+    "pass": false
+  },
+  {
+    "id": "pos-l01-s01",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/pos-l01-s01-being-good-isnt-enough.md",
+    "words": 245,
+    "estimated_seconds": 94.8,
+    "pass": false
+  },
+  {
+    "id": "pos-l01-s02",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/pos-l01-s02-expertise-vs-perception.md",
+    "words": 245,
+    "estimated_seconds": 94.8,
+    "pass": false
+  },
+  {
+    "id": "pos-l02-s01",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/pos-l02-s01-selling-to-everyone-is-the-problem.md",
+    "words": 247,
+    "estimated_seconds": 95.6,
+    "pass": false
+  },
+  {
+    "id": "pos-l02-s03",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/pos-l02-s03-market-problem-solution-test.md",
+    "words": 247,
+    "estimated_seconds": 95.6,
+    "pass": false
+  },
+  {
+    "id": "pos-l03-s01",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/pos-l03-s01-you-cant-just-call-yourself-an-expert.md",
+    "words": 251,
+    "estimated_seconds": 97.2,
+    "pass": false
+  },
+  {
+    "id": "pos-l03-s03",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/pos-l03-s03-your-website-has-five-seconds.md",
+    "words": 250,
+    "estimated_seconds": 96.8,
+    "pass": false
+  },
+  {
+    "id": "pos-l04-s01",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/pos-l04-s01-stop-posting-random-content.md",
+    "words": 243,
+    "estimated_seconds": 94.1,
+    "pass": false
+  },
+  {
+    "id": "pos-l04-s02",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/pos-l04-s02-the-goal-is-recognition-not-views.md",
+    "words": 249,
+    "estimated_seconds": 96.4,
+    "pass": false
+  },
+  {
+    "id": "pos-l04-s03",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/pos-l04-s03-make-other-people-talk-about-your-expertise.md",
+    "words": 248,
+    "estimated_seconds": 96.0,
+    "pass": false
+  },
+  {
+    "id": "pos-l05-s02",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/pos-l05-s02-dont-write-a-book-about-everything-you-know.md",
+    "words": 251,
+    "estimated_seconds": 97.2,
+    "pass": false
+  },
+  {
+    "id": "pos-l06-s02",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/pos-l06-s02-changing-your-bio-isnt-repositioning.md",
+    "words": 241,
+    "estimated_seconds": 93.3,
+    "pass": false
+  },
+  {
+    "id": "pos-l06-s03",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/pos-l06-s03-change-what-people-know-you-for.md",
+    "words": 245,
+    "estimated_seconds": 94.8,
+    "pass": false
+  }
+]

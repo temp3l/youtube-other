@@ -1,0 +1,2432 @@
+[
+  {
+    "id": "osc-l01",
+    "format": "long",
+    "locale": "en",
+    "path": "content/long/en/osc-01-a-good-business-starts-with-the-right-business-model.md",
+    "words": 1515,
+    "estimated_seconds": 606.0,
+    "pass": true
+  },
+  {
+    "id": "osc-l01",
+    "format": "long",
+    "locale": "de",
+    "path": "content/long/de/osc-01-a-good-business-starts-with-the-right-business-model.md",
+    "words": 1462,
+    "estimated_seconds": 605.0,
+    "pass": true
+  },
+  {
+    "id": "osc-l01",
+    "format": "long",
+    "locale": "es",
+    "path": "content/long/es/osc-01-a-good-business-starts-with-the-right-business-model.md",
+    "words": 1517,
+    "estimated_seconds": 606.8,
+    "pass": true
+  },
+  {
+    "id": "osc-l01",
+    "format": "long",
+    "locale": "it",
+    "path": "content/long/it/osc-01-a-good-business-starts-with-the-right-business-model.md",
+    "words": 1494,
+    "estimated_seconds": 597.6,
+    "pass": true
+  },
+  {
+    "id": "osc-l01",
+    "format": "long",
+    "locale": "fr",
+    "path": "content/long/fr/osc-01-a-good-business-starts-with-the-right-business-model.md",
+    "words": 1498,
+    "estimated_seconds": 599.2,
+    "pass": true
+  },
+  {
+    "id": "osc-l01",
+    "format": "long",
+    "locale": "pt",
+    "path": "content/long/pt/osc-01-a-good-business-starts-with-the-right-business-model.md",
+    "words": 1517,
+    "estimated_seconds": 606.8,
+    "pass": true
+  },
+  {
+    "id": "osc-l02",
+    "format": "long",
+    "locale": "en",
+    "path": "content/long/en/osc-02-your-ideal-customer-is-not-everyone.md",
+    "words": 1526,
+    "estimated_seconds": 610.4,
+    "pass": true
+  },
+  {
+    "id": "osc-l02",
+    "format": "long",
+    "locale": "de",
+    "path": "content/long/de/osc-02-your-ideal-customer-is-not-everyone.md",
+    "words": 1440,
+    "estimated_seconds": 595.9,
+    "pass": true
+  },
+  {
+    "id": "osc-l02",
+    "format": "long",
+    "locale": "es",
+    "path": "content/long/es/osc-02-your-ideal-customer-is-not-everyone.md",
+    "words": 1474,
+    "estimated_seconds": 589.6,
+    "pass": true
+  },
+  {
+    "id": "osc-l02",
+    "format": "long",
+    "locale": "it",
+    "path": "content/long/it/osc-02-your-ideal-customer-is-not-everyone.md",
+    "words": 1497,
+    "estimated_seconds": 598.8,
+    "pass": true
+  },
+  {
+    "id": "osc-l02",
+    "format": "long",
+    "locale": "fr",
+    "path": "content/long/fr/osc-02-your-ideal-customer-is-not-everyone.md",
+    "words": 1555,
+    "estimated_seconds": 622.0,
+    "pass": true
+  },
+  {
+    "id": "osc-l02",
+    "format": "long",
+    "locale": "pt",
+    "path": "content/long/pt/osc-02-your-ideal-customer-is-not-everyone.md",
+    "words": 1477,
+    "estimated_seconds": 590.8,
+    "pass": true
+  },
+  {
+    "id": "osc-l03",
+    "format": "long",
+    "locale": "en",
+    "path": "content/long/en/osc-03-people-dont-buy-your-product-they-buy-the-promise.md",
+    "words": 1515,
+    "estimated_seconds": 606.0,
+    "pass": true
+  },
+  {
+    "id": "osc-l03",
+    "format": "long",
+    "locale": "de",
+    "path": "content/long/de/osc-03-people-dont-buy-your-product-they-buy-the-promise.md",
+    "words": 1463,
+    "estimated_seconds": 605.4,
+    "pass": true
+  },
+  {
+    "id": "osc-l03",
+    "format": "long",
+    "locale": "es",
+    "path": "content/long/es/osc-03-people-dont-buy-your-product-they-buy-the-promise.md",
+    "words": 1509,
+    "estimated_seconds": 603.6,
+    "pass": true
+  },
+  {
+    "id": "osc-l03",
+    "format": "long",
+    "locale": "it",
+    "path": "content/long/it/osc-03-people-dont-buy-your-product-they-buy-the-promise.md",
+    "words": 1494,
+    "estimated_seconds": 597.6,
+    "pass": true
+  },
+  {
+    "id": "osc-l03",
+    "format": "long",
+    "locale": "fr",
+    "path": "content/long/fr/osc-03-people-dont-buy-your-product-they-buy-the-promise.md",
+    "words": 1597,
+    "estimated_seconds": 638.8,
+    "pass": false
+  },
+  {
+    "id": "osc-l03",
+    "format": "long",
+    "locale": "pt",
+    "path": "content/long/pt/osc-03-people-dont-buy-your-product-they-buy-the-promise.md",
+    "words": 1455,
+    "estimated_seconds": 582.0,
+    "pass": true
+  },
+  {
+    "id": "osc-l04",
+    "format": "long",
+    "locale": "en",
+    "path": "content/long/en/osc-04-how-to-build-an-offer-people-actually-want.md",
+    "words": 1546,
+    "estimated_seconds": 618.4,
+    "pass": true
+  },
+  {
+    "id": "osc-l04",
+    "format": "long",
+    "locale": "de",
+    "path": "content/long/de/osc-04-how-to-build-an-offer-people-actually-want.md",
+    "words": 1490,
+    "estimated_seconds": 616.6,
+    "pass": true
+  },
+  {
+    "id": "osc-l04",
+    "format": "long",
+    "locale": "es",
+    "path": "content/long/es/osc-04-how-to-build-an-offer-people-actually-want.md",
+    "words": 1514,
+    "estimated_seconds": 605.6,
+    "pass": true
+  },
+  {
+    "id": "osc-l04",
+    "format": "long",
+    "locale": "it",
+    "path": "content/long/it/osc-04-how-to-build-an-offer-people-actually-want.md",
+    "words": 1507,
+    "estimated_seconds": 602.8,
+    "pass": true
+  },
+  {
+    "id": "osc-l04",
+    "format": "long",
+    "locale": "fr",
+    "path": "content/long/fr/osc-04-how-to-build-an-offer-people-actually-want.md",
+    "words": 1502,
+    "estimated_seconds": 600.8,
+    "pass": true
+  },
+  {
+    "id": "osc-l04",
+    "format": "long",
+    "locale": "pt",
+    "path": "content/long/pt/osc-04-how-to-build-an-offer-people-actually-want.md",
+    "words": 1535,
+    "estimated_seconds": 614.0,
+    "pass": true
+  },
+  {
+    "id": "osc-l05",
+    "format": "long",
+    "locale": "en",
+    "path": "content/long/en/osc-05-stop-improving-the-marketing-fix-the-product.md",
+    "words": 1465,
+    "estimated_seconds": 586.0,
+    "pass": true
+  },
+  {
+    "id": "osc-l05",
+    "format": "long",
+    "locale": "de",
+    "path": "content/long/de/osc-05-stop-improving-the-marketing-fix-the-product.md",
+    "words": 1404,
+    "estimated_seconds": 581.0,
+    "pass": true
+  },
+  {
+    "id": "osc-l05",
+    "format": "long",
+    "locale": "es",
+    "path": "content/long/es/osc-05-stop-improving-the-marketing-fix-the-product.md",
+    "words": 1468,
+    "estimated_seconds": 587.2,
+    "pass": true
+  },
+  {
+    "id": "osc-l05",
+    "format": "long",
+    "locale": "it",
+    "path": "content/long/it/osc-05-stop-improving-the-marketing-fix-the-product.md",
+    "words": 1460,
+    "estimated_seconds": 584.0,
+    "pass": true
+  },
+  {
+    "id": "osc-l05",
+    "format": "long",
+    "locale": "fr",
+    "path": "content/long/fr/osc-05-stop-improving-the-marketing-fix-the-product.md",
+    "words": 1533,
+    "estimated_seconds": 613.2,
+    "pass": true
+  },
+  {
+    "id": "osc-l05",
+    "format": "long",
+    "locale": "pt",
+    "path": "content/long/pt/osc-05-stop-improving-the-marketing-fix-the-product.md",
+    "words": 1452,
+    "estimated_seconds": 580.8,
+    "pass": true
+  },
+  {
+    "id": "osc-l06",
+    "format": "long",
+    "locale": "en",
+    "path": "content/long/en/osc-06-attention-is-not-conversion.md",
+    "words": 1546,
+    "estimated_seconds": 618.4,
+    "pass": true
+  },
+  {
+    "id": "osc-l06",
+    "format": "long",
+    "locale": "de",
+    "path": "content/long/de/osc-06-attention-is-not-conversion.md",
+    "words": 1422,
+    "estimated_seconds": 588.4,
+    "pass": true
+  },
+  {
+    "id": "osc-l06",
+    "format": "long",
+    "locale": "es",
+    "path": "content/long/es/osc-06-attention-is-not-conversion.md",
+    "words": 1480,
+    "estimated_seconds": 592.0,
+    "pass": true
+  },
+  {
+    "id": "osc-l06",
+    "format": "long",
+    "locale": "it",
+    "path": "content/long/it/osc-06-attention-is-not-conversion.md",
+    "words": 1523,
+    "estimated_seconds": 609.2,
+    "pass": true
+  },
+  {
+    "id": "osc-l06",
+    "format": "long",
+    "locale": "fr",
+    "path": "content/long/fr/osc-06-attention-is-not-conversion.md",
+    "words": 1507,
+    "estimated_seconds": 602.8,
+    "pass": true
+  },
+  {
+    "id": "osc-l06",
+    "format": "long",
+    "locale": "pt",
+    "path": "content/long/pt/osc-06-attention-is-not-conversion.md",
+    "words": 1465,
+    "estimated_seconds": 586.0,
+    "pass": true
+  },
+  {
+    "id": "osc-l07",
+    "format": "long",
+    "locale": "en",
+    "path": "content/long/en/osc-07-why-selling-feels-difficult.md",
+    "words": 1479,
+    "estimated_seconds": 591.6,
+    "pass": true
+  },
+  {
+    "id": "osc-l07",
+    "format": "long",
+    "locale": "de",
+    "path": "content/long/de/osc-07-why-selling-feels-difficult.md",
+    "words": 1495,
+    "estimated_seconds": 618.6,
+    "pass": true
+  },
+  {
+    "id": "osc-l07",
+    "format": "long",
+    "locale": "es",
+    "path": "content/long/es/osc-07-why-selling-feels-difficult.md",
+    "words": 1481,
+    "estimated_seconds": 592.4,
+    "pass": true
+  },
+  {
+    "id": "osc-l07",
+    "format": "long",
+    "locale": "it",
+    "path": "content/long/it/osc-07-why-selling-feels-difficult.md",
+    "words": 1473,
+    "estimated_seconds": 589.2,
+    "pass": true
+  },
+  {
+    "id": "osc-l07",
+    "format": "long",
+    "locale": "fr",
+    "path": "content/long/fr/osc-07-why-selling-feels-difficult.md",
+    "words": 1592,
+    "estimated_seconds": 636.8,
+    "pass": false
+  },
+  {
+    "id": "osc-l07",
+    "format": "long",
+    "locale": "pt",
+    "path": "content/long/pt/osc-07-why-selling-feels-difficult.md",
+    "words": 1492,
+    "estimated_seconds": 596.8,
+    "pass": true
+  },
+  {
+    "id": "osc-l08",
+    "format": "long",
+    "locale": "en",
+    "path": "content/long/en/osc-08-sales-without-chasing-everyone.md",
+    "words": 1511,
+    "estimated_seconds": 604.4,
+    "pass": true
+  },
+  {
+    "id": "osc-l08",
+    "format": "long",
+    "locale": "de",
+    "path": "content/long/de/osc-08-sales-without-chasing-everyone.md",
+    "words": 1487,
+    "estimated_seconds": 615.3,
+    "pass": true
+  },
+  {
+    "id": "osc-l08",
+    "format": "long",
+    "locale": "es",
+    "path": "content/long/es/osc-08-sales-without-chasing-everyone.md",
+    "words": 1463,
+    "estimated_seconds": 585.2,
+    "pass": true
+  },
+  {
+    "id": "osc-l08",
+    "format": "long",
+    "locale": "it",
+    "path": "content/long/it/osc-08-sales-without-chasing-everyone.md",
+    "words": 1456,
+    "estimated_seconds": 582.4,
+    "pass": true
+  },
+  {
+    "id": "osc-l08",
+    "format": "long",
+    "locale": "fr",
+    "path": "content/long/fr/osc-08-sales-without-chasing-everyone.md",
+    "words": 1610,
+    "estimated_seconds": 644.0,
+    "pass": false
+  },
+  {
+    "id": "osc-l08",
+    "format": "long",
+    "locale": "pt",
+    "path": "content/long/pt/osc-08-sales-without-chasing-everyone.md",
+    "words": 1505,
+    "estimated_seconds": 602.0,
+    "pass": true
+  },
+  {
+    "id": "pos-l01",
+    "format": "long",
+    "locale": "en",
+    "path": "content/long/en/pos-01-why-being-good-at-your-job-isnt-enough.md",
+    "words": 1501,
+    "estimated_seconds": 600.4,
+    "pass": true
+  },
+  {
+    "id": "pos-l01",
+    "format": "long",
+    "locale": "de",
+    "path": "content/long/de/pos-01-why-being-good-at-your-job-isnt-enough.md",
+    "words": 1395,
+    "estimated_seconds": 577.2,
+    "pass": true
+  },
+  {
+    "id": "pos-l01",
+    "format": "long",
+    "locale": "it",
+    "path": "content/long/it/pos-01-why-being-good-at-your-job-isnt-enough.md",
+    "words": 1428,
+    "estimated_seconds": 571.2,
+    "pass": true
+  },
+  {
+    "id": "pos-l01",
+    "format": "long",
+    "locale": "fr",
+    "path": "content/long/fr/pos-01-why-being-good-at-your-job-isnt-enough.md",
+    "words": 1549,
+    "estimated_seconds": 619.6,
+    "pass": true
+  },
+  {
+    "id": "pos-l01",
+    "format": "long",
+    "locale": "pt",
+    "path": "content/long/pt/pos-01-why-being-good-at-your-job-isnt-enough.md",
+    "words": 1511,
+    "estimated_seconds": 604.4,
+    "pass": true
+  },
+  {
+    "id": "pos-l02",
+    "format": "long",
+    "locale": "en",
+    "path": "content/long/en/pos-02-how-to-find-your-niche-without-making-yourself-too-small.md",
+    "words": 1504,
+    "estimated_seconds": 601.6,
+    "pass": true
+  },
+  {
+    "id": "pos-l02",
+    "format": "long",
+    "locale": "de",
+    "path": "content/long/de/pos-02-how-to-find-your-niche-without-making-yourself-too-small.md",
+    "words": 1480,
+    "estimated_seconds": 612.4,
+    "pass": true
+  },
+  {
+    "id": "pos-l02",
+    "format": "long",
+    "locale": "it",
+    "path": "content/long/it/pos-02-how-to-find-your-niche-without-making-yourself-too-small.md",
+    "words": 1426,
+    "estimated_seconds": 570.4,
+    "pass": true
+  },
+  {
+    "id": "pos-l02",
+    "format": "long",
+    "locale": "fr",
+    "path": "content/long/fr/pos-02-how-to-find-your-niche-without-making-yourself-too-small.md",
+    "words": 1577,
+    "estimated_seconds": 630.8,
+    "pass": false
+  },
+  {
+    "id": "pos-l02",
+    "format": "long",
+    "locale": "pt",
+    "path": "content/long/pt/pos-02-how-to-find-your-niche-without-making-yourself-too-small.md",
+    "words": 1431,
+    "estimated_seconds": 572.4,
+    "pass": true
+  },
+  {
+    "id": "pos-l03",
+    "format": "long",
+    "locale": "en",
+    "path": "content/long/en/pos-03-how-to-position-yourself-as-an-expert-from-zero.md",
+    "words": 1456,
+    "estimated_seconds": 582.4,
+    "pass": true
+  },
+  {
+    "id": "pos-l03",
+    "format": "long",
+    "locale": "de",
+    "path": "content/long/de/pos-03-how-to-position-yourself-as-an-expert-from-zero.md",
+    "words": 1473,
+    "estimated_seconds": 609.5,
+    "pass": true
+  },
+  {
+    "id": "pos-l03",
+    "format": "long",
+    "locale": "it",
+    "path": "content/long/it/pos-03-how-to-position-yourself-as-an-expert-from-zero.md",
+    "words": 1428,
+    "estimated_seconds": 571.2,
+    "pass": true
+  },
+  {
+    "id": "pos-l03",
+    "format": "long",
+    "locale": "fr",
+    "path": "content/long/fr/pos-03-how-to-position-yourself-as-an-expert-from-zero.md",
+    "words": 1523,
+    "estimated_seconds": 609.2,
+    "pass": true
+  },
+  {
+    "id": "pos-l03",
+    "format": "long",
+    "locale": "pt",
+    "path": "content/long/pt/pos-03-how-to-position-yourself-as-an-expert-from-zero.md",
+    "words": 1461,
+    "estimated_seconds": 584.4,
+    "pass": true
+  },
+  {
+    "id": "pos-l04",
+    "format": "long",
+    "locale": "en",
+    "path": "content/long/en/pos-04-the-content-strategy-that-makes-people-remember-you.md",
+    "words": 1495,
+    "estimated_seconds": 598.0,
+    "pass": true
+  },
+  {
+    "id": "pos-l04",
+    "format": "long",
+    "locale": "de",
+    "path": "content/long/de/pos-04-the-content-strategy-that-makes-people-remember-you.md",
+    "words": 1485,
+    "estimated_seconds": 614.5,
+    "pass": true
+  },
+  {
+    "id": "pos-l04",
+    "format": "long",
+    "locale": "it",
+    "path": "content/long/it/pos-04-the-content-strategy-that-makes-people-remember-you.md",
+    "words": 1434,
+    "estimated_seconds": 573.6,
+    "pass": true
+  },
+  {
+    "id": "pos-l04",
+    "format": "long",
+    "locale": "fr",
+    "path": "content/long/fr/pos-04-the-content-strategy-that-makes-people-remember-you.md",
+    "words": 1544,
+    "estimated_seconds": 617.6,
+    "pass": true
+  },
+  {
+    "id": "pos-l04",
+    "format": "long",
+    "locale": "pt",
+    "path": "content/long/pt/pos-04-the-content-strategy-that-makes-people-remember-you.md",
+    "words": 1456,
+    "estimated_seconds": 582.4,
+    "pass": true
+  },
+  {
+    "id": "pos-l05",
+    "format": "long",
+    "locale": "en",
+    "path": "content/long/en/pos-05-why-writing-a-book-can-make-you-the-expert.md",
+    "words": 1575,
+    "estimated_seconds": 630.0,
+    "pass": true
+  },
+  {
+    "id": "pos-l05",
+    "format": "long",
+    "locale": "de",
+    "path": "content/long/de/pos-05-why-writing-a-book-can-make-you-the-expert.md",
+    "words": 1520,
+    "estimated_seconds": 629.0,
+    "pass": true
+  },
+  {
+    "id": "pos-l05",
+    "format": "long",
+    "locale": "it",
+    "path": "content/long/it/pos-05-why-writing-a-book-can-make-you-the-expert.md",
+    "words": 1511,
+    "estimated_seconds": 604.4,
+    "pass": true
+  },
+  {
+    "id": "pos-l05",
+    "format": "long",
+    "locale": "fr",
+    "path": "content/long/fr/pos-05-why-writing-a-book-can-make-you-the-expert.md",
+    "words": 1596,
+    "estimated_seconds": 638.4,
+    "pass": false
+  },
+  {
+    "id": "pos-l05",
+    "format": "long",
+    "locale": "pt",
+    "path": "content/long/pt/pos-05-why-writing-a-book-can-make-you-the-expert.md",
+    "words": 1521,
+    "estimated_seconds": 608.4,
+    "pass": true
+  },
+  {
+    "id": "pos-l06",
+    "format": "long",
+    "locale": "en",
+    "path": "content/long/en/pos-06-how-to-reposition-yourself-when-your-business-changes.md",
+    "words": 1512,
+    "estimated_seconds": 604.8,
+    "pass": true
+  },
+  {
+    "id": "pos-l06",
+    "format": "long",
+    "locale": "de",
+    "path": "content/long/de/pos-06-how-to-reposition-yourself-when-your-business-changes.md",
+    "words": 1513,
+    "estimated_seconds": 626.1,
+    "pass": true
+  },
+  {
+    "id": "pos-l06",
+    "format": "long",
+    "locale": "it",
+    "path": "content/long/it/pos-06-how-to-reposition-yourself-when-your-business-changes.md",
+    "words": 1497,
+    "estimated_seconds": 598.8,
+    "pass": true
+  },
+  {
+    "id": "pos-l06",
+    "format": "long",
+    "locale": "fr",
+    "path": "content/long/fr/pos-06-how-to-reposition-yourself-when-your-business-changes.md",
+    "words": 1615,
+    "estimated_seconds": 646.0,
+    "pass": false
+  },
+  {
+    "id": "pos-l06",
+    "format": "long",
+    "locale": "pt",
+    "path": "content/long/pt/pos-06-how-to-reposition-yourself-when-your-business-changes.md",
+    "words": 1499,
+    "estimated_seconds": 599.6,
+    "pass": true
+  },
+  {
+    "id": "tx-l004",
+    "format": "long",
+    "locale": "en",
+    "path": "content/long/en/tx-l004.md",
+    "words": 1476,
+    "estimated_seconds": 590.4,
+    "pass": true
+  },
+  {
+    "id": "tx-l011",
+    "format": "long",
+    "locale": "en",
+    "path": "content/long/en/tx-l011.md",
+    "words": 1522,
+    "estimated_seconds": 608.8,
+    "pass": true
+  },
+  {
+    "id": "tx-l018",
+    "format": "long",
+    "locale": "en",
+    "path": "content/long/en/tx-l018.md",
+    "words": 1526,
+    "estimated_seconds": 610.4,
+    "pass": true
+  },
+  {
+    "id": "tx-l050",
+    "format": "long",
+    "locale": "en",
+    "path": "content/long/en/tx-l050.md",
+    "words": 1518,
+    "estimated_seconds": 607.2,
+    "pass": true
+  },
+  {
+    "id": "osc-s01a",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/osc-01a-revenue-is-not-a-good-business.md",
+    "words": 229,
+    "estimated_seconds": 88.6,
+    "pass": true
+  },
+  {
+    "id": "osc-s01a",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/osc-01a-revenue-is-not-a-good-business.md",
+    "words": 220,
+    "estimated_seconds": 88.0,
+    "pass": true
+  },
+  {
+    "id": "osc-s01a",
+    "format": "short",
+    "locale": "es",
+    "path": "content/shorts/es/osc-01a-revenue-is-not-a-good-business.md",
+    "words": 229,
+    "estimated_seconds": 88.6,
+    "pass": true
+  },
+  {
+    "id": "osc-s01a",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/osc-01a-revenue-is-not-a-good-business.md",
+    "words": 229,
+    "estimated_seconds": 88.6,
+    "pass": true
+  },
+  {
+    "id": "osc-s01a",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/osc-01a-revenue-is-not-a-good-business.md",
+    "words": 241,
+    "estimated_seconds": 93.3,
+    "pass": false
+  },
+  {
+    "id": "osc-s01a",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/osc-01a-revenue-is-not-a-good-business.md",
+    "words": 232,
+    "estimated_seconds": 89.8,
+    "pass": true
+  },
+  {
+    "id": "osc-s01b",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/osc-01b-if-you-stop-working-does-your-revenue-stop-too.md",
+    "words": 233,
+    "estimated_seconds": 90.2,
+    "pass": true
+  },
+  {
+    "id": "osc-s01b",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/osc-01b-if-you-stop-working-does-your-revenue-stop-too.md",
+    "words": 226,
+    "estimated_seconds": 90.4,
+    "pass": true
+  },
+  {
+    "id": "osc-s01b",
+    "format": "short",
+    "locale": "es",
+    "path": "content/shorts/es/osc-01b-if-you-stop-working-does-your-revenue-stop-too.md",
+    "words": 235,
+    "estimated_seconds": 91.0,
+    "pass": true
+  },
+  {
+    "id": "osc-s01b",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/osc-01b-if-you-stop-working-does-your-revenue-stop-too.md",
+    "words": 231,
+    "estimated_seconds": 89.4,
+    "pass": true
+  },
+  {
+    "id": "osc-s01b",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/osc-01b-if-you-stop-working-does-your-revenue-stop-too.md",
+    "words": 231,
+    "estimated_seconds": 89.4,
+    "pass": true
+  },
+  {
+    "id": "osc-s01b",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/osc-01b-if-you-stop-working-does-your-revenue-stop-too.md",
+    "words": 232,
+    "estimated_seconds": 89.8,
+    "pass": true
+  },
+  {
+    "id": "osc-s02a",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/osc-02a-stop-targeting-everyone.md",
+    "words": 226,
+    "estimated_seconds": 87.5,
+    "pass": true
+  },
+  {
+    "id": "osc-s02a",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/osc-02a-stop-targeting-everyone.md",
+    "words": 227,
+    "estimated_seconds": 90.8,
+    "pass": true
+  },
+  {
+    "id": "osc-s02a",
+    "format": "short",
+    "locale": "es",
+    "path": "content/shorts/es/osc-02a-stop-targeting-everyone.md",
+    "words": 232,
+    "estimated_seconds": 89.8,
+    "pass": true
+  },
+  {
+    "id": "osc-s02a",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/osc-02a-stop-targeting-everyone.md",
+    "words": 233,
+    "estimated_seconds": 90.2,
+    "pass": true
+  },
+  {
+    "id": "osc-s02a",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/osc-02a-stop-targeting-everyone.md",
+    "words": 239,
+    "estimated_seconds": 92.5,
+    "pass": true
+  },
+  {
+    "id": "osc-s02a",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/osc-02a-stop-targeting-everyone.md",
+    "words": 233,
+    "estimated_seconds": 90.2,
+    "pass": true
+  },
+  {
+    "id": "osc-s02b",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/osc-02b-stop-posting-where-your-customers-arent.md",
+    "words": 228,
+    "estimated_seconds": 88.3,
+    "pass": true
+  },
+  {
+    "id": "osc-s02b",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/osc-02b-stop-posting-where-your-customers-arent.md",
+    "words": 220,
+    "estimated_seconds": 88.0,
+    "pass": true
+  },
+  {
+    "id": "osc-s02b",
+    "format": "short",
+    "locale": "es",
+    "path": "content/shorts/es/osc-02b-stop-posting-where-your-customers-arent.md",
+    "words": 225,
+    "estimated_seconds": 87.1,
+    "pass": true
+  },
+  {
+    "id": "osc-s02b",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/osc-02b-stop-posting-where-your-customers-arent.md",
+    "words": 227,
+    "estimated_seconds": 87.9,
+    "pass": true
+  },
+  {
+    "id": "osc-s02b",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/osc-02b-stop-posting-where-your-customers-arent.md",
+    "words": 245,
+    "estimated_seconds": 94.8,
+    "pass": false
+  },
+  {
+    "id": "osc-s02b",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/osc-02b-stop-posting-where-your-customers-arent.md",
+    "words": 226,
+    "estimated_seconds": 87.5,
+    "pass": true
+  },
+  {
+    "id": "osc-s03a",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/osc-03a-what-does-your-customer-really-buy.md",
+    "words": 234,
+    "estimated_seconds": 90.6,
+    "pass": true
+  },
+  {
+    "id": "osc-s03a",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/osc-03a-what-does-your-customer-really-buy.md",
+    "words": 227,
+    "estimated_seconds": 90.8,
+    "pass": true
+  },
+  {
+    "id": "osc-s03a",
+    "format": "short",
+    "locale": "es",
+    "path": "content/shorts/es/osc-03a-what-does-your-customer-really-buy.md",
+    "words": 228,
+    "estimated_seconds": 88.3,
+    "pass": true
+  },
+  {
+    "id": "osc-s03a",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/osc-03a-what-does-your-customer-really-buy.md",
+    "words": 230,
+    "estimated_seconds": 89.0,
+    "pass": true
+  },
+  {
+    "id": "osc-s03a",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/osc-03a-what-does-your-customer-really-buy.md",
+    "words": 237,
+    "estimated_seconds": 91.7,
+    "pass": true
+  },
+  {
+    "id": "osc-s03a",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/osc-03a-what-does-your-customer-really-buy.md",
+    "words": 234,
+    "estimated_seconds": 90.6,
+    "pass": true
+  },
+  {
+    "id": "osc-s03b",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/osc-03b-the-promise-formula.md",
+    "words": 240,
+    "estimated_seconds": 92.9,
+    "pass": true
+  },
+  {
+    "id": "osc-s03b",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/osc-03b-the-promise-formula.md",
+    "words": 224,
+    "estimated_seconds": 89.6,
+    "pass": true
+  },
+  {
+    "id": "osc-s03b",
+    "format": "short",
+    "locale": "es",
+    "path": "content/shorts/es/osc-03b-the-promise-formula.md",
+    "words": 237,
+    "estimated_seconds": 91.7,
+    "pass": true
+  },
+  {
+    "id": "osc-s03b",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/osc-03b-the-promise-formula.md",
+    "words": 234,
+    "estimated_seconds": 90.6,
+    "pass": true
+  },
+  {
+    "id": "osc-s03b",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/osc-03b-the-promise-formula.md",
+    "words": 241,
+    "estimated_seconds": 93.3,
+    "pass": false
+  },
+  {
+    "id": "osc-s03b",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/osc-03b-the-promise-formula.md",
+    "words": 229,
+    "estimated_seconds": 88.6,
+    "pass": true
+  },
+  {
+    "id": "osc-s04a",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/osc-04a-why-good-products-still-dont-sell.md",
+    "words": 232,
+    "estimated_seconds": 89.8,
+    "pass": true
+  },
+  {
+    "id": "osc-s04a",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/osc-04a-why-good-products-still-dont-sell.md",
+    "words": 225,
+    "estimated_seconds": 90.0,
+    "pass": true
+  },
+  {
+    "id": "osc-s04a",
+    "format": "short",
+    "locale": "es",
+    "path": "content/shorts/es/osc-04a-why-good-products-still-dont-sell.md",
+    "words": 229,
+    "estimated_seconds": 88.6,
+    "pass": true
+  },
+  {
+    "id": "osc-s04a",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/osc-04a-why-good-products-still-dont-sell.md",
+    "words": 234,
+    "estimated_seconds": 90.6,
+    "pass": true
+  },
+  {
+    "id": "osc-s04a",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/osc-04a-why-good-products-still-dont-sell.md",
+    "words": 237,
+    "estimated_seconds": 91.7,
+    "pass": true
+  },
+  {
+    "id": "osc-s04a",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/osc-04a-why-good-products-still-dont-sell.md",
+    "words": 232,
+    "estimated_seconds": 89.8,
+    "pass": true
+  },
+  {
+    "id": "osc-s04b",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/osc-04b-make-your-offer-easier-to-buy.md",
+    "words": 235,
+    "estimated_seconds": 91.0,
+    "pass": true
+  },
+  {
+    "id": "osc-s04b",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/osc-04b-make-your-offer-easier-to-buy.md",
+    "words": 219,
+    "estimated_seconds": 87.6,
+    "pass": true
+  },
+  {
+    "id": "osc-s04b",
+    "format": "short",
+    "locale": "es",
+    "path": "content/shorts/es/osc-04b-make-your-offer-easier-to-buy.md",
+    "words": 230,
+    "estimated_seconds": 89.0,
+    "pass": true
+  },
+  {
+    "id": "osc-s04b",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/osc-04b-make-your-offer-easier-to-buy.md",
+    "words": 236,
+    "estimated_seconds": 91.4,
+    "pass": true
+  },
+  {
+    "id": "osc-s04b",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/osc-04b-make-your-offer-easier-to-buy.md",
+    "words": 247,
+    "estimated_seconds": 95.6,
+    "pass": false
+  },
+  {
+    "id": "osc-s04b",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/osc-04b-make-your-offer-easier-to-buy.md",
+    "words": 234,
+    "estimated_seconds": 90.6,
+    "pass": true
+  },
+  {
+    "id": "osc-s05a",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/osc-05a-marketing-may-not-be-the-problem.md",
+    "words": 234,
+    "estimated_seconds": 90.6,
+    "pass": true
+  },
+  {
+    "id": "osc-s05a",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/osc-05a-marketing-may-not-be-the-problem.md",
+    "words": 224,
+    "estimated_seconds": 89.6,
+    "pass": true
+  },
+  {
+    "id": "osc-s05a",
+    "format": "short",
+    "locale": "es",
+    "path": "content/shorts/es/osc-05a-marketing-may-not-be-the-problem.md",
+    "words": 232,
+    "estimated_seconds": 89.8,
+    "pass": true
+  },
+  {
+    "id": "osc-s05a",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/osc-05a-marketing-may-not-be-the-problem.md",
+    "words": 234,
+    "estimated_seconds": 90.6,
+    "pass": true
+  },
+  {
+    "id": "osc-s05a",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/osc-05a-marketing-may-not-be-the-problem.md",
+    "words": 237,
+    "estimated_seconds": 91.7,
+    "pass": true
+  },
+  {
+    "id": "osc-s05a",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/osc-05a-marketing-may-not-be-the-problem.md",
+    "words": 233,
+    "estimated_seconds": 90.2,
+    "pass": true
+  },
+  {
+    "id": "osc-s05b",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/osc-05b-too-many-choices-kill-the-offer.md",
+    "words": 234,
+    "estimated_seconds": 90.6,
+    "pass": true
+  },
+  {
+    "id": "osc-s05b",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/osc-05b-too-many-choices-kill-the-offer.md",
+    "words": 221,
+    "estimated_seconds": 88.4,
+    "pass": true
+  },
+  {
+    "id": "osc-s05b",
+    "format": "short",
+    "locale": "es",
+    "path": "content/shorts/es/osc-05b-too-many-choices-kill-the-offer.md",
+    "words": 231,
+    "estimated_seconds": 89.4,
+    "pass": true
+  },
+  {
+    "id": "osc-s05b",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/osc-05b-too-many-choices-kill-the-offer.md",
+    "words": 234,
+    "estimated_seconds": 90.6,
+    "pass": true
+  },
+  {
+    "id": "osc-s05b",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/osc-05b-too-many-choices-kill-the-offer.md",
+    "words": 233,
+    "estimated_seconds": 90.2,
+    "pass": true
+  },
+  {
+    "id": "osc-s05b",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/osc-05b-too-many-choices-kill-the-offer.md",
+    "words": 232,
+    "estimated_seconds": 89.8,
+    "pass": true
+  },
+  {
+    "id": "osc-s06a",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/osc-06a-views-are-not-sales.md",
+    "words": 235,
+    "estimated_seconds": 91.0,
+    "pass": true
+  },
+  {
+    "id": "osc-s06a",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/osc-06a-views-are-not-sales.md",
+    "words": 218,
+    "estimated_seconds": 87.2,
+    "pass": true
+  },
+  {
+    "id": "osc-s06a",
+    "format": "short",
+    "locale": "es",
+    "path": "content/shorts/es/osc-06a-views-are-not-sales.md",
+    "words": 226,
+    "estimated_seconds": 87.5,
+    "pass": true
+  },
+  {
+    "id": "osc-s06a",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/osc-06a-views-are-not-sales.md",
+    "words": 233,
+    "estimated_seconds": 90.2,
+    "pass": true
+  },
+  {
+    "id": "osc-s06a",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/osc-06a-views-are-not-sales.md",
+    "words": 237,
+    "estimated_seconds": 91.7,
+    "pass": true
+  },
+  {
+    "id": "osc-s06a",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/osc-06a-views-are-not-sales.md",
+    "words": 236,
+    "estimated_seconds": 91.4,
+    "pass": true
+  },
+  {
+    "id": "osc-s06b",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/osc-06b-trust-comes-before-conversion.md",
+    "words": 230,
+    "estimated_seconds": 89.0,
+    "pass": true
+  },
+  {
+    "id": "osc-s06b",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/osc-06b-trust-comes-before-conversion.md",
+    "words": 227,
+    "estimated_seconds": 90.8,
+    "pass": true
+  },
+  {
+    "id": "osc-s06b",
+    "format": "short",
+    "locale": "es",
+    "path": "content/shorts/es/osc-06b-trust-comes-before-conversion.md",
+    "words": 234,
+    "estimated_seconds": 90.6,
+    "pass": true
+  },
+  {
+    "id": "osc-s06b",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/osc-06b-trust-comes-before-conversion.md",
+    "words": 233,
+    "estimated_seconds": 90.2,
+    "pass": true
+  },
+  {
+    "id": "osc-s06b",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/osc-06b-trust-comes-before-conversion.md",
+    "words": 234,
+    "estimated_seconds": 90.6,
+    "pass": true
+  },
+  {
+    "id": "osc-s06b",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/osc-06b-trust-comes-before-conversion.md",
+    "words": 231,
+    "estimated_seconds": 89.4,
+    "pass": true
+  },
+  {
+    "id": "osc-s07a",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/osc-07a-why-selling-feels-uncomfortable.md",
+    "words": 233,
+    "estimated_seconds": 90.2,
+    "pass": true
+  },
+  {
+    "id": "osc-s07a",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/osc-07a-why-selling-feels-uncomfortable.md",
+    "words": 225,
+    "estimated_seconds": 90.0,
+    "pass": true
+  },
+  {
+    "id": "osc-s07a",
+    "format": "short",
+    "locale": "es",
+    "path": "content/shorts/es/osc-07a-why-selling-feels-uncomfortable.md",
+    "words": 234,
+    "estimated_seconds": 90.6,
+    "pass": true
+  },
+  {
+    "id": "osc-s07a",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/osc-07a-why-selling-feels-uncomfortable.md",
+    "words": 233,
+    "estimated_seconds": 90.2,
+    "pass": true
+  },
+  {
+    "id": "osc-s07a",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/osc-07a-why-selling-feels-uncomfortable.md",
+    "words": 237,
+    "estimated_seconds": 91.7,
+    "pass": true
+  },
+  {
+    "id": "osc-s07a",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/osc-07a-why-selling-feels-uncomfortable.md",
+    "words": 233,
+    "estimated_seconds": 90.2,
+    "pass": true
+  },
+  {
+    "id": "osc-s07b",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/osc-07b-selling-isnt-manipulation.md",
+    "words": 230,
+    "estimated_seconds": 89.0,
+    "pass": true
+  },
+  {
+    "id": "osc-s07b",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/osc-07b-selling-isnt-manipulation.md",
+    "words": 222,
+    "estimated_seconds": 88.8,
+    "pass": true
+  },
+  {
+    "id": "osc-s07b",
+    "format": "short",
+    "locale": "es",
+    "path": "content/shorts/es/osc-07b-selling-isnt-manipulation.md",
+    "words": 226,
+    "estimated_seconds": 87.5,
+    "pass": true
+  },
+  {
+    "id": "osc-s07b",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/osc-07b-selling-isnt-manipulation.md",
+    "words": 234,
+    "estimated_seconds": 90.6,
+    "pass": true
+  },
+  {
+    "id": "osc-s07b",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/osc-07b-selling-isnt-manipulation.md",
+    "words": 233,
+    "estimated_seconds": 90.2,
+    "pass": true
+  },
+  {
+    "id": "osc-s07b",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/osc-07b-selling-isnt-manipulation.md",
+    "words": 227,
+    "estimated_seconds": 87.9,
+    "pass": true
+  },
+  {
+    "id": "osc-s08a",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/osc-08a-stop-chasing-customers.md",
+    "words": 233,
+    "estimated_seconds": 90.2,
+    "pass": true
+  },
+  {
+    "id": "osc-s08a",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/osc-08a-stop-chasing-customers.md",
+    "words": 226,
+    "estimated_seconds": 90.4,
+    "pass": true
+  },
+  {
+    "id": "osc-s08a",
+    "format": "short",
+    "locale": "es",
+    "path": "content/shorts/es/osc-08a-stop-chasing-customers.md",
+    "words": 229,
+    "estimated_seconds": 88.6,
+    "pass": true
+  },
+  {
+    "id": "osc-s08a",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/osc-08a-stop-chasing-customers.md",
+    "words": 232,
+    "estimated_seconds": 89.8,
+    "pass": true
+  },
+  {
+    "id": "osc-s08a",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/osc-08a-stop-chasing-customers.md",
+    "words": 228,
+    "estimated_seconds": 88.3,
+    "pass": true
+  },
+  {
+    "id": "osc-s08a",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/osc-08a-stop-chasing-customers.md",
+    "words": 234,
+    "estimated_seconds": 90.6,
+    "pass": true
+  },
+  {
+    "id": "osc-s08b",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/osc-08b-prospecting-without-being-annoying.md",
+    "words": 228,
+    "estimated_seconds": 88.3,
+    "pass": true
+  },
+  {
+    "id": "osc-s08b",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/osc-08b-prospecting-without-being-annoying.md",
+    "words": 224,
+    "estimated_seconds": 89.6,
+    "pass": true
+  },
+  {
+    "id": "osc-s08b",
+    "format": "short",
+    "locale": "es",
+    "path": "content/shorts/es/osc-08b-prospecting-without-being-annoying.md",
+    "words": 226,
+    "estimated_seconds": 87.5,
+    "pass": true
+  },
+  {
+    "id": "osc-s08b",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/osc-08b-prospecting-without-being-annoying.md",
+    "words": 234,
+    "estimated_seconds": 90.6,
+    "pass": true
+  },
+  {
+    "id": "osc-s08b",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/osc-08b-prospecting-without-being-annoying.md",
+    "words": 240,
+    "estimated_seconds": 92.9,
+    "pass": true
+  },
+  {
+    "id": "osc-s08b",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/osc-08b-prospecting-without-being-annoying.md",
+    "words": 225,
+    "estimated_seconds": 87.1,
+    "pass": true
+  },
+  {
+    "id": "pos-l01-s01",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/pos-l01-s01-being-good-isnt-enough.md",
+    "words": 232,
+    "estimated_seconds": 89.8,
+    "pass": true
+  },
+  {
+    "id": "pos-l01-s01",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/pos-l01-s01-being-good-isnt-enough.md",
+    "words": 231,
+    "estimated_seconds": 92.4,
+    "pass": true
+  },
+  {
+    "id": "pos-l01-s01",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/pos-l01-s01-being-good-isnt-enough.md",
+    "words": 233,
+    "estimated_seconds": 90.2,
+    "pass": true
+  },
+  {
+    "id": "pos-l01-s01",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/pos-l01-s01-being-good-isnt-enough.md",
+    "words": 245,
+    "estimated_seconds": 94.8,
+    "pass": false
+  },
+  {
+    "id": "pos-l01-s01",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/pos-l01-s01-being-good-isnt-enough.md",
+    "words": 234,
+    "estimated_seconds": 90.6,
+    "pass": true
+  },
+  {
+    "id": "pos-l01-s02",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/pos-l01-s02-expertise-vs-perception.md",
+    "words": 230,
+    "estimated_seconds": 89.0,
+    "pass": true
+  },
+  {
+    "id": "pos-l01-s02",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/pos-l01-s02-expertise-vs-perception.md",
+    "words": 225,
+    "estimated_seconds": 90.0,
+    "pass": true
+  },
+  {
+    "id": "pos-l01-s02",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/pos-l01-s02-expertise-vs-perception.md",
+    "words": 239,
+    "estimated_seconds": 92.5,
+    "pass": true
+  },
+  {
+    "id": "pos-l01-s02",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/pos-l01-s02-expertise-vs-perception.md",
+    "words": 245,
+    "estimated_seconds": 94.8,
+    "pass": false
+  },
+  {
+    "id": "pos-l01-s02",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/pos-l01-s02-expertise-vs-perception.md",
+    "words": 230,
+    "estimated_seconds": 89.0,
+    "pass": true
+  },
+  {
+    "id": "pos-l01-s03",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/pos-l01-s03-what-do-people-remember-you-for.md",
+    "words": 229,
+    "estimated_seconds": 88.6,
+    "pass": true
+  },
+  {
+    "id": "pos-l01-s03",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/pos-l01-s03-what-do-people-remember-you-for.md",
+    "words": 222,
+    "estimated_seconds": 88.8,
+    "pass": true
+  },
+  {
+    "id": "pos-l01-s03",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/pos-l01-s03-what-do-people-remember-you-for.md",
+    "words": 227,
+    "estimated_seconds": 87.9,
+    "pass": true
+  },
+  {
+    "id": "pos-l01-s03",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/pos-l01-s03-what-do-people-remember-you-for.md",
+    "words": 236,
+    "estimated_seconds": 91.4,
+    "pass": true
+  },
+  {
+    "id": "pos-l01-s03",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/pos-l01-s03-what-do-people-remember-you-for.md",
+    "words": 232,
+    "estimated_seconds": 89.8,
+    "pass": true
+  },
+  {
+    "id": "pos-l02-s01",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/pos-l02-s01-selling-to-everyone-is-the-problem.md",
+    "words": 235,
+    "estimated_seconds": 91.0,
+    "pass": true
+  },
+  {
+    "id": "pos-l02-s01",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/pos-l02-s01-selling-to-everyone-is-the-problem.md",
+    "words": 230,
+    "estimated_seconds": 92.0,
+    "pass": true
+  },
+  {
+    "id": "pos-l02-s01",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/pos-l02-s01-selling-to-everyone-is-the-problem.md",
+    "words": 239,
+    "estimated_seconds": 92.5,
+    "pass": true
+  },
+  {
+    "id": "pos-l02-s01",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/pos-l02-s01-selling-to-everyone-is-the-problem.md",
+    "words": 247,
+    "estimated_seconds": 95.6,
+    "pass": false
+  },
+  {
+    "id": "pos-l02-s01",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/pos-l02-s01-selling-to-everyone-is-the-problem.md",
+    "words": 230,
+    "estimated_seconds": 89.0,
+    "pass": true
+  },
+  {
+    "id": "pos-l02-s02",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/pos-l02-s02-why-smaller-niches-can-make-you-bigger.md",
+    "words": 226,
+    "estimated_seconds": 87.5,
+    "pass": true
+  },
+  {
+    "id": "pos-l02-s02",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/pos-l02-s02-why-smaller-niches-can-make-you-bigger.md",
+    "words": 222,
+    "estimated_seconds": 88.8,
+    "pass": true
+  },
+  {
+    "id": "pos-l02-s02",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/pos-l02-s02-why-smaller-niches-can-make-you-bigger.md",
+    "words": 240,
+    "estimated_seconds": 92.9,
+    "pass": true
+  },
+  {
+    "id": "pos-l02-s02",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/pos-l02-s02-why-smaller-niches-can-make-you-bigger.md",
+    "words": 240,
+    "estimated_seconds": 92.9,
+    "pass": true
+  },
+  {
+    "id": "pos-l02-s02",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/pos-l02-s02-why-smaller-niches-can-make-you-bigger.md",
+    "words": 238,
+    "estimated_seconds": 92.1,
+    "pass": true
+  },
+  {
+    "id": "pos-l02-s03",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/pos-l02-s03-market-problem-solution-test.md",
+    "words": 229,
+    "estimated_seconds": 88.6,
+    "pass": true
+  },
+  {
+    "id": "pos-l02-s03",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/pos-l02-s03-market-problem-solution-test.md",
+    "words": 231,
+    "estimated_seconds": 92.4,
+    "pass": true
+  },
+  {
+    "id": "pos-l02-s03",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/pos-l02-s03-market-problem-solution-test.md",
+    "words": 227,
+    "estimated_seconds": 87.9,
+    "pass": true
+  },
+  {
+    "id": "pos-l02-s03",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/pos-l02-s03-market-problem-solution-test.md",
+    "words": 247,
+    "estimated_seconds": 95.6,
+    "pass": false
+  },
+  {
+    "id": "pos-l02-s03",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/pos-l02-s03-market-problem-solution-test.md",
+    "words": 228,
+    "estimated_seconds": 88.3,
+    "pass": true
+  },
+  {
+    "id": "pos-l03-s01",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/pos-l03-s01-you-cant-just-call-yourself-an-expert.md",
+    "words": 226,
+    "estimated_seconds": 87.5,
+    "pass": true
+  },
+  {
+    "id": "pos-l03-s01",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/pos-l03-s01-you-cant-just-call-yourself-an-expert.md",
+    "words": 232,
+    "estimated_seconds": 92.8,
+    "pass": true
+  },
+  {
+    "id": "pos-l03-s01",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/pos-l03-s01-you-cant-just-call-yourself-an-expert.md",
+    "words": 226,
+    "estimated_seconds": 87.5,
+    "pass": true
+  },
+  {
+    "id": "pos-l03-s01",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/pos-l03-s01-you-cant-just-call-yourself-an-expert.md",
+    "words": 251,
+    "estimated_seconds": 97.2,
+    "pass": false
+  },
+  {
+    "id": "pos-l03-s01",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/pos-l03-s01-you-cant-just-call-yourself-an-expert.md",
+    "words": 232,
+    "estimated_seconds": 89.8,
+    "pass": true
+  },
+  {
+    "id": "pos-l03-s02",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/pos-l03-s02-three-signals-to-build-from-zero.md",
+    "words": 235,
+    "estimated_seconds": 91.0,
+    "pass": true
+  },
+  {
+    "id": "pos-l03-s02",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/pos-l03-s02-three-signals-to-build-from-zero.md",
+    "words": 233,
+    "estimated_seconds": 93.2,
+    "pass": true
+  },
+  {
+    "id": "pos-l03-s02",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/pos-l03-s02-three-signals-to-build-from-zero.md",
+    "words": 228,
+    "estimated_seconds": 88.3,
+    "pass": true
+  },
+  {
+    "id": "pos-l03-s02",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/pos-l03-s02-three-signals-to-build-from-zero.md",
+    "words": 240,
+    "estimated_seconds": 92.9,
+    "pass": true
+  },
+  {
+    "id": "pos-l03-s02",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/pos-l03-s02-three-signals-to-build-from-zero.md",
+    "words": 227,
+    "estimated_seconds": 87.9,
+    "pass": true
+  },
+  {
+    "id": "pos-l03-s03",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/pos-l03-s03-your-website-has-five-seconds.md",
+    "words": 239,
+    "estimated_seconds": 92.5,
+    "pass": true
+  },
+  {
+    "id": "pos-l03-s03",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/pos-l03-s03-your-website-has-five-seconds.md",
+    "words": 233,
+    "estimated_seconds": 93.2,
+    "pass": true
+  },
+  {
+    "id": "pos-l03-s03",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/pos-l03-s03-your-website-has-five-seconds.md",
+    "words": 232,
+    "estimated_seconds": 89.8,
+    "pass": true
+  },
+  {
+    "id": "pos-l03-s03",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/pos-l03-s03-your-website-has-five-seconds.md",
+    "words": 250,
+    "estimated_seconds": 96.8,
+    "pass": false
+  },
+  {
+    "id": "pos-l03-s03",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/pos-l03-s03-your-website-has-five-seconds.md",
+    "words": 234,
+    "estimated_seconds": 90.6,
+    "pass": true
+  },
+  {
+    "id": "pos-l04-s01",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/pos-l04-s01-stop-posting-random-content.md",
+    "words": 229,
+    "estimated_seconds": 88.6,
+    "pass": true
+  },
+  {
+    "id": "pos-l04-s01",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/pos-l04-s01-stop-posting-random-content.md",
+    "words": 230,
+    "estimated_seconds": 92.0,
+    "pass": true
+  },
+  {
+    "id": "pos-l04-s01",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/pos-l04-s01-stop-posting-random-content.md",
+    "words": 231,
+    "estimated_seconds": 89.4,
+    "pass": true
+  },
+  {
+    "id": "pos-l04-s01",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/pos-l04-s01-stop-posting-random-content.md",
+    "words": 243,
+    "estimated_seconds": 94.1,
+    "pass": false
+  },
+  {
+    "id": "pos-l04-s01",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/pos-l04-s01-stop-posting-random-content.md",
+    "words": 235,
+    "estimated_seconds": 91.0,
+    "pass": true
+  },
+  {
+    "id": "pos-l04-s02",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/pos-l04-s02-the-goal-is-recognition-not-views.md",
+    "words": 230,
+    "estimated_seconds": 89.0,
+    "pass": true
+  },
+  {
+    "id": "pos-l04-s02",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/pos-l04-s02-the-goal-is-recognition-not-views.md",
+    "words": 229,
+    "estimated_seconds": 91.6,
+    "pass": true
+  },
+  {
+    "id": "pos-l04-s02",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/pos-l04-s02-the-goal-is-recognition-not-views.md",
+    "words": 231,
+    "estimated_seconds": 89.4,
+    "pass": true
+  },
+  {
+    "id": "pos-l04-s02",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/pos-l04-s02-the-goal-is-recognition-not-views.md",
+    "words": 249,
+    "estimated_seconds": 96.4,
+    "pass": false
+  },
+  {
+    "id": "pos-l04-s02",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/pos-l04-s02-the-goal-is-recognition-not-views.md",
+    "words": 231,
+    "estimated_seconds": 89.4,
+    "pass": true
+  },
+  {
+    "id": "pos-l04-s03",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/pos-l04-s03-make-other-people-talk-about-your-expertise.md",
+    "words": 235,
+    "estimated_seconds": 91.0,
+    "pass": true
+  },
+  {
+    "id": "pos-l04-s03",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/pos-l04-s03-make-other-people-talk-about-your-expertise.md",
+    "words": 233,
+    "estimated_seconds": 93.2,
+    "pass": true
+  },
+  {
+    "id": "pos-l04-s03",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/pos-l04-s03-make-other-people-talk-about-your-expertise.md",
+    "words": 229,
+    "estimated_seconds": 88.6,
+    "pass": true
+  },
+  {
+    "id": "pos-l04-s03",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/pos-l04-s03-make-other-people-talk-about-your-expertise.md",
+    "words": 248,
+    "estimated_seconds": 96.0,
+    "pass": false
+  },
+  {
+    "id": "pos-l04-s03",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/pos-l04-s03-make-other-people-talk-about-your-expertise.md",
+    "words": 240,
+    "estimated_seconds": 92.9,
+    "pass": true
+  },
+  {
+    "id": "pos-l05-s01",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/pos-l05-s01-you-dont-need-a-publisher.md",
+    "words": 234,
+    "estimated_seconds": 90.6,
+    "pass": true
+  },
+  {
+    "id": "pos-l05-s01",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/pos-l05-s01-you-dont-need-a-publisher.md",
+    "words": 232,
+    "estimated_seconds": 92.8,
+    "pass": true
+  },
+  {
+    "id": "pos-l05-s01",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/pos-l05-s01-you-dont-need-a-publisher.md",
+    "words": 240,
+    "estimated_seconds": 92.9,
+    "pass": true
+  },
+  {
+    "id": "pos-l05-s01",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/pos-l05-s01-you-dont-need-a-publisher.md",
+    "words": 237,
+    "estimated_seconds": 91.7,
+    "pass": true
+  },
+  {
+    "id": "pos-l05-s01",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/pos-l05-s01-you-dont-need-a-publisher.md",
+    "words": 238,
+    "estimated_seconds": 92.1,
+    "pass": true
+  },
+  {
+    "id": "pos-l05-s02",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/pos-l05-s02-dont-write-a-book-about-everything-you-know.md",
+    "words": 237,
+    "estimated_seconds": 91.7,
+    "pass": true
+  },
+  {
+    "id": "pos-l05-s02",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/pos-l05-s02-dont-write-a-book-about-everything-you-know.md",
+    "words": 231,
+    "estimated_seconds": 92.4,
+    "pass": true
+  },
+  {
+    "id": "pos-l05-s02",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/pos-l05-s02-dont-write-a-book-about-everything-you-know.md",
+    "words": 230,
+    "estimated_seconds": 89.0,
+    "pass": true
+  },
+  {
+    "id": "pos-l05-s02",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/pos-l05-s02-dont-write-a-book-about-everything-you-know.md",
+    "words": 251,
+    "estimated_seconds": 97.2,
+    "pass": false
+  },
+  {
+    "id": "pos-l05-s02",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/pos-l05-s02-dont-write-a-book-about-everything-you-know.md",
+    "words": 234,
+    "estimated_seconds": 90.6,
+    "pass": true
+  },
+  {
+    "id": "pos-l05-s03",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/pos-l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+    "words": 240,
+    "estimated_seconds": 92.9,
+    "pass": true
+  },
+  {
+    "id": "pos-l05-s03",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/pos-l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+    "words": 220,
+    "estimated_seconds": 88.0,
+    "pass": true
+  },
+  {
+    "id": "pos-l05-s03",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/pos-l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+    "words": 227,
+    "estimated_seconds": 87.9,
+    "pass": true
+  },
+  {
+    "id": "pos-l05-s03",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/pos-l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+    "words": 232,
+    "estimated_seconds": 89.8,
+    "pass": true
+  },
+  {
+    "id": "pos-l05-s03",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/pos-l05-s03-one-book-can-become-fifty-pieces-of-content.md",
+    "words": 240,
+    "estimated_seconds": 92.9,
+    "pass": true
+  },
+  {
+    "id": "pos-l06-s01",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/pos-l06-s01-your-audience-remembers-the-old-you.md",
+    "words": 234,
+    "estimated_seconds": 90.6,
+    "pass": true
+  },
+  {
+    "id": "pos-l06-s01",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/pos-l06-s01-your-audience-remembers-the-old-you.md",
+    "words": 227,
+    "estimated_seconds": 90.8,
+    "pass": true
+  },
+  {
+    "id": "pos-l06-s01",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/pos-l06-s01-your-audience-remembers-the-old-you.md",
+    "words": 229,
+    "estimated_seconds": 88.6,
+    "pass": true
+  },
+  {
+    "id": "pos-l06-s01",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/pos-l06-s01-your-audience-remembers-the-old-you.md",
+    "words": 237,
+    "estimated_seconds": 91.7,
+    "pass": true
+  },
+  {
+    "id": "pos-l06-s01",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/pos-l06-s01-your-audience-remembers-the-old-you.md",
+    "words": 228,
+    "estimated_seconds": 88.3,
+    "pass": true
+  },
+  {
+    "id": "pos-l06-s02",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/pos-l06-s02-changing-your-bio-isnt-repositioning.md",
+    "words": 231,
+    "estimated_seconds": 89.4,
+    "pass": true
+  },
+  {
+    "id": "pos-l06-s02",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/pos-l06-s02-changing-your-bio-isnt-repositioning.md",
+    "words": 219,
+    "estimated_seconds": 87.6,
+    "pass": true
+  },
+  {
+    "id": "pos-l06-s02",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/pos-l06-s02-changing-your-bio-isnt-repositioning.md",
+    "words": 240,
+    "estimated_seconds": 92.9,
+    "pass": true
+  },
+  {
+    "id": "pos-l06-s02",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/pos-l06-s02-changing-your-bio-isnt-repositioning.md",
+    "words": 241,
+    "estimated_seconds": 93.3,
+    "pass": false
+  },
+  {
+    "id": "pos-l06-s02",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/pos-l06-s02-changing-your-bio-isnt-repositioning.md",
+    "words": 226,
+    "estimated_seconds": 87.5,
+    "pass": true
+  },
+  {
+    "id": "pos-l06-s03",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/pos-l06-s03-change-what-people-know-you-for.md",
+    "words": 233,
+    "estimated_seconds": 90.2,
+    "pass": true
+  },
+  {
+    "id": "pos-l06-s03",
+    "format": "short",
+    "locale": "de",
+    "path": "content/shorts/de/pos-l06-s03-change-what-people-know-you-for.md",
+    "words": 233,
+    "estimated_seconds": 93.2,
+    "pass": true
+  },
+  {
+    "id": "pos-l06-s03",
+    "format": "short",
+    "locale": "it",
+    "path": "content/shorts/it/pos-l06-s03-change-what-people-know-you-for.md",
+    "words": 233,
+    "estimated_seconds": 90.2,
+    "pass": true
+  },
+  {
+    "id": "pos-l06-s03",
+    "format": "short",
+    "locale": "fr",
+    "path": "content/shorts/fr/pos-l06-s03-change-what-people-know-you-for.md",
+    "words": 245,
+    "estimated_seconds": 94.8,
+    "pass": false
+  },
+  {
+    "id": "pos-l06-s03",
+    "format": "short",
+    "locale": "pt",
+    "path": "content/shorts/pt/pos-l06-s03-change-what-people-know-you-for.md",
+    "words": 239,
+    "estimated_seconds": 92.5,
+    "pass": true
+  },
+  {
+    "id": "tx-s021",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/tx-s021.md",
+    "words": 234,
+    "estimated_seconds": 90.6,
+    "pass": true
+  },
+  {
+    "id": "tx-s027",
+    "format": "short",
+    "locale": "en",
+    "path": "content/shorts/en/tx-s027.md",
+    "words": 231,
+    "estimated_seconds": 89.4,
+    "pass": true
+  }
+]
